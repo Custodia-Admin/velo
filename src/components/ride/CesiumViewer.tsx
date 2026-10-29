@@ -28,6 +28,7 @@ import {
   type SceneMood,
 } from '@/lib/cesiumUtils';
 import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
+import { scenicRouteById } from '@/lib/scenicRoutes';
 import { WORLD_TOUR_STAGES } from '@/lib/worldTourStages';
 import {
   buildGradientPolylines,
@@ -618,11 +619,15 @@ export function CesiumViewer({
 
     // Resolve the scene mood: prefer explicit mood from the route catalog,
     // fall back to the heuristic moodForRoute() based on distance + ascent.
-    // Lookup order: IconicRoute catalog → WorldTourStage catalog → heuristic.
+    // Lookup order: IconicRoute catalog → Easy & Scenic → WorldTourStage
+    // catalog → heuristic.
     let resolvedMood: SceneMood = moodForRoute(route);
     const iconicMatch = ICONIC_ROUTES.find((r) => r.route.id === route.id);
+    const scenicMatch = iconicMatch ? undefined : scenicRouteById(route.id);
     if (iconicMatch?.mood) {
       resolvedMood = iconicMatch.mood as MoodId;
+    } else if (scenicMatch) {
+      resolvedMood = scenicMatch.mood;
     } else {
       const wtsMatch = WORLD_TOUR_STAGES.find((s) => s.route.id === route.id);
       if (wtsMatch?.info.mood) resolvedMood = wtsMatch.info.mood as MoodId;

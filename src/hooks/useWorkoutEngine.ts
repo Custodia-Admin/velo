@@ -16,6 +16,8 @@
  *   4a. If target is watts/ftpPct/rampPct → ERG mode:
  *         - Connected trainer: setTrainerControlMode('erg') + setTargetPower(watts) throttled ~1 Hz.
  *         - Demo mode: solveVelocity(targetWatts, grade, rider) for realistic speed.
+ *       With settings.ergEnabled === false (Velo default) the target is a
+ *       HUD guide only and the trainer stays in SIM at the comfort difficulty.
  *   4b. If target is grade → sim mode: setTrainerControlMode('sim') + setSimulationParams.
  *   4c. If target is free → no trainer control; reuse demo/trainer speed as-is.
  *   5. Calls `tick()` with the computed speed/power/position so telemetry is
@@ -36,6 +38,7 @@ import { gradientAt, EmaSmoother, elevationAt } from '@/lib/gradientCalculator';
 import { sampleRouteAtDistance } from '@/lib/gpxParser';
 import { solveVelocity, ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics';
 import { segmentAt, resolveTargetWatts } from '@/lib/workout';
+import { scaleGradeForTrainer } from '@/lib/trainerComfort';
 import {
   setTargetPower,
   setSimulationParams,
@@ -168,6 +171,34 @@ export function useWorkoutEngine(): void {
           power = settings.demoPowerW;
         }
         store.setState({ workoutTargetWatts: null, targetPowerW: null });
+
+      } else if (!settings.ergEnabled) {
+        // Power target with ERG switched off (Velo default): the target is a
+        // guide on the HUD only. The trainer stays in SIM and follows the
+        // route at the rider's comfort difficulty.
+        const ergW = targetW!;
+        useRideStore.getState().setTrainerControlModeSynced('sim');
+        if (s.connection === 'connected' && shouldSend) {
+          lastSentT.current = now;
+          const trainerGrade = scaleGradeForTrainer(grade, settings.trainerDifficulty);
+          store.setState({ lastSentGrade: trainerGrade });
+          const headwindMs =
+            settings.windSpeedMs * Math.cos((settings.windDirectionDeg * Math.PI) / 180);
+          setSimulationParams({
+            gradePct: trainerGrade,
+            windMs: headwindMs,
+            crrScaled: ftmsCrr(rider),
+            cwScaled: ftmsCw(rider),
+          }).catch(() => undefined);
+        }
+        store.setState({ workoutTargetWatts: ergW, targetPowerW: null });
+        if (s.mode === 'trainer' && s.speed > 0) {
+          speed = s.speed;
+          power = s.power || null;
+        } else {
+          speed = solveVelocity(ergW, grade, rider);
+          power = ergW;
+        }
 
       } else {
         // ERG mode — targetW is non-null here (watts / ftpPct / rampPct).

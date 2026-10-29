@@ -9,6 +9,7 @@ import {
   setTargetPower,
 } from '@/lib/ftms';
 import { gpsToGradePct, shouldAutoPause, distanceMeters } from '@/lib/outdoorGps';
+import { scaleGradeForTrainer } from '@/lib/trainerComfort';
 import { estimatePowerFromGps } from '@/lib/outdoorPower';
 import type { GpsSample } from '@/lib/outdoorGps';
 import {
@@ -179,16 +180,18 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
             setTargetPower(targetW).catch(() => undefined);
           }
         } else {
-          // SIM: push gradient (+ physics coefficients) to trainer.
-          const gradeChanged = Math.abs(grade - s.lastSentGrade) > 0.5;
+          // SIM: push gradient (+ physics coefficients) to trainer, scaled by
+          // the rider's comfort difficulty. The world and physics stay real.
+          const trainerGrade = scaleGradeForTrainer(grade, settings.trainerDifficulty);
+          const gradeChanged = Math.abs(trainerGrade - s.lastSentGrade) > 0.5;
           if (now - lastSentT.current > 850 || gradeChanged) {
             lastSentT.current = now;
-            useRideStore.setState({ lastSentGrade: grade });
+            useRideStore.setState({ lastSentGrade: trainerGrade });
             // Project headwind onto the rider's forward axis for the trainer.
             const headwindMs =
               settings.windSpeedMs * Math.cos((settings.windDirectionDeg * Math.PI) / 180);
             setSimulationParams({
-              gradePct: grade,
+              gradePct: trainerGrade,
               windMs: headwindMs,
               crrScaled: ftmsCrr(rider),
               cwScaled: ftmsCw(rider),
