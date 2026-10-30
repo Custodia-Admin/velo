@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { sanitizeForLabel } from '@/lib/security/sanitize';
@@ -7,6 +7,13 @@ import { useRideStore } from '@/stores/rideStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useGhostStore } from '@/stores/ghostStore';
+import { useRouteWeather } from '@/hooks/useLiveWeather';
+import {
+  resolveSceneWeather,
+  sceneKey,
+  type SceneWeather,
+} from '@/lib/meteo/sceneWeather';
+import type { Route } from '@/types';
 import {
   applyFollowCam,
   applySceneMood,
@@ -25,7 +32,6 @@ import {
   setActiveViewer,
   setupBaseImagery,
   type MoodId,
-  type SceneMood,
 } from '@/lib/cesiumUtils';
 import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
 import { scenicRouteById } from '@/lib/scenicRoutes';
@@ -49,7 +55,6 @@ import { BOT_COLORWAYS } from '@/lib/paceBots';
 import {
   createWeatherSystem,
   type WeatherSystem,
-  type WeatherKind,
 } from '@/lib/weatherParticles';
 import {
   configureSky,
@@ -64,9 +69,7 @@ import {
   type ShadowHandle,
 } from '@/lib/dynamicShadow';
 import {
-  shouldUseWetMaterial,
-  createWetRoadMaterial,
-  updateWetMaterialTime,
+  createWetRoadSurfaceProperty,
 } from '@/lib/wetRoadMaterial';
 import {
   spectatorZonesForRoute,
@@ -122,46 +125,19 @@ const GHOST_COLORS: AvatarColors = {
   accent: '#93c5fd',
 };
 
-// ---------------------------------------------------------------------------
-// Heuristic: derive a WeatherKind from the mood-name string when the mood
-// entry doesn't carry an explicit `weather` field. Maps known weather-
-// associated names; everything else returns 'none'.
-// ---------------------------------------------------------------------------
-function weatherKindFromMoodName(moodName: string): WeatherKind {
-  if (
-    moodName === 'fjord-rain' ||
-    moodName === 'alpine-storm' ||
-    moodName === 'overcast-rain'
-  ) return 'rain';
-
-  if (
-    moodName === 'alpine-snow' ||
-    moodName === 'winter-ride'
-  ) return 'snow';
-
-  if (
-    moodName === 'mediterranean-mist' ||
-    moodName === 'coastal-fog' ||
-    moodName === 'valley-fog'
-  ) return 'fog';
-
-  return 'none';
-}
-
 /**
- * Resolve the WeatherKind for a mood value. Supports both the string-based
- * SceneMood form and an object form where the mood entry carries an
- * optional `weather` field.
+ * The route's own cinematic mood: IconicRoute catalog → Easy & Scenic →
+ * WorldTourStage catalog → distance/ascent heuristic. Live weather may
+ * replace it (see lib/meteo/sceneWeather).
  */
-function resolveWeatherKind(mood: unknown): WeatherKind {
-  // Object form — explicit `weather` field wins over name heuristics.
-  if (mood && typeof mood === 'object' && 'weather' in mood) {
-    const w = (mood as { weather?: WeatherKind }).weather;
-    return w ?? 'none';
-  }
-  // Current string form.
-  if (typeof mood === 'string') return weatherKindFromMoodName(mood);
-  return 'none';
+function cannedMoodForRoute(route: Route): MoodId {
+  const iconicMatch = ICONIC_ROUTES.find((r) => r.route.id === route.id);
+  if (iconicMatch?.mood) return iconicMatch.mood as MoodId;
+  const scenicMatch = scenicRouteById(route.id);
+  if (scenicMatch) return scenicMatch.mood;
+  const wtsMatch = WORLD_TOUR_STAGES.find((st) => st.route.id === route.id);
+  if (wtsMatch?.info.mood) return wtsMatch.info.mood as MoodId;
+  return moodForRoute(route);
 }
 
 // Camera transition duration in milliseconds.
@@ -214,8 +190,11 @@ export function CesiumViewer({
   const spectatorCollectionRef = useRef<SpectatorCollection | null>(null);
   // Pre-computed along-route distance for each spectator (parallel array).
   const spectatorDistancesRef = useRef<number[]>([]);
-  // Active wet-road material instance — null when the mood is not rain.
-  const wetMaterialRef = useRef<import('cesium').Material | null>(null);
+  // Road material saved before the wet surface replaced it, so a live change
+  // from rain to dry can put it back. Null while the road is dry.
+  const dryMaterialsRef = useRef<{ corridor: unknown } | null>(null);
+  // Scene currently applied (live or canned); read by the quality effect.
+  const appliedSceneRef = useRef<SceneWeather | null>(null);
   // Live polyline entity for outdoor GPS mode.
   const livePolylineEntityRef = useRef<Cesium.Entity | null>(null);
   // Strava segment portal handles — rebuilt on route change, destroyed on cleanup.
@@ -243,6 +222,19 @@ export function CesiumViewer({
   const lastCamModeRef = useRef<string>('chase');
 
   const route = useRideStore((s) => s.route);
+
+  // Live weather for the route start drives the atmosphere when enabled.
+  const liveWeatherEnabled = useSettingsStore((s) => s.liveWeatherEnabled);
+  const weatherEntry = useRouteWeather(route);
+  const liveWeather = weatherEntry?.status === 'ready' ? weatherEntry.weather : null;
+  const atmosphere = useMemo(
+    () =>
+      route
+        ? resolveSceneWeather(cannedMoodForRoute(route), liveWeather, liveWeatherEnabled)
+        : null,
+    [route, liveWeather, liveWeatherEnabled],
+  );
+  const atmosphereKey = atmosphere ? sceneKey(atmosphere) : 'none';
   const rideMode = useRideStore((s) => s.rideMode);
   const livePolyline = useRideStore((s) => s.livePolyline);
   const flyToTarget = useRideStore((s) => s.flyToTarget);
@@ -484,7 +476,6 @@ export function CesiumViewer({
       spectatorCollectionRef.current?.destroy();
       spectatorCollectionRef.current = null;
       spectatorDistancesRef.current = [];
-      wetMaterialRef.current = null;
       segmentPortalHandleRef.current?.destroy();
       segmentPortalHandleRef.current = null;
       // ---- Road surface cleanup ----
@@ -527,12 +518,10 @@ export function CesiumViewer({
     applyCinematicEffects(viewer, graphicsQuality);
 
     // Rebuild weather system at new quality budget when a route is loaded.
-    const currentRoute = useRideStore.getState().route;
-    if (currentRoute && weatherSystemRef.current) {
-      const mood = moodForRoute(currentRoute);
-      const weatherKind = resolveWeatherKind(mood);
+    const applied = appliedSceneRef.current;
+    if (applied && weatherSystemRef.current) {
       weatherSystemRef.current.dispose();
-      weatherSystemRef.current = createWeatherSystem(viewer, weatherKind, graphicsQuality);
+      weatherSystemRef.current = createWeatherSystem(viewer, applied.particles, graphicsQuality);
     }
   }, [graphicsQuality]);
 
@@ -599,7 +588,7 @@ export function CesiumViewer({
     spectatorCollectionRef.current?.destroy();
     spectatorCollectionRef.current = null;
     spectatorDistancesRef.current = [];
-    wetMaterialRef.current = null;
+    dryMaterialsRef.current = null;
 
     // Tear down previous segment portals.
     segmentPortalHandleRef.current?.destroy();
@@ -617,48 +606,8 @@ export function CesiumViewer({
 
     if (!route) return;
 
-    // Resolve the scene mood: prefer explicit mood from the route catalog,
-    // fall back to the heuristic moodForRoute() based on distance + ascent.
-    // Lookup order: IconicRoute catalog → Easy & Scenic → WorldTourStage
-    // catalog → heuristic.
-    let resolvedMood: SceneMood = moodForRoute(route);
-    const iconicMatch = ICONIC_ROUTES.find((r) => r.route.id === route.id);
-    const scenicMatch = iconicMatch ? undefined : scenicRouteById(route.id);
-    if (iconicMatch?.mood) {
-      resolvedMood = iconicMatch.mood as MoodId;
-    } else if (scenicMatch) {
-      resolvedMood = scenicMatch.mood;
-    } else {
-      const wtsMatch = WORLD_TOUR_STAGES.find((s) => s.route.id === route.id);
-      if (wtsMatch?.info.mood) resolvedMood = wtsMatch.info.mood as MoodId;
-    }
-
-    // Apply the mood: clock time drives sun angle; atmosphere params set the sky.
-    const midLon = route.points[Math.floor(route.points.length / 2)].lon;
-    const moodParams = MOODS[resolvedMood];
-    viewer.clock.currentTime = julianDateForMood(midLon, moodParams.sunHourFromNoon);
-    viewer.clock.shouldAnimate = false;
-    applySceneMood(viewer, resolvedMood);
-
-    // resolveWeatherKind handles both the current string SceneMood and the
-    // extended object form that adds (weather?: WeatherKind field).
-    const weatherKind = resolveWeatherKind(resolvedMood);
-    const currentQuality = useSettingsStore.getState().graphicsQuality;
-    weatherSystemRef.current = createWeatherSystem(viewer, weatherKind, currentQuality);
-
-    // Apply sky config for this mood (clock, lighting, skyBox).
-    const midLat = route.points[Math.floor(route.points.length / 2)].lat;
-    const skyCleanup = configureSky(viewer, moodParams.sky, midLon);
-    skyCleanupRef.current = skyCleanup;
-    // Spawn clouds — quality-gated: low=0, medium=half, high=full count.
-    const cloudCount = scaledCloudCount(moodParams.sky.cloudCount, currentQuality);
-    cloudCollectionRef.current = spawnCumulusClouds(
-      viewer,
-      midLat,
-      midLon,
-      cloudCount,
-      moodParams.sky.cloudAltitudeM,
-    );
+    // Mood, sky, clouds, particles and the wet road are applied by the
+    // atmosphere effect below, which also reacts to live weather.
 
     const positions = routeToCartesians(route);
     cartesianRouteRef.current = positions;
@@ -680,25 +629,6 @@ export function CesiumViewer({
     roadEdgeStripesRef.current = createRoadEdgeStripes(viewer, route);
     kmMarkersRef.current = createKmMarkers(viewer, route, positions);
     climbArchesRef.current = createClimbArches(viewer, route, positions);
-
-    // When the active mood is rain, apply the wet-road material to the corridor.
-    if (shouldUseWetMaterial(resolvedMood as string)) {
-      const mat = createWetRoadMaterial();
-      wetMaterialRef.current = mat;
-      if (roadEntityRef.current?.entity.corridor) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (roadEntityRef.current.entity.corridor as any).material = mat;
-      }
-      // Also apply to gradient segments for the narrow colored lines underneath.
-      for (const seg of gradientSegmentsRef.current) {
-        if (seg.entity.polyline) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (seg.entity.polyline as any).material = mat;
-        }
-      }
-    } else {
-      wetMaterialRef.current = null;
-    }
 
     // Only World Tour routes with spectatorClimbs defined get crowds.
     const spectZones = spectatorZonesForRoute(route);
@@ -809,6 +739,62 @@ export function CesiumViewer({
     // local dev usually had a warm Cesium connection so the viewer was
     // ready before the effect ran.
   }, [route, viewerReady]);
+
+  // ---- Atmosphere: mood, sky, clouds, particles, wet road ----
+  // Live weather (Open-Meteo at the route start) when enabled and available,
+  // otherwise the route's canned mood. Re-runs when the weather arrives or
+  // changes, without rebuilding the route.
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed() || !route || !atmosphere) return;
+
+    weatherSystemRef.current?.dispose();
+    weatherSystemRef.current = null;
+    skyCleanupRef.current?.();
+    skyCleanupRef.current = null;
+    if (cloudCollectionRef.current) {
+      try { viewer.scene.primitives.remove(cloudCollectionRef.current); } catch { /* torn down */ }
+      cloudCollectionRef.current = null;
+    }
+
+    const scene = atmosphere;
+    appliedSceneRef.current = scene;
+    const moodParams = MOODS[scene.mood];
+
+    // Clock time drives the sun angle; atmosphere params set the sky.
+    const mid = route.points[Math.floor(route.points.length / 2)];
+    viewer.clock.currentTime = julianDateForMood(mid.lon, moodParams.sunHourFromNoon);
+    viewer.clock.shouldAnimate = false;
+    applySceneMood(viewer, scene.mood);
+
+    const quality = useSettingsStore.getState().graphicsQuality;
+    weatherSystemRef.current = createWeatherSystem(viewer, scene.particles, quality);
+    skyCleanupRef.current = configureSky(viewer, moodParams.sky, mid.lon);
+    cloudCollectionRef.current = spawnCumulusClouds(
+      viewer,
+      mid.lat,
+      mid.lon,
+      scaledCloudCount(scene.cloudCount ?? moodParams.sky.cloudCount, quality),
+      moodParams.sky.cloudAltitudeM,
+    );
+
+    // Wet road: darken the corridor, remembering the dry material so a change
+    // back to dry restores it. The gradient lines keep their colours.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const corridor = roadEntityRef.current?.entity.corridor as any;
+    if (scene.wet) {
+      if (corridor && !dryMaterialsRef.current) {
+        dryMaterialsRef.current = { corridor: corridor.material };
+      }
+      if (corridor) corridor.material = createWetRoadSurfaceProperty();
+    } else if (dryMaterialsRef.current) {
+      if (corridor) corridor.material = dryMaterialsRef.current.corridor;
+      dryMaterialsRef.current = null;
+    }
+    // Keyed on atmosphereKey, not `atmosphere`: a refreshed reading that
+    // renders the same scene must not rebuild clouds and particles.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route, viewerReady, atmosphereKey]);
 
   // ---- React to route-search fly-to requests ----
   useEffect(() => {
@@ -994,12 +980,6 @@ export function CesiumViewer({
             },
           });
         }
-      }
-
-      // Advance the wet-road streak animation.
-      // performance.now() is monotonic; scaled to a slow drift in the shader.
-      if (wetMaterialRef.current) {
-        updateWetMaterialTime(wetMaterialRef.current, performance.now());
       }
 
       // Spectator crowds — fade based on rider proximity.

@@ -7,6 +7,7 @@ import type { LowLightSetting } from '@/lib/lowLightMode';
 import { type CameraMode, isCameraMode } from '@/lib/cesiumCameras';
 import type { Workout } from '@/lib/workout';
 import { DEFAULT_TRAINER_DIFFICULTY, clampDifficulty } from '@/lib/trainerComfort';
+import { DEFAULT_WIND_FEEL, isWindFeel, type WindFeel } from '@/lib/meteo/windFeel';
 import {
   emptyPlan,
   setDay as setPlanDay,
@@ -113,6 +114,14 @@ export interface RiderSettings {
    * in SIM, following the route at `trainerDifficulty`.
    */
   ergEnabled: boolean;
+  /**
+   * How much live wind loads the trainer (per rider). 'subtle' = a third of
+   * the real effect, capped; 'real' = physical; 'off' = ignore wind.
+   */
+  windFeel: WindFeel;
+  // ---- Live weather (household) ----
+  /** Drive sky, fog, rain and wind from Open-Meteo at the route. */
+  liveWeatherEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -152,6 +161,8 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   coachPlan: null,
   trainerDifficulty: DEFAULT_TRAINER_DIFFICULTY,
   ergEnabled: false,
+  windFeel: DEFAULT_WIND_FEEL,
+  liveWeatherEnabled: true,
 };
 
 type CommentaryPatch = Partial<
@@ -313,6 +324,12 @@ export const useSettingsStore = create<SettingsStoreState>()(
         ergEnabled:
           (persisted as Partial<RiderSettings>).ergEnabled ??
           DEFAULT_SETTINGS.ergEnabled,
+        windFeel: isWindFeel((persisted as Partial<RiderSettings>).windFeel)
+          ? (persisted as Partial<RiderSettings>).windFeel!
+          : DEFAULT_SETTINGS.windFeel,
+        liveWeatherEnabled:
+          (persisted as Partial<RiderSettings>).liveWeatherEnabled ??
+          DEFAULT_SETTINGS.liveWeatherEnabled,
       }),
       partialize: (s) =>
         ({
@@ -352,6 +369,8 @@ export const useSettingsStore = create<SettingsStoreState>()(
           coachPlan: s.coachPlan,
           trainerDifficulty: s.trainerDifficulty,
           ergEnabled: s.ergEnabled,
+          windFeel: s.windFeel,
+          liveWeatherEnabled: s.liveWeatherEnabled,
         }) satisfies RiderSettings,
     },
   ),

@@ -35,6 +35,19 @@ export function shouldUseWetMaterial(moodId: string): boolean {
   return RAIN_MOODS.has(moodId as MoodId);
 }
 
+/** Dark, slightly blue wet-asphalt tone for the road corridor in rain. */
+export const WET_ROAD_COLOR = new Cesium.Color(0.17, 0.2, 0.25, 0.95);
+
+/**
+ * Wet look for the road corridor ENTITY. Entity graphics only accept a
+ * MaterialProperty; assigning the fabric Material from createWetRoadMaterial()
+ * throws "Unable to infer material type" in Cesium's debug build and is
+ * silently dropped in the release build.
+ */
+export function createWetRoadSurfaceProperty(): Cesium.MaterialProperty {
+  return new Cesium.ColorMaterialProperty(WET_ROAD_COLOR);
+}
+
 // ---------------------------------------------------------------------------
 // GLSL shader source
 // ---------------------------------------------------------------------------
