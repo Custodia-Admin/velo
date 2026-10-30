@@ -203,7 +203,11 @@ has to be made in software:
   At `k = 1` this is exactly the input grade.
 - Applied after the comfort scaling (trainer difficulty), clamped to the same
   −10 % … 20 % limits, sent through the existing single FTMS writer and
-  throttle. ERG mode ignores gears.
+  throttle (a shift is sent at once instead of waiting for the next tick).
+  ERG mode ignores gears.
+- The ride store keeps the trainer's own speed (`trainerSpeed`) next to the
+  shown speed, so the geared speed is always computed from the trainer's
+  figure and never compounds frame to frame.
 
 Serpentine has the same idea as its "FTMS fallback"; Velo's formula is
 derived independently and keeps the k = 1 case an exact identity, so with no
@@ -226,11 +230,31 @@ So it is a follow-up, not part of this card.
 
 - No controller, or controller asleep or locked: gear stays neutral, `k = 1`,
   steering 0. The ride loop sends exactly what it sent before this change.
-- Controller drops mid-ride: Velo retries the connection a few times, then
-  shows "asleep". Gear stays where it was so the resistance does not jump; the
-  rider can shift again once it is back.
+- Controller drops mid-ride: Velo retries five times (1, 2, 4, 8, 15 s).
+  While it retries the gear stays where it was, so the resistance does not
+  jump. If it does not come back it is shown as "asleep" and the trainer goes
+  back to the neutral gear (plain trainer feel). "Reconnect" in the Trainer
+  panel tries again without the chooser.
 - Browsers without Web Bluetooth: the "Handlebar controls" section does not
   render.
+
+## Where it lives in the code
+
+| File | What |
+| --- | --- |
+| `src/lib/controllers/rideProtocol.ts` | Pure codec: UUIDs, button masks, keypad / lever / battery parsing, haptic and info commands |
+| `src/lib/controllers/rideController.ts` | Web Bluetooth client: chooser, handshake, notifications, lock / silent detection, reconnect, buzz, hex log |
+| `src/lib/controllers/controllerActions.ts` | Button → Velo action mapping and the legend text |
+| `src/lib/virtualGears.ts` | Gear table and the equivalent-grade formula |
+| `src/lib/laneOffset.ts` | Steering: lane offset easing and the sideways shift |
+| `src/stores/controllerStore.ts` | Status, battery, gear, steering input; only "steer with the levers" is saved |
+| `src/hooks/useRideControllerActions.ts` | Runs the actions during a ride (Ride page only) |
+| `src/components/velo/ControllerPanel.tsx`, `ControllerChip.tsx` | Trainer-panel section and the in-ride gear / hills readout |
+| `scripts/ui-shots-controls.py` | Screenshots with a fake controller in headless Chromium (runs the real pairing code) |
+
+The chooser filter is `namePrefix: 'Zwift'` or manufacturer `0x094A`; older
+Chrome rejects manufacturer filters with a TypeError, in which case Velo
+retries with the name filter only.
 
 ## Hardware session checklist (Federico)
 

@@ -1,10 +1,12 @@
 /**
  * Trainer pairing plus the ERG (fixed power) switch for the active rider.
- * Pairing itself is the existing TrainerConnect flow, unchanged.
+ * Pairing itself is the existing TrainerConnect flow, unchanged. The optional
+ * handlebar controls pair separately and never touch the trainer link.
  */
 
 import { useId } from 'react';
 import { TrainerConnect } from '@/components/trainer/TrainerConnect';
+import { ControllerPanel } from '@/components/velo/ControllerPanel';
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
 
@@ -49,6 +51,15 @@ export function ErgSwitch() {
   );
 }
 
+/** Separator + handlebar controls; empty (no stray border) without Web Bluetooth. */
+function ControllerSlot() {
+  return (
+    <div className="border-t border-border pt-4 empty:hidden">
+      <ControllerPanel />
+    </div>
+  );
+}
+
 export function TrainerPanel() {
   return (
     <section
@@ -62,6 +73,7 @@ export function TrainerPanel() {
       <div className="border-t border-border pt-4">
         <ErgSwitch />
       </div>
+      <ControllerSlot />
     </section>
   );
 }
