@@ -49,6 +49,8 @@ interface RideStoreState {
 
   // ---- Live telemetry (last sample) ----
   speed: number;          // m/s
+  /** Speed exactly as the trainer last reported it, m/s (before virtual gears). */
+  trainerSpeed: number;
   power: number;          // W
   cadence: number;        // rpm
   heartRate: number | null;
@@ -360,6 +362,11 @@ export interface TickInput {
    * so existing callers don't break.
    */
   riderHeading?: number;
+  /**
+   * Speed to show and store in live trainer mode when it differs from the
+   * trainer's own figure (virtual gears). Omit to keep the trainer's speed.
+   */
+  displaySpeed?: number;
 }
 
 let toastCounter = 0;
@@ -380,6 +387,8 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   distance: 0,
 
   speed: 0,
+
+  trainerSpeed: 0,
   power: 0,
   cadence: 0,
   heartRate: null,
@@ -553,6 +562,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       samples: [],
       startedAt: null,
       speed: 0,
+      trainerSpeed: 0,
       power: 0,
       cadence: 0,
       heartRate: null,
@@ -572,6 +582,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       samples: [],
       startedAt: null,
       speed: 0,
+      trainerSpeed: 0,
       power: 0,
       cadence: 0,
       heartRate: null,
@@ -589,6 +600,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       samples: [],
       startedAt: null,
       speed: 0,
+      trainerSpeed: 0,
       power: 0,
       cadence: 0,
       heartRate: null,
@@ -651,6 +663,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   ingestTrainerData: (d) =>
     set((st) => ({
       speed: d.speed ?? st.speed,
+      trainerSpeed: d.speed ?? st.trainerSpeed,
       power: d.power ?? st.power,
       // Cadence: dedicated sensor value wins when sensor is live; fall back to trainer.
       cadence: st.cadenceSensorStatus === 'connected'
@@ -754,6 +767,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       samples: [],
       startedAt: null,
       speed: 0,
+      trainerSpeed: 0,
       power: 0,
       cadence: 0,
       heartRate: null,
@@ -841,7 +855,9 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         elevation: input.elevationNow,
         // Demo Mode and replay drive speed from the loop's computed/recorded
         // value; live trainer mode keeps the speed already set by ingest.
-        speed: st.mode === 'demo' || st.rideMode === 'outdoor' || st.replayData || st.workoutRunning ? input.speedNow : st.speed,
+        speed: st.mode === 'demo' || st.rideMode === 'outdoor' || st.replayData || st.workoutRunning
+          ? input.speedNow
+          : input.displaySpeed ?? st.speed,
         power: input.powerNow ?? st.power,
         cadence: input.cadenceNow ?? st.cadence,
         heartRate: input.heartRateNow ?? st.heartRate,

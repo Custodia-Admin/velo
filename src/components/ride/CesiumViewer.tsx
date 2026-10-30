@@ -44,6 +44,8 @@ import { applyGraphicsQuality } from '@/lib/graphicsQuality';
 import { applyCinematicEffects, destroyCinematicEffects } from '@/lib/cinematicEffects';
 import { loadGhosts, type GhostRide } from '@/lib/ghosts';
 import { shouldChaseCamUpdate } from '@/lib/chaseCamGuard';
+import { offsetSideways, stepLaneOffset } from '@/lib/laneOffset';
+import { activeSteer } from '@/stores/controllerStore';
 import type { AvatarColors } from '@/lib/avatarConfig';
 import { BOT_COLORWAYS } from '@/lib/paceBots';
 import {
@@ -241,6 +243,7 @@ export function CesiumViewer({
   const lastCamPoseRef = useRef<CameraPose | null>(null);
   // Track which mode was active last frame so we can detect mode changes.
   const lastCamModeRef = useRef<string>('chase');
+  const laneOffsetRef = useRef(0);
 
   const route = useRideStore((s) => s.route);
   const rideMode = useRideStore((s) => s.rideMode);
@@ -895,12 +898,22 @@ export function CesiumViewer({
       const r = state.route;
       if (!r || !avatarRef.current) return;
 
-      const sampled = sampleRouteAtDistance(r, state.distance);
-      const ahead = sampleRouteAtDistance(
+      const onLine = sampleRouteAtDistance(r, state.distance);
+      const aheadOnLine = sampleRouteAtDistance(
         r,
         Math.min(r.totalDistance, state.distance + 15),
       );
       const heading = headingAt(r, state.distance);
+
+      // Handlebar steering: drift across the lane, back to the line on release.
+      laneOffsetRef.current = stepLaneOffset(laneOffsetRef.current, activeSteer(), dt);
+      const lane = laneOffsetRef.current;
+      const sampled = lane
+        ? { ...onLine, ...offsetSideways(onLine.lat, onLine.lon, heading, lane) }
+        : onLine;
+      const ahead = lane
+        ? { ...aheadOnLine, ...offsetSideways(aheadOnLine.lat, aheadOnLine.lon, heading, lane) }
+        : aheadOnLine;
 
       avatarRef.current.update({
         lon: sampled.lon,

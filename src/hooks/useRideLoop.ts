@@ -10,6 +10,8 @@ import {
 } from '@/lib/ftms';
 import { gpsToGradePct, shouldAutoPause, distanceMeters } from '@/lib/outdoorGps';
 import { scaleGradeForTrainer } from '@/lib/trainerComfort';
+import { gearFactor, gearPhysicsFor, gearedTrainerGrade, liveGearedSpeed } from '@/lib/virtualGears';
+import { activeGear } from '@/stores/controllerStore';
 import { estimatePowerFromGps } from '@/lib/outdoorPower';
 import type { GpsSample } from '@/lib/outdoorGps';
 import {
@@ -44,6 +46,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
   const store = useRideStore;
   const lastT = useRef<number>(0);
   const lastSentT = useRef<number>(0);
+  const lastSentGear = useRef<number>(0);
   const lastSampleT = useRef<number>(0);
   const smoother = useRef(new EmaSmoother(0.18));
   // Track previous frame's distance for segment crossing detection.
@@ -103,6 +106,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
       // ---- Determine speed source ----
       let speed: number;
       let power: number | null;
+      let displaySpeed: number | undefined;
       let positionOverride: { lat: number; lon: number } | null = null;
       let elevationOverride: number | null = null;
       const cadence: number | null = s.mode === 'trainer' ? s.cadence || null : 78;
@@ -158,7 +162,11 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
           void stepDist; // informational; tick() handles distance advance
         }
       } else if (s.mode === 'trainer' && s.speed > 0) {
-        speed = s.speed;
+        // Virtual gears (handlebar controls) only apply in SIM.
+        const factor = s.trainerControlMode === 'erg' ? 1 : gearFactor(activeGear());
+        const live = liveGearedSpeed(s.speed, s.trainerSpeed, factor);
+        speed = live.speed;
+        displaySpeed = live.display;
         power = s.power || null;
       } else {
         power = settings.demoPowerW;
@@ -182,10 +190,19 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
         } else {
           // SIM: push gradient (+ physics coefficients) to trainer, scaled by
           // the rider's comfort difficulty. The world and physics stay real.
-          const trainerGrade = scaleGradeForTrainer(grade, settings.trainerDifficulty);
+          // Virtual gears from the handlebar controls sit on top; at the
+          // neutral gear (or with no controls) this is the comfort grade as is.
+          const gear = activeGear();
+          const trainerGrade = gearedTrainerGrade(
+            scaleGradeForTrainer(grade, settings.trainerDifficulty),
+            gear,
+            gearPhysicsFor(rider, s.trainerSpeed),
+          );
           const gradeChanged = Math.abs(trainerGrade - s.lastSentGrade) > 0.5;
-          if (now - lastSentT.current > 850 || gradeChanged) {
+          const gearChanged = lastSentGear.current !== 0 && gear !== lastSentGear.current;
+          if (now - lastSentT.current > 850 || gradeChanged || gearChanged) {
             lastSentT.current = now;
+            lastSentGear.current = gear;
             useRideStore.setState({ lastSentGrade: trainerGrade });
             // Project headwind onto the rider's forward axis for the trainer.
             const headwindMs =
@@ -230,6 +247,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
         heartRateNow: hr,
         otherRiders: [...botOtherRiders, ...peerOtherRiders],
         riderHeading: s.route ? headingAt(s.route, distanceNow) : 0,
+        displaySpeed,
       });
 
       // ---- Strava Live Segment crossing detection ----
