@@ -1,176 +1,190 @@
 /**
- * asphaltMaterial.ts — Cesium custom materials for a road-surface appearance
- *.
+ * asphaltMaterial.ts — asphalt road-surface material for route corridors.
  *
- * Two variants:
- *   createAsphaltMaterial()              — flat noise-based dark-grey asphalt
- *   createGradientColoredAsphaltMaterial — edge colors keyed to gradient stops
+ * Cesium entity graphics (`CorridorGraphics`) only accept `MaterialProperty`
+ * values.  Passing a fabric `Cesium.Material` directly (what this module used
+ * to export) makes Cesium's debug build (vite dev) throw
+ * "Unable to infer material type" when the entity is added, and the release
+ * build silently drops the material — the corridor then renders with the
+ * default white appearance and no asphalt ever shows.
  *
- * Both target Cesium.CorridorGraphics / CorridorGeometry which uses ST
- * coordinates in the same (0–1, 0–1) space as polyline materials.
+ * The asphalt shader is therefore exposed as a proper MaterialProperty:
  *
- * No WebGL context is needed to import this module; Cesium.Material is
- * instantiated lazily when the factory functions are called.
+ *   • The fabric shader is registered once in Cesium's material type cache
+ *     under `ASPHALT_MATERIAL_TYPE`.  The entity pipeline builds the real
+ *     Material via `Material.fromType()`; this works for plain and for
+ *     ground-clamped corridors (GroundPrimitive + ShadowVolumeAppearance
+ *     support fabric materials).
+ *   • `AsphaltMaterialProperty` implements the MaterialProperty contract
+ *     (getType / getValue / equals) so Cesium feeds the uniforms.
+ *
+ * Texture-coordinate caveat — why road markings are not baked into this
+ * shader: for ground-clamped corridors Cesium ignores the corridor's own
+ * per-vertex UVs and remaps `materialInput.st` to the corridor's bounding
+ * box (st.x = west→east, st.y = south→north across the whole route extent;
+ * `CorridorGeometry.textureCoordinateRotationPoints` is the identity).
+ * Road-local markings (edge bands, centre dashes, gradient tint keyed to
+ * route position) cannot be expressed with that st — they would smear across
+ * the bounding box on any winding route.  The shader instead converts st to
+ * metres via the `u_extentMeters` uniform and renders metre-scale asphalt
+ * granules; markings live as entities (dashed centreline + edge stripes, see
+ * routeSurface.ts) and gradient severity is carried by the gradient
+ * polylines, climb arches and HUD.
+ *
+ * No WebGL context is needed to import this module or to construct the
+ * property; Cesium builds the Material lazily inside its geometry pipeline.
  */
 
 import * as Cesium from 'cesium';
 
+/** Name the asphalt fabric shader is registered under in Cesium's material cache. */
+export const ASPHALT_MATERIAL_TYPE = 'VeloAsphalt';
+
 // ---------------------------------------------------------------------------
-// GLSL — flat asphalt
+// GLSL — metre-scale asphalt granules
 // ---------------------------------------------------------------------------
 
 const ASPHALT_GLSL = `
 uniform float u_roughness;
+uniform vec2 u_extentMeters;
 
 czm_material czm_getMaterial(czm_materialInput materialInput) {
   czm_material material = czm_getDefaultMaterial(materialInput);
 
-  vec2 uv = materialInput.st;
+  // st is the route bounding-box UV (0..1) on ground-clamped corridors;
+  // convert to local ENU metres so granule scale is metric for any route.
+  vec2 meters = materialInput.st * u_extentMeters;
 
-  // Cheap noise: layered sine hash that looks like fine asphalt granules.
-  float n = sin(uv.x * 87.3 + uv.y * 53.1) * 0.5
-          + sin(uv.x * 41.1 - uv.y * 71.7) * 0.3
-          + sin(uv.x * 120.0 + uv.y * 19.3) * 0.2;
+  // Cheap noise: layered sine hash that reads as fine asphalt granules
+  // (~0.15–0.35 m wavelengths).
+  float n = sin(meters.x * 41.7 + meters.y * 23.3) * 0.5
+          + sin(meters.x * 17.3 - meters.y * 31.1) * 0.3
+          + sin(meters.x * 63.9 + meters.y * 8.7) * 0.2;
   n = n * 0.5 + 0.5; // remap to [0,1]
+
+  // Coarse mottling (~7–10 m) so long stretches do not read as flat paint.
+  float mottle = sin(meters.x * 0.71 + 1.7) * sin(meters.y * 0.93 + 4.1);
 
   // Base asphalt colour: very dark grey, subtly warm.
   vec3 base = vec3(0.13, 0.12, 0.11);
-  // Granule brightness variation: ±0.05 around base.
-  vec3 colour = base + vec3(n * u_roughness - u_roughness * 0.5);
+  vec3 colour = base
+    + vec3(n * u_roughness - u_roughness * 0.5)
+    + vec3(mottle * 0.012);
 
-  // White centre-line dashes (U in [0.44, 0.56]).
-  float centreStripe = step(0.44, uv.x) - step(0.56, uv.x);
-  // Dash pattern along V: on for 4m, off for 4m (assume corridor 8m/tile).
-  float dash = step(0.5, fract(uv.y * 8.0));
-  colour = mix(colour, vec3(0.95, 0.90, 0.60), centreStripe * dash * 0.85);
-
-  // White edge stripes at U ≈ 0 and U ≈ 1 (6% width each).
-  float edgeL = 1.0 - step(0.06, uv.x);
-  float edgeR = step(0.94, uv.x);
-  colour = mix(colour, vec3(0.92, 0.92, 0.92), (edgeL + edgeR) * 0.90);
-
-  material.diffuse  = colour;
-  material.specular = 0.08;
-  material.shininess = 8.0;
-  material.alpha    = 1.0;
-  return material;
-}
-`;
-
-/**
- * Create a Cesium Material that renders as photoreal asphalt with white edge
- * stripes and a dashed yellow centre line.
- *
- * Intended for use with CorridorGraphics (wide corridor clamped to terrain).
- */
-export function createAsphaltMaterial(): Cesium.Material {
-  return new Cesium.Material({
-    fabric: {
-      uniforms: {
-        u_roughness: 0.07,
-      },
-      source: ASPHALT_GLSL,
-    },
-    translucent: false,
-  });
-}
-
-// ---------------------------------------------------------------------------
-// GLSL — gradient-colored edge variant
-// ---------------------------------------------------------------------------
-
-/**
- * Gradient stop descriptor: a fraction along the route [0–1] paired with a
- * Cesium.Color used to tint the corridor edge at that point.
- */
-export interface GradientStop {
-  stop: number;
-  color: Cesium.Color;
-}
-
-const GRADIENT_ASPHALT_GLSL = `
-uniform float u_roughness;
-// Packed as vec4 arrays: r, g, b per stop + stop position.
-// We support up to 16 gradient stops; unused entries have stop = -1.
-uniform vec4 u_stops[16]; // .rgb = colour, .a = stop position
-
-czm_material czm_getMaterial(czm_materialInput materialInput) {
-  czm_material material = czm_getDefaultMaterial(materialInput);
-
-  vec2 uv = materialInput.st;
-
-  // Asphalt base noise.
-  float n = sin(uv.x * 87.3 + uv.y * 53.1) * 0.5
-          + sin(uv.x * 41.1 - uv.y * 71.7) * 0.3
-          + sin(uv.x * 120.0 + uv.y * 19.3) * 0.2;
-  n = n * 0.5 + 0.5;
-  vec3 base = vec3(0.13, 0.12, 0.11) + vec3(n * u_roughness - u_roughness * 0.5);
-
-  // Resolve gradient edge colour by interpolating u_stops at current V.
-  vec3 edgeColour = vec3(0.13, 0.7, 0.13); // default green
-  float v = uv.y;
-  for (int i = 0; i < 15; i++) {
-    vec4 curr = u_stops[i];
-    vec4 next = u_stops[i + 1];
-    if (curr.a < 0.0) break;
-    if (next.a < 0.0 || v <= next.a) {
-      if (next.a < 0.0) {
-        edgeColour = curr.rgb;
-      } else {
-        float t = clamp((v - curr.a) / max(next.a - curr.a, 0.0001), 0.0, 1.0);
-        edgeColour = mix(curr.rgb, next.rgb, t);
-      }
-      break;
-    }
-  }
-
-  // Edge stripe width: 10% of corridor width.
-  float edgeL = 1.0 - step(0.10, uv.x);
-  float edgeR = step(0.90, uv.x);
-  vec3 colour = mix(base, edgeColour, (edgeL + edgeR) * 0.95);
-
-  // White centre-line dashes.
-  float centreStripe = step(0.46, uv.x) - step(0.54, uv.x);
-  float dash = step(0.5, fract(uv.y * 8.0));
-  colour = mix(colour, vec3(0.95, 0.90, 0.60), centreStripe * dash * 0.80);
-
-  material.diffuse  = colour;
-  material.specular = 0.06;
+  material.diffuse   = colour;
+  material.specular  = 0.06;
   material.shininess = 6.0;
-  material.alpha    = 1.0;
+  material.alpha     = 1.0;
   return material;
 }
 `;
 
+// ---------------------------------------------------------------------------
+// Material-cache registration
+// ---------------------------------------------------------------------------
+
+interface MaterialCache {
+  getMaterial(type: string): unknown;
+  addMaterial(type: string, template: unknown): void;
+}
+
+let asphaltTypeRegistered = false;
+
 /**
- * Create an asphalt material whose edge stripe color follows the route
- * gradient (green = flat, yellow = moderate, orange = hard, red = steep).
- *
- * `gradientColors` should be sorted by stop (ascending 0→1) and have at
- * most 16 entries. Pass the output of buildGradientStops() for best results.
+ * Register the asphalt fabric shader in Cesium's (private) material type
+ * cache, once.  `Material.fromType(ASPHALT_MATERIAL_TYPE)` — which the entity
+ * pipeline uses to build the material for a MaterialProperty — only resolves
+ * types present in that cache.
  */
-export function createGradientColoredAsphaltMaterial(
-  gradientColors: GradientStop[],
-): Cesium.Material {
-  // Pack stops into 16 vec4 slots. Sentinel: .a = -1 marks end.
-  const packed: number[][] = [];
-  const stops = gradientColors.slice(0, 15); // max 15 to allow sentinel at 15
-  for (const s of stops) {
-    packed.push([s.color.red, s.color.green, s.color.blue, s.stop]);
+function ensureAsphaltTypeRegistered(): void {
+  if (asphaltTypeRegistered) return;
+  const cache = (Cesium.Material as unknown as { _materialCache: MaterialCache })._materialCache;
+  if (!cache.getMaterial(ASPHALT_MATERIAL_TYPE)) {
+    cache.addMaterial(ASPHALT_MATERIAL_TYPE, {
+      fabric: {
+        type: ASPHALT_MATERIAL_TYPE,
+        uniforms: {
+          u_roughness: 0.07,
+          u_extentMeters: new Cesium.Cartesian2(1.0, 1.0),
+        },
+        source: ASPHALT_GLSL,
+      },
+      // The road surface is opaque; keeps ground corridors out of the
+      // translucent classification path.
+      translucent: false,
+    });
   }
-  // Sentinel entry at index stops.length.
-  while (packed.length < 16) {
-    packed.push([0, 0, 0, -1]);
+  asphaltTypeRegistered = true;
+}
+
+// ---------------------------------------------------------------------------
+// AsphaltMaterialProperty
+// ---------------------------------------------------------------------------
+
+/**
+ * MaterialProperty mapping to the asphalt fabric shader's uniforms.
+ * Constant over time — the entity pipeline builds the Material once per
+ * geometry batch via `Material.fromType()` and feeds it `getValue()`.
+ */
+export class AsphaltMaterialProperty implements Cesium.MaterialProperty {
+  private readonly _definitionChanged = new Cesium.Event();
+  private readonly _roughness: number;
+  private readonly _extentEastMeters: number;
+  private readonly _extentNorthMeters: number;
+
+  /**
+   * @param extentEastMeters  east–west span of the route bounding box in metres.
+   * @param extentNorthMeters north–south span of the route bounding box in metres.
+   * @param roughness         granule contrast amplitude (0–1).  Default 0.07.
+   */
+  constructor(extentEastMeters: number, extentNorthMeters: number, roughness = 0.07) {
+    // Degenerate extents (single-point routes) would collapse the noise
+    // scale; keep at least 1 m so the shader stays well-defined.
+    this._extentEastMeters = Math.max(1, Number.isFinite(extentEastMeters) ? extentEastMeters : 1);
+    this._extentNorthMeters = Math.max(1, Number.isFinite(extentNorthMeters) ? extentNorthMeters : 1);
+    this._roughness = roughness;
   }
 
-  return new Cesium.Material({
-    fabric: {
-      uniforms: {
-        u_roughness: 0.07,
-        u_stops: packed.map((p) => new Cesium.Cartesian4(p[0], p[1], p[2], p[3])),
-      },
-      source: GRADIENT_ASPHALT_GLSL,
-    },
-    translucent: false,
-  });
+  get isConstant(): boolean {
+    return true;
+  }
+
+  get definitionChanged(): Cesium.Event {
+    return this._definitionChanged;
+  }
+
+  getType(_time: Cesium.JulianDate): string {
+    return ASPHALT_MATERIAL_TYPE;
+  }
+
+  getValue(_time?: Cesium.JulianDate, result?: Record<string, unknown>): Record<string, unknown> {
+    const out = result ?? {};
+    out.u_roughness = this._roughness;
+    out.u_extentMeters = new Cesium.Cartesian2(this._extentEastMeters, this._extentNorthMeters);
+    return out;
+  }
+
+  equals(other?: Cesium.Property): boolean {
+    return (
+      this === other ||
+      (other instanceof AsphaltMaterialProperty &&
+        other._roughness === this._roughness &&
+        other._extentEastMeters === this._extentEastMeters &&
+        other._extentNorthMeters === this._extentNorthMeters)
+    );
+  }
+}
+
+/**
+ * Create an asphalt MaterialProperty for a road corridor covering a route
+ * with the given bounding-box extent.  Pass the output of
+ * `routeExtentMeters()` (routeSurface.ts).
+ */
+export function createAsphaltMaterialProperty(
+  extentEastMeters: number,
+  extentNorthMeters: number,
+  roughness = 0.07,
+): AsphaltMaterialProperty {
+  ensureAsphaltTypeRegistered();
+  return new AsphaltMaterialProperty(extentEastMeters, extentNorthMeters, roughness);
 }
