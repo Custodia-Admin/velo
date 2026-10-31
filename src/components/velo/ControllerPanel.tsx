@@ -6,6 +6,8 @@
 import { useId, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/velo/Switch';
+import { UnlockSteps } from '@/components/velo/UnlockSteps';
 import { cn } from '@/lib/utils';
 import {
   buzzRideController,
@@ -15,60 +17,21 @@ import {
   reconnectRideController,
 } from '@/lib/controllers/rideController';
 import { ACTION_LEGEND } from '@/lib/controllers/controllerActions';
-import { useControllerStore, type ControllerStatus } from '@/stores/controllerStore';
+import {
+  LOCKED_INTRO,
+  MAYBE_RIGHT_TEXT,
+  PAIR_OTHER_LABEL,
+  RIGHT_SIDE_TEXT,
+  UNLOCK_INTRO,
+  controllerPhase,
+  panelStatusLine,
+} from '@/lib/controllers/controllerView';
+import { useControllerStore } from '@/stores/controllerStore';
 
-const STATUS_TEXT: Record<ControllerStatus, string> = {
-  idle: 'Not paired',
-  connecting: 'Pairing…',
-  connected: 'Connected',
-  reconnecting: 'Reconnecting…',
-  asleep: 'Asleep',
-  locked: 'Locked',
-  error: 'Not connected',
-};
-
-const SILENT_TEXT =
-  'No presses yet. Press any button on the bars. If nothing changes, the controls need their daily unlock: connect them once in their own app, close it, then reconnect here.';
-const LOCKED_TEXT =
-  'The handlebar controls are locked. Connect them once today in their own app, close that app, then press Try again.';
 const ASLEEP_TEXT = 'The controls went to sleep. Press any button on the bars, then reconnect.';
+const WAITING_TEXT = 'Press a shift paddle: the gear in the ride view should change.';
 
 const noopSubscribe = () => () => undefined;
-
-function Switch({
-  checked,
-  onChange,
-  labelledBy,
-  describedBy,
-}: {
-  checked: boolean;
-  onChange: (next: boolean) => void;
-  labelledBy: string;
-  describedBy: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-labelledby={labelledBy}
-      aria-describedby={describedBy}
-      onClick={() => onChange(!checked)}
-      className={cn(
-        'relative inline-flex h-10 w-16 shrink-0 items-center rounded-pill border transition-colors duration-150',
-        checked ? 'border-primary bg-primary' : 'border-muted-foreground/50 bg-muted',
-      )}
-    >
-      <span
-        aria-hidden
-        className={cn(
-          'absolute h-8 w-8 rounded-full shadow-sm transition-transform duration-150',
-          checked ? 'translate-x-7 bg-primary-foreground' : 'translate-x-1 bg-muted-foreground',
-        )}
-      />
-    </button>
-  );
-}
 
 function Note({ children }: { children: ReactNode }) {
   return (
@@ -85,23 +48,40 @@ export function ControllerPanel() {
   const status = useControllerStore((s) => s.status);
   const battery = useControllerStore((s) => s.battery);
   const silent = useControllerStore((s) => s.silent);
+  const side = useControllerStore((s) => s.side);
+  const buzz = useControllerStore((s) => s.buzz);
+  const inputSeen = useControllerStore((s) => s.inputSeen);
   const errorMessage = useControllerStore((s) => s.errorMessage);
   const steeringEnabled = useControllerStore((s) => s.steeringEnabled);
   const setSteeringEnabled = useControllerStore((s) => s.setSteeringEnabled);
+  const debugOverlay = useControllerStore((s) => s.debugOverlay);
+  const setDebugOverlay = useControllerStore((s) => s.setDebugOverlay);
   const titleId = useId();
   const statusId = useId();
   const steerLabelId = useId();
   const steerHintId = useId();
+  const debugLabelId = useId();
+  const debugHintId = useId();
   // After a pairing attempt that didn't connect (chooser empty or closed),
   // offer the unfiltered chooser too.
   const [tried, setTried] = useState(false);
 
   if (!supported) return null;
 
+  const phase = controllerPhase({ status, silent, side, inputSeen });
   const busy = status === 'connecting' || status === 'reconnecting';
   const live = status === 'connected' || status === 'reconnecting';
-  const statusLine =
-    status === 'connected' && battery !== null ? `Connected · battery ${battery} %` : STATUS_TEXT[status];
+  const statusLine = panelStatusLine(phase, side, buzz, battery);
+  const pairOther = (
+    <Button variant="outline" onClick={() => void pairRideController()}>
+      {PAIR_OTHER_LABEL}
+    </Button>
+  );
+  const disconnect = (
+    <Button variant="ghost" onClick={() => void disconnectRideController()}>
+      Disconnect
+    </Button>
+  );
 
   let actions: ReactNode;
   if (status === 'idle' || status === 'error') {
@@ -141,6 +121,23 @@ export function ControllerPanel() {
         </Button>
       </>
     );
+  } else if (phase === 'rightSide') {
+    actions = (
+      <>
+        {pairOther}
+        {disconnect}
+      </>
+    );
+  } else if (phase === 'silent') {
+    actions = (
+      <>
+        <Button variant="outline" onClick={() => void reconnectRideController()}>
+          Reconnect
+        </Button>
+        {side !== 'left' && pairOther}
+        {disconnect}
+      </>
+    );
   } else {
     actions = (
       <>
@@ -170,7 +167,12 @@ export function ControllerPanel() {
               {live && (
                 <span
                   aria-hidden
-                  className={cn('h-2 w-2 rounded-full', status === 'connected' ? 'bg-accent' : 'bg-muted-foreground animate-pulse')}
+                  className={cn(
+                    'h-2 w-2 shrink-0 rounded-full',
+                    phase === 'live' && 'bg-accent',
+                    (phase === 'waiting' || phase === 'reconnecting') && 'bg-primary animate-pulse',
+                    (phase === 'rightSide' || phase === 'silent') && 'bg-destructive',
+                  )}
                 />
               )}
               {statusLine}
@@ -180,8 +182,19 @@ export function ControllerPanel() {
         <div className="flex flex-wrap gap-2" aria-busy={busy}>{actions}</div>
       </div>
 
-      {status === 'connected' && silent && <Note>{SILENT_TEXT}</Note>}
-      {status === 'locked' && <Note>{LOCKED_TEXT}</Note>}
+      {phase === 'rightSide' && <Note>{RIGHT_SIDE_TEXT}</Note>}
+      {phase === 'waiting' && (
+        <span className="text-sm text-muted-foreground" role="status">
+          {WAITING_TEXT}
+        </span>
+      )}
+      {phase === 'silent' && (
+        <>
+          <UnlockSteps intro={UNLOCK_INTRO} />
+          {side !== 'left' && <Note>{MAYBE_RIGHT_TEXT}</Note>}
+        </>
+      )}
+      {status === 'locked' && <UnlockSteps intro={LOCKED_INTRO} />}
       {status === 'asleep' && <Note>{ASLEEP_TEXT}</Note>}
       {status === 'error' && errorMessage && <Note>{errorMessage}</Note>}
 
@@ -220,6 +233,23 @@ export function ControllerPanel() {
           </details>
         </>
       )}
+
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <span id={debugLabelId} className="text-sm font-semibold text-foreground">
+            Controller debug
+          </span>
+          <span id={debugHintId} className="text-sm text-muted-foreground">
+            Shows the last raw messages in the ride view, for a screenshot.
+          </span>
+        </div>
+        <Switch
+          checked={debugOverlay}
+          onChange={setDebugOverlay}
+          labelledBy={debugLabelId}
+          describedBy={debugHintId}
+        />
+      </div>
     </section>
   );
 }

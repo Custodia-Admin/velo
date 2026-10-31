@@ -25,21 +25,28 @@ import {
   RIDE_SYNC_TX,
   decodeBattery,
   decodeKeypad,
+  describeMessage,
   encodeHaptic,
   pressedButtons,
   risingEdges,
+  sideFromManufacturerData,
   steerFrom,
   toHex,
   type RideButton,
 } from '@/lib/controllers/rideProtocol';
-import { useControllerStore } from '@/stores/controllerStore';
+import { actionFor } from '@/lib/controllers/controllerActions';
+import { useControllerStore, type ControllerSideCheck } from '@/stores/controllerStore';
 
 export const LOCKED_MESSAGE =
   'The handlebar controls are locked. Connect them once today in their own app, close that app, then pair again.';
 export const TAKEN_OVER_MESSAGE = 'Another app took over the handlebar controls. Close it, then reconnect.';
 
 /** No message at all this long after the handshake → probably locked or asleep. */
-export const SILENT_AFTER_MS = 8000;
+export const SILENT_AFTER_MS = 10000;
+/** How long to listen for the controller's advert to tell left from right. */
+export const SIDE_WATCH_MS = 2500;
+/** Lines kept for the in-ride debug overlay. */
+export const DEBUG_LINES = 8;
 const WRITE_TIMEOUT_MS = 3000;
 const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 15000];
 const LOG_SIZE = 300;
@@ -73,6 +80,42 @@ const buttonListeners = new Set<ButtonListener>();
 const log: string[] = [];
 let liveLog = false;
 
+/** One line of the in-ride debug overlay. */
+export interface DebugEntry {
+  id: number;
+  time: string;
+  dir: 'in' | 'out';
+  hex: string;
+  /** Parsed reading, plus the button actions and resulting gear for presses. */
+  note: string;
+  /** Identical consecutive lines are folded into one (idle ticks). */
+  count: number;
+}
+
+let debugEntries: readonly DebugEntry[] = [];
+let debugSeq = 0;
+const debugListeners = new Set<() => void>();
+
+function pushDebug(dir: 'in' | 'out', time: string, hex: string, note: string): void {
+  const last = debugEntries[debugEntries.length - 1];
+  if (last && last.dir === dir && last.hex === hex && last.note === note) {
+    debugEntries = [...debugEntries.slice(0, -1), { ...last, time, count: last.count + 1 }];
+  } else {
+    debugEntries = [...debugEntries, { id: ++debugSeq, time, dir, hex, note, count: 1 }].slice(-DEBUG_LINES);
+  }
+  for (const fn of [...debugListeners]) fn();
+}
+
+/** Latest overlay lines (stable reference until something new arrives). */
+export function getDebugEntries(): readonly DebugEntry[] {
+  return debugEntries;
+}
+
+export function subscribeDebug(listener: () => void): () => void {
+  debugListeners.add(listener);
+  return () => debugListeners.delete(listener);
+}
+
 function bt(): BluetoothLike | null {
   if (bluetoothOverride) return bluetoothOverride;
   if (typeof navigator === 'undefined') return null;
@@ -99,11 +142,15 @@ function store() {
   return useControllerStore.getState();
 }
 
-function record(dir: 'in' | 'out', bytes: Uint8Array): void {
-  const line = `${new Date().toISOString().slice(11, 23)} ${dir} ${toHex(bytes)}`;
+function record(dir: 'in' | 'out', bytes: Uint8Array, note?: string): void {
+  const time = new Date().toISOString().slice(11, 23);
+  const hex = toHex(bytes);
+  const reading = note ?? describeMessage(dir, bytes);
+  const line = `${time} ${dir} ${hex}`;
   log.push(line);
   if (log.length > LOG_SIZE) log.shift();
-  if (liveLog) console.info('[controls]', line);
+  if (liveLog) console.info('[controls]', line, '·', reading);
+  pushDebug(dir, time, hex, reading);
 }
 
 function bytesOf(ch: BluetoothRemoteGATTCharacteristic): Uint8Array {
@@ -154,17 +201,22 @@ function write(l: Link, bytes: Uint8Array): Promise<void> {
 
 function handleMessage(l: Link, msg: Uint8Array): void {
   if (msg.length === 0) return;
-  record('in', msg);
+  const id = msg[0];
+  // Keypad lines are recorded after the listeners ran, with the gear they caused.
+  if (id !== MSG_KEYPAD) record('in', msg);
   if (!l.gotMessage) {
     l.gotMessage = true;
     if (l.silentTimer) clearTimeout(l.silentTimer);
     l.silentTimer = null;
     store().setSilent(false);
   }
-  const id = msg[0];
   if (id === MSG_KEYPAD) {
     const status = decodeKeypad(msg);
-    if (!status) return;
+    if (!status) {
+      record('in', msg);
+      return;
+    }
+    if (!store().inputSeen) store().setInputSeen(true);
     const now = pressedButtons(status);
     const fired = risingEdges(l.pressed, now);
     l.pressed = now;
@@ -172,7 +224,15 @@ function handleMessage(l: Link, msg: Uint8Array): void {
     if (Math.abs(steer - store().steer) >= 0.02 || (steer === 0 && store().steer !== 0)) {
       store().setSteer(steer);
     }
+    const gearBefore = store().gear;
     for (const b of fired) for (const fn of [...buttonListeners]) fn(b);
+    let note = describeMessage('in', msg);
+    if (fired.length > 0) {
+      note += ` · press ${fired.map((b) => `${b}→${actionFor(b) ?? 'none'}`).join(' ')}`;
+      const gearAfter = store().gear;
+      if (gearAfter !== gearBefore) note += ` · gear ${gearBefore}→${gearAfter}`;
+    }
+    record('in', msg, note);
   } else if (id === MSG_BATTERY) {
     const pct = decodeBattery(msg);
     if (pct !== null && pct !== store().battery) store().setBattery(pct);
@@ -188,6 +248,7 @@ async function setupSession(l: Link): Promise<void> {
   l.rx = null;
   l.pressed = new Set();
   l.gotMessage = false;
+  store().setSilent(false);
 
   const svc =
     (await tryGet(() => server.getPrimaryService(RIDE_SERVICE))) ??
@@ -283,6 +344,65 @@ function markLocked(l: Link): void {
   store().setStatus('locked');
 }
 
+type AdvertisingDevice = BluetoothDevice & {
+  watchAdvertisements?: (options?: { signal?: AbortSignal }) => Promise<void>;
+  unwatchAdvertisements?: () => void;
+};
+
+/**
+ * Tell the left controller from the right one by its advert (manufacturer
+ * byte 0x08 / 0x07). Must run before connecting: a connected controller
+ * stops advertising. Needs watchAdvertisements (Chrome 85+, some builds
+ * behind a flag); without it the side stays 'unsupported'. Never throws.
+ */
+export async function detectControllerSide(
+  device: BluetoothDevice,
+  timeoutMs = SIDE_WATCH_MS,
+): Promise<ControllerSideCheck> {
+  const d = device as AdvertisingDevice;
+  if (typeof d.watchAdvertisements !== 'function') return 'unsupported';
+  const abort = typeof AbortController === 'function' ? new AbortController() : null;
+  return new Promise<ControllerSideCheck>((resolve) => {
+    let done = false;
+    const onAdvert = (ev: Event) => {
+      const data = (ev as Event & { manufacturerData?: Map<number, DataView> }).manufacturerData;
+      const side = sideFromManufacturerData(data?.get(RIDE_COMPANY_ID));
+      if (side) finish(side);
+    };
+    const timer = setTimeout(() => finish('unknown'), timeoutMs);
+    function finish(result: ControllerSideCheck): void {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      device.removeEventListener('advertisementreceived', onAdvert);
+      try {
+        abort?.abort();
+        if (!abort) d.unwatchAdvertisements?.();
+      } catch {
+        /* already stopped */
+      }
+      resolve(result);
+    }
+    device.addEventListener('advertisementreceived', onAdvert);
+    try {
+      void d.watchAdvertisements!(abort ? { signal: abort.signal } : undefined).catch(() => finish('unsupported'));
+    } catch {
+      finish('unsupported');
+    }
+  });
+}
+
+/** One buzz right after the handshake so the rider feels which unit paired. Non-fatal. */
+async function confirmBuzz(l: Link): Promise<void> {
+  if (link !== l || !l.rx) return;
+  try {
+    await write(l, encodeHaptic());
+    if (link === l) store().setBuzz('ok');
+  } catch {
+    if (link === l) store().setBuzz('failed');
+  }
+}
+
 function friendlyError(err: unknown): string {
   if (err instanceof Error) {
     if (err.name === 'NotFoundError') return 'No handlebar controls picked.';
@@ -315,15 +435,21 @@ export async function pairRideController(opts: { showAllDevices?: boolean } = {}
       device = await b.requestDevice(
         opts.showAllDevices
           ? { acceptAllDevices: true, optionalServices }
-          : {
+          : ({
               filters: [{ namePrefix: RIDE_NAME_PREFIX }, { manufacturerData: [{ companyIdentifier: RIDE_COMPANY_ID }] }],
               optionalServices,
-            },
+              // Lets the side check read the left/right byte from adverts.
+              optionalManufacturerData: [RIDE_COMPANY_ID],
+            } as RequestDeviceOptions),
       );
     } catch (err) {
       // Older Chrome rejects manufacturerData filters with a TypeError.
       if (!(err instanceof TypeError)) throw err;
-      device = await b.requestDevice({ filters: [{ namePrefix: RIDE_NAME_PREFIX }], optionalServices });
+      device = await b.requestDevice({
+        filters: [{ namePrefix: RIDE_NAME_PREFIX }],
+        optionalServices,
+        optionalManufacturerData: [RIDE_COMPANY_ID],
+      } as RequestDeviceOptions);
     }
   } catch (err) {
     const cancelled = err instanceof Error && err.name === 'NotFoundError';
@@ -351,12 +477,20 @@ export async function pairRideController(opts: { showAllDevices?: boolean } = {}
   };
   link = l;
   device.addEventListener('gattserverdisconnected', () => onGattDisconnected(l));
-  store().setDevice(device.name ?? 'Handlebar controls');
+  const st = store();
+  st.setDevice(device.name ?? 'Handlebar controls');
+  st.setSide(null);
+  st.setBuzz(null);
+  st.setInputSeen(false);
 
   try {
+    const side = await detectControllerSide(device);
+    if (link !== l) return;
+    store().setSide(side);
     await setupSession(l);
     if (link !== l) return;
     store().setStatus('connected');
+    await confirmBuzz(l);
   } catch (err) {
     if (link !== l) return;
     if (err instanceof Error && err.name === 'ControllerLocked') {
@@ -387,7 +521,9 @@ export async function reconnectRideController(): Promise<void> {
   store().setStatus('connecting');
   try {
     await setupSession(l);
-    if (link === l) store().setStatus('connected');
+    if (link !== l) return;
+    store().setStatus('connected');
+    await confirmBuzz(l);
   } catch (err) {
     if (link !== l) return;
     if (err instanceof Error && err.name === 'ControllerLocked') markLocked(l);
@@ -412,6 +548,9 @@ export async function disconnectRideController(): Promise<void> {
   s.setDevice(null);
   s.setBattery(null);
   s.setSilent(false);
+  s.setSide(null);
+  s.setBuzz(null);
+  s.setInputSeen(false);
   s.setSteer(0);
 }
 
