@@ -48,6 +48,8 @@ export function hasIonToken(): boolean {
 }
 
 let terrainPromise: Promise<Cesium.TerrainProvider> | null = null;
+/** World Terrain was requested with a token and ion refused it. */
+let _worldTerrainFailed = false;
 /**
  * Lazy, shared terrain provider.
  *
@@ -72,21 +74,54 @@ export function getTerrainProvider(reset = false): Promise<Cesium.TerrainProvide
       // own GPX elevations drive the avatar/camera height.
       terrainPromise = Promise.resolve(new Cesium.EllipsoidTerrainProvider());
     } else {
-      terrainPromise = Cesium.createWorldTerrainAsync().catch((err) => {
-        terrainPromise = null;
-        throw err;
-      });
+      terrainPromise = Cesium.createWorldTerrainAsync().then(
+        (terrain) => {
+          _worldTerrainFailed = false;
+          return terrain;
+        },
+        (err) => {
+          // Rejected token (ion 401) or offline: the globe stays the flat
+          // ellipsoid, so the scene must sit at 0 m as without a token.
+          _worldTerrainFailed = true;
+          terrainPromise = null;
+          throw err;
+        },
+      );
     }
   }
   return terrainPromise;
 }
 
-/** Convert a Route into a packed array of Cartesian3 positions. */
+/**
+ * Height to draw a route elevation at in the 3D scene.
+ *
+ * With an ion token the globe carries Cesium World Terrain, which matches the
+ * route's GPX/DEM elevations. Without one the globe is the bare WGS84
+ * ellipsoid (0 m) under the OSM map, and the road corridor is clamped to it,
+ * so the rider, camera and route lines must sit at 0 m too: at GPX height
+ * they would float hundreds of metres above the map. Only the scene uses
+ * this; physics and the HUD keep the real elevation.
+ */
+export function sceneEle(ele: number): number {
+  return onRealTerrain() ? ele : 0;
+}
+
+/** World Terrain is (or will be) under the globe: a token, and ion didn't refuse it. */
+function onRealTerrain(): boolean {
+  return _ionTokenInstalled && !_worldTerrainFailed;
+}
+
+/** A route sample moved onto the rendered surface (see {@link sceneEle}). */
+export function onSceneSurface<T extends { ele: number }>(p: T): T {
+  return onRealTerrain() ? p : { ...p, ele: 0 };
+}
+
+/** Convert a Route into a packed array of Cartesian3 positions (scene height). */
 export function routeToCartesians(route: Route): Cesium.Cartesian3[] {
   const out: Cesium.Cartesian3[] = new Array(route.points.length);
   for (let i = 0; i < route.points.length; i++) {
     const p = route.points[i];
-    out[i] = Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.ele);
+    out[i] = Cesium.Cartesian3.fromDegrees(p.lon, p.lat, sceneEle(p.ele));
   }
   return out;
 }
@@ -139,7 +174,37 @@ export const IMAGERY_FALLBACK_EVENT = 'globeride:imagery-fallback';
  * on a real outage, long enough that a healthy network completes its first
  * batch comfortably.
  */
-export const BING_TILE_STALL_TIMEOUT_MS = 4000;
+export const BING_TILE_STALL_TIMEOUT_MS = 12000;
+// 4 s fired on healthy connections: with World Terrain on, the first Bing
+// tiles only start ~4-5 s after the layer is added (terrain tiles go first),
+// so every token ride fell back to OSM and showed the "temporarily
+// unavailable" banner. The deadline is now longer AND the watchdog only
+// fires when not a single Bing tile has arrived (see countLoadedTiles).
+
+/**
+ * Count imagery tiles the provider actually delivered. Wraps requestImage;
+ * returns a getter. Inert (always 0) on stub providers without requestImage.
+ */
+function countLoadedTiles(layer: Cesium.ImageryLayer): () => number {
+  let loaded = 0;
+  const provider = (layer as { imageryProvider?: { requestImage?: (...a: unknown[]) => unknown } }).imageryProvider;
+  const original = provider?.requestImage;
+  if (provider && typeof original === 'function') {
+    provider.requestImage = (...args: unknown[]) => {
+      const result = original.apply(provider, args);
+      if (result && typeof (result as Promise<unknown>).then === 'function') {
+        (result as Promise<unknown>).then(
+          (img) => {
+            if (img) loaded++;
+          },
+          () => undefined,
+        );
+      }
+      return result;
+    };
+  }
+  return () => loaded;
+}
 
 function buildOsmImagery(): Cesium.OpenStreetMapImageryProvider {
   return new Cesium.OpenStreetMapImageryProvider({
@@ -202,6 +267,7 @@ function armBingTileStallWatchdog(
 
   let disarmed = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
+  const bingTilesLoaded = countLoadedTiles(bingLayer);
 
   const cleanup = (): void => {
     if (timer !== null) {
@@ -229,6 +295,8 @@ function armBingTileStallWatchdog(
     // loading everything (rare but possible on a tiny visible area), don't
     // fall back — the photoreal layer is actually working.
     if (globe.tilesLoaded) return;
+    // Bing is delivering, just slower than the whole globe: keep it.
+    if (bingTilesLoaded() > 0) return;
 
     console.warn('[cesiumUtils] Bing tiles stalled, falling back to OSM');
 
@@ -361,18 +429,75 @@ export async function clampCartesiansToScene(
 
 /**
  * Synchronously sample the height of the rendered surface at a lon/lat — used
- * each frame to sit the avatar on the photoreal mesh. Returns `undefined`
- * when the tiles under that point haven't streamed in yet (the caller should
- * fall back to the route's own elevation until they do).
+ * each frame to sit the avatar on the terrain / photoreal mesh. Returns
+ * `undefined` when there is nothing to sample yet (tiles still streaming) and
+ * always on the flat no-token globe, where the surface is 0 m everywhere
+ * (callers fall back to {@link sceneEle}).
+ *
+ * Pass the riders' own entities in `exclude`: `scene.sampleHeight` hits any
+ * geometry, so a stationary rider (paused) would otherwise sample the top of
+ * its own helmet, step up onto it, and climb into the sky frame by frame.
  */
 export function sampleGroundHeight(
   scene: Cesium.Scene,
   lon: number,
   lat: number,
+  exclude?: object[],
 ): number | undefined {
-  if (!scene.sampleHeightSupported) return undefined;
+  if (!onRealTerrain() || !scene.sampleHeightSupported) return undefined;
   const carto = Cesium.Cartographic.fromDegrees(lon, lat);
-  return scene.sampleHeight(carto);
+  return scene.sampleHeight(carto, exclude);
+}
+
+/**
+ * Height of whatever the globe is rendering right now at lon/lat, without
+ * waiting for anything: the precise surface sample (terrain / photoreal mesh)
+ * when available, else the height of the terrain tiles already loaded
+ * (`globe.getHeight`: coarse World Terrain while it streams, 0 m on the flat
+ * ellipsoid). Undefined only when no tile at all covers the spot yet.
+ */
+export function sceneGroundHeight(
+  scene: Cesium.Scene,
+  lon: number,
+  lat: number,
+  exclude?: object[],
+  expectEle?: number,
+): number | undefined {
+  const plausible = (h: number | undefined): h is number =>
+    h !== undefined &&
+    Number.isFinite(h) &&
+    (expectEle === undefined || Math.abs(h - expectEle) <= MAX_COARSE_TILE_ERROR_M);
+  const sampled = sampleGroundHeight(scene, lon, lat, exclude);
+  // The rendered mesh, unless it is a coarse tile's chord far under the route.
+  if (plausible(sampled)) return sampled;
+  // Flat globe (no token, or World Terrain not assigned yet): the surface is
+  // exactly 0 m. Don't ask the coarse tiles: a level-0 tile's chord sits
+  // kilometres under the ellipsoid (-12 km measured on a throttled phone).
+  if (isFlatGlobe(scene)) return 0;
+  const globe = scene.globe as Cesium.Globe | undefined;
+  if (!globe || typeof globe.getHeight !== 'function') return undefined;
+  const h = globe.getHeight(Cesium.Cartographic.fromDegrees(lon, lat));
+  // Same chord error on coarse World Terrain tiles while they stream in.
+  return plausible(h) ? h : undefined;
+}
+
+/** Larger gaps between loaded-tile height and route height are coarse-tile chord error. */
+const MAX_COARSE_TILE_ERROR_M = 800;
+
+function isFlatGlobe(scene: Cesium.Scene): boolean {
+  const provider = (scene as { terrainProvider?: unknown }).terrainProvider;
+  return !provider || provider instanceof Cesium.EllipsoidTerrainProvider;
+}
+
+/**
+ * Scene height to use when {@link sceneGroundHeight} has nothing yet. The
+ * route elevation only once World Terrain is actually the globe's terrain;
+ * before that (token ride, terrain still being set up or refused) the globe
+ * is the 0 m ellipsoid, and route height would leave rider and camera
+ * hanging hundreds of metres over the void on a slow phone.
+ */
+export function fallbackSceneEle(scene: Cesium.Scene, ele: number): number {
+  return isFlatGlobe(scene) ? 0 : sceneEle(ele);
 }
 
 /** Tuning for the trailing follow camera. */

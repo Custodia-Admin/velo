@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { sampleGroundHeight } from '@/lib/cesiumUtils';
+import { fallbackSceneEle, sceneEle, sceneGroundHeight } from '@/lib/cesiumUtils';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { RiderPosition } from '@/lib/physics';
 
@@ -141,6 +141,8 @@ export type AvatarHandle = ReturnType<typeof createAvatar>;
 export interface Avatar {
   entities: Cesium.Entity[];
   update: (u: AvatarUpdate) => void;
+  /** Smoothed scene height the rider sits at (null before the first update). */
+  groundEle: () => number | null;
   setColors: (c: AvatarColors) => void;
   dispose: () => void;
   /** Internal: current skin color including effort tint. Set by setAvatarEffortLevel. */
@@ -1252,6 +1254,17 @@ export function effortSkinColor(baseCss: string, level01: number): Cesium.Color 
  * style, glasses, and bottle. Existing call sites passing only a viewer
  * continue to work unchanged.
  */
+/**
+ * Every live avatar's entities. Ground sampling excludes them all, so no
+ * rider (or a ghost / bot parked on the same spot) is ever "ground".
+ */
+const liveAvatarEntities = new Set<Cesium.Entity>();
+let excludeCache: Cesium.Entity[] | null = null;
+function groundSampleExclusions(): Cesium.Entity[] {
+  if (!excludeCache) excludeCache = [...liveAvatarEntities];
+  return excludeCache;
+}
+
 export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Avatar {
   const scene = viewer.scene;
 
@@ -1347,6 +1360,9 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     });
   });
 
+  for (const ent of entities) liveAvatarEntities.add(ent);
+  excludeCache = null;
+
   function recomputeParts(): void {
     for (let i = 0; i < PARTS.length; i++) {
       const part = PARTS[i];
@@ -1381,8 +1397,10 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     elapsedMs += dt * 1000;
 
     // Ground height — smoothed so streaming tile changes don't pop.
-    const ground = sampleGroundHeight(scene, u.lon, u.lat);
-    const targetEle = ground ?? u.ele;
+    // Whatever is rendered right now (never waits on streaming tiles); the
+    // camera follows this same height via groundEle().
+    const ground = sceneGroundHeight(scene, u.lon, u.lat, groundSampleExclusions(), sceneEle(u.ele));
+    const targetEle = ground ?? fallbackSceneEle(scene, u.ele);
     if (smoothedEle === null) smoothedEle = targetEle;
     else smoothedEle += (targetEle - smoothedEle) * (1 - Math.exp(-6 * dt));
 
@@ -1440,6 +1458,8 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
 
   function dispose(): void {
     for (const ent of entities) {
+      liveAvatarEntities.delete(ent);
+      excludeCache = null;
       if (!viewer.isDestroyed()) viewer.entities.remove(ent);
     }
   }
@@ -1447,6 +1467,7 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
   const avatar: Avatar = {
     entities,
     update,
+    groundEle: () => smoothedEle,
     setColors,
     dispose,
     _effortLevel: 0,

@@ -72,13 +72,23 @@ export function gearedSpeed(trainerSpeedMs: number, gear: number): number {
   return trainerSpeedMs * gearFactor(gear);
 }
 
-/** Gear physics from the rider settings, using the same Crr / Cw we send over FTMS. */
-export function gearPhysicsFor(rider: RiderParams, trainerSpeedMs: number): GearPhysics {
+/**
+ * Gear physics from the rider settings, using the same Crr / Cw we send over
+ * FTMS. Pass `cwByteSent` when the Cw actually sent differs from the rider's
+ * base Cw (live wind scales it): the trainer resists with the Cw it receives,
+ * so the gear compensation must use that one too.
+ */
+export function gearPhysicsFor(
+  rider: RiderParams,
+  trainerSpeedMs: number,
+  cwByteSent?: number,
+): GearPhysics {
+  const cwByte = cwByteSent !== undefined && Number.isFinite(cwByteSent) ? cwByteSent : ftmsCw(rider);
   return {
     trainerSpeedMs,
     massKg: rider.riderMassKg + rider.bikeMassKg,
     crr: ftmsCrr(rider) / 10000,
-    cw: ftmsCw(rider) / 100,
+    cw: cwByte / 100,
   };
 }
 
