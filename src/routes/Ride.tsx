@@ -332,7 +332,8 @@ export function Ride() {
       <div
         className="sm:hidden absolute left-0 right-0 pointer-events-none z-[2]"
         style={{
-          top:          'calc(max(env(safe-area-inset-top), 0.75rem) + 3.5rem)',
+          // Below the top bar AND the connection / Demo mode pill under it.
+          top:          'calc(max(env(safe-area-inset-top), 0.75rem) + 6.5rem)',
           paddingLeft:  'max(env(safe-area-inset-left), 0.75rem)',
           paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
@@ -378,8 +379,10 @@ export function Ride() {
       {/* -- Gesture legend "?" chip + overlay ------------------- */}
       {gestureControlsEnabled && (
         <div className="absolute inset-0 pointer-events-none z-[4]">
-          {/* GestureLegend positions itself absolutely within this container */}
-          <div className="relative w-full h-full pointer-events-auto">
+          {/* GestureLegend positions itself absolutely within this container.
+              The wrapper spans the screen, so it must stay click-through: only
+              the chip and the open legend take pointer events. */}
+          <div className="relative w-full h-full pointer-events-none">
             <GestureLegend />
           </div>
         </div>
