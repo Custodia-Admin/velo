@@ -126,6 +126,20 @@ afterEach(async () => {
 const st = () => useControllerStore.getState();
 
 describe('pairing', () => {
+  it('show-all fallback opens an unfiltered chooser', async () => {
+    const seen: RequestDeviceOptions[] = [];
+    __setBluetoothForTests({
+      requestDevice: async (o) => {
+        seen.push(o);
+        return device as unknown as BluetoothDevice;
+      },
+    });
+    await pairRideController({ showAllDevices: true });
+    expect(seen[0]).toMatchObject({ acceptAllDevices: true });
+    expect((seen[0] as { filters?: unknown }).filters).toBeUndefined();
+    expect(st().status).toBe('connected');
+  });
+
   it('handshakes with RideOn and reads the battery', async () => {
     await pairRideController();
     expect(st().status).toBe('connected');

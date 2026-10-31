@@ -295,8 +295,10 @@ function friendlyError(err: unknown): string {
 /**
  * Open the browser's chooser and pair the controls. Must run from a click.
  * Resolves when paired; on failure the store carries the reason.
+ * `showAllDevices` lists every nearby device: a fallback for when the
+ * filtered chooser comes up empty (pick the "Zwift Ride" entry).
  */
-export async function pairRideController(): Promise<void> {
+export async function pairRideController(opts: { showAllDevices?: boolean } = {}): Promise<void> {
   const b = bt();
   if (!b) {
     store().setStatus('error', 'This browser cannot use Bluetooth. Use Chrome or Edge on a computer.');
@@ -310,10 +312,14 @@ export async function pairRideController(): Promise<void> {
   const optionalServices: BluetoothServiceUUID[] = [RIDE_SERVICE, RIDE_SERVICE_LEGACY, BATTERY_SERVICE];
   try {
     try {
-      device = await b.requestDevice({
-        filters: [{ namePrefix: RIDE_NAME_PREFIX }, { manufacturerData: [{ companyIdentifier: RIDE_COMPANY_ID }] }],
-        optionalServices,
-      });
+      device = await b.requestDevice(
+        opts.showAllDevices
+          ? { acceptAllDevices: true, optionalServices }
+          : {
+              filters: [{ namePrefix: RIDE_NAME_PREFIX }, { manufacturerData: [{ companyIdentifier: RIDE_COMPANY_ID }] }],
+              optionalServices,
+            },
+      );
     } catch (err) {
       // Older Chrome rejects manufacturerData filters with a TypeError.
       if (!(err instanceof TypeError)) throw err;

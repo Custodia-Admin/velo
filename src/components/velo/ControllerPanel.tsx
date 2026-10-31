@@ -3,7 +3,7 @@
  * Renders nothing in browsers without Web Bluetooth.
  */
 
-import { useId, useSyncExternalStore, type ReactNode } from 'react';
+import { useId, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -92,6 +92,9 @@ export function ControllerPanel() {
   const statusId = useId();
   const steerLabelId = useId();
   const steerHintId = useId();
+  // After a pairing attempt that didn't connect (chooser empty or closed),
+  // offer the unfiltered chooser too.
+  const [tried, setTried] = useState(false);
 
   if (!supported) return null;
 
@@ -103,9 +106,22 @@ export function ControllerPanel() {
   let actions: ReactNode;
   if (status === 'idle' || status === 'error') {
     actions = (
-      <Button variant="outline" onClick={() => void pairRideController()}>
-        {status === 'error' ? 'Try again' : 'Pair handlebar controls'}
-      </Button>
+      <>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setTried(true);
+            void pairRideController();
+          }}
+        >
+          {status === 'error' || tried ? 'Try again' : 'Pair handlebar controls'}
+        </Button>
+        {tried && (
+          <Button variant="ghost" onClick={() => void pairRideController({ showAllDevices: true })}>
+            Show all devices
+          </Button>
+        )}
+      </>
     );
   } else if (status === 'connecting') {
     actions = (

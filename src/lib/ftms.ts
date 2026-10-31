@@ -183,6 +183,29 @@ export class FtmsError extends Error {
 export interface FtmsConnectOptions {
   /** Override the requestDevice prompt name filter. */
   namePrefix?: string;
+  /**
+   * List every nearby device instead of FTMS ones only. A fallback for when
+   * the filtered chooser comes up empty; the rider picks the KICKR by name
+   * and the FTMS service check after pairing still applies.
+   */
+  showAllDevices?: boolean;
+}
+
+/** Wahoo/Zwift vendor service the KICKR CORE advertises next to FTMS. */
+const WAHOO_FC82_SERVICE_UUID = '0000fc82-0000-1000-8000-00805f9b34fb';
+
+/** requestDevice() options for the trainer chooser. */
+export function trainerRequestOptions(opts: FtmsConnectOptions = {}): RequestDeviceOptions {
+  const optionalServices = [FTMS_SERVICE_UUID, BATTERY_SERVICE_UUID];
+  if (opts.showAllDevices) {
+    return { acceptAllDevices: true, optionalServices: [...optionalServices, WAHOO_FC82_SERVICE_UUID] };
+  }
+  return {
+    filters: opts.namePrefix
+      ? [{ namePrefix: opts.namePrefix }, { services: [FTMS_SERVICE_UUID] }]
+      : [{ services: [FTMS_SERVICE_UUID] }],
+    optionalServices,
+  };
 }
 
 // --- Module-level state --------------------------------------------------
@@ -296,15 +319,7 @@ export async function connect(opts: FtmsConnectOptions = {}): Promise<void> {
 
   // 1. Device chooser
   try {
-    device = await navigator.bluetooth.requestDevice({
-      filters: opts.namePrefix
-        ? [{ namePrefix: opts.namePrefix }, { services: [FTMS_SERVICE_UUID] }]
-        : [{ services: [FTMS_SERVICE_UUID] }],
-      optionalServices: [
-        FTMS_SERVICE_UUID,
-        BATTERY_SERVICE_UUID,
-      ],
-    });
+    device = await navigator.bluetooth.requestDevice(trainerRequestOptions(opts));
   } catch (err) {
     throw classifyChooserError(err);
   }

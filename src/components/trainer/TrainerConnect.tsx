@@ -26,7 +26,10 @@ import {
   probeBluetoothAdapter,
   type BluetoothSupportReport,
 } from '@/lib/bluetoothSupport';
-import { BluetoothTroubleshooter } from '@/components/trainer/BluetoothTroubleshooter';
+import {
+  BluetoothTroubleshooter,
+  type TroubleshootStepId,
+} from '@/components/trainer/BluetoothTroubleshooter';
 import { cn } from '@/lib/utils';
 
 // Suppress unused-import warning: getTrainerControlMode is used indirectly
@@ -52,7 +55,7 @@ export function TrainerConnect() {
 
   const [report, setReport]                     = useState<BluetoothSupportReport>(() => detectBluetoothSupport());
   const [troubleshootOpen, setTroubleshootOpen] = useState(false);
-  const [troubleshootStep, setTroubleshootStep] = useState(0);
+  const [troubleshootStep, setTroubleshootStep] = useState<TroubleshootStepId>('wake');
 
   useEffect(() => {
     let cancelled = false;
@@ -63,15 +66,19 @@ export function TrainerConnect() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleConnect = useCallback(async () => {
-    if (!report.usable) {
+  // The browser can pair at all. A "Bluetooth off" reading can be stale
+  // (BlueZ busy for a moment), so it never blocks an attempt.
+  const canPair = report.apiPresent && report.secureContext;
+
+  const handleConnect = useCallback(async (opts: { showAllDevices?: boolean } = {}) => {
+    if (!canPair) {
       setTroubleshootStep(stepForReport(report));
       setTroubleshootOpen(true);
       return;
     }
     setConnection('connecting');
     try {
-      await ftmsConnect();
+      await ftmsConnect({ showAllDevices: opts.showAllDevices });
       setConnection('connected', { deviceName: getDeviceName() });
       setMode('trainer');
       pushToast({
@@ -92,7 +99,7 @@ export function TrainerConnect() {
         durationMs: 8_000,
       });
     }
-  }, [report, setConnection, setMode, pushToast]);
+  }, [canPair, report, setConnection, setMode, pushToast]);
 
   const handleDisconnect = useCallback(async () => {
     await ftmsDisconnect();
@@ -195,6 +202,8 @@ export function TrainerConnect() {
               setTroubleshootStep(stepForErrorCode(errorCode));
               setTroubleshootOpen(true);
             }}
+            onRetry={() => void handleConnect()}
+            onShowAll={() => void handleConnect({ showAllDevices: true })}
           />
         )}
 
@@ -204,7 +213,7 @@ export function TrainerConnect() {
             <Button
               variant="default"
               size="sm"
-              aria-label={isBusy ? (connection === 'connecting' ? 'Connecting to trainer…' : 'Reconnecting to trainer…') : !report.usable ? 'Show why Bluetooth is unavailable' : 'Pair smart trainer via Bluetooth'}
+              aria-label={isBusy ? (connection === 'connecting' ? 'Connecting to trainer…' : 'Reconnecting to trainer…') : !canPair ? 'Show why Bluetooth is unavailable' : 'Pair smart trainer via Bluetooth'}
               aria-busy={isBusy}
               onClick={() => void handleConnect()}
               disabled={isBusy}
@@ -213,7 +222,7 @@ export function TrainerConnect() {
                 <><Loader2 className="h-3.5 w-3.5 animate-[spinSlow_1.5s_linear_infinite]" aria-hidden="true" />
                   {connection === 'connecting' ? 'Connecting…' : 'Reconnecting…'}
                 </>
-              ) : !report.usable ? 'Why not?' : 'Pair trainer'}
+              ) : !canPair ? 'Why not?' : 'Pair trainer'}
             </Button>
           ) : (
             <Button
@@ -259,7 +268,7 @@ export function TrainerConnect() {
         <button
           type="button"
           aria-label="Open pairing guide for Kickr Core and other FTMS trainers"
-          onClick={() => { setTroubleshootStep(0); setTroubleshootOpen(true); }}
+          onClick={() => { setTroubleshootStep('wake'); setTroubleshootOpen(true); }}
           className="self-start inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded transition-colors"
         >
           <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
@@ -271,7 +280,7 @@ export function TrainerConnect() {
         open={troubleshootOpen}
         onClose={() => setTroubleshootOpen(false)}
         initialStep={troubleshootStep}
-        onRetryConnect={report.usable ? () => void handleConnect() : undefined}
+        onRetryConnect={canPair ? () => void handleConnect() : undefined}
       />
     </>
   );
@@ -292,14 +301,23 @@ function StatusIcon({ connection, usable }: { connection: string; usable: boolea
   return <Bluetooth className="h-5 w-5 text-muted-foreground shrink-0" aria-hidden="true" />;
 }
 
+/** Chooser closed or came up empty: worth a retry, or a look at every device. */
+export function isEmptyChooserError(code: string | null): boolean {
+  return code === 'no-device-selected' || code === 'no-device-found';
+}
+
 function ErrorPanel({
   errorCode,
   error,
   onOpenGuide,
+  onRetry,
+  onShowAll,
 }: {
   errorCode: string | null;
   error: string | null;
   onOpenGuide: () => void;
+  onRetry: () => void;
+  onShowAll: () => void;
 }) {
   return (
     <div
@@ -309,6 +327,22 @@ function ErrorPanel({
     >
       <div className="text-xs font-semibold text-destructive">{errorTitleFor(errorCode)}</div>
       {error && <div className="text-xs text-muted-foreground leading-snug">{error}</div>}
+      {isEmptyChooserError(errorCode) && (
+        <>
+          <div className="text-xs text-muted-foreground leading-snug">
+            Trainer not listed? Pedal once to wake it, then try again. Or show every device
+            and pick the name starting with KICKR.
+          </div>
+          <div className="flex flex-wrap gap-2 mt-1">
+            <Button variant="outline" size="sm" onClick={onRetry}>
+              Try again
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onShowAll}>
+              Show all devices
+            </Button>
+          </div>
+        </>
+      )}
       <button
         type="button"
         onClick={onOpenGuide}
@@ -339,28 +373,29 @@ function errorTitleFor(code: string | null): string {
   }
 }
 
-function stepForReport(report: BluetoothSupportReport): number {
+function stepForReport(report: BluetoothSupportReport): TroubleshootStepId {
   switch (report.reasonCode) {
     case 'ios-unsupported':
     case 'safari-unsupported':
     case 'firefox-unsupported':
-    case 'api-missing':          return 2;
-    case 'insecure-context':     return 3;
-    case 'adapter-unavailable':  return 0;
-    default:                     return 0;
+    case 'linux-flag-off':
+    case 'api-missing':          return 'browser';
+    case 'insecure-context':     return 'https';
+    default:                     return 'wake';
   }
 }
 
-function stepForErrorCode(code: string | null): number {
+function stepForErrorCode(code: string | null): TroubleshootStepId {
   switch (code) {
-    case 'unsupported':              return 2;
-    case 'insecure-context':         return 3;
-    case 'permission-denied':        return 4;
-    case 'no-device-found':
-    case 'gatt-connect-failed':      return 0;
+    case 'unsupported':              return 'browser';
+    case 'insecure-context':         return 'https';
+    case 'permission-denied':        return 'permission';
+    case 'no-device-selected':
+    case 'no-device-found':          return 'empty';
+    case 'gatt-connect-failed':      return 'wake';
     case 'service-not-found':
     case 'control-point-failed':
-    case 'already-paired-elsewhere': return 1;
-    default:                         return 5;
+    case 'already-paired-elsewhere': return 'others';
+    default:                         return 'chooser';
   }
 }
