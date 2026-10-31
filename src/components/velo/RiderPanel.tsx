@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useRiderRosterStore, MAX_NAME_LENGTH, type RosterRider } from '@/stores/riderRosterStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { difficultyLabel } from '@/lib/trainerComfort';
+import { PlayModeSwitch } from '@/components/velo/PlayMode';
 
 function initial(name: string): string {
   return (name.trim()[0] ?? '?').toUpperCase();
@@ -150,6 +151,8 @@ export function RiderPanel() {
           {pct}% · {difficultyLabel(difficulty)}
         </span>
       </div>
+
+      <PlayModeSwitch />
     </div>
   );
 }

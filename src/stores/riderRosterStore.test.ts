@@ -29,6 +29,15 @@ describe('riderRosterStore', () => {
     expect(d.trainerDifficulty).toBeGreaterThanOrEqual(0.3);
     expect(d.trainerDifficulty).toBeLessThanOrEqual(0.4);
     expect(d.ergEnabled).toBe(false);
+    expect(d.playMode).toBe(false);
+  });
+
+  it('keeps Play mode per rider', () => {
+    useSettingsStore.getState().setSettings({ playMode: true });
+    useRiderRosterStore.getState().switchRider('rider-2');
+    expect(useSettingsStore.getState().playMode).toBe(false);
+    useRiderRosterStore.getState().switchRider('rider-1');
+    expect(useSettingsStore.getState().playMode).toBe(true);
   });
 
   it('swaps per-rider settings and keeps household settings', () => {

@@ -113,6 +113,11 @@ export interface RiderSettings {
    * in SIM, following the route at `trainerDifficulty`.
    */
   ergEnabled: boolean;
+  /**
+   * Play mode: postcards to collect along the road and the other rider as a
+   * riding buddy. Off by default; per rider.
+   */
+  playMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -152,6 +157,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   coachPlan: null,
   trainerDifficulty: DEFAULT_TRAINER_DIFFICULTY,
   ergEnabled: false,
+  playMode: false,
 };
 
 type CommentaryPatch = Partial<
@@ -313,6 +319,9 @@ export const useSettingsStore = create<SettingsStoreState>()(
         ergEnabled:
           (persisted as Partial<RiderSettings>).ergEnabled ??
           DEFAULT_SETTINGS.ergEnabled,
+        playMode:
+          (persisted as Partial<RiderSettings>).playMode ??
+          DEFAULT_SETTINGS.playMode,
       }),
       partialize: (s) =>
         ({
@@ -352,6 +361,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           coachPlan: s.coachPlan,
           trainerDifficulty: s.trainerDifficulty,
           ergEnabled: s.ergEnabled,
+          playMode: s.playMode,
         }) satisfies RiderSettings,
     },
   ),

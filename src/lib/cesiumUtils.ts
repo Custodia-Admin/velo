@@ -552,7 +552,11 @@ interface MoodParams {
   sunHourFromNoon: number;
   fogDensity: number;
   fogMinimumBrightness: number;
-  /** Exponential fog height scalar — higher = fog fades faster with altitude. */
+  /**
+   * Multiplier on Cesium's default Fog.heightScalar (0.001). Cesium multiplies
+   * density by heightScalar directly, so these ~1.0 values must not be
+   * assigned raw: that made fog ~1000x too dense and blacked out the ground.
+   */
   fogHeightScalar: number;
   atmosphereHueShift: number;
   atmosphereSaturationShift: number;
@@ -782,6 +786,9 @@ export function moodForRoute(route: { totalDistance: number; ascent: number }): 
  * Apply a SceneMood to the viewer.  Should be called after the clock time is
  * already set (so sun position is set first, then atmosphere is layered on top).
  */
+/** Cesium's default Fog.heightScalar (engine/Source/Scene/Fog.js). */
+export const CESIUM_FOG_HEIGHT_SCALAR = 0.001;
+
 export function applySceneMood(viewer: Cesium.Viewer, mood: SceneMood): void {
   if (viewer.isDestroyed()) return;
   const p = MOODS[mood];
@@ -793,7 +800,7 @@ export function applySceneMood(viewer: Cesium.Viewer, mood: SceneMood): void {
   scene.fog.density = p.fogDensity;
   const fog = scene.fog as FogExtended;
   if ('minimumBrightness' in fog) fog.minimumBrightness = p.fogMinimumBrightness;
-  if ('heightScalar' in fog) fog.heightScalar = p.fogHeightScalar;
+  if ('heightScalar' in fog) fog.heightScalar = CESIUM_FOG_HEIGHT_SCALAR * p.fogHeightScalar;
 
   // Sky atmosphere — limb glow, saturation, warmth.
   if (scene.skyAtmosphere) {

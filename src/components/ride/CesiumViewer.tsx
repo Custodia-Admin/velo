@@ -7,6 +7,7 @@ import { useRideStore } from '@/stores/rideStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useGhostStore } from '@/stores/ghostStore';
+import { usePlayLayer } from '@/hooks/usePlayLayer';
 import {
   applyFollowCam,
   applySceneMood,
@@ -252,6 +253,9 @@ export function CesiumViewer({
   const avatarColors = useSettingsStore((s) => s.avatar);
   const graphicsQuality = useSettingsStore((s) => s.graphicsQuality);
   const ghostsEnabled = useGhostStore((s) => s.ghostsEnabled);
+
+  // Play mode (postcards + riding buddy) manages its own entities and frame hook.
+  usePlayLayer(viewerReady ? viewerRef.current : null, route);
 
   // ---- Bootstrap viewer ----
   useEffect(() => {

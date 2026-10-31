@@ -20,6 +20,7 @@ import {
 } from '@/lib/rideHistory';
 import { useProfileStore } from '@/stores/profileStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useRiderRosterStore } from '@/stores/riderRosterStore';
 import { computeRideMetrics } from '@/lib/metrics';
 import { totalDurationSec } from '@/lib/workout';
 import type { RideState } from '@/types';
@@ -108,6 +109,7 @@ export function useRideHistoryRecorder(): void {
           source,
           metrics,
           ftpW,
+          riderId: useRiderRosterStore.getState().activeRiderId,
           routeRef: route ? { id: route.id, name: route.name } : undefined,
           workoutRef: activeWorkout ? { id: activeWorkout.id, name: activeWorkout.name } : undefined,
           workoutCompliance,

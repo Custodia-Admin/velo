@@ -14,6 +14,8 @@ import { ElevationProfile } from '@/components/ride/ElevationProfile';
 import { ThemeToggle } from '@/components/setup/ThemeToggle';
 import { SoundToggle } from '@/components/ride/SoundToggle';
 import { GhostToggle } from '@/components/ride/GhostToggle';
+import { PlayPanel } from '@/components/velo/PlayMode';
+import { usePlayStore } from '@/stores/playStore';
 import { ConnectionStatus } from '@/components/ride/ConnectionStatus';
 import { SensorStatusPills } from '@/components/trainer/SensorConnect';
 import { ReplayBadge } from '@/components/ride/ReplayBadge';
@@ -72,6 +74,7 @@ export function Ride() {
   const rideState     = useRideStore((s) => s.rideState);
   const replayData    = useRideStore((s) => s.replayData);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
+  const playActive    = usePlayStore((s) => s.active);
   const rideMode      = useRideStore((s) => s.rideMode);
 
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
@@ -315,6 +318,7 @@ export function Ride() {
           style={{ maxHeight: 'calc(100vh - 6rem)' }}
         >
           <RideHUD />
+          <PlayPanel />
           {activeWorkout && <WorkoutHUD />}
           {/* Strava Live Segments HUD */}
           <SegmentHUD />
@@ -332,10 +336,15 @@ export function Ride() {
       >
         {/* Stats first on mobile */}
         <RideHUD />
-        {/* Minimap — compact, full-width on mobile */}
-        <div className="mt-2 pointer-events-none flex justify-center">
-          <Minimap />
-        </div>
+        <PlayPanel className="mt-2" compact />
+        {/* Minimap — compact, full-width on mobile. Gives its place to the
+            Play panel so the stack stays clear of the ride controls; the
+            elevation profile below still shows where you are. */}
+        {!playActive && (
+          <div className="mt-2 pointer-events-none flex justify-center">
+            <Minimap />
+          </div>
+        )}
         {/* Elevation profile — collapsible width on mobile */}
         <div className="mt-2 pointer-events-auto">
           <div className="glass glass-hairline rounded-2xl p-3 transition-all duration-300">
