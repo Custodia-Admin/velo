@@ -105,7 +105,10 @@ import {
   chasePitchRad,
   computeCameraPose,
   easedCameraTransition,
+  riderAimPitchRad,
+  sideTrackSideFromPose,
   type CameraPose,
+  type SideTrackCorridor,
 } from '@/lib/cesiumCameras';
 import {
   createSegmentPortals,
@@ -195,6 +198,8 @@ export function CesiumWorldView({
   const viewerRef = useRef<Cesium.Viewer | null>(null);
   /** Lift applied to the side / orbit camera over buildings and walls (m). */
   const cameraLiftRef = useRef(0);
+  /** Last side the side-tracking camera used (+1 right / -1 left) — hysteresis. */
+  const sideTrackSideRef = useRef<1 | -1>(1);
   // The old single-colour polyline is replaced by gradient segments + markers.
   // Keep routePolylineRef so the searchPin effect can coexist unchanged.
   const routePolylineRef = useRef<Cesium.Entity | null>(null);
@@ -1025,6 +1030,9 @@ export function CesiumWorldView({
         const riderLat = sampled.lat;
         (window as unknown as { __veloRideDebug?: () => object }).__veloRideDebug = () => {
           if (viewer.isDestroyed()) return { destroyed: true };
+          // Last side the side-tracking camera placed itself on (+1 right of
+          // heading, -1 left) — corridor avoidance may switch sides (t_5a41d468).
+          const camSide = sideTrackSideRef.current;
           const px = Cesium.SceneTransforms.worldToWindowCoordinates(
             viewer.scene,
             Cesium.Cartesian3.fromDegrees(riderLon, riderLat, groundEle + 1),
@@ -1042,6 +1050,8 @@ export function CesiumWorldView({
             routeEle: sampled.ele,
             groundEle,
             cameraHeight: viewer.camera.positionCartographic.height,
+            camSide,
+            dist: state.distance,
             riderScreen: px ? [Math.round(px.x), Math.round(px.y)] : null,
             riderHeightPx: head && foot ? Math.round(Math.hypot(head.x - foot.x, head.y - foot.y)) : null,
             viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight],
@@ -1085,7 +1095,22 @@ export function CesiumWorldView({
 
         // Compute the live target pose for the current mode.
         const cameraDistance = useSettingsStore.getState().cameraDistance;
-        const targetPose = computeCameraPose(currentMode, riderPose, nowMs, cameraDistance);
+        // Side-tracking keeps out of the ground-clamped road corridor volume:
+        // on curves the perpendicular offset can land inside it (full-frame
+        // grey faceted render), so pass the route window and let the pose push
+        // out or switch sides. The ref carries the last side (hysteresis).
+        let corridor: SideTrackCorridor | undefined;
+        if (currentMode === 'sideTracking') {
+          corridor = {
+            points: r.points,
+            riderDistanceM: pose.distance,
+            preferredSide: sideTrackSideRef.current,
+          };
+        }
+        const targetPose = computeCameraPose(currentMode, riderPose, nowMs, cameraDistance, corridor);
+        if (corridor) {
+          sideTrackSideRef.current = sideTrackSideFromPose(targetPose, heading);
+        }
 
         // Determine the effective pose (transitioning or live).
         let effectivePose: CameraPose;
@@ -1140,6 +1165,7 @@ export function CesiumWorldView({
           );
           // Side / orbit shots sit low beside the road, where the hillside,
           // walls and trees are: keep them above whatever is rendered there.
+          let appliedPitch = effectivePose.pitch;
           if (currentMode === 'sideTracking' || currentMode === 'cinematic') {
             liftAboveTerrain(viewer.scene, camPos, groundEle, CHASE_MIN_CLEARANCE_M);
             // Over the photoreal mesh only a (throttled) GPU sample sees the
@@ -1164,6 +1190,15 @@ export function CesiumWorldView({
                 camCarto.height += lift;
                 Cesium.Cartographic.toCartesian(camCarto, undefined, camPos);
               }
+              // Re-aim at the rider from the camera's ACTUAL height. The pose
+              // pitch assumes the nominal 3–4 m; without this a lifted camera
+              // looks straight past the rider — the rider leaves the frame and
+              // the view ends up in roadside mesh at roof height (t_5a41d468).
+              // At nominal height this is a no-op (same formula as the pose).
+              const horizM = Math.hypot(effectivePose.offsetENU.x, effectivePose.offsetENU.y);
+              if (horizM > 0.01) {
+                appliedPitch = riderAimPitchRad(camCarto.height - groundEle, horizM);
+              }
             }
           } else {
             cameraLiftRef.current = 0;
@@ -1172,7 +1207,7 @@ export function CesiumWorldView({
             destination: camPos,
             orientation: {
               heading: effectivePose.heading,
-              pitch: effectivePose.pitch,
+              pitch: appliedPitch,
               roll: effectivePose.roll,
             },
           });
