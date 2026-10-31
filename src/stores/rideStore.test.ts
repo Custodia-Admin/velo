@@ -97,6 +97,20 @@ describe('rideStore.tick — speed source resolution', () => {
     tickWith(12);
     expect(useRideStore.getState().speed).toBe(12);
   });
+
+  it('shows the geared speed in trainer mode when a display speed is given', () => {
+    useRideStore.setState({ speed: 5, trainerSpeed: 5, mode: 'trainer' });
+    useRideStore.getState().tick(makeTick({ speedNow: 6.05, displaySpeed: 6.05 }));
+    expect(useRideStore.getState().speed).toBe(6.05);
+    // the trainer's own figure is kept for the next frame
+    expect(useRideStore.getState().trainerSpeed).toBe(5);
+  });
+
+  it('records the trainer speed separately on ingest', () => {
+    useRideStore.getState().ingestTrainerData({ speed: 7.2 } as never);
+    expect(useRideStore.getState().trainerSpeed).toBe(7.2);
+    expect(useRideStore.getState().speed).toBe(7.2);
+  });
 });
 
 // ---------------------------------------------------------------------------

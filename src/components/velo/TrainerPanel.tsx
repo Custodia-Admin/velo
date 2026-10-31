@@ -1,13 +1,16 @@
 /**
  * Trainer pairing, the ERG (fixed power) switch for the active rider, and the
  * household Live weather switch (sky and wind from the forecast).
- * Pairing itself is the existing TrainerConnect flow, unchanged.
+ * Pairing itself is the existing TrainerConnect flow, unchanged. The optional
+ * handlebar controls pair separately and never touch the trainer link.
  */
 
 import { useId } from 'react';
 import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { Switch } from '@/components/velo/Switch';
 import { LiveWeatherSwitch } from '@/components/velo/WeatherControls';
+import { ControllerPanel } from '@/components/velo/ControllerPanel';
+import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export function ErgSwitch() {
@@ -37,6 +40,15 @@ export function ErgSwitch() {
   );
 }
 
+/** Separator + handlebar controls; empty (no stray border) without Web Bluetooth. */
+function ControllerSlot() {
+  return (
+    <div className="border-t border-border pt-4 empty:hidden">
+      <ControllerPanel />
+    </div>
+  );
+}
+
 export function TrainerPanel() {
   return (
     <section
@@ -53,6 +65,7 @@ export function TrainerPanel() {
       <div className="border-t border-border pt-4">
         <LiveWeatherSwitch />
       </div>
+      <ControllerSlot />
     </section>
   );
 }

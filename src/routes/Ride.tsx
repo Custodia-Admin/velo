@@ -38,6 +38,8 @@ import { useRideHistoryRecorder } from '@/hooks/useRideHistoryRecorder';
 import { useFtpTestSuggestion } from '@/hooks/useFtpTestSuggestion';
 import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
 import { useHandlebarGestures } from '@/hooks/useHandlebarGestures';
+import { useRideControllerActions } from '@/hooks/useRideControllerActions';
+import { ControllerChip } from '@/components/velo/ControllerChip';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/ride/FinishCard';
@@ -133,6 +135,7 @@ export function Ride() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   useRideKeyboardShortcuts({ onToggleHelp: () => setHelpOpen((o) => !o) });
+  useRideControllerActions();
 
   // Cesium ion token resolution. The ride view no longer *requires* a token:
   // without one we fall back to OSM imagery + flat terrain (see
@@ -325,6 +328,10 @@ export function Ride() {
           <ConnectionStatus compact />
           {replayData && <ReplayBadge />}
           <SensorStatusPills />
+          {/* Mobile shows the chip in the HUD stack below instead. */}
+          <div className="hidden sm:block">
+            <ControllerChip />
+          </div>
 
           {/* Minimap — below the nav row, left column, tablet+ only */}
           {!showActive && (<>
@@ -380,6 +387,10 @@ export function Ride() {
       >
         {/* Stats first on mobile */}
         <RideHUD />
+        {/* Handlebar controls readout (renders nothing without paired controls) */}
+        <div className="mt-2 flex empty:hidden">
+          <ControllerChip />
+        </div>
         {/* Minimap — compact, full-width on mobile */}
         <div className="mt-2 pointer-events-none flex justify-center">
           <Minimap />

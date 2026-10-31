@@ -39,6 +39,8 @@ import { sampleRouteAtDistance } from '@/lib/gpxParser';
 import { solveVelocity, ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics';
 import { segmentAt, resolveTargetWatts } from '@/lib/workout';
 import { scaleGradeForTrainer } from '@/lib/trainerComfort';
+import { gearFactor, gearPhysicsFor, gearedTrainerGrade, liveGearedSpeed } from '@/lib/virtualGears';
+import { activeGear } from '@/stores/controllerStore';
 import {
   setTargetPower,
   setSimulationParams,
@@ -180,7 +182,11 @@ export function useWorkoutEngine(): void {
         useRideStore.getState().setTrainerControlModeSynced('sim');
         if (s.connection === 'connected' && shouldSend) {
           lastSentT.current = now;
-          const trainerGrade = scaleGradeForTrainer(grade, settings.trainerDifficulty);
+          const trainerGrade = gearedTrainerGrade(
+            scaleGradeForTrainer(grade, settings.trainerDifficulty),
+            activeGear(),
+            gearPhysicsFor(rider, s.trainerSpeed),
+          );
           store.setState({ lastSentGrade: trainerGrade });
           const headwindMs =
             settings.windSpeedMs * Math.cos((settings.windDirectionDeg * Math.PI) / 180);
@@ -193,7 +199,8 @@ export function useWorkoutEngine(): void {
         }
         store.setState({ workoutTargetWatts: ergW, targetPowerW: null });
         if (s.mode === 'trainer' && s.speed > 0) {
-          speed = s.speed;
+          // tick() stores speedNow in workouts, so scale from the trainer's own figure.
+          speed = liveGearedSpeed(s.speed, s.trainerSpeed, gearFactor(activeGear())).speed;
           power = s.power || null;
         } else {
           speed = solveVelocity(ergW, grade, rider);
