@@ -51,7 +51,7 @@ exposed through `tailwind.config.ts`. New UI uses **only** these.
 | Shadow | `shadow-sm` `shadow-md` `shadow-lg`; `shadow-glow-accent` on the single primary CTA only | `shadow-[...]` |
 | Motion | `animate-*` tokens from the config; `duration-150/200/300` | custom keyframes in components |
 | Surfaces | `Card` (glass) for top-level panels; plain `border bg-card` for items inside it | glass inside glass |
-| Layout utilities | `max-w-show-fit` (show mode video panel: caps a 16:9 panel to the viewport height) | one-off `calc()` widths in TSX |
+| Layout utilities | `max-w-show-fit` (show mode video panel: caps a 16:9 panel to the viewport height), `ride-banner-float` (no-token banner: centred above the transport bar; below `sm` it clears the mobile detail dock) | one-off `calc()` widths in TSX |
 
 Need a new semantic colour (e.g. a "scenery" tint)? Add a CSS variable to both
 themes in `src/index.css`, map it in `tailwind.config.ts`, and add it to the

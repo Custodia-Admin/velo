@@ -13,7 +13,7 @@ import { ThemeToggle } from '@/components/setup/ThemeToggle';
 import { SoundToggle } from '@/components/ride/SoundToggle';
 import { GhostToggle } from '@/components/ride/GhostToggle';
 import { PlayPanel } from '@/components/velo/PlayMode';
-import { usePlayStore } from '@/stores/playStore';
+import { MobileDetailDock } from '@/components/velo/MobileDetailDock';
 import { ConnectionStatus } from '@/components/ride/ConnectionStatus';
 import { SensorStatusPills } from '@/components/trainer/SensorConnect';
 import { ReplayBadge } from '@/components/ride/ReplayBadge';
@@ -93,7 +93,6 @@ export function Ride() {
   const rideState     = useRideStore((s) => s.rideState);
   const replayData    = useRideStore((s) => s.replayData);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
-  const playActive    = usePlayStore((s) => s.active);
   const rideMode      = useRideStore((s) => s.rideMode);
 
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
@@ -431,20 +430,6 @@ export function Ride() {
           </div>
         )}
         <PlayPanel className="mt-2" compact />
-        {/* Minimap — compact, full-width on mobile. Gives its place to the
-            Play panel so the stack stays clear of the ride controls; the
-            elevation profile below still shows where you are. */}
-        {!playActive && (
-          <div className="mt-2 pointer-events-none flex justify-center">
-            <Minimap />
-          </div>
-        )}
-        {/* Elevation profile — collapsible width on mobile */}
-        <div className="mt-2 pointer-events-auto">
-          <div className="glass glass-hairline rounded-2xl p-3 transition-all duration-300">
-            <ElevationProfile />
-          </div>
-        </div>
         {activeWorkout && (
           <div className="mt-2">
             <WorkoutHUD />
@@ -455,6 +440,19 @@ export function Ride() {
           <SegmentHUD />
         </div>
       </div>
+
+      {/* -- Detail dock -- minimap + elevation on demand, above transport -- */}
+      {/* Phones keep the scene band (horizon + rider) clear: the map and the
+          elevation profile open only when the rider taps for them. Hidden in
+          show mode (the ride strip owns the bottom) and after the finish. */}
+      {!showActive && rideState !== 'finished' && (
+        <div
+          className="sm:hidden absolute left-3 right-3 z-[3] pointer-events-none"
+          style={{ bottom: 'calc(max(env(safe-area-inset-bottom), 1.25rem) + 7.75rem)' }}
+        >
+          <MobileDetailDock />
+        </div>
+      )}
 
       {/* -- Transport controls -- bottom-center ----------------------------- */}
       {/* z-50 (above every other HUD layer) so the Start ride button can

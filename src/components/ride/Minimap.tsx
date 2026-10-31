@@ -177,15 +177,14 @@ export function Minimap({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'glass glass-hairline rounded-2xl overflow-hidden select-none',
+        'glass glass-hairline rounded-2xl overflow-hidden select-none h-44 w-44',
         className,
       )}
-      style={{ width: SIZE, height: SIZE }}
       aria-label="Route minimap"
     >
       <svg
-        width={SIZE}
-        height={SIZE}
+        width="100%"
+        height="100%"
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         className="block"
         style={{ shapeRendering: 'geometricPrecision' }}
