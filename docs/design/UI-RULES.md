@@ -88,6 +88,27 @@ Raw values are allowed **only** inside `src/components/ui/*` primitives and
 - Focus ring from the global `:focus-visible` style; never remove it.
 - Contrast: WCAG AA in both themes. Check `muted-foreground` on `card`.
 
+### TV addendum (10-foot layout)
+
+Velo is often watched on a TV from about three metres. The TV layout is the same
+UI scaled up, not a second design (direction: `docs/design/v2-identity.md` §4).
+
+- `data-layout="tv"` on `<html>` sets the root font size to 175 %, so
+  1 rem = 28 px. Every type, space and size token is in rem, so the whole UI
+  scales with it. Never size anything for TV in px. Use `tv:` (the
+  `[data-layout="tv"] &` variant) only for layout changes, not for type sizes.
+- When the attribute is set (auto rule and user setting) is decided in P3.3.
+  Until then, mockups switch at ≥ 1600 px wide.
+- On a 1920×1080 TV, body copy (`text-sm`) is 24.5 px, labels (`text-xs`) are
+  21 px and in-ride figures (`text-2xl`+) are ≥ 42 px. Don't use `text-2xs` on
+  TV-facing surfaces (Home, in-ride HUD, show mode, finish).
+- Nothing relies on hover. Every action is reachable and visibly focusable with a
+  keyboard or remote.
+- HUD panels stay at least spacing `4` (`top-4`, `left-4`; 28 px on TV) inside the screen edges, to allow
+  for overscan.
+- **Design gate:** TV-facing surfaces add a **1920×1080** render to the 1440 and
+  390 mockups and shots.
+
 ## 6. Copy
 
 - Plain words, short. Buttons say what happens: "Ride", "Pair trainer",

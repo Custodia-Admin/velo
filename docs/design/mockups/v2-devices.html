@@ -1,0 +1,120 @@
+<!doctype html>
+<!--
+  Velo v2 Devices — "warm atlas". Mockup only (P1.5 design gate).
+  One panel, rows separated by hairlines (no cards inside cards). Shows four
+  row states at once: connected, connected + battery, couldn't find, not paired.
+  Pairing itself happens only from a rider's tap in Chrome; nothing here sends BLE.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — Devices (v2 mockup)</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="v2-kit.css" />
+<script src="v2-data.js"></script>
+<script src="v2-kit.js"></script>
+<style>
+  .layout { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); grid-template-areas: 'main go' 'main tips'; grid-template-rows: auto 1fr;
+             gap: var(--s-8) var(--s-12); align-items: start; padding-top: var(--s-6); }
+  .main { grid-area: main; } .go { grid-area: go; } aside { grid-area: tips; }
+  h1 { font-size: var(--text-4xl); line-height: var(--lh-4xl); }
+  .lede { margin-top: var(--s-2); }
+  .panel { margin-top: var(--s-6); background: hsl(var(--card)); border: var(--hairline) solid hsl(var(--border)); border-radius: var(--radius); }
+  .dev { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-4); align-items: center; padding: var(--s-4) var(--s-5); }
+  .dev + .dev { border-top: var(--hairline) solid hsl(var(--border)); }
+  .glyph { width: var(--s-10); height: var(--s-10); border-radius: 9999px; display: grid; place-items: center; background: hsl(var(--muted)); }
+  .dev.ok .glyph { background: hsl(var(--primary) / 0.12); color: hsl(var(--primary)); }
+  .dev .name { font-size: var(--text-base); font-weight: 600; }
+  .dev .state { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+  .dev .help { margin-top: var(--s-1); max-width: var(--max-prose); }
+  .dev.err .state .what { color: hsl(var(--destructive)); font-weight: 600; gap: var(--s-1-5); }
+  .battery { display: inline-flex; align-items: center; gap: var(--s-1); }
+  .go { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-3); padding-top: var(--s-14); }
+  aside h2 { font-size: var(--text-xl); line-height: var(--lh-xl); }
+  aside ol { margin-top: var(--s-3); padding-left: var(--s-5); display: flex; flex-direction: column; gap: var(--s-3); }
+  aside .note { margin-top: var(--s-8); padding-top: var(--s-4); border-top: var(--hairline) solid hsl(var(--border)); }
+  @media (max-width: 1023px) { .layout { grid-template-columns: 1fr; grid-template-areas: 'main' 'go' 'tips'; grid-template-rows: none; gap: var(--s-8); } .go { padding-top: 0; } }
+  @media (max-width: 639px) {
+    .layout { padding-top: var(--s-4); }
+    h1 { font-size: var(--text-3xl); line-height: var(--lh-3xl); }
+    .dev { grid-template-columns: auto minmax(0, 1fr); padding: var(--s-4); }
+    .dev .act { grid-column: 2; justify-self: start; }
+    .go { position: sticky; bottom: 0; padding: var(--s-3) 0 var(--s-4); background: hsl(var(--background)); border-top: var(--hairline) solid hsl(var(--border)); }
+    .go .btn { width: 100%; }
+    .topbar .devices-label { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="page-x">
+  <div class="col topbar">
+    <span class="wordmark">Velo</span>
+    <nav class="row" aria-label="App">
+      <button class="btn ghost"><i data-icon="arrow-left"></i>Home</button>
+    </nav>
+  </div>
+</header>
+<main class="page-x">
+  <div class="col layout">
+    <div class="main">
+      <h1 class="display">Devices</h1>
+      <p class="lede muted">Pair once. Next time Velo reconnects by itself when you start a ride.</p>
+
+      <section class="panel" aria-label="Paired devices">
+        <div class="dev ok">
+          <span class="glyph"><i data-icon="gauge" class="lg"></i></span>
+          <div>
+            <div class="name">Trainer · KICKR CORE 78C1</div>
+            <div class="state t-sm muted"><span class="dot on"></span>Connected · the road sets the resistance</div>
+          </div>
+          <button class="btn quiet act">Disconnect</button>
+        </div>
+        <div class="dev ok">
+          <span class="glyph"><i data-icon="bluetooth" class="lg"></i></span>
+          <div>
+            <div class="name">Left handlebar · Zwift Ride</div>
+            <div class="state t-sm muted"><span class="dot on"></span>Connected · gears and buttons<span class="battery num"><i data-icon="battery-medium"></i>76 %</span></div>
+          </div>
+          <button class="btn outline act">Test buttons</button>
+        </div>
+        <div class="dev err">
+          <span class="glyph"><i data-icon="bluetooth" class="lg"></i></span>
+          <div>
+            <div class="name">Right handlebar · Zwift Ride</div>
+            <div class="state t-sm"><span class="what row"><i data-icon="circle-alert"></i>Couldn't find it</span></div>
+            <p class="help t-sm muted">Press any button on it to wake it up, close the Zwift app if it's open, then try again.</p>
+          </div>
+          <button class="btn outline act"><i data-icon="refresh-cw"></i>Try again</button>
+        </div>
+        <div class="dev">
+          <span class="glyph"><i data-icon="heart" class="lg"></i></span>
+          <div>
+            <div class="name">Heart rate</div>
+            <div class="state t-sm muted">Optional · not paired</div>
+          </div>
+          <button class="btn outline act">Pair</button>
+        </div>
+      </section>
+
+
+    </div>
+
+    <div class="go">
+        <button class="btn lg primary"><i data-icon="play" class="lg"></i>Ride</button>
+        <span class="t-sm muted">Tiber river park · 10.9 km · about 35 min. The right handlebar can join later.</span>
+      </div>
+
+    <aside aria-labelledby="tips">
+      <h2 id="tips" class="display">Pairing the handlebars</h2>
+      <ol class="t-sm">
+        <li>Pair each side on its own. Chrome lists both as "Zwift Ride".</li>
+        <li>Velo buzzes the one it just connected, so you can feel which side it was.</li>
+        <li>If a side stays quiet, press a button on it and try again.</li>
+      </ol>
+      <p class="note t-sm muted">On an iPad or iPhone? Browsers there can't pair Bluetooth. You can still ride with the demo rider, or use Chrome on the laptop or an Android tablet.</p>
+    </aside>
+  </div>
+</main>
+</body>
+</html>

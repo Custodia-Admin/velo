@@ -1,0 +1,79 @@
+<!doctype html>
+<!--
+  Velo v2 Finish — "warm atlas". Mockup only (P1.5 design gate).
+  A photographic plate of where you rode, four plain figures, the profile,
+  one primary action. No scores, no training load, no streaks.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — Ride finished (v2 mockup)</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="v2-kit.css" />
+<script src="v2-data.js"></script>
+<script src="v2-kit.js"></script>
+<style>
+  .plate.wide { margin-top: var(--s-2); aspect-ratio: 21 / 9; max-height: calc(100vh - 26rem); width: 100%; }
+  .summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-4) var(--s-10); align-items: end; margin-top: var(--s-6); }
+  h1 { font-size: var(--text-4xl); line-height: var(--lh-4xl); margin-top: var(--s-1); }
+  .figs { display: flex; gap: var(--s-10); margin-top: var(--s-4); }
+  .profile-wrap { grid-column: 1 / -1; margin-top: var(--s-2); }
+  .profile { height: var(--s-10); }
+  .actions { display: flex; gap: var(--s-3); flex-wrap: wrap; justify-content: flex-end; }
+  .after { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; align-items: center;
+           border-top: var(--hairline) solid hsl(var(--border)); padding-top: var(--s-3); }
+  .after .row { gap: var(--s-2); }
+  @media (max-width: 1023px) { .summary { grid-template-columns: 1fr; } .actions { justify-content: flex-start; } }
+  @media (max-width: 639px) {
+    .plate.wide { aspect-ratio: 4 / 3; max-height: none; }
+    h1 { font-size: var(--text-3xl); line-height: var(--lh-3xl); }
+    .figs { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); }
+    .actions { flex-direction: column; }
+    .actions .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header class="page-x">
+  <div class="col topbar">
+    <span class="wordmark">Velo</span>
+    <span class="t-sm muted">Federico</span>
+  </div>
+</header>
+<main class="page-x">
+  <div class="col">
+    <div class="plate wide">
+      <picture>
+        <source media="(max-width: 639px)" srcset="../screenshots/v2/thumbs/finish-arrival-portrait.jpg" />
+        <img src="../screenshots/v2/thumbs/finish-arrival.jpg" alt="The Tiber valley at golden hour, where the ride ended" />
+      </picture>
+    </div>
+
+    <section class="summary" aria-labelledby="done">
+      <div>
+        <span class="kicker">Ride finished · saved on this device</span>
+        <h1 id="done" class="display">Tiber river park</h1>
+        <div class="figs">
+          <div class="fig"><span class="v">10.9<small>km</small></span><span class="l">Distance</span></div>
+          <div class="fig"><span class="v">34:52</span><span class="l">Time</span></div>
+          <div class="fig"><span class="v">22<small>m</small></span><span class="l">Climbed</span></div>
+          <div class="fig"><span class="v">18.8<small>km/h</small></span><span class="l">Average</span></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn lg outline"><i data-icon="download" class="lg"></i>Download FIT</button>
+        <button class="btn lg outline"><i data-icon="upload" class="lg"></i>Send to Strava</button>
+        <button class="btn lg primary">Back to Home</button>
+      </div>
+      <div class="profile-wrap"><svg class="profile" data-profile="scenic-perugia-tiber-park" data-at="1" data-h="40"></svg></div>
+      <div class="after t-sm">
+        <span class="row"><i data-icon="image"></i>3 of 4 postcards found</span>
+        <span class="row muted">Tomorrow, maybe: <button class="btn link">Assisi valley floor · 12.7 km · flat</button></span>
+      </div>
+    </section>
+    <footer class="credit">Velo is a fork of GlobeRide (MIT) by Mason Wyatt.</footer>
+  </div>
+</main>
+</body>
+</html>
