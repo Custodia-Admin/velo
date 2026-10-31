@@ -1,11 +1,17 @@
 /**
- * Home's scenic content: Today's ride, Near home, Further afield.
+ * Home's scenic content: Today's ride, then one section per area
+ * (Near home, Hometown, Further afield, Travels).
  * Lazy-loaded by Home so the route geometry stays off the critical path.
  */
 
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SCENIC_ROUTES, todaysScenicRoute, type ScenicRouteInfo } from '@/lib/scenicRoutes';
+import {
+  SCENIC_AREAS,
+  SCENIC_ROUTES,
+  todaysScenicRoute,
+  type ScenicRouteInfo,
+} from '@/lib/scenicRoutes';
 import { useRideStore } from '@/stores/rideStore';
 import {
   FeaturedScenicRide,
@@ -28,20 +34,21 @@ export function ScenicHomeSections() {
   const ride = useRideScenic();
   const activeRouteId = useRideStore((s) => s.route?.id ?? null);
   const today = useMemo(() => todaysScenicRoute(), []);
-  const near = SCENIC_ROUTES.filter((r) => r.area === 'near-home' && r.route.id !== today.route.id);
-  const further = SCENIC_ROUTES.filter((r) => r.area === 'further');
+  // Today's pick is featured above, so its own section skips it.
+  const sections = SCENIC_AREAS.map((area) => ({
+    ...area,
+    routes: SCENIC_ROUTES.filter((r) => r.area === area.id && r.route.id !== today.route.id),
+  })).filter((s) => s.routes.length > 0);
 
   return (
     <>
       <FeaturedScenicRide info={today} onRide={ride} />
-      <section className="flex flex-col gap-4" aria-label="Near home">
-        <ScenicSectionHeading title="Near home" detail="Ticino and Lombardy" />
-        <ScenicRouteGrid routes={near} activeRouteId={activeRouteId} onRide={ride} />
-      </section>
-      <section className="flex flex-col gap-4" aria-label="Further afield">
-        <ScenicSectionHeading title="Further afield" detail="Alpine lakes and the Riviera" />
-        <ScenicRouteGrid routes={further} activeRouteId={activeRouteId} onRide={ride} />
-      </section>
+      {sections.map((s) => (
+        <section key={s.id} className="flex flex-col gap-4" aria-label={s.title}>
+          <ScenicSectionHeading title={s.title} detail={s.detail} />
+          <ScenicRouteGrid routes={s.routes} activeRouteId={activeRouteId} onRide={ride} />
+        </section>
+      ))}
     </>
   );
 }
