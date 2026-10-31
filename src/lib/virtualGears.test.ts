@@ -6,9 +6,11 @@ import {
   gearFactor,
   gearedSpeed,
   gearedTrainerGrade,
+  gearPhysicsFor,
   liveGearedSpeed,
   type GearPhysics,
 } from './virtualGears';
+import { DEFAULT_RIDER, ftmsCw, type RiderParams } from './physics';
 import { TRAINER_GRADE_MAX, TRAINER_GRADE_MIN } from './trainerComfort';
 
 const flat: GearPhysics = { trainerSpeedMs: 6, massKg: 83, crr: 0.004, cw: 0.32 };
@@ -85,5 +87,40 @@ describe('liveGearedSpeed', () => {
   });
   it('back to neutral restores the trainer figure at once', () => {
     expect(liveGearedSpeed(7.26, 6, 1)).toEqual({ speed: 6, display: 6 });
+  });
+});
+
+describe('gearPhysicsFor', () => {
+  const rider: RiderParams = DEFAULT_RIDER;
+
+  it('uses the base Cw by default and the sent (wind-scaled) Cw when given', () => {
+    expect(gearPhysicsFor(rider, 6).cw).toBeCloseTo(ftmsCw(rider) / 100, 10);
+    expect(gearPhysicsFor(rider, 6, 77).cw).toBeCloseTo(0.77, 10);
+  });
+
+  it('neutral gear stays an exact identity with a wind-scaled Cw', () => {
+    for (const cwByte of [1, 40, ftmsCw(rider), 90, 255]) {
+      const p = gearPhysicsFor(rider, 7.5, cwByte);
+      for (const g of [-8, -1.5, 0, 3.3, 12]) {
+        expect(gearedTrainerGrade(g, NEUTRAL_GEAR, p)).toBe(g);
+      }
+    }
+  });
+
+  it('power balance holds with the Cw actually sent (and not with the base Cw)', () => {
+    const G = 9.80665;
+    const gear = NEUTRAL_GEAR + 3;
+    const k = gearFactor(gear);
+    const grade = 1;
+    const vT = 8;
+    const vV = vT * k;
+    const cwSent = Math.round(ftmsCw(rider) * 1.25); // live headwind
+    const p = gearPhysicsFor(rider, vT, cwSent);
+    const power = (sent: number) =>
+      (p.massKg * G * (sent / 100 + p.crr) + p.cw * vT * vT) * vT;
+    const road = (p.massKg * G * (grade / 100 + p.crr) + p.cw * vV * vV) * vV;
+    expect(power(gearedTrainerGrade(grade, gear, p))).toBeCloseTo(road, 0);
+    const stale = gearedTrainerGrade(grade, gear, gearPhysicsFor(rider, vT));
+    expect(Math.abs(power(stale) - road)).toBeGreaterThan(5);
   });
 });

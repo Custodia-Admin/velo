@@ -218,10 +218,12 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
           // Virtual gears from the handlebar controls sit on top; at the
           // neutral gear (or with no controls) this is the comfort grade as is.
           const gear = activeGear();
+          // The Cw we send (live wind scales it); the gear grade must match it.
+          const cwSent = liveWind ? liveWind.cwByte : ftmsCw(rider);
           const trainerGrade = gearedTrainerGrade(
             scaleGradeForTrainer(grade, settings.trainerDifficulty),
             gear,
-            gearPhysicsFor(rider, s.trainerSpeed),
+            gearPhysicsFor(rider, s.trainerSpeed, cwSent),
           );
           const gradeChanged = Math.abs(trainerGrade - s.lastSentGrade) > 0.5;
           const gearChanged = lastSentGear.current !== 0 && gear !== lastSentGear.current;
@@ -238,7 +240,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
               gradePct: trainerGrade,
               windMs: headwindMs,
               crrScaled: ftmsCrr(rider),
-              cwScaled: liveWind ? liveWind.cwByte : ftmsCw(rider),
+              cwScaled: cwSent,
             }).catch(() => undefined);
           }
         }
