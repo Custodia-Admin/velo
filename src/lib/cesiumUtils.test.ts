@@ -49,7 +49,8 @@ vi.mock('cesium', () => ({
     this: unknown,
     provider: { __osm?: boolean; __ionProvider?: boolean } | undefined,
   ) {
-    const instance = this as { __osm?: boolean; __ion?: boolean };
+    const instance = this as { __osm?: boolean; __ion?: boolean; imageryProvider?: unknown };
+    instance.imageryProvider = provider;
     if (provider && '__osm' in provider) instance.__osm = true;
     if (provider && '__ionProvider' in provider) instance.__ion = true;
     mockState.imageryLayerInstances.push(instance);
@@ -73,6 +74,7 @@ vi.mock('cesium', () => ({
     fromIonAssetId: vi.fn(async (assetId: number) => ({ __tileset: true, assetId })),
   },
   Ion: mockState.ionAccessor,
+  Cartographic: { fromDegrees: (lon: number, lat: number) => ({ lon, lat }) },
 }));
 
 // Local aliases for readability in test bodies.
@@ -93,6 +95,8 @@ import {
   hasIonToken,
   sceneEle,
   onSceneSurface,
+  sceneGroundHeight,
+  fallbackSceneEle,
   getTerrainProvider,
   getPhotorealTileset,
   BING_TILE_STALL_TIMEOUT_MS,
@@ -344,6 +348,79 @@ describe('cesiumUtils — token-aware behaviour', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Scene ground for rider + camera — never the route height over a void
+  // -------------------------------------------------------------------------
+
+  describe('sceneGroundHeight / fallbackSceneEle (slow phone: terrain still streaming)', () => {
+    async function ellipsoid() {
+      const C = await import('cesium');
+      return new (C.EllipsoidTerrainProvider as unknown as new () => object)();
+    }
+    function fakeScene(o: { sample?: number; globe?: number; terrain?: object; supported?: boolean }) {
+      return {
+        sampleHeightSupported: o.supported ?? true,
+        sampleHeight: vi.fn(() => o.sample),
+        globe: { getHeight: vi.fn(() => o.globe) },
+        terrainProvider: o.terrain,
+      } as unknown as import('cesium').Scene;
+    }
+
+    it('token, World Terrain not assigned yet: rider and camera sit on the 0 m ellipsoid, not at route height', async () => {
+      setIonToken('eyJ_valid');
+      const scene = fakeScene({ sample: undefined, globe: 0, terrain: await ellipsoid() });
+      expect(sceneGroundHeight(scene, 8.95, 46) ?? fallbackSceneEle(scene, 281.4)).toBe(0);
+      // Nothing rendered at all yet: still the ellipsoid, not 281 m of void.
+      const empty = fakeScene({ sample: undefined, globe: undefined, terrain: await ellipsoid() });
+      expect(sceneGroundHeight(empty, 8.95, 46) ?? fallbackSceneEle(empty, 281.4)).toBe(0);
+      // Level-0 tile chord (measured -12 155 m on a throttled phone) is ignored: flat = 0 m.
+      const coarse = fakeScene({ sample: undefined, globe: -12155, terrain: await ellipsoid() });
+      expect(sceneGroundHeight(coarse, 8.95, 46, undefined, 281.4)).toBe(0);
+      setIonToken(null);
+    });
+
+    it('token, World Terrain streaming: uses the coarse loaded tiles right away', () => {
+      setIonToken('eyJ_valid');
+      const scene = fakeScene({ sample: undefined, globe: 240, terrain: { __worldTerrain: true } });
+      expect(sceneGroundHeight(scene, 8.95, 46)).toBe(240);
+      setIonToken(null);
+    });
+
+    it('token, coarse World Terrain tile far below the route: not trusted, route height instead', () => {
+      setIonToken('eyJ_valid');
+      const scene = fakeScene({ sample: undefined, globe: -12155, terrain: { __worldTerrain: true } });
+      expect(sceneGroundHeight(scene, 8.95, 46, undefined, 281.4)).toBeUndefined();
+      // Same for a surface sample that hits the coarse chord.
+      const sampledLow = fakeScene({ sample: -2400, globe: -12155, terrain: { __worldTerrain: true } });
+      expect(sceneGroundHeight(sampledLow, 8.95, 46, undefined, 281.4)).toBeUndefined();
+      expect(fallbackSceneEle(scene, 281.4)).toBe(281.4);
+      setIonToken(null);
+    });
+
+    it('token, tiles loaded: the precise surface sample wins', () => {
+      setIonToken('eyJ_valid');
+      const scene = fakeScene({ sample: 279.6, globe: 240, terrain: { __worldTerrain: true } });
+      expect(sceneGroundHeight(scene, 8.95, 46)).toBe(279.6);
+      setIonToken(null);
+    });
+
+    it('token, World Terrain assigned but no tile yet: route height (terrain will match it)', () => {
+      setIonToken('eyJ_valid');
+      const scene = fakeScene({ sample: undefined, globe: undefined, terrain: { __worldTerrain: true } });
+      expect(sceneGroundHeight(scene, 8.95, 46)).toBeUndefined();
+      expect(fallbackSceneEle(scene, 281.4)).toBe(281.4);
+      setIonToken(null);
+    });
+
+    it('no token: never samples the mesh, flat globe is 0 m', async () => {
+      setIonToken(null);
+      const scene = fakeScene({ sample: 999, globe: 0, terrain: await ellipsoid() });
+      expect(sceneGroundHeight(scene, 8.95, 46)).toBe(0);
+      expect((scene as unknown as { sampleHeight: ReturnType<typeof vi.fn> }).sampleHeight).not.toHaveBeenCalled();
+      expect(fallbackSceneEle(scene, 281.4)).toBe(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // getPhotorealTileset — guards against ion calls without a token
   // -------------------------------------------------------------------------
 
@@ -438,6 +515,45 @@ describe('cesiumUtils — token-aware behaviour', () => {
       expect(osmConstructorCalls.length).toBe(0);
       expect(viewer.scene.imageryLayers.remove).not.toHaveBeenCalled();
       expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('keeps Bing when at least one Bing tile arrived, even if the globe is still loading', async () => {
+      const { IonImageryProvider } = await import('cesium');
+      // Token rides: World Terrain tiles keep globe.tilesLoaded false for a
+      // long time, while Bing is fine. That used to fall back + show the banner.
+      vi.mocked(IonImageryProvider.fromAssetId).mockResolvedValueOnce({
+        __ionProvider: true,
+        requestImage: () => Promise.resolve({ width: 256 }),
+      } as never);
+      setIonToken('eyJ_x.y');
+      const viewer = makeViewer() as unknown as FakeViewer;
+      await setupBaseImagery(viewer as unknown as import('cesium').Viewer);
+      const layer = imageryLayerInstances[0] as unknown as { imageryProvider: { requestImage: () => Promise<unknown> } };
+      await layer.imageryProvider.requestImage();
+      await Promise.resolve();
+      vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS * 2);
+      expect(osmConstructorCalls.length).toBe(0);
+      expect(viewer.scene.imageryLayers.remove).not.toHaveBeenCalled();
+    });
+
+    it('still falls back when Bing requests never deliver an image', async () => {
+      const { IonImageryProvider } = await import('cesium');
+      vi.mocked(IonImageryProvider.fromAssetId).mockResolvedValueOnce({
+        __ionProvider: true,
+        requestImage: () => new Promise(() => undefined),
+      } as never);
+      setIonToken('eyJ_x.y');
+      const viewer = makeViewer() as unknown as FakeViewer;
+      await setupBaseImagery(viewer as unknown as import('cesium').Viewer);
+      const layer = imageryLayerInstances[0] as unknown as { imageryProvider: { requestImage: () => Promise<unknown> } };
+      void layer.imageryProvider.requestImage();
+      vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS);
+      await Promise.resolve();
+      expect(osmConstructorCalls.length).toBe(1);
+    });
+
+    it('waits long enough for World Terrain to go first (deadline >= 10 s)', () => {
+      expect(BING_TILE_STALL_TIMEOUT_MS).toBeGreaterThanOrEqual(10_000);
     });
 
     it('swaps the Bing layer for OSM after BING_TILE_STALL_TIMEOUT_MS of zero progress', async () => {
