@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useSettingsStore } from '@/stores/settingsStore';
 import type { CameraMode } from '@/lib/cesiumCameras';
 
-const MODES: CameraMode[] = ['chase', 'firstPerson', 'overhead', 'sideTracking', 'cinematic'];
+const MODES: CameraMode[] = ['chase', 'firstPerson', 'overhead', 'sideTracking', 'cinematic', 'drone'];
 
 const MODE_LABELS: Record<CameraMode, string> = {
   chase:        'Chase',
@@ -20,6 +20,7 @@ const MODE_LABELS: Record<CameraMode, string> = {
   overhead:     'Overhead',
   sideTracking: 'Side',
   cinematic:    'Cinematic',
+  drone:        'Drone',
 };
 
 /**
@@ -51,7 +52,7 @@ export function CameraSwitcher() {
       </Button>
       <Badge
         variant="muted"
-        className="text-[10px] px-1.5 py-0.5 pointer-events-none select-none"
+        className="text-2xs px-1.5 py-0.5 pointer-events-none select-none"
         aria-hidden="true"
       >
         {MODE_LABELS[cameraMode]}

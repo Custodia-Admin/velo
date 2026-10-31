@@ -138,6 +138,12 @@
 }
 
 @layer utilities {
+  /* Show mode video panel: never taller than the viewport minus the ride
+     strip, the panel controls and the transport bar (16:9 video). */
+  .max-w-show-fit {
+    max-width: calc((100dvh - 16rem) * 16 / 9);
+  }
+
   /* -------------------------------------------------------------------
      Glass system — unified across all surfaces.
      .glass       = HUD panels, floating cards

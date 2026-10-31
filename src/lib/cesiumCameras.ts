@@ -10,7 +10,13 @@
 // Types
 // ---------------------------------------------------------------------------
 
-export type CameraMode = 'chase' | 'firstPerson' | 'overhead' | 'sideTracking' | 'cinematic';
+export type CameraMode =
+  | 'chase'
+  | 'firstPerson'
+  | 'overhead'
+  | 'sideTracking'
+  | 'cinematic'
+  | 'drone';
 
 /** Runtime set used to validate persisted values from localStorage. */
 export const CAMERA_MODES: ReadonlyArray<CameraMode> = [
@@ -19,6 +25,7 @@ export const CAMERA_MODES: ReadonlyArray<CameraMode> = [
   'overhead',
   'sideTracking',
   'cinematic',
+  'drone',
 ];
 
 /** Type-guard for narrowing untrusted input (e.g. rehydrated localStorage). */
@@ -87,6 +94,13 @@ export const CINEMATIC_RADIUS_M      = 50;
 export const CINEMATIC_ELEV_OFFSET_M = 15;
 export const CINEMATIC_PITCH_DEG     = 25;
 export const CINEMATIC_DEG_PER_SEC   = 6;
+
+/** Drone: high and well behind, drifting side to side, framing the road ahead. */
+export const DRONE_BACK_M         = 120;
+export const DRONE_UP_M           = 60;
+export const DRONE_SWAY_M         = 35;
+export const DRONE_SWAY_PERIOD_S  = 40;
+export const DRONE_LOOK_AHEAD_M   = 40;
 
 /**
  * Compute the target camera pose for a given mode.
@@ -175,6 +189,29 @@ export function computeCameraPose(
         offsetENU: { x, y, z: 0 },
         heading: lookback,
         pitch: 0,
+        roll: 0,
+      };
+    }
+
+    // ------------------------------------------------------------------
+    case 'drone': {
+      const sway =
+        Math.sin((2 * Math.PI * (timeMs / 1000)) / DRONE_SWAY_PERIOD_S) * DRONE_SWAY_M;
+      // Forward and right unit vectors in ENU (heading is clockwise from north).
+      const fx = Math.sin(h);
+      const fy = Math.cos(h);
+      const rx = Math.cos(h);
+      const ry = -Math.sin(h);
+      const x = -fx * DRONE_BACK_M + rx * sway;
+      const y = -fy * DRONE_BACK_M + ry * sway;
+      const z = DRONE_UP_M;
+      // Aim a little ahead of the rider so the road and view fill the frame.
+      const dx = fx * DRONE_LOOK_AHEAD_M - x;
+      const dy = fy * DRONE_LOOK_AHEAD_M - y;
+      return {
+        offsetENU: { x, y, z },
+        heading: Math.atan2(dx, dy),
+        pitch: -Math.atan2(z, Math.hypot(dx, dy)),
         roll: 0,
       };
     }

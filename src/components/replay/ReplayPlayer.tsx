@@ -208,6 +208,7 @@ export function ReplayPlayer({ record, onClose, className }: ReplayPlayerProps) 
       case 'overhead':     return 'Overhead';
       case 'sideTracking': return 'Side Track';
       case 'cinematic':    return 'Cinematic';
+      case 'drone':        return 'Drone';
     }
   };
 

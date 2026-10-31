@@ -93,7 +93,7 @@ export function GestureLegend() {
         aria-expanded={open}
         onClick={handleOpen}
         className={cn(
-          'absolute top-3 right-3 z-[4]',
+          'absolute top-3 right-3 z-[4] pointer-events-auto',
           'flex items-center justify-center',
           'h-7 w-7 rounded-full',
           'glass glass-hairline',
@@ -111,7 +111,7 @@ export function GestureLegend() {
           aria-modal="true"
           aria-label="Gesture controls legend"
           className={cn(
-            'absolute inset-0 z-30 flex items-center justify-center p-6',
+            'absolute inset-0 z-30 flex items-center justify-center p-6 pointer-events-auto',
             'bg-background/65 backdrop-blur-sm animate-fadeIn',
           )}
           onClick={handleClose}

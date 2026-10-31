@@ -23,6 +23,7 @@ const CAMERA_LABEL: Record<CameraMode, { label: string; sub: string }> = {
   overhead:     { label: 'Overhead',    sub: 'top-down'      },
   sideTracking: { label: 'Side',        sub: 'tracking shot' },
   cinematic:    { label: 'Cinematic',   sub: 'dynamic cuts'  },
+  drone:        { label: 'Drone',       sub: 'high, drifting' },
 };
 
 // ---------------------------------------------------------------------------
@@ -52,7 +53,7 @@ export function VisualSettings() {
     <div className="space-y-6">
       {/* Camera mode */}
       <Section icon={<Camera className="h-4 w-4" />} title="Camera">
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+        <div className="grid grid-cols-3 gap-2">
           {CAMERA_MODES.map((mode) => (
             <PickerButton
               key={mode}

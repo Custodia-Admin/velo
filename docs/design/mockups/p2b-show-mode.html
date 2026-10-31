@@ -1,0 +1,144 @@
+<!doctype html>
+<!--
+  P2b Show mode mockup: a video panel over the live ride, compact ride strip,
+  auto camera. Static, token-only (values copied from src/index.css dark theme).
+  States via query string: ?state=playing|empty|dim  (backdrop + frame images
+  are passed as ?bg=<url>&frame=<url>; renders fall back to flat colours).
+  Render: chromium --headless --screenshot --window-size=1440,900 'p2b-show-mode.html?state=playing'
+-->
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — Show mode mockup</title>
+<style>
+  :root {
+    --background: 220 42% 4%; --foreground: 210 28% 96%; --card: 220 40% 7%;
+    --muted: 215 28% 13%; --muted-foreground: 215 18% 58%; --border: 215 26% 17%;
+    --primary: 200 92% 56%; --primary-foreground: 220 42% 4%;
+    --accent: 158 80% 42%; --accent-foreground: 220 42% 4%;
+    --destructive: 4 80% 60%; --radius: 0.875rem;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: ui-sans-serif, system-ui, sans-serif; background: hsl(var(--background)) center/cover no-repeat; color: hsl(var(--foreground)); position: relative; }
+  .glass { background: linear-gradient(180deg, rgb(15 22 40 / .84), rgb(2 5 20 / .78)); backdrop-filter: blur(16px); box-shadow: 0 10px 30px rgb(0 0 0 / .5); border: 1px solid rgb(255 255 255 / .07); }
+  .dimmable { transition: opacity 300ms; }
+  body.dim .dimmable { opacity: .35; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; height: 2.5rem; padding: 0 1rem; border-radius: calc(var(--radius) - 3px); border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: hsl(var(--foreground)); font-weight: 600; font-size: .875rem; }
+  .btn.lg { height: 3rem; padding: 0 1.25rem; font-size: 1rem; }
+  .btn.icon { width: 3rem; padding: 0; }
+  .btn.accent { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); border-color: transparent; box-shadow: 0 0 24px hsl(var(--accent) / .35); }
+  .btn.on { border-color: hsl(var(--primary)); background: hsl(var(--primary) / .15); color: hsl(var(--primary)); }
+  .pill { border-radius: 9999px; }
+  .ico { width: 1.25rem; height: 1.25rem; display: inline-block; border: 2px solid currentColor; border-radius: 4px; }
+  /* top bar */
+  .topbar { position: absolute; top: .75rem; left: .75rem; display: flex; gap: .5rem; align-items: center; }
+  /* stats strip */
+  .strip { position: absolute; top: .75rem; right: .75rem; display: flex; gap: 1.5rem; align-items: flex-end; padding: .75rem 1.25rem; border-radius: var(--radius); }
+  .fig { display: flex; flex-direction: column; gap: .125rem; }
+  .fig b { font-size: 1.875rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .fig span { font-size: .75rem; color: hsl(var(--muted-foreground)); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+  .cam { font-size: .75rem; color: hsl(var(--muted-foreground)); }
+  /* show panel */
+  .panel { position: absolute; right: 1.5rem; bottom: 6rem; width: 50%; border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
+  .video { aspect-ratio: 16/9; background: #000 center/cover no-repeat; position: relative; }
+  .bar { display: flex; align-items: center; gap: .5rem; padding: .75rem; }
+  .title { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .title b { font-size: 1rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .title span { font-size: .75rem; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+  .seek { display: flex; align-items: center; gap: .75rem; padding: 0 .75rem .25rem; font-size: .875rem; font-variant-numeric: tabular-nums; color: hsl(var(--muted-foreground)); }
+  .seek input { flex: 1; accent-color: hsl(var(--primary)); height: 2.5rem; }
+  .seg { display: inline-flex; border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius) - 3px); overflow: hidden; }
+  .seg button { height: 2.5rem; min-width: 2.75rem; border: 0; background: transparent; color: hsl(var(--foreground)); font-weight: 600; font-size: .875rem; }
+  .seg button.on { background: hsl(var(--primary) / .15); color: hsl(var(--primary)); }
+  body.dim .bar, body.dim .seek { display: none; }
+  /* empty state */
+  .empty { aspect-ratio: 16/9; display: flex; flex-direction: column; justify-content: center; gap: 1rem; padding: 2rem; background: hsl(var(--card)); }
+  .empty h2 { font-size: 1.5rem; font-weight: 700; }
+  .empty p { font-size: .875rem; color: hsl(var(--muted-foreground)); max-width: 36rem; line-height: 1.4; }
+  .steps { display: flex; flex-direction: column; gap: .5rem; border-top: 1px solid hsl(var(--border)); padding-top: 1rem; }
+  .steps h3 { font-size: 1rem; font-weight: 600; }
+  .steps ol { padding-left: 1.25rem; font-size: .875rem; color: hsl(var(--muted-foreground)); line-height: 1.6; }
+  .row { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+  .controls { position: absolute; left: 50%; transform: translateX(-50%); bottom: 1.25rem; display: flex; gap: .5rem; }
+  .finish { background: hsl(var(--destructive)); border-color: transparent; color: white; }
+  /* 390 */
+  @media (max-width: 640px) {
+    .strip { top: auto; left: .75rem; right: .75rem; bottom: 5rem; justify-content: space-between; gap: .75rem; padding: .75rem 1rem; }
+    .fig b { font-size: 1.875rem; }
+    .panel { left: .75rem; right: .75rem; width: auto; top: 4rem; bottom: auto; }
+    .seg, .hide-sm { display: none !important; }
+    .topbar .lbl { display: none; }
+    .empty { aspect-ratio: auto; padding: 1.25rem; }
+    .cam { display: none; }
+  }
+  body.size-l .panel { width: 66.666%; }
+</style>
+</head>
+<body>
+  <div class="topbar dimmable">
+    <button class="btn pill">‹ Exit</button>
+    <button class="btn icon pill"><i class="ico"></i></button>
+    <button class="btn icon pill"><i class="ico"></i></button>
+    <button class="btn pill on"><i class="ico"></i><span class="lbl">Show</span></button>
+  </div>
+
+  <div class="strip glass dimmable">
+    <div class="fig"><b>0:28</b><span>Time</span></div>
+    <div class="fig"><b>2.4</b><span>of 9.7 km</span></div>
+    <div class="fig"><b>24.1</b><span>km/h</span></div>
+    <div class="fig"><b>190</b><span>Watts</span></div>
+  </div>
+
+  <section class="panel glass" id="playing">
+    <div class="video" id="video"></div>
+    <div class="seek"><span>0:04</span><input type="range" value="20" aria-label="Position" /><span>1:00</span></div>
+    <div class="bar">
+      <button class="btn icon" aria-label="Back 10 seconds">−10</button>
+      <button class="btn icon accent" aria-label="Pause">❚❚</button>
+      <button class="btn icon" aria-label="Forward 30 seconds">+30</button>
+      <div class="title"><b>Big Buck Bunny</b><span>1 of 3 · next: Sintel</span></div>
+      <button class="btn icon hide-sm" aria-label="Next">⏭</button>
+      <div class="seg" role="radiogroup" aria-label="Video size"><button>S</button><button class="on">M</button><button>L</button></div>
+      <button class="btn icon" aria-label="Close show">✕</button>
+    </div>
+  </section>
+
+  <section class="panel glass" id="empty">
+    <div class="empty">
+      <h2>Watch something while you ride</h2>
+      <p>Pick videos saved on this device. Choose several to play them in order. The ride keeps recording underneath.</p>
+      <div class="row">
+        <button class="btn lg accent">▶ Continue Big Buck Bunny · 12:34</button>
+        <button class="btn lg">Choose videos</button>
+      </div>
+      <details class="steps">
+        <summary><h3 style="display:inline">Watching in another tab?</h3></summary>
+        <ol>
+          <li>Start the show in another Chrome tab.</li>
+          <li>Click the picture-in-picture button in Chrome's media controls.</li>
+          <li>Come back to Velo. The show floats on top while you ride.</li>
+        </ol>
+        <div class="row"><button class="btn">Use picture-in-picture</button></div>
+      </details>
+    </div>
+  </section>
+
+  <div class="controls dimmable">
+    <button class="btn lg pill">❚❚ Pause</button>
+    <button class="btn lg pill finish">⚑ Finish</button>
+  </div>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  const state = q.get('state') || 'playing';
+  if (q.get('bg')) document.body.style.backgroundImage = `url(${q.get('bg')})`;
+  if (q.get('frame')) document.getElementById('video').style.backgroundImage = `url(${q.get('frame')})`;
+  if (q.get('open')) document.querySelector('details') && (document.querySelector('details').open = true);
+  document.getElementById(state === 'empty' ? 'playing' : 'empty').remove();
+  if (state === 'dim') document.body.classList.add('dim');
+  if (q.get('size') === 'l') document.body.classList.add('size-l');
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { showIsPlaying } from '@/stores/showStore';
 import { gradientAt, EmaSmoother, elevationAt } from '@/lib/gradientCalculator';
 import { sampleRouteAtDistance, headingAt } from '@/lib/gpxParser';
 import { solveVelocity, ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics';
@@ -268,6 +269,8 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
       // Announcements only fire when climbAnnouncementsEnabled and volume > 0.
       // We skip this if there is no grade data (outdoor mode without a route).
       let climbFiredThisFrame = false;
+      // Voice lines would talk over the rider's show; stay quiet while it plays.
+      const voiceAllowed = !showIsPlaying();
       {
         const climbResult = updateClimbDetection(
           grade,
@@ -278,6 +281,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
 
         if (climbResult.event === 'started' && climbResult.climb) {
           if (
+            voiceAllowed &&
             settings.climbAnnouncementsEnabled &&
             settings.commentaryVolume > 0 &&
             !commentatorBusyRef.current
@@ -301,6 +305,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
       // to avoid two TTS calls in the same frame competing for the queue.
       // Guard: skip if disabled, muted, already firing, or climb announced this frame.
       if (
+        voiceAllowed &&
         settings.liveCommentaryEnabled &&
         settings.commentaryVolume > 0 &&
         !commentatorBusyRef.current &&
