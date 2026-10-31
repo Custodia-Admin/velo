@@ -26,3 +26,29 @@ jobs:
       # Same gate as Vercel: typecheck + lint + unit tests.
       - run: npm run check
       - run: npm run build
+      # /app shell ≤ 600 kB gzip and no Cesium in it (blueprint §P1.2).
+      - run: node scripts/check-bundle-budget.mjs
+
+  # Token-free smoke ride on the production build (blueprint §P1.2 and
+  # invariant 4): no VITE_CESIUM_ION_TOKEN is set here.
+  smoke-ride:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-ride-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

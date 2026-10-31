@@ -10,6 +10,7 @@
  */
 
 import * as Cesium from 'cesium';
+import { IMAGERY_FALLBACK_EVENT } from '@/lib/imageryFallback';
 import type { Route } from '@/types';
 import type { SkyConfig } from '@/lib/skyAndClouds';
 
@@ -161,7 +162,7 @@ const OSM_TILE_URL = 'https://tile.openstreetmap.org/';
  * NoTokenBanner (or any future status surface) so the user sees a soft
  * "photoreal unavailable" notice instead of just a downgraded-looking globe.
  */
-export const IMAGERY_FALLBACK_EVENT = 'globeride:imagery-fallback';
+export { IMAGERY_FALLBACK_EVENT };
 
 /**
  * Milliseconds to wait for the Bing Aerial provider to produce any tile

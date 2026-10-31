@@ -13,7 +13,16 @@
  *   5. Date footer + watermark
  */
 
-import { useRef, useState, useMemo, useCallback } from 'react';
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+  type ComponentType,
+} from 'react';
 import { toPng } from 'html-to-image';
 import { Download, Share2 } from 'lucide-react';
 
@@ -23,8 +32,25 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { computeMetrics } from '@/lib/metrics';
 import { formatDuration } from '@/lib/utils';
 import { resolveIonToken, isWebGLAvailable } from '@/components/landing/HeroVisual';
-import { ShareCardGlobe } from '@/components/share/ShareCardGlobe';
+import type { ShareCardGlobeProps } from '@/components/share/ShareCardGlobe';
 import type { Route, RoutePoint } from '@/types';
+
+/** If the globe chunk can't load, report it so the card falls back to the SVG map. */
+function ShareCardGlobeUnavailable({ onError }: ShareCardGlobeProps) {
+  useEffect(() => {
+    onError?.(new Error('Globe renderer unavailable'));
+  }, [onError]);
+  return null;
+}
+
+// The Cesium globe loads only when a download asks for it (keeps Cesium out
+// of the ride chunk; see lib/world/renderer.ts).
+const ShareCardGlobe = lazy(
+  (): Promise<{ default: ComponentType<ShareCardGlobeProps> }> =>
+    import('@/components/share/ShareCardGlobe')
+      .then((m) => ({ default: m.ShareCardGlobe }))
+      .catch(() => ({ default: ShareCardGlobeUnavailable })),
+);
 
 // ─── Card dimensions ──────────────────────────────────────────────────────────
 
@@ -499,14 +525,16 @@ export function ShareCard() {
             {/* Globe view — mounted only when token+WebGL available AND
                 a download is in progress. Destroyed after capture. */}
             {globeToken && route ? (
-              <ShareCardGlobe
-                route={route}
-                ionToken={globeToken}
-                width={mapW}
-                height={MAP_H}
-                onReady={handleGlobeReady}
-                onError={handleGlobeError}
-              />
+              <Suspense fallback={null}>
+                <ShareCardGlobe
+                  route={route}
+                  ionToken={globeToken}
+                  width={mapW}
+                  height={MAP_H}
+                  onReady={handleGlobeReady}
+                  onError={handleGlobeError}
+                />
+              </Suspense>
             ) : mapData ? (
               /* SVG minimap fallback — shown when globe unavailable */
               <svg

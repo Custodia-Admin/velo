@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { geocode, type GeocodeResult } from '@/lib/geocoder';
 import { generateRoute, type GeneratedShape } from '@/lib/routeGenerator';
-import { getTerrainProvider } from '@/lib/cesiumUtils';
 import { useRideStore } from '@/stores/rideStore';
 
 interface RouteSearchProps {
@@ -83,7 +82,11 @@ export function RouteSearch({ variant = 'inline', onRouteReady }: RouteSearchPro
     setGenError(null);
     try {
       let terrainProvider = null;
-      try { terrainProvider = await getTerrainProvider(); } catch { /* no token */ }
+      try {
+        // On demand: keeps Cesium out of the /app bundle.
+        const { getTerrainProvider } = await import('@/lib/cesiumUtils');
+        terrainProvider = await getTerrainProvider();
+      } catch { /* no token / chunk unavailable */ }
       const route = await generateRoute(
         { lat: selected.lat, lon: selected.lon },
         {

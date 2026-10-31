@@ -43,7 +43,6 @@ import {
   type GeneratedShape,
   type GenerationPhase,
 } from '@/lib/routeGenerator';
-import { getTerrainProvider } from '@/lib/cesiumUtils';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { listWorkouts, seedPresetWorkoutsIfMissing } from '@/lib/workoutLibrary';
@@ -483,7 +482,11 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
       setPreviewRoute(null);
       try {
         let terrainProvider = null;
-        try { terrainProvider = await getTerrainProvider(); } catch { /* no token */ }
+        try {
+          // On demand: keeps Cesium out of the /app bundle.
+          const { getTerrainProvider } = await import('@/lib/cesiumUtils');
+          terrainProvider = await getTerrainProvider();
+        } catch { /* no token / chunk unavailable */ }
         const route = await generateRoute(
           { lat: selected.lat, lon: selected.lon },
           {
