@@ -3,7 +3,7 @@
  * route grid. On-system per docs/design/UI-RULES.md (tokens only).
  */
 
-import { Play } from 'lucide-react';
+import { Play, Tv } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettingsStore, type UnitSystem } from '@/stores/settingsStore';
@@ -37,9 +37,12 @@ export interface ScenicPickProps {
 export function FeaturedScenicRide({
   info,
   onRide,
+  onRideWithShow,
 }: {
   info: ScenicRouteInfo;
   onRide: (info: ScenicRouteInfo) => void;
+  /** Pick videos, then ride with them playing (show mode). */
+  onRideWithShow?: (info: ScenicRouteInfo) => void;
 }) {
   const units = useSettingsStore((s) => s.units);
   return (
@@ -59,16 +62,31 @@ export function FeaturedScenicRide({
       <ElevationLine route={info.route} className="h-12 sm:h-16" />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="num text-lg font-semibold text-foreground">{figures(info, units)}</p>
-        <Button
-          size="lg"
-          variant="accent"
-          className="w-full shadow-glow-accent sm:w-auto"
-          onClick={() => onRide(info)}
-          aria-label={`Ride ${info.name}`}
-        >
-          <Play className="h-5 w-5" />
-          Ride
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row-reverse">
+          <Button
+            size="lg"
+            variant="accent"
+            className="w-full shadow-glow-accent sm:w-auto"
+            onClick={() => onRide(info)}
+            aria-label={`Ride ${info.name}`}
+          >
+            <Play className="h-5 w-5" />
+            Ride
+          </Button>
+          {onRideWithShow && (
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => onRideWithShow(info)}
+              aria-label={`Ride ${info.name} and watch your videos`}
+              data-testid="ride-and-watch"
+            >
+              <Tv className="h-5 w-5" />
+              Ride and watch
+            </Button>
+          )}
+        </div>
       </div>
     </article>
   );

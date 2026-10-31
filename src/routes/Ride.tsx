@@ -21,6 +21,12 @@ import { SettingsButton } from '@/components/profile/SettingsPanel';
 import { GestureLegend } from '@/components/ride/GestureLegend';
 import { CameraSwitcher } from '@/components/ride/CameraSwitcher';
 import { Button } from '@/components/ui/button';
+import { ShowPanel } from '@/components/velo/ShowPanel';
+import { ShowRideStrip } from '@/components/velo/ShowRideStrip';
+import { ShowToggle } from '@/components/velo/ShowToggle';
+import { retainShowForRide, useShowStore } from '@/stores/showStore';
+import { useIdle } from '@/hooks/useIdle';
+import { cn } from '@/lib/utils';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideLoop } from '@/hooks/useRideLoop';
@@ -75,6 +81,15 @@ export function Ride() {
   const rideMode      = useRideStore((s) => s.rideMode);
 
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
+
+  // ---- Show mode ----
+  // Watch your own videos over the live ride. The HUD shrinks to one strip,
+  // the camera directs itself, and everything but the video fades after a
+  // few seconds without input. Ride recording is untouched.
+  const showActive = useShowStore((s) => s.active);
+  const showSource = useShowStore((s) => s.source);
+  const dimmed = useIdle(showActive && showSource !== 'none' && rideState === 'running');
+  const dimClass = cn('transition-opacity duration-300', dimmed && 'opacity-20');
 
   // Ref for the main ride canvas container — used by gesture detection.
   const rideCanvasRef = useRef<HTMLDivElement>(null);
@@ -169,6 +184,18 @@ export function Ride() {
     return () => clearTimeout(t);
   }, [cesiumViewer, route, rideMode, rideState, location.state]);
 
+  // Arriving with { show: true } (Home's "Ride and watch") starts show mode;
+  // leaving the ride always ends it and releases the video files.
+  useEffect(() => {
+    const release = retainShowForRide();
+    if ((location.state as { show?: boolean } | null)?.show === true) {
+      useShowStore.getState().startShow();
+    }
+    return release;
+    // Mount/unmount only: location.state is the arrival intent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ---- Strava segment fetch ----
   // Fire once per route load, in the background. Ride continues on failure.
   useEffect(() => {
@@ -239,7 +266,8 @@ export function Ride() {
       {/* No-token banner — subtle nudge offering the photoreal upgrade.
           Invisible when a token is already installed; dismissible per-session
           so it never gets in the way of the ride. */}
-      <NoTokenBanner hasToken={token !== null && token.length > 0} />
+      {/* Hidden in show mode: below lg it would sit on the ride strip. */}
+      {!showActive && <NoTokenBanner hasToken={token !== null && token.length > 0} />}
 
       {/* Paused dim veil -- subtle darkening when ride is paused */}
       {rideState === 'paused' && (
@@ -251,7 +279,10 @@ export function Ride() {
 
       {/* -- Top bar -------------------------------------------------------- */}
       <div
-        className="absolute top-0 left-0 right-0 flex items-start justify-between gap-3 pointer-events-none z-[2]"
+        className={cn(
+          'absolute top-0 left-0 right-0 flex items-start justify-between gap-3 pointer-events-none z-[2]',
+          dimClass,
+        )}
         style={{
           paddingTop:   'max(env(safe-area-inset-top), 0.75rem)',
           paddingLeft:  'max(env(safe-area-inset-left), 0.75rem)',
@@ -289,12 +320,14 @@ export function Ride() {
               size="icon"
               className="rounded-full glass glass-hairline border-transparent"
             />
+            <ShowToggle />
           </div>
           <ConnectionStatus compact />
           {replayData && <ReplayBadge />}
           <SensorStatusPills />
 
           {/* Minimap — below the nav row, left column, tablet+ only */}
+          {!showActive && (<>
           <div className="hidden sm:block pointer-events-none mt-1">
             <Minimap />
           </div>
@@ -307,10 +340,15 @@ export function Ride() {
               <ElevationProfile />
             </div>
           </div>
+          </>)}
         </div>
 
         {/* ── Right column: stats + workout HUD (tablet+) ── */}
-        <div
+        {/* Show mode: the ride strip sits top-right from lg, above the video. */}
+        {showActive && (
+          <ShowRideStrip dimmed={dimmed} className="hidden lg:flex pointer-events-auto" />
+        )}
+        {!showActive && <div
           className="hidden sm:flex flex-col gap-2 pointer-events-none w-full max-w-[22rem] md:max-w-[25rem] lg:max-w-[28rem] xl:max-w-[31rem] overflow-y-auto"
           style={{ maxHeight: 'calc(100vh - 6rem)' }}
         >
@@ -318,12 +356,22 @@ export function Ride() {
           {activeWorkout && <WorkoutHUD />}
           {/* Strava Live Segments HUD */}
           <SegmentHUD />
-        </div>
+        </div>}
       </div>
 
       {/* -- Mobile HUD -- below the top bar (single column stack) ---------- */}
+      {/* Show mode: ride strip above the transport bar (and the no-token
+          banner) below lg. */}
+      {showActive && (
+        <ShowRideStrip
+          dimmed={dimmed}
+          className="lg:hidden absolute left-3 right-3 bottom-40 z-[2] sm:left-1/2 sm:right-auto sm:-translate-x-1/2"
+        />
+      )}
+      {showActive && rideState !== 'finished' && <ShowPanel dimmed={dimmed} />}
+
       <div
-        className="sm:hidden absolute left-0 right-0 pointer-events-none z-[2]"
+        className={cn('sm:hidden absolute left-0 right-0 pointer-events-none z-[2]', showActive && 'hidden')}
         style={{
           top:          'calc(max(env(safe-area-inset-top), 0.75rem) + 3.5rem)',
           paddingLeft:  'max(env(safe-area-inset-left), 0.75rem)',
@@ -358,22 +406,27 @@ export function Ride() {
           never be intercepted by a stray sibling. pointer-events-auto on
           the wrapper means clicks always land on the button. */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 pointer-events-auto z-50"
+        className={cn('absolute left-1/2 -translate-x-1/2 pointer-events-auto z-50', dimClass)}
         style={{ bottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
       >
         <RideControls />
       </div>
 
       {/* -- Gesture legend "?" chip + overlay ------------------- */}
-      {gestureControlsEnabled && (
+      {/* The full-screen wrapper must stay click-through: only the chip and
+          its dialog take pointer events, or the top bar below is unclickable. */}
+      {gestureControlsEnabled && !showActive && (
         <div className="absolute inset-0 pointer-events-none z-[4]">
           {/* GestureLegend positions itself absolutely within this container */}
-          <div className="relative w-full h-full pointer-events-auto">
+          <div className="relative w-full h-full pointer-events-none">
             <GestureLegend />
           </div>
         </div>
       )}
 
+      {/* Right-hand buttons step aside in show mode: the video panel lives
+          there and the camera is directed from the panel. */}
+      {!showActive && (<>
       {/* -- Camera switcher — top-right, below gesture chip ----- */}
       <div
         className="absolute pointer-events-auto z-[4]"
@@ -423,6 +476,7 @@ export function Ride() {
           onToggle={isListening ? stopListening : startListening}
         />
       </div>
+      </>)}
 
       {/* -- VR HUD overlay — visible only during XR session ------ */}
       <VRHud />

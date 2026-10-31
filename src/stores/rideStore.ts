@@ -839,9 +839,18 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         elapsedMs,
         grade: input.gradeNow,
         elevation: input.elevationNow,
-        // Demo Mode and replay drive speed from the loop's computed/recorded
-        // value; live trainer mode keeps the speed already set by ingest.
-        speed: st.mode === 'demo' || st.rideMode === 'outdoor' || st.replayData || st.workoutRunning ? input.speedNow : st.speed,
+        // A connected trainer owns speed (set by ingest). Everything else —
+        // Demo Mode, replay, outdoor, workouts, and riding before a trainer
+        // is paired — shows the loop's computed/recorded speed, which is also
+        // what advances distance.
+        speed:
+          st.mode === 'trainer' &&
+          st.connection === 'connected' &&
+          st.rideMode !== 'outdoor' &&
+          !st.replayData &&
+          !st.workoutRunning
+            ? st.speed
+            : input.speedNow,
         power: input.powerNow ?? st.power,
         cadence: input.cadenceNow ?? st.cadence,
         heartRate: input.heartRateNow ?? st.heartRate,

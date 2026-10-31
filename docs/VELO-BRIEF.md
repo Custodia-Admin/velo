@@ -42,9 +42,13 @@ never send BLE control commands while someone may be on the bike.
 3. **Two riders, one tap.** "Who's riding" sits at the top of Home. Switching
    swaps weight, FTP, gear, avatar, camera, comfort settings and XP; the
    household keeps shared things like units, graphics and audio.
-4. **Journey and show mode (next).** Pick a route, press Ride, and watch your
-   own shows while the world rolls by: a video surface over the live route,
-   auto-cinematic camera, stats and FIT export still recording. Card P2b.
+4. **Journey and show mode.** Press "Ride and watch" on today's ride, pick
+   videos from this device, and the ride starts with them playing: a video
+   panel over the live route (S / M / L), an auto camera that cycles chase,
+   drone and orbit shots, one strip of ride numbers, and a HUD that fades
+   after a few seconds without input. Stats and FIT export keep recording.
+   Streaming tabs use Chrome's picture-in-picture; Velo explains how. The
+   in-ride "Show" button does the same for any route.
 5. **10-foot UI.** Big targets and type that read from two metres on a TV and
    work under a thumb on a tablet. See `docs/design/UI-RULES.md`.
 6. **Later, maybe.** A more game-like world (collectibles, companions,
@@ -69,3 +73,5 @@ never send BLE control commands while someone may be on the bike.
 - Ride history, PRs and achievements in IndexedDB are shared, not per rider.
 - The app header still says GlobeRide; a rebrand is its own card.
 - Zwift Ride handlebar controller input is not wired yet.
+- Show mode plays files Chrome can decode (MP4/H.264, WebM). Streaming
+  services stay in their own tab via picture-in-picture; no integrations.

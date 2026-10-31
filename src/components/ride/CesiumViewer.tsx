@@ -6,6 +6,8 @@ import { sanitizeForLabel } from '@/lib/security/sanitize';
 import { useRideStore } from '@/stores/rideStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useShowStore } from '@/stores/showStore';
+import { effectiveCameraMode } from '@/lib/show/showDirector';
 import { useGhostStore } from '@/stores/ghostStore';
 import {
   applyFollowCam,
@@ -20,6 +22,7 @@ import {
   MOODS,
   moodForRoute,
   resetFollowCam,
+  seedFollowCam,
   routeToCartesians,
   setIonToken,
   setActiveViewer,
@@ -916,7 +919,13 @@ export function CesiumViewer({
 
       // ---- Camera: per-mode positioning + cross-mode transition ----
       if (shouldChaseCamUpdate(state.rideState)) {
-        const currentMode = useSettingsStore.getState().cameraMode;
+        // Show mode hands the camera to the auto director unless the rider
+        // picked a camera themselves.
+        const currentMode = effectiveCameraMode(
+          useSettingsStore.getState().cameraMode,
+          useShowStore.getState(),
+          nowMs,
+        );
         const riderPose = {
           lat: sampled.lat,
           lon: sampled.lon,
@@ -933,6 +942,11 @@ export function CesiumViewer({
               fromPose: lastCamPoseRef.current,
               startMs: nowMs,
             };
+          }
+          // Chase keeps its own eased state; start it from where the camera
+          // is now so the cut back glides instead of jumping.
+          if (currentMode === 'chase') {
+            seedFollowCam(viewer.camera.positionWC, viewer.camera.heading, viewer.camera.pitch);
           }
           lastCamModeRef.current = currentMode;
         }

@@ -81,9 +81,15 @@ describe('rideStore.tick — speed source resolution', () => {
   });
 
   it('keeps trainer-ingested speed in live trainer mode', () => {
-    useRideStore.setState({ speed: 5, replayData: null, mode: 'trainer' });
+    useRideStore.setState({ speed: 5, replayData: null, mode: 'trainer', connection: 'connected' });
     tickWith(99);
     expect(useRideStore.getState().speed).toBe(5);
+  });
+
+  it('shows the computed speed while no trainer is paired (regression: HUD read 0 km/h)', () => {
+    useRideStore.setState({ speed: 0, replayData: null, mode: 'trainer', connection: 'disconnected' });
+    tickWith(8.5);
+    expect(useRideStore.getState().speed).toBe(8.5);
   });
 
   it('drives speed from the solved value in Demo Mode', () => {

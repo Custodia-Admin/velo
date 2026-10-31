@@ -52,7 +52,8 @@ export function GhostToggle() {
         <path d="M7 1a5 5 0 0 0-5 5v6l1.5-1.5L5 12l1.5-1.5L7 11l.5.5L9 12l1.5-1.5L12 12V6A5 5 0 0 0 7 1Z" />
       </svg>
 
-      <span aria-hidden="true">
+      {/* Icon-only on phones so the ride top bar fits at 390 px. */}
+      <span aria-hidden="true" className="hidden sm:inline">
         {ghostsEnabled
           ? ghostCount > 0
             ? `${ghostCount} ghost${ghostCount > 1 ? 's' : ''}`
