@@ -12,8 +12,31 @@ import type { MoodId } from '@/lib/cesiumUtils';
 import { haversine } from '@/lib/utils';
 import { SCENIC_ROUTE_GEOMETRY, type ScenicRouteGeometry } from '@/lib/scenicRouteData';
 
-export type ScenicArea = 'near-home' | 'further';
-export type Scenery = 'lake' | 'coast' | 'valley' | 'alpine-lake';
+/**
+ * Where a route sits relative to the household:
+ * - near-home: around Perugia, where they live now
+ * - hometown: Ticino and the Lombardy lakes, where Federico grew up
+ * - further: European lakes and coast a trip away
+ * - travels: places on the travel wishlist
+ */
+export type ScenicArea = 'near-home' | 'hometown' | 'further' | 'travels';
+export type Scenery = 'lake' | 'coast' | 'valley' | 'alpine-lake' | 'river';
+
+export interface ScenicAreaInfo {
+  id: ScenicArea;
+  /** Home section heading. */
+  title: string;
+  /** Short line beside the heading. */
+  detail: string;
+}
+
+/** Home sections, in display order. Every area a route uses appears here. */
+export const SCENIC_AREAS: ScenicAreaInfo[] = [
+  { id: 'near-home', title: 'Near home', detail: 'Perugia and Umbria' },
+  { id: 'hometown', title: 'Hometown', detail: 'Ticino and the Lombardy lakes' },
+  { id: 'further', title: 'Further afield', detail: 'Alpine lakes, Garda and the Riviera' },
+  { id: 'travels', title: 'Travels', detail: 'China, the United States and Mexico' },
+];
 export type ScenicCharacter = 'flat' | 'gentle';
 
 export interface ScenicRouteInfo {
@@ -47,13 +70,45 @@ interface ScenicMeta {
 
 /** Order matters: the home screen shows them in this order. */
 const SCENIC_META: ScenicMeta[] = [
+  // ── Near home: Perugia ──
+  {
+    id: 'scenic-trasimeno-shore',
+    name: 'Lake Trasimeno shore',
+    place: 'Umbria · Lago Trasimeno',
+    description:
+      'The lakeside cycle path from Castiglione del Lago round the north-west shore past Borghetto and Tuoro to Passignano.',
+    area: 'near-home',
+    scenery: 'lake',
+    mood: 'golden-hour',
+  },
+  {
+    id: 'scenic-perugia-tiber-park',
+    name: 'Tiber river park',
+    place: 'Perugia · Tiber valley',
+    description:
+      'The Percorso Verde along the Tiber from Ponte San Giovanni past Ponte Valleceppi to Ponte Felcino, below the hill of Perugia.',
+    area: 'near-home',
+    scenery: 'river',
+    mood: 'clear-afternoon',
+  },
+  {
+    id: 'scenic-assisi-valley',
+    name: 'Assisi valley floor',
+    place: 'Umbria · Valle Umbra',
+    description:
+      'A flat loop on the plain from Santa Maria degli Angeli to Rivotorto and Bastia, with Assisi on the hillside above.',
+    area: 'near-home',
+    scenery: 'valley',
+    mood: 'clear-noon',
+  },
+  // ── Hometown: Ticino and the Lombardy lakes ──
   {
     id: 'scenic-lugano-melide',
     name: 'Lugano lakefront to Melide',
     place: 'Ticino · Lake Lugano',
     description:
       "Lugano's lakefront promenade, Paradiso, then the shore road to Melide and out over the causeway with water on both sides.",
-    area: 'near-home',
+    area: 'hometown',
     scenery: 'lake',
     mood: 'golden-hour',
   },
@@ -63,7 +118,7 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Ticino · Lago Maggiore',
     description:
       "From Locarno past Ascona's lakefront and along the shore toward Brissago, with the Brissago Islands just offshore.",
-    area: 'near-home',
+    area: 'hometown',
     scenery: 'lake',
     mood: 'clear-afternoon',
   },
@@ -73,7 +128,7 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Ticino · Alpine valley',
     description:
       'Up the Maggia river from Ponte Brolla through stone villages to Cevio, granite walls and waterfalls on both sides.',
-    area: 'near-home',
+    area: 'hometown',
     scenery: 'valley',
     mood: 'clear-noon',
   },
@@ -83,7 +138,7 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Ticino · Magadino plain',
     description:
       'From the castle town of Bellinzona across the flat Magadino plain to the head of Lago Maggiore.',
-    area: 'near-home',
+    area: 'hometown',
     scenery: 'valley',
     mood: 'clear-afternoon',
   },
@@ -93,7 +148,7 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Lombardy · Lago di Varese',
     description:
       'The lakeside cycle path from Gavirate round the south shore to Schiranna, Monte Rosa on the skyline on a clear day.',
-    area: 'near-home',
+    area: 'hometown',
     scenery: 'lake',
     mood: 'golden-hour',
   },
@@ -103,7 +158,7 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Lombardy · Lake Como',
     description:
       "Along Lake Como's western shore through Dongo to Gravedona, mountains dropping straight into the water.",
-    area: 'near-home',
+    area: 'hometown',
     scenery: 'lake',
     mood: 'mediterranean-mist',
   },
@@ -146,6 +201,86 @@ const SCENIC_META: ScenicMeta[] = [
     area: 'further',
     scenery: 'lake',
     mood: 'clear-afternoon',
+  },
+  {
+    id: 'scenic-lake-garda-lazise',
+    name: 'Peschiera to Lazise',
+    place: 'Veneto · Lake Garda',
+    description:
+      "The lakeside cycle path from Peschiera del Garda's harbour north along the east shore to Lazise.",
+    area: 'further',
+    scenery: 'lake',
+    mood: 'golden-hour',
+  },
+  // ── Travels: the wishlist ──
+  {
+    id: 'scenic-chengdu-luxe-lakes',
+    name: 'Luxe Lakes loop',
+    place: 'Chengdu · Tianfu New Area',
+    description: 'A loop on the roads and paths around the Luxe Lakes (Luhu), south of central Chengdu.',
+    area: 'travels',
+    scenery: 'lake',
+    mood: 'mediterranean-mist',
+  },
+  {
+    id: 'scenic-hangzhou-west-lake',
+    name: 'West Lake loop',
+    place: 'Hangzhou · West Lake',
+    description:
+      'Round West Lake from the Broken Bridge along the north shore, the Yanggong causeway and Nanshan Road past Leifeng Pagoda.',
+    area: 'travels',
+    scenery: 'lake',
+    mood: 'mediterranean-mist',
+  },
+  {
+    id: 'scenic-cuyahoga-towpath',
+    name: 'Ohio & Erie Canal Towpath',
+    place: 'Ohio · Cuyahoga Valley',
+    description:
+      'The crushed-stone canal towpath through Cuyahoga Valley National Park from Station Road Bridge past Boston and Peninsula to Beaver Marsh.',
+    area: 'travels',
+    scenery: 'river',
+    mood: 'clear-afternoon',
+  },
+  {
+    id: 'scenic-cleveland-lakefront',
+    name: 'Cleveland lakefront',
+    place: 'Ohio · Lake Erie',
+    description:
+      'The Lakefront Bikeway from Edgewater Park past downtown and the harbour to Gordon Park at East 72nd Street.',
+    area: 'travels',
+    scenery: 'lake',
+    mood: 'dusk-cool',
+  },
+  {
+    id: 'scenic-berkeley-bay-trail',
+    name: 'Berkeley shoreline',
+    place: 'California · San Francisco Bay',
+    description:
+      'The Bay Trail from Point Isabel past Albany, César Chávez Park and the Berkeley Marina to the Emeryville shore.',
+    area: 'travels',
+    scenery: 'coast',
+    mood: 'golden-hour',
+  },
+  {
+    id: 'scenic-santa-monica-strand',
+    name: 'Santa Monica to Hermosa Beach',
+    place: 'California · Pacific coast',
+    description:
+      'The beach bike path from Santa Monica Pier past Venice, round Marina del Rey and down The Strand to Hermosa Beach Pier.',
+    area: 'travels',
+    scenery: 'coast',
+    mood: 'clear-afternoon',
+  },
+  {
+    id: 'scenic-puerto-vallarta-malecon',
+    name: 'Puerto Vallarta bayfront',
+    place: 'Jalisco · Banderas Bay',
+    description:
+      'From the Zona Romántica through the old town beside the malecón and up the hotel-zone boulevard to Marina Vallarta.',
+    area: 'travels',
+    scenery: 'coast',
+    mood: 'golden-hour',
   },
 ];
 

@@ -20,7 +20,7 @@ default experience for one household.
 | Bike | Zwift Ride V2 frame (handlebar controllers) on a Wahoo KICKR CORE 2 |
 | Trainer control | FTMS verified 29 Oct 2026: Request Control, SIM (0x11) and ERG (0x05) all answered Success. 0x04 resistance level fails (known KICKR quirk, not needed). |
 | Screens | Laptop, TV, tablet. All Chrome, installed as a PWA. |
-| Home | Ticino, Switzerland. Lombardy is next door. |
+| Home | Perugia, Umbria (Italy). Federico grew up in Lugano, so Ticino and the Lombardy lakes stay in the library as "hometown". |
 
 Velo never sends trainer commands outside a ride the rider started, and agents
 never send BLE control commands while someone may be on the bike.
@@ -35,10 +35,14 @@ never send BLE control commands while someone may be on the bike.
    - The home screen never asks for training effort: no plans, FTP, TSS or
      streaks. Those stay in the Advanced view for whoever wants them.
 2. **Scenic over sporty.** The home screen leads with *Easy & Scenic* rides:
-   flat or gently rolling routes with a big view. Near home first (Lugano,
-   Locarno, Valle Maggia, the Magadino plain, Lake Varese, Lake Como), then
-   further afield (Engadin lakes, Lavaux to Chillon, the Riviera dei Fiori,
-   Lake Annecy). Each route has a cinematic mood (light, haze, time of day).
+   flat or gently rolling routes with a big view. Near home first (Lake
+   Trasimeno, the Tiber river park, the Assisi valley floor), then hometown
+   (Lugano, Locarno, Valle Maggia, the Magadino plain, Lake Varese, Lake
+   Como), further afield (Engadin lakes, Lavaux to Chillon, the Riviera dei
+   Fiori, Lake Annecy, Lake Garda) and travels (Chengdu's Luxe Lakes,
+   Hangzhou's West Lake, the Ohio & Erie Canal Towpath, Cleveland's
+   lakefront, Berkeley, Santa Monica to Hermosa Beach, Puerto Vallarta).
+   Each route has a cinematic mood (light, haze, time of day).
 3. **Two riders, one tap.** "Who's riding" sits at the top of Home. Switching
    swaps weight, FTP, gear, avatar, camera, comfort settings and XP; the
    household keeps shared things like units, graphics and audio.
