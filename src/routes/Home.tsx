@@ -60,7 +60,6 @@ const IconicRoutes = lazy(() => import('@/components/routes/IconicRoutes').then(
 import { SegmentLeaderboard } from '@/components/training/SegmentLeaderboard';
 import { SettingsButton } from '@/components/profile/SettingsPanel';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HomeTabBar, HomeTabPanel, type TabId } from '@/components/setup/HomeTabs';
 import { useRaceStore } from '@/stores/raceStore';
@@ -72,6 +71,12 @@ import { buildRampTest, build20MinTest } from '@/lib/ftpTest';
 import { getPreset, DAILY_WORKOUT_ID } from '@/lib/presetWorkouts';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import { ProPelotonSetup } from '@/components/setup/ProPelotonSetup';
+import { RiderPanel } from '@/components/velo/RiderPanel';
+import { TrainerPanel } from '@/components/velo/TrainerPanel';
+import { ScenicRouteGridSkeleton } from '@/components/velo/ScenicRoutes';
+// Lazy: scenic route geometry (~30 kB) stays off the critical path.
+const ScenicHomeSections = lazy(() => import('@/components/velo/ScenicHome').then(m => ({ default: m.ScenicHomeSections })));
+const ScenicRoutesPanel = lazy(() => import('@/components/velo/ScenicHome').then(m => ({ default: m.ScenicRoutesPanel })));
 
 /** Minimal inline spinner shown while a lazy tab panel loads. */
 function TabSpinner() {
@@ -140,18 +145,17 @@ export function Home() {
     window.history.replaceState({}, '', url.toString());
   }, []); // intentional: runs once on mount to consume the ?race= deep-link
 
-  /** Always-enabled CTA: auto-pairs a random iconic route and the daily easy
-   *  workout if the user hasn't already picked them, then navigates to /ride.
-   *  The iconic-routes catalog is loaded on demand so it stays off the
-   *  critical bundle path. */
+  /** Always-enabled CTA: picks an easy scenic route if none is loaded, then
+   *  navigates to /ride. The daily workout is only auto-attached for riders
+   *  who switched ERG on — Velo's default is a plain, easy ride. The scenic
+   *  catalog is loaded on demand so it stays off the critical bundle path. */
   const handleStartRide = async () => {
     const store = useRideStore.getState();
     if (!store.route && store.rideMode !== 'outdoor') {
-      const { ICONIC_ROUTES } = await import('@/lib/iconicRoutes');
-      const iconic = ICONIC_ROUTES[Math.floor(Math.random() * ICONIC_ROUTES.length)];
-      store.setRoute(iconic.route);
+      const { randomScenicRoute } = await import('@/lib/scenicRoutes');
+      store.setRoute(randomScenicRoute().route);
     }
-    if (!store.activeWorkout) {
+    if (!store.activeWorkout && useSettingsStore.getState().ergEnabled) {
       const dailyPreset = getPreset(DAILY_WORKOUT_ID);
       if (dailyPreset) store.loadWorkout(dailyPreset);
     }
@@ -190,62 +194,57 @@ export function Home() {
 
   return (
     <div className="relative min-h-full w-full flex flex-col overflow-x-hidden">
-      {/* Ambient gradient backdrop — decorative depth, sits behind everything */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -left-40 h-[32rem] w-[32rem] rounded-full bg-primary/10 dark:bg-primary/14 blur-[80px]" />
-        <div className="absolute top-1/3 -right-40 h-[28rem] w-[28rem] rounded-full bg-accent/10 dark:bg-accent/12 blur-[80px]" />
-        <div className="absolute bottom-0 left-1/4 h-[24rem] w-[24rem] rounded-full bg-sky-400/8 dark:bg-sky-500/8 blur-[80px]" />
-      </div>
-
       <AppHeader />
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-7 sm:py-9 lg:py-11 flex flex-col gap-6">
 
-        {/* Hero — always visible */}
-        <div className="animate-fadeUp">
-          <Badge variant="default" className="mb-3 text-[10px]">
-            <Sparkles className="h-3 w-3" />
-            Open source · MIT licensed
-          </Badge>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.05] [letter-spacing:-0.03em]">
-            Pick your ride.
-          </h1>
-          <p className="mt-2 text-muted-foreground max-w-prose text-sm sm:text-base leading-relaxed">
-            30 seconds, no account required.
-          </p>
-        </div>
-
-        {/* ── Wizard (default view) ── */}
-        {!showAdvanced && <RideSetupWizard />}
-
-        {/* ── Advanced toggle footer ── */}
+        {/* ── Velo home (default view): who's riding, where to, trainer ── */}
         {!showAdvanced && (
-          <div className="flex flex-wrap items-center gap-4 pt-1 border-t border-border/40">
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(true)}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-            >
-              <History className="h-3.5 w-3.5" />
-              History
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowAdvanced(true); setActiveTab('races'); }}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-            >
-              <Flag className="h-3.5 w-3.5" />
-              Races
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(true)}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-            >
-              <Dumbbell className="h-3.5 w-3.5" />
-              Advanced view
-            </button>
-          </div>
+          <>
+            <section className="flex flex-col gap-6 animate-fadeUp" aria-labelledby="home-title">
+              <div className="flex flex-col gap-2">
+                <h1 id="home-title" className="text-3xl sm:text-5xl font-bold text-foreground">
+                  Where to today?
+                </h1>
+                <p className="max-w-prose text-base text-muted-foreground">
+                  Easy, scenic rides. Pick a place and pedal.
+                </p>
+              </div>
+              <RiderPanel />
+            </section>
+
+            <Suspense fallback={<ScenicRouteGridSkeleton />}>
+              <ScenicHomeSections />
+            </Suspense>
+
+            <TrainerPanel />
+
+            <details className="group border-t border-border pt-2" data-build-your-own>
+              <summary className="flex min-h-12 cursor-pointer list-none flex-wrap items-center gap-x-2 rounded-md px-2 text-base font-semibold text-foreground select-none hover:bg-muted/60">
+                <span aria-hidden className="inline-block transition-transform duration-150 group-open:rotate-90">›</span>
+                Build your own ride
+                <span className="text-sm font-normal text-muted-foreground">search a place, upload a GPX, add a workout</span>
+              </summary>
+              <div className="pt-4">
+                <RideSetupWizard />
+              </div>
+            </details>
+
+            <nav aria-label="More" className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+              <Button variant="ghost" onClick={() => { setShowAdvanced(true); setActiveTab('history'); }}>
+                <History className="h-4 w-4" />
+                History
+              </Button>
+              <Button variant="ghost" onClick={() => { setShowAdvanced(true); setActiveTab('races'); }}>
+                <Flag className="h-4 w-4" />
+                Races
+              </Button>
+              <Button variant="ghost" onClick={() => setShowAdvanced(true)}>
+                <Dumbbell className="h-4 w-4" />
+                Advanced view
+              </Button>
+            </nav>
+          </>
         )}
 
         {/* ── Advanced / power-user tab layout ── */}
@@ -573,6 +572,18 @@ export function Home() {
               </CardContent>
             </Card>
 
+            <Card data-scenic-routes>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Easy &amp; scenic
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Suspense fallback={<ScenicRouteGridSkeleton />}><ScenicRoutesPanel onPicked={() => navigate('/ride')} /></Suspense>
+              </CardContent>
+            </Card>
+
             <Card data-iconic-routes>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -802,7 +813,11 @@ export function Home() {
       </main>
 
       <footer className="px-4 sm:px-6 lg:px-10 py-4 border-t border-border/50 text-xs text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
-        <span>MIT-licensed · made for cyclists who like the open web.</span>
+        <span>
+          Velo · built on{' '}
+          <a className="underline underline-offset-4 hover:text-foreground" href="https://github.com/masonwyatt23/globeride">GlobeRide</a>
+          {' '}by Mason Wyatt (MIT)
+        </span>
         <span className="num opacity-60">v0.2.0</span>
       </footer>
     </div>

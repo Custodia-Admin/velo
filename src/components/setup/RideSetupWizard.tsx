@@ -50,10 +50,14 @@ import { listWorkouts, seedPresetWorkoutsIfMissing } from '@/lib/workoutLibrary'
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import type { Workout } from '@/lib/workout';
 import type { Route } from '@/types';
-// Lazy: the iconic-climbs catalog (~66 kB of densified polylines from
-// @/lib/iconicRoutes) is fetched on first mount of the route step + on
-// demand inside handleStartRide. Keeps the data off the critical bundle.
-import type { IconicRouteInfo } from '@/lib/iconicRoutes';
+// Lazy: the scenic route catalog (@/lib/scenicRoutes) is fetched on first
+// mount of the route step + on demand inside handleStartRide. Keeps the
+// geometry off the critical bundle.
+
+interface FeaturedRoute {
+  route: Route;
+  title: string;
+}
 import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { GPXUploader } from '@/components/setup/GPXUploader';
 // Lazy-load the chart preview — Recharts (~390 kB) stays off the critical path.
@@ -366,14 +370,22 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
   const requestFlyTo = useRideStore((s) => s.requestFlyTo);
   const currentRoute = useRideStore((s) => s.route);
 
-  // Featured iconic climbs — lazy-loaded so the curated catalog stays off
-  // the critical bundle. `null` means "still importing"; render skeleton
+  // Featured Easy & Scenic rides — lazy-loaded so the route geometry stays
+  // off the critical bundle. `null` means "still importing"; render skeleton
   // cards until the module resolves on first mount.
-  const [featuredRoutes, setFeaturedRoutes] = useState<IconicRouteInfo[] | null>(null);
+  const [featuredRoutes, setFeaturedRoutes] = useState<FeaturedRoute[] | null>(null);
   useEffect(() => {
     let cancelled = false;
-    import('@/lib/iconicRoutes')
-      .then((m) => { if (!cancelled) setFeaturedRoutes(m.ICONIC_ROUTES.slice(0, 6)); })
+    import('@/lib/scenicRoutes')
+      .then((m) => {
+        if (!cancelled) {
+          setFeaturedRoutes(
+            m.SCENIC_ROUTES.filter((r) => r.area === 'near-home')
+              .slice(0, 6)
+              .map((r) => ({ route: r.route, title: r.name })),
+          );
+        }
+      })
       .catch(() => { if (!cancelled) setFeaturedRoutes([]); });
     return () => { cancelled = true; };
   }, []);
@@ -703,7 +715,7 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
       {/* Divider */}
       <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-border/50" />
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60">or choose an iconic climb</span>
+        <span className="text-2xs uppercase tracking-widest text-muted-foreground">or choose an easy scenic ride</span>
         <div className="h-px flex-1 bg-border/50" />
       </div>
 
@@ -744,7 +756,7 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
                     <Mountain className="h-4 w-4" />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-foreground truncate">{r.climbName}</div>
+                    <div className="text-sm font-semibold text-foreground truncate">{r.title}</div>
                     <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground num">
                       <span>{distKm} km</span>
                       {ascentM && <><span className="opacity-40">·</span><span>{ascentM} m</span></>}
@@ -896,12 +908,11 @@ export function RideSetupWizard() {
 
   const handleStartRide = useCallback(async () => {
     const store = useRideStore.getState();
-    // Auto-fill route if still none. The iconic-routes catalog is
-    // dynamic-imported here so it stays off the critical bundle path.
+    // Auto-fill route if still none: an easy scenic ride near home. The
+    // catalog is dynamic-imported so it stays off the critical bundle path.
     if (!store.route) {
-      const { ICONIC_ROUTES } = await import('@/lib/iconicRoutes');
-      const r = ICONIC_ROUTES[Math.floor(Math.random() * ICONIC_ROUTES.length)];
-      store.setRoute(r.route);
+      const { randomScenicRoute } = await import('@/lib/scenicRoutes');
+      store.setRoute(randomScenicRoute().route);
     }
     // Pass autoStart so the ride begins as soon as Cesium is ready — the
     // wizard's "Start ride" CTA should actually start the ride, not just

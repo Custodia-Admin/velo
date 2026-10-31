@@ -1,0 +1,116 @@
+<!doctype html>
+<!--
+  P2a Home mockup — rider switcher, Easy & Scenic grid, comfort card.
+  Static, token-only (values copied from src/index.css dark theme).
+  Render: chromium --headless --screenshot --window-size=1440,1800 p2a-home.html
+-->
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — Home mockup</title>
+<style>
+  :root {
+    --background: 220 42% 4%; --foreground: 210 28% 96%; --card: 220 40% 7%;
+    --muted: 215 28% 13%; --muted-foreground: 215 18% 58%; --border: 215 26% 17%;
+    --primary: 200 92% 56%; --primary-foreground: 220 42% 4%;
+    --accent: 158 80% 42%; --accent-foreground: 220 42% 4%; --radius: 0.875rem;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: ui-sans-serif, system-ui, sans-serif; background: hsl(var(--background)); color: hsl(var(--foreground)); }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2.5rem; border-bottom: 1px solid hsl(var(--border)); }
+  .brand { font-weight: 700; font-size: 1.125rem; }
+  main { max-width: 64rem; margin: 0 auto; padding: 2.75rem 2.5rem; display: flex; flex-direction: column; gap: 2rem; }
+  h1 { font-size: 3rem; line-height: 1; letter-spacing: -0.035em; }
+  .lede { color: hsl(var(--muted-foreground)); font-size: 1rem; margin-top: 0.5rem; }
+  .riders { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+  .rider { display: flex; align-items: center; gap: 0.75rem; height: 3rem; padding: 0 1.25rem 0 0.5rem; border-radius: 9999px; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); font-weight: 600; font-size: 0.875rem; }
+  .rider.on { border-color: hsl(var(--primary)); background: hsl(var(--primary) / 0.12); }
+  .avatar { width: 2rem; height: 2rem; border-radius: 9999px; display: grid; place-items: center; background: hsl(var(--muted)); font-size: 0.75rem; font-weight: 700; }
+  .rider.on .avatar { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+  .sub { color: hsl(var(--muted-foreground)); font-weight: 500; font-size: 0.75rem; }
+  .section-h { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+  h2 { font-size: 1.5rem; letter-spacing: -0.02em; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; }
+  .card { border: 1px solid hsl(var(--border)); background: hsl(var(--card)); border-radius: var(--radius); padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+  .card h3 { font-size: 1rem; font-weight: 600; }
+  .meta { color: hsl(var(--muted-foreground)); font-size: 0.75rem; }
+  .desc { color: hsl(var(--muted-foreground)); font-size: 0.875rem; line-height: 1.35rem; }
+  .spark { height: 2.5rem; color: hsl(var(--primary)); }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+  .figs { font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+  .btn { height: 2.5rem; padding: 0 1rem; border-radius: calc(var(--radius) - 3px); border: 0; font-weight: 600; font-size: 0.875rem; background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+  .btn.outline { background: transparent; color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); }
+  .chip { font-size: 0.6875rem; font-weight: 600; padding: 0.125rem 0.5rem; border-radius: 9999px; background: hsl(var(--accent) / 0.12); color: hsl(var(--accent)); }
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .panel { border: 1px solid hsl(var(--border)); background: hsl(var(--card)); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+  .label { font-size: 0.875rem; font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: hsl(var(--primary)); }
+  .more { color: hsl(var(--muted-foreground)); font-size: 0.875rem; border-top: 1px solid hsl(var(--border)); padding-top: 1rem; }
+  .comfort { display: flex; align-items: center; gap: 1rem; margin-top: 1rem; max-width: 32rem; }
+  .comfort input { flex: 1; }
+  .featured { border: 1px solid hsl(var(--border)); background: hsl(var(--card)); border-radius: var(--radius); padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
+  .big { font-size: 2.25rem; line-height: 2.5rem; }
+  .featured .desc { font-size: 1rem; }
+  .spark.tall { height: 4rem; }
+  .figs.lg { font-size: 1.125rem; font-weight: 600; }
+  .btn.lg { height: 3rem; padding: 0 1.5rem; font-size: 1rem; }
+  .trainer { flex-direction: row; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+  .more { display: flex; gap: 0.5rem; flex-wrap: wrap; border-top: 1px solid hsl(var(--border)); padding-top: 0.5rem; }
+  .more a { display: inline-flex; align-items: center; height: 2.5rem; padding: 0 0.75rem; border-radius: calc(var(--radius) - 3px); }
+  footer { padding: 1rem 2.5rem; border-top: 1px solid hsl(var(--border)); color: hsl(var(--muted-foreground)); font-size: 0.75rem; }
+  @media (max-width: 1023px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 639px) {
+    header, main, footer { padding-left: 1rem; padding-right: 1rem; }
+    main { padding-top: 1.75rem; gap: 1.5rem; }
+    h1 { font-size: 1.875rem; line-height: 2.25rem; } .big { font-size: 1.5rem; line-height: 2rem; } .featured { padding: 1rem; } .comfort { flex-wrap: wrap; }
+    .grid, .panels { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header><span class="brand">Velo</span><span class="sub">Settings</span></header>
+<main>
+  <section>
+    <h1>Where to today?</h1>
+    <p class="lede">Easy, scenic rides. Pick a place and pedal.</p>
+    <div class="riders" role="radiogroup" aria-label="Who's riding">
+      <button class="rider on" role="radio" aria-checked="true"><span class="avatar">F</span>Federico</button>
+      <button class="rider" role="radio" aria-checked="false"><span class="avatar">R</span>Rider 2</button>
+    </div>
+    <div class="comfort"><span class="label">Hills feel</span><input type="range" min="0" max="100" value="35" aria-label="How hard hills feel" /><span class="figs">35% · easy</span></div>
+  </section>
+
+  <section class="featured">
+    <p class="meta">Today's ride</p>
+    <h2 class="big">Lugano lakefront to Melide</h2>
+    <p class="desc">Palm-lined promenade, then across the causeway with the lake on both sides.</p>
+    <svg class="spark tall" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" points="0,14 20,13 40,15 60,12 80,14 100,13"/></svg>
+    <div class="row"><span class="figs lg">9.7 km · flat · about 30 min</span><button class="btn lg">Ride</button></div>
+  </section>
+
+  <section>
+    <div class="section-h"><h2>Near home</h2><span class="meta">Ticino and Lombardy</span></div>
+    <div class="grid">
+      <article class="card"><h3>Locarno to Brissago</h3><p class="meta">Lago Maggiore · flat</p>
+        <svg class="spark" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke" points="0,15 25,14 50,12 75,14 100,13"/></svg>
+        <div class="row"><span class="figs">9.6 km · about 30 min</span><button class="btn outline">Ride</button></div></article>
+      <article class="card"><h3>Valle Maggia</h3><p class="meta">Alpine valley · gentle climb</p>
+        <svg class="spark" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke" points="0,18 20,16 30,11 45,13 60,12 80,9 100,6"/></svg>
+        <div class="row"><span class="figs">21.7 km · about 70 min</span><button class="btn outline">Ride</button></div></article>
+      <article class="card"><h3>Magadino plain</h3><p class="meta">Ticino river · flat</p>
+        <svg class="spark" viewBox="0 0 100 20" preserveAspectRatio="none"><polyline fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke" points="0,12 30,13 60,14 100,15"/></svg>
+        <div class="row"><span class="figs">22.2 km · about 65 min</span><button class="btn outline">Ride</button></div></article>
+    </div>
+  </section>
+
+  <section class="panel trainer">
+    <div><span class="label">Trainer</span><p class="desc">Not paired. Rides run in demo mode until you pair.</p></div>
+    <div class="row"><span class="desc">Fixed power (ERG) · Off</span><button class="btn outline">Pair trainer</button></div>
+  </section>
+
+  <nav class="more"><a>Build your own ride</a><a>History</a><a>Advanced view</a></nav>
+</main>
+<footer>Velo · built on GlobeRide by Mason Wyatt (MIT)</footer>
+</body>
+</html>

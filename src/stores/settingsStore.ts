@@ -6,6 +6,7 @@ import type { GraphicsQuality } from '@/lib/graphicsQuality';
 import type { LowLightSetting } from '@/lib/lowLightMode';
 import { type CameraMode, isCameraMode } from '@/lib/cesiumCameras';
 import type { Workout } from '@/lib/workout';
+import { DEFAULT_TRAINER_DIFFICULTY, clampDifficulty } from '@/lib/trainerComfort';
 import {
   emptyPlan,
   setDay as setPlanDay,
@@ -100,6 +101,18 @@ export interface RiderSettings {
    * blank grid for riders who only use the AI Coach.
    */
   coachPlan: WeeklyPlan | null;
+  // ---- Comfort ----
+  /**
+   * Share of the real route gradient the trainer simulates in SIM mode,
+   * 0..1. Velo defaults to easy (0.35). The world and physics stay real.
+   */
+  trainerDifficulty: number;
+  /**
+   * Whether structured workouts may put the trainer in ERG (fixed power).
+   * Off by default: power targets are shown as a guide and the trainer stays
+   * in SIM, following the route at `trainerDifficulty`.
+   */
+  ergEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -137,6 +150,8 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   rideAudioEnabled: true,
   rideAudioVolume: 60,
   coachPlan: null,
+  trainerDifficulty: DEFAULT_TRAINER_DIFFICULTY,
+  ergEnabled: false,
 };
 
 type CommentaryPatch = Partial<
@@ -291,6 +306,13 @@ export const useSettingsStore = create<SettingsStoreState>()(
         bottleId:
           (persisted as Partial<RiderSettings>).bottleId ??
           DEFAULT_SETTINGS.bottleId,
+        trainerDifficulty: clampDifficulty(
+          (persisted as Partial<RiderSettings>).trainerDifficulty ??
+            DEFAULT_SETTINGS.trainerDifficulty,
+        ),
+        ergEnabled:
+          (persisted as Partial<RiderSettings>).ergEnabled ??
+          DEFAULT_SETTINGS.ergEnabled,
       }),
       partialize: (s) =>
         ({
@@ -328,6 +350,8 @@ export const useSettingsStore = create<SettingsStoreState>()(
           rideAudioEnabled: s.rideAudioEnabled,
           rideAudioVolume: s.rideAudioVolume,
           coachPlan: s.coachPlan,
+          trainerDifficulty: s.trainerDifficulty,
+          ergEnabled: s.ergEnabled,
         }) satisfies RiderSettings,
     },
   ),
