@@ -15,6 +15,13 @@ export const CAMERA_DISTANCES: readonly CameraDistance[] = ['close', 'standard',
 
 export const DEFAULT_CAMERA_DISTANCE: CameraDistance = 'standard';
 
+export const CAMERA_DISTANCE_LABELS: Readonly<Record<CameraDistance, string>> = {
+  close: 'Close',
+  standard: 'Standard',
+  far: 'Far',
+  overview: 'Overview',
+};
+
 export function isCameraDistance(value: unknown): value is CameraDistance {
   return typeof value === 'string' && (CAMERA_DISTANCES as readonly string[]).includes(value);
 }
@@ -34,7 +41,8 @@ export const CHASE_FRAMING: Readonly<Record<CameraDistance, ChaseFraming>> = {
   close: { backM: 4.5, upM: 1.9, lookAheadM: 10 },
   standard: { backM: 7, upM: 2.6, lookAheadM: 14 },
   far: { backM: 14, upM: 4.5, lookAheadM: 20 },
-  overview: { backM: 45, upM: 9, lookAheadM: 20 },
+  // The original framing: 45 m back, 9 m up, -7° pitch.
+  overview: { backM: 45, upM: 9, lookAheadM: 20.2 },
 };
 
 /** Framing for a setting value; unknown values get the default. */

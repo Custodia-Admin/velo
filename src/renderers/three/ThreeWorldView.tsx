@@ -9,7 +9,7 @@
  * three.js downloads only when this renderer draws. Never imports Cesium.
  */
 
-import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, ToneMappingEffect, ToneMappingMode, VignetteEffect } from 'postprocessing';
 import * as THREE from 'three';
@@ -17,6 +17,8 @@ import * as THREE from 'three';
 import { useRouteWeather } from '@/hooks/useLiveWeather';
 import { stepLaneOffset } from '@/lib/laneOffset';
 import { resolveSceneWeather, type SceneWeather } from '@/lib/meteo/sceneWeather';
+import { EMPTY_TILES, FrameStats } from '@/lib/perf/frameStats';
+import { exposeScenePerf, IDLE_GAP_MS, PUBLISH_MS, publishScenePerf, type ScenePerf } from '@/lib/perf/scenePerf';
 import { ridePose } from '@/lib/ride/rideSim';
 import { scenicRouteById } from '@/lib/scenicRoutes';
 import { chaseFraming } from '@/lib/world/cameraFraming';
@@ -55,35 +57,6 @@ export function loadCatalogWorld(entry: WorldCatalogEntry): Promise<LoadedWorld>
     p.catch(() => worldCache.delete(entry.id));
   }
   return p;
-}
-
-// ---------------------------------------------------------------------------
-// Frame stats (for the perf readout and scripts via window.__veloRideDebug)
-// ---------------------------------------------------------------------------
-
-const FRAME_WINDOW = 240;
-
-class FrameMeter {
-  private buf = new Float64Array(FRAME_WINDOW);
-  private n = 0;
-  private i = 0;
-  push(ms: number) {
-    if (!(ms > 0) || !Number.isFinite(ms)) return;
-    this.buf[this.i] = ms;
-    this.i = (this.i + 1) % FRAME_WINDOW;
-    this.n = Math.min(FRAME_WINDOW, this.n + 1);
-  }
-  snapshot() {
-    if (this.n === 0) return { fps: 0, avgMs: 0, p95Ms: 0, frames: 0 };
-    const a = Array.from(this.buf.subarray(0, this.n)).sort((x, y) => x - y);
-    const sum = a.reduce((s, v) => s + v, 0);
-    return {
-      fps: Math.round((1000 * this.n) / sum),
-      avgMs: Math.round((sum / this.n) * 10) / 10,
-      p95Ms: Math.round(a[Math.min(this.n - 1, Math.floor(this.n * 0.95))] * 10) / 10,
-      frames: this.n,
-    };
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -139,9 +112,14 @@ function RideDriver({
   return null;
 }
 
-function DprController({ quality }: { quality: ThreeQuality }) {
+/**
+ * Keeps the camera's far plane on the tier's view distance and reports the
+ * pixel ratio for this canvas size. The ratio goes back up to <Canvas dpr>:
+ * r3f re-applies that prop on every render, so a store-side setDpr() would
+ * be undone.
+ */
+function DprController({ quality, onDpr }: { quality: ThreeQuality; onDpr: (dpr: number) => void }) {
   const size = useThree((s) => s.size);
-  const setDpr = useThree((s) => s.setDpr);
   const camera = useThree((s) => s.camera);
   useEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
@@ -150,8 +128,8 @@ function DprController({ quality }: { quality: ThreeQuality }) {
   }, [camera, quality.viewDistanceM]);
   useEffect(() => {
     const device = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
-    setDpr(renderDpr(quality, size.width, size.height, device));
-  }, [quality, size.width, size.height, setDpr]);
+    onDpr(renderDpr(quality, size.width, size.height, device));
+  }, [quality, size.width, size.height, onDpr]);
   return null;
 }
 
@@ -212,21 +190,44 @@ function DebugHook({
 }: {
   sceneWorld: SceneWorld;
   frame: RideFrame;
-  meter: FrameMeter;
+  meter: FrameStats;
   visibility: ChunkVisibility;
   tier: string;
 }) {
   const gl = useThree((s) => s.gl);
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
-  const info = useMemo(() => ({ calls: 0, triangles: 0 }), []);
+  const info = useMemo(() => ({ calls: 0, triangles: 0, lastPublish: 0 }), []);
+  const perfSnapshot = useCallback((): ScenePerf => {
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    return {
+      ...meter.snapshot(),
+      tiles: EMPTY_TILES,
+      canvas: [gl.domElement.width, gl.domElement.height],
+      resolutionScale: gl.getPixelRatio() / dpr,
+      dpr,
+      msaa: gl.getContextAttributes()?.antialias ? 4 : 1,
+      requestRenderMode: false,
+    };
+  }, [gl, meter]);
   // Runs before this frame's render, so gl.info still holds the last frame's numbers.
   // (Any positive priority would switch off r3f's own render.)
-  useFrame((_, delta) => {
-    meter.push(delta * 1000);
+  useFrame((state, delta) => {
+    const ms = delta * 1000;
+    if (ms < IDLE_GAP_MS) meter.push(ms);
     info.calls = gl.info.render.calls;
     info.triangles = gl.info.render.triangles;
+    const t = state.clock.elapsedTime * 1000;
+    if (t - info.lastPublish >= PUBLISH_MS) {
+      info.lastPublish = t;
+      publishScenePerf(perfSnapshot());
+    }
   });
+  // The ?perf=1 overlay and window.__veloPerf read the same numbers as the Cesium view.
+  useEffect(() => {
+    exposeScenePerf(perfSnapshot);
+    return () => exposeScenePerf(null);
+  }, [perfSnapshot]);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const w = window as unknown as { __veloRideDebug?: () => object };
@@ -274,6 +275,7 @@ function WorldScene({
   mood,
   override,
   onReady,
+  onDpr,
 }: {
   sceneWorld: SceneWorld;
   route: Route;
@@ -282,9 +284,10 @@ function WorldScene({
   mood: string;
   override: { current: RiderPose | null };
   onReady: () => void;
+  onDpr: (dpr: number) => void;
 }) {
   const frame = useMemo(() => createRideFrame(), []);
-  const meter = useMemo(() => new FrameMeter(), []);
+  const meter = useMemo(() => new FrameStats(), []);
   const visibility = useMemo(() => new ChunkVisibility(sceneWorld.chunks.length), [sceneWorld]);
   const landcover = useMemo(() => {
     const lc = buildLandcoverCanvas(sceneWorld.world, quality.landcoverTexels);
@@ -302,7 +305,7 @@ function WorldScene({
   const start = route.points[0];
   return (
     <>
-      <DprController quality={quality} />
+      <DprController quality={quality} onDpr={onDpr} />
       <RideDriver sceneWorld={sceneWorld} frame={frame} override={override} />
       <Sky frame={frame} mood={mood} lat={start.lat} lon={start.lon} quality={quality} />
       <Terrain sceneWorld={sceneWorld} quality={quality} landcover={landcover} visibility={visibility} />
@@ -352,6 +355,11 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
   const tier = useSettingsStore((s) => s.graphicsQuality);
   const quality = threeQuality(tier);
   const [loaded, setLoaded] = useState<{ id: string; world: LoadedWorld } | null>(null);
+  const [dpr, setDpr] = useState(() =>
+    typeof window === 'undefined'
+      ? 1
+      : renderDpr(quality, window.innerWidth, window.innerHeight, window.devicePixelRatio || 1),
+  );
   const [failed, setFailed] = useState(false);
   const override = useRef<RiderPose | null>(null);
   const [moodOverride, setMoodOverride] = useState<string | null>(null);
@@ -423,6 +431,7 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
             gl={{ antialias: quality.antialias, powerPreference: 'high-performance', alpha: false, stencil: false }}
             camera={{ fov: 60, near: 0.4, far: quality.viewDistanceM * 1.05, position: [0, 500, 0] }}
             shadows={quality.shadows}
+            dpr={dpr}
             frameloop="always"
           >
             <WorldScene
@@ -434,6 +443,7 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
               mood={mood}
               override={override}
               onReady={handleReady}
+              onDpr={setDpr}
             />
           </Canvas>
         </WorldErrorBoundary>

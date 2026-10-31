@@ -83,39 +83,27 @@ export function easeOutCubic(t: number): number {
 // Camera distance — the rider's "how close is the camera" setting
 // ---------------------------------------------------------------------------
 
-/**
- * How far the follow cameras sit from the rider. `standard` is the default:
- * the rider fills the lower-middle of the frame and the road is readable
- * 10–20 m ahead. `overview` is the original GlobeRide framing (45 m back,
- * 9 m up), kept for riders who liked the map-like view.
- */
-export type CameraDistance = 'close' | 'standard' | 'far' | 'overview';
+// Camera distance + chase framing are shared by every renderer: defined in
+// lib/world/cameraFraming (engine-free), re-exported here for the Cesium side.
+import {
+  AIM_HEIGHT_M,
+  CHASE_FRAMING,
+  DEFAULT_CAMERA_DISTANCE,
+  isCameraDistance,
+  type CameraDistance,
+  type ChaseFraming,
+} from '@/lib/world/cameraFraming';
 
-export const CAMERA_DISTANCES: ReadonlyArray<CameraDistance> = ['close', 'standard', 'far', 'overview'];
-
-export const DEFAULT_CAMERA_DISTANCE: CameraDistance = 'standard';
-
-export const CAMERA_DISTANCE_LABELS: Record<CameraDistance, string> = {
-  close: 'Close',
-  standard: 'Standard',
-  far: 'Far',
-  overview: 'Overview',
-};
-
-export function isCameraDistance(value: unknown): value is CameraDistance {
-  return typeof value === 'string' && (CAMERA_DISTANCES as ReadonlyArray<string>).includes(value);
-}
-
-/** Chase framing: metres behind, metres up, and the aim point ahead. */
-export interface ChaseFraming {
-  backM: number;
-  upM: number;
-  /** The camera aims at a point this far ahead of the rider, at {@link AIM_HEIGHT_M}. */
-  lookAheadM: number;
-}
-
-/** Height of the aim point: roughly the rider's hips/bars. */
-export const AIM_HEIGHT_M = 1.0;
+export {
+  AIM_HEIGHT_M,
+  CAMERA_DISTANCES,
+  CAMERA_DISTANCE_LABELS,
+  CHASE_FRAMING,
+  DEFAULT_CAMERA_DISTANCE,
+  isCameraDistance,
+  type CameraDistance,
+  type ChaseFraming,
+} from '@/lib/world/cameraFraming';
 
 /**
  * Pitch (radians, negative = down) that aims a camera at the rider's bars.
@@ -131,14 +119,6 @@ export const AIM_HEIGHT_M = 1.0;
 export function riderAimPitchRad(camHeightM: number, horizOffsetM: number): number {
   return -Math.atan2(camHeightM - AIM_HEIGHT_M, horizOffsetM);
 }
-
-export const CHASE_FRAMING: Record<CameraDistance, ChaseFraming> = {
-  close: { backM: 4.5, upM: 1.9, lookAheadM: 10 },
-  standard: { backM: 7, upM: 2.6, lookAheadM: 14 },
-  far: { backM: 14, upM: 4.5, lookAheadM: 20 },
-  // The original framing: 45 m back, 9 m up, -7° pitch.
-  overview: { backM: 45, upM: 9, lookAheadM: 20.2 },
-};
 
 /** Pitch (radians, negative = down) aiming from the chase camera at the look-ahead point. */
 export function chasePitchRad(f: ChaseFraming, upM: number = f.upM): number {
