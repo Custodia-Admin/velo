@@ -544,6 +544,7 @@ export function flyToPoint(
  *   alpine-storm       — dark dramatic sky, cold blue-purple, partial rays
  *   mediterranean-mist — warm hazy yellow sun, light sea-salt fog
  *   dusk-cool          — purple/pink horizon, low blue twilight
+ *   valley-fog         — real low fog: bright milky grey, short visibility
  */
 export type SceneMood =
   | 'clear-noon'
@@ -553,7 +554,8 @@ export type SceneMood =
   | 'fjord-rain'
   | 'alpine-storm'
   | 'mediterranean-mist'
-  | 'dusk-cool';
+  | 'dusk-cool'
+  | 'valley-fog';
 
 /** Convenience alias exported for route-metadata typing. */
 export type MoodId = SceneMood;
@@ -743,6 +745,30 @@ export const MOODS: Record<SceneMood, MoodParams> = {
       useRealSun: true,
       cloudCount: 4,          // almost cloudless Mediterranean sky
       cloudAltitudeM: 3500,   // high cirrus-like layer
+      starsVisible: false,
+    },
+  },
+  // ------------------------------------------------------------------
+  // valley-fog — a real foggy morning: bright milky grey that swallows the
+  // far shore, soft shadowless light. Driven by live weather (WMO 45/48).
+  // ------------------------------------------------------------------
+  'valley-fog': {
+    sunHourFromNoon: 1.5,
+    fogDensity: 0.0009,                // dense — the far side of the lake fades out
+    fogMinimumBrightness: 0.75,        // bright milky fog, not murk
+    fogHeightScalar: 1.6,              // hugs the valley floor
+    atmosphereHueShift: 0.0,
+    atmosphereSaturationShift: -0.35,  // colour washed out by the fog
+    atmosphereBrightnessShift: 0.12,
+    perFragmentAtmosphere: false,
+    atmosphereLightIntensity: 34,
+    groundHueShift: 0.0,
+    groundSaturationShift: -0.30,
+    groundBrightnessShift: 0.10,
+    sky: {
+      useRealSun: false,      // flat diffuse light
+      cloudCount: 20,         // low grey deck above the fog
+      cloudAltitudeM: 900,
       starsVisible: false,
     },
   },

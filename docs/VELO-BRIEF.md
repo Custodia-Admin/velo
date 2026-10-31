@@ -49,9 +49,18 @@ never send BLE control commands while someone may be on the bike.
    after a few seconds without input. Stats and FIT export keep recording.
    Streaming tabs use Chrome's picture-in-picture; Velo explains how. The
    in-ride "Show" button does the same for any route.
-5. **10-foot UI.** Big targets and type that read from two metres on a TV and
+5. **Live weather.** Open-Meteo (free, keyless, no account) gives the
+   current weather at each route's start. Fair days keep the route's own
+   light with clouds sized from the real cover; overcast, fog, rain, snow and
+   storms switch the sky, fog, particles and wet road. Wind loads the trainer
+   through the FTMS SIM Cw term, per rider: **Wind feel** off / **subtle**
+   (default: a third of the real effect, capped at +25 % drag) / real. Cards
+   show "Now: Fog · 9° · calm". Cached 20 min in localStorage; offline uses
+   readings up to 3 h old, then the canned moods. "Live weather" (household)
+   turns it all off. Math and mapping: `src/lib/meteo/`.
+6. **10-foot UI.** Big targets and type that read from two metres on a TV and
    work under a thumb on a tablet. See `docs/design/UI-RULES.md`.
-6. **Later, maybe.** A more game-like world (collectibles, companions,
+7. **Later, maybe.** A more game-like world (collectibles, companions,
    landmarks) once the comfort basics are loved. Zwift Ride handlebar
    controllers as input (public protocol, no Zwift assets or branding).
 
@@ -75,3 +84,5 @@ never send BLE control commands while someone may be on the bike.
 - Zwift Ride handlebar controller input is not wired yet.
 - Show mode plays files Chrome can decode (MP4/H.264, WebM). Streaming
   services stay in their own tab via picture-in-picture; no integrations.
+- Live wind applies to route rides (SIM). Structured workouts with explicit
+  grade segments still send the base Cw.

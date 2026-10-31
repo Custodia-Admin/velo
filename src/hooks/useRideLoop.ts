@@ -11,6 +11,8 @@ import {
 } from '@/lib/ftms';
 import { gpsToGradePct, shouldAutoPause, distanceMeters } from '@/lib/outdoorGps';
 import { scaleGradeForTrainer } from '@/lib/trainerComfort';
+import { liveWeatherForRoute } from '@/stores/liveWeatherStore';
+import { trainerWindFromWeather, equivalentHeadwindMs, type TrainerWind } from '@/lib/meteo/windFeel';
 import { estimatePowerFromGps } from '@/lib/outdoorPower';
 import type { GpsSample } from '@/lib/outdoorGps';
 import {
@@ -101,6 +103,29 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
         windDirectionDeg: settings.windDirectionDeg,
       };
 
+      // ---- Live wind (Open-Meteo at the route start) ----
+      // Drives the trainer's Cw and, in Demo Mode, the physics, scaled by the
+      // rider's wind feel. Falls back to the manual wind settings when live
+      // weather is off or hasn't arrived.
+      let liveWind: TrainerWind | null = null;
+      if (settings.liveWeatherEnabled && s.route && s.rideMode !== 'outdoor') {
+        const live = liveWeatherForRoute(s.route);
+        if (live) {
+          const bearingDeg = (headingAt(s.route, distanceNow) * 180) / Math.PI;
+          liveWind = trainerWindFromWeather(
+            live,
+            bearingDeg,
+            s.speed,
+            ftmsCw(rider),
+            settings.windFeel,
+            tHigh / 1000,
+          );
+          const eq = equivalentHeadwindMs(liveWind.multiplier, s.speed);
+          rider.windSpeedMs = Math.abs(eq);
+          rider.windDirectionDeg = eq >= 0 ? 0 : 180;
+        }
+      }
+
       // ---- Determine speed source ----
       let speed: number;
       let power: number | null;
@@ -188,14 +213,16 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
           if (now - lastSentT.current > 850 || gradeChanged) {
             lastSentT.current = now;
             useRideStore.setState({ lastSentGrade: trainerGrade });
-            // Project headwind onto the rider's forward axis for the trainer.
-            const headwindMs =
-              settings.windSpeedMs * Math.cos((settings.windDirectionDeg * Math.PI) / 180);
+            // Live wind rides on Cw (wind field 0, see lib/meteo/windFeel).
+            // Otherwise project the manual headwind onto the forward axis.
+            const headwindMs = liveWind
+              ? liveWind.windMs
+              : settings.windSpeedMs * Math.cos((settings.windDirectionDeg * Math.PI) / 180);
             setSimulationParams({
               gradePct: trainerGrade,
               windMs: headwindMs,
               crrScaled: ftmsCrr(rider),
-              cwScaled: ftmsCw(rider),
+              cwScaled: liveWind ? liveWind.cwByte : ftmsCw(rider),
             }).catch(() => undefined);
           }
         }
