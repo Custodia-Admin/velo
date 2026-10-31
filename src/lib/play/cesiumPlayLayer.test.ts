@@ -6,8 +6,12 @@ import { usePlayStore } from '@/stores/playStore';
 import { DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 
 const avatar = { update: vi.fn(), dispose: vi.fn(), setColors: vi.fn(), entities: [], _effortLevel: 0 };
-vi.mock('@/lib/avatar', () => ({ createAvatar: vi.fn(() => avatar) }));
+vi.mock('@/lib/avatar', () => ({
+  createAvatar: vi.fn(() => avatar),
+  groundSampleExclusions: vi.fn(() => []),
+}));
 
+const { setIonToken } = await import('@/lib/cesiumUtils');
 const { createCesiumPlayLayer } = await import('@/lib/play/cesiumPlayLayer');
 
 function straightRoute(lengthM: number): Route {
@@ -87,20 +91,45 @@ describe('createCesiumPlayLayer', () => {
 
   it('re-seats upcoming cards on the rendered ground', async () => {
     const { Cartographic } = await import('cesium');
+    // Re-seating samples the rendered surface, which only exists on real
+    // terrain (ion token installed; tonight's guard in sampleGroundHeight).
+    setIonToken('eyJ_test');
+    try {
+      const route = straightRoute(5000);
+      const { viewer, added } = mockViewer(300);
+      const layer = createCesiumPlayLayer(viewer, route, null);
+      // The mock keeps the raw options: a Cartesian3 at first, a position
+      // property once re-seated.
+      const heightOf = (e: unknown) => {
+        const pos = (e as { position: { getValue?: () => never } }).position;
+        return Cartographic.fromCartesian(pos.getValue ? pos.getValue() : (pos as never)).height;
+      };
+      expect(heightOf(added[0])).toBeCloseTo(280 + 2.4, 1);
+      layer.update(frame(0, route.totalDistance));
+      // First card is within reach: on the sampled ground. Far ones untouched.
+      expect(heightOf(added[0])).toBeCloseTo(300 + 2.4, 1);
+      expect(heightOf(added.at(-1))).toBeCloseTo(280 + 2.4, 1);
+      layer.dispose();
+    } finally {
+      setIonToken(null);
+    }
+  });
+
+  it('keeps cards on the flat no-token globe instead of floating at route ele', async () => {
+    const { Cartographic } = await import('cesium');
     const route = straightRoute(5000);
     const { viewer, added } = mockViewer(300);
     const layer = createCesiumPlayLayer(viewer, route, null);
-    // The mock keeps the raw options: a Cartesian3 at first, a position
-    // property once re-seated.
     const heightOf = (e: unknown) => {
       const pos = (e as { position: { getValue?: () => never } }).position;
       return Cartographic.fromCartesian(pos.getValue ? pos.getValue() : (pos as never)).height;
     };
-    expect(heightOf(added[0])).toBeCloseTo(280 + 2.4, 1);
+    // No token: scene height is 0 m, so cards sit just above the flat map...
+    expect(heightOf(added[0])).toBeCloseTo(2.4, 1);
     layer.update(frame(0, route.totalDistance));
-    // First card is within reach: on the sampled ground. Far ones untouched.
-    expect(heightOf(added[0])).toBeCloseTo(300 + 2.4, 1);
-    expect(heightOf(added.at(-1))).toBeCloseTo(280 + 2.4, 1);
+    // ...and re-seating on the rendered ground keeps them there (the mock's
+    // sampleHeight is never trusted while the scene has no real terrain).
+    expect(heightOf(added[0])).toBeCloseTo(2.4, 1);
     layer.dispose();
   });
 

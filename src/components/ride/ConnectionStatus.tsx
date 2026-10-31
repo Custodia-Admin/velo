@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
+import { useSettingsStore } from '@/stores/settingsStore';
+import { ridesOnDemoPower } from '@/lib/rideDrive';
+import type { ConnectionState, RideMode } from '@/types';
 import { cn } from '@/lib/utils';
 
 /**
@@ -36,9 +39,12 @@ export function ConnectionStatus({ compact = false }: { compact?: boolean }) {
   const reconnectMaxAttempts = useRideStore((s) => s.reconnectMaxAttempts);
   const trainerControlMode  = useRideStore((s) => s.trainerControlMode);
   const targetPowerW        = useRideStore((s) => s.targetPowerW);
+  const demoPowerW          = useSettingsStore((s) => s.demoPowerW);
+  // No trainer paired: the ride runs on simulated power. Say so plainly.
+  const demo = isDemo(connection, mode);
 
   const tone = useTone(connection, mode);
-  const fullTitle = ariaTitle({ connection, mode, deviceName, battery, reconnectAttempt, trainerControlMode, targetPowerW });
+  const fullTitle = ariaTitle({ connection, mode, deviceName, battery, reconnectAttempt, trainerControlMode, targetPowerW, demoPowerW });
 
   return (
     <div
@@ -57,13 +63,15 @@ export function ConnectionStatus({ compact = false }: { compact?: boolean }) {
         mode={mode}
         className={cn('h-4 w-4 shrink-0', tone.icon)}
       />
-      <div className={cn('flex items-center gap-2 min-w-0', compact && 'hidden sm:flex')}>
+      <div className={cn('flex items-center gap-2 min-w-0', compact && !demo && 'hidden sm:flex')}>
         <div className="flex flex-col leading-none min-w-0">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground" aria-hidden="true">
-            {primaryLabel(connection, mode)}
+            {demo ? 'Demo mode' : primaryLabel(connection, mode)}
           </span>
           <span className="text-xs font-semibold text-foreground truncate max-w-[160px]" aria-hidden="true">
-            {secondaryLabel({ connection, mode, deviceName, reconnectAttempt, reconnectMaxAttempts, trainerControlMode, targetPowerW })}
+            {demo
+              ? `Simulated ${demoPowerW} W`
+              : secondaryLabel({ connection, mode, deviceName, reconnectAttempt, reconnectMaxAttempts, trainerControlMode, targetPowerW })}
           </span>
         </div>
         {battery !== null && connection !== 'disconnected' && (
@@ -77,8 +85,16 @@ export function ConnectionStatus({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function useTone(connection: string, mode: string) {
-  if (mode === 'demo' && connection !== 'connected') {
+/**
+ * Simulated power drives the ride (Demo mode on, or no trainer streaming).
+ * Pairing / error states keep their own labels.
+ */
+function isDemo(connection: ConnectionState, mode: RideMode): boolean {
+  return ridesOnDemoPower(mode, connection) && connection !== 'connecting' && connection !== 'error';
+}
+
+function useTone(connection: ConnectionState, mode: RideMode) {
+  if (isDemo(connection, mode)) {
     return { ring: 'ring-1 ring-primary/30', icon: 'text-primary' };
   }
   switch (connection) {
@@ -101,11 +117,11 @@ function StatusIcon({
   mode,
   className,
 }: {
-  connection: string;
-  mode: string;
+  connection: ConnectionState;
+  mode: RideMode;
   className?: string;
 }) {
-  if (mode === 'demo' && connection !== 'connected') {
+  if (isDemo(connection, mode)) {
     return <Cpu className={className} aria-hidden="true" />;
   }
   switch (connection) {
@@ -173,17 +189,18 @@ function secondaryLabel({
 }
 
 function ariaTitle(args: {
-  connection: string;
-  mode: string;
+  connection: ConnectionState;
+  mode: RideMode;
   deviceName: string | null;
   battery: number | null;
   reconnectAttempt: number;
   trainerControlMode: string;
   targetPowerW: number | null;
+  demoPowerW: number;
 }): string {
   const bits: string[] = [];
-  if (args.mode === 'demo' && args.connection !== 'connected') {
-    bits.push('Demo mode active');
+  if (isDemo(args.connection, args.mode)) {
+    bits.push(`Demo mode: no trainer paired, simulated ${args.demoPowerW} W`);
   } else {
     bits.push(`Trainer ${args.connection}`);
     if (args.deviceName) bits.push(`Device: ${args.deviceName}`);

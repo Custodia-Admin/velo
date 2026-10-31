@@ -2,7 +2,7 @@
  * Unit tests for Wave 30.B pure-numeric animation helpers in avatar.ts.
  * These functions are Cesium-free and exercise only math — no DOM / WebGL needed.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   pedalPhaseFromCadence,
   wheelRotationFromSpeed,
@@ -12,7 +12,9 @@ import {
   clampEffortLevel,
   effortSkinColor,
   avatarPrimitiveCount,
+  createAvatar,
 } from '@/lib/avatar';
+import { setIonToken } from '@/lib/cesiumUtils';
 import * as Cesium from 'cesium';
 
 // ---------------------------------------------------------------------------
@@ -427,5 +429,66 @@ describe('avatarPrimitiveCount — shoeStyle', () => {
     expect(fluoro).toBeLessThan(roadClip);
     expect(roadClip - vintage).toBe(2);
     expect(roadClip - fluoro).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Ground sampling must never hit the rider itself (paused rider flew up)
+// ---------------------------------------------------------------------------
+
+describe('avatar ground sampling — a stopped rider stays on the ground', () => {
+  function mockViewer(sampleHeight: (c: Cesium.Cartographic, exclude?: object[]) => number | undefined) {
+    const added: Cesium.Entity[] = [];
+    return {
+      added,
+      viewer: {
+        entities: {
+          add: (o: Cesium.Entity.ConstructorOptions) => {
+            const e = new Cesium.Entity(o);
+            added.push(e);
+            return e;
+          },
+          remove: () => true,
+        },
+        isDestroyed: () => false,
+        scene: { sampleHeightSupported: true, sampleHeight },
+      } as unknown as Cesium.Viewer,
+    };
+  }
+  const lowestPartHeight = (a: ReturnType<typeof createAvatar>) =>
+    Math.min(
+      ...a.entities.map((e) => {
+        const p = e.position!.getValue(Cesium.JulianDate.now())!;
+        return Cesium.Cartographic.fromCartesian(p).height;
+      }),
+    );
+  const frame = { lon: 8.95, lat: 46.0, ele: 281, heading: 0.4, speed: 0, cadence: 0, grade: 0, dt: 1 / 60 };
+
+  it('excludes its own parts from scene.sampleHeight (ion terrain at 270 m)', () => {
+    setIonToken('eyJ_test');
+    let self: Set<object> = new Set();
+    // A naive sampler reports the rider's own top (~1.7 m above ground) unless excluded.
+    const { viewer } = mockViewer((_c, exclude) => {
+      const excluded = exclude && [...self].every((e) => exclude.includes(e));
+      return excluded ? 270 : 271.7;
+    });
+    const a = createAvatar(viewer);
+    self = new Set(a.entities);
+    for (let i = 0; i < 600; i++) a.update(frame); // 10 s parked
+    expect(lowestPartHeight(a)).toBeLessThan(271);
+    expect(lowestPartHeight(a)).toBeGreaterThan(269);
+    a.dispose();
+    setIonToken(null);
+  });
+
+  it('on the flat no-token globe it does not sample at all and sits at 0 m', () => {
+    setIonToken(null);
+    const sample = vi.fn(() => 50);
+    const { viewer } = mockViewer(sample);
+    const a = createAvatar(viewer);
+    for (let i = 0; i < 600; i++) a.update(frame);
+    expect(sample).not.toHaveBeenCalled();
+    expect(Math.abs(lowestPartHeight(a))).toBeLessThan(1);
+    a.dispose();
   });
 });

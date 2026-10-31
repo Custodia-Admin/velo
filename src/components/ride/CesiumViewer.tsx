@@ -32,6 +32,8 @@ import {
   resetFollowCam,
   seedFollowCam,
   routeToCartesians,
+  onSceneSurface,
+  sceneEle,
   setIonToken,
   setActiveViewer,
   setupBaseImagery,
@@ -303,6 +305,9 @@ export function CesiumViewer({
         selectionIndicator: false,
         navigationHelpButton: false,
         navigationInstructionsInitiallyVisible: false,
+        // No token: skip the default ion (Bing) base layer, which can only
+        // 401. setupBaseImagery() below adds OSM instead.
+        ...(hasIonToken() ? {} : { baseLayer: false as const }),
         // Mark the WebGL context as XR-compatible so that
         // navigator.xr.requestSession('immersive-vr' | 'immersive-ar') can use
         // this canvas. xrCompatible is a valid WebGL context attribute (WebXR
@@ -889,10 +894,10 @@ export function CesiumViewer({
       const r = state.route;
       if (!r || !avatarRef.current) return;
 
-      const onLine = sampleRouteAtDistance(r, state.distance);
-      const aheadOnLine = sampleRouteAtDistance(
-        r,
-        Math.min(r.totalDistance, state.distance + 15),
+      // Scene height: GPX elevation on ion terrain, 0 m on the flat no-token globe.
+      const onLine = onSceneSurface(sampleRouteAtDistance(r, state.distance));
+      const aheadOnLine = onSceneSurface(
+        sampleRouteAtDistance(r, Math.min(r.totalDistance, state.distance + 15)),
       );
       const heading = headingAt(r, state.distance);
 
@@ -918,6 +923,31 @@ export function CesiumViewer({
         riderPosition: useSettingsStore.getState().riderPosition,
       });
 
+      // Camera, weather and shadow sit on the SAME ground as the rider: the
+      // rendered surface right now, never the route elevation while terrain
+      // is still streaming (a slow phone otherwise hangs the camera ~300 m
+      // over a black, empty globe with the rider out of sight).
+      const groundEle = avatarRef.current.groundEle() ?? sampled.ele;
+      const aheadAtGround = { ...ahead, ele: groundEle + (ahead.ele - sampled.ele) };
+      if (typeof window !== 'undefined') {
+        // Read-only numbers for the slow-network regression check (no viewer handle).
+        const riderLon = sampled.lon;
+        const riderLat = sampled.lat;
+        (window as unknown as { __veloRideDebug?: () => object }).__veloRideDebug = () => {
+          if (viewer.isDestroyed()) return { destroyed: true };
+          const px = Cesium.SceneTransforms.worldToWindowCoordinates(
+            viewer.scene,
+            Cesium.Cartesian3.fromDegrees(riderLon, riderLat, groundEle + 1),
+          );
+          return {
+            routeEle: sampled.ele,
+            groundEle,
+            cameraHeight: viewer.camera.positionCartographic.height,
+            riderScreen: px ? [Math.round(px.x), Math.round(px.y)] : null,
+          };
+        };
+      }
+
       // ---- Camera: per-mode positioning + cross-mode transition ----
       if (shouldChaseCamUpdate(state.rideState)) {
         // Show mode hands the camera to the auto director unless the rider
@@ -930,7 +960,7 @@ export function CesiumViewer({
         const riderPose = {
           lat: sampled.lat,
           lon: sampled.lon,
-          ele: sampled.ele,
+          ele: groundEle,
           heading,
           cadence: state.cadence,
           speed: state.speed,
@@ -977,8 +1007,8 @@ export function CesiumViewer({
           // internal lerp state (keeps the chase cam silky smooth).
           applyFollowCam(
             viewer,
-            { lat: sampled.lat, lon: sampled.lon, ele: sampled.ele },
-            ahead,
+            { lat: sampled.lat, lon: sampled.lon, ele: groundEle },
+            aheadAtGround,
             { backMeters: 45, upMeters: 9, pitchDeg: -7 },
             dt,
           );
@@ -987,7 +1017,7 @@ export function CesiumViewer({
           const riderCartesian = Cesium.Cartesian3.fromDegrees(
             sampled.lon,
             sampled.lat,
-            sampled.ele,
+            groundEle,
           );
           const enuFrame = Cesium.Transforms.eastNorthUpToFixedFrame(riderCartesian);
           const offsetLocal = new Cesium.Cartesian3(
@@ -1030,7 +1060,7 @@ export function CesiumViewer({
       weatherSystemRef.current?.update({
         lat: sampled.lat,
         lon: sampled.lon,
-        ele: sampled.ele,
+        ele: groundEle,
         heading,
       });
 
@@ -1044,7 +1074,7 @@ export function CesiumViewer({
         const sunPos = sunAzimuthAndAltitude(new Date(), sampled.lat, sampled.lon);
         updateShadowEntity(
           shadowHandleRef.current,
-          { lat: sampled.lat, lon: sampled.lon, ele: sampled.ele },
+          { lat: sampled.lat, lon: sampled.lon, ele: groundEle },
           sunPos.azimuth,
           sunPos.altitude,
         );
@@ -1168,7 +1198,7 @@ export function CesiumViewer({
     if (livePolyline.length < 2) return;
 
     const positions = livePolyline.map((p) =>
-      Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.ele),
+      Cesium.Cartesian3.fromDegrees(p.lon, p.lat, sceneEle(p.ele)),
     );
 
     if (!livePolylineEntityRef.current) {

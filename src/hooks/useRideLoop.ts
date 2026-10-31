@@ -4,17 +4,18 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { showIsPlaying } from '@/stores/showStore';
 import { gradientAt, EmaSmoother, elevationAt } from '@/lib/gradientCalculator';
 import { sampleRouteAtDistance, headingAt } from '@/lib/gpxParser';
-import { solveVelocity, ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics';
+import { ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics';
 import {
   setSimulationParams,
   setTargetPower,
 } from '@/lib/ftms';
 import { gpsToGradePct, shouldAutoPause, distanceMeters } from '@/lib/outdoorGps';
 import { scaleGradeForTrainer } from '@/lib/trainerComfort';
+import { gearFactor, gearPhysicsFor, gearedTrainerGrade } from '@/lib/virtualGears';
+import { rideDrive } from '@/lib/rideDrive';
+import { activeGear } from '@/stores/controllerStore';
 import { liveWeatherForRoute } from '@/stores/liveWeatherStore';
 import { trainerWindFromWeather, equivalentHeadwindMs, type TrainerWind } from '@/lib/meteo/windFeel';
-import { gearFactor, gearPhysicsFor, gearedTrainerGrade, liveGearedSpeed } from '@/lib/virtualGears';
-import { activeGear } from '@/stores/controllerStore';
 import { estimatePowerFromGps } from '@/lib/outdoorPower';
 import type { GpsSample } from '@/lib/outdoorGps';
 import {
@@ -187,16 +188,23 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
           // which is our best continuous estimate between GPS fixes.
           void stepDist; // informational; tick() handles distance advance
         }
-      } else if (s.mode === 'trainer' && s.speed > 0) {
-        // Virtual gears (handlebar controls) only apply in SIM.
-        const factor = s.trainerControlMode === 'erg' ? 1 : gearFactor(activeGear());
-        const live = liveGearedSpeed(s.speed, s.trainerSpeed, factor);
-        speed = live.speed;
-        displaySpeed = live.display;
-        power = s.power || null;
       } else {
-        power = settings.demoPowerW;
-        speed = solveVelocity(power, grade, rider);
+        // A paired trainer drives the ride, even at 0 km/h; demo power only
+        // without one (see lib/rideDrive). Virtual gears only apply in SIM.
+        const drive = rideDrive({
+          mode: s.mode,
+          connection: s.connection,
+          storeSpeed: s.speed,
+          trainerSpeed: s.trainerSpeed,
+          power: s.power,
+          gearFactor: s.trainerControlMode === 'erg' ? 1 : gearFactor(activeGear()),
+          demoPowerW: settings.demoPowerW,
+          gradePct: grade,
+          rider,
+        });
+        speed = drive.speed;
+        displaySpeed = drive.displaySpeed;
+        power = drive.power;
       }
 
       // ---- Throttle trainer updates (~1.2 Hz max) ----
@@ -219,10 +227,12 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
           // Virtual gears from the handlebar controls sit on top; at the
           // neutral gear (or with no controls) this is the comfort grade as is.
           const gear = activeGear();
+          // The Cw we send (live wind scales it); the gear grade must match it.
+          const cwSent = liveWind ? liveWind.cwByte : ftmsCw(rider);
           const trainerGrade = gearedTrainerGrade(
             scaleGradeForTrainer(grade, settings.trainerDifficulty),
             gear,
-            gearPhysicsFor(rider, s.trainerSpeed),
+            gearPhysicsFor(rider, s.trainerSpeed, cwSent),
           );
           const gradeChanged = Math.abs(trainerGrade - s.lastSentGrade) > 0.5;
           const gearChanged = lastSentGear.current !== 0 && gear !== lastSentGear.current;
@@ -239,7 +249,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
               gradePct: trainerGrade,
               windMs: headwindMs,
               crrScaled: ftmsCrr(rider),
-              cwScaled: liveWind ? liveWind.cwByte : ftmsCw(rider),
+              cwScaled: cwSent,
             }).catch(() => undefined);
           }
         }

@@ -13,6 +13,9 @@ import {
   zigzagDecode,
   encodeVarint,
   BUTTON_MASKS,
+  RIDE_ON,
+  describeMessage,
+  sideFromManufacturerData,
   type RideButton,
 } from './rideProtocol';
 
@@ -150,5 +153,37 @@ describe('commands', () => {
 describe('zigzag', () => {
   it('round-trips', () => {
     for (const n of [0, 1, -1, 64, -64, 100, -100]) expect(zigzagDecode(zigzagEncode(n))).toBe(n);
+  });
+});
+
+describe('left / right from manufacturer data', () => {
+  it('0x08 is the left controller, 0x07 the right one', () => {
+    // Real adverts: LEFT EB:5D:DC:A0:DB:F4 → 08 db f4, RIGHT DE:A6:AF:91:F7:0E → 07 f7 0e.
+    expect(sideFromManufacturerData(fromHex('08 db f4'))).toBe('left');
+    expect(sideFromManufacturerData(fromHex('07 f7 0e'))).toBe('right');
+    expect(sideFromManufacturerData(new DataView(fromHex('08 db f4').buffer))).toBe('left');
+    expect(sideFromManufacturerData(new DataView(fromHex('07 f7 0e').buffer))).toBe('right');
+  });
+
+  it('anything else is not a side', () => {
+    expect(sideFromManufacturerData(fromHex('09 00 00'))).toBeNull(); // Click
+    expect(sideFromManufacturerData(fromHex('02 00 00'))).toBeNull(); // Play
+    expect(sideFromManufacturerData(new Uint8Array())).toBeNull();
+    expect(sideFromManufacturerData(undefined)).toBeNull();
+    expect(sideFromManufacturerData(null)).toBeNull();
+  });
+});
+
+describe('describeMessage', () => {
+  it('reads the messages the overlay shows', () => {
+    expect(describeMessage('out', RIDE_ON)).toBe('RideOn handshake');
+    expect(describeMessage('out', encodeHaptic())).toBe('buzz');
+    expect(describeMessage('in', fromHex('15'))).toBe('idle');
+    expect(describeMessage('in', fromHex('19 08 2a'))).toBe('battery 42 %');
+    expect(describeMessage('in', fromHex('fe'))).toBe('taken over by another app');
+    expect(describeMessage('in', fromHex('23 08 ff ff ff ff 0f'))).toBe('keys none');
+    expect(describeMessage('in', fromHex('23 08 ff bf ff ff 0f'))).toBe('keys shiftUpR');
+    expect(describeMessage('in', fromHex('23 08 ff ff ff ff 0f 12 06 0a 04 08 01 10 64'))).toBe('keys none · lever R 50');
+    expect(describeMessage('in', fromHex('77'))).toBe('msg 0x77');
   });
 });

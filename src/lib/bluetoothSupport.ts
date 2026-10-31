@@ -2,11 +2,14 @@
  * Web Bluetooth capability detection.
  *
  * Web Bluetooth is gated by three independent conditions:
- *   1. The browser ships the API at all (Chrome / Edge / Opera based browsers).
+ *   1. The browser exposes the API (`navigator.bluetooth`). Chrome / Edge /
+ *      Opera do on desktop and Android, except on Linux where Chrome keeps it
+ *      behind chrome://flags/#enable-web-bluetooth (verified on Chrome 154
+ *      and Chromium 153: a default profile has no `navigator.bluetooth`).
  *   2. The page is served from a Secure Context (HTTPS, localhost, or file://).
- *   3. On Linux, the `enable-experimental-web-platform-features` flag must be
- *      on. We can't introspect the flag directly, but if `navigator.bluetooth`
- *      exists yet `getAvailability()` resolves false we can guess.
+ *   3. The OS adapter is on and free. `getAvailability()` answers that, but it
+ *      can read false for a moment while BlueZ is busy, so we ask a few times
+ *      before saying so — and when the API exists we never blame the browser.
  *
  * The result is rendered into the UI so the user gets a precise reason, not
  * a generic "Bluetooth not supported."
@@ -46,8 +49,12 @@ export interface BluetoothSupportReport {
     | 'ios-unsupported'
     | 'safari-unsupported'
     | 'firefox-unsupported'
+    | 'linux-flag-off'
     | 'adapter-unavailable';
 }
+
+/** The one flag Chrome on Linux needs. Other Bluetooth flags should stay Default. */
+export const LINUX_BLUETOOTH_FLAG = 'chrome://flags/#enable-web-bluetooth';
 
 function classifyUserAgent(ua: string): UserAgentKind {
   const s = ua.toLowerCase();
@@ -142,6 +149,18 @@ export function detectBluetoothSupport(): BluetoothSupportReport {
         reasonCode: 'firefox-unsupported',
       };
     }
+    if (platform === 'linux' && userAgent !== 'samsung' && userAgent !== 'other') {
+      return {
+        apiPresent: false,
+        secureContext,
+        adapterAvailable: null,
+        userAgent,
+        platform,
+        usable: false,
+        reason: `On Linux, Chrome keeps Web Bluetooth behind a flag. Open ${LINUX_BLUETOOTH_FLAG}, set it to Enabled, then relaunch Chrome.`,
+        reasonCode: 'linux-flag-off',
+      };
+    }
     return {
       apiPresent: false,
       secureContext,
@@ -181,32 +200,56 @@ export function detectBluetoothSupport(): BluetoothSupportReport {
   };
 }
 
+export interface ProbeOptions {
+  /** How many times to ask before reporting the adapter as off. Default 3. */
+  attempts?: number;
+  /** Wait between attempts, ms. Default 900 (3 attempts ≈ 2 s). */
+  delayMs?: number;
+  /** Injectable for tests; defaults to navigator.bluetooth.getAvailability. */
+  getAvailability?: () => Promise<boolean>;
+  /** Injectable for tests. */
+  sleep?: (ms: number) => Promise<void>;
+}
+
+const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 /**
- * Async probe — calls `navigator.bluetooth.getAvailability()`. Combined with
- * the sync baseline this gives the full picture. Returns the original report
- * if probing is impossible.
+ * Async probe — asks `navigator.bluetooth.getAvailability()` up to
+ * `attempts` times, because BlueZ can answer false for a moment while
+ * another scan holds the adapter. Only when every answer is false is the
+ * adapter reported as off or busy. Returns the baseline untouched when the
+ * API is absent or probing throws (unknown, not broken).
  */
 export async function probeBluetoothAdapter(
   baseline: BluetoothSupportReport = detectBluetoothSupport(),
+  opts: ProbeOptions = {},
 ): Promise<BluetoothSupportReport> {
-  if (!baseline.apiPresent || !navigator.bluetooth?.getAvailability) return baseline;
+  const ask =
+    opts.getAvailability ??
+    (baseline.apiPresent && typeof navigator !== 'undefined' && navigator.bluetooth?.getAvailability
+      ? () => navigator.bluetooth.getAvailability()
+      : null);
+  if (!baseline.apiPresent || !ask) return baseline;
+  const attempts = Math.max(1, opts.attempts ?? 3);
+  const delayMs = opts.delayMs ?? 900;
+  const sleep = opts.sleep ?? defaultSleep;
   try {
-    const available = await navigator.bluetooth.getAvailability();
-    if (available) {
-      return { ...baseline, adapterAvailable: true };
+    for (let i = 0; i < attempts; i++) {
+      if (i > 0) await sleep(delayMs);
+      if (await ask()) return { ...baseline, adapterAvailable: true };
     }
-    return {
-      ...baseline,
-      adapterAvailable: false,
-      usable: false,
-      reason:
-        'No Bluetooth radio is available — check the OS Bluetooth toggle, or that no other app has claimed it.',
-      reasonCode: 'adapter-unavailable',
-    };
   } catch {
     // Some platforms throw on permission policies; treat as unknown.
     return baseline;
   }
+  if (!baseline.secureContext) return { ...baseline, adapterAvailable: false };
+  return {
+    ...baseline,
+    adapterAvailable: false,
+    usable: false,
+    reason: 'Bluetooth looks off or busy. Turn it on, close other apps using it, then retry.',
+    reasonCode: 'adapter-unavailable',
+  };
 }
 
 /** Pretty list of supported browsers for use in UI copy. */

@@ -54,10 +54,18 @@ headers.
 
 Only the **left** controller needs a connection: the right one tunnels its
 presses through the left one. Web Bluetooth does not let a page read
-manufacturer data before the chooser, so the chooser may list both sides. If
-the rider picks the right side the buttons on both sides still arrive in some
-firmware, but if nothing arrives the help text tells them to pick the other
-entry.
+manufacturer data before the chooser, so the chooser lists both sides under
+the same name ("Zwift Ride").
+
+After the pick, Velo calls `device.watchAdvertisements()` for up to 2.5 s
+(before connecting: a connected controller stops advertising) and reads the
+type byte of company `0x094A` (`optionalManufacturerData` makes it visible):
+`0x08` → left, `0x07` → right. On the right unit the panel and the in-ride chip
+say "Right controller paired — buttons need the left one" with a "Pair the
+other controller" button, until a press actually comes through (some firmware
+forwards them). Browsers without `watchAdvertisements` (it is behind a flag in
+some Chrome builds) skip the check; the silent detection below still catches a
+dead link and the help text suggests pairing the other entry.
 
 ### Services
 
@@ -167,7 +175,9 @@ has one for the Click V2 only). The fix is manual, once per ~24 h:
 5. Pair the handlebar controls in Velo.
 
 Velo detects both symptoms and says so in plain words; it never shows the
-brand. The 29 Oct scan saw no controller advertising at all, which matches
+brand. "No message at all within 10 s of the handshake" counts as the second
+symptom: the panel and the in-ride chip then show this recipe (shortened) with
+a Reconnect button. The 29 Oct scan saw no controller advertising at all, which matches
 "asleep or locked".
 
 ## How Velo uses it
@@ -265,15 +275,21 @@ Do this with nobody on the bike for steps 1 to 6.
    button press → quit the app completely.
 3. Within 24 h, on the laptop, Chrome or Edge, open Velo → Home → Trainer →
    "Pair handlebar controls". Pick the entry that starts with "Zwift". If two
-   show, pick either; if buttons do not register, unpair and pick the other.
-4. Open DevTools console and run `window.__veloController.log()` while pressing
-   every button and both levers. Copy the hex lines into a comment on the PR.
-   This confirms the analog layout (§ "Analog layout varies").
-5. Check the panel shows battery and that "Test buzz" makes the controller
+   show, pick either; if Velo says "Right controller paired", tap "Pair the
+   other controller" and pick the other entry.
+4. The controller buzzes once when it connects: that is the unit Velo holds.
+   The panel reads "Left controller · connected · buzzed · battery N %".
+5. Field log without DevTools: Home → Trainer → "Controller debug" on. The
+   ride view then shows the last 8 raw messages (hex) with their reading
+   (`keys shiftUpR · press shiftUpR→gearHarder · gear 6→7`), screenshot-ready,
+   and a "Copy log" button. On a laptop `window.__veloController.log()` in the
+   console still prints the full 300-line log. Press every button and both
+   levers; this confirms the analog layout (§ "Analog layout varies").
+6. Check the panel shows battery and that "Test buzz" makes the controller
    vibrate.
-6. Expected results to report: all 16 buttons named correctly in the log,
+7. Expected results to report: all 16 buttons named correctly in the log,
    levers go to about ±100, battery shows a percent.
-7. Then ride: start an Easy & Scenic route, shift a few gears on a flat and on
+8. Then ride: start an Easy & Scenic route, shift a few gears on a flat and on
    a climb, try D-pad up/down, steer with the levers.
 
 If step 3 fails with "Handlebar controls are locked", repeat step 2 and make

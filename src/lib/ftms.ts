@@ -183,6 +183,29 @@ export class FtmsError extends Error {
 export interface FtmsConnectOptions {
   /** Override the requestDevice prompt name filter. */
   namePrefix?: string;
+  /**
+   * List every nearby device instead of FTMS ones only. A fallback for when
+   * the filtered chooser comes up empty; the rider picks the KICKR by name
+   * and the FTMS service check after pairing still applies.
+   */
+  showAllDevices?: boolean;
+}
+
+/** Wahoo/Zwift vendor service the KICKR CORE advertises next to FTMS. */
+const WAHOO_FC82_SERVICE_UUID = '0000fc82-0000-1000-8000-00805f9b34fb';
+
+/** requestDevice() options for the trainer chooser. */
+export function trainerRequestOptions(opts: FtmsConnectOptions = {}): RequestDeviceOptions {
+  const optionalServices = [FTMS_SERVICE_UUID, BATTERY_SERVICE_UUID];
+  if (opts.showAllDevices) {
+    return { acceptAllDevices: true, optionalServices: [...optionalServices, WAHOO_FC82_SERVICE_UUID] };
+  }
+  return {
+    filters: opts.namePrefix
+      ? [{ namePrefix: opts.namePrefix }, { services: [FTMS_SERVICE_UUID] }]
+      : [{ services: [FTMS_SERVICE_UUID] }],
+    optionalServices,
+  };
 }
 
 // --- Module-level state --------------------------------------------------
@@ -296,15 +319,7 @@ export async function connect(opts: FtmsConnectOptions = {}): Promise<void> {
 
   // 1. Device chooser
   try {
-    device = await navigator.bluetooth.requestDevice({
-      filters: opts.namePrefix
-        ? [{ namePrefix: opts.namePrefix }, { services: [FTMS_SERVICE_UUID] }]
-        : [{ services: [FTMS_SERVICE_UUID] }],
-      optionalServices: [
-        FTMS_SERVICE_UUID,
-        BATTERY_SERVICE_UUID,
-      ],
-    });
+    device = await navigator.bluetooth.requestDevice(trainerRequestOptions(opts));
   } catch (err) {
     throw classifyChooserError(err);
   }
@@ -323,6 +338,148 @@ export async function connect(opts: FtmsConnectOptions = {}): Promise<void> {
     void disconnect().catch(() => undefined);
     throw err;
   }
+  rememberTrainer(device);
+}
+
+// --- Reconnect a trainer granted earlier (no chooser) --------------------
+
+const LAST_TRAINER_KEY = 'velo.lastTrainer';
+
+interface RememberedTrainer {
+  id: string;
+  name: string | null;
+}
+
+function rememberTrainer(dev: BluetoothDevice): void {
+  try {
+    const value: RememberedTrainer = { id: dev.id, name: dev.name ?? null };
+    globalThis.localStorage?.setItem(LAST_TRAINER_KEY, JSON.stringify(value));
+  } catch {
+    /* storage unavailable: reconnect just won't be offered */
+  }
+}
+
+function rememberedTrainer(): RememberedTrainer | null {
+  try {
+    const raw = globalThis.localStorage?.getItem(LAST_TRAINER_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as Partial<RememberedTrainer>;
+    return typeof v.id === 'string' ? { id: v.id, name: typeof v.name === 'string' ? v.name : null } : null;
+  } catch {
+    return null;
+  }
+}
+
+type BluetoothWithGetDevices = Bluetooth & { getDevices?: () => Promise<BluetoothDevice[]> };
+
+/**
+ * The trainer this browser already has permission for, if any: the one
+ * paired last (by id, then by name) among navigator.bluetooth.getDevices().
+ * Null when getDevices is missing (some Chrome builds keep it behind a
+ * flag), nothing was paired before, or the grant was revoked. Never throws.
+ */
+export async function findGrantedTrainer(): Promise<BluetoothDevice | null> {
+  const bt = (typeof navigator !== 'undefined' ? navigator.bluetooth : undefined) as BluetoothWithGetDevices | undefined;
+  if (!bt || typeof bt.getDevices !== 'function') return null;
+  const last = rememberedTrainer();
+  if (!last) return null;
+  let devices: BluetoothDevice[];
+  try {
+    devices = await bt.getDevices();
+  } catch {
+    return null;
+  }
+  return devices.find((d) => d.id === last.id) ?? (last.name ? devices.find((d) => d.name === last.name) : undefined) ?? null;
+}
+
+/** How long to listen for the trainer's advert before giving up on a reconnect. */
+export const RECONNECT_ADVERT_WAIT_MS = 6000;
+/** Cap per GATT attempt during a chooser-free reconnect. */
+export const RECONNECT_ATTEMPT_TIMEOUT_MS = 12000;
+
+type WatchableDevice = BluetoothDevice & {
+  watchAdvertisements?: (options?: { signal?: AbortSignal }) => Promise<void>;
+};
+
+/** Resolve once the device advertises (it is in range and awake), or after `ms`. */
+function waitForAdvert(dev: BluetoothDevice, ms: number): Promise<void> {
+  const d = dev as WatchableDevice;
+  if (typeof d.watchAdvertisements !== 'function') return Promise.resolve();
+  const abort = typeof AbortController === 'function' ? new AbortController() : null;
+  return new Promise<void>((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      dev.removeEventListener('advertisementreceived', finish);
+      try {
+        abort?.abort();
+      } catch {
+        /* already stopped */
+      }
+      resolve();
+    };
+    const timer = setTimeout(finish, ms);
+    dev.addEventListener('advertisementreceived', finish);
+    try {
+      void d.watchAdvertisements!(abort ? { signal: abort.signal } : undefined).catch(finish);
+    } catch {
+      finish();
+    }
+  });
+}
+
+/**
+ * Connect to a trainer granted earlier, without the chooser (no user
+ * gesture needed). One direct GATT attempt; if that fails, wait for the
+ * trainer to advertise and try once more. Throws FtmsError on failure,
+ * leaving nothing half-open, so the caller can fall back to connect().
+ */
+export async function reconnectGranted(dev: BluetoothDevice): Promise<void> {
+  if (!dev.gatt) throw new FtmsError('gatt-connect-failed', 'The saved trainer has no GATT server.');
+  userInitiatedDisconnect = false;
+  lastBatteryLevel = null;
+  device = dev;
+  dev.removeEventListener('gattserverdisconnected', handleGattDisconnect);
+  dev.addEventListener('gattserverdisconnected', handleGattDisconnect);
+  // Android can leave gatt.connect() pending for ~30 s on an absent device.
+  const attempt = () =>
+    new Promise<void>((resolve, reject) => {
+      const t = setTimeout(
+        () => reject(new FtmsError('gatt-connect-failed', 'The trainer did not answer.')),
+        RECONNECT_ATTEMPT_TIMEOUT_MS,
+      );
+      setupGattSession(dev).then(
+        () => {
+          clearTimeout(t);
+          resolve();
+        },
+        (e: unknown) => {
+          clearTimeout(t);
+          reject(e);
+        },
+      );
+    });
+  try {
+    try {
+      await attempt();
+    } catch {
+      await waitForAdvert(dev, RECONNECT_ADVERT_WAIT_MS);
+      await attempt();
+    }
+  } catch (err) {
+    await disconnect().catch(() => undefined);
+    try {
+      dev.gatt.disconnect();
+    } catch {
+      /* not connected */
+    }
+    throw err instanceof FtmsError
+      ? err
+      : new FtmsError('gatt-connect-failed', 'Could not reach the trainer. Pedal once to wake it, then pair again.', err);
+  }
+  rememberTrainer(dev);
 }
 
 /** Internal: GATT connect + characteristic wiring + start/resume handshake. */

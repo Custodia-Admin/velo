@@ -13,6 +13,7 @@ import * as Cesium from 'cesium';
 import type { RouteSegment } from '@/lib/segmentOverlay';
 import type { Route } from '@/types';
 import { sampleRouteAtDistance } from '@/lib/gpxParser';
+import { onSceneSurface } from '@/lib/cesiumUtils';
 
 // Brand colors
 const AQUA = Cesium.Color.fromCssColorString('#22d3ee');
@@ -49,8 +50,8 @@ export function createSegmentPortals(
   const entities: Cesium.Entity[] = [];
 
   for (const rs of routeSegments) {
-    const startPt = sampleRouteAtDistance(route, rs.routeStartDistance);
-    const endPt   = sampleRouteAtDistance(route, rs.routeEndDistance);
+    const startPt = onSceneSurface(sampleRouteAtDistance(route, rs.routeStartDistance));
+    const endPt   = onSceneSurface(sampleRouteAtDistance(route, rs.routeEndDistance));
 
     // ---- Start gate: glowing aqua ring approximated as a small polyline loop ----
     const ringPositions = buildRingPositions(startPt.lat, startPt.lon, startPt.ele + 1.5, 3, 16);

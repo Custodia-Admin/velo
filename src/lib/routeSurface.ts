@@ -19,6 +19,7 @@ import type { Route } from '@/types';
 import { findClimbs } from '@/lib/climbDetection';
 import { sampleRouteAtDistance, headingAt } from '@/lib/gpxParser';
 import { createAsphaltMaterialProperty } from '@/lib/asphaltMaterial';
+import { sceneEle } from '@/lib/cesiumUtils';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -64,7 +65,7 @@ export function perpendicularOffset(
   const lonOffset =
     (Math.sin(perpHeading) * offsetMeters) /
     (111_320 * Math.cos((pt.lat * Math.PI) / 180));
-  return Cesium.Cartesian3.fromDegrees(pt.lon + lonOffset, pt.lat + latOffset, pt.ele);
+  return Cesium.Cartesian3.fromDegrees(pt.lon + lonOffset, pt.lat + latOffset, sceneEle(pt.ele));
 }
 
 /**

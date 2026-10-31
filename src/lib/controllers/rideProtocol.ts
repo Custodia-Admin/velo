@@ -25,6 +25,25 @@ export const RIDE_COMPANY_ID = 0x094a;
 /** Advertised names start with this. */
 export const RIDE_NAME_PREFIX = 'Zwift';
 
+/** First manufacturer-data byte (after the company id): which Ride controller. */
+export const RIDE_TYPE_RIGHT = 0x07;
+export const RIDE_TYPE_LEFT = 0x08;
+
+export type ControllerSide = 'left' | 'right';
+
+/**
+ * Side of a Ride controller from its advertised manufacturer data (company
+ * 0x094A, payload without the company id). Only the left one reliably
+ * forwards button presses. Null for anything else (Click, Play, garbage).
+ */
+export function sideFromManufacturerData(data: DataView | Uint8Array | null | undefined): ControllerSide | null {
+  if (!data || data.byteLength === 0) return null;
+  const first = data instanceof DataView ? data.getUint8(0) : data[0];
+  if (first === RIDE_TYPE_LEFT) return 'left';
+  if (first === RIDE_TYPE_RIGHT) return 'right';
+  return null;
+}
+
 export const MSG_KEYPAD = 0x23;
 export const MSG_BATTERY = 0x19;
 export const MSG_IDLE = 0x15;
@@ -274,6 +293,43 @@ export function encodeInfoRequest(dataId = 0): Uint8Array {
   const out: number[] = [0x00];
   varintField(1, dataId, out);
   return Uint8Array.from(out);
+}
+
+/**
+ * One-line reading of a message for the field debug overlay, e.g.
+ * "keys shiftUpR · lever R 50", "battery 42 %", "idle", "RideOn handshake".
+ */
+export function describeMessage(dir: 'in' | 'out', msg: Uint8Array): string {
+  if (msg.length === 0) return 'empty';
+  if (dir === 'out') {
+    if (msg.length === RIDE_ON.length && msg.every((b, i) => b === RIDE_ON[i])) return 'RideOn handshake';
+    if (msg[0] === 0x12) return 'buzz';
+    if (msg[0] === 0x00) return 'info request';
+    return `cmd 0x${msg[0].toString(16).padStart(2, '0')}`;
+  }
+  switch (msg[0]) {
+    case MSG_KEYPAD: {
+      const status = decodeKeypad(msg);
+      if (!status) return 'keys ?';
+      const keys = [...pressedButtons(status)];
+      const levers = status.levers
+        .filter((l) => Math.abs(l.value) >= LEVER_DEADZONE)
+        .map((l) => `lever ${l.location === 0 ? 'L' : l.location === 1 ? 'R' : l.location} ${l.value}`);
+      return [keys.length ? `keys ${keys.join(' ')}` : 'keys none', ...levers].join(' · ');
+    }
+    case MSG_BATTERY: {
+      const pct = decodeBattery(msg);
+      return pct === null ? 'battery ?' : `battery ${pct} %`;
+    }
+    case MSG_IDLE:
+      return 'idle';
+    case MSG_DEVICE_INFO:
+      return 'device info';
+    case MSG_TAKEN_OVER:
+      return 'taken over by another app';
+    default:
+      return `msg 0x${msg[0].toString(16).padStart(2, '0')}`;
+  }
 }
 
 /** Hex dump for the debug log, e.g. "23 08 fe ff ff ff 0f". */

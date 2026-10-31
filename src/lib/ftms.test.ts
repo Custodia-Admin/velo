@@ -14,6 +14,8 @@ import {
   parseIndoorBikeData,
   getTrainerControlMode,
   setTrainerControlMode,
+  trainerRequestOptions,
+  FTMS_SERVICE_UUID,
 } from './ftms';
 
 // ---------------------------------------------------------------------------
@@ -288,5 +290,30 @@ describe('setTrainerControlMode / getTrainerControlMode', () => {
     expect(getTrainerControlMode()).toBe('erg');
     // Reset
     setTrainerControlMode('sim');
+  });
+});
+
+describe('trainerRequestOptions', () => {
+  it('filters on the FTMS service by default', () => {
+    const o = trainerRequestOptions() as { filters: unknown[]; acceptAllDevices?: boolean };
+    expect(o.filters).toEqual([{ services: [FTMS_SERVICE_UUID] }]);
+    expect(o.acceptAllDevices).toBeUndefined();
+  });
+
+  it('show-all fallback lists every device but still asks for FTMS, battery and FC82', () => {
+    const o = trainerRequestOptions({ showAllDevices: true }) as {
+      filters?: unknown;
+      acceptAllDevices: boolean;
+      optionalServices: string[];
+    };
+    expect(o.acceptAllDevices).toBe(true);
+    expect(o.filters).toBeUndefined();
+    expect(o.optionalServices).toEqual(
+      expect.arrayContaining([
+        FTMS_SERVICE_UUID,
+        '0000180f-0000-1000-8000-00805f9b34fb',
+        '0000fc82-0000-1000-8000-00805f9b34fb',
+      ]),
+    );
   });
 });

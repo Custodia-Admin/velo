@@ -42,6 +42,8 @@ import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
 import { useHandlebarGestures } from '@/hooks/useHandlebarGestures';
 import { useRideControllerActions } from '@/hooks/useRideControllerActions';
 import { ControllerChip } from '@/components/velo/ControllerChip';
+import { reconnectGrantedTrainer } from '@/lib/trainerReconnect';
+import { ControllerDebugOverlay, useControllerDebugVisible } from '@/components/velo/ControllerDebugOverlay';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/ride/FinishCard';
@@ -86,6 +88,12 @@ export function Ride() {
   const rideMode      = useRideStore((s) => s.rideMode);
 
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
+  const controllerDebugVisible = useControllerDebugVisible();
+
+  // A trainer paired in an earlier session reconnects on its own (no chooser).
+  useEffect(() => {
+    void reconnectGrantedTrainer({ silent: true });
+  }, []);
 
   // ---- Show mode ----
   // Watch your own videos over the live ride. The HUD shrinks to one strip,
@@ -332,8 +340,9 @@ export function Ride() {
           {replayData && <ReplayBadge />}
           <SensorStatusPills />
           {/* Mobile shows the chip in the HUD stack below instead. */}
-          <div className="hidden sm:block">
+          <div className="hidden sm:flex flex-col gap-2">
             <ControllerChip />
+            <ControllerDebugOverlay />
           </div>
 
           {/* Minimap — below the nav row, left column, tablet+ only */}
@@ -384,17 +393,27 @@ export function Ride() {
       <div
         className={cn('sm:hidden absolute left-0 right-0 pointer-events-none z-[2]', showActive && 'hidden')}
         style={{
-          top:          'calc(max(env(safe-area-inset-top), 0.75rem) + 3.5rem)',
+          // Below the top bar AND the connection / Demo mode pill under it.
+          top:          'calc(max(env(safe-area-inset-top), 0.75rem) + 6.5rem)',
           paddingLeft:  'max(env(safe-area-inset-left), 0.75rem)',
           paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
       >
+        {/* Controller debug on: controls + raw log first, so one phone screenshot holds both. */}
+        {controllerDebugVisible && (
+          <div className="mb-2 flex flex-col gap-2">
+            <ControllerChip />
+            <ControllerDebugOverlay />
+          </div>
+        )}
         {/* Stats first on mobile */}
         <RideHUD />
-        {/* Handlebar controls readout (renders nothing without paired controls) */}
-        <div className="mt-2 flex empty:hidden">
-          <ControllerChip />
-        </div>
+        {/* Handlebar controls readout (renders nothing without Web Bluetooth) */}
+        {!controllerDebugVisible && (
+          <div className="mt-2 flex empty:hidden">
+            <ControllerChip />
+          </div>
+        )}
         <PlayPanel className="mt-2" compact />
         {/* Minimap — compact, full-width on mobile. Gives its place to the
             Play panel so the stack stays clear of the ride controls; the
@@ -437,7 +456,9 @@ export function Ride() {
           its dialog take pointer events, or the top bar below is unclickable. */}
       {gestureControlsEnabled && !showActive && (
         <div className="absolute inset-0 pointer-events-none z-[4]">
-          {/* GestureLegend positions itself absolutely within this container */}
+          {/* GestureLegend positions itself absolutely within this container.
+              The wrapper spans the screen, so it must stay click-through: only
+              the chip and the open legend take pointer events. */}
           <div className="relative w-full h-full pointer-events-none">
             <GestureLegend />
           </div>
