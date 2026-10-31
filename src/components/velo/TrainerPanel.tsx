@@ -10,7 +10,6 @@ import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { Switch } from '@/components/velo/Switch';
 import { LiveWeatherSwitch } from '@/components/velo/WeatherControls';
 import { ControllerPanel } from '@/components/velo/ControllerPanel';
-import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export function ErgSwitch() {
