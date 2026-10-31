@@ -568,14 +568,15 @@ html:not(.dark) .cesium-viewer {
    WebGL canvas makes the compositor re-read and re-blur the canvas under
    every panel on every frame: 10–25 fps on the Intel Arc iGPU (card
    t_12c297fd). The panels keep the glass gradient at a higher opacity
-   (--glass-flat-*) so text stays legible over the moving scene. Unlayered
-   and after the utilities so it also beats Tailwind backdrop-blur-* classes.
+   (--glass-flat-*) so text stays legible over the moving scene.
+   !important so it also beats Tailwind backdrop-blur-* classes and the
+   inline blurs in legacy ride components (Minimap label, climb banner).
    Modals portalled to <body> keep their blur (they pause the view).
 ------------------------------------------------------------------- */
 .hud-flat,
 .hud-flat * {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 .hud-flat .glass {
   background: linear-gradient(
