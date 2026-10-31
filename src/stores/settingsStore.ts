@@ -16,6 +16,11 @@ import { DEFAULT_TRAINER_DIFFICULTY, clampDifficulty } from '@/lib/trainerComfor
 import { DEFAULT_WIND_FEEL, isWindFeel, type WindFeel } from '@/lib/meteo/windFeel';
 import { DEFAULT_RENDERER, isRendererKind, type RendererKind } from '@/lib/world/renderer';
 import {
+  DEFAULT_CAMERA_DISTANCE,
+  isCameraDistance,
+  type CameraDistance,
+} from '@/lib/world/cameraFraming';
+import {
   emptyPlan,
   setDay as setPlanDay,
   shiftDaysToNextWeek,
@@ -146,6 +151,11 @@ export interface RiderSettings {
    * default) or 'photoreal' (Cesium with the rider's own ion token, opt-in).
    */
   renderer: RendererKind;
+  /**
+   * How close the follow camera sits to the rider (lib/world/cameraFraming).
+   * Default 'standard': rider prominent, road readable 10–20 m ahead.
+   */
+  cameraDistance: CameraDistance;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -191,6 +201,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   liveWeatherEnabled: true,
   playMode: false,
   renderer: DEFAULT_RENDERER,
+  cameraDistance: DEFAULT_CAMERA_DISTANCE,
 };
 
 type CommentaryPatch = Partial<
@@ -367,6 +378,9 @@ export const useSettingsStore = create<SettingsStoreState>()(
         renderer: isRendererKind((persisted as Partial<RiderSettings>).renderer)
           ? (persisted as Partial<RiderSettings>).renderer!
           : DEFAULT_SETTINGS.renderer,
+        cameraDistance: isCameraDistance((persisted as Partial<RiderSettings>).cameraDistance)
+          ? (persisted as Partial<RiderSettings>).cameraDistance!
+          : DEFAULT_SETTINGS.cameraDistance,
       }),
       partialize: (s) =>
         ({
@@ -412,6 +426,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           liveWeatherEnabled: s.liveWeatherEnabled,
           playMode: s.playMode,
           renderer: s.renderer,
+          cameraDistance: s.cameraDistance,
         }) satisfies RiderSettings,
     },
   ),

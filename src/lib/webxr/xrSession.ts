@@ -204,6 +204,8 @@ export function runXRFrameLoop(
 
     for (const view of pose.views) {
       const xrViewport = layer.getViewport(view);
+      // @types/webxr ≥ 0.5.21 types getViewport as possibly undefined.
+      if (!xrViewport) continue;
       gl.viewport(xrViewport.x, xrViewport.y, xrViewport.width, xrViewport.height);
 
       try {

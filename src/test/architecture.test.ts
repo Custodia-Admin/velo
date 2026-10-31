@@ -177,6 +177,54 @@ describe('renderer seam: Cesium loads lazily', () => {
   });
 });
 
+describe('world renderer (three.js) is token-free', () => {
+  // Value imports (static or import()) are what ships; `import type` is erased.
+  const value = (r: ImportRef) => !r.typeOnly;
+  const staticValue = (r: ImportRef) => !r.typeOnly && !r.dynamic;
+  const threeFiles = filesUnder(path.join(SRC, 'renderers/three')).filter((f) => !isTest(f));
+
+  const reachable = (entries: string[], follow: (r: ImportRef) => boolean) => {
+    const seen = new Set<string>();
+    const queue = [...entries];
+    while (queue.length) {
+      const f = queue.shift()!;
+      if (seen.has(f)) continue;
+      seen.add(f);
+      for (const r of importsOf(f)) {
+        if (!follow(r)) continue;
+        const next = resolveLocal(f, r.spec);
+        if (next) queue.push(next);
+      }
+    }
+    return [...seen].map(rel);
+  };
+
+  it('no renderers/three file reaches Cesium code (static or dynamic value imports)', () => {
+    expect(threeFiles.length).toBeGreaterThan(5);
+    const hits = engineImportsReachable(threeFiles, value).filter((h) => /imports 'cesium/.test(h));
+    expect(hits).toEqual([]);
+  });
+
+  it('nor any Cesium-side app module (cesiumUtils, cameras, the photoreal renderer)', () => {
+    // lib/cesiumCameras is engine-free camera-mode math despite its name
+    // (settingsStore persists its CameraMode); the walk above proves it.
+    const ENGINE_FREE = new Set(['src/lib/cesiumCameras.ts']);
+    const bad = reachable(threeFiles, value).filter(
+      (f) =>
+        !ENGINE_FREE.has(f) &&
+        /renderers\/cesium\/|lib\/cesium|cesiumUtils|cesiumHDR|weatherParticles|skyAndClouds/.test(f),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it('three.js sits behind import(): the app shell and ride/replay routes do not bundle it', () => {
+    for (const entry of ['main.tsx', 'routes/Ride.tsx', 'routes/Replay.tsx']) {
+      const hits = engineImportsReachable([path.join(SRC, entry)], staticValue);
+      expect(hits.filter((h) => /imports '(three|@react-three|postprocessing)/.test(h))).toEqual([]);
+    }
+  });
+});
+
 describe('renderer seam: ride features go through RideView / WorldRenderer', () => {
   const appFiles = filesUnder(SRC).filter((f) => !isTest(f));
 

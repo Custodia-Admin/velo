@@ -110,4 +110,9 @@ export interface WorldViewProps {
   ionToken: string | null;
   /** Called once the renderer has drawn its first frame. */
   onReady?: (renderer: WorldRenderer) => void;
+  /**
+   * The renderer cannot draw this ride after all (world bundle failed to
+   * load, no WebGL2); the ride view falls back to another renderer.
+   */
+  onUnavailable?: (reason: string) => void;
 }
