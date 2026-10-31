@@ -448,7 +448,7 @@ export function Ride() {
       {!showActive && rideState !== 'finished' && (
         <div
           className="sm:hidden absolute left-3 right-3 z-[3] pointer-events-none"
-          style={{ bottom: 'calc(max(env(safe-area-inset-bottom), 1.25rem) + 7.75rem)' }}
+          style={{ bottom: 'calc(max(env(safe-area-inset-bottom), 1.25rem) + 4.75rem)' }}
         >
           <MobileDetailDock />
         </div>
@@ -457,9 +457,15 @@ export function Ride() {
       {/* -- Transport controls -- bottom-center ----------------------------- */}
       {/* z-50 (above every other HUD layer) so the Start ride button can
           never be intercepted by a stray sibling. pointer-events-auto on
-          the wrapper means clicks always land on the button. */}
+          the wrapper means clicks always land on the button.
+          w-max: an absolutely-positioned left-1/2 wrapper shrink-fits to the
+          width available from its left edge (~195 px at 390), which made
+          RideControls' inner flex-wrap stack Pause/Finish into a 2-story
+          110 px block. Sizing the wrapper to max-content keeps the running
+          controls on one ~62 px row; max-w caps it so the 4-button finished
+          state still wraps gracefully inside the viewport. */}
       <div
-        className={cn('absolute left-1/2 -translate-x-1/2 pointer-events-auto z-50', dimClass)}
+        className={cn('absolute left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-1.5rem)] pointer-events-auto z-50', dimClass)}
         style={{ bottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
       >
         <RideControls />
