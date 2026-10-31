@@ -45,9 +45,18 @@ never send BLE control commands while someone may be on the bike.
 4. **Journey and show mode (next).** Pick a route, press Ride, and watch your
    own shows while the world rolls by: a video surface over the live route,
    auto-cinematic camera, stats and FIT export still recording. Card P2b.
-5. **10-foot UI.** Big targets and type that read from two metres on a TV and
+5. **Live weather (P2c).** Open-Meteo (free, keyless, no account) gives the
+   current weather at each route's start. Fair days keep the route's own
+   light with clouds sized from the real cover; overcast, fog, rain, snow and
+   storms switch the sky, fog, particles and wet road. Wind loads the trainer
+   through the FTMS SIM Cw term, per rider: **Wind feel** off / **subtle**
+   (default: a third of the real effect, capped at +25 % drag) / real. Cards
+   show "Now: Fog · 9° · calm". Cached 20 min in localStorage; offline uses
+   readings up to 3 h old, then the canned moods. "Live weather" (household)
+   turns it all off. Math and mapping: `src/lib/meteo/`.
+6. **10-foot UI.** Big targets and type that read from two metres on a TV and
    work under a thumb on a tablet. See `docs/design/UI-RULES.md`.
-6. **Later, maybe.** A more game-like world (collectibles, companions,
+7. **Later, maybe.** A more game-like world (collectibles, companions,
    landmarks) once the comfort basics are loved. Zwift Ride handlebar
    controllers as input (public protocol, no Zwift assets or branding).
 
@@ -69,3 +78,10 @@ never send BLE control commands while someone may be on the bike.
 - Ride history, PRs and achievements in IndexedDB are shared, not per rider.
 - The app header still says GlobeRide; a rebrand is its own card.
 - Zwift Ride handlebar controller input is not wired yet.
+- Live wind applies to route rides (SIM). Structured workouts with explicit
+  grade segments still send the base Cw.
+- In `npm run dev` the ride view crashes on route load: `createRoadEntity`
+  hands a fabric `Cesium.Material` to an entity corridor, which Cesium's debug
+  build rejects ("Unable to infer material type"). Production builds drop the
+  material silently. Use `npm run build && npm run preview` to see rides
+  locally until that card lands.

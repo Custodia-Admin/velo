@@ -35,6 +35,7 @@ export const PER_RIDER_KEYS = [
   'cameraMode',
   'trainerDifficulty',
   'ergEnabled',
+  'windFeel',
 ] as const satisfies readonly (keyof RiderSettings)[];
 
 export type PerRiderKey = (typeof PER_RIDER_KEYS)[number];
@@ -109,7 +110,9 @@ export const useRiderRosterStore = create<RosterState>()(
         );
 
         // Load the incoming rider into the live stores.
-        live.setSettings(incoming.settings ?? comfortDefaults());
+        // Merge over defaults so snapshots saved before a per-rider setting
+        // existed pick up its default instead of the outgoing rider's value.
+        live.setSettings({ ...comfortDefaults(), ...(incoming.settings ?? {}) });
         useProfileStore.setState({ profile: incoming.profile });
         if (!incoming.profile) useProfileStore.getState().createProfile(incoming.name);
 

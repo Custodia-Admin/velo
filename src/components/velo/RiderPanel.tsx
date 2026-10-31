@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useRiderRosterStore, MAX_NAME_LENGTH, type RosterRider } from '@/stores/riderRosterStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { difficultyLabel } from '@/lib/trainerComfort';
+import { WindFeelPicker } from '@/components/velo/WeatherControls';
 
 function initial(name: string): string {
   return (name.trim()[0] ?? '?').toUpperCase();
@@ -132,7 +133,7 @@ export function RiderPanel() {
       </div>
 
       <div className="flex max-w-xl flex-wrap items-center gap-x-4 gap-y-2">
-        <label htmlFor={sliderId} className="text-sm font-semibold text-foreground">
+        <label htmlFor={sliderId} className="w-24 text-sm font-semibold text-foreground">
           Hills feel
         </label>
         <input
@@ -150,6 +151,8 @@ export function RiderPanel() {
           {pct}% · {difficultyLabel(difficulty)}
         </span>
       </div>
+
+      <WindFeelPicker />
     </div>
   );
 }

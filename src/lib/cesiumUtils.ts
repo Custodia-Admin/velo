@@ -533,6 +533,7 @@ export function flyToPoint(
  *   alpine-storm       — dark dramatic sky, cold blue-purple, partial rays
  *   mediterranean-mist — warm hazy yellow sun, light sea-salt fog
  *   dusk-cool          — purple/pink horizon, low blue twilight
+ *   valley-fog         — real low fog: bright milky grey, short visibility
  */
 export type SceneMood =
   | 'clear-noon'
@@ -542,7 +543,8 @@ export type SceneMood =
   | 'fjord-rain'
   | 'alpine-storm'
   | 'mediterranean-mist'
-  | 'dusk-cool';
+  | 'dusk-cool'
+  | 'valley-fog';
 
 /** Convenience alias exported for route-metadata typing. */
 export type MoodId = SceneMood;
@@ -552,7 +554,11 @@ interface MoodParams {
   sunHourFromNoon: number;
   fogDensity: number;
   fogMinimumBrightness: number;
-  /** Exponential fog height scalar — higher = fog fades faster with altitude. */
+  /**
+   * Multiplier on Cesium's default Fog.heightScalar (0.001). Cesium multiplies
+   * density by heightScalar directly, so these ~1.0 values must not be
+   * assigned raw: that made fog ~1000x too dense and blacked out the ground.
+   */
   fogHeightScalar: number;
   atmosphereHueShift: number;
   atmosphereSaturationShift: number;
@@ -732,6 +738,30 @@ export const MOODS: Record<SceneMood, MoodParams> = {
     },
   },
   // ------------------------------------------------------------------
+  // valley-fog — a real foggy morning: bright milky grey that swallows the
+  // far shore, soft shadowless light. Driven by live weather (WMO 45/48).
+  // ------------------------------------------------------------------
+  'valley-fog': {
+    sunHourFromNoon: 1.5,
+    fogDensity: 0.0009,                // dense — the far side of the lake fades out
+    fogMinimumBrightness: 0.75,        // bright milky fog, not murk
+    fogHeightScalar: 1.6,              // hugs the valley floor
+    atmosphereHueShift: 0.0,
+    atmosphereSaturationShift: -0.35,  // colour washed out by the fog
+    atmosphereBrightnessShift: 0.12,
+    perFragmentAtmosphere: false,
+    atmosphereLightIntensity: 34,
+    groundHueShift: 0.0,
+    groundSaturationShift: -0.30,
+    groundBrightnessShift: 0.10,
+    sky: {
+      useRealSun: false,      // flat diffuse light
+      cloudCount: 20,         // low grey deck above the fog
+      cloudAltitudeM: 900,
+      starsVisible: false,
+    },
+  },
+  // ------------------------------------------------------------------
   // dusk-cool — purple/pink horizon, low blue twilight.
   // Post-golden-hour: sun just below the horizon, blue-hour quality.
   // ------------------------------------------------------------------
@@ -782,6 +812,9 @@ export function moodForRoute(route: { totalDistance: number; ascent: number }): 
  * Apply a SceneMood to the viewer.  Should be called after the clock time is
  * already set (so sun position is set first, then atmosphere is layered on top).
  */
+/** Cesium's default Fog.heightScalar (engine/Source/Scene/Fog.js). */
+export const CESIUM_FOG_HEIGHT_SCALAR = 0.001;
+
 export function applySceneMood(viewer: Cesium.Viewer, mood: SceneMood): void {
   if (viewer.isDestroyed()) return;
   const p = MOODS[mood];
@@ -793,7 +826,7 @@ export function applySceneMood(viewer: Cesium.Viewer, mood: SceneMood): void {
   scene.fog.density = p.fogDensity;
   const fog = scene.fog as FogExtended;
   if ('minimumBrightness' in fog) fog.minimumBrightness = p.fogMinimumBrightness;
-  if ('heightScalar' in fog) fog.heightScalar = p.fogHeightScalar;
+  if ('heightScalar' in fog) fog.heightScalar = CESIUM_FOG_HEIGHT_SCALAR * p.fogHeightScalar;
 
   // Sky atmosphere — limb glow, saturation, warmth.
   if (scene.skyAtmosphere) {

@@ -9,6 +9,9 @@ import { cn } from '@/lib/utils';
 import { useSettingsStore, type UnitSystem } from '@/stores/settingsStore';
 import type { ScenicRouteInfo } from '@/lib/scenicRoutes';
 import { ElevationLine } from '@/components/velo/ElevationLine';
+import { WeatherLine } from '@/components/velo/WeatherLine';
+import type { WeatherEntry } from '@/stores/liveWeatherStore';
+import { cardWeatherText } from '@/lib/meteo/weatherText';
 
 function characterText(info: ScenicRouteInfo): string {
   if (info.character === 'flat') return 'flat';
@@ -31,15 +34,21 @@ export interface ScenicPickProps {
   /** Route currently loaded in the ride store, to mark it as selected. */
   activeRouteId?: string | null;
   onRide: (info: ScenicRouteInfo) => void;
+  /** Live weather per route id; omitted or undefined entries hide the line. */
+  weatherById?: Record<string, WeatherEntry | undefined>;
 }
 
 /** The one big card: today's suggested ride and the page's primary action. */
 export function FeaturedScenicRide({
   info,
   onRide,
+  weather,
+  onRetryWeather,
 }: {
   info: ScenicRouteInfo;
   onRide: (info: ScenicRouteInfo) => void;
+  weather?: WeatherEntry;
+  onRetryWeather?: () => void;
 }) {
   const units = useSettingsStore((s) => s.units);
   return (
@@ -57,6 +66,7 @@ export function FeaturedScenicRide({
       </div>
       <p className="max-w-prose text-base text-muted-foreground">{info.description}</p>
       <ElevationLine route={info.route} className="h-12 sm:h-16" />
+      <WeatherLine entry={weather} size="base" prefix="Now" onRetry={onRetryWeather} />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="num text-lg font-semibold text-foreground">{figures(info, units)}</p>
         <Button
@@ -78,19 +88,22 @@ function ScenicRouteCard({
   info,
   isActive,
   onRide,
+  weather,
 }: {
   info: ScenicRouteInfo;
   isActive: boolean;
   onRide: (info: ScenicRouteInfo) => void;
+  weather?: WeatherEntry;
 }) {
   const units = useSettingsStore((s) => s.units);
   const text = figures(info, units);
+  const weatherText = weather?.status === 'ready' ? `, now ${cardWeatherText(weather.weather, units)}` : '';
   // The whole card is the button: one big target from the sofa or the bars.
   return (
     <button
       type="button"
       onClick={() => onRide(info)}
-      aria-label={`Ride ${info.name}, ${text}`}
+      aria-label={`Ride ${info.name}, ${text}${weatherText}`}
       aria-pressed={isActive}
       data-scenic-route={info.route.id}
       className={cn(
@@ -116,6 +129,8 @@ function ScenicRouteCard({
         </span>
       </div>
       <ElevationLine route={info.route} className="h-10" />
+      {/* Offline is said once, on the featured card; the grid just omits the line. */}
+      {weather?.status !== 'unavailable' && <WeatherLine entry={weather} />}
       <p className="num text-sm text-foreground">{text}</p>
     </button>
   );
@@ -126,6 +141,7 @@ export function ScenicRouteGrid({
   routes,
   activeRouteId,
   onRide,
+  weatherById,
   className,
 }: ScenicPickProps & { routes: ScenicRouteInfo[]; className?: string }) {
   return (
@@ -136,6 +152,7 @@ export function ScenicRouteGrid({
           info={info}
           isActive={info.route.id === activeRouteId}
           onRide={onRide}
+          weather={weatherById?.[info.route.id]}
         />
       ))}
     </div>
