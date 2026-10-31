@@ -11,6 +11,7 @@ import { effectiveCameraMode } from '@/lib/show/showDirector';
 import { useGhostStore } from '@/stores/ghostStore';
 import { useRouteWeather } from '@/hooks/useLiveWeather';
 import {
+  cannedScene,
   resolveSceneWeather,
   sceneKey,
   type SceneWeather,
@@ -52,11 +53,14 @@ import {
 } from '@/lib/routeVisuals';
 import { createAvatar, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
+import { ridePose } from '@/lib/ride/rideSim';
+import type { RiderPose, WorldViewProps } from '@/lib/world/renderer';
+import { createCesiumWorldRenderer } from '@/renderers/cesium/cesiumWorldRenderer';
 import { applyGraphicsQuality } from '@/lib/graphicsQuality';
 import { applyCinematicEffects, destroyCinematicEffects } from '@/lib/cinematicEffects';
 import { loadGhosts, type GhostRide } from '@/lib/ghosts';
 import { shouldChaseCamUpdate } from '@/lib/chaseCamGuard';
-import { offsetSideways, stepLaneOffset } from '@/lib/laneOffset';
+import { stepLaneOffset } from '@/lib/laneOffset';
 import { activeSteer } from '@/stores/controllerStore';
 import type { AvatarColors } from '@/lib/avatarConfig';
 import { BOT_COLORWAYS } from '@/lib/paceBots';
@@ -152,19 +156,23 @@ function cannedMoodForRoute(route: Route): MoodId {
 const CAM_TRANSITION_MS = 1200;
 
 /**
- * The 3D world viewport: Cesium globe + terrain + OSM buildings + the route
- * polyline + a multi-part bike avatar that tracks the rider's current
- * distance and heading. The camera follows the avatar when riding, and frames
- * the entire route when idle so the user can preview before clicking Start.
+ * The photoreal renderer ('photoreal' behind lib/world/renderer.ts): Cesium
+ * globe + terrain + OSM buildings + the route polyline + a multi-part bike
+ * avatar that tracks the rider's pose from lib/ride/rideSim. The camera
+ * follows the avatar when riding, and frames the entire route when idle so
+ * the user can preview before clicking Start.
+ *
+ * Opt-in and lazy: only src/renderers/registry.ts imports this module, via
+ * import(), so the Cesium chunk loads only when this renderer draws.
  */
-export function CesiumViewer({
+export function CesiumWorldView({
   ionToken,
+  onReady,
   onViewerReady,
-}: {
-  ionToken: string | null;
+}: WorldViewProps & {
   /**
-   * called once the Cesium.Viewer is fully constructed.
-   * Ride.tsx uses this to pass the viewer to EnterVRButton / VRHud.
+   * Called once the Cesium.Viewer is fully constructed (legacy hook; new
+   * callers use `onReady`, whose WorldRenderer carries the viewer as `native`).
    */
   onViewerReady?: (viewer: Cesium.Viewer) => void;
 }) {
@@ -229,6 +237,10 @@ export function CesiumViewer({
   // Track which mode was active last frame so we can detect mode changes.
   const lastCamModeRef = useRef<string>('chase');
   const laneOffsetRef = useRef(0);
+  // WorldRenderer.setRider: an outside driver's pose; null = the live ride.
+  const riderOverrideRef = useRef<RiderPose | null>(null);
+  // WorldRenderer.setMood: a pinned mood; null = route mood + live weather.
+  const [moodOverride, setMoodOverride] = useState<MoodId | null>(null);
 
   const route = useRideStore((s) => s.route);
 
@@ -239,9 +251,11 @@ export function CesiumViewer({
   const atmosphere = useMemo(
     () =>
       route
-        ? resolveSceneWeather(cannedMoodForRoute(route), liveWeather, liveWeatherEnabled)
+        ? moodOverride
+          ? cannedScene(moodOverride)
+          : resolveSceneWeather(cannedMoodForRoute(route), liveWeather, liveWeatherEnabled)
         : null,
-    [route, liveWeather, liveWeatherEnabled],
+    [route, liveWeather, liveWeatherEnabled, moodOverride],
   );
   const atmosphereKey = atmosphere ? sceneKey(atmosphere) : 'none';
   const rideMode = useRideStore((s) => s.rideMode);
@@ -320,6 +334,14 @@ export function CesiumViewer({
       // Notify the parent so EnterVRButton (and other consumers) can hold a
       // ref to the viewer for XR session entry.
       onViewerReady?.(viewer);
+      onReady?.(
+        createCesiumWorldRenderer(viewer, {
+          setRiderOverride: (pose) => {
+            riderOverrideRef.current = pose;
+          },
+          setMoodOverride,
+        }),
+      );
 
     // Add Bing Maps Aerial as the permanent globe base layer so terrain is
     // always visible — even in rural areas where Google Photorealistic Tiles
@@ -894,31 +916,35 @@ export function CesiumViewer({
       const r = state.route;
       if (!r || !avatarRef.current) return;
 
-      // Scene height: GPX elevation on ion terrain, 0 m on the flat no-token globe.
-      const onLine = onSceneSurface(sampleRouteAtDistance(r, state.distance));
-      const aheadOnLine = onSceneSurface(
-        sampleRouteAtDistance(r, Math.min(r.totalDistance, state.distance + 15)),
-      );
-      const heading = headingAt(r, state.distance);
-
       // Handlebar steering: drift across the lane, back to the line on release.
       laneOffsetRef.current = stepLaneOffset(laneOffsetRef.current, activeSteer(), dt);
-      const lane = laneOffsetRef.current;
-      const sampled = lane
-        ? { ...onLine, ...offsetSideways(onLine.lat, onLine.lon, heading, lane) }
-        : onLine;
-      const ahead = lane
-        ? { ...aheadOnLine, ...offsetSideways(aheadOnLine.lat, aheadOnLine.lon, heading, lane) }
-        : aheadOnLine;
+
+      // Rider pose from rideSim (or an outside driver via setRider), then the
+      // scene height: GPX elevation on ion terrain, 0 m on the flat no-token globe.
+      const pose =
+        riderOverrideRef.current ??
+        ridePose(r, state.distance, {
+          laneOffsetM: laneOffsetRef.current,
+          grade: state.grade,
+          speed: state.speed,
+        });
+      const aheadPose = ridePose(r, Math.min(r.totalDistance, pose.distance + 15), {
+        laneOffsetM: pose.laneOffsetM,
+        offsetHeading: pose.heading,
+        grade: pose.grade,
+      });
+      const heading = pose.heading;
+      const sampled = onSceneSurface({ lat: pose.lat, lon: pose.lon, ele: pose.ele });
+      const ahead = onSceneSurface({ lat: aheadPose.lat, lon: aheadPose.lon, ele: aheadPose.ele });
 
       avatarRef.current.update({
         lon: sampled.lon,
         lat: sampled.lat,
         ele: sampled.ele,
         heading,
-        speed: state.speed,
+        speed: pose.speed,
         cadence: state.cadence,
-        grade: state.grade,
+        grade: pose.grade,
         dt,
         riderPosition: useSettingsStore.getState().riderPosition,
       });
