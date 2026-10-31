@@ -27,6 +27,7 @@ import {
   getTerrainProvider,
   hasIonToken,
   julianDateForMood,
+  liftAboveTerrain,
   MOODS,
   moodForRoute,
   resetFollowCam,
@@ -50,9 +51,14 @@ import {
   type GradientSegment,
   type RouteMarkers,
 } from '@/lib/routeVisuals';
-import { createAvatar, type Avatar } from '@/lib/avatar';
+import { createAvatar, createGroundSampler, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
-import { applyGraphicsQuality } from '@/lib/graphicsQuality';
+import {
+  applyGraphicsQuality,
+  recommendedGraphicsQuality,
+  resolutionScaleFor,
+  webglRenderer,
+} from '@/lib/graphicsQuality';
 import { applyCinematicEffects, destroyCinematicEffects } from '@/lib/cinematicEffects';
 import { loadGhosts, type GhostRide } from '@/lib/ghosts';
 import { shouldChaseCamUpdate } from '@/lib/chaseCamGuard';
@@ -91,6 +97,8 @@ import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
 import { ProPelotonAvatars } from '@/components/ride/ProPelotonAvatars';
 import { waitForContainerSize } from '@/lib/landing/waitForContainerSize';
 import {
+  CHASE_FRAMING,
+  chasePitchRad,
   computeCameraPose,
   easedCameraTransition,
   type CameraPose,
@@ -111,6 +119,9 @@ import {
   type ClimbArchesHandle,
 } from '@/lib/routeSurface';
 import { tryEnableHDR } from '@/lib/cesiumHDR';
+import { attachScenePerf } from '@/lib/perf/scenePerf';
+import { shouldRenderOnDemand } from '@/lib/perf/renderMode';
+import { useMultiriderStore } from '@/stores/multiriderStore';
 
 /** Altitude threshold below which Google Photorealistic 3D Tiles are shown. */
 const PHOTOREAL_SHOW_ALTITUDE_M = 5_000;
@@ -150,6 +161,10 @@ function cannedMoodForRoute(route: Route): MoodId {
 
 // Camera transition duration in milliseconds.
 const CAM_TRANSITION_MS = 1200;
+/** Ground samplers for the side / orbit camera, one per scene (photoreal mesh aware). */
+const cameraGroundSamplers = new WeakMap<Cesium.Scene, ReturnType<typeof createGroundSampler>>();
+/** The chase camera never dips closer than this to the terrain under it (m). */
+const CHASE_MIN_CLEARANCE_M = 1.2;
 
 /**
  * The 3D world viewport: Cesium globe + terrain + OSM buildings + the route
@@ -170,6 +185,8 @@ export function CesiumViewer({
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
+  /** Lift applied to the side / orbit camera over buildings and walls (m). */
+  const cameraLiftRef = useRef(0);
   // The old single-colour polyline is replaced by gradient segments + markers.
   // Keep routePolylineRef so the searchPin effect can coexist unchanged.
   const routePolylineRef = useRef<Cesium.Entity | null>(null);
@@ -183,6 +200,7 @@ export function CesiumViewer({
   const osmTilesetRef = useRef<Cesium.Cesium3DTileset | null>(null);
   const photorealPromiseRef = useRef<Promise<Cesium.Cesium3DTileset> | null>(null);
   const removeTickRef = useRef<(() => void) | null>(null);
+  const detachPerfRef = useRef<(() => void) | null>(null);
   // Ghost rider refs — parallel arrays, one entry per active ghost.
   const ghostAvatarsRef = useRef<Avatar[]>([]);
   const ghostRidesRef = useRef<GhostRide[]>([]);
@@ -271,6 +289,12 @@ export function CesiumViewer({
     const ro = new ResizeObserver(() => {
       if (viewerRef.current && !viewerRef.current.isDestroyed()) {
         viewerRef.current.resize();
+        viewerRef.current.resolutionScale = resolutionScaleFor(
+          useSettingsStore.getState().graphicsQuality,
+          viewerRef.current.canvas.clientWidth,
+          viewerRef.current.canvas.clientHeight,
+        );
+        viewerRef.current.scene.requestRender();
       }
     });
     ro.observe(containerRef.current);
@@ -305,9 +329,12 @@ export function CesiumViewer({
         selectionIndicator: false,
         navigationHelpButton: false,
         navigationInstructionsInitiallyVisible: false,
-        // No token: skip the default ion (Bing) base layer, which can only
-        // 401. setupBaseImagery() below adds OSM instead.
-        ...(hasIonToken() ? {} : { baseLayer: false as const }),
+        // No default base layer: setupBaseImagery() below adds exactly one
+        // (Bing via ion with its stall watchdog, or OSM without a token).
+        // The Viewer's own default is the same Bing layer, so keeping it
+        // stacked two opaque copies — every imagery tile fetched, decoded,
+        // uploaded and sampled twice.
+        baseLayer: false,
         // Mark the WebGL context as XR-compatible so that
         // navigator.xr.requestSession('immersive-vr' | 'immersive-ar') can use
         // this canvas. xrCompatible is a valid WebGL context attribute (WebXR
@@ -316,6 +343,8 @@ export function CesiumViewer({
       });
       viewerRef.current = viewer;
       setActiveViewer(viewer);
+      // Frame-time + tile-load stats (?perf=1 overlay, window.__veloPerf).
+      detachPerfRef.current = attachScenePerf(viewer);
       setViewerReady((n) => n + 1);
       // Notify the parent so EnterVRButton (and other consumers) can hold a
       // ref to the viewer for XR session entry.
@@ -339,6 +368,18 @@ export function CesiumViewer({
     // Apply the persisted graphics quality tier (AA, shadows, fog).
     // Fog is always enabled; density is controlled per-tier.
     scene.fog.enabled = true;
+    // Until the rider picks a tier, choose one for this GPU (balanced on
+    // integrated GPUs like the Arc iGPU, high on discrete cards).
+    if (useSettingsStore.getState().graphicsQualityAuto) {
+      const gl = (scene as unknown as { context?: { _gl?: WebGLRenderingContext } }).context?._gl;
+      const recommended = recommendedGraphicsQuality(
+        webglRenderer(gl),
+        window.matchMedia?.('(pointer: coarse)').matches ?? false,
+      );
+      if (recommended !== useSettingsStore.getState().graphicsQuality) {
+        useSettingsStore.getState().setSettings({ graphicsQuality: recommended });
+      }
+    }
     const initialQuality = useSettingsStore.getState().graphicsQuality;
     applyGraphicsQuality(viewer, initialQuality);
     // Cinematic post-process stages (bloom, AO, vignette/grade) — created
@@ -346,11 +387,8 @@ export function CesiumViewer({
     // is fully constructed so scene.postProcessStages is available.
     applyCinematicEffects(viewer, initialQuality);
 
-    // Lower the render resolution slightly on /ride so the heavy
-    // 3D-buildings + photoreal-tiles scene doesn't peg the GPU and
-    // freeze the JS thread (which was preventing the Start-ride button
-    // from registering taps in production).
-    viewer.resolutionScale = 0.85;
+    // Render resolution comes from the tier (applyGraphicsQuality): a
+    // fraction of the CSS size, capped to the tier's pixel budget.
 
     // Defer the expensive scene additions (HDR, terrain, OSM buildings,
     // photoreal tiles) until the browser is idle. Without this, the JS
@@ -421,6 +459,9 @@ export function CesiumViewer({
             tileset.show = false;
             viewer.scene.primitives.add(tileset);
             tilesetRef.current = tileset;
+            // The tier's detail budget (the tileset is created after the
+            // bootstrap applied the tier to the scene).
+            applyGraphicsQuality(viewer, useSettingsStore.getState().graphicsQuality, tileset);
           })
           .catch(() => {
             photorealPromiseRef.current = null;
@@ -442,6 +483,8 @@ export function CesiumViewer({
 
       removeTickRef.current?.();
       removeTickRef.current = null;
+      detachPerfRef.current?.();
+      detachPerfRef.current = null;
       // Dispose weather system before destroying the viewer.
       weatherSystemRef.current?.dispose();
       weatherSystemRef.current = null;
@@ -539,6 +582,24 @@ export function CesiumViewer({
       weatherSystemRef.current = createWeatherSystem(viewer, applied.particles, graphicsQuality);
     }
   }, [graphicsQuality]);
+
+  // ---- Render on demand while nothing moves (paused / finished) ----
+  const rideStateForRender = useRideStore((s) => s.rideState);
+  const peerCount = useMultiriderStore((s) => Object.keys(s.peers).length);
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed()) return;
+    const onDemand = shouldRenderOnDemand(rideStateForRender, peerCount);
+    viewer.scene.requestRenderMode = onDemand;
+    viewer.scene.maximumRenderTimeChange = Number.POSITIVE_INFINITY;
+    viewer.scene.requestRender();
+    if (!onDemand) return;
+    // Any setting can change the picture (camera mode/distance, quality,
+    // colours): draw one fresh frame when one does.
+    return useSettingsStore.subscribe(() => {
+      if (!viewer.isDestroyed()) viewer.scene.requestRender();
+    });
+  }, [rideStateForRender, peerCount, viewerReady]);
 
   // ---- Live avatar recolouring from the Garage settings ----
   useEffect(() => {
@@ -866,11 +927,7 @@ export function CesiumViewer({
     const viewer = viewerRef.current;
     if (!viewer || viewer.isDestroyed()) return;
     const ghosts = ghostAvatarsRef.current;
-    for (const ga of ghosts) {
-      for (const ent of ga.entities) {
-        ent.show = ghostsEnabled;
-      }
-    }
+    for (const ga of ghosts) ga.setShow(ghostsEnabled);
   }, [ghostsEnabled]);
 
   // ---- Per-frame follow-cam + avatar update ----
@@ -885,9 +942,16 @@ export function CesiumViewer({
       lastFrameMs = nowMs;
 
       // --- Photoreal altitude gate — show only when camera is below 5 km ---
+      let photorealShown = false;
       if (tilesetRef.current && !tilesetRef.current.isDestroyed()) {
         const altM = viewer.camera.positionCartographic.height;
-        tilesetRef.current.show = altM < PHOTOREAL_SHOW_ALTITUDE_M;
+        photorealShown = altM < PHOTOREAL_SHOW_ALTITUDE_M;
+        tilesetRef.current.show = photorealShown;
+      }
+      // The photoreal mesh already has every building: drawing (and
+      // streaming) the OSM extrusions on top doubles the work and z-fights.
+      if (osmTilesetRef.current && !osmTilesetRef.current.isDestroyed()) {
+        osmTilesetRef.current.show = !photorealShown;
       }
 
       const state = useRideStore.getState();
@@ -939,11 +1003,22 @@ export function CesiumViewer({
             viewer.scene,
             Cesium.Cartesian3.fromDegrees(riderLon, riderLat, groundEle + 1),
           );
+          // Rider head (~1.7 m): with riderScreen gives the rider's on-screen height.
+          const head = Cesium.SceneTransforms.worldToWindowCoordinates(
+            viewer.scene,
+            Cesium.Cartesian3.fromDegrees(riderLon, riderLat, groundEle + 1.7),
+          );
+          const foot = Cesium.SceneTransforms.worldToWindowCoordinates(
+            viewer.scene,
+            Cesium.Cartesian3.fromDegrees(riderLon, riderLat, groundEle),
+          );
           return {
             routeEle: sampled.ele,
             groundEle,
             cameraHeight: viewer.camera.positionCartographic.height,
             riderScreen: px ? [Math.round(px.x), Math.round(px.y)] : null,
+            riderHeightPx: head && foot ? Math.round(Math.hypot(head.x - foot.x, head.y - foot.y)) : null,
+            viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight],
           };
         };
       }
@@ -983,7 +1058,8 @@ export function CesiumViewer({
         }
 
         // Compute the live target pose for the current mode.
-        const targetPose = computeCameraPose(currentMode, riderPose, nowMs);
+        const cameraDistance = useSettingsStore.getState().cameraDistance;
+        const targetPose = computeCameraPose(currentMode, riderPose, nowMs, cameraDistance);
 
         // Determine the effective pose (transitioning or live).
         let effectivePose: CameraPose;
@@ -1005,11 +1081,17 @@ export function CesiumViewer({
         if (currentMode === 'chase') {
           // Delegate to the legacy eased follow-cam so it retains its own
           // internal lerp state (keeps the chase cam silky smooth).
+          const framing = CHASE_FRAMING[cameraDistance] ?? CHASE_FRAMING.standard;
           applyFollowCam(
             viewer,
             { lat: sampled.lat, lon: sampled.lon, ele: groundEle },
             aheadAtGround,
-            { backMeters: 45, upMeters: 9, pitchDeg: -7 },
+            {
+              backMeters: framing.backM,
+              upMeters: framing.upM,
+              pitchDeg: Cesium.Math.toDegrees(chasePitchRad(framing)),
+              minClearanceMeters: CHASE_MIN_CLEARANCE_M,
+            },
             dt,
           );
         } else {
@@ -1030,6 +1112,36 @@ export function CesiumViewer({
             offsetLocal,
             new Cesium.Cartesian3(),
           );
+          // Side / orbit shots sit low beside the road, where the hillside,
+          // walls and trees are: keep them above whatever is rendered there.
+          if (currentMode === 'sideTracking' || currentMode === 'cinematic') {
+            liftAboveTerrain(viewer.scene, camPos, groundEle, CHASE_MIN_CLEARANCE_M);
+            // Over the photoreal mesh only a (throttled) GPU sample sees the
+            // buildings; the lift rises at once and settles back slowly.
+            const camCarto = Cesium.Cartographic.fromCartesian(camPos);
+            if (camCarto) {
+              let camGround = cameraGroundSamplers.get(viewer.scene);
+              if (!camGround) {
+                camGround = createGroundSampler(viewer.scene);
+                cameraGroundSamplers.set(viewer.scene, camGround);
+              }
+              const ground = camGround.sample(
+                Cesium.Math.toDegrees(camCarto.longitude),
+                Cesium.Math.toDegrees(camCarto.latitude),
+                sampled.ele,
+                nowMs,
+              );
+              const needed = ground === undefined ? 0 : Math.max(0, ground + CHASE_MIN_CLEARANCE_M - camCarto.height);
+              const lift = Math.max(needed, cameraLiftRef.current * Math.exp(-1.5 * Math.min(dt, 0.1)));
+              cameraLiftRef.current = lift;
+              if (lift > 0.01) {
+                camCarto.height += lift;
+                Cesium.Cartographic.toCartesian(camCarto, undefined, camPos);
+              }
+            }
+          } else {
+            cameraLiftRef.current = 0;
+          }
           viewer.camera.setView({
             destination: camPos,
             orientation: {
@@ -1074,7 +1186,7 @@ export function CesiumViewer({
         const sunPos = sunAzimuthAndAltitude(new Date(), sampled.lat, sampled.lon);
         updateShadowEntity(
           shadowHandleRef.current,
-          { lat: sampled.lat, lon: sampled.lon, ele: groundEle },
+          { lat: sampled.lat, lon: sampled.lon, ele: groundEle, grade: state.grade, heading },
           sunPos.azimuth,
           sunPos.altitude,
         );
@@ -1115,7 +1227,7 @@ export function CesiumViewer({
           const ghostDist = ghostRides[i].distanceAt(elapsedSec);
           // null means ghost hasn't started yet — hide it.
           if (ghostDist === null) {
-            for (const ent of ghostAvatars[i].entities) ent.show = false;
+            ghostAvatars[i].setShow(false);
             continue;
           }
           const clampedDist = Math.max(0, Math.min(r.totalDistance, ghostDist));
@@ -1124,7 +1236,7 @@ export function CesiumViewer({
           // Estimate a plausible speed from distance delta / dt for animation.
           const prevDist = ghostRides[i].distanceAt(Math.max(0, elapsedSec - dt));
           const ghostSpeed = prevDist !== null ? Math.abs(clampedDist - prevDist) / (dt || 1 / 60) : 0;
-          for (const ent of ghostAvatars[i].entities) ent.show = true;
+          ghostAvatars[i].setShow(true);
           ghostAvatars[i].update({
             lon: gPos.lon,
             lat: gPos.lat,

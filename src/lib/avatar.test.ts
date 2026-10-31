@@ -13,6 +13,7 @@ import {
   effortSkinColor,
   avatarPrimitiveCount,
   createAvatar,
+  groundSampleExclusions,
 } from '@/lib/avatar';
 import { setIonToken } from '@/lib/cesiumUtils';
 import * as Cesium from 'cesium';
@@ -438,47 +439,49 @@ describe('avatarPrimitiveCount — shoeStyle', () => {
 
 describe('avatar ground sampling — a stopped rider stays on the ground', () => {
   function mockViewer(sampleHeight: (c: Cesium.Cartographic, exclude?: object[]) => number | undefined) {
-    const added: Cesium.Entity[] = [];
+    const primitives = new Cesium.PrimitiveCollection({ destroyPrimitives: true });
     return {
-      added,
       viewer: {
-        entities: {
-          add: (o: Cesium.Entity.ConstructorOptions) => {
-            const e = new Cesium.Entity(o);
-            added.push(e);
-            return e;
-          },
-          remove: () => true,
-        },
         isDestroyed: () => false,
-        scene: { sampleHeightSupported: true, sampleHeight },
+        scene: { sampleHeightSupported: true, sampleHeight, primitives },
       } as unknown as Cesium.Viewer,
     };
   }
+  // Parts are static primitives placed by modelMatrix: their translation is the part centre.
   const lowestPartHeight = (a: ReturnType<typeof createAvatar>) =>
     Math.min(
-      ...a.entities.map((e) => {
-        const p = e.position!.getValue(Cesium.JulianDate.now())!;
-        return Cesium.Cartographic.fromCartesian(p).height;
+      ...a.parts.map((p) => {
+        const t = Cesium.Matrix4.getTranslation(p.modelMatrix, new Cesium.Cartesian3());
+        return Cesium.Cartographic.fromCartesian(t).height;
       }),
     );
   const frame = { lon: 8.95, lat: 46.0, ele: 281, heading: 0.4, speed: 0, cadence: 0, grade: 0, dt: 1 / 60 };
 
-  it('excludes its own parts from scene.sampleHeight (ion terrain at 270 m)', () => {
+  it('on ion terrain it sits on the loaded terrain and never GPU-picks itself (terrain at 270 m)', () => {
     setIonToken('eyJ_test');
-    let self: Set<object> = new Set();
-    // A naive sampler reports the rider's own top (~1.7 m above ground) unless excluded.
-    const { viewer } = mockViewer((_c, exclude) => {
-      const excluded = exclude && [...self].every((e) => exclude.includes(e));
-      return excluded ? 270 : 271.7;
-    });
+    // A naive GPU pick would report the rider's own top (~1.7 m above ground).
+    const sample = vi.fn(() => 271.7);
+    const { viewer } = mockViewer(sample);
+    const scene = viewer.scene as unknown as Record<string, unknown>;
+    scene.terrainProvider = {};
+    scene.globe = { getHeight: () => 270 };
     const a = createAvatar(viewer);
-    self = new Set(a.entities);
     for (let i = 0; i < 600; i++) a.update(frame); // 10 s parked
+    expect(sample).not.toHaveBeenCalled();
     expect(lowestPartHeight(a)).toBeLessThan(271);
     expect(lowestPartHeight(a)).toBeGreaterThan(269);
     a.dispose();
     setIonToken(null);
+  });
+
+  it('lists its own parts for exclusion from ground picks until disposed', () => {
+    const { viewer } = mockViewer(() => undefined);
+    const a = createAvatar(viewer);
+    const excluded = groundSampleExclusions();
+    expect(a.parts.length).toBeGreaterThan(10);
+    expect(a.parts.every((p) => excluded.includes(p))).toBe(true);
+    a.dispose();
+    expect(groundSampleExclusions().some((p) => a.parts.includes(p))).toBe(false);
   });
 
   it('on the flat no-token globe it does not sample at all and sits at 0 m', () => {

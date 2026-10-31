@@ -1,0 +1,67 @@
+<!doctype html>
+<!--
+  Bare Cesium calibration page for scripts/perf-bare.py: the same Cesium
+  build, terrain, imagery and photoreal mesh as the ride view, with none of
+  Velo's scene (no avatar, road, weather, HUD). The camera rides a straight
+  line at 10 m/s, 9 m up (old chase height) or `up` m, pitched like a chase
+  cam, so tiles stream the way they do on a ride.
+  Query: photoreal=0|1 terrain=0|1 imagery=0|1 res=<scale> msaa=<n>
+         hdr=0|1 shadows=0|1 fog=0|1 sse=<tileset> gsse=<globe> up=<m> move=0|1
+  The ion token comes from window.__ION (init script); nothing is fetched
+  from ion without it.
+-->
+<html>
+<head>
+<meta charset="utf-8" />
+<script src="/cesium/Cesium.js"></script>
+<link href="/cesium/Widgets/widgets.css" rel="stylesheet" />
+<style>html,body,#c{margin:0;width:100%;height:100%;overflow:hidden}</style>
+</head>
+<body>
+<div id="c"></div>
+<script>
+(async () => {
+  const q = new URLSearchParams(location.search);
+  const flag = (k, d) => (q.has(k) ? q.get(k) === '1' : d);
+  const num = (k, d) => (q.has(k) ? Number(q.get(k)) : d);
+  Cesium.Ion.defaultAccessToken = window.__ION || '';
+  const viewer = new Cesium.Viewer('c', {
+    timeline: false, animation: false, baseLayerPicker: false, fullscreenButton: false, geocoder: false,
+    homeButton: false, infoBox: false, sceneModePicker: false, selectionIndicator: false, navigationHelpButton: false,
+    baseLayer: flag('imagery', true) ? Cesium.ImageryLayer.fromWorldImagery({}) : false,
+    msaaSamples: num('msaa', 4),
+  });
+  window.__viewer = viewer;
+  const scene = viewer.scene;
+  viewer.resolutionScale = num('res', 0.85);
+  scene.highDynamicRange = flag('hdr', false);
+  scene.fog.enabled = flag('fog', true);
+  scene.globe.enableLighting = true;
+  scene.globe.depthTestAgainstTerrain = true;
+  scene.globe.maximumScreenSpaceError = num('gsse', 2);
+  viewer.shadows = flag('shadows', false);
+  if (flag('terrain', true)) scene.terrainProvider = await Cesium.createWorldTerrainAsync();
+  if (flag('photoreal', true)) {
+    const ts = await Cesium.Cesium3DTileset.fromIonAssetId(2275207, { maximumScreenSpaceError: num('sse', 16) });
+    scene.primitives.add(ts);
+    window.__tileset = ts;
+  }
+  // Straight line south along the Lugano lakefront start, 10 m/s.
+  const start = Cesium.Cartographic.fromDegrees(8.95169, 46.00369, 0);
+  const up = num('up', 9);
+  const move = flag('move', true);
+  const t0 = performance.now();
+  scene.preRender.addEventListener(() => {
+    const s = move ? (performance.now() - t0) / 1000 : 0;
+    const lat = start.latitude - (10 * s) / 6371000;
+    const pos = Cesium.Cartesian3.fromRadians(start.longitude, lat, 281 + up);
+    viewer.camera.setView({ destination: pos, orientation: { heading: Math.PI, pitch: Cesium.Math.toRadians(-7), roll: 0 } });
+  });
+  window.__frames = [];
+  let last = 0;
+  scene.postRender.addEventListener(() => { const n = performance.now(); if (last) window.__frames.push(n - last); last = n; });
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>

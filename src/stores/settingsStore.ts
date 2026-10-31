@@ -4,7 +4,13 @@ import type { BikeType, RiderPosition } from '@/lib/physics';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { GraphicsQuality } from '@/lib/graphicsQuality';
 import type { LowLightSetting } from '@/lib/lowLightMode';
-import { type CameraMode, isCameraMode } from '@/lib/cesiumCameras';
+import {
+  type CameraDistance,
+  type CameraMode,
+  DEFAULT_CAMERA_DISTANCE,
+  isCameraDistance,
+  isCameraMode,
+} from '@/lib/cesiumCameras';
 import type { Workout } from '@/lib/workout';
 import { DEFAULT_TRAINER_DIFFICULTY, clampDifficulty } from '@/lib/trainerComfort';
 import { DEFAULT_WIND_FEEL, isWindFeel, type WindFeel } from '@/lib/meteo/windFeel';
@@ -43,6 +49,11 @@ export interface RiderSettings {
   avatar: AvatarColors;
   /** 3-D globe rendering quality tier. */
   graphicsQuality: GraphicsQuality;
+  /**
+   * True until the rider picks a tier: the ride view then sets
+   * {@link graphicsQuality} from the detected GPU (balanced on integrated GPUs).
+   */
+  graphicsQualityAuto: boolean;
   /** Automatically upload the .FIT to Strava when a ride finishes (requires Strava connected). */
   autoUploadStrava: boolean;
   /** Currently equipped helmet id -- defaults to the level-0 starter. */
@@ -86,6 +97,8 @@ export interface RiderSettings {
   // ---- Camera mode ----
   /** Active cinematic camera mode — persisted between rides. */
   cameraMode: CameraMode;
+  /** How close the follow cameras sit to the rider (chase framing + scale). */
+  cameraDistance: CameraDistance;
   // ---- Voice control ----
   /** Whether hands-free voice command recognition is enabled during rides. */
   voiceControlEnabled: boolean;
@@ -142,7 +155,8 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   ftpW: 220,
   units: 'metric',
   avatar: DEFAULT_AVATAR_COLORS,
-  graphicsQuality: 'high' as GraphicsQuality,
+  graphicsQuality: 'medium' as GraphicsQuality,
+  graphicsQualityAuto: true,
   autoUploadStrava: true,
   helmetId: 'helmet-starter',
   bikeId: 'midnight-road',
@@ -160,6 +174,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   workoutVoiceCuesEnabled: true,
   climbAnnouncementsEnabled: true,
   cameraMode: 'chase',
+  cameraDistance: DEFAULT_CAMERA_DISTANCE,
   voiceControlEnabled: true,
   rideAudioEnabled: true,
   rideAudioVolume: 60,
@@ -296,6 +311,9 @@ export const useSettingsStore = create<SettingsStoreState>()(
         cameraMode: isCameraMode((persisted as Partial<RiderSettings>).cameraMode)
           ? (persisted as Partial<RiderSettings>).cameraMode!
           : DEFAULT_SETTINGS.cameraMode,
+        cameraDistance: isCameraDistance((persisted as Partial<RiderSettings>).cameraDistance)
+          ? (persisted as Partial<RiderSettings>).cameraDistance!
+          : DEFAULT_SETTINGS.cameraDistance,
         // Graceful migration for voice control setting.
         voiceControlEnabled:
           (persisted as Partial<RiderSettings>).voiceControlEnabled ??
@@ -355,6 +373,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           units: s.units,
           avatar: s.avatar,
           graphicsQuality: s.graphicsQuality,
+          graphicsQualityAuto: s.graphicsQualityAuto,
           autoUploadStrava: s.autoUploadStrava,
           helmetId: s.helmetId,
           bikeId: s.bikeId,
@@ -372,6 +391,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           workoutVoiceCuesEnabled: s.workoutVoiceCuesEnabled,
           climbAnnouncementsEnabled: s.climbAnnouncementsEnabled,
           cameraMode: s.cameraMode,
+          cameraDistance: s.cameraDistance,
           voiceControlEnabled: s.voiceControlEnabled,
           rideAudioEnabled: s.rideAudioEnabled,
           rideAudioVolume: s.rideAudioVolume,

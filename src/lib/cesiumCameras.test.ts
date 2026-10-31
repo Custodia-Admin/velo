@@ -7,6 +7,15 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  AIM_HEIGHT_M,
+  CAMERA_DISTANCES,
+  CHASE_FRAMING,
+  DEFAULT_CAMERA_DISTANCE,
+  FIRST_PERSON_EYE_FORWARD_M,
+  FIRST_PERSON_PITCH_RAD,
+  SIDE_TRACK_UP_M,
+  isCameraDistance,
+  type CameraDistance,
   computeCameraPose,
   easedCameraTransition,
   easeOutCubic,
@@ -64,11 +73,12 @@ describe('computeCameraPose', () => {
     // z should be near FIRST_PERSON_EYE_HEIGHT_M ± head-bob amplitude (0.04m).
     expect(pose.offsetENU.z).toBeGreaterThan(FIRST_PERSON_EYE_HEIGHT_M - 0.05);
     expect(pose.offsetENU.z).toBeLessThan(FIRST_PERSON_EYE_HEIGHT_M + 0.05);
-    // No lateral offset.
+    // Eyes just in front of the face (heading 0 = north): no sideways offset.
     expect(pose.offsetENU.x).toBeCloseTo(0, 5);
-    expect(pose.offsetENU.y).toBeCloseTo(0, 5);
-    // Looking forward — pitch ≈ 0, heading matches rider.
-    expect(pose.pitch).toBeCloseTo(0, 5);
+    expect(pose.offsetENU.y).toBeCloseTo(FIRST_PERSON_EYE_FORWARD_M, 5);
+    // Looking down the road, slightly below the horizon; heading matches rider.
+    expect(pose.pitch).toBeCloseTo(FIRST_PERSON_PITCH_RAD, 5);
+    expect(pose.pitch).toBeLessThan(0);
     expect(pose.heading).toBeCloseTo(rider.heading, 5);
   });
 
@@ -83,13 +93,14 @@ describe('computeCameraPose', () => {
     expect(pose.heading).toBeCloseTo(rider.heading, 5);
   });
 
-  it('sideTracking: offset perpendicular to heading at rider elevation', () => {
+  it('sideTracking: offset perpendicular to heading at shoulder height, aimed at the bars', () => {
     const pose = computeCameraPose('sideTracking', rider, now);
     // For heading=0 (north), perpendicular is east: x ≈ SIDE_TRACK_OFFSET_M, y ≈ 0.
     expect(pose.offsetENU.x).toBeCloseTo(SIDE_TRACK_OFFSET_M, 3);
     expect(pose.offsetENU.y).toBeCloseTo(0, 3);
-    // Camera stays at rider elevation.
-    expect(pose.offsetENU.z).toBeCloseTo(0, 5);
+    // Off the tarmac (a camera at 0 m sits inside the road surface), looking slightly down.
+    expect(pose.offsetENU.z).toBeCloseTo(SIDE_TRACK_UP_M, 5);
+    expect(pose.pitch).toBeLessThan(0);
   });
 
   it('cinematic: orbits at CINEMATIC_RADIUS_M elevation with upward offset', () => {
@@ -101,6 +112,72 @@ describe('computeCameraPose', () => {
     expect(pose.offsetENU.z).toBeCloseTo(CINEMATIC_ELEV_OFFSET_M, 5);
     // Pitch must be negative (looking slightly down).
     expect(pose.pitch).toBeLessThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Camera distance setting
+// ---------------------------------------------------------------------------
+
+describe('camera distance', () => {
+  const rider = mkRider({ heading: 0.3 });
+  const back = (p: { offsetENU: { x: number; y: number } }) => Math.hypot(p.offsetENU.x, p.offsetENU.y);
+
+  it('defaults to the standard framing: close and low, aimed 10–20 m down the road', () => {
+    expect(DEFAULT_CAMERA_DISTANCE).toBe('standard');
+    const pose = computeCameraPose('chase', rider, 0);
+    const f = CHASE_FRAMING.standard;
+    expect(back(pose)).toBeCloseTo(f.backM, 5);
+    expect(pose.offsetENU.z).toBeCloseTo(f.upM, 5);
+    expect(f.backM).toBeLessThanOrEqual(10);
+    expect(f.upM).toBeLessThanOrEqual(3.5);
+    expect(f.lookAheadM).toBeGreaterThanOrEqual(10);
+    expect(f.lookAheadM).toBeLessThanOrEqual(20);
+    // The pitch line passes through the aim point lookAheadM past the rider.
+    const aimDrop = Math.tan(-pose.pitch) * (f.backM + f.lookAheadM);
+    expect(pose.offsetENU.z - aimDrop).toBeCloseTo(AIM_HEIGHT_M, 5);
+  });
+
+  it('orders the chase framings from close to overview', () => {
+    const backs = CAMERA_DISTANCES.map((d) => back(computeCameraPose('chase', rider, 0, d)));
+    for (let i = 1; i < backs.length; i++) expect(backs[i]).toBeGreaterThan(backs[i - 1]);
+  });
+
+  it('keeps the original GlobeRide framing as "overview" (45 m back, 9 m up, about -7°)', () => {
+    const pose = computeCameraPose('chase', rider, 0, 'overview');
+    expect(back(pose)).toBeCloseTo(45, 5);
+    expect(pose.offsetENU.z).toBeCloseTo(9, 5);
+    expect((pose.pitch * 180) / Math.PI).toBeCloseTo(-7, 0);
+  });
+
+  it('scales the side, orbit and overhead shots with distance; first person is unaffected', () => {
+    for (const mode of ['sideTracking', 'cinematic', 'overhead'] as const) {
+      const near = computeCameraPose(mode, rider, 1000, 'close');
+      const far = computeCameraPose(mode, rider, 1000, 'far');
+      expect(Math.hypot(far.offsetENU.x, far.offsetENU.y, far.offsetENU.z)).toBeGreaterThan(
+        Math.hypot(near.offsetENU.x, near.offsetENU.y, near.offsetENU.z),
+      );
+    }
+    expect(computeCameraPose('firstPerson', rider, 1000, 'far')).toEqual(
+      computeCameraPose('firstPerson', rider, 1000, 'close'),
+    );
+  });
+
+  it('cinematic: always faces the rider around the whole orbit', () => {
+    for (let t = 0; t < 60_000; t += 3_000) {
+      const pose = computeCameraPose('cinematic', rider, t);
+      // Bearing from camera to rider (at the origin).
+      const toRider = Math.atan2(-pose.offsetENU.x, -pose.offsetENU.y);
+      const d = Math.atan2(Math.sin(toRider - pose.heading), Math.cos(toRider - pose.heading));
+      expect(Math.abs(d)).toBeLessThan(1e-6);
+    }
+  });
+
+  it('falls back to standard for an unknown persisted value', () => {
+    expect(isCameraDistance('standard')).toBe(true);
+    expect(isCameraDistance('huge')).toBe(false);
+    const pose = computeCameraPose('chase', rider, 0, 'huge' as CameraDistance);
+    expect(back(pose)).toBeCloseTo(CHASE_FRAMING.standard.backM, 5);
   });
 });
 
