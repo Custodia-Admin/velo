@@ -46,7 +46,7 @@ export function ChaseCamera({
       chaseFraming(settings.cameraDistance),
       settings.cameraDistance,
     );
-    rig.update(mode, target, frame.dt, (x, z) => groundAtThree(heightfield, x, z));
+    rig.update(mode, target, frame.dt, (x, z) => groundAtThree(heightfield, x, z), frame.placement.position);
     camera.position.set(rig.position.x, rig.position.y, rig.position.z);
     camera.lookAt(rig.look.x, rig.look.y, rig.look.z);
   });

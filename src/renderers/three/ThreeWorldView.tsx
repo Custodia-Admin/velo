@@ -15,11 +15,9 @@ import { BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, ToneMa
 import * as THREE from 'three';
 
 import { useRouteWeather } from '@/hooks/useLiveWeather';
-import { stepLaneOffset } from '@/lib/laneOffset';
 import { resolveSceneWeather, type SceneWeather } from '@/lib/meteo/sceneWeather';
 import { EMPTY_TILES, FrameStats } from '@/lib/perf/frameStats';
 import { exposeScenePerf, IDLE_GAP_MS, PUBLISH_MS, publishScenePerf, type ScenePerf } from '@/lib/perf/scenePerf';
-import { ridePose } from '@/lib/ride/rideSim';
 import { scenicRouteById } from '@/lib/scenicRoutes';
 import { chaseFraming } from '@/lib/world/cameraFraming';
 import { worldForRoute, worldUrl, type WorldCatalogEntry } from '@/lib/world/catalog';
@@ -31,12 +29,11 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import type { Route } from '@/types';
 
 import { ChaseCamera } from './ChaseCamera';
-import { dampFactor } from './chaseRig';
 import { Ghosts } from './Ghosts';
 import { buildLandcoverCanvas } from './landcoverTexture';
 import { renderDpr, threeQuality, type ThreeQuality } from './quality';
 import { LiveRider, PaceBots, preloadRider } from './Rider';
-import { angleDelta, estimatedCadence, leanAngle, placeRider } from './riderRig';
+import { createRideDriverMemo, driveRideFrame } from './rideDriver';
 import { RouteLine, Roads } from './Roads';
 import { Sky } from './Sky';
 import { DEFAULT_MOOD } from './skyModel';
@@ -73,41 +70,23 @@ function RideDriver({
   frame: RideFrame;
   override: { current: RiderPose | null };
 }) {
-  const memo = useMemo(() => ({ lane: 0, heading: NaN }), []);
+  const memo = useMemo(() => createRideDriverMemo(), []);
   useFrame((state, delta) => {
-    const dt = Math.min(0.1, Math.max(0, delta));
     const s = useRideStore.getState();
-    const route = s.route;
-    frame.dt = dt;
-    frame.timeS = state.clock.elapsedTime;
-    frame.rideState = s.rideState;
-    if (!route || route.points.length < 2) {
-      frame.valid = false;
-      return;
-    }
-    memo.lane = stepLaneOffset(memo.lane, activeSteer(), dt);
-    const pose =
-      override.current ??
-      ridePose(route, s.distance, { laneOffsetM: memo.lane, grade: s.grade, speed: s.speed });
-    const placement = placeRider(sceneWorld, pose);
-    const lookAhead = chaseFraming(useSettingsStore.getState().cameraDistance).lookAheadM;
-    const aheadPose = ridePose(route, Math.min(route.totalDistance, pose.distance + lookAhead), {
-      laneOffsetM: pose.laneOffsetM,
-      offsetHeading: pose.heading,
+    driveRideFrame(frame, memo, sceneWorld, {
+      route: s.route,
+      distance: s.distance,
+      speed: s.speed,
+      grade: s.grade,
+      cadence: s.cadence,
+      power: s.power,
+      rideState: s.rideState,
+      steer: activeSteer(),
+      override: override.current,
+      lookAheadM: chaseFraming(useSettingsStore.getState().cameraDistance).lookAheadM,
+      dt: Math.min(0.1, Math.max(0, delta)),
+      timeS: state.clock.elapsedTime,
     });
-    const ahead = placeRider(sceneWorld, aheadPose).position;
-    const speed = override.current ? pose.speed : s.speed;
-    const yawRate = Number.isFinite(memo.heading) && dt > 0 ? angleDelta(pose.heading, memo.heading) / dt : 0;
-    memo.heading = pose.heading;
-    frame.lean += (leanAngle(speed, yawRate) - frame.lean) * dampFactor(0.35, dt);
-    frame.pose = pose;
-    frame.placement = placement;
-    frame.ahead.x = ahead.x;
-    frame.ahead.y = ahead.y;
-    frame.ahead.z = ahead.z;
-    frame.speed = speed;
-    frame.cadence = s.cadence > 0 ? s.cadence : s.power > 0 ? estimatedCadence(speed) : 0;
-    frame.valid = true;
   }, -1);
   return null;
 }

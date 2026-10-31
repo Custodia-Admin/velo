@@ -291,7 +291,7 @@ export function Minimap({ className }: { className?: string }) {
       {/* ── Label strip ────────────────────────────────────────────────── */}
       <div
         className="absolute bottom-0 left-0 right-0 px-2.5 py-1.5 flex items-center gap-1.5"
-        style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)' }}
+        style={{ background: 'rgba(0,0,0,0.5)' }}
       >
         <MapPin className="h-2.5 w-2.5 text-cyan-400 shrink-0" />
         <span className="text-[9px] uppercase tracking-widest text-cyan-300/80 font-semibold truncate leading-none">

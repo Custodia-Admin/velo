@@ -59,7 +59,7 @@ describe('<ChaseCamera> (r3f test renderer)', () => {
     await r.unmount();
   });
 
-  it('follows a moving rider smoothly: lags, then settles at the framing', async () => {
+  it('moves with the rider (no speed lag) and smooths only a change of heading', async () => {
     const frame = frameAt(0, 0);
     const rig = new CameraRig();
     const r = await ReactThreeTestRenderer.create(
@@ -69,14 +69,20 @@ describe('<ChaseCamera> (r3f test renderer)', () => {
       </>,
     );
     await r.advanceFrames(1, 1 / 60);
-    // Rider moves 10 m north in one step; the camera eases instead of jumping.
+    const f = chaseFraming('standard');
+    // Rider moves 10 m north in one step: the framing holds exactly.
     Object.assign(frame, frameAt(0, -10));
     await r.advanceFrames(1, 1 / 60);
-    const f = chaseFraming('standard');
-    const settledZ = -10 + f.backM;
-    expect(camera!.position.z).toBeGreaterThan(settledZ + 5);
+    expect(camera!.position.z).toBeCloseTo(-10 + f.backM, 3);
+    expect(camera!.position.x).toBeCloseTo(0, 3);
+    // Rider turns east: the camera swings round behind it smoothly, then settles.
+    Object.assign(frame, frameAt(0, -10, Math.PI / 2));
+    await r.advanceFrames(1, 1 / 60);
+    expect(camera!.position.x).toBeGreaterThan(-1);
+    expect(camera!.position.z).toBeGreaterThan(-10 + 1);
     await r.advanceFrames(120, 1 / 60);
-    expect(camera!.position.z).toBeCloseTo(settledZ, 1);
+    expect(camera!.position.x).toBeCloseTo(-f.backM, 1);
+    expect(camera!.position.z).toBeCloseTo(-10, 1);
     await r.unmount();
   });
 

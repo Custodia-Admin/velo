@@ -389,8 +389,6 @@ export function ClimbBanner() {
         style={{
           background: 'linear-gradient(135deg, rgba(8,14,28,0.92) 0%, rgba(3,25,40,0.88) 100%)',
           border: '1px solid rgba(34,211,238,0.30)',
-          backdropFilter: 'blur(20px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(160%)',
           boxShadow: '0 0 32px -8px rgba(34,211,238,0.35), inset 0 1px 0 rgba(255,255,255,0.07)',
         }}
       >

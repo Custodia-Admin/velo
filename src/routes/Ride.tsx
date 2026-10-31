@@ -4,6 +4,7 @@ import { ChevronLeft, Users } from 'lucide-react';
 
 import { RideView } from '@/components/ride/RideView';
 import type { WorldRenderer } from '@/lib/world/renderer';
+import { worldForRoute } from '@/lib/world/catalog';
 import { NoTokenBanner } from '@/components/ride/NoTokenBanner';
 import { RideHUD } from '@/components/ride/RideHUD';
 import { RideControls } from '@/components/ride/RideControls';
@@ -94,6 +95,7 @@ export function Ride() {
   const replayData    = useRideStore((s) => s.replayData);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
   const rideMode      = useRideStore((s) => s.rideMode);
+  const preferredRenderer = useSettingsStore((s) => s.renderer);
 
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
   const controllerDebugVisible = useControllerDebugVisible();
@@ -280,12 +282,17 @@ export function Ride() {
     return () => document.removeEventListener('click', handler, { capture: true });
   }, []);
 
+  // The renderer that draws (or, until its first frame, the one RideView will pick).
+  const worldRide = worldRenderer
+    ? worldRenderer.kind === 'world'
+    : preferredRenderer === 'world' && rideMode !== 'outdoor' && worldForRoute(route) !== null;
+
   if (!route) return null;
 
   return (
     <div
       ref={rideCanvasRef}
-      className="fixed inset-0 w-screen h-screen overflow-hidden bg-background"
+      className="hud-flat fixed inset-0 w-screen h-screen overflow-hidden bg-background"
     >
       <RideView ionToken={token} onRendererReady={setWorldRenderer} />
 
@@ -293,7 +300,9 @@ export function Ride() {
           Invisible when a token is already installed; dismissible per-session
           so it never gets in the way of the ride. */}
       {/* Hidden in show mode: below lg it would sit on the ride strip. */}
-      {!showActive && <NoTokenBanner hasToken={token !== null && token.length > 0} />}
+      {/* Hidden on world-renderer rides too: they need no token, so the
+          photoreal pitch and the Bing watchdog don't apply there. */}
+      {!showActive && !worldRide && <NoTokenBanner hasToken={token !== null && token.length > 0} />}
 
       {/* Paused dim veil -- subtle darkening when ride is paused */}
       {rideState === 'paused' && (

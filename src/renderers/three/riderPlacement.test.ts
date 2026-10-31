@@ -39,17 +39,49 @@ describe('rider placement on the Perugia world', () => {
   }, 60_000);
 
   for (const id of ROUTES) {
-    it(`${id}: |riderY − heightfield(x, z)| < 0.05 m at ${SAMPLES} route points (any lane offset)`, () => {
+    it(`${id}: rider sits on the bake's own route samples (x, y, h) at ${SAMPLES} points`, () => {
+      // Independent oracle: tools/worldbake computed these offline (routes.json:
+      // world x/y per 10 m of the app's distance scale, h = render elevation).
+      // The runtime path (ridePose → projection → heightfield) must land on them.
+      const route = routeFromGeometry(id, id, SCENIC_ROUTE_GEOMETRY[id]);
+      const baked = world.routes.find((r) => r.id === id)!;
+      expect(baked.s.length).toBeGreaterThan(SAMPLES);
+      let worstXY = 0;
+      let worstH = 0;
+      for (let k = 0; k < SAMPLES; k++) {
+        const i = Math.round(((baked.s.length - 1) * k) / (SAMPLES - 1));
+        const p = placeRider(sw, ridePose(route, baked.s[i]));
+        worstXY = Math.max(worstXY, Math.hypot(p.position.x - baked.x[i], -p.position.z - baked.y[i]));
+        worstH = Math.max(worstH, Math.abs(p.position.y - baked.h[i]));
+      }
+      // x/y are stored to 1 cm; between 10 m samples the route is linear on both sides.
+      expect(worstXY).toBeLessThan(0.05);
+      expect(worstH).toBeLessThan(0.05);
+    });
+
+    it(`${id}: |riderY − ground| < 0.05 m at ${SAMPLES} route points with any lane offset`, () => {
+      // Ground from the raw nodes with a test-local bilinear, not Heightfield.sampleHeight.
+      const hf = world.heightfield;
+      const { cellSize, xMin, yMax } = hf.spec;
+      const ground = (x: number, y: number) => {
+        const fx = (x - xMin) / cellSize;
+        const fy = (yMax - y) / cellSize;
+        const c = Math.floor(fx);
+        const r = Math.floor(fy);
+        const tx = fx - c;
+        const ty = fy - r;
+        const top = hf.nodeHeight(c, r) * (1 - tx) + hf.nodeHeight(c + 1, r) * tx;
+        const bot = hf.nodeHeight(c, r + 1) * (1 - tx) + hf.nodeHeight(c + 1, r + 1) * tx;
+        return top * (1 - ty) + bot * ty;
+      };
       const route = routeFromGeometry(id, id, SCENIC_ROUTE_GEOMETRY[id]);
       let worst = 0;
       for (let k = 0; k < SAMPLES; k++) {
         const d = (route.totalDistance * k) / (SAMPLES - 1);
         for (const lane of [0, 1.6, -1.6]) {
           const p = placeRider(sw, ridePose(route, d, { laneOffsetM: lane }));
-          // Independent look-up: three.js (x, z) back to world (x, −z).
-          const ground = world.heightfield.sampleHeight(p.position.x, -p.position.z);
-          worst = Math.max(worst, Math.abs(p.position.y - ground));
-          expect(world.heightfield.contains(p.worldX, p.worldY)).toBe(true);
+          expect(hf.contains(p.worldX, p.worldY)).toBe(true);
+          worst = Math.max(worst, Math.abs(p.position.y - ground(p.position.x, -p.position.z)));
         }
       }
       expect(worst).toBeLessThan(0.05);

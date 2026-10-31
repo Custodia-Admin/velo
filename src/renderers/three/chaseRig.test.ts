@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { CHASE_FRAMING, chaseFraming } from '@/lib/world/cameraFraming';
 import {
   CameraRig,
+  MAX_AIM_OFFSET_RAD,
   MIN_CLEARANCE_M,
   SNAP_DISTANCE_M,
   cameraTarget,
@@ -80,6 +81,28 @@ describe('chase camera smoothing', () => {
     expect(rig.position.y).toBe(3 + MIN_CLEARANCE_M);
   });
 
+  it('anchored on the rider, the framing does not trail at speed', () => {
+    const f = chaseFraming('standard');
+    for (const speed of [2, 11, 20]) {
+      const rig = new CameraRig();
+      for (let i = 0; i <= 180; i++) {
+        const z = -speed * (i / 60);
+        const rider = { x: 0, y: 0, z };
+        const t = cameraTarget('chase', input({ rider, ahead: { x: 0, y: 0, z: z - 14 } }), f, 'standard');
+        rig.update('chase', t, 1 / 60, undefined, rider);
+        expect(rig.position.z - z).toBeCloseTo(f.backM, 6);
+      }
+      // Without the anchor the same rig trails by roughly speed × τ.
+      const loose = new CameraRig();
+      let z = 0;
+      for (let i = 0; i <= 180; i++) {
+        z = -speed * (i / 60);
+        loose.update('chase', cameraTarget('chase', input({ rider: { x: 0, y: 0, z }, ahead: { x: 0, y: 0, z: z - 14 } }), f, 'standard'), 1 / 60);
+      }
+      expect(loose.position.z - z).toBeGreaterThan(f.backM + speed * 0.05);
+    }
+  });
+
   it('dampFactor: 0 for no time, 1 for no lag', () => {
     expect(dampFactor(0.3, 0)).toBe(0);
     expect(dampFactor(0, 1 / 60)).toBe(1);
@@ -95,8 +118,20 @@ describe('camera targets per mode', () => {
     expect(t.position.x).toBeCloseTo(100);
     expect(t.position.z).toBeCloseTo(-50 + f.backM);
     expect(t.position.y).toBeCloseTo(200 + f.upM);
-    expect(t.look.z).toBeCloseTo(-64);
+    expect(t.look.z).toBeCloseTo(-50 - f.lookAheadM);
     expect(t.look.y).toBeCloseTo(201);
+  });
+
+  it('aims into a corner by at most MAX_AIM_OFFSET_RAD, so the rider stays in the middle of the view', () => {
+    const f = chaseFraming('standard');
+    // Route ahead turns hard right (east) round the corner.
+    const t = cameraTarget('chase', input({ ahead: { x: 114, y: 200, z: -52 } }), f, 'standard');
+    const bend = Math.atan2(t.look.x - 100, -(t.look.z + 50));
+    expect(bend).toBeGreaterThan(0);
+    expect(bend).toBeLessThanOrEqual(MAX_AIM_OFFSET_RAD + 1e-9);
+    // A gentle bend opens the view by half of it.
+    const g = cameraTarget('chase', input({ ahead: { x: 100 + 14 * Math.sin(0.1), y: 200, z: -50 - 14 * Math.cos(0.1) } }), f, 'standard');
+    expect(Math.atan2(g.look.x - 100, -(g.look.z + 50))).toBeCloseTo(0.05, 6);
   });
 
   it("'standard' is close and low (owner): rider prominent, road 10–20 m ahead", () => {

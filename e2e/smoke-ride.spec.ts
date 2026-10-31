@@ -3,8 +3,9 @@
  *
  * Home → Perugia scenic route → /ride: Velo's own three.js world renderer
  * draws (no Cesium code is even downloaded), the rider moves on the baked
- * terrain, the HUD moves, the no-token banner shows without blocking the top
- * bar, nothing talks to cesium.com, and no page error is thrown. Runs against
+ * terrain, the HUD moves, no token-upgrade banner shows (a world ride needs
+ * no token), nothing blocks the top bar, nothing talks to cesium.com, and no
+ * page error is thrown. Runs against
  * the production build with no VITE_CESIUM_ION_TOKEN.
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -70,10 +71,7 @@ test('token-free smoke ride: Home → Perugia route → riding in the world rend
   await expect(view).toHaveAttribute('data-renderer', 'world');
   await expect(view.locator('canvas')).toBeVisible();
 
-  // The no-token banner (upgrade variant) shows…
-  await expect(page.getByText('Add a free Cesium ion token').first()).toBeVisible();
-
-  // …and the ride moves on demo physics.
+  // The ride moves on demo physics.
   await expect
     .poll(async () => {
       const label = (await hudNumbers(page)).speed ?? '';
@@ -99,7 +97,10 @@ test('token-free smoke ride: Home → Perugia route → riding in the world rend
   expect(Math.abs(b!.riderGroundGap!)).toBeLessThan(0.05);
   expect(b!.cameraClearance).toBeGreaterThan(0.5);
 
-  // The banner never blocks the top bar.
+  // A world ride needs no token: no photoreal upgrade banner.
+  await expect(page.getByText('Add a free Cesium ion token')).toHaveCount(0);
+
+  // Nothing blocks the top bar.
   const exitHit = await page.evaluate(() => {
     const btn = document.querySelector('[aria-label="Exit ride and return to setup"]');
     if (!btn) return false;
@@ -132,6 +133,8 @@ test('a route outside every baked world rides photoreal (OSM fallback with no to
   const view = page.locator('[data-renderer]');
   await expect(view).toHaveAttribute('data-renderer-preferred', 'world');
   await expect(view).toHaveAttribute('data-renderer', 'photoreal');
+  // The photoreal ride still offers the token upgrade.
+  await expect(page.getByText('Add a free Cesium ion token').first()).toBeVisible();
   await expect
     .poll(async () => Number(((await hudNumbers(page)).speed ?? '').match(/[\d.]+/)?.[0] ?? 0), { timeout: 60_000 })
     .toBeGreaterThan(5);
