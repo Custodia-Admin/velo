@@ -11,9 +11,9 @@
 import * as Cesium from 'cesium';
 import type { Route } from '@/types';
 import type { AvatarColors } from '@/lib/avatarConfig';
-import { createAvatar, type Avatar } from '@/lib/avatar';
+import { createAvatar, groundSampleExclusions, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
-import { sampleGroundHeight } from '@/lib/cesiumUtils';
+import { sceneEle, sceneGroundHeight } from '@/lib/cesiumUtils';
 import type { RideFrame, WorldLayer } from '@/lib/world/worldLayer';
 import { collectedAt, metresToNext, placePostcards, type Postcard } from '@/lib/play/postcards';
 import {
@@ -111,18 +111,18 @@ export function createCesiumPlayLayer(
   const entities: Cesium.Entity[] = [];
   let clockMs = 0;
 
-  // Cards sit at the route elevation first (like the rider's avatar when no
-  // ground is sampled), then get re-seated on the rendered ground as the
-  // rider approaches and nearby tiles have loaded. Clamping to the globe
-  // would bury them when the route's DEM height and the globe disagree
-  // (no-token map fallback renders an ellipsoid at 0 m).
+  // Cards sit at scene height for their route point (route elevation on real
+  // terrain, 0 m on the flat no-token globe — same as the rider and the road),
+  // then get re-seated on the rendered ground as the rider approaches and
+  // nearby tiles have loaded. Clamping to the globe would bury them when the
+  // route's DEM height and the globe disagree.
   const cardPoints = postcards.map((card) => sampleRouteAtDistance(route, card.distanceM));
   const seated: boolean[] = postcards.map(() => false);
   let lastRefineMs = -Infinity;
 
   postcards.forEach((card, i) => {
     const p = cardPoints[i];
-    const position = Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.ele + POSTCARD_HEIGHT_M);
+    const position = Cesium.Cartesian3.fromDegrees(p.lon, p.lat, sceneEle(p.ele) + POSTCARD_HEIGHT_M);
     const phase = i * 1.7;
     const scaleOf = () => {
       const since = pickedAt[i] ? clockMs - pickedAt[i] : 0;
@@ -216,7 +216,10 @@ export function createCesiumPlayLayer(
           if (postcards[i].distanceM - frame.distanceM > GROUND_REFINE_M) break;
           if (seated[i]) continue;
           const p = cardPoints[i];
-          const ground = sampleGroundHeight(viewer.scene, p.lon, p.lat);
+          // Same ground logic as the avatars: the rendered surface (sampled
+          // mesh / loaded tiles / exactly 0 m on the flat no-token globe),
+          // never a rider's helmet.
+          const ground = sceneGroundHeight(viewer.scene, p.lon, p.lat, groundSampleExclusions(), sceneEle(p.ele));
           if (ground === undefined || !Number.isFinite(ground)) continue;
           seated[i] = true;
           entities[i].position = new Cesium.ConstantPositionProperty(

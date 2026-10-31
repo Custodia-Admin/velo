@@ -1260,7 +1260,7 @@ export function effortSkinColor(baseCss: string, level01: number): Cesium.Color 
  */
 const liveAvatarEntities = new Set<Cesium.Entity>();
 let excludeCache: Cesium.Entity[] | null = null;
-function groundSampleExclusions(): Cesium.Entity[] {
+export function groundSampleExclusions(): Cesium.Entity[] {
   if (!excludeCache) excludeCache = [...liveAvatarEntities];
   return excludeCache;
 }
