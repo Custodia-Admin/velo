@@ -1,4 +1,4 @@
-import * as Cesium from 'cesium';
+import type * as Cesium from 'cesium';
 
 /**
  * Graphics quality tiers — each maps to a concrete set of Cesium scene params.

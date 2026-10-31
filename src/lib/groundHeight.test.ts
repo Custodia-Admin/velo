@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as Cesium from 'cesium';
-import { getPhotorealTileset, sampleGroundHeight, setIonToken } from '@/lib/cesiumUtils';
+import { getPhotorealTileset, liftAboveTerrain, sampleGroundHeight, setIonToken } from '@/lib/cesiumUtils';
 
 async function photorealTileset(height: number | undefined) {
   const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
@@ -68,5 +68,41 @@ describe('sampleGroundHeight over the photoreal mesh', () => {
     const { s, sampleHeight } = scene(null, true);
     expect(sampleGroundHeight(s, 8.95, 46.0)).toBeUndefined();
     expect(sampleHeight).not.toHaveBeenCalled();
+  });
+});
+
+describe('liftAboveTerrain (low chase / side cameras)', () => {
+  afterEach(() => vi.restoreAllMocks());
+  const heightOf = (c: Cesium.Cartesian3) => Cesium.Cartographic.fromCartesian(c).height;
+  const terrainScene = (ground: number, tileset: Cesium.Cesium3DTileset | null = null) =>
+    ({
+      globe: { getHeight: () => ground },
+      primitives: { length: tileset ? 1 : 0, get: () => tileset },
+    }) as unknown as Cesium.Scene;
+
+  it('lifts a camera that sank into a slope to the clearance', () => {
+    const cam = Cesium.Cartesian3.fromDegrees(8.95, 46.0, 301);
+    const lift = liftAboveTerrain(terrainScene(302), cam, 300, 1.2);
+    expect(lift).toBeCloseTo(2.2, 3);
+    expect(heightOf(cam)).toBeCloseTo(303.2, 3);
+  });
+
+  it('leaves a camera with enough clearance alone', () => {
+    const cam = Cesium.Cartesian3.fromDegrees(8.95, 46.0, 305);
+    expect(liftAboveTerrain(terrainScene(300), cam, 300, 1.2)).toBe(0);
+    expect(heightOf(cam)).toBeCloseTo(305, 3);
+  });
+
+  it('ignores coarse-tile chords far from the rider height', () => {
+    const cam = Cesium.Cartesian3.fromDegrees(8.95, 46.0, 302);
+    expect(liftAboveTerrain(terrainScene(900), cam, 300, 1.2)).toBe(0);
+  });
+
+  it('does not lift for terrain while the photoreal mesh is the drawn ground', async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photorealTileset(300);
+    const cam = Cesium.Cartesian3.fromDegrees(8.95, 46.0, 301);
+    expect(liftAboveTerrain(terrainScene(309, tileset), cam, 300, 1.2)).toBe(0);
+    setIonToken(null);
   });
 });

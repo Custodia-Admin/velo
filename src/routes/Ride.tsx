@@ -1,13 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, Users } from 'lucide-react';
 
-import { CesiumViewer } from '@/components/ride/CesiumViewer';
+import { RideView } from '@/components/ride/RideView';
+import type { WorldRenderer } from '@/lib/world/renderer';
 import { NoTokenBanner } from '@/components/ride/NoTokenBanner';
 import { RideHUD } from '@/components/ride/RideHUD';
-import { EnterVRButton } from '@/components/ride/EnterVRButton';
-import { EnterARButton } from '@/components/ride/EnterARButton';
-import { VRHud } from '@/components/ride/VRHud';
 import { RideControls } from '@/components/ride/RideControls';
 import { Minimap } from '@/components/ride/Minimap';
 import { ElevationProfile } from '@/components/ride/ElevationProfile';
@@ -63,8 +61,18 @@ import { refreshAccessToken, stravaCredsPresent } from '@/lib/strava';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
+// WebXR (VR/AR) drives the Cesium viewer directly, so these load only with
+// the photoreal renderer (they pull in the Cesium chunk).
+const EnterVRButton = lazy(() =>
+  import('@/components/ride/EnterVRButton').then((m) => ({ default: m.EnterVRButton })),
+);
+const EnterARButton = lazy(() =>
+  import('@/components/ride/EnterARButton').then((m) => ({ default: m.EnterARButton })),
+);
+const VRHud = lazy(() => import('@/components/ride/VRHud').then((m) => ({ default: m.VRHud })));
+
 /**
- * Active ride view. Cesium full-bleed in the background; HUD + controls
+ * Active ride view. The world renderer (RideView) full-bleed in the background; HUD + controls
  * float on top. Boots the requestAnimationFrame ride loop and a screen
  * wake lock for the duration of the run.
  *
@@ -108,10 +116,14 @@ export function Ride() {
   // Ref for the main ride canvas container — used by gesture detection.
   const rideCanvasRef = useRef<HTMLDivElement>(null);
 
-  // Viewer ref populated by CesiumViewer.onViewerReady — passed to
-  // EnterVRButton / EnterARButton so they can call enter{VR,AR}(viewer)
-  // without prop-drilling Cesium through the HUD tree.
-  const [cesiumViewer, setCesiumViewer] = useState<import('cesium').Viewer | null>(null);
+  // The live world renderer (RideView hands it over once its first frame is
+  // up). Auto-start waits for it; the XR buttons need the Cesium viewer,
+  // which only the photoreal renderer exposes (as `native`).
+  const [worldRenderer, setWorldRenderer] = useState<WorldRenderer | null>(null);
+  const cesiumViewer =
+    worldRenderer?.kind === 'photoreal'
+      ? (worldRenderer.native as import('cesium').Viewer | undefined) ?? null
+      : null;
 
   // ---- Outdoor GPS watcher ----
   // Always called (Rules of Hooks). Only does work when rideMode === 'outdoor'.
@@ -166,9 +178,9 @@ export function Ride() {
 
   // ---- Auto-start when arriving from the wizard ----
   // The wizard's "Start ride" CTA passes { state: { autoStart: true } } so the
-  // ride begins as soon as the viewer is ready instead of requiring a second
-  // tap on the in-ride Start button. We wait for cesiumViewer to be set
-  // (Cesium's first frame painted) before starting so the camera doesn't
+  // ride begins as soon as the world is ready instead of requiring a second
+  // tap on the in-ride Start button. We wait for the renderer to be set
+  // (its first frame painted) before starting so the camera doesn't
   // jump from the initial flyTo to chase pose mid-transition.
   //
   // Robust gating: fire when viewer + route are present and rideState is in a
@@ -181,7 +193,7 @@ export function Ride() {
     if (autoStartConsumedRef.current) return;
     const wantsAutoStart = (location.state as { autoStart?: boolean } | null)?.autoStart === true;
     if (!wantsAutoStart) return;
-    if (!cesiumViewer) return;
+    if (!worldRenderer) return;
     if (!route && rideMode !== 'outdoor') return;
     if (rideState === 'running' || rideState === 'paused' || rideState === 'finished') return;
     autoStartConsumedRef.current = true;
@@ -197,7 +209,7 @@ export function Ride() {
       useRideStore.getState().start();
     }, 600);
     return () => clearTimeout(t);
-  }, [cesiumViewer, route, rideMode, rideState, location.state]);
+  }, [worldRenderer, route, rideMode, rideState, location.state]);
 
   // Arriving with { show: true } (Home's "Ride and watch") starts show mode;
   // leaving the ride always ends it and releases the video files.
@@ -276,7 +288,7 @@ export function Ride() {
       ref={rideCanvasRef}
       className="fixed inset-0 w-screen h-screen overflow-hidden bg-background"
     >
-      <CesiumViewer ionToken={token} onViewerReady={setCesiumViewer} />
+      <RideView ionToken={token} onRendererReady={setWorldRenderer} />
 
       {/* No-token banner — subtle nudge offering the photoreal upgrade.
           Invisible when a token is already installed; dismissible per-session
@@ -492,7 +504,11 @@ export function Ride() {
           right: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
       >
-        <EnterVRButton viewer={cesiumViewer} />
+        {cesiumViewer && (
+          <Suspense fallback={null}>
+            <EnterVRButton viewer={cesiumViewer} />
+          </Suspense>
+        )}
       </div>
 
       {/* -- Enter AR button — top-right, below VR button -------- */}
@@ -504,7 +520,11 @@ export function Ride() {
           right: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
       >
-        <EnterARButton viewer={cesiumViewer} />
+        {cesiumViewer && (
+          <Suspense fallback={null}>
+            <EnterARButton viewer={cesiumViewer} />
+          </Suspense>
+        )}
       </div>
 
       {/* -- Voice control button — top-right, below AR button -- */}
@@ -524,7 +544,11 @@ export function Ride() {
       </>)}
 
       {/* -- VR HUD overlay — visible only during XR session ------ */}
-      <VRHud />
+      {cesiumViewer && (
+        <Suspense fallback={null}>
+          <VRHud />
+        </Suspense>
+      )}
 
       {/* -- Finish overlay ------------------------------------------------- */}
       {rideState === 'finished' && <FinishCard />}

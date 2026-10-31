@@ -1,0 +1,28 @@
+{
+  "id": "perugia",
+  "name": "Perugia",
+  "description": "Perugia's hill, the Tiber valley at Ponte San Giovanni and the Assisi valley floor to Santa Maria degli Angeli.",
+  "origin": { "lat": 43.1107, "lon": 12.3908 },
+  "grid": { "xMin": -6000, "yMax": 5500, "cellSize": 13, "cols": 2001, "rows": 1078 },
+  "dem": { "zoom": 13 },
+  "osmDate": "2026-10-01T00:00:00Z",
+  "routes": ["scenic-perugia-tiber-park", "scenic-assisi-valley"],
+  "routesOutside": {
+    "scenic-trasimeno-shore": "Castiglione del Lago is 30 km west of Perugia; it gets its own world (trasimeno) rather than stretching this one to 45 km."
+  },
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 400,
+    "offsetMeanM": 1600,
+    "coreCells": 1.5,
+    "falloffM": 40
+  },
+  "vegetation": {
+    "seed": 1107,
+    "maxInstances": 160000,
+    "spacingM": { "forest": 11, "wood": 11, "scrub": 16, "orchard": 7, "park": 20 }
+  },
+  "moods": ["clear-afternoon", "clear-noon", "golden-hour", "overcast", "valley-fog"],
+  "defaultMood": "clear-afternoon",
+  "validation": { "seed": 43110, "samples": 50, "maxRmsM": 6 }
+}

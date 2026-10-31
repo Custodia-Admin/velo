@@ -12,7 +12,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    cesium(),
+    cesium({ rebuildCesium: true }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'favicon.ico'],

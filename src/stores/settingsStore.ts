@@ -14,6 +14,7 @@ import {
 import type { Workout } from '@/lib/workout';
 import { DEFAULT_TRAINER_DIFFICULTY, clampDifficulty } from '@/lib/trainerComfort';
 import { DEFAULT_WIND_FEEL, isWindFeel, type WindFeel } from '@/lib/meteo/windFeel';
+import { DEFAULT_RENDERER, isRendererKind, type RendererKind } from '@/lib/world/renderer';
 import {
   emptyPlan,
   setDay as setPlanDay,
@@ -140,6 +141,11 @@ export interface RiderSettings {
    * riding buddy. Off by default; per rider.
    */
   playMode: boolean;
+  /**
+   * Which renderer draws the ride: 'world' (Velo's own token-free world, the
+   * default) or 'photoreal' (Cesium with the rider's own ion token, opt-in).
+   */
+  renderer: RendererKind;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -184,6 +190,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   windFeel: DEFAULT_WIND_FEEL,
   liveWeatherEnabled: true,
   playMode: false,
+  renderer: DEFAULT_RENDERER,
 };
 
 type CommentaryPatch = Partial<
@@ -357,6 +364,9 @@ export const useSettingsStore = create<SettingsStoreState>()(
         playMode:
           (persisted as Partial<RiderSettings>).playMode ??
           DEFAULT_SETTINGS.playMode,
+        renderer: isRendererKind((persisted as Partial<RiderSettings>).renderer)
+          ? (persisted as Partial<RiderSettings>).renderer!
+          : DEFAULT_SETTINGS.renderer,
       }),
       partialize: (s) =>
         ({
@@ -401,6 +411,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           windFeel: s.windFeel,
           liveWeatherEnabled: s.liveWeatherEnabled,
           playMode: s.playMode,
+          renderer: s.renderer,
         }) satisfies RiderSettings,
     },
   ),

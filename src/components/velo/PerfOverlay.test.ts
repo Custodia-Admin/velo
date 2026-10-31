@@ -135,7 +135,7 @@ describe('perf overlay exposes fps', () => {
 
   it('the ride view mounts the overlay and the viewer attaches the measurement', () => {
     const ride = readFileSync(join(ROOT, 'src/routes/Ride.tsx'), 'utf8');
-    const viewerSrc = readFileSync(join(ROOT, 'src/components/ride/CesiumViewer.tsx'), 'utf8');
+    const viewerSrc = readFileSync(join(ROOT, 'src/renderers/cesium/CesiumWorldView.tsx'), 'utf8');
     expect(ride).toMatch(/<PerfOverlay\b/);
     expect(viewerSrc).toMatch(/attachScenePerf\(/);
   });

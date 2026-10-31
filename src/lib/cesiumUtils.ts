@@ -10,6 +10,7 @@
  */
 
 import * as Cesium from 'cesium';
+import { IMAGERY_FALLBACK_EVENT } from '@/lib/imageryFallback';
 import type { Route } from '@/types';
 import type { SkyConfig } from '@/lib/skyAndClouds';
 
@@ -161,7 +162,7 @@ const OSM_TILE_URL = 'https://tile.openstreetmap.org/';
  * NoTokenBanner (or any future status surface) so the user sees a soft
  * "photoreal unavailable" notice instead of just a downgraded-looking globe.
  */
-export const IMAGERY_FALLBACK_EVENT = 'globeride:imagery-fallback';
+export { IMAGERY_FALLBACK_EVENT };
 
 /**
  * Milliseconds to wait for the Bing Aerial provider to produce any tile
@@ -739,7 +740,8 @@ export function applyFollowCam(
 /**
  * Lift a camera position so it stays at least `minClear` metres above the
  * loaded terrain under it (CPU tile height, no GPU pick). Readings more than
- * 60 m from the rider's own ground are coarse-tile chords and are ignored.
+ * 60 m from the rider's own ground are coarse-tile chords and are ignored, and
+ * nothing is lifted while the photoreal mesh is the rendered ground.
  * Mutates and returns `camPos`; the second value is the lift applied (m).
  */
 export function liftAboveTerrain(
@@ -748,6 +750,9 @@ export function liftAboveTerrain(
   riderEle: number,
   minClear: number,
 ): number {
+  // Over the photoreal mesh the terrain is not what's drawn (and can sit
+  // metres off the mesh by the lake or under trees): don't lift for it.
+  if (photorealGroundShown(scene)) return 0;
   const globe = scene.globe as Cesium.Globe | undefined;
   if (!globe || typeof globe.getHeight !== 'function') return 0;
   liftScratch ??= new Cesium.Cartographic();

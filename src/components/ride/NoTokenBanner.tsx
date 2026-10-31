@@ -22,7 +22,7 @@
 import { useEffect, useState } from 'react';
 import { Sparkles, X, CloudOff } from 'lucide-react';
 
-import { IMAGERY_FALLBACK_EVENT } from '@/lib/cesiumUtils';
+import { IMAGERY_FALLBACK_EVENT } from '@/lib/imageryFallback';
 
 const UPGRADE_DISMISS_KEY = 'globeride.noTokenBannerDismissedAt';
 const FALLBACK_DISMISS_KEY = 'globeride.imageryFallbackBannerDismissedAt';
