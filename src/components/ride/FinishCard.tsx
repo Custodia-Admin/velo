@@ -31,6 +31,7 @@ import { computeMetrics }   from '@/lib/metrics';
 import { computePersonalRecords } from '@/lib/records';
 import { formatDistance, formatDuration, msToKmh, cn } from '@/lib/utils';
 import type { RideRecord } from '@/lib/rideHistory';
+import { PlayFinishLine } from '@/components/velo/PlayMode';
 
 // ─── Compliance colour helpers ────────────────────────────────────────────────
 
@@ -508,6 +509,11 @@ export function FinishCard() {
               }}
             />
           </div>
+        </FadeUp>
+
+        {/* Play mode: postcards collected on this ride (renders nothing when off) */}
+        <FadeUp delay={60}>
+          <PlayFinishLine />
         </FadeUp>
 
         {/* ── 2. KEY METRICS TRIO ────────────────────────────────────────── */}

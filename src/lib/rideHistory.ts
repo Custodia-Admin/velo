@@ -50,6 +50,8 @@ export interface RideRecord {
   bestEfforts?: Record<string, { powerW?: number; speedMs?: number }>;
   /** FTP snapshot used for this ride's metrics. */
   ftpW?: number;
+  /** Velo roster rider who rode it. Absent on records saved before P3. */
+  riderId?: string;
   /** Source route reference, if known. */
   routeRef?: { id: string; name: string };
   /** Source workout reference, if known. */

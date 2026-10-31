@@ -122,6 +122,11 @@ export interface RiderSettings {
   // ---- Live weather (household) ----
   /** Drive sky, fog, rain and wind from Open-Meteo at the route. */
   liveWeatherEnabled: boolean;
+  /**
+   * Play mode: postcards to collect along the road and the other rider as a
+   * riding buddy. Off by default; per rider.
+   */
+  playMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -163,6 +168,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   ergEnabled: false,
   windFeel: DEFAULT_WIND_FEEL,
   liveWeatherEnabled: true,
+  playMode: false,
 };
 
 type CommentaryPatch = Partial<
@@ -330,6 +336,9 @@ export const useSettingsStore = create<SettingsStoreState>()(
         liveWeatherEnabled:
           (persisted as Partial<RiderSettings>).liveWeatherEnabled ??
           DEFAULT_SETTINGS.liveWeatherEnabled,
+        playMode:
+          (persisted as Partial<RiderSettings>).playMode ??
+          DEFAULT_SETTINGS.playMode,
       }),
       partialize: (s) =>
         ({
@@ -371,6 +380,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           ergEnabled: s.ergEnabled,
           windFeel: s.windFeel,
           liveWeatherEnabled: s.liveWeatherEnabled,
+          playMode: s.playMode,
         }) satisfies RiderSettings,
     },
   ),

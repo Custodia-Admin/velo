@@ -11,6 +11,7 @@ import { useRiderRosterStore, MAX_NAME_LENGTH, type RosterRider } from '@/stores
 import { useSettingsStore } from '@/stores/settingsStore';
 import { difficultyLabel } from '@/lib/trainerComfort';
 import { WindFeelPicker } from '@/components/velo/WeatherControls';
+import { PlayModeSwitch } from '@/components/velo/PlayMode';
 
 function initial(name: string): string {
   return (name.trim()[0] ?? '?').toUpperCase();
@@ -153,6 +154,7 @@ export function RiderPanel() {
       </div>
 
       <WindFeelPicker />
+      <PlayModeSwitch />
     </div>
   );
 }

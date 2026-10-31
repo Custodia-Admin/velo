@@ -1,0 +1,103 @@
+<!doctype html>
+<!--
+  P3 Play mode mockup: Home "Play mode" switch + in-ride Play panel.
+  Static, token-only (values copied from src/index.css dark theme).
+  The scene area is a flat stand-in for the Cesium view, not a design element.
+  Render: chromium --headless --screenshot --window-size=1440,900 p3-play-mode.html
+-->
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — Play mode mockup</title>
+<style>
+  :root {
+    --background: 220 42% 4%; --foreground: 210 28% 96%; --card: 220 40% 7%;
+    --muted: 215 28% 13%; --muted-foreground: 215 18% 58%; --border: 215 26% 17%;
+    --primary: 200 92% 56%; --primary-foreground: 220 42% 4%;
+    --accent: 158 80% 42%; --accent-foreground: 220 42% 4%; --radius: 0.875rem;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: ui-sans-serif, system-ui, sans-serif; background: hsl(var(--background)); color: hsl(var(--foreground)); }
+  .scene { position: relative; height: 900px; background: hsl(215 30% 18%); overflow: hidden; }
+  .scene .sky { position: absolute; inset: 0 0 45% 0; background: hsl(205 45% 42%); }
+  .scene .road { position: absolute; left: 44%; right: 44%; bottom: 0; top: 55%; background: hsl(220 10% 26%); clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%); }
+  .postcard { position: absolute; width: 34px; height: 24px; border-radius: 4px; background: hsl(var(--card)); border: 3px solid hsl(var(--foreground)); box-shadow: 0 0 0 2px hsl(var(--accent)); }
+  .rider, .buddy { position: absolute; width: 14px; height: 30px; border-radius: 6px; }
+  .rider { left: calc(50% + 6px); top: 66%; background: hsl(190 80% 55%); }
+  .buddy { left: calc(50% - 22px); top: 64%; background: hsl(330 60% 65%); }
+  .glass { background: hsl(220 40% 7% / 0.82); border: 1px solid hsl(var(--border)); border-radius: var(--radius); backdrop-filter: blur(12px); }
+  .col { position: absolute; top: 12px; right: 12px; width: 28rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  .hud { height: 9rem; padding: 1rem; color: hsl(var(--muted-foreground)); font-size: 0.75rem; }
+  .route { height: 4rem; padding: 1rem; color: hsl(var(--muted-foreground)); font-size: 0.75rem; }
+  .play { padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+  .label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .icon { width: 1rem; height: 1rem; color: hsl(var(--accent)); }
+  .fig { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .fig small { font-size: 1rem; color: hsl(var(--foreground)); font-weight: 500; }
+  .note { font-size: 1rem; font-weight: 500; color: hsl(var(--foreground)); display: flex; gap: 0.5rem; align-items: center; }
+  .note.hit { color: hsl(var(--accent)); }
+  .dots { display: flex; gap: 0.25rem; }
+  .dots i { width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: hsl(var(--muted)); }
+  .dots i.on { background: hsl(var(--accent)); }
+  .top { position: absolute; top: 12px; left: 12px; display: flex; gap: 0.5rem; }
+  .top span { height: 2.25rem; padding: 0 0.875rem; display: grid; place-items: center; font-size: 0.875rem; }
+  .controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5rem; }
+  .controls span { height: 3rem; padding: 0 1.5rem; display: grid; place-items: center; font-weight: 600; }
+  /* Home snippet */
+  .home { max-width: 64rem; margin: 0 auto; padding: 2.75rem 2.5rem; display: flex; flex-direction: column; gap: 1rem; }
+  h1 { font-size: 3rem; line-height: 1; letter-spacing: -0.035em; }
+  .lede { color: hsl(var(--muted-foreground)); }
+  .riders { display: flex; gap: 0.75rem; }
+  .chipr { display: flex; align-items: center; gap: 0.75rem; height: 3rem; padding: 0 1.25rem 0 0.5rem; border-radius: 9999px; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); font-weight: 600; font-size: 0.875rem; }
+  .chipr.on { border-color: hsl(var(--primary)); background: hsl(var(--primary) / 0.12); }
+  .av { width: 2rem; height: 2rem; border-radius: 9999px; display: grid; place-items: center; background: hsl(var(--muted)); font-size: 0.75rem; font-weight: 700; }
+  .chipr.on .av { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+  .setting { display: flex; align-items: center; gap: 1rem; max-width: 36rem; justify-content: space-between; }
+  .setting .t { font-size: 0.875rem; font-weight: 600; }
+  .setting .h { font-size: 0.875rem; color: hsl(var(--muted-foreground)); }
+  .sw { width: 4rem; height: 2.5rem; border-radius: 9999px; background: hsl(var(--primary)); position: relative; flex-shrink: 0; }
+  .sw::after { content: ""; position: absolute; right: 4px; top: 4px; width: 2rem; height: 2rem; border-radius: 9999px; background: hsl(var(--primary-foreground)); }
+  input[type=range] { flex: 1; accent-color: hsl(var(--primary)); }
+  @media (max-width: 639px) {
+    .col { position: absolute; top: 4rem; left: 12px; right: 12px; width: auto; }
+    .hud { height: 7rem; } .route { display: none; }
+    .home { padding: 1.75rem 1rem; } h1 { font-size: 1.875rem; line-height: 2.25rem; }
+  }
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="sky"></div>
+  <div class="road"></div>
+  <div class="postcard" style="left: calc(50% - 17px); top: 58%; transform: scale(0.55);"></div>
+  <div class="postcard" style="left: calc(50% - 17px); top: 61.5%;"></div>
+  <div class="buddy"></div><div class="rider"></div>
+  <div class="top"><span class="glass">‹ Exit</span><span class="glass">◐</span><span class="glass">Ghosts</span></div>
+  <div class="col">
+    <div class="glass hud">WATTS · KM/H · RPM · TIME (existing RideHUD)</div>
+    <div class="glass route">Route progress (existing)</div>
+    <section class="glass play" aria-label="Play mode">
+      <!-- one note at a time: "Postcard N collected" for 6 s after a pickup, otherwise the buddy line -->
+      <div class="row">
+        <span class="label"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>Postcards</span>
+        <span class="fig">3 <small>of 9</small></span>
+      </div>
+      <p class="note hit">Postcard 3 collected</p>
+    </section>
+  </div>
+  <div class="col2"></div><div class="controls"><span class="glass">Pause</span><span class="glass">Finish</span></div>
+</div>
+<div class="home">
+  <h1>Where to today?</h1>
+  <p class="lede">Easy, scenic rides. Pick a place and pedal.</p>
+  <div class="riders"><span class="chipr on"><span class="av">F</span>Federico</span><span class="chipr"><span class="av">A</span>Anna</span></div>
+  <div class="setting"><span class="t">Hills feel</span><input type="range" value="35" /><span class="h">35% · Gentle</span></div>
+  <div class="setting">
+    <div><div class="t">Play mode</div><div class="h">Postcards to collect on the road, and Anna rides beside you.</div></div>
+    <span class="sw" role="switch" aria-checked="true"></span>
+  </div>
+</div>
+</body>
+</html>

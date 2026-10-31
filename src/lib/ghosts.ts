@@ -46,7 +46,7 @@ export interface GhostRide {
  * The ghost samples are keyed by seconds-since-ride-start so we can look up
  * any elapsed time in O(log n) via binary search.
  */
-function buildInterpolator(
+export function buildInterpolator(
   samples: TelemetrySample[],
   startedAt: number,
 ): (elapsedSec: number) => number | null {

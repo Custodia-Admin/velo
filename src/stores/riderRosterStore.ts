@@ -36,6 +36,7 @@ export const PER_RIDER_KEYS = [
   'trainerDifficulty',
   'ergEnabled',
   'windFeel',
+  'playMode',
 ] as const satisfies readonly (keyof RiderSettings)[];
 
 export type PerRiderKey = (typeof PER_RIDER_KEYS)[number];

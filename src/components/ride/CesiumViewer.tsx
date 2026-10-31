@@ -16,6 +16,7 @@ import {
   type SceneWeather,
 } from '@/lib/meteo/sceneWeather';
 import type { Route } from '@/types';
+import { usePlayLayer } from '@/hooks/usePlayLayer';
 import {
   applyFollowCam,
   applySceneMood,
@@ -250,6 +251,9 @@ export function CesiumViewer({
   const avatarColors = useSettingsStore((s) => s.avatar);
   const graphicsQuality = useSettingsStore((s) => s.graphicsQuality);
   const ghostsEnabled = useGhostStore((s) => s.ghostsEnabled);
+
+  // Play mode (postcards + riding buddy) manages its own entities and frame hook.
+  usePlayLayer(viewerReady ? viewerRef.current : null, route);
 
   // ---- Bootstrap viewer ----
   useEffect(() => {
