@@ -320,6 +320,20 @@ describe('cesiumUtils — token-aware behaviour', () => {
       expect(p.ele).toBe(281.4); // the route itself is untouched
     });
 
+    it('drops to 0 m when ion refuses the token (World Terrain 401)', async () => {
+      setIonToken('eyJ_rejected');
+      const mocked = vi.mocked(
+        (await import('cesium')).createWorldTerrainAsync as unknown as () => Promise<unknown>,
+      );
+      mocked.mockRejectedValueOnce(new Error('401 INVALID_TOKEN'));
+      await getTerrainProvider(true).catch(() => undefined);
+      expect(sceneEle(281.4)).toBe(0);
+      // A later success (fixed token) brings the real elevation back.
+      await getTerrainProvider(true);
+      expect(sceneEle(281.4)).toBe(281.4);
+      setIonToken(null);
+    });
+
     it('keeps the GPX elevation when ion terrain is in use', () => {
       setIonToken('eyJ_so...ture');
       expect(sceneEle(281.4)).toBe(281.4);

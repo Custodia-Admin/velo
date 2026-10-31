@@ -48,6 +48,8 @@ export function hasIonToken(): boolean {
 }
 
 let terrainPromise: Promise<Cesium.TerrainProvider> | null = null;
+/** World Terrain was requested with a token and ion refused it. */
+let _worldTerrainFailed = false;
 /**
  * Lazy, shared terrain provider.
  *
@@ -72,10 +74,19 @@ export function getTerrainProvider(reset = false): Promise<Cesium.TerrainProvide
       // own GPX elevations drive the avatar/camera height.
       terrainPromise = Promise.resolve(new Cesium.EllipsoidTerrainProvider());
     } else {
-      terrainPromise = Cesium.createWorldTerrainAsync().catch((err) => {
-        terrainPromise = null;
-        throw err;
-      });
+      terrainPromise = Cesium.createWorldTerrainAsync().then(
+        (terrain) => {
+          _worldTerrainFailed = false;
+          return terrain;
+        },
+        (err) => {
+          // Rejected token (ion 401) or offline: the globe stays the flat
+          // ellipsoid, so the scene must sit at 0 m as without a token.
+          _worldTerrainFailed = true;
+          terrainPromise = null;
+          throw err;
+        },
+      );
     }
   }
   return terrainPromise;
@@ -92,12 +103,17 @@ export function getTerrainProvider(reset = false): Promise<Cesium.TerrainProvide
  * this; physics and the HUD keep the real elevation.
  */
 export function sceneEle(ele: number): number {
-  return _ionTokenInstalled ? ele : 0;
+  return onRealTerrain() ? ele : 0;
+}
+
+/** World Terrain is (or will be) under the globe: a token, and ion didn't refuse it. */
+function onRealTerrain(): boolean {
+  return _ionTokenInstalled && !_worldTerrainFailed;
 }
 
 /** A route sample moved onto the rendered surface (see {@link sceneEle}). */
 export function onSceneSurface<T extends { ele: number }>(p: T): T {
-  return _ionTokenInstalled ? p : { ...p, ele: 0 };
+  return onRealTerrain() ? p : { ...p, ele: 0 };
 }
 
 /** Convert a Route into a packed array of Cartesian3 positions (scene height). */
@@ -395,7 +411,7 @@ export function sampleGroundHeight(
   lat: number,
   exclude?: object[],
 ): number | undefined {
-  if (!_ionTokenInstalled || !scene.sampleHeightSupported) return undefined;
+  if (!onRealTerrain() || !scene.sampleHeightSupported) return undefined;
   const carto = Cesium.Cartographic.fromDegrees(lon, lat);
   return scene.sampleHeight(carto, exclude);
 }
