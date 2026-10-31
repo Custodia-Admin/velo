@@ -79,11 +79,11 @@ test('token-free smoke ride: Home → Perugia route → riding in the world rend
       return kmh;
     }, { timeout: 60_000 })
     .toBeGreaterThan(5);
+  // The distance label moves on. SwiftShader on a CI runner can drop to a few
+  // fps (the sim clamps each step to 0.1 s), so poll instead of a fixed wait.
   const before = await hudNumbers(page);
-  await page.waitForTimeout(4_000);
-  const after = await hudNumbers(page);
-  expect(after.dist).not.toBeNull();
-  expect(after.dist).not.toBe(before.dist);
+  expect(before.dist).not.toBeNull();
+  await expect.poll(async () => (await hudNumbers(page)).dist, { timeout: 30_000 }).not.toBe(before.dist);
 
   // The rider moves through the Perugia world, on the ground, camera above it.
   const a = await worldDebug(page);
