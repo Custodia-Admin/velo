@@ -916,13 +916,38 @@ export function CesiumViewer({
         riderPosition: useSettingsStore.getState().riderPosition,
       });
 
+      // Camera, weather and shadow sit on the SAME ground as the rider: the
+      // rendered surface right now, never the route elevation while terrain
+      // is still streaming (a slow phone otherwise hangs the camera ~300 m
+      // over a black, empty globe with the rider out of sight).
+      const groundEle = avatarRef.current.groundEle() ?? sampled.ele;
+      const aheadAtGround = { ...ahead, ele: groundEle + (ahead.ele - sampled.ele) };
+      if (typeof window !== 'undefined') {
+        // Read-only numbers for the slow-network regression check (no viewer handle).
+        const riderLon = sampled.lon;
+        const riderLat = sampled.lat;
+        (window as unknown as { __veloRideDebug?: () => object }).__veloRideDebug = () => {
+          if (viewer.isDestroyed()) return { destroyed: true };
+          const px = Cesium.SceneTransforms.worldToWindowCoordinates(
+            viewer.scene,
+            Cesium.Cartesian3.fromDegrees(riderLon, riderLat, groundEle + 1),
+          );
+          return {
+            routeEle: sampled.ele,
+            groundEle,
+            cameraHeight: viewer.camera.positionCartographic.height,
+            riderScreen: px ? [Math.round(px.x), Math.round(px.y)] : null,
+          };
+        };
+      }
+
       // ---- Camera: per-mode positioning + cross-mode transition ----
       if (shouldChaseCamUpdate(state.rideState)) {
         const currentMode = useSettingsStore.getState().cameraMode;
         const riderPose = {
           lat: sampled.lat,
           lon: sampled.lon,
-          ele: sampled.ele,
+          ele: groundEle,
           heading,
           cadence: state.cadence,
           speed: state.speed,
@@ -964,8 +989,8 @@ export function CesiumViewer({
           // internal lerp state (keeps the chase cam silky smooth).
           applyFollowCam(
             viewer,
-            { lat: sampled.lat, lon: sampled.lon, ele: sampled.ele },
-            ahead,
+            { lat: sampled.lat, lon: sampled.lon, ele: groundEle },
+            aheadAtGround,
             { backMeters: 45, upMeters: 9, pitchDeg: -7 },
             dt,
           );
@@ -974,7 +999,7 @@ export function CesiumViewer({
           const riderCartesian = Cesium.Cartesian3.fromDegrees(
             sampled.lon,
             sampled.lat,
-            sampled.ele,
+            groundEle,
           );
           const enuFrame = Cesium.Transforms.eastNorthUpToFixedFrame(riderCartesian);
           const offsetLocal = new Cesium.Cartesian3(
@@ -1017,7 +1042,7 @@ export function CesiumViewer({
       weatherSystemRef.current?.update({
         lat: sampled.lat,
         lon: sampled.lon,
-        ele: sampled.ele,
+        ele: groundEle,
         heading,
       });
 
@@ -1031,7 +1056,7 @@ export function CesiumViewer({
         const sunPos = sunAzimuthAndAltitude(new Date(), sampled.lat, sampled.lon);
         updateShadowEntity(
           shadowHandleRef.current,
-          { lat: sampled.lat, lon: sampled.lon, ele: sampled.ele },
+          { lat: sampled.lat, lon: sampled.lon, ele: groundEle },
           sunPos.azimuth,
           sunPos.altitude,
         );

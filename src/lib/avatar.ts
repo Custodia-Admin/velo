@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { sampleGroundHeight, sceneEle } from '@/lib/cesiumUtils';
+import { fallbackSceneEle, sceneEle, sceneGroundHeight } from '@/lib/cesiumUtils';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { RiderPosition } from '@/lib/physics';
 
@@ -141,6 +141,8 @@ export type AvatarHandle = ReturnType<typeof createAvatar>;
 export interface Avatar {
   entities: Cesium.Entity[];
   update: (u: AvatarUpdate) => void;
+  /** Smoothed scene height the rider sits at (null before the first update). */
+  groundEle: () => number | null;
   setColors: (c: AvatarColors) => void;
   dispose: () => void;
   /** Internal: current skin color including effort tint. Set by setAvatarEffortLevel. */
@@ -1395,8 +1397,10 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     elapsedMs += dt * 1000;
 
     // Ground height — smoothed so streaming tile changes don't pop.
-    const ground = sampleGroundHeight(scene, u.lon, u.lat, groundSampleExclusions());
-    const targetEle = ground ?? sceneEle(u.ele);
+    // Whatever is rendered right now (never waits on streaming tiles); the
+    // camera follows this same height via groundEle().
+    const ground = sceneGroundHeight(scene, u.lon, u.lat, groundSampleExclusions(), sceneEle(u.ele));
+    const targetEle = ground ?? fallbackSceneEle(scene, u.ele);
     if (smoothedEle === null) smoothedEle = targetEle;
     else smoothedEle += (targetEle - smoothedEle) * (1 - Math.exp(-6 * dt));
 
@@ -1463,6 +1467,7 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
   const avatar: Avatar = {
     entities,
     update,
+    groundEle: () => smoothedEle,
     setColors,
     dispose,
     _effortLevel: 0,
