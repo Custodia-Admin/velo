@@ -13,6 +13,16 @@ import { gpsToGradePct, shouldAutoPause, distanceMeters } from '@/lib/outdoorGps
 import { scaleGradeForTrainer } from '@/lib/trainerComfort';
 import { gearFactor, gearPhysicsFor, gearedTrainerGrade } from '@/lib/virtualGears';
 import { rideDrive } from '@/lib/rideDrive';
+import {
+  autoPauseDue,
+  autoResumeDue,
+  createResistanceGate,
+  nextStandstillSec,
+  resistanceOf,
+  type RideFsmState,
+  type ResistanceMode,
+} from '@/lib/ride/rideFsm';
+import { selectRideFsm } from '@/stores/rideStore';
 import { activeGear } from '@/stores/controllerStore';
 import { liveWeatherForRoute } from '@/stores/liveWeatherStore';
 import { trainerWindFromWeather, equivalentHeadwindMs, type TrainerWind } from '@/lib/meteo/windFeel';
@@ -37,6 +47,11 @@ import {
   detectSegmentExit,
 } from '@/lib/segmentOverlay';
 
+/** The FSM resistance mode for the trainer rides this loop commands. */
+function loopResistance(fsm: RideFsmState): ResistanceMode {
+  return fsm.source === 'trainer' ? resistanceOf(fsm) : 'off';
+}
+
 /**
  * The heart of GlobeRide: a requestAnimationFrame loop that advances the
  * rider along the route, computes live gradient, pushes it to the trainer at
@@ -49,9 +64,13 @@ import {
 export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
   const store = useRideStore;
   const lastT = useRef<number>(0);
-  const lastSentT = useRef<number>(0);
+  // Trainer-command throttle; holds on pause, re-sends at once on resume/reconnect.
+  const resistanceGate = useRef(createResistanceGate());
   const lastSentGear = useRef<number>(0);
   const lastSampleT = useRef<number>(0);
+  // Opt-in indoor auto-pause bookkeeping.
+  const standstillSec = useRef<number>(0);
+  const autoPaused = useRef<boolean>(false);
   const smoother = useRef(new EmaSmoother(0.18));
   // Track previous frame's distance for segment crossing detection.
   const lastDistanceRef = useRef<number>(0);
@@ -71,10 +90,24 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
       raf = requestAnimationFrame(frame);
 
       const s = store.getState();
+      const fsm = selectRideFsm(s);
+      // This loop commands the trainer only for its own trainer rides; the
+      // workout engine drives ERG itself.
+      const resistance = loopResistance(fsm);
       // Replay loop handles frames when replayData is present — bail out here.
       // Workout engine handles frames when a workout is running — bail out here too.
       // Outdoor rides don't require a pre-loaded route — route is built live.
-      if (s.replayData || s.workoutRunning || s.rideState !== 'running') {
+      if (fsm.source === 'replay' || fsm.source === 'workout' || fsm.phase !== 'riding') {
+        // Paused: the gate holds (sends nothing) so the trainer keeps its
+        // resistance; the first riding frame re-sends it.
+        resistanceGate.current.step(resistance, Date.now(), false);
+        standstillSec.current = 0;
+        if (autoResumeDue({ state: fsm, autoPaused: autoPaused.current, powerW: s.power })) {
+          autoPaused.current = false;
+          s.resume();
+        } else if (fsm.phase !== 'paused') {
+          autoPaused.current = false;
+        }
         lastT.current = tHigh;
         return;
       }
@@ -207,18 +240,19 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
         power = drive.power;
       }
 
-      // ---- Throttle trainer updates (~1.2 Hz max) ----
+      // ---- Trainer commands (~1.2 Hz max, immediate on resume/reconnect) ----
       // ERG mode: send opcode 0x05 Set Target Power.
       // SIM mode: send opcode 0x11 Set Indoor Bike Simulation Parameters.
-      // Skip in outdoor mode — no trainer is connected.
+      // The FSM says when: only a riding trainer ride with a live link tracks.
       const now = Date.now();
-      if (s.rideMode !== 'outdoor' && s.mode === 'trainer' && s.connection === 'connected') {
+      if (resistance !== 'track') {
+        resistanceGate.current.step(resistance, now, false);
+      } else {
         const controlMode = s.trainerControlMode;
         if (controlMode === 'erg') {
           // ERG: only push if we have a target power configured in the store.
           const targetW = s.targetPowerW;
-          if (targetW !== null && now - lastSentT.current > 850) {
-            lastSentT.current = now;
+          if (resistanceGate.current.step('track', now, false) && targetW !== null) {
             setTargetPower(targetW).catch(() => undefined);
           }
         } else {
@@ -236,8 +270,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
           );
           const gradeChanged = Math.abs(trainerGrade - s.lastSentGrade) > 0.5;
           const gearChanged = lastSentGear.current !== 0 && gear !== lastSentGear.current;
-          if (now - lastSentT.current > 850 || gradeChanged || gearChanged) {
-            lastSentT.current = now;
+          if (resistanceGate.current.step('track', now, gradeChanged || gearChanged)) {
             lastSentGear.current = gear;
             useRideStore.setState({ lastSentGrade: trainerGrade });
             // Live wind rides on Cw (wind field 0, see lib/meteo/windFeel).
@@ -287,6 +320,22 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
         riderHeading: s.route ? headingAt(s.route, distanceNow) : 0,
         displaySpeed,
       });
+
+      // ---- Standstill ----
+      // A stopped rider keeps riding (speed 0, distance frozen) unless the
+      // rider opted into indoor auto-pause; pedalling resumes it.
+      standstillSec.current = nextStandstillSec(standstillSec.current, dt, speed, power ?? 0);
+      if (
+        autoPauseDue({
+          state: fsm,
+          standstillSec: standstillSec.current,
+          enabled: settings.indoorAutoPause,
+        })
+      ) {
+        standstillSec.current = 0;
+        autoPaused.current = true;
+        store.getState().pause();
+      }
 
       // ---- Strava Live Segment crossing detection ----
       // Zero-allocation: only arithmetic, no object creation.

@@ -35,6 +35,11 @@ export interface RiderSettings {
   windDirectionDeg: number;
   /** Constant pedal power used by Demo Mode, W. */
   demoPowerW: number;
+  /**
+   * Pause an indoor trainer ride after 5 s stopped, resume on pedalling.
+   * Off by default: a stopped rider keeps riding at 0 km/h.
+   */
+  indoorAutoPause: boolean;
   /** Functional Threshold Power, W -- the basis for %FTP workout targets. */
   ftpW: number;
   /** Display unit system. */
@@ -139,6 +144,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   windSpeedMs: 0,
   windDirectionDeg: 0,
   demoPowerW: 190,
+  indoorAutoPause: false,
   ftpW: 220,
   units: 'metric',
   avatar: DEFAULT_AVATAR_COLORS,
@@ -351,6 +357,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           windSpeedMs: s.windSpeedMs,
           windDirectionDeg: s.windDirectionDeg,
           demoPowerW: s.demoPowerW,
+          indoorAutoPause: s.indoorAutoPause,
           ftpW: s.ftpW,
           units: s.units,
           avatar: s.avatar,
