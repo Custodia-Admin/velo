@@ -380,7 +380,11 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
       .then((m) => {
         if (!cancelled) {
           setFeaturedRoutes(
-            m.SCENIC_ROUTES.filter((r) => r.area === 'near-home')
+            // Closest first: Perugia, then the Ticino hometown rides.
+            [
+              ...m.SCENIC_ROUTES.filter((r) => r.area === 'near-home'),
+              ...m.SCENIC_ROUTES.filter((r) => r.area === 'hometown'),
+            ]
               .slice(0, 6)
               .map((r) => ({ route: r.route, title: r.name })),
           );
