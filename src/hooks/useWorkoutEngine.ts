@@ -31,6 +31,7 @@
  *   adds them directly to ftms.ts, update the import path; no other changes needed.
  */
 
+import { trainerDrivesRide } from '@/lib/rideDrive';
 import { useEffect, useRef } from 'react';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -153,9 +154,9 @@ export function useWorkoutEngine(): void {
           }).catch(() => undefined);
         }
         // Speed: use trainer speed when connected; fall back to demo physics on grade.
-        if (s.mode === 'trainer' && s.speed > 0) {
+        if (trainerDrivesRide(s.mode, s.connection)) {
           speed = s.speed;
-          power = s.power || null;
+          power = s.power || 0;
         } else {
           speed = solveVelocity(settings.demoPowerW, seg.target.gradePct, rider);
           power = settings.demoPowerW;
@@ -165,9 +166,9 @@ export function useWorkoutEngine(): void {
       } else if (seg.target.type === 'free') {
         // Free ride — no trainer control; ride as normal.
         useRideStore.getState().setTrainerControlModeSynced('sim');
-        if (s.mode === 'trainer' && s.speed > 0) {
+        if (trainerDrivesRide(s.mode, s.connection)) {
           speed = s.speed;
-          power = s.power || null;
+          power = s.power || 0;
         } else {
           speed = solveVelocity(settings.demoPowerW, grade, rider);
           power = settings.demoPowerW;
@@ -198,10 +199,10 @@ export function useWorkoutEngine(): void {
           }).catch(() => undefined);
         }
         store.setState({ workoutTargetWatts: ergW, targetPowerW: null });
-        if (s.mode === 'trainer' && s.speed > 0) {
+        if (trainerDrivesRide(s.mode, s.connection)) {
           // tick() stores speedNow in workouts, so scale from the trainer's own figure.
           speed = liveGearedSpeed(s.speed, s.trainerSpeed, gearFactor(activeGear())).speed;
-          power = s.power || null;
+          power = s.power || 0;
         } else {
           speed = solveVelocity(ergW, grade, rider);
           power = ergW;
@@ -219,10 +220,10 @@ export function useWorkoutEngine(): void {
 
         store.setState({ workoutTargetWatts: ergW, targetPowerW: ergW });
 
-        // Speed: if trainer is reporting speed, use it; otherwise solve from ERG target.
-        if (s.mode === 'trainer' && s.speed > 0) {
+        // Speed: a paired trainer's telemetry (0 at a standstill); otherwise solve from the ERG target.
+        if (trainerDrivesRide(s.mode, s.connection)) {
           speed = s.speed;
-          power = s.power > 0 ? s.power : ergW;
+          power = s.power || 0;
         } else {
           // Demo mode: solve velocity at the ERG target power + current grade.
           speed = solveVelocity(ergW, grade, rider);

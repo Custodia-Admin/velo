@@ -3,14 +3,15 @@ import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { gradientAt, EmaSmoother, elevationAt } from '@/lib/gradientCalculator';
 import { sampleRouteAtDistance, headingAt } from '@/lib/gpxParser';
-import { solveVelocity, ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics';
+import { ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics';
 import {
   setSimulationParams,
   setTargetPower,
 } from '@/lib/ftms';
 import { gpsToGradePct, shouldAutoPause, distanceMeters } from '@/lib/outdoorGps';
 import { scaleGradeForTrainer } from '@/lib/trainerComfort';
-import { gearFactor, gearPhysicsFor, gearedTrainerGrade, liveGearedSpeed } from '@/lib/virtualGears';
+import { gearFactor, gearPhysicsFor, gearedTrainerGrade } from '@/lib/virtualGears';
+import { rideDrive } from '@/lib/rideDrive';
 import { activeGear } from '@/stores/controllerStore';
 import { liveWeatherForRoute } from '@/stores/liveWeatherStore';
 import { trainerWindFromWeather, equivalentHeadwindMs, type TrainerWind } from '@/lib/meteo/windFeel';
@@ -186,16 +187,23 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
           // which is our best continuous estimate between GPS fixes.
           void stepDist; // informational; tick() handles distance advance
         }
-      } else if (s.mode === 'trainer' && s.speed > 0) {
-        // Virtual gears (handlebar controls) only apply in SIM.
-        const factor = s.trainerControlMode === 'erg' ? 1 : gearFactor(activeGear());
-        const live = liveGearedSpeed(s.speed, s.trainerSpeed, factor);
-        speed = live.speed;
-        displaySpeed = live.display;
-        power = s.power || null;
       } else {
-        power = settings.demoPowerW;
-        speed = solveVelocity(power, grade, rider);
+        // A paired trainer drives the ride, even at 0 km/h; demo power only
+        // without one (see lib/rideDrive). Virtual gears only apply in SIM.
+        const drive = rideDrive({
+          mode: s.mode,
+          connection: s.connection,
+          storeSpeed: s.speed,
+          trainerSpeed: s.trainerSpeed,
+          power: s.power,
+          gearFactor: s.trainerControlMode === 'erg' ? 1 : gearFactor(activeGear()),
+          demoPowerW: settings.demoPowerW,
+          gradePct: grade,
+          rider,
+        });
+        speed = drive.speed;
+        displaySpeed = drive.displaySpeed;
+        power = drive.power;
       }
 
       // ---- Throttle trainer updates (~1.2 Hz max) ----
