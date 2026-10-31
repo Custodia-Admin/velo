@@ -5,6 +5,7 @@ import { Gauge, Zap, Heart, Activity, Mountain, TrendingUp, Timer, MapPin, Wind 
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { formatDistance, formatDuration, msToKmh } from '@/lib/utils';
+import { quantizedMeters } from '@/lib/hudThrottle';
 import { cn } from '@/lib/utils';
 import { findClimbs } from '@/lib/climbDetection';
 import { playClimbEntrySound } from '@/lib/rideAudio';
@@ -31,14 +32,19 @@ import { RideWeatherChip } from '@/components/velo/RideWeatherChip';
  * (defined in index.css) for higher contrast.
  */
 export function RideHUD() {
-  const speed         = useRideStore((s) => s.speed);
-  const power         = useRideStore((s) => s.power);
-  const cadence       = useRideStore((s) => s.cadence);
-  const heartRate     = useRideStore((s) => s.heartRate);
-  const distance      = useRideStore((s) => s.distance);
-  const elevation     = useRideStore((s) => s.elevation);
-  const grade         = useRideStore((s) => s.grade);
-  const elapsedMs     = useRideStore((s) => s.elapsedMs);
+  // Quantised subscriptions: the ride store ticks every animation frame, but
+  // the HUD only *displays* 0.1 km/h / 1 W / 1 rpm / 1 bpm / 0.1 % / 1 m /
+  // 1 s / 5 m precision. Selecting the quantised value keeps React re-renders
+  // at display-change rate instead of 60 Hz (the main thread is shared with
+  // the Cesium render loop — see lib/hudThrottle).
+  const speed         = useRideStore((s) => Math.round(s.speed * 36) / 36);   // 0.1 km/h steps
+  const power         = useRideStore((s) => Math.round(s.power));
+  const cadence       = useRideStore((s) => Math.round(s.cadence));
+  const heartRate     = useRideStore((s) => (s.heartRate === null ? null : Math.round(s.heartRate)));
+  const distance      = useRideStore((s) => quantizedMeters(s.distance, 5));
+  const elevation     = useRideStore((s) => Math.round(s.elevation));
+  const grade         = useRideStore((s) => Math.round(s.grade * 10) / 10);
+  const elapsedMs     = useRideStore((s) => Math.floor(s.elapsedMs / 1000) * 1000);
   const route         = useRideStore((s) => s.route);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
   const draft         = useRideStore((s) => s.draft);
@@ -305,7 +311,9 @@ export function RideHUD() {
  * Props come from the parent via the store — this component is self-contained.
  */
 export function ClimbBanner() {
-  const distance = useRideStore((s) => s.distance);
+  // 5 m buckets: the portal window is 30 m wide, so quantising still always
+  // detects the crossing — without a React render every animation frame.
+  const distance = useRideStore((s) => quantizedMeters(s.distance, 5));
   const route    = useRideStore((s) => s.route);
 
   // Stable climb list — recomputed only when the route changes.
