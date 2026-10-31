@@ -31,6 +31,13 @@ import {
   type TroubleshootStepId,
 } from '@/components/trainer/BluetoothTroubleshooter';
 import { cn } from '@/lib/utils';
+import {
+  RECONNECT_FAILED_TEXT,
+  checkGrantedTrainer,
+  reconnectGrantedTrainer,
+  reconnectLabel,
+  useTrainerReconnectStore,
+} from '@/lib/trainerReconnect';
 
 // Suppress unused-import warning: getTrainerControlMode is used indirectly
 void getTrainerControlMode;
@@ -53,7 +60,16 @@ export function TrainerConnect() {
   const setTrainerControlModeSynced = useRideStore((s) => s.setTrainerControlModeSynced);
   const pushToast           = useRideStore((s) => s.pushToast);
 
+  const reconnectPhase      = useTrainerReconnectStore((s) => s.phase);
+  const reconnectName       = useTrainerReconnectStore((s) => s.name);
+  const reconnectDispatch   = useTrainerReconnectStore((s) => s.dispatch);
+
   const [report, setReport]                     = useState<BluetoothSupportReport>(() => detectBluetoothSupport());
+
+  // A trainer granted in an earlier session can come back without the chooser.
+  useEffect(() => {
+    void checkGrantedTrainer();
+  }, []);
   const [troubleshootOpen, setTroubleshootOpen] = useState(false);
   const [troubleshootStep, setTroubleshootStep] = useState<TroubleshootStepId>('wake');
 
@@ -79,6 +95,7 @@ export function TrainerConnect() {
     setConnection('connecting');
     try {
       await ftmsConnect({ showAllDevices: opts.showAllDevices });
+      reconnectDispatch({ type: 'paired' });
       setConnection('connected', { deviceName: getDeviceName() });
       setMode('trainer');
       pushToast({
@@ -99,13 +116,14 @@ export function TrainerConnect() {
         durationMs: 8_000,
       });
     }
-  }, [canPair, report, setConnection, setMode, pushToast]);
+  }, [canPair, report, setConnection, setMode, pushToast, reconnectDispatch]);
 
   const handleDisconnect = useCallback(async () => {
     await ftmsDisconnect();
+    reconnectDispatch({ type: 'disconnected' });
     setConnection('disconnected', { deviceName: null });
     pushToast({ kind: 'info', title: 'Trainer disconnected', durationMs: 3_000 });
-  }, [setConnection, pushToast]);
+  }, [setConnection, pushToast, reconnectDispatch]);
 
   const handleToggleControlMode = useCallback(() => {
     const next: TrainerControlMode = trainerControlMode === 'erg' ? 'sim' : 'erg';
@@ -138,6 +156,8 @@ export function TrainerConnect() {
 
   const isConnected = connection === 'connected';
   const isBusy      = connection === 'connecting' || connection === 'reconnecting';
+  const offerReconnect =
+    canPair && !isConnected && !isBusy && (reconnectPhase === 'available' || reconnectPhase === 'failed');
 
   return (
     <>
@@ -207,11 +227,28 @@ export function TrainerConnect() {
           />
         )}
 
+        {/* One-tap reconnect of the trainer granted in an earlier session */}
+        {offerReconnect && (
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="default"
+              className="w-full"
+              onClick={() => void reconnectGrantedTrainer()}
+            >
+              <Bluetooth className="h-4 w-4" aria-hidden="true" />
+              {reconnectLabel(reconnectName)}
+            </Button>
+            {reconnectPhase === 'failed' && (
+              <p className="text-sm text-muted-foreground" role="status">{RECONNECT_FAILED_TEXT}</p>
+            )}
+          </div>
+        )}
+
         {/* Action buttons */}
         <div className="grid grid-cols-2 gap-2">
           {!isConnected ? (
             <Button
-              variant="default"
+              variant={offerReconnect ? 'outline' : 'default'}
               size="sm"
               aria-label={isBusy ? (connection === 'connecting' ? 'Connecting to trainer…' : 'Reconnecting to trainer…') : !canPair ? 'Show why Bluetooth is unavailable' : 'Pair smart trainer via Bluetooth'}
               aria-busy={isBusy}

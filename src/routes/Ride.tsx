@@ -34,6 +34,7 @@ import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
 import { useHandlebarGestures } from '@/hooks/useHandlebarGestures';
 import { useRideControllerActions } from '@/hooks/useRideControllerActions';
 import { ControllerChip } from '@/components/velo/ControllerChip';
+import { reconnectGrantedTrainer } from '@/lib/trainerReconnect';
 import { ControllerDebugOverlay, useControllerDebugVisible } from '@/components/velo/ControllerDebugOverlay';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
@@ -79,6 +80,11 @@ export function Ride() {
 
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
   const controllerDebugVisible = useControllerDebugVisible();
+
+  // A trainer paired in an earlier session reconnects on its own (no chooser).
+  useEffect(() => {
+    void reconnectGrantedTrainer({ silent: true });
+  }, []);
 
   // Ref for the main ride canvas container — used by gesture detection.
   const rideCanvasRef = useRef<HTMLDivElement>(null);
