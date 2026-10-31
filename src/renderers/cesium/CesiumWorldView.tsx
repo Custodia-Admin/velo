@@ -124,6 +124,7 @@ import {
 } from '@/lib/routeSurface';
 import { tryEnableHDR } from '@/lib/cesiumHDR';
 import { attachScenePerf } from '@/lib/perf/scenePerf';
+import { createPerfGovernor, type PerfGovernor } from '@/lib/perf/perfGovernor';
 import { shouldRenderOnDemand } from '@/lib/perf/renderMode';
 import { useMultiriderStore } from '@/stores/multiriderStore';
 
@@ -165,6 +166,9 @@ function cannedMoodForRoute(route: Route): MoodId {
 
 // Camera transition duration in milliseconds.
 const CAM_TRANSITION_MS = 1200;
+
+/** How long the blob-shadow sun position stays cached (it moves ~0.25°/min). */
+const SUN_CACHE_MS = 5_000;
 /** Ground samplers for the side / orbit camera, one per scene (photoreal mesh aware). */
 const cameraGroundSamplers = new WeakMap<Cesium.Scene, ReturnType<typeof createGroundSampler>>();
 /** The chase camera never dips closer than this to the terrain under it (m). */
@@ -209,6 +213,25 @@ export function CesiumWorldView({
   const photorealPromiseRef = useRef<Promise<Cesium.Cesium3DTileset> | null>(null);
   const removeTickRef = useRef<(() => void) | null>(null);
   const detachPerfRef = useRef<(() => void) | null>(null);
+  // Adaptive quality governor — steps scene cost down when real frames run
+  // over budget (see lib/perf/perfGovernor). Recreated on quality-tier change.
+  const perfGovernorRef = useRef<PerfGovernor | null>(null);
+  // Cached sun position for the blob shadow (recomputed at most every SUN_CACHE_MS).
+  const sunCacheRef = useRef<{ t: number; azimuth: number; altitude: number } | null>(null);
+  const makePerfGovernor = (viewer: Cesium.Viewer): PerfGovernor => {
+    perfGovernorRef.current?.dispose();
+    const governor = createPerfGovernor({
+      viewer,
+      getTilesets: () => [tilesetRef.current, osmTilesetRef.current],
+    });
+    perfGovernorRef.current = governor;
+    // Debug/perf hook alongside window.__veloPerf (lib/perf/scenePerf).
+    if (typeof window !== 'undefined') {
+      (window as unknown as { __veloPerfGovernor?: () => object }).__veloPerfGovernor =
+        () => governor.state();
+    }
+    return governor;
+  };
   // Ghost rider refs — parallel arrays, one entry per active ghost.
   const ghostAvatarsRef = useRef<Avatar[]>([]);
   const ghostRidesRef = useRef<GhostRide[]>([]);
@@ -359,6 +382,9 @@ export function CesiumWorldView({
       setActiveViewer(viewer);
       // Frame-time + tile-load stats (?perf=1 overlay, window.__veloPerf).
       detachPerfRef.current = attachScenePerf(viewer);
+      // Adaptive quality governor — measures from the first rendered frame
+      // and steps scene cost down when the budget is missed.
+      makePerfGovernor(viewer);
       setViewerReady((n) => n + 1);
       // Notify the parent so EnterVRButton (and other consumers) can hold a
       // ref to the viewer for XR session entry.
@@ -507,6 +533,8 @@ export function CesiumWorldView({
       removeTickRef.current = null;
       detachPerfRef.current?.();
       detachPerfRef.current = null;
+      perfGovernorRef.current?.dispose();
+      perfGovernorRef.current = null;
       // Dispose weather system before destroying the viewer.
       weatherSystemRef.current?.dispose();
       weatherSystemRef.current = null;
@@ -596,6 +624,9 @@ export function CesiumWorldView({
     if (!viewer || viewer.isDestroyed()) return;
     applyGraphicsQuality(viewer, graphicsQuality, tilesetRef.current);
     applyCinematicEffects(viewer, graphicsQuality);
+    // The tier change re-applied the baseline quality — restart the governor
+    // from level 0 so it re-measures against the new tier.
+    makePerfGovernor(viewer);
 
     // Rebuild weather system at new quality budget when a route is loaded.
     const applied = appliedSceneRef.current;
@@ -963,6 +994,10 @@ export function CesiumWorldView({
       const dt = (nowMs - lastFrameMs) / 1000;
       lastFrameMs = nowMs;
 
+      // Adaptive quality governor — measures every rendered frame, even
+      // before a route loads (the globe alone can blow the budget).
+      perfGovernorRef.current?.frame(nowMs);
+
       // --- Photoreal altitude gate — show only when camera is below 5 km ---
       let photorealShown = false;
       if (tilesetRef.current && !tilesetRef.current.isDestroyed()) {
@@ -1207,14 +1242,21 @@ export function CesiumWorldView({
       if (cloudCollectionRef.current) {
         updateCloudParallax(cloudCollectionRef.current, 5, 270, dt * 1000);
       }
-      // Dynamic ground shadow — sized and rotated by real sun angle.
+      // Dynamic ground shadow — sized and rotated by real sun angle. The
+      // sun moves ~0.25°/min, so recomputing its position more often than
+      // every few seconds is wasted trig + allocation on a per-frame budget.
       if (shadowHandleRef.current) {
-        const sunPos = sunAzimuthAndAltitude(new Date(), sampled.lat, sampled.lon);
+        let sun = sunCacheRef.current;
+        if (!sun || nowMs - sun.t >= SUN_CACHE_MS) {
+          const sunPos = sunAzimuthAndAltitude(new Date(), sampled.lat, sampled.lon);
+          sun = { t: nowMs, azimuth: sunPos.azimuth, altitude: sunPos.altitude };
+          sunCacheRef.current = sun;
+        }
         updateShadowEntity(
           shadowHandleRef.current,
           { lat: sampled.lat, lon: sampled.lon, ele: groundEle, grade: state.grade, heading },
-          sunPos.azimuth,
-          sunPos.altitude,
+          sun.azimuth,
+          sun.altitude,
         );
       }
 

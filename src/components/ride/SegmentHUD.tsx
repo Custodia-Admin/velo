@@ -18,6 +18,7 @@ import { Flag, Timer, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/lib/utils';
 import { useRideStore } from '@/stores/rideStore';
+import { quantizedMeters } from '@/lib/hudThrottle';
 
 // ---------------------------------------------------------------------------
 // Confetti burst — pure CSS/DOM, no third-party library.
@@ -80,7 +81,9 @@ export function SegmentHUD() {
   const activeSegment         = useRideStore((s) => s.activeSegment);
   const segmentDistanceStart  = useRideStore((s) => s.segmentDistanceStarted);
   const segmentElapsedSec     = useRideStore((s) => s.segmentElapsedSec);
-  const distance              = useRideStore((s) => s.distance);
+  // 5 m buckets — the progress readout's granularity is far coarser, and the
+  // raw store value ticks every animation frame (60 Hz React renders).
+  const distance              = useRideStore((s) => quantizedMeters(s.distance, 5));
 
   // Celebration state — fires when segment exits.
   const [celebration, setCelebration] = useState<{
