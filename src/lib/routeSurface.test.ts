@@ -1,17 +1,21 @@
 /**
- * routeSurface.test.ts — Unit tests for pure helper functions in routeSurface.ts.
+ * routeSurface.test.ts — Unit tests for helper functions in routeSurface.ts.
  *
- * All tested functions are pure: they accept plain data and return plain data.
- * No Cesium WebGL context is required.
+ * The pure helpers accept plain data and return plain data; the
+ * createRoadEntity tests use a thin viewer mock and real Cesium data classes.
+ * No WebGL context is required for any of them.
  */
 
 import { describe, it, expect } from 'vitest';
+import * as Cesium from 'cesium';
 import {
   closestRouteIndex,
   kmMarkDistances,
   climbCategory,
-  buildGradientStops,
+  routeExtentMeters,
+  createRoadEntity,
 } from './routeSurface';
+import { AsphaltMaterialProperty } from './asphaltMaterial';
 import type { Route } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -141,44 +145,100 @@ describe('climbCategory', () => {
 });
 
 // ---------------------------------------------------------------------------
-// buildGradientStops
+// routeExtentMeters
 // ---------------------------------------------------------------------------
 
-describe('buildGradientStops', () => {
-  it('returns an empty array for a zero-distance route', () => {
-    const route = makeRoute([{ distance: 0, ele: 0 }]);
-    route.totalDistance = 0;
-    expect(buildGradientStops(route)).toHaveLength(0);
+describe('routeExtentMeters', () => {
+  it('returns ≥1 m spans for an empty route', () => {
+    const route = { points: [] } as unknown as Route;
+    const ext = routeExtentMeters(route);
+    expect(ext.eastMeters).toBeGreaterThanOrEqual(1);
+    expect(ext.northMeters).toBeGreaterThanOrEqual(1);
   });
 
-  it('all stop values are in [0, 1]', () => {
+  it('measures east–west and north–south spans of the bounding box', () => {
+    // ~0.01° lon and ~0.01° lat near 46°N.
     const route = makeRoute([
-      { distance: 0, ele: 0 },
-      { distance: 5000, ele: 200 },
+      { distance: 0, ele: 0, lat: 46.0, lon: 8.0 },
+      { distance: 500, ele: 10, lat: 46.01, lon: 8.01 },
     ]);
-    const stops = buildGradientStops(route);
-    for (const s of stops) {
-      expect(s.stop).toBeGreaterThanOrEqual(0);
-      expect(s.stop).toBeLessThanOrEqual(1);
-    }
+    const ext = routeExtentMeters(route);
+    // 0.01° latitude ≈ 1105 m; 0.01° longitude at 46°N ≈ 770 m.
+    expect(ext.northMeters).toBeGreaterThan(1000);
+    expect(ext.northMeters).toBeLessThan(1200);
+    expect(ext.eastMeters).toBeGreaterThan(650);
+    expect(ext.eastMeters).toBeLessThan(900);
   });
 
-  it('last stop is at 1.0', () => {
-    const route = makeRoute([
-      { distance: 0, ele: 0 },
-      { distance: 10_000, ele: 500 },
-    ]);
-    const stops = buildGradientStops(route);
-    expect(stops[stops.length - 1].stop).toBeCloseTo(1, 5);
+  it('clamps a single-point route to ≥1 m', () => {
+    const route = makeRoute([{ distance: 0, ele: 0, lat: 46.0, lon: 8.0 }]);
+    const ext = routeExtentMeters(route);
+    expect(ext.eastMeters).toBeGreaterThanOrEqual(1);
+    expect(ext.northMeters).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createRoadEntity — material must be a MaterialProperty, not a raw Material
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal EntityCollection stand-in.  `createRoadEntity` only calls
+ * `entities.add(options)`, `entities.remove(entity)` and `viewer.isDestroyed()`,
+ * so a thin mock keeps the test free of a WebGL context while still
+ * constructing real Cesium.Entity/CorridorGraphics objects (which is where the
+ * material-type validation happens).
+ */
+function makeMockViewer() {
+  const entities: Cesium.Entity[] = [];
+  const viewer = {
+    entities: {
+      add(options: Cesium.Entity.ConstructorOptions): Cesium.Entity {
+        const e = new Cesium.Entity(options);
+        entities.push(e);
+        return e;
+      },
+      remove(entity: Cesium.Entity): boolean {
+        const i = entities.indexOf(entity);
+        if (i >= 0) entities.splice(i, 1);
+        return i >= 0;
+      },
+    },
+    isDestroyed: () => false,
+  } as unknown as Cesium.Viewer;
+  return { viewer, entities };
+}
+
+describe('createRoadEntity', () => {
+  const route = makeRoute([
+    { distance: 0, ele: 200, lat: 46.0, lon: 8.0 },
+    { distance: 1000, ele: 240, lat: 46.005, lon: 8.008 },
+    { distance: 2000, ele: 260, lat: 46.012, lon: 8.002 },
+  ]);
+  const cartesians = route.points.map((p) =>
+    Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.ele),
+  );
+
+  it('assigns an AsphaltMaterialProperty to the corridor (no raw Material crash)', () => {
+    const { viewer } = makeMockViewer();
+    // Constructing the entity must not throw "Unable to infer material type".
+    const handle = createRoadEntity(viewer, route, cartesians);
+    expect(handle.entity.corridor?.material).toBeInstanceOf(AsphaltMaterialProperty);
   });
 
-  it('produces at most 201 stops for a very long route', () => {
-    // A 200 km route with max 200 intervals = 201 stops.
-    const route = makeRoute([
-      { distance: 0, ele: 0 },
-      { distance: 200_000, ele: 0 },
-    ]);
-    const stops = buildGradientStops(route);
-    expect(stops.length).toBeLessThanOrEqual(202);
+  it('creates a corridor and a dashed centre-line polyline', () => {
+    const { viewer } = makeMockViewer();
+    const handle = createRoadEntity(viewer, route, cartesians);
+    expect(handle.entity.corridor).toBeDefined();
+    expect(handle.centerline.polyline).toBeDefined();
+    expect(handle.centerline.polyline?.clampToGround).toBeDefined();
+  });
+
+  it('destroy() removes both entities', () => {
+    const { viewer, entities } = makeMockViewer();
+    const handle = createRoadEntity(viewer, route, cartesians);
+    expect(entities).toHaveLength(2);
+    handle.destroy();
+    expect(entities).toHaveLength(0);
   });
 });
