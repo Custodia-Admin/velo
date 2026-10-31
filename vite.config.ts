@@ -45,6 +45,8 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    // Tailnet access (tablet etc.) — allow the machine's ts.net hostnames.
+    allowedHosts: ['.ts.net'],
     proxy: {
       // xAI proxy — routes /xai/* → https://api.x.ai/* to avoid CORS in the
       // browser during dev. In production, expose the same /xai path via your
@@ -68,6 +70,8 @@ export default defineConfig({
     },
   },
   preview: {
+    host: true,
+    allowedHosts: ['.ts.net'],
     proxy: {
       '/xai': {
         target: 'https://api.x.ai',
