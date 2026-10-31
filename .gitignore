@@ -30,3 +30,6 @@ test-results/
 .env.local
 .env.*.local
 .vercel
+
+# World bake download cache (tools/worldbake/bake.mjs)
+tools/worldbake/cache/

@@ -95,6 +95,13 @@ export default tseslint.config(
     },
   },
 
+  // World bake (tools/worldbake): Node ESM scripts run with plain `node`.
+  {
+    files: ['tools/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node } },
+    rules: { 'no-console': 'off' },
+  },
+
   // Ignore build output, configs, and generated files
   {
     ignores: [
