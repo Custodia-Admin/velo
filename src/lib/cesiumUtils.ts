@@ -380,18 +380,24 @@ export async function clampCartesiansToScene(
 
 /**
  * Synchronously sample the height of the rendered surface at a lon/lat — used
- * each frame to sit the avatar on the photoreal mesh. Returns `undefined`
- * when the tiles under that point haven't streamed in yet (the caller should
- * fall back to the route's own elevation until they do).
+ * each frame to sit the avatar on the terrain / photoreal mesh. Returns
+ * `undefined` when there is nothing to sample yet (tiles still streaming) and
+ * always on the flat no-token globe, where the surface is 0 m everywhere
+ * (callers fall back to {@link sceneEle}).
+ *
+ * Pass the riders' own entities in `exclude`: `scene.sampleHeight` hits any
+ * geometry, so a stationary rider (paused) would otherwise sample the top of
+ * its own helmet, step up onto it, and climb into the sky frame by frame.
  */
 export function sampleGroundHeight(
   scene: Cesium.Scene,
   lon: number,
   lat: number,
+  exclude?: object[],
 ): number | undefined {
-  if (!scene.sampleHeightSupported) return undefined;
+  if (!_ionTokenInstalled || !scene.sampleHeightSupported) return undefined;
   const carto = Cesium.Cartographic.fromDegrees(lon, lat);
-  return scene.sampleHeight(carto);
+  return scene.sampleHeight(carto, exclude);
 }
 
 /** Tuning for the trailing follow camera. */

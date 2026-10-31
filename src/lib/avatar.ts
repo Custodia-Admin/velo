@@ -1252,6 +1252,17 @@ export function effortSkinColor(baseCss: string, level01: number): Cesium.Color 
  * style, glasses, and bottle. Existing call sites passing only a viewer
  * continue to work unchanged.
  */
+/**
+ * Every live avatar's entities. Ground sampling excludes them all, so no
+ * rider (or a ghost / bot parked on the same spot) is ever "ground".
+ */
+const liveAvatarEntities = new Set<Cesium.Entity>();
+let excludeCache: Cesium.Entity[] | null = null;
+function groundSampleExclusions(): Cesium.Entity[] {
+  if (!excludeCache) excludeCache = [...liveAvatarEntities];
+  return excludeCache;
+}
+
 export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Avatar {
   const scene = viewer.scene;
 
@@ -1347,6 +1358,9 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     });
   });
 
+  for (const ent of entities) liveAvatarEntities.add(ent);
+  excludeCache = null;
+
   function recomputeParts(): void {
     for (let i = 0; i < PARTS.length; i++) {
       const part = PARTS[i];
@@ -1381,7 +1395,7 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     elapsedMs += dt * 1000;
 
     // Ground height — smoothed so streaming tile changes don't pop.
-    const ground = sampleGroundHeight(scene, u.lon, u.lat);
+    const ground = sampleGroundHeight(scene, u.lon, u.lat, groundSampleExclusions());
     const targetEle = ground ?? sceneEle(u.ele);
     if (smoothedEle === null) smoothedEle = targetEle;
     else smoothedEle += (targetEle - smoothedEle) * (1 - Math.exp(-6 * dt));
@@ -1440,6 +1454,8 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
 
   function dispose(): void {
     for (const ent of entities) {
+      liveAvatarEntities.delete(ent);
+      excludeCache = null;
       if (!viewer.isDestroyed()) viewer.entities.remove(ent);
     }
   }
