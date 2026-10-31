@@ -13,7 +13,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type * as Cesium from 'cesium';
-import { PerfReadout, perfOverlayRequested } from '@/components/velo/PerfOverlay';
+import { PerfReadout } from '@/components/velo/PerfOverlay';
+import { perfOverlayRequested } from '@/lib/perf/perfFlag';
 import { EMPTY_PERF, attachScenePerf, getPerfSnapshot, PUBLISH_MS, type ScenePerf } from '@/lib/perf/scenePerf';
 
 type Listener = (...args: unknown[]) => void;
@@ -153,5 +154,10 @@ describe('perf overlay exposes fps', () => {
     expect(perfOverlayRequested('?perf=0', storage)).toBe(false);
     expect(perfOverlayRequested('', storage)).toBe(false);
     expect(perfOverlayRequested('?perf=1', null)).toBe(true);
+  });
+
+  it('main.tsx records the flag at boot, before the router drops the query', () => {
+    const main = readFileSync(join(ROOT, 'src/main.tsx'), 'utf8');
+    expect(main).toMatch(/perfOverlayEnabled\(\)/);
   });
 });
