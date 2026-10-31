@@ -144,6 +144,24 @@
     max-width: calc((100dvh - 16rem) * 16 / 9);
   }
 
+  /* No-token / imagery-fallback banner: floats centred above the ride
+     transport bar. Below sm it rises by the mobile detail-dock row height
+     (see src/components/velo/MobileDetailDock.tsx) so the two never
+     collide. Raw calc() lives here, not in TSX (UI-RULES §2). */
+  .ride-banner-float {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(max(env(safe-area-inset-bottom), 1.25rem) + 4.5rem);
+    max-width: min(28rem, calc(100vw - 1.5rem));
+  }
+  @media (max-width: 639.98px) {
+    .ride-banner-float {
+      bottom: calc(max(env(safe-area-inset-bottom), 1.25rem) + 10.75rem);
+    }
+  }
+
   /* -------------------------------------------------------------------
      Glass system — unified across all surfaces.
      .glass       = HUD panels, floating cards

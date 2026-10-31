@@ -97,13 +97,7 @@ export function NoTokenBanner({ hasToken }: { hasToken: boolean }) {
   if (showFallback) {
     return (
       <div
-        className="absolute z-[3] pointer-events-auto"
-        style={{
-          bottom: 'calc(max(env(safe-area-inset-bottom), 1.25rem) + 4.5rem)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          maxWidth: 'min(28rem, calc(100vw - 1.5rem))',
-        }}
+        className="ride-banner-float pointer-events-auto"
         role="status"
         aria-live="polite"
       >
@@ -133,13 +127,7 @@ export function NoTokenBanner({ hasToken }: { hasToken: boolean }) {
   // Original behaviour: no token installed → photoreal upgrade pitch.
   return (
     <div
-      className="absolute z-[3] pointer-events-auto"
-      style={{
-        bottom: 'calc(max(env(safe-area-inset-bottom), 1.25rem) + 4.5rem)',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        maxWidth: 'min(28rem, calc(100vw - 1.5rem))',
-      }}
+      className="ride-banner-float pointer-events-auto"
       role="status"
       aria-live="polite"
     >
