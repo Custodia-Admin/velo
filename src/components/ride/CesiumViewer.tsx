@@ -28,6 +28,8 @@ import {
   moodForRoute,
   resetFollowCam,
   routeToCartesians,
+  onSceneSurface,
+  sceneEle,
   setIonToken,
   setActiveViewer,
   setupBaseImagery,
@@ -296,6 +298,9 @@ export function CesiumViewer({
         selectionIndicator: false,
         navigationHelpButton: false,
         navigationInstructionsInitiallyVisible: false,
+        // No token: skip the default ion (Bing) base layer, which can only
+        // 401. setupBaseImagery() below adds OSM instead.
+        ...(hasIonToken() ? {} : { baseLayer: false as const }),
         // Mark the WebGL context as XR-compatible so that
         // navigator.xr.requestSession('immersive-vr' | 'immersive-ar') can use
         // this canvas. xrCompatible is a valid WebGL context attribute (WebXR
@@ -882,10 +887,10 @@ export function CesiumViewer({
       const r = state.route;
       if (!r || !avatarRef.current) return;
 
-      const onLine = sampleRouteAtDistance(r, state.distance);
-      const aheadOnLine = sampleRouteAtDistance(
-        r,
-        Math.min(r.totalDistance, state.distance + 15),
+      // Scene height: GPX elevation on ion terrain, 0 m on the flat no-token globe.
+      const onLine = onSceneSurface(sampleRouteAtDistance(r, state.distance));
+      const aheadOnLine = onSceneSurface(
+        sampleRouteAtDistance(r, Math.min(r.totalDistance, state.distance + 15)),
       );
       const heading = headingAt(r, state.distance);
 
@@ -1150,7 +1155,7 @@ export function CesiumViewer({
     if (livePolyline.length < 2) return;
 
     const positions = livePolyline.map((p) =>
-      Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.ele),
+      Cesium.Cartesian3.fromDegrees(p.lon, p.lat, sceneEle(p.ele)),
     );
 
     if (!livePolylineEntityRef.current) {

@@ -91,6 +91,8 @@ import {
   setupBaseImagery,
   setIonToken,
   hasIonToken,
+  sceneEle,
+  onSceneSurface,
   getTerrainProvider,
   getPhotorealTileset,
   BING_TILE_STALL_TIMEOUT_MS,
@@ -301,6 +303,29 @@ describe('cesiumUtils — token-aware behaviour', () => {
     it('treats whitespace-only tokens as no token', () => {
       setIonToken('   ');
       expect(hasIonToken()).toBe(false);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // sceneEle / onSceneSurface — rider, camera and route lines sit on the
+  // rendered surface: GPX height on ion terrain, 0 m on the flat globe.
+  // -------------------------------------------------------------------------
+
+  describe('sceneEle / onSceneSurface', () => {
+    it('puts everything at 0 m on the flat no-token globe', () => {
+      setIonToken(null);
+      expect(sceneEle(281.4)).toBe(0);
+      const p = { lat: 46, lon: 8.95, ele: 281.4, distance: 12 };
+      expect(onSceneSurface(p)).toEqual({ lat: 46, lon: 8.95, ele: 0, distance: 12 });
+      expect(p.ele).toBe(281.4); // the route itself is untouched
+    });
+
+    it('keeps the GPX elevation when ion terrain is in use', () => {
+      setIonToken('eyJ_so...ture');
+      expect(sceneEle(281.4)).toBe(281.4);
+      const p = { lat: 46, lon: 8.95, ele: 281.4 };
+      expect(onSceneSurface(p)).toBe(p);
+      setIonToken(null);
     });
   });
 

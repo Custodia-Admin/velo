@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { sampleGroundHeight } from '@/lib/cesiumUtils';
+import { sampleGroundHeight, sceneEle } from '@/lib/cesiumUtils';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { RiderPosition } from '@/lib/physics';
 
@@ -1382,7 +1382,7 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
 
     // Ground height — smoothed so streaming tile changes don't pop.
     const ground = sampleGroundHeight(scene, u.lon, u.lat);
-    const targetEle = ground ?? u.ele;
+    const targetEle = ground ?? sceneEle(u.ele);
     if (smoothedEle === null) smoothedEle = targetEle;
     else smoothedEle += (targetEle - smoothedEle) * (1 - Math.exp(-6 * dt));
 

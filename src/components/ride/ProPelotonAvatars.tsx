@@ -15,6 +15,7 @@ import * as Cesium from 'cesium';
 import { useRideStore } from '@/stores/rideStore';
 import { createAvatar, type Avatar } from '@/lib/avatar';
 import { sampleRouteAtDistance, headingAt } from '@/lib/gpxParser';
+import { onSceneSurface } from '@/lib/cesiumUtils';
 import type { ProRiderState } from '@/lib/proCycling/proPelotonSimulator';
 
 interface Props {
@@ -131,7 +132,7 @@ export function ProPelotonAvatars({ viewer }: Props) {
           continue;
         }
 
-        const pos     = sampleRouteAtDistance(route, riderState.distance);
+        const pos     = onSceneSurface(sampleRouteAtDistance(route, riderState.distance));
         const heading = headingAt(route, riderState.distance);
 
         // Show and update avatar.

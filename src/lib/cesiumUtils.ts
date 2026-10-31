@@ -81,12 +81,31 @@ export function getTerrainProvider(reset = false): Promise<Cesium.TerrainProvide
   return terrainPromise;
 }
 
-/** Convert a Route into a packed array of Cartesian3 positions. */
+/**
+ * Height to draw a route elevation at in the 3D scene.
+ *
+ * With an ion token the globe carries Cesium World Terrain, which matches the
+ * route's GPX/DEM elevations. Without one the globe is the bare WGS84
+ * ellipsoid (0 m) under the OSM map, and the road corridor is clamped to it,
+ * so the rider, camera and route lines must sit at 0 m too: at GPX height
+ * they would float hundreds of metres above the map. Only the scene uses
+ * this; physics and the HUD keep the real elevation.
+ */
+export function sceneEle(ele: number): number {
+  return _ionTokenInstalled ? ele : 0;
+}
+
+/** A route sample moved onto the rendered surface (see {@link sceneEle}). */
+export function onSceneSurface<T extends { ele: number }>(p: T): T {
+  return _ionTokenInstalled ? p : { ...p, ele: 0 };
+}
+
+/** Convert a Route into a packed array of Cartesian3 positions (scene height). */
 export function routeToCartesians(route: Route): Cesium.Cartesian3[] {
   const out: Cesium.Cartesian3[] = new Array(route.points.length);
   for (let i = 0; i < route.points.length; i++) {
     const p = route.points[i];
-    out[i] = Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.ele);
+    out[i] = Cesium.Cartesian3.fromDegrees(p.lon, p.lat, sceneEle(p.ele));
   }
   return out;
 }
