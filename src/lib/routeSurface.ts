@@ -3,6 +3,7 @@
  *
  * Replaces the thin aqua glow polyline with a physically-recognisable road:
  *   • CorridorGraphics corridor clamped to terrain (4–8 m wide asphalt surface)
+ *   • Dashed centre-line polyline along the route centre
  *   • Two thin white edge-stripe polylines offset perpendicular to the center line
  *   • Floating km-marker labels every 1 km (0.5 km for short routes)
  *   • Translucent climb arches at detected climbs ≥4% sustained ≥1 km
@@ -17,9 +18,7 @@ import * as Cesium from 'cesium';
 import type { Route } from '@/types';
 import { findClimbs } from '@/lib/climbDetection';
 import { sampleRouteAtDistance, headingAt } from '@/lib/gpxParser';
-import { createAsphaltMaterial, createGradientColoredAsphaltMaterial, type GradientStop } from '@/lib/asphaltMaterial';
-import { gradeToColor } from '@/lib/routeVisuals';
-import { gradientAt } from '@/lib/gradientCalculator';
+import { createAsphaltMaterialProperty } from '@/lib/asphaltMaterial';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -28,8 +27,6 @@ import { gradientAt } from '@/lib/gradientCalculator';
 export interface RouteSurfaceOptions {
   /** Corridor half-width in metres.  Default: 3.5 (→ 7 m road width). */
   width?: number;
-  /** Colour corridor edges by gradient severity.  Default: true. */
-  gradientColored?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,28 +68,33 @@ export function perpendicularOffset(
 }
 
 /**
- * Build an array of gradient stops (route-fraction → color) from the route's
- * elevation profile.  Sampled every 100 m for compact GLSL upload.
+ * East–west and north–south span of the route's bounding box in metres
+ * (equirectangular approximation around the mid-latitude — plenty accurate
+ * for the asphalt shader's noise scale, which is what consumes it).
+ * Clamped to ≥1 m so degenerate routes cannot collapse the scale.
+ * Pure function — safe to test without Cesium.
  */
-export function buildGradientStops(route: Route): GradientStop[] {
-  const stops: GradientStop[] = [];
-  const total = route.totalDistance;
-  if (total <= 0) return stops;
-
-  const stepM = Math.max(100, total / 200); // at most 200 samples
-  for (let d = 0; d <= total; d += stepM) {
-    const grade = gradientAt(route, d, 40);
-    stops.push({
-      stop: d / total,
-      color: gradeToColor(grade),
-    });
+export function routeExtentMeters(route: Route): { eastMeters: number; northMeters: number } {
+  let minLat = Number.POSITIVE_INFINITY;
+  let maxLat = Number.NEGATIVE_INFINITY;
+  let minLon = Number.POSITIVE_INFINITY;
+  let maxLon = Number.NEGATIVE_INFINITY;
+  for (const p of route.points) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lon < minLon) minLon = p.lon;
+    if (p.lon > maxLon) maxLon = p.lon;
   }
-  // Ensure exactly one stop at 1.0
-  if (stops.length === 0 || stops[stops.length - 1].stop < 1) {
-    const grade = gradientAt(route, total, 40);
-    stops.push({ stop: 1, color: gradeToColor(grade) });
+  if (!Number.isFinite(minLat) || !Number.isFinite(minLon)) {
+    return { eastMeters: 1, northMeters: 1 };
   }
-  return stops;
+  const midLatRad = ((minLat + maxLat) / 2) * (Math.PI / 180);
+  const eastMeters = (maxLon - minLon) * 111_320 * Math.cos(midLatRad);
+  const northMeters = (maxLat - minLat) * 110_574;
+  return {
+    eastMeters: Math.max(1, eastMeters),
+    northMeters: Math.max(1, northMeters),
+  };
 }
 
 /**
@@ -147,16 +149,25 @@ export function climbCategory(avgGradePct: number, lengthM: number): string {
 // ---------------------------------------------------------------------------
 
 export interface RoadEntityHandle {
+  /** The asphalt corridor entity.  Kept public so effects (e.g. the wet-road
+   *  material swap) can reassign `entity.corridor.material`. */
   entity: Cesium.Entity;
+  /** Dashed centre-line polyline riding on the corridor. */
+  centerline: Cesium.Entity;
   destroy(): void;
 }
 
 /**
  * Create a wide CorridorGraphics entity clamped to terrain that renders as an
- * asphalt road surface.  The corridor is 7 m wide by default (road-width for
- * a single lane + shoulders).
+ * asphalt road surface, plus a dashed centre-line polyline on top.  The
+ * corridor is 7 m wide by default (road-width for a single lane + shoulders).
  *
- * Returns the Cesium.Entity and a `destroy()` cleanup function.
+ * The corridor material is an `AsphaltMaterialProperty` — entity graphics
+ * require a MaterialProperty; a raw fabric `Cesium.Material` throws
+ * "Unable to infer material type" in Cesium's debug build (vite dev) and is
+ * silently dropped in release builds.  See asphaltMaterial.ts.
+ *
+ * Returns the entities and a `destroy()` cleanup function.
  */
 export function createRoadEntity(
   viewer: Cesium.Viewer,
@@ -167,10 +178,10 @@ export function createRoadEntity(
   const halfWidthM = options.width ?? 3.5;
   const widthM = halfWidthM * 2; // corridor width in metres
 
-  const useGradient = options.gradientColored !== false;
-  const material = useGradient
-    ? createGradientColoredAsphaltMaterial(buildGradientStops(route))
-    : createAsphaltMaterial();
+  // Ground-clamped corridors receive bounding-box st in the shader; the
+  // extent uniforms let it convert st back to metres for the granule noise.
+  const extent = routeExtentMeters(route);
+  const material = createAsphaltMaterialProperty(extent.eastMeters, extent.northMeters);
 
   const entity = viewer.entities.add({
     name: '__road_surface_37b',
@@ -179,16 +190,35 @@ export function createRoadEntity(
       width: widthM,
       // CLAMP_TO_GROUND drapes the corridor onto the terrain surface.
       heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      material: material as any,
+      material,
       outline: false,
+    },
+  });
+
+  // Dashed centre line.  The old fabric shader drew dashes via st, which
+  // cannot work on ground corridors (bounding-box st); a ground-clamped
+  // dashed polyline follows the actual route instead.
+  const centerline = viewer.entities.add({
+    name: '__road_centerline_37b',
+    polyline: {
+      positions: cartesians,
+      width: 2.5,
+      clampToGround: true,
+      material: new Cesium.PolylineDashMaterialProperty({
+        color: Cesium.Color.fromCssColorString('#f2e699').withAlpha(0.8),
+        gapColor: Cesium.Color.TRANSPARENT,
+        dashLength: 16,
+      }),
     },
   });
 
   return {
     entity,
+    centerline,
     destroy() {
-      if (!viewer.isDestroyed()) viewer.entities.remove(entity);
+      if (viewer.isDestroyed()) return;
+      viewer.entities.remove(entity);
+      viewer.entities.remove(centerline);
     },
   };
 }

@@ -677,9 +677,7 @@ export function CesiumViewer({
     // Build corridor + edge stripes + km markers + climb arches once per route.
     // The corridor replaces the thin polyline visually; gradient polylines remain
     // for the elevation-profile colour data but are now underlaid by the surface.
-    roadEntityRef.current = createRoadEntity(viewer, route, positions, {
-      gradientColored: true,
-    });
+    roadEntityRef.current = createRoadEntity(viewer, route, positions);
     roadEdgeStripesRef.current = createRoadEdgeStripes(viewer, route);
     kmMarkersRef.current = createKmMarkers(viewer, route, positions);
     climbArchesRef.current = createClimbArches(viewer, route, positions);
