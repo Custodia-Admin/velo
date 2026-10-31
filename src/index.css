@@ -158,7 +158,7 @@
   }
   @media (max-width: 639.98px) {
     .ride-banner-float {
-      bottom: calc(max(env(safe-area-inset-bottom), 1.25rem) + 10.75rem);
+      bottom: calc(max(env(safe-area-inset-bottom), 1.25rem) + 7.75rem);
     }
   }
 

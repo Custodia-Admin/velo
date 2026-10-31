@@ -87,6 +87,6 @@ describe('MobileDetailDock source guarantees', () => {
   it('is mounted by Ride.tsx inside a sm:hidden wrapper above the transport bar', () => {
     expect(rideSrc).toContain('<MobileDetailDock />');
     expect(rideSrc).toContain('sm:hidden absolute left-3 right-3 z-[3] pointer-events-none');
-    expect(rideSrc).toContain('7.75rem');
+    expect(rideSrc).toContain('4.75rem');
   });
 });
