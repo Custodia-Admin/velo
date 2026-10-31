@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { MapPin } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
+import { quantizedDistance } from '@/lib/hudThrottle';
 import { sampleRouteAtDistance } from '@/lib/gpxParser';
 import { cn } from '@/lib/utils';
 import type { Route, RoutePoint } from '@/types';
@@ -153,7 +154,8 @@ function buildPathData(route: Route, riderDistanceM: number): PathData {
  */
 export function Minimap({ className }: { className?: string }) {
   const route    = useRideStore((s) => s.route);
-  const distance = useRideStore((s) => s.distance);
+  // Quantised: a route-wide widget can't show a sub-step move (see hudThrottle).
+  const distance = useRideStore((s) => quantizedDistance(s.distance, s.route?.totalDistance));
 
   // One buildPathData call per distance change — covers done/remaining split,
   // rider position, and start/finish markers all at once.

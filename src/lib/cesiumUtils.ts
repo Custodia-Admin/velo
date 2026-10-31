@@ -393,11 +393,57 @@ export function getPhotorealTileset(): Promise<Cesium.Cesium3DTileset> {
       new Error('Photoreal tileset requires a Cesium ion token; falling back to base imagery.'),
     );
   }
-  return Cesium.Cesium3DTileset.fromIonAssetId(GOOGLE_PHOTOREAL_ASSET_ID, {
-    // A slightly relaxed screen-space error keeps framerate healthy on
-    // modest GPUs without a visible quality hit at ride distances.
-    maximumScreenSpaceError: 16,
-  });
+  return Cesium.Cesium3DTileset.fromIonAssetId(GOOGLE_PHOTOREAL_ASSET_ID, PHOTOREAL_TILESET_OPTIONS).then(
+    (tileset) => {
+      photorealTilesets.add(tileset);
+      return tileset;
+    },
+  );
+}
+
+/**
+ * Streaming budget for the photoreal mesh at a chase camera a few metres off
+ * the road. Its tile tree is deep (every level is an external JSON parsed on
+ * the main thread), so the defaults keep the main thread busy loading detail
+ * nobody can see from a moving bike:
+ * - SSE 24: tiles a third coarser than the default 16 (16 → 24 cuts tiles in
+ *   view roughly in half); the graphics tier can lower it again.
+ * - cacheBytes 256 MB (default 512 MB): an iGPU shares system RAM.
+ * - skip loading while the camera moves fast / for distant foveated tiles.
+ */
+export const PHOTOREAL_TILESET_OPTIONS = {
+  maximumScreenSpaceError: 24,
+  cacheBytes: 256 * 1024 * 1024,
+  maximumCacheOverflowBytes: 128 * 1024 * 1024,
+  dynamicScreenSpaceError: true,
+  foveatedScreenSpaceError: true,
+  cullRequestsWhileMoving: true,
+  cullRequestsWhileMovingMultiplier: 30,
+  preloadWhenHidden: false,
+  preloadFlightDestinations: false,
+} as const;
+
+const photorealTilesets = new WeakSet<Cesium.Cesium3DTileset>();
+
+/** Whether `tileset` is the Google photoreal mesh (vs. OSM buildings etc.). */
+export function isPhotorealTileset(tileset: unknown): boolean {
+  return tileset instanceof Cesium.Cesium3DTileset && photorealTilesets.has(tileset);
+}
+
+/**
+ * True when a photoreal mesh tileset is part of the rendered scene, i.e. the
+ * ground is a mesh that only a GPU sample (scene.sampleHeight) can measure.
+ * Otherwise the rendered ground is the globe's terrain and the CPU height of
+ * its loaded tiles (globe.getHeight) is exact and free.
+ */
+export function photorealGroundShown(scene: Cesium.Scene): boolean {
+  const prims = (scene as { primitives?: Cesium.PrimitiveCollection }).primitives;
+  if (!prims || typeof prims.length !== 'number') return false;
+  for (let i = 0; i < prims.length; i++) {
+    const p = prims.get(i) as Cesium.Cesium3DTileset;
+    if (isPhotorealTileset(p) && p.show) return true;
+  }
+  return false;
 }
 
 /**
@@ -445,9 +491,35 @@ export function sampleGroundHeight(
   lat: number,
   exclude?: object[],
 ): number | undefined {
-  if (!onRealTerrain() || !scene.sampleHeightSupported) return undefined;
+  if (!onRealTerrain()) return undefined;
   const carto = Cesium.Cartographic.fromDegrees(lon, lat);
+  // Over the photoreal mesh on WebGL 2, intersect the rendered tiles on the
+  // CPU (Cesium3DTileset.getHeight, ~3 ms). scene.sampleHeight renders a pick
+  // pass and reads it back synchronously, stalling until the GPU has drawn
+  // the whole frame: 35–270 ms per call measured on the Arc iGPU, ~30 % of
+  // the ride view's main thread. Riders aren't part of the tileset, so
+  // nothing needs excluding.
+  if (isWebGL2(scene)) {
+    const prims = (scene as { primitives?: Cesium.PrimitiveCollection }).primitives;
+    if (prims && typeof prims.length === 'number') {
+      let best: number | undefined;
+      let meshShown = false;
+      for (let i = 0; i < prims.length; i++) {
+        const p = prims.get(i) as Cesium.Cesium3DTileset;
+        if (!isPhotorealTileset(p) || !p.show) continue;
+        meshShown = true;
+        const h = p.getHeight(carto, scene);
+        if (h !== undefined && Number.isFinite(h) && (best === undefined || h > best)) best = h;
+      }
+      if (meshShown) return best;
+    }
+  }
+  if (!scene.sampleHeightSupported) return undefined;
   return scene.sampleHeight(carto, exclude);
+}
+
+function isWebGL2(scene: Cesium.Scene): boolean {
+  return (scene as unknown as { context?: { webgl2?: boolean } }).context?.webgl2 === true;
 }
 
 /**
@@ -463,12 +535,15 @@ export function sceneGroundHeight(
   lat: number,
   exclude?: object[],
   expectEle?: number,
+  opts?: { terrainOnly?: boolean },
 ): number | undefined {
   const plausible = (h: number | undefined): h is number =>
     h !== undefined &&
     Number.isFinite(h) &&
     (expectEle === undefined || Math.abs(h - expectEle) <= MAX_COARSE_TILE_ERROR_M);
-  const sampled = sampleGroundHeight(scene, lon, lat, exclude);
+  // terrainOnly: the caller knows no mesh is rendered over the terrain, so the
+  // GPU pick (a pipeline stall) would only re-measure the terrain tiles.
+  const sampled = opts?.terrainOnly ? undefined : sampleGroundHeight(scene, lon, lat, exclude);
   // The rendered mesh, unless it is a coarse tile's chord far under the route.
   if (plausible(sampled)) return sampled;
   // Flat globe (no token, or World Terrain not assigned yet): the surface is
@@ -509,17 +584,27 @@ export interface FollowCamOptions {
   upMeters: number;
   /** Camera pitch in degrees (-90 = straight down). */
   pitchDeg: number;
+  /**
+   * Keep the camera at least this far above the terrain under it (m). A
+   * camera 2–3 m up trails into a climb behind the rider on descents.
+   */
+  minClearanceMeters?: number;
 }
 
 // Eased follow-cam state, held across frames so the camera glides rather
 // than snapping. Cleared by resetFollowCam() on route change / ride restart.
-let lastCamPos: Cesium.Cartesian3 | null = null;
+// The offset is kept in the rider's local east-north-up frame: easing a
+// world position instead makes the camera lag v/k metres behind its target
+// (3–5 m at riding speed), so a close camera would breathe with speed.
+let lastOffset: Cesium.Cartesian3 | null = null;
+let seededWorldPos: Cesium.Cartesian3 | null = null;
 let lastHeading: number | null = null;
 let lastPitch: number | null = null;
 
 /** Clear eased follow-cam state — call on route change or ride (re)start. */
 export function resetFollowCam(): void {
-  lastCamPos = null;
+  lastOffset = null;
+  seededWorldPos = null;
   lastHeading = null;
   lastPitch = null;
 }
@@ -530,7 +615,8 @@ export function resetFollowCam(): void {
  * easing from a stale position.
  */
 export function seedFollowCam(position: Cesium.Cartesian3, heading: number, pitch: number): void {
-  lastCamPos = Cesium.Cartesian3.clone(position, new Cesium.Cartesian3());
+  seededWorldPos = Cesium.Cartesian3.clone(position, new Cesium.Cartesian3());
+  lastOffset = null;
   lastHeading = heading;
   lastPitch = pitch;
 }
@@ -541,6 +627,30 @@ function angleDelta(a: number, b: number): number {
   if (d > Math.PI) d -= Math.PI * 2;
   if (d < -Math.PI) d += Math.PI * 2;
   return d;
+}
+
+let camScratchCache: {
+  enu: Cesium.Matrix4;
+  inv: Cesium.Matrix4;
+  current: Cesium.Cartesian3;
+  next: Cesium.Cartesian3;
+  localNext: Cesium.Cartesian3;
+  target: Cesium.Cartesian3;
+  camPos: Cesium.Cartesian3;
+} | null = null;
+
+/** Per-frame scratch objects, created on first use (keeps module load Cesium-free). */
+function camScratch() {
+  camScratchCache ??= {
+    enu: new Cesium.Matrix4(),
+    inv: new Cesium.Matrix4(),
+    current: new Cesium.Cartesian3(),
+    next: new Cesium.Cartesian3(),
+    localNext: new Cesium.Cartesian3(),
+    target: new Cesium.Cartesian3(),
+    camPos: new Cesium.Cartesian3(),
+  };
+  return camScratchCache;
 }
 
 /**
@@ -560,43 +670,64 @@ export function applyFollowCam(
   opts: FollowCamOptions,
   dt: number,
 ): void {
-  const current = Cesium.Cartesian3.fromDegrees(currentDeg.lon, currentDeg.lat, currentDeg.ele);
-  const next = Cesium.Cartesian3.fromDegrees(nextDeg.lon, nextDeg.lat, nextDeg.ele);
+  const s = camScratch();
+  const current = Cesium.Cartesian3.fromDegrees(currentDeg.lon, currentDeg.lat, currentDeg.ele, undefined, s.current);
+  const next = Cesium.Cartesian3.fromDegrees(nextDeg.lon, nextDeg.lat, nextDeg.ele, undefined, s.next);
 
   // Transform the "next" point into the rider's local ENU frame so we can
   // derive heading from a simple atan2 in flat XY.
-  const enu = Cesium.Transforms.eastNorthUpToFixedFrame(current);
-  const inv = Cesium.Matrix4.inverseTransformation(enu, new Cesium.Matrix4());
-  const localNext = Cesium.Matrix4.multiplyByPoint(inv, next, new Cesium.Cartesian3());
+  const enu = Cesium.Transforms.eastNorthUpToFixedFrame(current, undefined, s.enu);
+  const inv = Cesium.Matrix4.inverseTransformation(enu, s.inv);
+  const localNext = Cesium.Matrix4.multiplyByPoint(inv, next, s.localNext);
   // ENU: x=east, y=north. Heading = bearing from north, clockwise.
   const targetHeading = Math.atan2(localNext.x, localNext.y);
 
-  // Camera offset in local frame: trail behind the heading, lift up.
-  const offsetLocal = new Cesium.Cartesian3(
-    -Math.sin(targetHeading) * opts.backMeters,
-    -Math.cos(targetHeading) * opts.backMeters,
-    opts.upMeters,
-  );
-  const targetCamPos = Cesium.Matrix4.multiplyByPoint(enu, offsetLocal, new Cesium.Cartesian3());
-  const targetPitch = Cesium.Math.toRadians(opts.pitchDeg);
-
   // Framerate-independent easing: blend = 1 - e^(-k·dt).
   const clampedDt = Math.min(Math.max(dt, 0), 0.1);
-  const posBlend = 1 - Math.exp(-3.0 * clampedDt);
+  const offBlend = 1 - Math.exp(-3.0 * clampedDt);
   const rotBlend = 1 - Math.exp(-2.5 * clampedDt);
 
-  const camPos =
-    lastCamPos === null
-      ? Cesium.Cartesian3.clone(targetCamPos, new Cesium.Cartesian3())
-      : Cesium.Cartesian3.lerp(lastCamPos, targetCamPos, posBlend, new Cesium.Cartesian3());
   const heading =
     lastHeading === null
       ? targetHeading
       : lastHeading + angleDelta(lastHeading, targetHeading) * rotBlend;
+
+  // Target offset in the rider's frame, trailing along the eased heading so
+  // corners swing the camera round instead of cutting across.
+  const target = s.target;
+  target.x = -Math.sin(heading) * opts.backMeters;
+  target.y = -Math.cos(heading) * opts.backMeters;
+  target.z = opts.upMeters;
+
+  if (lastOffset === null) {
+    // First frame, or handing back from another mode: start from where the
+    // camera is (seed) or right at the target.
+    lastOffset = seededWorldPos
+      ? Cesium.Matrix4.multiplyByPoint(inv, seededWorldPos, new Cesium.Cartesian3())
+      : Cesium.Cartesian3.clone(target, new Cesium.Cartesian3());
+    seededWorldPos = null;
+  } else {
+    Cesium.Cartesian3.lerp(lastOffset, target, offBlend, lastOffset);
+  }
+
+  const camPos = Cesium.Matrix4.multiplyByPoint(enu, lastOffset, s.camPos);
+  let pitchDeg = opts.pitchDeg;
+
+  // Terrain clearance under the camera: a camera 2–3 m up trails into the
+  // slope behind the rider on a descent.
+  const minClear = opts.minClearanceMeters ?? 0;
+  if (minClear > 0) {
+    const lift = liftAboveTerrain(viewer.scene, camPos, currentDeg.ele, minClear);
+    if (lift > 0) {
+      // Look down a little more so the rider stays framed.
+      const back = Math.max(1, Math.hypot(lastOffset.x, lastOffset.y));
+      pitchDeg -= Cesium.Math.toDegrees(Math.atan2(lift, back));
+    }
+  }
+
+  const targetPitch = Cesium.Math.toRadians(pitchDeg);
   const pitch =
     lastPitch === null ? targetPitch : lastPitch + (targetPitch - lastPitch) * rotBlend;
-
-  lastCamPos = Cesium.Cartesian3.clone(camPos, new Cesium.Cartesian3());
   lastHeading = heading;
   lastPitch = pitch;
 
@@ -605,6 +736,37 @@ export function applyFollowCam(
     orientation: { heading, pitch, roll: 0 },
   });
 }
+
+/**
+ * Lift a camera position so it stays at least `minClear` metres above the
+ * loaded terrain under it (CPU tile height, no GPU pick). Readings more than
+ * 60 m from the rider's own ground are coarse-tile chords and are ignored, and
+ * nothing is lifted while the photoreal mesh is the rendered ground.
+ * Mutates and returns `camPos`; the second value is the lift applied (m).
+ */
+export function liftAboveTerrain(
+  scene: Cesium.Scene,
+  camPos: Cesium.Cartesian3,
+  riderEle: number,
+  minClear: number,
+): number {
+  // Over the photoreal mesh the terrain is not what's drawn (and can sit
+  // metres off the mesh by the lake or under trees): don't lift for it.
+  if (photorealGroundShown(scene)) return 0;
+  const globe = scene.globe as Cesium.Globe | undefined;
+  if (!globe || typeof globe.getHeight !== 'function') return 0;
+  liftScratch ??= new Cesium.Cartographic();
+  const carto = Cesium.Cartographic.fromCartesian(camPos, undefined, liftScratch);
+  if (!carto) return 0;
+  const ground = globe.getHeight(carto);
+  if (ground === undefined || !Number.isFinite(ground) || Math.abs(ground - riderEle) >= 60) return 0;
+  const lift = ground + minClear - carto.height;
+  if (lift <= 0) return 0;
+  carto.height += lift;
+  Cesium.Cartographic.toCartesian(carto, undefined, camPos);
+  return lift;
+}
+let liftScratch: Cesium.Cartographic | null = null;
 
 /** Frame the entire route nicely on the globe. */
 export function flyToRoute(viewer: Cesium.Viewer, positions: Cesium.Cartesian3[]): void {

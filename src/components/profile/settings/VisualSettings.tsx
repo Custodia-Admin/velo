@@ -12,6 +12,7 @@ import { AVATAR_PRESETS, AVATAR_COLOR_ROLES } from '@/lib/avatarConfig';
 import { Section } from '@/components/ui/section-header';
 import { PickerButton } from './shared';
 import { CesiumIonTokenSection } from './CesiumIonTokenSection';
+import { CameraDistancePicker } from '@/components/velo/CameraDistancePicker';
 
 // ---------------------------------------------------------------------------
 // Camera label map
@@ -64,6 +65,9 @@ export function VisualSettings() {
             />
           ))}
         </div>
+        <div className="mt-3">
+          <CameraDistancePicker />
+        </div>
       </Section>
 
       {/* Photoreal Earth — Cesium ion upgrade */}
@@ -76,7 +80,7 @@ export function VisualSettings() {
             <PickerButton
               key={tier}
               selected={s.graphicsQuality === tier}
-              onClick={() => s.setSettings({ graphicsQuality: tier })}
+              onClick={() => s.setSettings({ graphicsQuality: tier, graphicsQualityAuto: false })}
               label={QUALITY_LABELS[tier].label}
               sub={QUALITY_LABELS[tier].sub}
             />

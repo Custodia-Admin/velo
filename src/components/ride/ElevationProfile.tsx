@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 
 import { useRideStore } from '@/stores/rideStore';
+import { quantizedDistance } from '@/lib/hudThrottle';
 import { useThemeStore } from '@/stores/themeStore';
 
 /**
@@ -21,7 +22,8 @@ import { useThemeStore } from '@/stores/themeStore';
  */
 export function ElevationProfile() {
   const route    = useRideStore((s) => s.route);
-  const distance = useRideStore((s) => s.distance);
+  // Quantised: a route-wide widget can't show a sub-step move (see hudThrottle).
+  const distance = useRideStore((s) => quantizedDistance(s.distance, s.route?.totalDistance));
   const theme    = useThemeStore((s) => s.theme);
   const isDark   = theme === 'dark';
 

@@ -42,6 +42,7 @@ import { useRideControllerActions } from '@/hooks/useRideControllerActions';
 import { ControllerChip } from '@/components/velo/ControllerChip';
 import { reconnectGrantedTrainer } from '@/lib/trainerReconnect';
 import { ControllerDebugOverlay, useControllerDebugVisible } from '@/components/velo/ControllerDebugOverlay';
+import { PerfOverlay } from '@/components/velo/PerfOverlay';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/ride/FinishCard';
@@ -355,6 +356,7 @@ export function Ride() {
           <div className="hidden sm:flex flex-col gap-2">
             <ControllerChip />
             <ControllerDebugOverlay />
+            <PerfOverlay />
           </div>
 
           {/* Minimap — below the nav row, left column, tablet+ only */}
@@ -418,6 +420,8 @@ export function Ride() {
             <ControllerDebugOverlay />
           </div>
         )}
+        {/* ?perf=1: frame rate first, so one phone screenshot carries it. */}
+        <PerfOverlay className="mb-2" />
         {/* Stats first on mobile */}
         <RideHUD />
         {/* Handlebar controls readout (renders nothing without Web Bluetooth) */}
