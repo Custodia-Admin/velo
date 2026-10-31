@@ -13,7 +13,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type * as Cesium from 'cesium';
-import { PerfReadout } from '@/components/velo/PerfOverlay';
+import { PerfReadout, perfOverlayRequested } from '@/components/velo/PerfOverlay';
 import { EMPTY_PERF, attachScenePerf, getPerfSnapshot, PUBLISH_MS, type ScenePerf } from '@/lib/perf/scenePerf';
 
 type Listener = (...args: unknown[]) => void;
@@ -138,5 +138,20 @@ describe('perf overlay exposes fps', () => {
     const viewerSrc = readFileSync(join(ROOT, 'src/renderers/cesium/CesiumWorldView.tsx'), 'utf8');
     expect(ride).toMatch(/<PerfOverlay\b/);
     expect(viewerSrc).toMatch(/attachScenePerf\(/);
+  });
+
+  it('?perf=1 sticks for the session so the overlay survives the Home → ride click', () => {
+    const store = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    };
+    expect(perfOverlayRequested('', storage)).toBe(false);
+    expect(perfOverlayRequested('?perf=1', storage)).toBe(true);
+    expect(perfOverlayRequested('', storage)).toBe(true); // /ride, no query
+    expect(perfOverlayRequested('?perf=0', storage)).toBe(false);
+    expect(perfOverlayRequested('', storage)).toBe(false);
+    expect(perfOverlayRequested('?perf=1', null)).toBe(true);
   });
 });

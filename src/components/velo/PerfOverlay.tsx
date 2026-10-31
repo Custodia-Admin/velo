@@ -1,8 +1,7 @@
 /**
  * Ride-view performance readout: frame rate, frame time (mean / p95 / share
  * of frames slower than 30 fps), tile streaming, and the render settings that
- * drive them. Off unless the page is opened with ?perf=1 (same pattern as
- * ?ctrldebug=1). The numbers are the ones window.__veloPerf() returns, so a
+ * drive them. Off unless ?perf=1 was opened this session (Home or ride). The numbers are the ones window.__veloPerf() returns, so a
  * screenshot from the rider matches scripts/perf-ride.py.
  */
 
@@ -14,9 +13,36 @@ import { JANK_MS } from '@/lib/perf/frameStats';
 import { QUALITY_LABELS, type GraphicsQuality } from '@/lib/graphicsQuality';
 import { useSettingsStore } from '@/stores/settingsStore';
 
+const PERF_FLAG_KEY = 'velo.perfOverlay';
+
+/**
+ * ?perf=1 turns the overlay on for the rest of the browser session (the ride
+ * is reached by clicking a route, which drops the query string, and a reload
+ * of /ride returns to Home); ?perf=0 turns it off.
+ */
+export function perfOverlayRequested(
+  search: string,
+  storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null,
+): boolean {
+  const flag = new URLSearchParams(search).get('perf');
+  try {
+    if (flag === '1') storage?.setItem(PERF_FLAG_KEY, '1');
+    if (flag === '0') storage?.removeItem(PERF_FLAG_KEY);
+    return flag === '1' || (flag !== '0' && storage?.getItem(PERF_FLAG_KEY) === '1');
+  } catch {
+    return flag === '1';
+  }
+}
+
 function urlAsksForPerf(): boolean {
   if (typeof window === 'undefined') return false;
-  return new URLSearchParams(window.location.search).get('perf') === '1';
+  let storage: Storage | null = null;
+  try {
+    storage = window.sessionStorage;
+  } catch {
+    storage = null;
+  }
+  return perfOverlayRequested(window.location.search, storage);
 }
 
 const noopSubscribe = () => () => undefined;
