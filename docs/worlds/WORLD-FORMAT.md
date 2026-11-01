@@ -76,7 +76,7 @@ Validated by `validateManifest()`; schema in
 | `layers` | File name per layer: `roads`, `water`, `landcover`, `buildings`, `vegetation`, `routes`. |
 | `files[]` | `{ path, bytes, sha256, compression, contentBytes, contentSha256 }` for every file except the manifest. |
 | `moods`, `defaultMood` | Scene moods that suit the world (ids from the mood catalogue). |
-| `pois[]` | `{ name, kind, x, y, h, osm }`, kind ∈ town, village, peak, viewpoint, landmark, church. `h` is the ground height there. |
+| `pois[]` | `{ name, kind, rank?, x, y, h, osm }`, kind ∈ town, village, peak, viewpoint, landmark, church. `h` is the ground height there. `rank` (1–3) is label prominence: 3 towns, 2 places with a Wikipedia/Wikidata tag or ≥ 1,000 people, 1 the rest. Bundles baked before ranks omit it; renderers then rank by kind. |
 | `routes[]` | `{ id, name, lengthM, maxGapM, gradeMeanAbsDiffPct }` per snapped scenic route (ids match `src/lib/scenicRoutes.ts`). |
 | `stats` | Counts (roads, buildings, trees, …) for logs and UI. |
 | `credits[]` | `{ id, name, licence, url, attribution }`: show these wherever the world is shown. |
@@ -178,16 +178,18 @@ clipped to the extent, simplified at 3 m, and dropped below 200 m².
 
 ## buildings.bin
 
-Little-endian, outer rings only (v1):
+Little-endian, outer rings only. `VWB2` (current) is `VWB1` plus one district
+byte per building; loaders read both (a `VWB1` bundle reads as all suburb):
 
 | Offset | Type | Content |
 | --- | --- | --- |
-| 0 | 4 bytes | magic `VWB1` |
+| 0 | 4 bytes | magic `VWB2` (or `VWB1`) |
 | 4 | u32 | `count` buildings |
 | 8 | u32 | `totalVerts` |
 | 12 | u16 × count | vertex count per building |
 | … | u16 × count | height, decimetres above ground |
 | … | u8 × count | kind (index into `BUILDING_KINDS`: generic, house, apartments, church, industrial, shed, civic) |
+| … | u8 × count | `VWB2` only: district (index into `BUILDING_DISTRICTS`: suburb, old-town, rural, industrial) |
 | … | 0–3 bytes | padding to a 4-byte boundary |
 | … | (i32, i32) × count | first vertex (x, y) of each building, dm |
 | … | (i16, i16) × (totalVerts − count) | remaining vertices as deltas from the previous vertex, dm, building by building |
@@ -195,6 +197,14 @@ Little-endian, outer rings only (v1):
 Rings are counter-clockwise (walls extrude outward), open, at least 3
 vertices. Heights come from `height`, else `building:levels × 3.2 + 1` m, else
 a default per building type. Buildings under 8 m² are dropped.
+
+Districts come from the built fabric (`classifyDistricts` in
+`tools/worldbake/buildVectors.mjs`): industrial kinds or industrial landcover →
+industrial; fewer than 5 buildings within 120 m → rural; footprints covering
+≥ 36 % of a 70 m disc, among neighbours that are mostly that dense too →
+old-town (Perugia's and Assisi's medieval cores); everything else suburb.
+Renderers pick palettes and massing per district (stone old towns, plaster
+suburbs, casali in the country, panel sheds on estates).
 
 ## vegetation.bin
 
@@ -208,14 +218,21 @@ Tree instance seeds:
 | 12 | u32 | reserved (0) |
 | 16 | u16 × count | x = `extent.xMin + qx·quantum` |
 | … | u16 × count | y = `extent.yMin + qy·quantum` |
-| … | u8 × count | kind (index into `VEGETATION_KINDS`: broadleaf, conifer, scrub, olive, park) |
+| … | u8 × count | kind (index into `VEGETATION_KINDS`: broadleaf, conifer, scrub, olive, park, cypress, riparian, hedgerow, garden) |
 | … | u8 × count | seed byte (scale, rotation, variant) |
 
-Seeds come from a jittered lattice per kind (forest 11 m, scrub 16 m,
-orchard/olive grove 7 m, park 20 m), kept where the point falls inside the OSM
-polygon, then thinned uniformly to the recipe's `maxInstances` (160,000 for
-Perugia: about 1 in 5 of the lattice). Renderers may scatter more around the
-camera using the same polygons.
+Woodland seeds come from a jittered lattice per kind (forest 11 m, scrub
+16 m, orchard/olive grove 7 m, park 20 m), kept where the point falls inside
+the OSM polygon. Character kinds follow lines (`CHARACTER_DEFAULTS`, overridable
+per recipe under `vegetation.character`): cypress rows round cemeteries
+(5 m), poplars and willows along both banks of rivers and streams (9 m),
+sparse field-edge trees on farmland boundaries (hedgerow), OSM
+`natural=tree_row` ways (7 m), garden trees in residential land, and lone oaks
+in fields (broadleaf). Every seed keeps 1.8 m clear of road edges, 1.5 m of
+building walls and out of open water. Character kinds are kept whole;
+woodland is thinned uniformly to fit the recipe's `maxInstances` (480,000
+for Perugia). Renderers draw a subset around the camera (the three.js
+'balanced' tier caps at 150,000).
 
 ## Loading
 

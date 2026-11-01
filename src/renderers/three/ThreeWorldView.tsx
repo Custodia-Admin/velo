@@ -15,30 +15,39 @@ import { BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, ToneMa
 import * as THREE from 'three';
 
 import { useRouteWeather } from '@/hooks/useLiveWeather';
-import { resolveSceneWeather, type SceneWeather } from '@/lib/meteo/sceneWeather';
+import type { WeatherCondition } from '@/lib/meteo/sceneWeather';
 import { EMPTY_TILES, FrameStats } from '@/lib/perf/frameStats';
 import { exposeScenePerf, IDLE_GAP_MS, PUBLISH_MS, publishScenePerf, type ScenePerf } from '@/lib/perf/scenePerf';
+import { sampleRouteAtDistance } from '@/lib/gpxParser';
 import { scenicRouteById } from '@/lib/scenicRoutes';
 import { chaseFraming } from '@/lib/world/cameraFraming';
 import { worldForRoute, worldUrl, type WorldCatalogEntry } from '@/lib/world/catalog';
 import { loadWorld, type LoadedWorld } from '@/lib/world/loadWorld';
+import { TIME_PRESETS, type TimePreset, type WorldLightInput } from '@/lib/world/moods';
 import type { RiderPose, WorldRenderer, WorldViewProps } from '@/lib/world/renderer';
 import { activeSteer } from '@/stores/controllerStore';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import type { Route } from '@/types';
 
+import { Buildings, StreetLights } from './Buildings';
 import { ChaseCamera } from './ChaseCamera';
 import { Ghosts } from './Ghosts';
+import { Landmarks } from './Landmarks';
 import { buildLandcoverCanvas } from './landcoverTexture';
+import { createAtmosphere } from './materials/atmosphere';
 import { renderDpr, threeQuality, type ThreeQuality } from './quality';
 import { LiveRider, PaceBots, preloadRider } from './Rider';
 import { createRideDriverMemo, driveRideFrame } from './rideDriver';
 import { RouteLine, Roads } from './Roads';
-import { Sky } from './Sky';
+import { createLightState, Sky, type LightState } from './Sky';
 import { DEFAULT_MOOD } from './skyModel';
+import { SunOcclusion } from './sunOcclusion';
 import { Terrain } from './Terrain';
 import { createThreeWorldRenderer } from './threeWorldRenderer';
+import { Vegetation } from './Vegetation';
+import { Water } from './Water';
+import { Weather } from './Weather';
 import { ChunkVisibility, createRideFrame, createSceneWorld, type RideFrame, type SceneWorld } from './worldScene';
 
 preloadRider();
@@ -166,17 +175,37 @@ function DebugHook({
   meter,
   visibility,
   tier,
+  lightState,
+  stats,
 }: {
   sceneWorld: SceneWorld;
   frame: RideFrame;
   meter: FrameStats;
   visibility: ChunkVisibility;
   tier: string;
+  lightState: LightState;
+  stats: { trees: number };
 }) {
   const gl = useThree((s) => s.gl);
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
+  const scene = useThree((s) => s.scene);
   const info = useMemo(() => ({ calls: 0, triangles: 0, lastPublish: 0 }), []);
+  useEffect(() => {
+    // Scene handle for perf/visual probes: dev builds, or `localStorage['velo.debug.three'] = '1'`.
+    let opted = false;
+    try {
+      opted = window.localStorage.getItem('velo.debug.three') === '1';
+    } catch {
+      opted = false;
+    }
+    if (!import.meta.env.DEV && !opted) return;
+    const w = window as unknown as { __veloThree?: unknown };
+    w.__veloThree = { scene, camera, gl };
+    return () => {
+      delete w.__veloThree;
+    };
+  }, [scene, camera, gl]);
   const perfSnapshot = useCallback((): ScenePerf => {
     const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
     return {
@@ -236,13 +265,25 @@ function DebugHook({
         nearChunks: visibility.count(),
         drawCalls: info.calls,
         triangles: info.triangles,
+        trees: stats.trees,
+        light: lightState.current
+          ? {
+              phase: lightState.current.phase,
+              at: lightState.current.at.toISOString(),
+              timeSource: lightState.current.timeSource,
+              sunAltitude: Math.round(lightState.current.sun.altitudeDeg * 10) / 10,
+              condition: lightState.current.weather.condition,
+              weatherSource: lightState.current.weather.source,
+              rain: lightState.current.weather.rain,
+            }
+          : null,
         ...meter.snapshot(),
       };
     };
     return () => {
       delete w.__veloRideDebug;
     };
-  }, [sceneWorld, frame, meter, visibility, camera, gl, size, tier, info]);
+  }, [sceneWorld, frame, meter, visibility, camera, gl, size, tier, info, lightState, stats]);
   return null;
 }
 
@@ -251,7 +292,7 @@ function WorldScene({
   route,
   quality,
   tier,
-  mood,
+  lightInput,
   override,
   onReady,
   onDpr,
@@ -260,7 +301,7 @@ function WorldScene({
   route: Route;
   quality: ThreeQuality;
   tier: string;
-  mood: string;
+  lightInput: Omit<WorldLightInput, 'date'>;
   override: { current: RiderPose | null };
   onReady: () => void;
   onDpr: (dpr: number) => void;
@@ -268,7 +309,15 @@ function WorldScene({
   const frame = useMemo(() => createRideFrame(), []);
   const meter = useMemo(() => new FrameStats(), []);
   const visibility = useMemo(() => new ChunkVisibility(sceneWorld.chunks.length), [sceneWorld]);
-  const landcover = useMemo(() => {
+  const atmo = useMemo(() => createAtmosphere(), []);
+  const lightState = useMemo(() => createLightState(), []);
+  const stats = useMemo(() => ({ trees: 0 }), []);
+  const occlusion = useMemo(
+    () => (quality.occlusionScale > 0 ? new SunOcclusion(sceneWorld.heightfield, { scale: quality.occlusionScale }) : null),
+    [sceneWorld, quality.occlusionScale],
+  );
+  useEffect(() => () => occlusion?.dispose(), [occlusion]);
+  const maps = useMemo(() => {
     const lc = buildLandcoverCanvas(sceneWorld.world, quality.landcoverTexels);
     if (!lc) return null;
     const tex = new THREE.CanvasTexture(lc.canvas);
@@ -278,18 +327,40 @@ function WorldScene({
     tex.generateMipmaps = true;
     tex.minFilter = THREE.LinearMipmapLinearFilter;
     tex.needsUpdate = true;
-    return tex;
+    let aux: THREE.Texture | null = null;
+    if (lc.aux) {
+      const t = new THREE.CanvasTexture(lc.aux);
+      t.colorSpace = THREE.NoColorSpace;
+      t.flipY = false;
+      t.generateMipmaps = false;
+      t.minFilter = THREE.NearestFilter;
+      t.magFilter = THREE.NearestFilter;
+      t.needsUpdate = true;
+      aux = t;
+    }
+    return { landcover: tex, aux };
   }, [sceneWorld, quality.landcoverTexels]);
-  useEffect(() => () => landcover?.dispose(), [landcover]);
-  const start = route.points[0];
+  useEffect(
+    () => () => {
+      maps?.landcover.dispose();
+      maps?.aux?.dispose();
+    },
+    [maps],
+  );
   return (
     <>
       <DprController quality={quality} onDpr={onDpr} />
       <RideDriver sceneWorld={sceneWorld} frame={frame} override={override} />
-      <Sky frame={frame} mood={mood} lat={start.lat} lon={start.lon} quality={quality} />
-      <Terrain sceneWorld={sceneWorld} quality={quality} landcover={landcover} visibility={visibility} />
-      <Roads sceneWorld={sceneWorld} visibility={visibility} quality={quality} />
-      <RouteLine sceneWorld={sceneWorld} route={route} />
+      <Sky frame={frame} lightInput={lightInput} quality={quality} atmo={atmo} occlusion={occlusion} lightState={lightState} />
+      <Terrain sceneWorld={sceneWorld} quality={quality} landcover={maps?.landcover ?? null} aux={maps?.aux ?? null} atmo={atmo} visibility={visibility} />
+      <Water sceneWorld={sceneWorld} atmo={atmo} />
+      <Roads sceneWorld={sceneWorld} visibility={visibility} quality={quality} atmo={atmo} />
+      <RouteLine sceneWorld={sceneWorld} route={route} atmo={atmo} />
+      <Buildings sceneWorld={sceneWorld} quality={quality} atmo={atmo} />
+      <StreetLights sceneWorld={sceneWorld} atmo={atmo} />
+      <Vegetation sceneWorld={sceneWorld} quality={quality} atmo={atmo} stats={stats} />
+      <Weather quality={quality} atmo={atmo} lightState={lightState} />
+      <Landmarks sceneWorld={sceneWorld} quality={quality} />
       <ChaseCamera frame={frame} heightfield={sceneWorld.heightfield} />
       <Ghosts sceneWorld={sceneWorld} route={route} />
       <Suspense fallback={null}>
@@ -298,7 +369,7 @@ function WorldScene({
         <ReadySignal onReady={onReady} />
       </Suspense>
       {quality.postFx && <PostFx />}
-      <DebugHook sceneWorld={sceneWorld} frame={frame} meter={meter} visibility={visibility} tier={tier} />
+      <DebugHook sceneWorld={sceneWorld} frame={frame} meter={meter} visibility={visibility} tier={tier} lightState={lightState} stats={stats} />
     </>
   );
 }
@@ -316,17 +387,38 @@ class WorldErrorBoundary extends Component<{ onError: (e: unknown) => void; chil
   }
 }
 
-/** The mood the route asks for: pinned override → live weather → route mood → world default. */
-function useRouteMood(route: Route | null, world: LoadedWorld | null, override: string | null): string {
+/**
+ * What the world's light is computed from (all but the clock): the route's
+ * own mood (or a pinned one), the live reading and the rider's live-weather
+ * setting, plus any preview pins (time of day / weather).
+ */
+function useLightInput(
+  route: Route | null,
+  world: LoadedWorld | null,
+  moodOverride: string | null,
+  pins: { time: TimePreset | null; weather: WeatherCondition | null },
+): Omit<WorldLightInput, 'date'> {
   const liveWeatherEnabled = useSettingsStore((s) => s.liveWeatherEnabled);
   const entry = useRouteWeather(route);
   const live = entry?.status === 'ready' ? entry.weather : null;
   return useMemo(() => {
-    if (override) return override;
+    const start = route?.points[0];
     const canned = (route ? scenicRouteById(route.id)?.mood : undefined) ?? world?.manifest.defaultMood ?? DEFAULT_MOOD;
-    return resolveSceneWeather(canned as SceneWeather['mood'], live, liveWeatherEnabled).mood;
-  }, [override, route, world, live, liveWeatherEnabled]);
+    return {
+      lat: start?.lat ?? world?.manifest.origin.lat ?? 0,
+      lon: start?.lon ?? world?.manifest.origin.lon ?? 0,
+      mood: moodOverride ?? canned,
+      // A pinned mood is a look on its own: live weather doesn't override it.
+      live: moodOverride ? null : live,
+      liveEnabled: moodOverride ? false : liveWeatherEnabled,
+      time: pins.time,
+      weather: pins.weather,
+      groundMinM: world?.manifest.heightfield.minHeight,
+    };
+  }, [route, world, moodOverride, live, liveWeatherEnabled, pins.time, pins.weather]);
 }
+
+const PIN_WEATHER: readonly WeatherCondition[] = ['clear', 'partly-cloudy', 'overcast', 'fog', 'drizzle', 'rain', 'snow', 'storm'];
 
 export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
   const route = useRideStore((s) => s.route);
@@ -342,6 +434,7 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
   const [failed, setFailed] = useState(false);
   const override = useRef<RiderPose | null>(null);
   const [moodOverride, setMoodOverride] = useState<string | null>(null);
+  const [pins, setPins] = useState<{ time: TimePreset | null; weather: WeatherCondition | null }>({ time: null, weather: null });
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   const onUnavailableRef = useRef(onUnavailable);
@@ -370,7 +463,52 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
 
   const world = loaded && entry && loaded.id === entry.id ? loaded.world : null;
   const sceneWorld = useMemo(() => (world ? createSceneWorld(world) : null), [world]);
-  const mood = useRouteMood(route, world, moodOverride);
+  const lightInput = useLightInput(route, world, moodOverride, pins);
+
+  // Preview / reference-shot hook: pin the time of day and the weather, or
+  // hold the rider at a distance along the route (null releases it).
+  const routeRef = useRef(route);
+  routeRef.current = route;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const w = window as unknown as {
+      __veloWorldLight?: {
+        set: (p: { time?: string | null; weather?: string | null }) => void;
+        place: (distanceM: number | null) => void;
+      };
+    };
+    w.__veloWorldLight = {
+      place: (distanceM) => {
+        const r = routeRef.current;
+        if (distanceM === null || !r) {
+          override.current = null;
+          return;
+        }
+        const a = sampleRouteAtDistance(r, distanceM);
+        const b = sampleRouteAtDistance(r, distanceM + 12);
+        const dy = (b.lat - a.lat) * 111_320;
+        const dx = (b.lon - a.lon) * 111_320 * Math.cos((a.lat * Math.PI) / 180);
+        override.current = {
+          lat: a.lat,
+          lon: a.lon,
+          ele: a.ele,
+          heading: Math.atan2(dx, dy),
+          grade: ((b.ele - a.ele) / 12) * 100,
+          speed: 8,
+          distance: distanceM,
+          laneOffsetM: 0,
+        };
+      },
+      set: (p) =>
+        setPins((cur) => ({
+          time: p.time === undefined ? cur.time : TIME_PRESETS.includes(p.time as TimePreset) ? (p.time as TimePreset) : null,
+          weather: p.weather === undefined ? cur.weather : PIN_WEATHER.includes(p.weather as WeatherCondition) ? (p.weather as WeatherCondition) : null,
+        })),
+    };
+    return () => {
+      delete w.__veloWorldLight;
+    };
+  }, []);
 
   const renderer = useMemo<WorldRenderer>(
     () =>
@@ -419,7 +557,7 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
               route={route}
               quality={quality}
               tier={tier}
-              mood={mood}
+              lightInput={lightInput}
               override={override}
               onReady={handleReady}
               onDpr={setDpr}
