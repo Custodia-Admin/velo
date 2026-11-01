@@ -91,6 +91,7 @@ export function useVoiceControl(): UseVoiceControlReturn {
         case 'endRideConfirmed': {
           if (!awaitingEndConfirmRef.current) break;
           cancelEndRideTimer();
+          if (rideState.rideState !== 'running' && rideState.rideState !== 'paused') break;
           confirm('Ending ride.', vol, rate);
           rideState.finish();
           break;
