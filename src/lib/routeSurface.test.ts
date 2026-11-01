@@ -241,4 +241,35 @@ describe('createRoadEntity', () => {
     handle.destroy();
     expect(entities).toHaveLength(0);
   });
+
+  it('setCorridorVisible toggles only the corridor, not the centre line', () => {
+    const { viewer } = makeMockViewer();
+    const handle = createRoadEntity(viewer, route, cartesians);
+    expect(handle.entity.show).toBe(true);
+    expect(handle.centerline.show).toBe(true);
+    // Photoreal tileset shown → corridor band hidden (grey-frame stuck-state
+    // workaround, card t_0bcacadb); route lines stay for readability.
+    handle.setCorridorVisible(false);
+    expect(handle.entity.show).toBe(false);
+    expect(handle.centerline.show).toBe(true);
+    handle.setCorridorVisible(true);
+    expect(handle.entity.show).toBe(true);
+  });
+
+  it('setCorridorVisible does not re-assign an unchanged show value', () => {
+    const { viewer } = makeMockViewer();
+    const handle = createRoadEntity(viewer, route, cartesians);
+    let changes = 0;
+    const sub = handle.entity.definitionChanged.addEventListener(() => {
+      changes += 1;
+    });
+    handle.setCorridorVisible(true); // already visible
+    expect(changes).toBe(0);
+    handle.setCorridorVisible(false);
+    const afterRealChange = changes;
+    expect(afterRealChange).toBeGreaterThan(0);
+    handle.setCorridorVisible(false); // unchanged again → no new events
+    sub();
+    expect(changes).toBe(afterRealChange);
+  });
 });

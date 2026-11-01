@@ -155,6 +155,18 @@ export interface RoadEntityHandle {
   entity: Cesium.Entity;
   /** Dashed centre-line polyline riding on the corridor. */
   centerline: Cesium.Entity;
+  /**
+   * Show/hide the asphalt corridor band (the centre line and route lines stay).
+   *
+   * The corridor is a CLAMP_TO_GROUND GroundPrimitive: over the streaming
+   * Google Photorealistic tileset its classification intermittently latches
+   * into a full-frame grey stuck-state during tile LOD churn near a low
+   * camera (CesiumGS/cesium#6461/#8953/#11291/#12541 family; not fixed by
+   * cesium 1.146, log-depth off, or TERRAIN-only classification — see card
+   * t_0bcacadb).  The photoreal mesh already renders the real road, so the
+   * caller hides the band while the photoreal tileset is shown.
+   */
+  setCorridorVisible(visible: boolean): void;
   destroy(): void;
 }
 
@@ -216,6 +228,9 @@ export function createRoadEntity(
   return {
     entity,
     centerline,
+    setCorridorVisible(visible: boolean) {
+      if (entity.show !== visible) entity.show = visible;
+    },
     destroy() {
       if (viewer.isDestroyed()) return;
       viewer.entities.remove(entity);
