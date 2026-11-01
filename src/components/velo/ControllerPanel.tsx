@@ -3,21 +3,25 @@
  * Renders nothing in browsers without Web Bluetooth.
  */
 
-import { useId, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/velo/Switch';
 import { UnlockSteps } from '@/components/velo/UnlockSteps';
+import { BatteryReading } from '@/components/velo/BatteryReading';
 import { cn } from '@/lib/utils';
 import {
   buzzRideController,
   disconnectRideController,
+  findGrantedController,
   isRideControllerSupported,
   pairRideController,
+  reconnectGrantedController,
   reconnectRideController,
 } from '@/lib/controllers/rideController';
-import { ACTION_LEGEND } from '@/lib/controllers/controllerActions';
+import { ACTION_LEGEND, SHOW_LEGEND, type LegendRow } from '@/lib/controllers/controllerActions';
 import {
+  ASLEEP_TEXT,
   LOCKED_INTRO,
   MAYBE_RIGHT_TEXT,
   PAIR_OTHER_LABEL,
@@ -28,10 +32,51 @@ import {
 } from '@/lib/controllers/controllerView';
 import { useControllerStore } from '@/stores/controllerStore';
 
-const ASLEEP_TEXT = 'The controls went to sleep. Press any button on the bars, then reconnect.';
 const WAITING_TEXT = 'Press a shift paddle: the gear in the ride view should change.';
 
 const noopSubscribe = () => () => undefined;
+
+function Legend({ rows }: { rows: ReadonlyArray<LegendRow> }) {
+  return (
+    <dl className="grid grid-cols-1 gap-x-6 gap-y-2 pt-2 sm:grid-cols-2">
+      {rows.map((row) => (
+        <div key={row.controls} className="flex flex-col gap-1">
+          <dt className="font-semibold text-foreground">{row.controls}</dt>
+          <dd className="text-muted-foreground">{row.action}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** One labelled on/off row (label, one-line hint, switch). */
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  const labelId = useId();
+  const hintId = useId();
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-1">
+        <span id={labelId} className="text-sm font-semibold text-foreground">
+          {label}
+        </span>
+        <span id={hintId} className="text-sm text-muted-foreground">
+          {hint}
+        </span>
+      </div>
+      <Switch checked={checked} onChange={onChange} labelledBy={labelId} describedBy={hintId} />
+    </div>
+  );
+}
 
 function Note({ children }: { children: ReactNode }) {
   return (
@@ -54,24 +99,36 @@ export function ControllerPanel() {
   const errorMessage = useControllerStore((s) => s.errorMessage);
   const steeringEnabled = useControllerStore((s) => s.steeringEnabled);
   const setSteeringEnabled = useControllerStore((s) => s.setSteeringEnabled);
+  const gearBuzz = useControllerStore((s) => s.gearBuzz);
+  const setGearBuzz = useControllerStore((s) => s.setGearBuzz);
   const debugOverlay = useControllerStore((s) => s.debugOverlay);
   const setDebugOverlay = useControllerStore((s) => s.setDebugOverlay);
   const titleId = useId();
   const statusId = useId();
-  const steerLabelId = useId();
-  const steerHintId = useId();
-  const debugLabelId = useId();
-  const debugHintId = useId();
   // After a pairing attempt that didn't connect (chooser empty or closed),
   // offer the unfiltered chooser too.
   const [tried, setTried] = useState(false);
+  // Controls paired in an earlier session: one tap, no chooser. Reading the
+  // grant list (getDevices) sends nothing to any device.
+  const [granted, setGranted] = useState<string | null>(null);
+  useEffect(() => {
+    if (!supported || status !== 'idle') return undefined;
+    let cancelled = false;
+    void findGrantedController().then((dev) => {
+      if (!cancelled) setGranted(dev ? (dev.name ?? 'Handlebar controls') : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [supported, status]);
 
   if (!supported) return null;
 
   const phase = controllerPhase({ status, silent, side, inputSeen });
   const busy = status === 'connecting' || status === 'reconnecting';
   const live = status === 'connected' || status === 'reconnecting';
-  const statusLine = panelStatusLine(phase, side, buzz, battery);
+  const statusLine = panelStatusLine(phase, side, buzz);
+  const connected = phase === 'waiting' || phase === 'live' || phase === 'rightSide' || phase === 'silent';
   const pairOther = (
     <Button variant="outline" onClick={() => void pairRideController()}>
       {PAIR_OTHER_LABEL}
@@ -87,6 +144,11 @@ export function ControllerPanel() {
   if (status === 'idle' || status === 'error') {
     actions = (
       <>
+        {granted && status === 'idle' && !tried && (
+          <Button variant="outline" onClick={() => void reconnectGrantedController()}>
+            Reconnect {granted}
+          </Button>
+        )}
         <Button
           variant="outline"
           onClick={() => {
@@ -116,7 +178,7 @@ export function ControllerPanel() {
         <Button variant="outline" onClick={() => void reconnectRideController()}>
           {status === 'locked' ? 'Try again' : 'Reconnect'}
         </Button>
-        <Button variant="ghost" onClick={() => void disconnectRideController()}>
+        <Button variant="ghost" onClick={() => void disconnectRideController({ forget: true })}>
           Forget
         </Button>
       </>
@@ -141,7 +203,7 @@ export function ControllerPanel() {
   } else {
     actions = (
       <>
-        <Button variant="outline" disabled={status !== 'connected'} onClick={buzzRideController}>
+        <Button variant="outline" disabled={status !== 'connected'} onClick={() => void buzzRideController('test')}>
           Test buzz
         </Button>
         <Button variant="outline" onClick={() => void disconnectRideController()}>
@@ -160,10 +222,12 @@ export function ControllerPanel() {
           </h3>
           {status === 'idle' ? (
             <span id={statusId} className="text-sm text-muted-foreground">
-              Shift gears, set how hard the hills feel and steer from the bars.
+              {granted
+                ? 'Paired before. Velo reconnects them by itself when you start a ride.'
+                : 'Shift gears, set how hard the hills feel and steer from the bars.'}
             </span>
           ) : (
-            <span id={statusId} className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <span id={statusId} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
               {live && (
                 <span
                   aria-hidden
@@ -176,6 +240,7 @@ export function ControllerPanel() {
                 />
               )}
               {statusLine}
+              {connected && battery !== null && <BatteryReading pct={battery} />}
             </span>
           )}
         </div>
@@ -200,56 +265,39 @@ export function ControllerPanel() {
 
       {live && (
         <>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <span id={steerLabelId} className="text-sm font-semibold text-foreground">
-                Steer with the levers
-              </span>
-              <span id={steerHintId} className="text-sm text-muted-foreground">
-                {steeringEnabled
-                  ? 'The bike follows the road; the levers move you across the lane.'
-                  : 'Off: the bike stays on the line.'}
-              </span>
-            </div>
-            <Switch
-              checked={steeringEnabled}
-              onChange={setSteeringEnabled}
-              labelledBy={steerLabelId}
-              describedBy={steerHintId}
-            />
-          </div>
+          <SwitchRow
+            label="Steer with the levers"
+            hint={
+              steeringEnabled
+                ? 'The bike follows the road; the levers move you across the lane.'
+                : 'Off: the bike stays on the line.'
+            }
+            checked={steeringEnabled}
+            onChange={setSteeringEnabled}
+          />
+          <SwitchRow
+            label="Buzz on gear change"
+            hint={gearBuzz ? 'A short buzz on the bars at every shift.' : 'Off: shifting is silent.'}
+            checked={gearBuzz}
+            onChange={setGearBuzz}
+          />
           <details className="group text-sm">
             <summary className="flex h-10 cursor-pointer items-center font-semibold text-foreground">
               What the buttons do
             </summary>
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-2 pt-2 sm:grid-cols-2">
-              {ACTION_LEGEND.map((row) => (
-                <div key={row.controls} className="flex flex-col gap-1">
-                  <dt className="font-semibold text-foreground">{row.controls}</dt>
-                  <dd className="text-muted-foreground">{row.action}</dd>
-                </div>
-              ))}
-            </dl>
+            <Legend rows={ACTION_LEGEND} />
+            <p className="pt-4 font-semibold text-foreground">While you watch a video</p>
+            <Legend rows={SHOW_LEGEND} />
           </details>
         </>
       )}
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <span id={debugLabelId} className="text-sm font-semibold text-foreground">
-            Controller debug
-          </span>
-          <span id={debugHintId} className="text-sm text-muted-foreground">
-            Shows the last raw messages in the ride view, for a screenshot.
-          </span>
-        </div>
-        <Switch
-          checked={debugOverlay}
-          onChange={setDebugOverlay}
-          labelledBy={debugLabelId}
-          describedBy={debugHintId}
-        />
-      </div>
+      <SwitchRow
+        label="Controller debug"
+        hint="Shows the last raw messages in the ride view, for a screenshot."
+        checked={debugOverlay}
+        onChange={setDebugOverlay}
+      />
     </section>
   );
 }

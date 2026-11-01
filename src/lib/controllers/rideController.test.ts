@@ -4,7 +4,11 @@ import {
   pairRideController,
   disconnectRideController,
   reconnectRideController,
+  reconnectGrantedController,
+  findGrantedController,
   buzzRideController,
+  BUZZ_MIN_GAP_MS,
+  LAST_CONTROLLER_KEY,
   onControllerButton,
   controllerDebug,
   detectControllerSide,
@@ -26,6 +30,7 @@ import {
   type RideButton,
 } from './rideProtocol';
 import { useControllerStore } from '@/stores/controllerStore';
+import { __resetRideSessionForTests, retainRideSession } from './rideSession';
 
 // ---- minimal Web Bluetooth fakes ----------------------------------------
 
@@ -56,6 +61,7 @@ class FakeChar extends EventTarget {
 }
 
 class FakeDevice extends EventTarget {
+  id = 'ride-left-id';
   name = 'Zwift SF2';
   async_ = new FakeChar();
   rx = new FakeChar();
@@ -146,6 +152,8 @@ beforeEach(() => {
 afterEach(async () => {
   await disconnectRideController();
   __setBluetoothForTests(null);
+  __resetRideSessionForTests();
+  useControllerStore.getState().setGearBuzz(true);
   useControllerStore.getState().resetGear();
   vi.useRealTimers();
 });
@@ -442,5 +450,243 @@ describe('buzz', () => {
     await Promise.resolve();
     await new Promise((r) => setTimeout(r, 0));
     expect(device.rx.writes).toContain('12 12 08 0a 06 08 02 10 00 18 20');
+  });
+});
+
+const BUZZ = '12 12 08 0a 06 08 02 10 00 18 20';
+const buzzes = () => device.rx.writes.filter((w) => w === BUZZ).length;
+
+describe('battery (standard Battery Service)', () => {
+  it('follows Battery Level notifications as well as the first read', async () => {
+    await pairRideController();
+    expect(st().battery).toBe(77);
+    device.bas.notify('4c'); // 76 %
+    expect(st().battery).toBe(76);
+    device.bas.notify('ff'); // out of spec: ignored
+    expect(st().battery).toBe(76);
+  });
+
+  it('a later drop stops the old battery listener; disconnect clears the reading', async () => {
+    await pairRideController();
+    await disconnectRideController();
+    expect(st().battery).toBeNull();
+    device.bas.notify('10');
+    expect(st().battery).toBeNull();
+  });
+});
+
+describe('gear buzz', () => {
+  it('only inside a ride session, only with the setting on, at most one per gap', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    await pairRideController();
+    const base = buzzes(); // the confirm buzz
+    expect(buzzRideController('gear')).toBe(false); // Home: no ride, no buzz
+    await vi.advanceTimersByTimeAsync(BUZZ_MIN_GAP_MS + 1);
+    expect(buzzes()).toBe(base);
+
+    const release = retainRideSession();
+    expect(buzzRideController('gear')).toBe(true);
+    expect(buzzRideController('gear')).toBe(false); // a fast double shift: one buzz
+    await vi.advanceTimersByTimeAsync(BUZZ_MIN_GAP_MS + 1);
+    expect(buzzRideController('gear')).toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(buzzes()).toBe(base + 2);
+
+    st().setGearBuzz(false);
+    await vi.advanceTimersByTimeAsync(BUZZ_MIN_GAP_MS + 1);
+    expect(buzzRideController('gear')).toBe(false);
+    // "Test buzz" is a tap: always allowed while connected.
+    expect(buzzRideController('test')).toBe(true);
+    release();
+    expect(buzzRideController('gear')).toBe(false);
+  });
+
+  it('never while reconnecting or asleep', async () => {
+    vi.useFakeTimers();
+    retainRideSession();
+    await pairRideController();
+    device.failConnect = true;
+    device.drop();
+    expect(buzzRideController('gear')).toBe(false);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(st().status).toBe('asleep');
+    expect(buzzRideController('test')).toBe(false);
+  });
+});
+
+/** In-memory localStorage + getDevices returning `granted`. */
+function grantedBrowser(granted: FakeDevice[]): Map<string, string> {
+  const map = new Map<string, string>();
+  vi.stubGlobal('localStorage', {
+    getItem: (k: string) => map.get(k) ?? null,
+    setItem: (k: string, v: string) => void map.set(k, v),
+    removeItem: (k: string) => void map.delete(k),
+  });
+  __setBluetoothForTests({
+    requestDevice: async () => device as unknown as BluetoothDevice,
+    getDevices: async () => granted as unknown as BluetoothDevice[],
+  });
+  return map;
+}
+
+describe('reconnect after a reload (granted devices)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('remembers the paired controls and reconnects them without the chooser', async () => {
+    const map = grantedBrowser([device]);
+    expect(await findGrantedController()).toBeNull(); // nothing paired yet
+    await pairRideController();
+    expect(JSON.parse(map.get(LAST_CONTROLLER_KEY)!)).toEqual({ id: 'ride-left-id', name: 'Zwift SF2' });
+    await disconnectRideController();
+    expect(await findGrantedController()).toBe(device);
+
+    let chooser = 0;
+    __setBluetoothForTests({
+      requestDevice: async () => {
+        chooser++;
+        return device as unknown as BluetoothDevice;
+      },
+      getDevices: async () => [device as unknown as BluetoothDevice],
+    });
+    device.rx.writes = [];
+    expect(await reconnectGrantedController()).toBe(true);
+    expect(chooser).toBe(0);
+    expect(st().status).toBe('connected');
+    expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e', BUZZ]);
+  });
+
+  it('two calls at once (StrictMode) make one attempt', async () => {
+    grantedBrowser([device]);
+    await pairRideController();
+    await disconnectRideController();
+    let connects = 0;
+    const connect = device.gatt.connect;
+    device.gatt.connect = async () => {
+      connects++;
+      return connect();
+    };
+    const [a, b] = await Promise.all([reconnectGrantedController(), reconnectGrantedController()]);
+    expect([a, b]).toEqual([true, true]);
+    expect(connects).toBe(1);
+    expect(await reconnectGrantedController()).toBe(true); // already connected
+  });
+
+  it('Forget drops the memory; an unreachable unit leaves a clean panel', async () => {
+    grantedBrowser([device]);
+    await pairRideController();
+    await disconnectRideController({ forget: true });
+    expect(await findGrantedController()).toBeNull();
+    expect(await reconnectGrantedController()).toBe(false);
+
+    await pairRideController();
+    await disconnectRideController();
+    device.failConnect = true;
+    expect(await reconnectGrantedController()).toBe(false);
+    expect(st().status).toBe('idle');
+    expect(st().deviceName).toBeNull();
+  });
+
+  it('locked on reconnect keeps the link for Try again', async () => {
+    grantedBrowser([device]);
+    await pairRideController();
+    await disconnectRideController();
+    device.hasRideService = false;
+    expect(await reconnectGrantedController()).toBe(false);
+    expect(st().status).toBe('locked');
+  });
+});
+
+/** watchAdvertisements on the fake that records watches; `wake()` sends one advert. */
+function wakeable(d: FakeDevice) {
+  const probe = { watches: 0, wake: () => d.dispatchEvent(new Event('advertisementreceived')) };
+  (d as unknown as { watchAdvertisements: () => Promise<void> }).watchAdvertisements = async () => {
+    probe.watches++;
+  };
+  return probe;
+}
+
+describe('reconnect on wake', () => {
+  it('asleep during a ride: a button press (advert) brings the controls back, with a buzz', async () => {
+    vi.useFakeTimers();
+    await pairRideController();
+    const probe = wakeable(device);
+    retainRideSession();
+    device.failConnect = true;
+    device.drop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(st().status).toBe('asleep');
+    expect(probe.watches).toBe(1);
+
+    device.failConnect = false;
+    device.rx.writes = [];
+    probe.wake();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(st().status).toBe('connected');
+    expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e', BUZZ]);
+  });
+
+  it('asleep on Home: nothing is sent until a ride opens, then the watch arms', async () => {
+    vi.useFakeTimers();
+    await pairRideController();
+    const probe = wakeable(device);
+    device.failConnect = true;
+    device.drop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(st().status).toBe('asleep');
+    expect(probe.watches).toBe(0);
+    device.rx.writes = [];
+    probe.wake();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(device.rx.writes).toEqual([]);
+
+    const release = retainRideSession();
+    expect(probe.watches).toBe(1);
+    release(); // leaving the ride stops it again
+    device.failConnect = false;
+    probe.wake();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(st().status).toBe('asleep');
+    expect(device.rx.writes).toEqual([]);
+  });
+
+  it('a wake that fails goes back to asleep and watches again', async () => {
+    vi.useFakeTimers();
+    retainRideSession();
+    await pairRideController();
+    const probe = wakeable(device);
+    device.failConnect = true;
+    device.drop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    probe.wake(); // still failing
+    await vi.advanceTimersByTimeAsync(10);
+    expect(st().status).toBe('asleep');
+    expect(probe.watches).toBe(2);
+  });
+
+  it('locked on wake: locked, no more watching', async () => {
+    vi.useFakeTimers();
+    retainRideSession();
+    await pairRideController();
+    const probe = wakeable(device);
+    device.failConnect = true;
+    device.drop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    device.failConnect = false;
+    device.hasRideService = false;
+    probe.wake();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(st().status).toBe('locked');
+    expect(probe.watches).toBe(1);
+  });
+});
+
+describe('no unrequested writes outside a ride', () => {
+  it('pairing writes RideOn + one confirm buzz, then nothing on its own', async () => {
+    vi.useFakeTimers();
+    await pairRideController();
+    device.async_.notify('23 08 ff bf ff ff 0f'); // shiftUpR on Home
+    device.async_.notify('19 08 50');
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e', BUZZ]);
   });
 });

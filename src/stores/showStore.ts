@@ -145,6 +145,28 @@ export function showIsPlaying(): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Player commands from outside the panel (handlebar buttons)
+// ---------------------------------------------------------------------------
+
+/** What the handlebar buttons can ask the show player to do. */
+export type ShowPlayerCommand = 'togglePlay' | 'next';
+
+const playerListeners = new Set<(cmd: ShowPlayerCommand) => void>();
+
+/** The player (the <video> element's owner) listens; nothing happens without one. */
+export function onShowPlayerCommand(listener: (cmd: ShowPlayerCommand) => void): () => void {
+  playerListeners.add(listener);
+  return () => playerListeners.delete(listener);
+}
+
+/** Ask the player to play/pause or skip to the next video. False when no player listens. */
+export function sendShowPlayerCommand(cmd: ShowPlayerCommand): boolean {
+  if (playerListeners.size === 0) return false;
+  for (const fn of [...playerListeners]) fn(cmd);
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 // Ride view lifetime
 // ---------------------------------------------------------------------------
 

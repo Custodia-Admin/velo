@@ -8,6 +8,8 @@ import {
   onReconnect,
   onTrainerData,
 } from '@/lib/ftms';
+import { trainerLost } from '@/lib/trainerReconnect';
+import { LOW_BATTERY_PCT, formatBattery } from '@/lib/controllers/battery';
 
 /**
  * Mount once at app root. Subscribes to the FTMS module's event hooks and
@@ -34,11 +36,11 @@ export function TrainerEventBridge(): null {
       const setBatteryLevel = useRideStore.getState().setBatteryLevel;
       const pushToast = useRideStore.getState().pushToast;
       setBatteryLevel(level);
-      if (level <= 15) {
+      if (level <= LOW_BATTERY_PCT) {
         pushToast({
           id: 'trainer-battery-low',
           kind: 'warning',
-          title: `Trainer battery low (${level}%)`,
+          title: `Trainer battery low (${formatBattery(level)})`,
           message:
             "If it dies mid-ride you'll lose resistance control. Plug in if you can.",
           durationMs: 8_000,
@@ -97,12 +99,15 @@ export function TrainerEventBridge(): null {
             durationMs: 4_000,
           });
           break;
-        case 'failed':
+        case 'failed': {
+          const lostName = st.deviceName;
           st.setConnection('disconnected', {
             deviceName: null,
             error: 'Auto-reconnect failed',
             code: 'reconnect-failed',
           });
+          // Reconnect on its own when it wakes up (during the ride).
+          const wakes = trainerLost(lostName);
           st.setReconnect(0, 0);
           // Fall back to demo so the ride doesn't freeze with zero speed.
           if (st.mode === 'trainer') st.setMode('demo');
@@ -111,10 +116,13 @@ export function TrainerEventBridge(): null {
             kind: 'error',
             title: "Couldn't reconnect after several attempts",
             message:
-              'Switched to Demo Mode so the ride keeps going. Re-pair the trainer when you can.',
+              wakes
+                ? 'Switched to Demo Mode so the ride keeps going. Pedal once to wake the trainer: it reconnects by itself.'
+                : 'Switched to Demo Mode so the ride keeps going. Pedal once to wake the trainer, then tap Reconnect.',
             durationMs: 10_000,
           });
           break;
+        }
       }
     });
   }, []);
