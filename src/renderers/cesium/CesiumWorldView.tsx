@@ -66,7 +66,7 @@ import {
 import { applyCinematicEffects, destroyCinematicEffects } from '@/lib/cinematicEffects';
 import { loadGhosts, type GhostRide } from '@/lib/ghosts';
 import { shouldChaseCamUpdate } from '@/lib/chaseCamGuard';
-import { stepLaneOffset } from '@/lib/laneOffset';
+import { createLaneState, stepLane } from '@/lib/controllers/steerFeel';
 import { activeSteer } from '@/stores/controllerStore';
 import type { AvatarColors } from '@/lib/avatarConfig';
 import { BOT_COLORWAYS } from '@/lib/paceBots';
@@ -282,7 +282,7 @@ export function CesiumWorldView({
   const lastCamPoseRef = useRef<CameraPose | null>(null);
   // Track which mode was active last frame so we can detect mode changes.
   const lastCamModeRef = useRef<string>('chase');
-  const laneOffsetRef = useRef(0);
+  const laneRef = useRef(createLaneState());
   // WorldRenderer.setRider: an outside driver's pose; null = the live ride.
   const riderOverrideRef = useRef<RiderPose | null>(null);
   // WorldRenderer.setMood: a pinned mood; null = route mood + live weather.
@@ -1021,14 +1021,14 @@ export function CesiumWorldView({
       if (!r || !avatarRef.current) return;
 
       // Handlebar steering: drift across the lane, back to the line on release.
-      laneOffsetRef.current = stepLaneOffset(laneOffsetRef.current, activeSteer(), dt);
+      stepLane(laneRef.current, activeSteer(), dt);
 
       // Rider pose from rideSim (or an outside driver via setRider), then the
       // scene height: GPX elevation on ion terrain, 0 m on the flat no-token globe.
       const pose =
         riderOverrideRef.current ??
         ridePose(r, state.distance, {
-          laneOffsetM: laneOffsetRef.current,
+          laneOffsetM: laneRef.current.offsetM,
           grade: state.grade,
           speed: state.speed,
         });

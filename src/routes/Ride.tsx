@@ -42,6 +42,8 @@ import { useHandlebarGestures } from '@/hooks/useHandlebarGestures';
 import { useRideControllerActions } from '@/hooks/useRideControllerActions';
 import { ControllerChip } from '@/components/velo/ControllerChip';
 import { reconnectGrantedTrainer } from '@/lib/trainerReconnect';
+import { retainRideSession } from '@/lib/controllers/rideSession';
+import { reconnectGrantedController } from '@/lib/controllers/rideController';
 import { ControllerDebugOverlay, useControllerDebugVisible } from '@/components/velo/ControllerDebugOverlay';
 import { PerfOverlay } from '@/components/velo/PerfOverlay';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
@@ -100,9 +102,14 @@ export function Ride() {
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
   const controllerDebugVisible = useControllerDebugVisible();
 
-  // A trainer paired in an earlier session reconnects on its own (no chooser).
+  // The ride session: devices may act on their own (reconnect, wake, gear
+  // buzz) only while it is open. The trainer and handlebar controls paired in
+  // an earlier session reconnect on their own (no chooser).
   useEffect(() => {
+    const release = retainRideSession();
     void reconnectGrantedTrainer({ silent: true });
+    void reconnectGrantedController();
+    return release;
   }, []);
 
   // ---- Show mode ----

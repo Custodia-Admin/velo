@@ -21,7 +21,13 @@ watchAdvertisements emits manufacturer data 0x094A → 08 = left, 07 = right):
   ride-silent-<vp>.png     in-ride chip, silent → Locked + recipe
   ride-debug-<vp>.png      debug overlay (Controller debug on) after presses
   ride-nocontrols-<vp>.png chip before any pairing
-Skip them with ONLY=base; run only them with ONLY=diag.
+Battery and reconnect (P2.5):
+  trainer-battery-low-<vp>.png  Battery Level notification 14 %: red battery reading
+  trainer-granted-<vp>.png      paired in an earlier session (fakeRideMode=granted):
+                                "Reconnect Zwift Ride", no write before the tap;
+                                prints the chip + writes after a ride opens
+                                (silent reconnect: RideOn + one confirm buzz)
+Skip them with ONLY=base; run only them with ONLY=diag (or ONLY=granted).
 """
 import os
 import re
@@ -84,9 +90,15 @@ localStorage.setItem('globeride.onboarding.v2', JSON.stringify({state:{hasSeenOn
   const bt = new EventTarget();
   bt.getAvailability = async () => true;
   bt.requestDevice = async () => device;
-  bt.getDevices = async () => [];
+  // 'granted': paired in an earlier session (getDevices + velo.lastController).
+  if (mode === 'granted') localStorage.setItem('velo.lastController', JSON.stringify({ id: 'fake-ride', name: 'Zwift Ride' }));
+  bt.getDevices = async () => (mode === 'granted' ? [device] : []);
   Object.defineProperty(navigator, 'bluetooth', { value: bt, configurable: true });
-  window.__fakeRide = { notify: (h) => asyncCh.notify(h), writes: () => rx.writes };
+  window.__fakeRide = {
+    notify: (h) => asyncCh.notify(h),
+    battery: (pct) => bas.notify(pct.toString(16).padStart(2, '0')),
+    writes: () => rx.writes,
+  };
 })();
 """
 
@@ -146,11 +158,17 @@ with sync_playwright() as p:
                 continue
 
             click_text(page, "Pair handlebar controls")
-            page.wait_for_selector("text=Left controller · connected · buzzed · battery 85 %", timeout=8000)
+            page.wait_for_selector("text=Left controller · connected · buzzed", timeout=8000)
+            page.wait_for_selector("[data-testid='battery-reading']:has-text('85 %')", timeout=8000)
             page.evaluate("window.__fakeRide.notify('15')")
             page.evaluate("window.__fakeRide.notify('23 08 ff ff ff ff 0f')")
             page.locator("summary", has_text="What the buttons do").click()
             shot_trainer(page, f"trainer-connected-{suffix}")
+            # Battery Level notification: low battery reads destructive.
+            page.evaluate("window.__fakeRide.battery(14)")
+            page.wait_for_selector("[data-testid='battery-reading'][data-band='low']", timeout=4000)
+            shot_trainer(page, f"trainer-battery-low-{suffix}")
+            page.evaluate("window.__fakeRide.battery(85)")
 
             if scheme == "dark":
                 # Ride page: two shift-up presses, check the chip and that the
@@ -217,6 +235,20 @@ with sync_playwright() as p:
         page.wait_for_selector(TRAINER, timeout=20000)
         page.wait_for_timeout(1000)
         return ctx, page
+
+    for vp in (VIEWPORTS if only in ("", "granted") and not before else []):
+        # Paired in an earlier session: one-tap reconnect on Home (no chooser,
+        # nothing sent until the tap), and the silent reconnect when a ride opens.
+        ctx, page = diag_ctx(vp, "granted")
+        page.wait_for_selector("text=Reconnect Zwift Ride", timeout=8000)
+        print(vp, "granted: writes before any tap:", page.evaluate("window.__fakeRide.writes().length"))
+        shot_trainer(page, f"trainer-granted-{vp}")
+        ride_page(page)
+        page.wait_for_timeout(3500)
+        print(vp, "granted: ride-start chip:", chip_text(page))
+        writes = page.evaluate("window.__fakeRide.writes().map(w => w.map(b => b.toString(16).padStart(2,'0')).join(' '))")
+        print(vp, "granted: writes after ride start:", writes)
+        ctx.close()
 
     for vp in (VIEWPORTS if only in ("", "diag") and not before else []):
         # Right controller picked.

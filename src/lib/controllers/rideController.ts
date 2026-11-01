@@ -10,7 +10,6 @@
  */
 
 import {
-  BATTERY_LEVEL,
   BATTERY_SERVICE,
   MSG_BATTERY,
   MSG_KEYPAD,
@@ -35,7 +34,19 @@ import {
   type RideButton,
 } from '@/lib/controllers/rideProtocol';
 import { actionFor } from '@/lib/controllers/controllerActions';
+import { watchBattery, type BatteryWatch } from '@/lib/controllers/battery';
+import {
+  CONTROLLER_RETRY_DELAYS_MS,
+  findGrantedDevice,
+  forgetDevice,
+  rememberDevice,
+  retryWithBackoff,
+  watchForWake,
+  type GrantedDevices,
+} from '@/lib/controllers/reconnect';
+import { onRideSession, rideSessionActive } from '@/lib/controllers/rideSession';
 import { useControllerStore, type ControllerSideCheck } from '@/stores/controllerStore';
+import { useShowStore } from '@/stores/showStore';
 
 export const LOCKED_MESSAGE =
   'The handlebar controls are locked. Connect them once today in their own app, close that app, then pair again.';
@@ -48,13 +59,16 @@ export const SIDE_WATCH_MS = 2500;
 /** Lines kept for the in-ride debug overlay. */
 export const DEBUG_LINES = 8;
 const WRITE_TIMEOUT_MS = 3000;
-const RECONNECT_DELAYS_MS = [1000, 2000, 4000, 8000, 15000];
 const LOG_SIZE = 300;
+/** Gear buzzes closer together than this are dropped (fast double shifts). */
+export const BUZZ_MIN_GAP_MS = 150;
+/** localStorage key of the controller paired last (reconnect after a reload). */
+export const LAST_CONTROLLER_KEY = 'velo.lastController';
 
 type ButtonListener = (button: RideButton) => void;
 
 /** The parts of navigator.bluetooth we use (injectable for tests). */
-export interface BluetoothLike {
+export interface BluetoothLike extends GrantedDevices {
   requestDevice(options: RequestDeviceOptions): Promise<BluetoothDevice>;
 }
 
@@ -64,8 +78,13 @@ interface Link {
   pressed: Set<RideButton>;
   queue: Promise<unknown>;
   silentTimer: ReturnType<typeof setTimeout> | null;
-  retryTimer: ReturnType<typeof setTimeout> | null;
-  attempt: number;
+  /** A retry run is in flight. */
+  retrying: boolean;
+  /** Stops the wake watch (asleep controls coming back on a button press). */
+  stopWake: (() => void) | null;
+  battery: BatteryWatch | null;
+  /** performance.now()-ish time of the last buzz written. */
+  lastBuzzMs: number;
   intentional: boolean;
   /** Service missing: wait for the rider to unlock and press "Try again". */
   locked: boolean;
@@ -211,11 +230,7 @@ function handleMessage(l: Link, msg: Uint8Array): void {
     store().setSilent(false);
   }
   if (id === MSG_KEYPAD) {
-    const status = decodeKeypad(msg);
-    if (!status) {
-      record('in', msg);
-      return;
-    }
+    const status = decodeKeypad(msg)!; // non-null: id is MSG_KEYPAD
     if (!store().inputSeen) store().setInputSeen(true);
     const now = pressedButtons(status);
     const fired = risingEdges(l.pressed, now);
@@ -228,7 +243,8 @@ function handleMessage(l: Link, msg: Uint8Array): void {
     for (const b of fired) for (const fn of [...buttonListeners]) fn(b);
     let note = describeMessage('in', msg);
     if (fired.length > 0) {
-      note += ` · press ${fired.map((b) => `${b}→${actionFor(b) ?? 'none'}`).join(' ')}`;
+      const show = useShowStore.getState().active;
+      note += ` · press ${fired.map((b) => `${b}→${actionFor(b, { show }) ?? 'none'}`).join(' ')}`;
       const gearAfter = store().gear;
       if (gearAfter !== gearBefore) note += ` · gear ${gearBefore}→${gearAfter}`;
     }
@@ -278,13 +294,12 @@ async function setupSession(l: Link): Promise<void> {
   l.rx = await svc.getCharacteristic(RIDE_SYNC_RX);
   await write(l, RIDE_ON);
 
-  // Standard battery service as a first reading; 0x19 messages keep it fresh.
-  const level = await tryGet(async () => {
-    const bas = await server.getPrimaryService(BATTERY_SERVICE);
-    const ch = await bas.getCharacteristic(BATTERY_LEVEL);
-    return (await ch.readValue()).getUint8(0);
+  // Standard Battery Service (0x180F): first reading + notifications; the
+  // controller's own 0x19 messages keep it fresh too.
+  l.battery?.stop();
+  l.battery = await watchBattery(server, (pct) => {
+    if (link === l && pct !== store().battery) store().setBattery(pct);
   });
-  if (level !== null && level >= 0 && level <= 100) store().setBattery(level);
 
   if (l.silentTimer) clearTimeout(l.silentTimer);
   l.silentTimer = setTimeout(() => {
@@ -294,44 +309,105 @@ async function setupSession(l: Link): Promise<void> {
 
 function clearTimers(l: Link): void {
   if (l.silentTimer) clearTimeout(l.silentTimer);
-  if (l.retryTimer) clearTimeout(l.retryTimer);
   l.silentTimer = null;
-  l.retryTimer = null;
+  l.stopWake?.();
+  l.stopWake = null;
+}
+
+/** The link was given up on or torn down: nothing of it may act any more. */
+function gone(l: Link): boolean {
+  return link !== l || l.intentional;
+}
+
+function isLockedError(err: unknown): boolean {
+  return err instanceof Error && err.name === 'ControllerLocked';
 }
 
 function onGattDisconnected(l: Link): void {
-  if (link !== l || l.intentional || l.locked) return;
+  if (gone(l) || l.locked || store().status === 'asleep') return;
   l.rx = null;
   clearTimers(l);
-  scheduleReconnect(l);
+  void retryLink(l);
 }
 
-function scheduleReconnect(l: Link): void {
-  if (l.attempt >= RECONNECT_DELAYS_MS.length) {
-    store().setStatus('asleep');
+/**
+ * Retry an unexpected drop with backoff (1, 2, 4, 8, 15 s). The gear is
+ * kept meanwhile so resistance does not jump. Out of retries → asleep, and
+ * during a ride the controls come back by themselves on the next button
+ * press (wake watch).
+ */
+async function retryLink(l: Link): Promise<void> {
+  if (l.retrying) return;
+  l.retrying = true;
+  store().setStatus('reconnecting');
+  const result = await retryWithBackoff({
+    delays: CONTROLLER_RETRY_DELAYS_MS,
+    attempt: () => setupSession(l),
+    cancelled: () => gone(l),
+    fatal: isLockedError,
+  });
+  l.retrying = false;
+  if (gone(l)) return;
+  if (result.ok) {
+    store().setStatus('connected');
     return;
   }
-  store().setStatus('reconnecting');
-  const delay = RECONNECT_DELAYS_MS[l.attempt++];
-  l.retryTimer = setTimeout(() => {
-    if (link !== l || l.intentional) return;
-    void setupSession(l).then(
-      () => {
-        if (link !== l || l.intentional) return;
-        l.attempt = 0;
-        store().setStatus('connected');
-      },
-      (err: unknown) => {
-        if (link !== l || l.intentional) return;
-        if (err instanceof Error && err.name === 'ControllerLocked') {
-          markLocked(l);
-          return;
-        }
-        scheduleReconnect(l);
-      },
-    );
-  }, delay);
+  if (isLockedError(result.error)) {
+    markLocked(l);
+    return;
+  }
+  goAsleep(l);
 }
+
+function goAsleep(l: Link): void {
+  // Status first: the disconnect below may fire gattserverdisconnected,
+  // which must not start another retry run.
+  store().setStatus('asleep');
+  try {
+    l.device.gatt?.disconnect();
+  } catch {
+    /* already gone */
+  }
+  armWake(l);
+}
+
+/**
+ * Asleep controls wake when a button is pressed: they advertise again and
+ * Velo reconnects without a tap. Only during a ride (no Bluetooth write
+ * outside a rider-started ride); onRideSession re-arms it when one opens.
+ */
+function armWake(l: Link): void {
+  if (gone(l) || l.locked || l.stopWake || store().status !== 'asleep' || !rideSessionActive()) return;
+  l.stopWake = watchForWake(l.device, () => {
+    l.stopWake = null;
+    if (gone(l) || store().status !== 'asleep' || !rideSessionActive()) return;
+    void wakeReconnect(l);
+  });
+}
+
+async function wakeReconnect(l: Link): Promise<void> {
+  store().setStatus('connecting');
+  try {
+    await setupSession(l);
+    if (gone(l)) return;
+    store().setStatus('connected');
+    await confirmBuzz(l);
+  } catch (err) {
+    if (gone(l)) return;
+    if (isLockedError(err)) markLocked(l);
+    else goAsleep(l);
+  }
+}
+
+onRideSession((active) => {
+  const l = link;
+  if (!l) return;
+  if (active) armWake(l);
+  else {
+    l.stopWake?.();
+    l.stopWake = null;
+  }
+});
 
 function markLocked(l: Link): void {
   l.locked = true;
@@ -392,14 +468,51 @@ export async function detectControllerSide(
   });
 }
 
+function nowMs(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
 /** One buzz right after the handshake so the rider feels which unit paired. Non-fatal. */
 async function confirmBuzz(l: Link): Promise<void> {
   if (link !== l || !l.rx) return;
   try {
+    l.lastBuzzMs = nowMs();
     await write(l, encodeHaptic());
     if (link === l) store().setBuzz('ok');
   } catch {
     if (link === l) store().setBuzz('failed');
+  }
+}
+
+function newLink(device: BluetoothDevice): Link {
+  const l: Link = {
+    device,
+    rx: null,
+    pressed: new Set(),
+    queue: Promise.resolve(),
+    silentTimer: null,
+    retrying: false,
+    stopWake: null,
+    battery: null,
+    lastBuzzMs: Number.NEGATIVE_INFINITY,
+    intentional: false,
+    locked: false,
+    gotMessage: false,
+    wired: new WeakSet(),
+  };
+  device.addEventListener('gattserverdisconnected', () => onGattDisconnected(l));
+  return l;
+}
+
+function teardown(l: Link): void {
+  l.intentional = true;
+  clearTimers(l);
+  l.battery?.stop();
+  l.battery = null;
+  try {
+    l.device.gatt?.disconnect();
+  } catch {
+    /* already gone */
   }
 }
 
@@ -462,21 +575,8 @@ export async function pairRideController(opts: { showAllDevices?: boolean } = {}
   // Replace any earlier link (one controller at a time).
   if (link) await disconnectRideController();
 
-  const l: Link = {
-    device,
-    rx: null,
-    pressed: new Set(),
-    queue: Promise.resolve(),
-    silentTimer: null,
-    retryTimer: null,
-    attempt: 0,
-    intentional: false,
-    locked: false,
-    gotMessage: false,
-    wired: new WeakSet(),
-  };
+  const l = newLink(device);
   link = l;
-  device.addEventListener('gattserverdisconnected', () => onGattDisconnected(l));
   const st = store();
   st.setDevice(device.name ?? 'Handlebar controls');
   st.setSide(null);
@@ -489,24 +589,84 @@ export async function pairRideController(opts: { showAllDevices?: boolean } = {}
     store().setSide(side);
     await setupSession(l);
     if (link !== l) return;
+    rememberDevice(LAST_CONTROLLER_KEY, device);
     store().setStatus('connected');
     await confirmBuzz(l);
   } catch (err) {
     if (link !== l) return;
-    if (err instanceof Error && err.name === 'ControllerLocked') {
+    if (isLockedError(err)) {
       // Keep the link so "Try again" can reconnect without the chooser.
+      rememberDevice(LAST_CONTROLLER_KEY, device);
       markLocked(l);
       return;
     }
-    l.intentional = true;
-    clearTimers(l);
-    try {
-      device.gatt?.disconnect();
-    } catch {
-      /* already gone */
-    }
+    teardown(l);
     link = null;
     store().setStatus('error', friendlyError(err));
+  }
+}
+
+/** The controls this browser may use without the chooser (paired in an earlier session), or null. */
+export function findGrantedController(): Promise<BluetoothDevice | null> {
+  return findGrantedDevice(LAST_CONTROLLER_KEY, bt());
+}
+
+/**
+ * Reconnect the controls paired in an earlier session, without the chooser
+ * and without a tap: the Ride page calls it when a ride opens, the panel's
+ * "Reconnect" button too. Resolves true when connected. Never throws; on
+ * failure the panel is back to "Pair handlebar controls".
+ */
+let grantedInFlight: Promise<boolean> | null = null;
+
+export function reconnectGrantedController(): Promise<boolean> {
+  // StrictMode mounts the Ride page twice: one attempt at a time.
+  if (!grantedInFlight) {
+    grantedInFlight = reconnectGranted().finally(() => {
+      grantedInFlight = null;
+    });
+  }
+  return grantedInFlight;
+}
+
+async function reconnectGranted(): Promise<boolean> {
+  if (link) {
+    const status = store().status;
+    if (status === 'connected' || status === 'connecting' || status === 'reconnecting') return status === 'connected';
+  }
+  const device = await findGrantedController();
+  if (!device) return false;
+  if (link) await disconnectRideController({ forget: false });
+  const l = newLink(device);
+  link = l;
+  const st = store();
+  st.setStatus('connecting');
+  st.setDevice(device.name ?? 'Handlebar controls');
+  st.setSide(null);
+  st.setBuzz(null);
+  st.setInputSeen(false);
+  try {
+    const side = await detectControllerSide(device);
+    if (link !== l) return false;
+    store().setSide(side);
+    await setupSession(l);
+    if (link !== l) return false;
+    store().setStatus('connected');
+    await confirmBuzz(l);
+    return true;
+  } catch (err) {
+    if (link !== l) return false;
+    if (isLockedError(err)) {
+      markLocked(l);
+      return false;
+    }
+    teardown(l);
+    link = null;
+    const s = store();
+    s.setStatus('idle');
+    s.setDevice(null);
+    s.setSide(null);
+    return false;
   }
 }
 
@@ -517,7 +677,6 @@ export async function reconnectRideController(): Promise<void> {
   clearTimers(l);
   l.intentional = false;
   l.locked = false;
-  l.attempt = 0;
   store().setStatus('connecting');
   try {
     await setupSession(l);
@@ -526,23 +685,20 @@ export async function reconnectRideController(): Promise<void> {
     await confirmBuzz(l);
   } catch (err) {
     if (link !== l) return;
-    if (err instanceof Error && err.name === 'ControllerLocked') markLocked(l);
-    else store().setStatus('asleep');
+    if (isLockedError(err)) markLocked(l);
+    else goAsleep(l);
   }
 }
 
-export async function disconnectRideController(): Promise<void> {
+/**
+ * Drop the controls. `forget` also drops the memory of them, so the next
+ * ride does not reconnect them by itself ("Forget" in the panel).
+ */
+export async function disconnectRideController(opts: { forget?: boolean } = {}): Promise<void> {
   const l = link;
   link = null;
-  if (l) {
-    l.intentional = true;
-    clearTimers(l);
-    try {
-      l.device.gatt?.disconnect();
-    } catch {
-      /* already gone */
-    }
-  }
+  if (l) teardown(l);
+  if (opts.forget) forgetDevice(LAST_CONTROLLER_KEY);
   const s = store();
   s.setStatus('idle');
   s.setDevice(null);
@@ -554,11 +710,29 @@ export async function disconnectRideController(): Promise<void> {
   s.setSteer(0);
 }
 
-/** Short buzz on the controls (shift feedback, "Test buzz"). Never throws. */
-export function buzzRideController(): void {
+export type BuzzReason = 'test' | 'gear';
+
+/**
+ * Short buzz on the controls. Never throws. Returns true when a buzz was sent.
+ *   'test'  the rider tapped "Test buzz".
+ *   'gear'  a gear change: only during a ride, only with "Buzz on gear
+ *           change" on, and at most one per BUZZ_MIN_GAP_MS so a fast
+ *           double shift does not queue a string of buzzes.
+ * The buzz is the documented short pattern (docs/devices/zwift-ride-v2.md):
+ * the only haptic write Velo knows to be safe, so "subtle" means short and
+ * rare, not a guessed weaker pattern.
+ */
+export function buzzRideController(reason: BuzzReason = 'test'): boolean {
   const l = link;
-  if (!l || !l.rx || store().status !== 'connected') return;
+  if (!l || !l.rx || store().status !== 'connected') return false;
+  if (reason === 'gear') {
+    if (!store().gearBuzz || !rideSessionActive()) return false;
+    const t = nowMs();
+    if (t - l.lastBuzzMs < BUZZ_MIN_GAP_MS) return false;
+  }
+  l.lastBuzzMs = nowMs();
   void write(l, encodeHaptic()).catch(() => undefined);
+  return true;
 }
 
 /** Debug hook for the hardware session: window.__veloController.log(). */

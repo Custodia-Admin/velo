@@ -15,6 +15,7 @@ import {
   BUTTON_MASKS,
   RIDE_ON,
   describeMessage,
+  decodeFields,
   sideFromManufacturerData,
   type RideButton,
 } from './rideProtocol';
@@ -185,5 +186,76 @@ describe('describeMessage', () => {
     expect(describeMessage('in', fromHex('23 08 ff bf ff ff 0f'))).toBe('keys shiftUpR');
     expect(describeMessage('in', fromHex('23 08 ff ff ff ff 0f 12 06 0a 04 08 01 10 64'))).toBe('keys none · lever R 50');
     expect(describeMessage('in', fromHex('77'))).toBe('msg 0x77');
+  });
+});
+
+/**
+ * Frame fixtures. "capture" frames are byte-for-byte from the public protocol
+ * captures (docs/devices/zwift-ride-v2.md: Makinolo, Serpentine's field
+ * variant) and from the 29–31 Oct adverts; "edge" frames are built to reach
+ * every parser branch (truncation, unknown wire types). The owner hardware
+ * check adds real Ride V2 frames from the Controller debug log.
+ */
+const FRAMES: ReadonlyArray<{ kind: 'capture' | 'edge'; dir: 'in' | 'out'; hex: string; reads: string }> = [
+  { kind: 'capture', dir: 'in', hex: '23 08 fe ff ff ff 0f 12 18 0a 04 08 00 10 00 0a 04 08 01 10 00 0a 04 08 02 10 00 0a 04 08 03 10 00', reads: 'keys left' },
+  { kind: 'capture', dir: 'in', hex: '23 08 ff ff ff ff 0f 12 07 0a 05 08 00 10 c7 01', reads: 'keys none · lever L -100' },
+  { kind: 'capture', dir: 'in', hex: '23 08 ff ff ff ff 0f 12 04 08 01 10 64', reads: 'keys none · lever R 50' },
+  { kind: 'capture', dir: 'in', hex: '23 08 ff ff ff ff 0f 1a 04 08 02 10 64', reads: 'keys none · lever 2 50' },
+  { kind: 'capture', dir: 'in', hex: '19 08 55', reads: 'battery 85 %' },
+  { kind: 'capture', dir: 'in', hex: '15', reads: 'idle' },
+  { kind: 'capture', dir: 'in', hex: '3c 0a 0a 5a 77 69 66 74 20 52 69 64 65', reads: 'device info' },
+  { kind: 'capture', dir: 'in', hex: 'fe', reads: 'taken over by another app' },
+  { kind: 'capture', dir: 'out', hex: '52 69 64 65 4f 6e', reads: 'RideOn handshake' },
+  { kind: 'capture', dir: 'out', hex: '12 12 08 0a 06 08 02 10 00 18 20', reads: 'buzz' },
+  { kind: 'capture', dir: 'out', hex: '00 08 00', reads: 'info request' },
+  { kind: 'edge', dir: 'out', hex: '52 69 64 65 4f 66', reads: 'cmd 0x52' }, // RideOn length, not RideOn
+  { kind: 'edge', dir: 'out', hex: '55', reads: 'cmd 0x55' },
+  { kind: 'edge', dir: 'in', hex: '', reads: 'empty' },
+  { kind: 'edge', dir: 'out', hex: '', reads: 'empty' },
+  { kind: 'edge', dir: 'in', hex: '19', reads: 'battery ?' },
+  { kind: 'edge', dir: 'in', hex: '19 10 05', reads: 'battery ?' }, // field 2 only, no battery field
+  { kind: 'edge', dir: 'in', hex: '23 80', reads: 'keys none' }, // truncated tag
+  { kind: 'edge', dir: 'in', hex: '42', reads: 'msg 0x42' },
+];
+
+describe('frame fixtures (every describeMessage / decoder branch)', () => {
+  for (const f of FRAMES) {
+    it(`${f.kind} ${f.dir} [${f.hex || 'empty'}] → ${f.reads}`, () => {
+      expect(describeMessage(f.dir, fromHex(f.hex))).toBe(f.reads);
+    });
+  }
+});
+
+describe('decodeFields edge cases', () => {
+  it('stops at a varint longer than 10 bytes', () => {
+    expect(decodeFields(fromHex('08 ff ff ff ff ff ff ff ff ff ff 01'))).toEqual([]);
+  });
+  it('stops at a truncated value or length, and at a length past the end', () => {
+    expect(decodeFields(fromHex('08'))).toEqual([]);
+    expect(decodeFields(fromHex('08 80'))).toEqual([]);
+    expect(decodeFields(fromHex('12'))).toEqual([]);
+    expect(decodeFields(fromHex('12 05 08'))).toEqual([]);
+  });
+  it('skips fixed64 and fixed32 fields, stops at a group/unknown wire type', () => {
+    const f = decodeFields(fromHex('09 01 02 03 04 05 06 07 08 0d 01 02 03 04 10 07 0b 08 01'));
+    expect(f).toEqual([{ num: 2, wire: 0, value: 7 }]);
+  });
+  it('keypad: a fixed64 field before the map is skipped', () => {
+    const st = decodeKeypad(fromHex('23 09 00 00 00 00 00 00 00 00 08 fd ff ff ff 0f'))!;
+    expect([...pressedButtons(st)]).toEqual(['up']);
+  });
+});
+
+describe('lever edge cases', () => {
+  it('skips non-varint fields inside a lever and drops a lever without a location', () => {
+    // {loc 1, (field 2 as bytes: ignored), value 50} then {value only}.
+    const st = decodeKeypad(fromHex('23 08 ff ff ff ff 0f 1a 06 08 01 12 00 18 05 1a 02 10 64'))!;
+    expect(st.levers).toEqual([{ location: 1, value: 0 }]);
+  });
+  it('clamps out-of-range lever values to ±100', () => {
+    const st = decodeKeypad(fromHex('23 1a 05 08 00 10 f4 03'))!; // zigzag 500 → 250
+    expect(st.levers).toEqual([{ location: 0, value: 100 }]);
+    expect(st.buttonMap).toBeNull();
+    expect(pressedButtons(st).size).toBe(0);
   });
 });

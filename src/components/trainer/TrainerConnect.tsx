@@ -26,6 +26,7 @@ import {
   probeBluetoothAdapter,
   type BluetoothSupportReport,
 } from '@/lib/bluetoothSupport';
+import { BatteryReading } from '@/components/velo/BatteryReading';
 import {
   BluetoothTroubleshooter,
   type TroubleshootStepId,
@@ -145,13 +146,13 @@ export function TrainerConnect() {
           ? `ERG mode · ${targetPowerW} W target`
           : 'ERG mode · awaiting target';
       }
-      return 'Streaming · simulation mode';
+      return 'Connected · the road sets the resistance';
     }
-    if (connection === 'connecting')   return 'Negotiating control…';
+    if (connection === 'connecting')   return 'Connecting…';
     if (connection === 'reconnecting') return 'Reconnecting to trainer…';
     if (connection === 'error')        return error ?? 'Connection failed';
     if (!report.usable)                return report.reason ?? 'Web Bluetooth not available';
-    return 'FTMS-compatible · ready to pair';
+    return 'Not paired';
   }, [connection, error, report, trainerControlMode, targetPowerW]);
 
   const isConnected = connection === 'connected';
@@ -171,23 +172,15 @@ export function TrainerConnect() {
                 {isConnected ? (deviceName ?? 'Smart trainer') : 'Smart trainer'}
               </div>
               <div className={cn(
-                'text-xs leading-snug',
+                'flex flex-wrap items-center gap-x-2 gap-y-1 text-sm',
                 connection === 'error' ? 'text-destructive' : 'text-muted-foreground',
               )}>
-                {statusLine}
+                <span>{statusLine}</span>
+                {battery !== null && (isConnected || connection === 'reconnecting') && <BatteryReading pct={battery} />}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            {battery !== null && connection !== 'disconnected' && (
-              <Badge
-                variant={battery <= 15 ? 'destructive' : battery <= 30 ? 'warning' : 'success'}
-                className="num"
-                aria-label={`Trainer battery: ${battery}%`}
-              >
-                {battery}%
-              </Badge>
-            )}
             {isConnected && (
               <Badge variant="success" className="num" aria-label="Trainer connected and streaming">
                 <Zap className="h-3 w-3" aria-hidden="true" /> LIVE
@@ -304,12 +297,12 @@ export function TrainerConnect() {
         {/* Help link */}
         <button
           type="button"
-          aria-label="Open pairing guide for Kickr Core and other FTMS trainers"
+          aria-label="Open the trainer pairing guide"
           onClick={() => { setTroubleshootStep('wake'); setTroubleshootOpen(true); }}
           className="self-start inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background rounded transition-colors"
         >
           <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
-          How do I pair a Kickr Core?
+          Trouble pairing?
         </button>
       </div>
 
@@ -397,13 +390,13 @@ function ErrorPanel({
 function errorTitleFor(code: string | null): string {
   switch (code) {
     case 'unsupported':              return "Browser doesn't support Web Bluetooth";
-    case 'insecure-context':         return 'Bluetooth blocked: not a secure context';
+    case 'insecure-context':         return 'Bluetooth needs a secure page';
     case 'permission-denied':        return 'Bluetooth permission was denied';
     case 'no-device-selected':       return 'No trainer selected';
     case 'no-device-found':          return 'No compatible trainer found';
-    case 'gatt-connect-failed':      return "Couldn't open a GATT connection";
-    case 'service-not-found':        return 'FTMS service unavailable on this trainer';
-    case 'control-point-failed':     return 'Trainer refused the control handshake';
+    case 'gatt-connect-failed':      return "Couldn't reach the trainer";
+    case 'service-not-found':        return "Couldn't take control of the trainer";
+    case 'control-point-failed':     return 'Trainer would not hand over control';
     case 'already-paired-elsewhere': return 'Trainer is paired with another app';
     case 'reconnect-failed':         return "Couldn't auto-reconnect to the trainer";
     default:                         return 'Bluetooth connection error';

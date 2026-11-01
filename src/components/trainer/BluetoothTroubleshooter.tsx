@@ -62,11 +62,11 @@ export function troubleshootSteps(report: BluetoothSupportReport): TroubleshootS
   const steps: TroubleshootStep[] = [
     {
       id: 'wake',
-      title: 'Wake the Kickr',
+      title: 'Wake the trainer',
       body: (
         <p>
-          The Kickr sleeps after a few idle minutes and stops advertising. Turn
-          the cranks once; the LED should blink blue.
+          A trainer sleeps after a few idle minutes and stops showing up. Turn
+          the cranks once; its light should blink.
         </p>
       ),
     },
@@ -76,9 +76,9 @@ export function troubleshootSteps(report: BluetoothSupportReport): TroubleshootS
       body: (
         <>
           <p>
-            A trainer takes one connection at a time. Quit Zwift, Wahoo,
-            TrainerRoad or MyWhoosh, and turn off Bluetooth on phones or
-            tablets that auto-connect to it.
+            A trainer takes one app at a time. Quit any other cycling app on
+            this computer, and turn off Bluetooth on phones or tablets that
+            connect to it by themselves.
           </p>
           <p className="text-xs text-muted-foreground mt-2">
             A Bluetooth scan running in another app can also keep the adapter
@@ -136,12 +136,12 @@ export function troubleshootSteps(report: BluetoothSupportReport): TroubleshootS
     },
     {
       id: 'chooser',
-      title: 'Pick the Kickr in the chooser',
+      title: 'Pick the trainer in the chooser',
       body: (
         <p>
-          Choose the entry starting with <Code>KICKR</Code> (for example{' '}
-          <Code>KICKR CORE 78C1</Code>) and click <strong className="text-foreground">Pair</strong>.
-          The status turns green with a LIVE badge.
+          Choose your trainer by its name (a KICKR CORE shows as{' '}
+          <Code>KICKR CORE 78C1</Code> or similar) and click <strong className="text-foreground">Pair</strong>.
+          The panel then says Connected.
         </p>
       ),
     },
@@ -153,15 +153,19 @@ export function troubleshootSteps(report: BluetoothSupportReport): TroubleshootS
           <li>Press <em>Re-scan</em> in the chooser, or close it and pair again.</li>
           <li>
             Still empty? Use <strong className="text-foreground">Show all devices</strong> and
-            pick the name starting with <Code>KICKR</Code>.
+            pick your trainer by its name.
           </li>
-          <li>
-            If you changed Bluetooth flags in <Code>chrome://flags</Code>, set them back to
-            Default and relaunch.
-            {report.platform === 'linux' && (
-              <> On Linux keep <Code>{LINUX_BLUETOOTH_FLAG}</Code> Enabled.</>
-            )}
-          </li>
+          {report.platform === 'linux' ? (
+            <li>
+              On Linux, Chrome needs exactly one flag: keep <Code>{LINUX_BLUETOOTH_FLAG}</Code>{' '}
+              Enabled. Any other Bluetooth flag you changed goes back to Default; then relaunch.
+            </li>
+          ) : (
+            <li>
+              If you changed Bluetooth flags in <Code>chrome://flags</Code>, set those back to
+              Default and relaunch.
+            </li>
+          )}
         </ol>
       ),
     },
@@ -251,7 +255,7 @@ export function BluetoothTroubleshooter({
                 Pair a smart trainer
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Written for the Wahoo Kickr Core; any FTMS trainer works the same.
+                Any smart trainer with standard Bluetooth control pairs the same way.
               </p>
             </div>
           </div>

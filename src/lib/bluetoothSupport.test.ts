@@ -129,8 +129,27 @@ describe('troubleshootSteps', () => {
     const html = text(ready);
     expect(html).toContain('Re-scan');
     expect(html).toContain('Show all devices');
-    expect(html).toContain('set them back to Default');
+    expect(html).toContain('needs exactly one flag');
     expect(html).toContain(LINUX_BLUETOOTH_FLAG);
+    expect(html).toContain('back to Default');
+    // The advice that broke the chooser on Linux (29 Oct): never a full reset there.
+    expect(html).not.toMatch(/reset all/i);
+    expect(html).not.toMatch(/set (them|all flags) back to Default/);
+  });
+
+  it('other systems: reset changed flags, never a Linux flag', () => {
+    const html = text({ ...ready, platform: 'windows' });
+    expect(html).toContain('set those back to Default');
+    expect(html).not.toContain(LINUX_BLUETOOTH_FLAG);
+  });
+
+  it('the pairing guide copy names no other app or brand, and no experimental flag', () => {
+    for (const r of [ready, { ...ready, platform: 'windows' }]) {
+      const html = text(r);
+      expect(html).not.toMatch(/zwift|wahoo|trainerroad|mywhoosh|globeride/i);
+      expect(html).not.toMatch(/experimental/i);
+      expect(html).not.toMatch(/LIVE badge|GATT|FTMS/);
+    }
   });
 
   it('Linux Chrome without the API: the flag step, and only then', () => {

@@ -4,7 +4,7 @@
  * calls this every frame; the corner-framing tests call the same function.
  */
 
-import { stepLaneOffset } from '@/lib/laneOffset';
+import { createLaneState, stepLane, type LaneState } from '@/lib/controllers/steerFeel';
 import { smoothHeadingAt, YawFilter } from '@/lib/ride/rideHeading';
 import { ridePose } from '@/lib/ride/rideSim';
 import type { RiderPose } from '@/lib/world/renderer';
@@ -15,12 +15,12 @@ import type { RideFrame, SceneWorld } from './worldScene';
 
 /** State the driver carries between frames. */
 export interface RideDriverMemo {
-  lane: number;
+  lane: LaneState;
   yaw: YawFilter;
 }
 
 export function createRideDriverMemo(): RideDriverMemo {
-  return { lane: 0, yaw: new YawFilter() };
+  return { lane: createLaneState(), yaw: new YawFilter() };
 }
 
 export interface RideDriverInput {
@@ -51,7 +51,7 @@ export function driveRideFrame(frame: RideFrame, memo: RideDriverMemo, sceneWorl
     memo.yaw.reset();
     return;
   }
-  memo.lane = stepLaneOffset(memo.lane, input.steer, dt);
+  const laneOffsetM = stepLane(memo.lane, input.steer, dt).offsetM;
   const raw = input.override;
   const distance = raw ? raw.distance : input.distance;
   // The drawn heading is the damped wide-chord heading (lib/ride/rideHeading):
@@ -62,7 +62,7 @@ export function driveRideFrame(frame: RideFrame, memo: RideDriverMemo, sceneWorl
   const pose: RiderPose = raw
     ? { ...raw, heading }
     : {
-        ...ridePose(route, distance, { laneOffsetM: memo.lane, offsetHeading: chord, grade: input.grade, speed: input.speed }),
+        ...ridePose(route, distance, { laneOffsetM, offsetHeading: chord, grade: input.grade, speed: input.speed }),
         heading,
       };
   const placement = placeRider(sceneWorld, pose);

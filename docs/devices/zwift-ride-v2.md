@@ -154,6 +154,23 @@ real hardware (see checklist).
 All of these go to the **controller**, never to the trainer. None changes
 resistance.
 
+**Haptics (P2.5).** The buzz above is the only haptic write in the public
+notes, and the only one Velo sends. Its semantics, as far as the sources go:
+`param1 = 2` and `pattern = 0x20` is the "short buzz" both BikeControl and
+Serpentine send as shift feedback; `param2 = 0`. Nobody documents other
+`param1` / `pattern` values or an intensity field, so Velo does **not** try a
+"weaker" pattern: "subtle" means short and rare instead. Velo buzzes:
+
+- once after pairing or reconnecting (which unit is held),
+- on "Test buzz" (a tap),
+- on a gear change, only during a ride, only with "Buzz on gear change" on
+  (Trainer panel → Handlebar controls, default on), at most one buzz per
+  150 ms, so a fast double shift gives one buzz. No buzz at the end of the
+  gear range (nothing changed).
+
+`encodeHaptic()` reproduces the documented bytes exactly
+(`12 12 08 0a 06 08 02 10 00 18 20`, pinned in `rideProtocol.test.ts`).
+
 ## The daily lock (firmware 1.3+, "Ride V2")
 
 From firmware 1.3 the Ride ships locked to its maker's app. Two symptoms are
@@ -189,10 +206,39 @@ Velo is for easy scenic rides. The controllers add comfort, not racing.
 | Shift up (either side) | One gear harder |
 | Shift down (either side) | One gear easier |
 | D-pad up / down | Hills feel harder / easier (trainer difficulty ±5 %) |
-| D-pad left / right | Previous / next camera |
+| D-pad left / right | Previous / next camera (in show mode this takes over from the auto camera) |
+| Power-up (hood) left / right | Camera closer / further (close, standard, far, overview) |
 | A | Pause / resume |
 | Orange levers | Steer: move across the lane; let go and the bike drifts back to the line |
-| Others (B, Y, Z, power-up, on/off) | Nothing for now |
+| On/off | Never mapped: they power the controllers |
+
+Show mode (watching your own videos) gives the letter buttons to the player:
+
+| Control | Show mode action |
+| --- | --- |
+| Y | Play / pause the video |
+| Z | Next video |
+| B | Auto camera on / off |
+
+Outside show mode B, Y and Z do nothing. The map and the action runner are
+pure (`controllerActions.ts`, tested); the Ride page wires them to the stores.
+
+### Steering feel
+
+`src/lib/controllers/steerFeel.ts`, applied once per frame by both renderers:
+
+1. Deadzone 12 % of lever travel, rescaled so the response starts at 0 at
+   the edge (no jump).
+2. Expo curve, 45 % cubic: small pushes make fine lane changes, a full push
+   still reaches the full 1.6 m.
+3. Lane-centring spring: critically damped, so lane changes start and stop
+   softly and never overshoot. Steering stiffness ω = 5 rad/s (about 0.9 s
+   to settle), release ω = 2 rad/s (back on the line in about 2.4 s). The
+   step is the exact solution per frame, so the feel is the same at 30, 60
+   or 144 fps.
+
+The raw lever reading (`steerFrom`) is unchanged and is what the debug log
+shows; only `activeSteer()` is shaped.
 
 ### Virtual gears on plain FTMS
 
@@ -245,6 +291,35 @@ So it is a follow-up, not part of this card.
   jump. If it does not come back it is shown as "asleep" and the trainer goes
   back to the neutral gear (plain trainer feel). "Reconnect" in the Trainer
   panel tries again without the chooser.
+
+### Battery and reconnect (P2.5)
+
+- **Battery** comes from the standard Battery Service (0x180F, Battery Level
+  0x2A19) on both the controllers and the trainer: read once at connect,
+  then followed by notifications (`src/lib/controllers/battery.ts`). The
+  controller's own `0x19` messages also update it. Shown as an icon and
+  "76 %" next to the status in the Trainer panel (controls and trainer) and
+  in the in-ride chip; at or below 20 % it turns red and the in-ride chip
+  says "Battery low: charge after this ride".
+- **After a reload**, the controls paired last (remembered as
+  `velo.lastController`, id + name) come back through
+  `navigator.bluetooth.getDevices()` without the chooser: silently when a
+  ride opens, or with one tap ("Reconnect Zwift Ride") in the panel.
+  "Forget" drops the memory. The trainer has done the same since 098dd81.
+- **Wake.** Controls that went to sleep (asleep after the retries) and a
+  trainer whose own retries gave up (0.6, 1.2, 2.4, 4 s) are watched with
+  `watchAdvertisements()`; the first advert (a button press, a pedal stroke)
+  reconnects them. During the ride only: on Home nothing reconnects by
+  itself. The trainer comes back from Demo Mode to trainer mode, and the
+  ride loop re-sends the current SIM grade on the next frame.
+- **What may write when.** Resistance (FTMS 0x05 / 0x11) goes out only while
+  a ride the rider started is riding (`rideFsm.resistanceOf`, unchanged).
+  Reconnects re-run the full FTMS handshake (Request Control 0x00, Start
+  0x07) and nothing else. Automatic reconnects, wake reconnects and gear
+  buzzes happen only inside the ride session (`rideSession.ts`: the Ride
+  page is open); outside it every Bluetooth write follows a tap. Pinned in
+  `src/lib/deviceLayer.test.ts` (real FTMS client on a fake KICKR) and
+  `rideController.test.ts`.
 - Browsers without Web Bluetooth: the "Handlebar controls" section does not
   render.
 
@@ -254,9 +329,13 @@ So it is a follow-up, not part of this card.
 | --- | --- |
 | `src/lib/controllers/rideProtocol.ts` | Pure codec: UUIDs, button masks, keypad / lever / battery parsing, haptic and info commands |
 | `src/lib/controllers/rideController.ts` | Web Bluetooth client: chooser, handshake, notifications, lock / silent detection, reconnect, buzz, hex log |
-| `src/lib/controllers/controllerActions.ts` | Button → Velo action mapping and the legend text |
+| `src/lib/controllers/controllerActions.ts` | Button → Velo action mapping (ride and show mode), the action runner and the legend text |
+| `src/lib/controllers/battery.ts` | Standard Battery Service read + notifications, display bands |
+| `src/lib/controllers/reconnect.ts` | Backoff retries, wake watch, remembered / granted devices (controls and trainer) |
+| `src/lib/controllers/rideSession.ts` | The ride session: when devices may act on their own |
+| `src/lib/controllers/steerFeel.ts` | Steering feel: deadzone, expo, lane-centring spring |
 | `src/lib/virtualGears.ts` | Gear table and the equivalent-grade formula |
-| `src/lib/laneOffset.ts` | Steering: lane offset easing and the sideways shift |
+| `src/lib/laneOffset.ts` | The sideways shift for a lane offset |
 | `src/stores/controllerStore.ts` | Status, battery, gear, steering input; only "steer with the levers" is saved |
 | `src/hooks/useRideControllerActions.ts` | Runs the actions during a ride (Ride page only) |
 | `src/components/velo/ControllerPanel.tsx`, `ControllerChip.tsx` | Trainer-panel section and the in-ride gear / hills readout |
@@ -265,6 +344,30 @@ So it is a follow-up, not part of this card.
 The chooser filter is `namePrefix: 'Zwift'` or manufacturer `0x094A`; older
 Chrome rejects manufacturer filters with a TypeError, in which case Velo
 retries with the name filter only.
+
+## Owner hardware check (P2.5, about 5 minutes)
+
+Ride V2 + KICKR CORE 2, Chrome on the laptop. Record the result in the PR.
+
+1. **Battery %.** Home → Trainer: pair the handlebar controls (left unit) and
+   the trainer. Both rows show a battery icon and a percent. Compare with the
+   maker's app if handy (within a few %).
+2. **Reconnect on wake.** Start a ride. Leave the bars untouched until the
+   chip says "Asleep" (or switch the left unit off and on). Press any button:
+   the chip goes back to Controls within a few seconds and the bars buzz once.
+   Stop pedalling until the trainer drops (or unplug it for 10 s and plug it
+   back), then pedal: it reconnects, the toast says so, and resistance follows
+   the road again.
+3. **Reload.** Reload the page, open a ride: trainer and controls reconnect
+   without the chooser.
+4. **Gear buzz.** Shift up and down a few times: one short buzz per shift, a
+   fast double shift gives one buzz, nothing at gear 1 or 11. Turn "Buzz on
+   gear change" off in the Trainer panel: shifting is silent.
+5. **Steering feel.** Push a lever lightly: a small, slow move across the
+   lane. Push fully: the bike reaches the lane edge in about a second without
+   overshooting. Let go: it eases back to the line in about 2–3 s.
+6. In show mode: Y plays/pauses, Z skips, B toggles the auto camera; the hood
+   buttons move the camera closer / further.
 
 ## Hardware session checklist (Federico)
 

@@ -2,7 +2,8 @@
  * controllerStore — live state of the handlebar controls.
  *
  * Connection state, battery, the current virtual gear and the steering
- * input. Only `steeringEnabled` and `debugOverlay` are persisted; gears start
+ * input. Only the rider's choices (steering, gear buzz, debug overlay) are
+ * persisted; gears start
  * neutral every ride. Without paired controls everything stays at its
  * neutral value, so the ride loop behaves exactly as with the trainer alone.
  */
@@ -10,6 +11,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { NEUTRAL_GEAR, clampGear } from '@/lib/virtualGears';
+import { shapeSteer } from '@/lib/controllers/steerFeel';
 
 export type ControllerStatus =
   | 'idle' // never paired this session
@@ -48,6 +50,8 @@ interface ControllerState {
   /** -1 (left) .. 1 (right), 0 at rest. */
   steer: number;
   steeringEnabled: boolean;
+  /** A short buzz on the bars at every gear change. */
+  gearBuzz: boolean;
   /** Show the raw-message overlay in the ride view (field diagnostics). */
   debugOverlay: boolean;
 
@@ -60,6 +64,7 @@ interface ControllerState {
   setInputSeen: (seen: boolean) => void;
   setSteer: (steer: number) => void;
   setSteeringEnabled: (on: boolean) => void;
+  setGearBuzz: (on: boolean) => void;
   setDebugOverlay: (on: boolean) => void;
   /** Change gear by `delta`; returns true if the gear actually changed. */
   shift: (delta: number) => boolean;
@@ -80,6 +85,7 @@ export const useControllerStore = create<ControllerState>()(
       gear: NEUTRAL_GEAR,
       steer: 0,
       steeringEnabled: true,
+      gearBuzz: true,
       debugOverlay: false,
 
       setStatus: (status, errorMessage = null) =>
@@ -97,6 +103,7 @@ export const useControllerStore = create<ControllerState>()(
       setInputSeen: (inputSeen) => set({ inputSeen }),
       setSteer: (steer) => set({ steer: Number.isFinite(steer) ? Math.max(-1, Math.min(1, steer)) : 0 }),
       setSteeringEnabled: (steeringEnabled) => set({ steeringEnabled }),
+      setGearBuzz: (gearBuzz) => set({ gearBuzz }),
       setDebugOverlay: (debugOverlay) => set({ debugOverlay }),
       shift: (delta) => {
         const before = get().gear;
@@ -111,7 +118,7 @@ export const useControllerStore = create<ControllerState>()(
       name: 'globeride.controllers',
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ steeringEnabled: s.steeringEnabled, debugOverlay: s.debugOverlay }),
+      partialize: (s) => ({ steeringEnabled: s.steeringEnabled, gearBuzz: s.gearBuzz, debugOverlay: s.debugOverlay }),
     },
   ),
 );
@@ -124,8 +131,11 @@ export function activeGear(): number {
   return s.status === 'connected' || s.status === 'reconnecting' ? s.gear : NEUTRAL_GEAR;
 }
 
-/** Steering input to apply right now (0 unless enabled and connected). */
+/**
+ * Steering input to apply right now, after the deadzone and expo curve
+ * (src/lib/controllers/steerFeel.ts). 0 unless enabled and connected.
+ */
 export function activeSteer(): number {
   const s = useControllerStore.getState();
-  return s.steeringEnabled && s.status === 'connected' ? s.steer : 0;
+  return s.steeringEnabled && s.status === 'connected' ? shapeSteer(s.steer) : 0;
 }
