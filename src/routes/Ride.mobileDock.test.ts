@@ -25,6 +25,8 @@ const minimapSrc = readFileSync(join(ROOT, 'src/components/ride/Minimap.tsx'), '
 const bannerSrc = readFileSync(join(ROOT, 'src/components/ride/NoTokenBanner.tsx'), 'utf8');
 const cssSrc = readFileSync(join(ROOT, 'src/index.css'), 'utf8');
 const settingsSrc = readFileSync(join(ROOT, 'src/components/profile/SettingsPanel.tsx'), 'utf8');
+const hudSrc = readFileSync(join(ROOT, 'src/components/velo/RideHud.tsx'), 'utf8');
+const routePanelSrc = readFileSync(join(ROOT, 'src/components/velo/RideRoutePanel.tsx'), 'utf8');
 
 /** The `sm:hidden` mobile HUD stack section of Ride.tsx. */
 function mobileStackSection(): string {
@@ -42,14 +44,20 @@ describe('mobile ride stack keeps the scene band clear', () => {
     expect(section).not.toContain('<ElevationProfile');
   });
 
-  it('the desktop (sm+) left column still shows both, always-on', () => {
-    expect(rideSrc).toContain('<Minimap />');
-    expect(rideSrc).toContain('<ElevationProfile />');
-    expect(rideSrc).toContain('hidden sm:block');
+  it('sm+ carries the profile in the route panel and the map on demand (v2 HUD)', () => {
+    // The always-on glass minimap + elevation panels went away in the v2
+    // HUD (docs/design/mockups/v2-ride-hud.html): the route panel draws the
+    // profile from sm, and the map opens from the HUD's "More" menu.
+    expect(routePanelSrc).toContain('<RouteProfile');
+    expect(routePanelSrc).toContain('hidden h-8 sm:block');
+    expect(hudSrc).toContain('{mapOpen && (');
+    expect(hudSrc).toContain('<Minimap />');
+    expect(rideSrc).not.toContain('<ElevationProfile');
   });
 
   it('the dock hides in show mode and after the finish', () => {
-    expect(rideSrc).toContain("!showActive && rideState !== 'finished'");
+    expect(rideSrc).toContain("const rideHudOn = !showActive && rideState !== 'finished'");
+    expect(rideSrc).toContain('<MobileDetailDock className="sm:hidden" />');
   });
 });
 
@@ -77,6 +85,11 @@ describe('no-token banner clears the dock on mobile via ride-banner-float', () =
     expect(cssSrc).toContain('@media (max-width: 639.98px)');
     expect(cssSrc).toContain('7.75rem');
   });
+
+  it('the v2 ride root lifts the banner above the ride strip (and the phone dock)', () => {
+    expect(rideSrc).toContain('ride-hud-v2');
+    expect(cssSrc).toContain('.ride-hud-v2 .ride-banner-float');
+  });
 });
 
 describe('Settings sheet renders above every ride HUD layer', () => {
@@ -90,19 +103,23 @@ describe('Settings sheet renders above every ride HUD layer', () => {
   });
 });
 
-describe('transport bar stays one row at 390 (t_19e8b32f)', () => {
-  it('the left-1/2 wrapper sizes to max-content, capped to the viewport', () => {
+describe('ride strip stays one piece and the dock sits above it (t_19e8b32f)', () => {
+  it('the sm+ left-1/2 wrapper sizes to max-content, capped to the viewport', () => {
     // An absolutely-positioned left-1/2 wrapper shrink-fits to the width
-    // available from its left edge (~195 px at 390), so RideControls' inner
-    // flex-wrap stacked Pause/Finish into a 195×110 two-story block. w-max
-    // keeps the running state on one ~62 px row; max-w lets the 4-button
-    // finished state wrap gracefully inside the viewport instead of
-    // overflowing it.
-    expect(rideSrc).toContain('-translate-x-1/2 w-max max-w-[calc(100vw-1.5rem)]');
+    // available from its left edge (~half the screen), which wrapped the old
+    // transport bar into a two-story block. w-max keeps the ride strip on one
+    // row; max-w-hud-strip keeps it inside the viewport.
+    expect(rideSrc).toContain('sm:left-1/2 sm:right-auto sm:w-max sm:max-w-hud-strip sm:-translate-x-1/2');
   });
 
-  it('the dock offset follows the one-row transport (7.75rem → 4.75rem)', () => {
-    expect(rideSrc).toContain('1.25rem) + 4.75rem');
+  it('phones: the dock and the strip share one bottom column, dock first (no offset to drift)', () => {
+    const start = rideSrc.indexOf('-- Transport controls');
+    const section = rideSrc.slice(start, rideSrc.indexOf('-- Show mode', start));
+    expect(section).toContain('flex flex-col items-stretch gap-2 pointer-events-none');
+    expect(section.indexOf('<MobileDetailDock')).toBeGreaterThan(-1);
+    expect(section.indexOf('<MobileDetailDock')).toBeLessThan(section.indexOf('<RideStrip'));
+    // The old hand-tuned offsets above the transport bar are gone.
+    expect(rideSrc).not.toContain('1.25rem) + 4.75rem');
     expect(rideSrc).not.toContain('1.25rem) + 7.75rem');
   });
 });

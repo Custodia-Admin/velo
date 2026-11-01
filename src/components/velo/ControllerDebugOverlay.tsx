@@ -8,8 +8,8 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { HUD_PANEL } from './v2';
 import { controllerDebug, getDebugEntries, subscribeDebug } from '@/lib/controllers/rideController';
 import { controllerPhase } from '@/lib/controllers/controllerView';
 import { useControllerStore } from '@/stores/controllerStore';
@@ -63,7 +63,7 @@ export function ControllerDebugOverlay() {
   };
 
   return (
-    <Card className="pointer-events-auto flex w-full max-w-sm flex-col gap-2 px-4 py-3" role="group" aria-label="Controller debug">
+    <div className={cn(HUD_PANEL, 'pointer-events-auto flex w-full max-w-sm flex-col gap-2 px-4 py-3')} role="group" aria-label="Controller debug">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Controller debug</span>
         <Button variant="ghost" size="sm" className="h-10" onClick={copy}>
@@ -89,6 +89,6 @@ export function ControllerDebugOverlay() {
           ))}
         </ol>
       )}
-    </Card>
+    </div>
   );
 }

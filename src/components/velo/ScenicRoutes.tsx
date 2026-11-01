@@ -1,17 +1,23 @@
 /**
- * Easy & Scenic route surfaces: the featured "Today's ride" card and the
- * route grid. On-system per docs/design/UI-RULES.md (tokens only).
+ * Easy & Scenic route surfaces (v2 "warm atlas", docs/design/mockups/v2-home.html):
+ * Today's ride (a plate with a paper label) and the area grids of tiles.
+ * On-system per docs/design/UI-RULES.md (tokens only).
  */
 
-import { Play, Tv } from 'lucide-react';
+import { Clapperboard, Map as MapIcon, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettingsStore, type UnitSystem } from '@/stores/settingsStore';
-import type { ScenicRouteInfo } from '@/lib/scenicRoutes';
-import { ElevationLine } from '@/components/velo/ElevationLine';
+import { SCENIC_AREAS, type ScenicRouteInfo } from '@/lib/scenicRoutes';
 import { WeatherLine } from '@/components/velo/WeatherLine';
 import type { WeatherEntry } from '@/stores/liveWeatherStore';
 import { cardWeatherText } from '@/lib/meteo/weatherText';
+import { postersFor } from '@/lib/world/posters';
+import { worldForRoute } from '@/lib/world/catalog';
+import { Plate } from '@/components/velo/Plate';
+import { MapPlate } from '@/components/velo/MapPlate';
+import { RouteProfile } from '@/components/velo/RouteProfile';
+import { DISPLAY, KICKER } from '@/components/velo/v2';
 
 function characterText(info: ScenicRouteInfo): string {
   if (info.character === 'flat') return 'flat';
@@ -30,6 +36,10 @@ function figures(info: ScenicRouteInfo, units: UnitSystem): string {
   return `${distanceText(info.route.totalDistance, units)} · ${characterText(info)} · about ${info.estMinutes} min`;
 }
 
+function areaTitle(info: ScenicRouteInfo): string | undefined {
+  return SCENIC_AREAS.find((a) => a.id === info.area)?.title;
+}
+
 export interface ScenicPickProps {
   /** Route currently loaded in the ride store, to mark it as selected. */
   activeRouteId?: string | null;
@@ -38,13 +48,18 @@ export interface ScenicPickProps {
   weatherById?: Record<string, WeatherEntry | undefined>;
 }
 
-/** The one big card: today's suggested ride and the page's primary action. */
+/**
+ * Today's ride: the world still (or the route on a map plate) with a paper
+ * label holding the page's primary action. Below sm the label sits under the
+ * plate and the buttons stack full width.
+ */
 export function FeaturedScenicRide({
   info,
   onRide,
   onRideWithShow,
   weather,
   onRetryWeather,
+  className,
 }: {
   info: ScenicRouteInfo;
   onRide: (info: ScenicRouteInfo) => void;
@@ -52,31 +67,37 @@ export function FeaturedScenicRide({
   onRideWithShow?: (info: ScenicRouteInfo) => void;
   weather?: WeatherEntry;
   onRetryWeather?: () => void;
+  className?: string;
 }) {
   const units = useSettingsStore((s) => s.units);
+  const posters = postersFor(info.route.id);
+  const area = areaTitle(info);
+  const plateClass = 'aspect-4/3 w-full sm:aspect-video sm:max-h-hero-fit';
   return (
-    <article
-      className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 sm:p-6"
+    <figure
+      className={cn('relative', className)}
       aria-labelledby="todays-ride-title"
       data-testid="featured-scenic-ride"
     >
-      <div className="flex flex-col gap-1">
-        <p className="text-xs font-semibold uppercase tracking-widest text-accent">Today’s ride</p>
-        <h2 id="todays-ride-title" className="text-2xl sm:text-4xl font-bold text-foreground">
+      {posters ? (
+        <Plate src={posters.plate} nightSrc={posters.plateNight} alt={posters.alt} priority className={plateClass} />
+      ) : (
+        <MapPlate route={info.route} aspect={16 / 9} className={plateClass} />
+      )}
+      <figcaption className="flex flex-col gap-2 pt-4 sm:absolute sm:bottom-6 sm:left-6 sm:w-full sm:max-w-md sm:rounded-lg sm:bg-background sm:p-6 sm:shadow-md">
+        <span className={KICKER}>Today’s ride{area ? ` · ${area}` : ''}</span>
+        <h2 id="todays-ride-title" className={cn(DISPLAY, 'text-3xl text-foreground sm:text-4xl')}>
           {info.name}
         </h2>
-        <p className="text-sm text-muted-foreground">{info.place}</p>
-      </div>
-      <p className="max-w-prose text-base text-muted-foreground">{info.description}</p>
-      <ElevationLine route={info.route} className="h-12 sm:h-16" />
-      <WeatherLine entry={weather} size="base" prefix="Now" onRetry={onRetryWeather} />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="num text-lg font-semibold text-foreground">{figures(info, units)}</p>
-        <div className="flex flex-col gap-3 sm:flex-row-reverse">
+        <span className="text-sm text-muted-foreground">{info.description}</span>
+        <RouteProfile route={info.route} className="mt-1 h-8" />
+        <span className="num text-base font-semibold text-foreground">{figures(info, units)}</span>
+        <WeatherLine entry={weather} prefix="Now" onRetry={onRetryWeather} />
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <Button
             size="lg"
-            variant="accent"
-            className="w-full shadow-glow-accent sm:w-auto"
+            variant="primary"
+            className="w-full text-base sm:w-auto"
             onClick={() => onRide(info)}
             aria-label={`Ride ${info.name}`}
           >
@@ -86,23 +107,26 @@ export function FeaturedScenicRide({
           {onRideWithShow && (
             <Button
               size="lg"
-              variant="outline"
-              className="w-full sm:w-auto"
+              variant="quiet"
+              className="w-full px-3 text-base sm:w-auto"
               onClick={() => onRideWithShow(info)}
               aria-label={`Ride ${info.name} and watch your videos`}
               data-testid="ride-and-watch"
             >
-              <Tv className="h-5 w-5" />
+              <Clapperboard className="h-5 w-5" />
               Ride and watch
             </Button>
           )}
         </div>
-      </div>
-    </article>
+      </figcaption>
+    </figure>
   );
 }
 
-function ScenicRouteCard({
+const ACTIVE_RING = 'ring-2 ring-primary ring-offset-2 ring-offset-background';
+const TILE_PLATE = 'mb-2 aspect-3/2 w-full transition-opacity duration-150 group-hover:opacity-90';
+
+function ScenicRouteTile({
   info,
   isActive,
   onRide,
@@ -115,46 +139,59 @@ function ScenicRouteCard({
 }) {
   const units = useSettingsStore((s) => s.units);
   const text = figures(info, units);
-  const weatherText = weather?.status === 'ready' ? `, now ${cardWeatherText(weather.weather, units)}` : '';
-  // The whole card is the button: one big target from the sofa or the bars.
+  const posters = postersFor(info.route.id);
+  const hasWorld = worldForRoute(info.route) !== null;
+  const weatherText =
+    hasWorld && weather?.status === 'ready' ? `, now ${cardWeatherText(weather.weather, units)}` : '';
+  const plateClass = cn(TILE_PLATE, isActive && ACTIVE_RING);
+  // The whole tile is the button: one big target from the sofa or the bars.
   return (
     <button
       type="button"
       onClick={() => onRide(info)}
-      aria-label={`Ride ${info.name}, ${text}${weatherText}`}
+      aria-label={`Ride ${info.name}, ${text}${weatherText}${hasWorld ? '' : ', map view'}`}
       aria-pressed={isActive}
       data-scenic-route={info.route.id}
-      className={cn(
-        'group flex flex-col gap-3 rounded-lg border bg-card p-4 text-left transition-colors duration-150',
-        isActive ? 'border-primary' : 'border-border hover:border-primary/60',
-      )}
+      className="group flex flex-col gap-1 rounded-lg text-left"
     >
-      <div className="flex w-full items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h3 className="text-lg font-semibold text-foreground">{info.name}</h3>
-          <p className="text-sm text-muted-foreground">{info.place}</p>
-        </div>
-        <span
-          aria-hidden
-          className={cn(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors duration-150',
-            isActive
-              ? 'border-primary bg-primary text-primary-foreground'
-              : 'border-border text-foreground group-hover:border-primary group-hover:text-primary',
-          )}
-        >
-          <Play className="h-4 w-4" />
-        </span>
-      </div>
-      <ElevationLine route={info.route} className="h-10" />
-      {/* Offline is said once, on the featured card; the grid just omits the line. */}
-      {weather?.status !== 'unavailable' && <WeatherLine entry={weather} />}
-      <p className="num text-sm text-foreground">{text}</p>
+      {posters ? (
+        <Plate src={posters.plate} nightSrc={posters.plateNight} alt="" className={plateClass} />
+      ) : (
+        <MapPlate route={info.route} aspect={3 / 2} className={plateClass} />
+      )}
+      <h4
+        className={cn(
+          DISPLAY,
+          'text-xl text-foreground decoration-muted-foreground underline-offset-4 group-hover:underline',
+        )}
+      >
+        {info.name}
+      </h4>
+      <span className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="num font-semibold text-foreground">{text}</span>
+        {!hasWorld && (
+          <span className="inline-flex h-6 items-center gap-1 rounded-pill bg-muted px-2 text-xs font-semibold text-foreground">
+            <MapIcon className="h-4 w-4" aria-hidden />
+            Map view
+          </span>
+        )}
+      </span>
+      {hasWorld ? (
+        // Offline is said once, on Today's ride; tiles just omit the line.
+        weather?.status !== 'unavailable' && <WeatherLine entry={weather} prefix="Now" />
+      ) : (
+        <span className="text-sm text-muted-foreground">3D world coming; rides on the map today</span>
+      )}
     </button>
   );
 }
 
-/** Grid of scenic route cards, 1 / 2 / 3 columns at 390 / sm / lg. */
+/** Columns: 1 below sm, 2 at sm, and at lg 2 for two or four routes, else 3. */
+function gridCols(count: number): string {
+  return cn('grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2', count !== 2 && count !== 4 && 'lg:grid-cols-3');
+}
+
+/** Grid of scenic route tiles. */
 export function ScenicRouteGrid({
   routes,
   activeRouteId,
@@ -163,9 +200,9 @@ export function ScenicRouteGrid({
   className,
 }: ScenicPickProps & { routes: ScenicRouteInfo[]; className?: string }) {
   return (
-    <div className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3', className)}>
+    <div className={cn(gridCols(routes.length), className)}>
       {routes.map((info) => (
-        <ScenicRouteCard
+        <ScenicRouteTile
           key={info.route.id}
           info={info}
           isActive={info.route.id === activeRouteId}
@@ -177,25 +214,27 @@ export function ScenicRouteGrid({
   );
 }
 
-/** Section heading used above each scenic group. */
-export function ScenicSectionHeading({ title, detail }: { title: string; detail: string }) {
+/** Area heading: serif title, muted detail on the same baseline. */
+export function ScenicSectionHeading({ id, title, detail }: { id?: string; title: string; detail: string }) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-      <h2 className="text-2xl font-bold text-foreground">{title}</h2>
+      <h3 id={id} className={cn(DISPLAY, 'text-2xl text-foreground')}>
+        {title}
+      </h3>
       <p className="text-sm text-muted-foreground">{detail}</p>
     </div>
   );
 }
 
-/** Loading placeholder with the final grid layout. */
+/** Loading placeholder with the final tile shape. */
 export function ScenicRouteGridSkeleton({ count = 3 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
+    <div className={gridCols(count)} aria-hidden>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex h-40 flex-col gap-3 rounded-lg border border-border bg-card p-4">
-          <div className="h-5 w-2/3 animate-pulse rounded-sm bg-muted" />
-          <div className="h-4 w-1/3 animate-pulse rounded-sm bg-muted" />
-          <div className="mt-auto h-10 animate-pulse rounded-sm bg-muted" />
+        <div key={i} className="flex flex-col gap-2">
+          <div className="aspect-3/2 w-full animate-pulse rounded-lg bg-muted" />
+          <div className="h-6 w-2/3 animate-pulse rounded-sm bg-muted" />
+          <div className="h-4 w-1/2 animate-pulse rounded-sm bg-muted" />
         </div>
       ))}
     </div>

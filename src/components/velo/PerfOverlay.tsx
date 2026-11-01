@@ -6,8 +6,8 @@
  */
 
 import { useSyncExternalStore } from 'react';
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { HUD_PANEL } from './v2';
 import { getPerfSnapshot, subscribePerf, type ScenePerf } from '@/lib/perf/scenePerf';
 import { JANK_MS } from '@/lib/perf/frameStats';
 import { perfOverlayEnabled } from '@/lib/perf/perfFlag';
@@ -35,8 +35,8 @@ export function PerfReadout({
   const loading = t.globeQueued + t.tilesetPending + t.tilesetProcessing;
   const measuring = perf.frames === 0;
   return (
-    <Card
-      className={cn('pointer-events-auto flex w-full max-w-sm flex-col gap-1 px-4 py-3', className)}
+    <div
+      className={cn(HUD_PANEL, 'pointer-events-auto flex w-full max-w-sm flex-col gap-1 px-4 py-3', className)}
       role="group"
       aria-label="Performance"
     >
@@ -58,7 +58,7 @@ export function PerfReadout({
         {perf.msaa} · {QUALITY_LABELS[quality].label.toLowerCase()}
         {perf.requestRenderMode ? ' · on demand' : ''}
       </p>
-    </Card>
+    </div>
   );
 }
 

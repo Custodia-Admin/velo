@@ -1,0 +1,422 @@
+{
+ "finish-1440-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "imgs": [
+   {
+    "ok": true,
+    "src": "finish-arrival.jpg"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 40,
+  "minTargetEl": "Assisi valley floor \u00b7 12.7 km \u00b7 flat",
+  "overflow": false,
+  "rects": {
+   "after": [
+    208,
+    755,
+    1024,
+    53
+   ],
+   "download": [
+    676,
+    627,
+    184,
+    48
+   ],
+   "focused": "finish-title",
+   "footer": [
+    208,
+    808,
+    1024,
+    88
+   ],
+   "h1": [
+    208,
+    565,
+    428,
+    40
+   ],
+   "home": [
+    1075,
+    627,
+    157,
+    48
+   ],
+   "kicker": "Ride finished \u00b7 saved on this device",
+   "plate": [
+    208,
+    72,
+    1024,
+    439
+   ],
+   "profile": [
+    208,
+    699,
+    1024,
+    40
+   ],
+   "strava": [
+    872,
+    627,
+    191,
+    48
+   ]
+  },
+  "scrollWidth": 1440,
+  "tv": false
+ },
+ "finish-1440.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "imgs": [
+   {
+    "ok": true,
+    "src": "finish-arrival.jpg"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 40,
+  "minTargetEl": "Assisi valley floor \u00b7 12.7 km \u00b7 flat",
+  "overflow": false,
+  "rects": {
+   "after": [
+    208,
+    755,
+    1024,
+    53
+   ],
+   "download": [
+    676,
+    627,
+    184,
+    48
+   ],
+   "focused": "finish-title",
+   "footer": [
+    208,
+    808,
+    1024,
+    88
+   ],
+   "h1": [
+    208,
+    565,
+    428,
+    40
+   ],
+   "home": [
+    1075,
+    627,
+    157,
+    48
+   ],
+   "kicker": "Ride finished \u00b7 saved on this device",
+   "plate": [
+    208,
+    72,
+    1024,
+    439
+   ],
+   "profile": [
+    208,
+    699,
+    1024,
+    40
+   ],
+   "strava": [
+    872,
+    627,
+    191,
+    48
+   ]
+  },
+  "scrollWidth": 1440,
+  "tv": false
+ },
+ "finish-390-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "imgs": [
+   {
+    "ok": true,
+    "src": "finish-arrival-portrait.jpg"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 48,
+  "minTargetEl": "Download FIT",
+  "overflow": false,
+  "rects": {
+   "after": [
+    16,
+    827,
+    358,
+    72
+   ],
+   "download": [
+    16,
+    579,
+    358,
+    48
+   ],
+   "focused": "finish-title",
+   "footer": [
+    16,
+    899,
+    358,
+    88
+   ],
+   "h1": [
+    16,
+    395,
+    358,
+    36
+   ],
+   "home": [
+    16,
+    699,
+    358,
+    48
+   ],
+   "kicker": "Ride finished \u00b7 saved on this device",
+   "plate": [
+    16,
+    72,
+    358,
+    269
+   ],
+   "profile": [
+    16,
+    771,
+    358,
+    40
+   ],
+   "strava": [
+    16,
+    639,
+    358,
+    48
+   ]
+  },
+  "scrollWidth": 390,
+  "tv": false
+ },
+ "finish-390.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "imgs": [
+   {
+    "ok": true,
+    "src": "finish-arrival-portrait.jpg"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 48,
+  "minTargetEl": "Download FIT",
+  "overflow": false,
+  "rects": {
+   "after": [
+    16,
+    827,
+    358,
+    72
+   ],
+   "download": [
+    16,
+    579,
+    358,
+    48
+   ],
+   "focused": "finish-title",
+   "footer": [
+    16,
+    899,
+    358,
+    88
+   ],
+   "h1": [
+    16,
+    395,
+    358,
+    36
+   ],
+   "home": [
+    16,
+    699,
+    358,
+    48
+   ],
+   "kicker": "Ride finished \u00b7 saved on this device",
+   "plate": [
+    16,
+    72,
+    358,
+    269
+   ],
+   "profile": [
+    16,
+    771,
+    358,
+    40
+   ],
+   "strava": [
+    16,
+    639,
+    358,
+    48
+   ]
+  },
+  "scrollWidth": 390,
+  "tv": false
+ },
+ "finish-tv-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "imgs": [
+   {
+    "ok": true,
+    "src": "finish-arrival.jpg"
+   }
+  ],
+  "minFont": 21,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 70,
+  "minTargetEl": "Assisi valley floor \u00b7 12.7 km \u00b7 flat",
+  "overflow": false,
+  "rects": {
+   "after": [
+    70,
+    905,
+    1780,
+    92
+   ],
+   "download": [
+    879,
+    681,
+    321,
+    84
+   ],
+   "focused": "finish-title",
+   "footer": [
+    70,
+    997,
+    1780,
+    154
+   ],
+   "h1": [
+    70,
+    573,
+    739,
+    70
+   ],
+   "home": [
+    1575,
+    681,
+    275,
+    84
+   ],
+   "kicker": "Ride finished \u00b7 saved on this device",
+   "plate": [
+    70,
+    126,
+    1780,
+    352
+   ],
+   "profile": [
+    70,
+    807,
+    1780,
+    70
+   ],
+   "strava": [
+    1222,
+    681,
+    332,
+    84
+   ]
+  },
+  "scrollWidth": 1920,
+  "tv": true
+ },
+ "finish-tv.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "imgs": [
+   {
+    "ok": true,
+    "src": "finish-arrival.jpg"
+   }
+  ],
+  "minFont": 21,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 70,
+  "minTargetEl": "Assisi valley floor \u00b7 12.7 km \u00b7 flat",
+  "overflow": false,
+  "rects": {
+   "after": [
+    70,
+    905,
+    1780,
+    92
+   ],
+   "download": [
+    879,
+    681,
+    321,
+    84
+   ],
+   "focused": "finish-title",
+   "footer": [
+    70,
+    997,
+    1780,
+    154
+   ],
+   "h1": [
+    70,
+    573,
+    739,
+    70
+   ],
+   "home": [
+    1575,
+    681,
+    275,
+    84
+   ],
+   "kicker": "Ride finished \u00b7 saved on this device",
+   "plate": [
+    70,
+    126,
+    1780,
+    352
+   ],
+   "profile": [
+    70,
+    807,
+    1780,
+    70
+   ],
+   "strava": [
+    1222,
+    681,
+    332,
+    84
+   ]
+  },
+  "scrollWidth": 1920,
+  "tv": true
+ }
+}

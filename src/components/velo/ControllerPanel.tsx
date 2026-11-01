@@ -1,10 +1,16 @@
 /**
- * Handlebar controls (Ride V2 controllers) inside the Trainer panel.
- * Renders nothing in browsers without Web Bluetooth.
+ * Handlebar controls (Ride V2 controllers).
+ *
+ * HandlebarRow is the Devices page row (rendered from
+ * devicesView.handlebarRow); ControllerPanel is the older block inside the
+ * Home Trainer card. Both drive the same single-controller store and lib
+ * calls, and render nothing in browsers without Web Bluetooth.
  */
 
 import { useId, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Bluetooth, Loader2 } from 'lucide-react';
+import { DeviceRow } from '@/components/velo/DeviceRow';
+import { ASLEEP_TEXT, WAITING_TEXT, handlebarRow, type HandlebarActionId } from '@/components/velo/devicesView';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/velo/Switch';
 import { UnlockSteps } from '@/components/velo/UnlockSteps';
@@ -28,8 +34,6 @@ import {
 } from '@/lib/controllers/controllerView';
 import { useControllerStore } from '@/stores/controllerStore';
 
-const ASLEEP_TEXT = 'The controls went to sleep. Press any button on the bars, then reconnect.';
-const WAITING_TEXT = 'Press a shift paddle: the gear in the ride view should change.';
 
 const noopSubscribe = () => () => undefined;
 
@@ -43,8 +47,7 @@ function Note({ children }: { children: ReactNode }) {
 }
 
 export function ControllerPanel() {
-  // Capability is fixed for the page's lifetime; read it once without effects.
-  const supported = useSyncExternalStore(noopSubscribe, isRideControllerSupported, () => false);
+  const supported = useControllerSupported();
   const status = useControllerStore((s) => s.status);
   const battery = useControllerStore((s) => s.battery);
   const silent = useControllerStore((s) => s.silent);
@@ -52,16 +55,8 @@ export function ControllerPanel() {
   const buzz = useControllerStore((s) => s.buzz);
   const inputSeen = useControllerStore((s) => s.inputSeen);
   const errorMessage = useControllerStore((s) => s.errorMessage);
-  const steeringEnabled = useControllerStore((s) => s.steeringEnabled);
-  const setSteeringEnabled = useControllerStore((s) => s.setSteeringEnabled);
-  const debugOverlay = useControllerStore((s) => s.debugOverlay);
-  const setDebugOverlay = useControllerStore((s) => s.setDebugOverlay);
   const titleId = useId();
   const statusId = useId();
-  const steerLabelId = useId();
-  const steerHintId = useId();
-  const debugLabelId = useId();
-  const debugHintId = useId();
   // After a pairing attempt that didn't connect (chooser empty or closed),
   // offer the unfiltered chooser too.
   const [tried, setTried] = useState(false);
@@ -200,56 +195,151 @@ export function ControllerPanel() {
 
       {live && (
         <>
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <span id={steerLabelId} className="text-sm font-semibold text-foreground">
-                Steer with the levers
-              </span>
-              <span id={steerHintId} className="text-sm text-muted-foreground">
-                {steeringEnabled
-                  ? 'The bike follows the road; the levers move you across the lane.'
-                  : 'Off: the bike stays on the line.'}
-              </span>
-            </div>
-            <Switch
-              checked={steeringEnabled}
-              onChange={setSteeringEnabled}
-              labelledBy={steerLabelId}
-              describedBy={steerHintId}
-            />
-          </div>
-          <details className="group text-sm">
-            <summary className="flex h-10 cursor-pointer items-center font-semibold text-foreground">
-              What the buttons do
-            </summary>
-            <dl className="grid grid-cols-1 gap-x-6 gap-y-2 pt-2 sm:grid-cols-2">
-              {ACTION_LEGEND.map((row) => (
-                <div key={row.controls} className="flex flex-col gap-1">
-                  <dt className="font-semibold text-foreground">{row.controls}</dt>
-                  <dd className="text-muted-foreground">{row.action}</dd>
-                </div>
-              ))}
-            </dl>
-          </details>
+          <SteeringSwitch />
+          <ButtonLegend />
         </>
       )}
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <span id={debugLabelId} className="text-sm font-semibold text-foreground">
-            Controller debug
-          </span>
-          <span id={debugHintId} className="text-sm text-muted-foreground">
-            Shows the last raw messages in the ride view, for a screenshot.
-          </span>
-        </div>
-        <Switch
-          checked={debugOverlay}
-          onChange={setDebugOverlay}
-          labelledBy={debugLabelId}
-          describedBy={debugHintId}
-        />
-      </div>
+      <ControllerDebugSwitch />
     </section>
+  );
+}
+
+/** "Steer with the levers" on/off (persisted in the controller store). */
+export function SteeringSwitch() {
+  const steeringEnabled = useControllerStore((s) => s.steeringEnabled);
+  const setSteeringEnabled = useControllerStore((s) => s.setSteeringEnabled);
+  const labelId = useId();
+  const hintId = useId();
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-1">
+        <span id={labelId} className="text-sm font-semibold text-foreground">
+          Steer with the levers
+        </span>
+        <span id={hintId} className="text-sm text-muted-foreground">
+          {steeringEnabled
+            ? 'The bike follows the road; the levers move you across the lane.'
+            : 'Off: the bike stays on the line.'}
+        </span>
+      </div>
+      <Switch checked={steeringEnabled} onChange={setSteeringEnabled} labelledBy={labelId} describedBy={hintId} />
+    </div>
+  );
+}
+
+/** "What the buttons do": the action legend behind a disclosure. */
+export function ButtonLegend({ children, className }: { children?: ReactNode; className?: string }) {
+  return (
+    <details className={cn('group text-sm', className)}>
+      <summary className="flex h-10 cursor-pointer items-center font-semibold text-foreground">
+        What the buttons do
+      </summary>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-2 pt-2 sm:grid-cols-2">
+        {ACTION_LEGEND.map((row) => (
+          <div key={row.controls} className="flex flex-col gap-1">
+            <dt className="font-semibold text-foreground">{row.controls}</dt>
+            <dd className="text-muted-foreground">{row.action}</dd>
+          </div>
+        ))}
+      </dl>
+      {children}
+    </details>
+  );
+}
+
+/** Raw-message overlay in the ride view (field diagnostics). */
+export function ControllerDebugSwitch() {
+  const debugOverlay = useControllerStore((s) => s.debugOverlay);
+  const setDebugOverlay = useControllerStore((s) => s.setDebugOverlay);
+  const labelId = useId();
+  const hintId = useId();
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-1">
+        <span id={labelId} className="text-sm font-semibold text-foreground">
+          Controller debug
+        </span>
+        <span id={hintId} className="text-sm text-muted-foreground">
+          Shows the last raw messages in the ride view, for a screenshot.
+        </span>
+      </div>
+      <Switch checked={debugOverlay} onChange={setDebugOverlay} labelledBy={labelId} describedBy={hintId} />
+    </div>
+  );
+}
+
+/** Web Bluetooth is there (fixed for the page's lifetime; read once without effects). */
+export function useControllerSupported(): boolean {
+  return useSyncExternalStore(noopSubscribe, isRideControllerSupported, () => false);
+}
+
+/** The Devices page handlebar row. Nothing without Web Bluetooth. */
+export function HandlebarRow() {
+  const supported = useControllerSupported();
+  const status = useControllerStore((s) => s.status);
+  const battery = useControllerStore((s) => s.battery);
+  const silent = useControllerStore((s) => s.silent);
+  const side = useControllerStore((s) => s.side);
+  const buzz = useControllerStore((s) => s.buzz);
+  const inputSeen = useControllerStore((s) => s.inputSeen);
+  const deviceName = useControllerStore((s) => s.deviceName);
+  const errorMessage = useControllerStore((s) => s.errorMessage);
+  // After a pairing attempt that didn't connect (chooser empty or closed),
+  // offer the unfiltered chooser too.
+  const [tried, setTried] = useState(false);
+
+  if (!supported) return null;
+
+  const view = handlebarRow({ status, silent, side, inputSeen, buzz, deviceName, errorMessage, tried });
+
+  const onAction = (id: HandlebarActionId) => {
+    switch (id) {
+      case 'pair':
+        setTried(true);
+        void pairRideController();
+        return;
+      case 'pairAll':
+        void pairRideController({ showAllDevices: true });
+        return;
+      case 'pairOther':
+        void pairRideController();
+        return;
+      case 'reconnect':
+        void reconnectRideController();
+        return;
+      case 'buzz':
+        buzzRideController();
+        return;
+      case 'disconnect':
+      case 'forget':
+        void disconnectRideController();
+        return;
+    }
+  };
+
+  return (
+    <DeviceRow
+      icon={Bluetooth}
+      view={view}
+      onAction={onAction}
+      battery={view.showBattery ? battery : null}
+      testId="device-handlebar"
+      extrasLead={
+        view.settings && (
+          <ButtonLegend className="open:basis-full">
+            <div className="pt-4">
+              <SteeringSwitch />
+            </div>
+          </ButtonLegend>
+        )
+      }
+    >
+      {view.unlockIntro && (
+        <div className="mt-2">
+          <UnlockSteps intro={view.unlockIntro} />
+        </div>
+      )}
+    </DeviceRow>
   );
 }

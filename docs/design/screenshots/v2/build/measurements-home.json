@@ -1,0 +1,560 @@
+{
+ "home-1440": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "imgs": 2,
+  "minFont": 12,
+  "minFontEl": "Today\u2019s ride",
+  "minTarget": 40,
+  "minTargetEl": "Devices: no trainer paired",
+  "overflow": false,
+  "rects": {
+   "area": [
+    208,
+    836,
+    122,
+    32
+   ],
+   "comfort": [
+    489,
+    748,
+    68,
+    40
+   ],
+   "devices": [
+    1002,
+    12,
+    126,
+    40
+   ],
+   "h1": [
+    208,
+    92,
+    221,
+    36
+   ],
+   "h2": [
+    256,
+    392,
+    400,
+    40
+   ],
+   "header": [
+    0,
+    0,
+    1440,
+    64
+   ],
+   "hero": [
+    208,
+    152,
+    1024,
+    576
+   ],
+   "label": [
+    232,
+    342,
+    448,
+    362
+   ],
+   "plate": [
+    208,
+    152,
+    1024,
+    576
+   ],
+   "ride": [
+    256,
+    632,
+    110,
+    48
+   ],
+   "riders": [
+    944,
+    88,
+    240,
+    40
+   ],
+   "tile": [
+    208,
+    888,
+    500,
+    427
+   ],
+   "tilePlate": [
+    208,
+    888,
+    500,
+    333
+   ]
+  },
+  "scrollWidth": 1440,
+  "tv": false
+ },
+ "home-1440-night": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "imgs": 2,
+  "minFont": 12,
+  "minFontEl": "Today\u2019s ride",
+  "minTarget": 40,
+  "minTargetEl": "Devices: no trainer paired",
+  "overflow": false,
+  "rects": {
+   "area": [
+    208,
+    836,
+    122,
+    32
+   ],
+   "comfort": [
+    489,
+    748,
+    68,
+    40
+   ],
+   "devices": [
+    1002,
+    12,
+    126,
+    40
+   ],
+   "h1": [
+    208,
+    92,
+    221,
+    36
+   ],
+   "h2": [
+    256,
+    392,
+    400,
+    40
+   ],
+   "header": [
+    0,
+    0,
+    1440,
+    64
+   ],
+   "hero": [
+    208,
+    152,
+    1024,
+    576
+   ],
+   "label": [
+    232,
+    342,
+    448,
+    362
+   ],
+   "plate": [
+    208,
+    152,
+    1024,
+    576
+   ],
+   "ride": [
+    256,
+    632,
+    110,
+    48
+   ],
+   "riders": [
+    944,
+    88,
+    240,
+    40
+   ],
+   "tile": [
+    208,
+    888,
+    500,
+    427
+   ],
+   "tilePlate": [
+    208,
+    888,
+    500,
+    333
+   ]
+  },
+  "scrollWidth": 1440,
+  "tv": false
+ },
+ "home-390": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "imgs": 1,
+  "minFont": 12,
+  "minFontEl": "Today\u2019s ride",
+  "minTarget": 40,
+  "minTargetEl": "Devices: no trainer paired",
+  "overflow": false,
+  "rects": {
+   "area": [
+    16,
+    946,
+    122,
+    32
+   ],
+   "comfort": [
+    297,
+    866,
+    68,
+    40
+   ],
+   "devices": [
+    204,
+    12,
+    66,
+    40
+   ],
+   "h1": [
+    16,
+    80,
+    179,
+    32
+   ],
+   "h2": [
+    16,
+    503,
+    358,
+    36
+   ],
+   "header": [
+    0,
+    0,
+    390,
+    64
+   ],
+   "hero": [
+    16,
+    192,
+    358,
+    654
+   ],
+   "label": [
+    16,
+    461,
+    358,
+    386
+   ],
+   "plate": [
+    16,
+    192,
+    358,
+    269
+   ],
+   "ride": [
+    16,
+    738,
+    358,
+    48
+   ],
+   "riders": [
+    16,
+    128,
+    240,
+    40
+   ],
+   "tile": [
+    16,
+    998,
+    358,
+    330
+   ],
+   "tilePlate": [
+    16,
+    998,
+    358,
+    239
+   ]
+  },
+  "scrollWidth": 390,
+  "tv": false
+ },
+ "home-390-night": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "imgs": 1,
+  "minFont": 12,
+  "minFontEl": "Today\u2019s ride",
+  "minTarget": 40,
+  "minTargetEl": "Devices: no trainer paired",
+  "overflow": false,
+  "rects": {
+   "area": [
+    16,
+    946,
+    122,
+    32
+   ],
+   "comfort": [
+    297,
+    866,
+    68,
+    40
+   ],
+   "devices": [
+    204,
+    12,
+    66,
+    40
+   ],
+   "h1": [
+    16,
+    80,
+    179,
+    32
+   ],
+   "h2": [
+    16,
+    503,
+    358,
+    36
+   ],
+   "header": [
+    0,
+    0,
+    390,
+    64
+   ],
+   "hero": [
+    16,
+    192,
+    358,
+    654
+   ],
+   "label": [
+    16,
+    461,
+    358,
+    386
+   ],
+   "plate": [
+    16,
+    192,
+    358,
+    269
+   ],
+   "ride": [
+    16,
+    738,
+    358,
+    48
+   ],
+   "riders": [
+    16,
+    128,
+    240,
+    40
+   ],
+   "tile": [
+    16,
+    998,
+    358,
+    330
+   ],
+   "tilePlate": [
+    16,
+    998,
+    358,
+    239
+   ]
+  },
+  "scrollWidth": 390,
+  "tv": false
+ },
+ "home-tv": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "imgs": 1,
+  "minFont": 21,
+  "minFontEl": "Today\u2019s ride",
+  "minTarget": 70,
+  "minTargetEl": "Devices: no trainer paired",
+  "overflow": false,
+  "rects": {
+   "area": [
+    70,
+    1171,
+    214,
+    56
+   ],
+   "comfort": [
+    562,
+    1017,
+    119,
+    70
+   ],
+   "devices": [
+    1449,
+    21,
+    219,
+    70
+   ],
+   "h1": [
+    70,
+    161,
+    387,
+    63
+   ],
+   "h2": [
+    154,
+    394,
+    700,
+    70
+   ],
+   "header": [
+    0,
+    0,
+    1920,
+    112
+   ],
+   "hero": [
+    70,
+    266,
+    1780,
+    716
+   ],
+   "label": [
+    112,
+    307,
+    784,
+    633
+   ],
+   "plate": [
+    70,
+    266,
+    1780,
+    716
+   ],
+   "ride": [
+    154,
+    814,
+    193,
+    84
+   ],
+   "riders": [
+    1349,
+    154,
+    417,
+    70
+   ],
+   "tile": [
+    70,
+    1262,
+    869,
+    743
+   ],
+   "tilePlate": [
+    70,
+    1262,
+    869,
+    579
+   ]
+  },
+  "scrollWidth": 1920,
+  "tv": true
+ },
+ "home-tv-night": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "imgs": 1,
+  "minFont": 21,
+  "minFontEl": "Today\u2019s ride",
+  "minTarget": 70,
+  "minTargetEl": "Devices: no trainer paired",
+  "overflow": false,
+  "rects": {
+   "area": [
+    70,
+    1171,
+    214,
+    56
+   ],
+   "comfort": [
+    562,
+    1017,
+    119,
+    70
+   ],
+   "devices": [
+    1449,
+    21,
+    219,
+    70
+   ],
+   "h1": [
+    70,
+    161,
+    387,
+    63
+   ],
+   "h2": [
+    154,
+    394,
+    700,
+    70
+   ],
+   "header": [
+    0,
+    0,
+    1920,
+    112
+   ],
+   "hero": [
+    70,
+    266,
+    1780,
+    716
+   ],
+   "label": [
+    112,
+    307,
+    784,
+    633
+   ],
+   "plate": [
+    70,
+    266,
+    1780,
+    716
+   ],
+   "ride": [
+    154,
+    814,
+    193,
+    84
+   ],
+   "riders": [
+    1349,
+    154,
+    417,
+    70
+   ],
+   "tile": [
+    70,
+    1262,
+    869,
+    743
+   ],
+   "tilePlate": [
+    70,
+    1262,
+    869,
+    579
+   ]
+  },
+  "scrollWidth": 1920,
+  "tv": true
+ }
+}
