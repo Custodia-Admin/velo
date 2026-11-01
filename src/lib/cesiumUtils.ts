@@ -1222,6 +1222,49 @@ export function julianDateForMood(lonDeg: number, hoursFromNoon: number): Cesium
   return Cesium.JulianDate.addHours(utcBase, targetUtcHr, new Cesium.JulianDate());
 }
 
+/**
+ * Globe front-face translucency ramp used while riding over the photoreal
+ * mesh (card t_0bcacadb grey-veil mitigation): fully transparent inside
+ * GLOBE_VEIL_ALPHA_NEAR_M of the camera — the mesh renders the ground there —
+ * fading back to opaque by GLOBE_VEIL_ALPHA_FAR_M so the horizon and any
+ * area without photoreal coverage keeps its Bing imagery skin.
+ */
+export const GLOBE_VEIL_ALPHA_NEAR_M = 300;
+export const GLOBE_VEIL_ALPHA_FAR_M = 3_000;
+
+/**
+ * One-time setup of the veil-mitigation alpha ramp on a scene's globe.
+ * Visibility itself is flipped per-frame via `globe.translucency.enabled`
+ * (see applyGlobeVeilTranslucency).
+ */
+export function setupGlobeVeilTranslucency(scene: Cesium.Scene): void {
+  scene.globe.translucency.frontFaceAlphaByDistance = new Cesium.NearFarScalar(
+    GLOBE_VEIL_ALPHA_NEAR_M, 0,
+    GLOBE_VEIL_ALPHA_FAR_M, 1,
+  );
+}
+
+/**
+ * Toggle the grey-veil mitigation.  Idempotent; safe to call every frame.
+ *
+ * Why: while a low camera rides over the streaming photoreal mesh, newly
+ * refined World Terrain globe tiles momentarily render with placeholder
+ * (flat white→grey) imagery BEFORE their Bing textures arrive, and can sit
+ * a metre or two ABOVE the mesh — a full-frame flat grey veil for 1–2 s at
+ * elevation-mismatch hotspots.  Frame-accurate layer attribution (probe10/12,
+ * scratch t_0bcacadb): hiding the globe or setting front-face alpha 0
+ * reversibly clears the veil; entity ground classification, ground primitive
+ * batches, clouds, imagery layers and the tilesets themselves do not.
+ *
+ * `active` must be exactly "photoreal tileset shown AND the route is curated
+ * (guaranteed full mesh coverage)" — an uncovered GPX area must never get a
+ * transparent hole punched near the camera.
+ */
+export function applyGlobeVeilTranslucency(scene: Cesium.Scene, active: boolean): void {
+  const t = scene.globe.translucency;
+  if (t.enabled !== active) t.enabled = active;
+}
+
 // ---- Active viewer registry -----------------------------------------------
 // Allows non-React code (RouteDrawer event handlers) to obtain the live
 // viewer instance without prop-drilling or a context provider.
@@ -1237,3 +1280,4 @@ export function setActiveViewer(v: Cesium.Viewer | null): void {
 export function getActiveViewer(): Cesium.Viewer | null {
   return _activeViewer;
 }
+

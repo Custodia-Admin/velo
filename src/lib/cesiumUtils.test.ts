@@ -75,6 +75,15 @@ vi.mock('cesium', () => ({
   },
   Ion: mockState.ionAccessor,
   Cartographic: { fromDegrees: (lon: number, lat: number) => ({ lon, lat }) },
+  NearFarScalar: vi.fn(function NFS(
+    this: unknown,
+    near: number,
+    nearValue: number,
+    far: number,
+    farValue: number,
+  ) {
+    Object.assign(this as object, { near, nearValue, far, farValue });
+  }),
 }));
 
 // Local aliases for readability in test bodies.
@@ -99,6 +108,10 @@ import {
   fallbackSceneEle,
   getTerrainProvider,
   getPhotorealTileset,
+  setupGlobeVeilTranslucency,
+  applyGlobeVeilTranslucency,
+  GLOBE_VEIL_ALPHA_NEAR_M,
+  GLOBE_VEIL_ALPHA_FAR_M,
   BING_TILE_STALL_TIMEOUT_MS,
   IMAGERY_FALLBACK_EVENT,
 } from '@/lib/cesiumUtils';
@@ -789,5 +802,48 @@ describe('cesiumUtils — token-aware behaviour', () => {
       // And of course no Bing call was made either.
       expect(ionAssetIdCalls).toEqual([]);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Grey-veil mitigation (card t_0bcacadb): globe front-face translucency ramp.
+// ---------------------------------------------------------------------------
+
+describe('globe veil translucency', () => {
+  function makeScene() {
+    return {
+      globe: {
+        translucency: {
+          enabled: false,
+          frontFaceAlphaByDistance: undefined as unknown,
+        },
+      },
+    } as unknown as import('cesium').Scene;
+  }
+
+  it('setup installs the near/far alpha ramp (transparent near, opaque far)', () => {
+    const scene = makeScene();
+    setupGlobeVeilTranslucency(scene);
+    const ramp = scene.globe.translucency.frontFaceAlphaByDistance as unknown as {
+      near: number; nearValue: number; far: number; farValue: number;
+    };
+    expect(ramp).toBeDefined();
+    expect(ramp.near).toBe(GLOBE_VEIL_ALPHA_NEAR_M);
+    expect(ramp.nearValue).toBe(0);
+    expect(ramp.far).toBe(GLOBE_VEIL_ALPHA_FAR_M);
+    expect(ramp.farValue).toBe(1);
+    // Setup alone must NOT flip translucency on.
+    expect(scene.globe.translucency.enabled).toBe(false);
+  });
+
+  it('apply toggles enabled idempotently', () => {
+    const scene = makeScene();
+    setupGlobeVeilTranslucency(scene);
+    applyGlobeVeilTranslucency(scene, true);
+    expect(scene.globe.translucency.enabled).toBe(true);
+    applyGlobeVeilTranslucency(scene, true); // no throw, stays on
+    expect(scene.globe.translucency.enabled).toBe(true);
+    applyGlobeVeilTranslucency(scene, false);
+    expect(scene.globe.translucency.enabled).toBe(false);
   });
 });

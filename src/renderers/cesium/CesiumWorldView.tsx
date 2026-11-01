@@ -39,6 +39,8 @@ import {
   setIonToken,
   setActiveViewer,
   setupBaseImagery,
+  setupGlobeVeilTranslucency,
+  applyGlobeVeilTranslucency,
   type MoodId,
 } from '@/lib/cesiumUtils';
 import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
@@ -263,6 +265,10 @@ export function CesiumWorldView({
   const segmentPortalHandleRef = useRef<SegmentPortalHandle | null>(null);
   // ---- Road surface ----
   const roadEntityRef = useRef<RoadEntityHandle | null>(null);
+  // True when the loaded route is curated (scenic / world-tour / iconic) and
+  // therefore guaranteed full photoreal-mesh coverage — the grey-veil globe
+  // translucency only ever engages for these (see cesiumUtils).
+  const curatedRouteRef = useRef(false);
   const roadEdgeStripesRef = useRef<EdgeStripesHandle | null>(null);
   const kmMarkersRef = useRef<KmMarkersHandle | null>(null);
   const climbArchesRef = useRef<ClimbArchesHandle | null>(null);
@@ -411,6 +417,9 @@ export function CesiumWorldView({
 
     const scene = viewer.scene;
     scene.globe.depthTestAgainstTerrain = true;
+    // Grey-veil mitigation (t_0bcacadb): distance-faded front-face alpha ramp,
+    // engaged per-frame only while the photoreal mesh renders a curated route.
+    setupGlobeVeilTranslucency(scene);
     if (scene.skyAtmosphere) scene.skyAtmosphere.show = true;
     scene.globe.enableLighting = true;
 
@@ -738,7 +747,18 @@ export function CesiumWorldView({
     climbArchesRef.current?.destroy();
     climbArchesRef.current = null;
 
-    if (!route) return;
+    if (!route) {
+      curatedRouteRef.current = false;
+      return;
+    }
+    // Curated catalogues (scenic library, world-tour stages, iconic routes)
+    // are real roads inside Google Photorealistic coverage; a GPX track can be
+    // anywhere, so it keeps an opaque globe (no transparent hole near camera).
+    curatedRouteRef.current = !!(
+      scenicRouteById(route.id) ||
+      WORLD_TOUR_STAGES.find((st) => st.route.id === route.id) ||
+      ICONIC_ROUTES.find((r) => r.route.id === route.id)
+    );
 
     // Mood, sky, clouds, particles and the wet road are applied by the
     // atmosphere effect below, which also reacts to live weather.
@@ -1015,6 +1035,18 @@ export function CesiumWorldView({
       if (osmTilesetRef.current && !osmTilesetRef.current.isDestroyed()) {
         osmTilesetRef.current.show = !photorealShown;
       }
+      // The asphalt corridor is a clamped GroundPrimitive; its classification
+      // over the streaming photoreal tileset intermittently latches full-frame
+      // grey near a low camera (card t_0bcacadb). The photoreal mesh renders
+      // the real road, so hide the band whenever the tileset is shown — the
+      // gradient/centre/edge lines stay for route readability.
+      roadEntityRef.current?.setCorridorVisible(!photorealShown);
+      // Grey-veil mitigation (t_0bcacadb): keep the globe's front face
+      // transparent near the camera while the photoreal mesh renders a
+      // curated (fully covered) route — coarse globe tiles momentarily
+      // floating above the mesh during LOD churn otherwise flash as a flat
+      // grey full-frame veil. Fades back to opaque toward the horizon.
+      applyGlobeVeilTranslucency(viewer.scene, photorealShown && curatedRouteRef.current);
 
       const state = useRideStore.getState();
       const r = state.route;
