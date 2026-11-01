@@ -20,6 +20,18 @@ const buttonVariants = cva(
           'text-foreground hover:bg-muted/70 hover:text-foreground',
         link:
           'text-primary underline-offset-4 hover:underline p-0 h-auto font-medium',
+        /* Velo v2 (warm atlas): flat terracotta primary, no glow. One per view. */
+        primary:
+          'bg-primary text-primary-foreground hover:bg-primary/90',
+        /* Text-weight action beside a primary ("Ride and watch", "Finish"). */
+        quiet:
+          'text-foreground hover:bg-muted/70',
+        /* Solid in-ride surface: never glass over the live canvas. */
+        hud:
+          'border border-border/60 bg-hud/90 text-hud-foreground shadow-md hover:bg-hud',
+        /* Underlined inline action ("Change"). */
+        textlink:
+          'px-2 text-foreground underline decoration-muted-foreground underline-offset-4 hover:decoration-foreground',
       },
       size: {
         default: 'h-10 px-4 py-2 min-w-[2.5rem]',

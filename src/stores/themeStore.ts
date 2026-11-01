@@ -3,17 +3,23 @@ import { create } from 'zustand';
 export type Theme = 'dark' | 'light';
 
 const STORAGE_KEY = 'globeride.theme';
-const META_THEME_COLOR = { dark: '#0b1220', light: '#f8fafc' } as const;
+// --background of each theme (src/index.css), for the browser chrome.
+const META_THEME_COLOR = { dark: '#14120f', light: '#f8f6f2' } as const;
 
+/** The rider's stored choice, else the system preference (paper day by default). */
 function readInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark';
+  if (typeof window === 'undefined') return 'light';
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') return stored;
   } catch {
     // localStorage may be unavailable (private mode, etc.) — default below.
   }
-  return 'dark';
+  try {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
 }
 
 function applyThemeToDocument(theme: Theme) {
