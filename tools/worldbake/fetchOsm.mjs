@@ -20,6 +20,7 @@ export const OSM_LAYERS = {
   landcover:
     '(way[landuse~"^(forest|farmland|meadow|grass|orchard|vineyard|residential|industrial|commercial|retail|farmyard|allotments|cemetery|recreation_ground|village_green|quarry)$"]({{bbox}});relation[landuse~"^(forest|farmland|meadow|grass|orchard|vineyard|residential|industrial|commercial|retail)$"]({{bbox}});way[natural~"^(wood|scrub|grassland|heath)$"]({{bbox}});relation[natural~"^(wood|scrub|grassland)$"]({{bbox}});way[leisure~"^(park|garden|golf_course|pitch)$"]({{bbox}}););out geom;',
   buildings: '(way[building]({{bbox}});relation[building]({{bbox}}););out geom;',
+  treerows: 'way[natural=tree_row]({{bbox}});out geom;',
   pois:
     '(node[place~"^(city|town|village|hamlet|suburb)$"]({{bbox}});node[natural=peak][name]({{bbox}});node[tourism=viewpoint]({{bbox}});node[historic~"^(castle|monument|tower|city_gate|fort|archaeological_site)$"][name]({{bbox}});node[amenity=place_of_worship][name][wikidata]({{bbox}});node[tourism=attraction][name][wikidata]({{bbox}}););out;',
   landmarks:

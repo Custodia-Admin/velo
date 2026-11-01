@@ -66,8 +66,11 @@ with sync_playwright() as p:
         page.on("pageerror", lambda e: errs.append(str(e)))
         page.add_init_script(init(q))
         page.goto(base + "/app")
-        card = page.locator(f'[data-scenic-route="{route_id}"]').first
-        card.wait_for(state="visible", timeout=60000)
+        # The day's featured route leaves the grid for the "Today's ride" card.
+        grid = f'[data-scenic-route="{route_id}"]'
+        featured = '[data-testid=featured-scenic-ride] button[aria-label^="Ride "]:not([data-testid])'
+        page.wait_for_selector(f"{grid}, {featured}", timeout=60000)
+        card = page.locator(grid).first if page.locator(grid).count() else page.locator(featured).first
         card.evaluate("el => el.click()")
         page.wait_for_url("**/ride**", timeout=60000)
         page.wait_for_function("() => typeof window.__veloRideDebug === 'function' && typeof window.__veloPerf === 'function'", timeout=90000)

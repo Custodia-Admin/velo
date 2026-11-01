@@ -102,8 +102,10 @@ test('token-free smoke ride: Home → Perugia route → riding in the world rend
   await expect.poll(async () => (await hudNumbers(page)).dist, { timeout: 30_000 }).not.toBe(before.dist);
 
   // The rider moves through the Perugia world, on the ground, camera above it.
+  // Poll rather than a fixed wait: a richer world on SwiftShader can take
+  // more than a second per frame on a CI runner.
   const a = await worldDebug(page);
-  await page.waitForTimeout(2_000);
+  await expect.poll(async () => (await worldDebug(page))?.distance ?? 0, { timeout: 30_000 }).toBeGreaterThan(a!.distance!);
   const b = await worldDebug(page);
   expect(a?.renderer).toBe('world');
   expect(a?.world).toBe('perugia');

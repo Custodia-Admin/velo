@@ -7,6 +7,7 @@
  */
 
 import * as THREE from 'three';
+import { createAtmosphere, patchWorldMaterial, type WorldAtmosphere } from './atmosphere';
 import { NOISE_GLSL } from './toonTerrain';
 
 export interface RoadMaterialOptions {
@@ -19,6 +20,8 @@ export interface RoadMaterialOptions {
   emissive?: THREE.ColorRepresentation;
   /** Skip markings/grain (route line). */
   plain?: boolean;
+  /** Shared world light/air (wet roads, haze, terrain shadows). */
+  atmo?: WorldAtmosphere;
 }
 
 export function createRoadMaterial(opts: RoadMaterialOptions = {}): THREE.MeshStandardMaterial {
@@ -37,7 +40,7 @@ export function createRoadMaterial(opts: RoadMaterialOptions = {}): THREE.MeshSt
     uBiasPerM: { value: opts.biasPerM ?? 0.0016 },
   };
   const plain = opts.plain ? 1 : 0;
-  mat.onBeforeCompile = (shader) => {
+  const onShader = (shader: THREE.WebGLProgramParametersWithUniforms) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -67,6 +70,7 @@ varying float vRoadMark;`,
         `#include <common>
 varying vec2 vRoadUv;
 varying float vRoadMark;
+float gRoadWet = 0.0;
 ${NOISE_GLSL}`,
       )
       .replace(
@@ -90,9 +94,18 @@ ${NOISE_GLSL}`,
       float paint = max(edgeLine, centre) * clamp(1.4 - fw * 4.0, 0.0, 1.0);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.78, 0.78, 0.74), paint * 0.85);
     }
+    // Rain: darker tarmac, glossy, with standing water in the dips (reflects the sky).
+    float puddle = smoothstep(0.55, 0.75, vNoise(vec2(v * 0.35, u * 2.0) + 4.0)) * smoothstep(0.08, 0.3, edge);
+    gRoadWet = uWet * (0.7 + 0.3 * puddle);
+    diffuseColor.rgb *= 1.0 - 0.42 * uWet;
   }`,
+      )
+      .replace(
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
+  roughnessFactor = mix(roughnessFactor, 0.08, gRoadWet);`,
       );
   };
-  mat.customProgramCacheKey = () => `velo-road-v1-${plain}-${transparent ? 't' : 'o'}`;
+  patchWorldMaterial(mat, opts.atmo ?? createAtmosphere(), { key: `road-v2-${plain}-${transparent ? 't' : 'o'}`, onShader });
   return mat;
 }
