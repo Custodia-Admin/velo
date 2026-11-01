@@ -3,7 +3,9 @@
 Velo is a fork of [GlobeRide](https://github.com/masonwyatt23/globeride)
 (MIT, © Mason Wyatt): a browser cycling app on a photoreal Cesium globe with a
 Web-Bluetooth FTMS trainer. Velo keeps everything GlobeRide does and changes the
-default experience for one household.
+default experience for one household. From v2, Velo rides its own 3D worlds,
+baked from open data, and needs no token
+([ADR-001](architecture/ADR-001-rendering.md)).
 
 ## Who rides
 
@@ -20,7 +22,8 @@ default experience for one household.
 | Bike | Zwift Ride V2 frame (handlebar controllers) on a Wahoo KICKR CORE 2 |
 | Trainer control | FTMS verified 29 Oct 2026: Request Control, SIM (0x11) and ERG (0x05) all answered Success. 0x04 resistance level fails (known KICKR quirk, not needed). |
 | Screens | Laptop, TV, tablet. All Chrome, installed as a PWA. |
-| Home | Perugia, Umbria (Italy). Federico grew up in Lugano, so Ticino and the Lombardy lakes stay in the library as "hometown". |
+| Home | **Perugia**, Umbria (Italy). The first world bake and the "near home" routes. |
+| Hometown | **Lugano**, Ticino (Switzerland), where Federico grew up. Ticino and the Lombardy lakes are the "hometown" area; Lugano is the second world bake. |
 
 Velo never sends trainer commands outside a ride the rider started, and agents
 never send BLE control commands while someone may be on the bike.
@@ -64,28 +67,46 @@ never send BLE control commands while someone may be on the bike.
    turns it all off. Math and mapping: `src/lib/meteo/`.
 6. **10-foot UI.** Big targets and type that read from two metres on a TV and
    work under a thumb on a tablet. See `docs/design/UI-RULES.md`.
-7. **Later, maybe.** A more game-like world (collectibles, companions,
-   landmarks) once the comfort basics are loved. Zwift Ride handlebar
-   controllers as input (public protocol, no Zwift assets or branding).
+7. **Handlebars and play.** Zwift Ride handlebar controllers steer, shift
+   and pause (public protocol, no Zwift assets or branding). An optional
+   Play mode adds postcards and a riding buddy on easy rides; it moves to
+   the new renderer in P3.2.
+
+## How it looks (v2)
+
+Decided in [ADR-001](architecture/ADR-001-rendering.md); the plan is in
+[`VELO-V2-BLUEPRINT.md`](architecture/VELO-V2-BLUEPRINT.md).
+
+- **Rendering:** our own three.js world renderer is the default. Its
+  worlds are baked from open elevation data and OpenStreetMap, so they are
+  real places with no key at runtime. Cesium photoreal is an opt-in mode
+  for riders who bring their own Cesium ion token.
+- **Visual direction:** "warm atlas" (calm, paper-day/deep-night, one accent).
+- **Rider:** stylized GLTF (not the upstream billboard avatar).
+- **Publication:** publication stays at Custodia-Admin/velo (MIT, upstream credit kept).
 
 ## Non-goals
 
 - No accounts, subscriptions, or backend. Local-first like upstream.
 - No Zwift assets, names or branding.
-- No paid services. The Cesium ion token is the rider's own free-tier token.
+- No tokens required; photoreal is opt-in with your own token. No new spend:
+  world bundles and hosting stay on free tiers.
 
 ## Rules for contributors (humans and agents)
 
 - UI work follows `docs/design/UI-RULES.md` and its design gate.
 - `npm run check` must pass before every push; full suites run in CI.
 - Branch + PR into `Custodia-Admin/velo`; no merge without review.
+- Ride features target the renderer seam (`src/lib/world/renderer.ts`),
+  never Cesium or three.js directly. A ride must work with no token.
 - Keep the upstream MIT notice and the GlobeRide credit in the footer.
 
 ## Known gaps (tracked for later cards)
 
 - Ride history, PRs and achievements in IndexedDB are shared, not per rider.
 - The app header still says GlobeRide; a rebrand is its own card.
-- Zwift Ride handlebar controller input is not wired yet.
+- Until P1.4 lands, a token-free ride still shows the flat-map fallback
+  (with the "Add a free Cesium ion token" banner).
 - Show mode plays files Chrome can decode (MP4/H.264, WebM). Streaming
   services stay in their own tab via picture-in-picture; no integrations.
 - Live wind applies to route rides (SIM). Structured workouts with explicit
