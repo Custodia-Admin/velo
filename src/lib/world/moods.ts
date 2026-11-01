@@ -18,7 +18,7 @@
  * Colours are sRGB triples in 0–1. Haze/fog values are per metre.
  */
 
-import { conditionFor, type WeatherCondition } from '../meteo/sceneWeather';
+import { conditionFor, type WeatherCondition } from '../meteo/weatherCondition';
 import type { LiveWeather } from '../meteo/openMeteo';
 import { sunAzimuthAndAltitude } from '../sunPosition';
 

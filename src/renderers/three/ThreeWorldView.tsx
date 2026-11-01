@@ -15,7 +15,7 @@ import { BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, ToneMa
 import * as THREE from 'three';
 
 import { useRouteWeather } from '@/hooks/useLiveWeather';
-import type { WeatherCondition } from '@/lib/meteo/sceneWeather';
+import type { WeatherCondition } from '@/lib/meteo/weatherCondition';
 import { EMPTY_TILES, FrameStats } from '@/lib/perf/frameStats';
 import { exposeScenePerf, IDLE_GAP_MS, PUBLISH_MS, publishScenePerf, type ScenePerf } from '@/lib/perf/scenePerf';
 import { sampleRouteAtDistance } from '@/lib/gpxParser';
