@@ -7,8 +7,8 @@
 
 import { useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { HUD_PANEL } from './v2';
 import { GEAR_COUNT, NEUTRAL_GEAR } from '@/lib/virtualGears';
 import {
   isRideControllerSupported,
@@ -69,8 +69,8 @@ export function ControllerChip() {
   };
 
   return (
-    <Card
-      className="pointer-events-auto flex max-w-sm flex-col gap-2 px-4 py-3"
+    <div
+      className={cn(HUD_PANEL, 'pointer-events-auto flex max-w-sm flex-col gap-2 px-4 py-3')}
       role="group"
       aria-label="Handlebar controls"
     >
@@ -100,6 +100,6 @@ export function ControllerChip() {
           {view.actionLabel}
         </Button>
       )}
-    </Card>
+    </div>
   );
 }

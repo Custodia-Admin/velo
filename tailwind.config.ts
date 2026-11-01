@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
@@ -7,6 +8,12 @@ export default {
     extend: {
       screens: {
         xs: '475px',
+      },
+      /* Plate shapes (v2): tiles 3:2, phone hero/finish 4:3, finish 21:9. */
+      aspectRatio: {
+        '3/2': '3 / 2',
+        '4/3': '4 / 3',
+        '21/9': '21 / 9',
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -20,6 +27,10 @@ export default {
           foreground: 'hsl(var(--destructive-foreground))',
         },
         card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
+        /* Velo v2: solid in-ride panels (bg-hud/90) and the video/letterbox scrim */
+        hud: { DEFAULT: 'hsl(var(--hud))', foreground: 'hsl(var(--hud-foreground))' },
+        scrim: 'hsl(var(--scrim))',
+        'on-scrim': 'hsl(var(--on-scrim))',
       },
       fontFamily: {
         /* Prefer system variable fonts — zero network cost, excellent quality */
@@ -32,6 +43,15 @@ export default {
           '"Segoe UI"',
           'Inter',
           'sans-serif',
+        ],
+        /* Place names, page titles and the wordmark only (v2-identity §4). */
+        display: [
+          '"Source Serif 4 Variable"',
+          '"Iowan Old Style"',
+          'Charter',
+          '"Noto Serif"',
+          'Georgia',
+          'serif',
         ],
         mono: [
           'ui-monospace',
@@ -143,5 +163,11 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    /* `tv:` = the 10-foot layout (html[data-layout="tv"], UI-RULES §5). Layout
+       tweaks only: the 1.75x root size already scales every rem token. */
+    plugin(({ addVariant }) => {
+      addVariant('tv', '[data-layout="tv"] &');
+    }),
+  ],
 } satisfies Config;

@@ -76,7 +76,7 @@ const SCENIC_META: ScenicMeta[] = [
     name: 'Lake Trasimeno shore',
     place: 'Umbria · Lago Trasimeno',
     description:
-      'The lakeside cycle path from Castiglione del Lago round the north-west shore past Borghetto and Tuoro to Passignano.',
+      'Castiglione del Lago to Passignano on the lakeside cycle path.',
     area: 'near-home',
     scenery: 'lake',
     mood: 'golden-hour',
@@ -86,7 +86,7 @@ const SCENIC_META: ScenicMeta[] = [
     name: 'Tiber river park',
     place: 'Perugia · Tiber valley',
     description:
-      'The Percorso Verde along the Tiber from Ponte San Giovanni past Ponte Valleceppi to Ponte Felcino, below the hill of Perugia.',
+      'Ponte San Giovanni to Ponte Felcino, below the hill of Perugia.',
     area: 'near-home',
     scenery: 'river',
     mood: 'clear-afternoon',
@@ -96,7 +96,7 @@ const SCENIC_META: ScenicMeta[] = [
     name: 'Assisi valley floor',
     place: 'Umbria · Valle Umbra',
     description:
-      'A flat loop on the plain from Santa Maria degli Angeli to Rivotorto and Bastia, with Assisi on the hillside above.',
+      'Santa Maria degli Angeli to Rivotorto and Bastia, below Assisi.',
     area: 'near-home',
     scenery: 'valley',
     mood: 'clear-noon',

@@ -21,8 +21,8 @@ export default defineConfig({
         short_name: 'GlobeRide',
         description:
           'Virtual cycling on a 3D Earth — bring your own GPX route, your own smart trainer, your own ride.',
-        theme_color: '#0b1220',
-        background_color: '#0b1220',
+        theme_color: '#f8f6f2',
+        background_color: '#f8f6f2',
         display: 'standalone',
         orientation: 'any',
         start_url: '/',
@@ -34,7 +34,7 @@ export default defineConfig({
       workbox: {
         // Cesium ships some large WASM/JS chunks; bump the precache size limit.
         maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,wasm}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,wasm,woff2}'],
         navigateFallback: '/index.html',
       },
       devOptions: {

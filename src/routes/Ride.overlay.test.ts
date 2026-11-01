@@ -16,6 +16,7 @@ import { join, resolve } from 'node:path';
 const ROOT = resolve(__dirname, '../..');
 const rideSrc = readFileSync(join(ROOT, 'src/routes/Ride.tsx'), 'utf8');
 const legendSrc = readFileSync(join(ROOT, 'src/components/ride/GestureLegend.tsx'), 'utf8');
+const hudSrc = readFileSync(join(ROOT, 'src/components/velo/RideHud.tsx'), 'utf8');
 
 describe('Ride overlay layers stay click-through', () => {
   it('every absolute inset-0 overlay wrapper in Ride.tsx is pointer-events-none', () => {
@@ -35,5 +36,24 @@ describe('Ride overlay layers stay click-through', () => {
     // The "?" chip and the open legend dialog take pointer events; nothing else.
     const auto = legendSrc.match(/pointer-events-auto/g) ?? [];
     expect(auto.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('the v2 HUD row and the bottom column span the screen but stay click-through', () => {
+    // RideHud's top row is hud-inset-x wide; only its panels and buttons opt in.
+    expect(hudSrc).toContain("'pointer-events-none absolute hud-inset-t hud-inset-x");
+    expect(hudSrc.match(/pointer-events-auto/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(rideSrc).toContain('absolute hud-inset-b hud-inset-x z-20 flex flex-col items-stretch gap-2 pointer-events-none');
+  });
+});
+
+describe('Ride HUD keeps blur off the live canvas (PR #16)', () => {
+  it('the ride root keeps hud-flat and nothing in Ride.tsx asks for a backdrop blur', () => {
+    expect(rideSrc).toContain('className="hud-flat ');
+    expect(rideSrc).not.toMatch(/className="[^"]*backdrop-/);
+    expect(rideSrc).not.toContain('backdropFilter');
+  });
+
+  it('the paused veil is a plain scrim', () => {
+    expect(rideSrc).toContain('bg-scrim/20 pointer-events-none');
   });
 });

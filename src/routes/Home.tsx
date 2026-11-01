@@ -71,8 +71,10 @@ import { buildRampTest, build20MinTest } from '@/lib/ftpTest';
 import { getPreset, DAILY_WORKOUT_ID } from '@/lib/presetWorkouts';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import { ProPelotonSetup } from '@/components/setup/ProPelotonSetup';
-import { RiderPanel } from '@/components/velo/RiderPanel';
-import { TrainerPanel } from '@/components/velo/TrainerPanel';
+import { ComfortControls, RiderSwitch } from '@/components/velo/RiderPanel';
+import { HomeHeader } from '@/components/velo/HomeHeader';
+import { COLUMN, DISPLAY, PAGE_X } from '@/components/velo/v2';
+import { cn } from '@/lib/utils';
 import { ScenicRouteGridSkeleton } from '@/components/velo/ScenicRoutes';
 // Lazy: scenic route geometry (~30 kB) stays off the critical path.
 const ScenicHomeSections = lazy(() => import('@/components/velo/ScenicHome').then(m => ({ default: m.ScenicHomeSections })));
@@ -192,34 +194,25 @@ export function Home() {
     { id: 'history' as TabId,  label: 'History',  icon: <History className="h-3.5 w-3.5" /> },
   ];
 
-  return (
-    <div className="relative min-h-full w-full flex flex-col overflow-x-hidden">
-      <AppHeader />
+  if (!showAdvanced) {
+    // Velo home (v2 "warm atlas", docs/design/mockups/v2-home.html).
+    return (
+      <div className="relative min-h-full w-full overflow-x-hidden">
+        <HomeHeader />
+        <main className={PAGE_X}>
+          <div className={COLUMN}>
+            <div className="flex flex-wrap items-end justify-between gap-4 pt-4 sm:gap-6 sm:pt-6">
+              <h1 id="home-title" className={cn(DISPLAY, 'text-2xl text-foreground sm:text-3xl')}>
+                Where to today?
+              </h1>
+              <RiderSwitch />
+            </div>
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-7 sm:py-9 lg:py-11 flex flex-col gap-6">
-
-        {/* ── Velo home (default view): who's riding, where to, trainer ── */}
-        {!showAdvanced && (
-          <>
-            <section className="flex flex-col gap-6 animate-fadeUp" aria-labelledby="home-title">
-              <div className="flex flex-col gap-2">
-                <h1 id="home-title" className="text-3xl sm:text-5xl font-bold text-foreground">
-                  Where to today?
-                </h1>
-                <p className="max-w-prose text-base text-muted-foreground">
-                  Easy, scenic rides. Pick a place and pedal.
-                </p>
-              </div>
-              <RiderPanel />
-            </section>
-
-            <Suspense fallback={<ScenicRouteGridSkeleton />}>
-              <ScenicHomeSections />
+            <Suspense fallback={<div className="mt-6"><ScenicRouteGridSkeleton /></div>}>
+              <ScenicHomeSections afterFeatured={<ComfortControls className="mt-5" />} />
             </Suspense>
 
-            <TrainerPanel />
-
-            <details className="group border-t border-border pt-2" data-build-your-own>
+            <details className="group mt-12 border-t border-border pt-2" data-build-your-own>
               <summary className="flex min-h-12 cursor-pointer list-none flex-wrap items-center gap-x-2 rounded-md px-2 text-base font-semibold text-foreground select-none hover:bg-muted/60">
                 <span aria-hidden className="inline-block transition-transform duration-150 group-open:rotate-90">›</span>
                 Build your own ride
@@ -231,25 +224,37 @@ export function Home() {
             </details>
 
             <nav aria-label="More" className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
-              <Button variant="ghost" onClick={() => { setShowAdvanced(true); setActiveTab('history'); }}>
+              <Button variant="ghost" className="text-muted-foreground" onClick={() => { setShowAdvanced(true); setActiveTab('history'); }}>
                 <History className="h-4 w-4" />
                 History
               </Button>
-              <Button variant="ghost" onClick={() => { setShowAdvanced(true); setActiveTab('races'); }}>
+              <Button variant="ghost" className="text-muted-foreground" onClick={() => { setShowAdvanced(true); setActiveTab('races'); }}>
                 <Flag className="h-4 w-4" />
                 Races
               </Button>
-              <Button variant="ghost" onClick={() => setShowAdvanced(true)}>
+              <Button variant="ghost" className="text-muted-foreground" onClick={() => setShowAdvanced(true)}>
                 <Dumbbell className="h-4 w-4" />
                 Advanced view
               </Button>
             </nav>
-          </>
-        )}
+
+            <footer className="pb-10 pt-6 text-xs text-muted-foreground">
+              Velo is a fork of GlobeRide (MIT) by Mason Wyatt. World stills rendered from the Perugia world bake; map
+              data © OpenStreetMap contributors.
+            </footer>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative min-h-full w-full flex flex-col overflow-x-hidden">
+      <AppHeader />
+
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-7 sm:py-9 lg:py-11 flex flex-col gap-6">
 
         {/* ── Advanced / power-user tab layout ── */}
-        {showAdvanced && (
-          <>
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -261,12 +266,8 @@ export function Home() {
             </div>
             {/* Tab bar */}
             <HomeTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-          </>
-        )}
 
         {/* All tab panels — only rendered in advanced mode */}
-        {showAdvanced && (
-        <>
         <HomeTabPanel id="ride" activeTab={activeTab}>
           <div className="grid gap-5 lg:grid-cols-[1fr_360px] lg:items-start">
 
@@ -807,8 +808,6 @@ export function Home() {
             <Suspense fallback={<TabSpinner />}><PersonalRecords /></Suspense>
           </div>
         </HomeTabPanel>
-        </>
-        )}
 
       </main>
 
