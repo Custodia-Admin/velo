@@ -1,0 +1,93 @@
+{
+ "route": "scenic-assisi-valley",
+ "viewport": [
+  1920,
+  1080
+ ],
+ "base": "http://localhost:4198",
+ "loadavg_start": [
+  5.8017578125,
+  6.80029296875,
+  7.52392578125
+ ],
+ "medium": {
+  "renderer": "world",
+  "bundle": [
+   "index-BLLBYKHZ.js"
+  ],
+  "gpu": "ANGLE (Intel, Vulkan 1.4.354 (Intel(R) Arc(tm) Graphics (MTL) (0x00007D55)), Intel open-source Mesa driver)",
+  "dpr": 1,
+  "noTokenBanner": 0,
+  "backdropHud": [],
+  "backdropGlass": 1,
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 55,
+    "p95": 16.8,
+    "worst": 83,
+    "over20": 3.6,
+    "load1": 5.42
+   },
+   {
+    "round": 0,
+    "mode": "hud-glass",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 5.55
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 5.26
+   }
+  ],
+  "long": {
+   "durS": 90.0,
+   "avgFps": 60.0,
+   "fps5s": [
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    60.0,
+    59.8
+   ],
+   "pctOver20ms": 0.0,
+   "riderInFramePct": 100.0,
+   "riderXRange": [
+    826,
+    1034
+   ],
+   "distRange": [
+    223,
+    1005
+   ],
+   "load1": 4.9
+  },
+  "pageErrors": []
+ },
+ "loadavg_end": [
+  4.90283203125,
+  5.92236328125,
+  7.10009765625
+ ]
+}
