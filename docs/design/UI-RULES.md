@@ -44,14 +44,15 @@ exposed through `tailwind.config.ts`. New UI uses **only** these.
 
 | Kind | Allowed | Not allowed |
 | --- | --- | --- |
-| Colour | `background`, `foreground`, `card`, `card-foreground`, `muted`, `muted-foreground`, `border`, `primary`, `primary-foreground`, `accent`, `accent-foreground`, `destructive`, `destructive-foreground`, with opacity modifiers (`bg-primary/10`) | Tailwind palette colours (`emerald-400`, `rose-500`, `sky-400`…), hex / `rgb()` / `hsl()` literals in TSX |
-| Type | `text-2xs` `text-xs` `text-sm` `text-base` `text-lg` `text-xl` `text-2xl` `text-3xl` `text-4xl` `text-5xl`; weights `font-medium` `font-semibold` `font-bold`; `.num` for figures | `text-[11px]` and any other arbitrary size |
+| Colour | `background`, `foreground`, `card`, `card-foreground`, `muted`, `muted-foreground`, `border`, `primary`, `primary-foreground`, `accent`, `accent-foreground` (v2: an alias of `primary`; new code uses `primary`), `destructive`, `destructive-foreground`, `hud`, `hud-foreground` (solid in-ride panels, `bg-hud/90`), `scrim`, `on-scrim` (video frame, letterbox), with opacity modifiers (`bg-primary/10`) | Tailwind palette colours (`emerald-400`, `rose-500`, `sky-400`…), hex / `rgb()` / `hsl()` literals in TSX; a second accent colour |
+| Type | `text-2xs` `text-xs` `text-sm` `text-base` `text-lg` `text-xl` `text-2xl` `text-3xl` `text-4xl` `text-5xl`; weights `font-medium` `font-semibold` `font-bold`; `.num` for figures; `font-display` (Source Serif 4) for place names, page titles and the wordmark only | `text-[11px]` and any other arbitrary size; italic serif |
 | Space | Tailwind spacing scale (`gap-3`, `p-4`, `mt-6`) | arbitrary `[..px]` / `[..rem]` values |
 | Radius | `rounded-sm` `rounded-md` `rounded-lg` `rounded-pill` `rounded-full` | `rounded-xl`, `rounded-2xl`, `rounded-[..]` in new code |
-| Shadow | `shadow-sm` `shadow-md` `shadow-lg`; `shadow-glow-accent` on the single primary CTA only | `shadow-[...]` |
+| Shadow | `shadow-sm` `shadow-md` `shadow-lg` (v2 `shadow-md` is scrim-tinted) | `shadow-[...]`; `shadow-glow-*` and the glowing `default`/`accent` Button variants in new UI (v2 primary is the flat `primary` variant) |
 | Motion | `animate-*` tokens from the config; `duration-150/200/300` | custom keyframes in components |
-| Surfaces | `Card` (glass) for top-level panels; plain `border bg-card` for items inside it | glass inside glass |
-| Layout utilities | `max-w-show-fit` (show mode video panel: caps a 16:9 panel to the viewport height), `ride-banner-float` (no-token banner: centred above the transport bar; below `sm` it clears the mobile detail dock) | one-off `calc()` widths in TSX |
+| Surfaces | Paper: plain `border bg-card rounded-lg` panels with hairline rows, `Plate` / `MapPlate` for places (`src/components/velo/`). In-ride: `bg-hud/90` (`HUD_PANEL` in `velo/v2.ts`), `Button variant="hud"` | glass or any `backdrop-filter` over the live 3D canvas (costs 10–25 fps, PR #16); cards inside cards; text directly on a photograph |
+| Plates | `aspect-video` `aspect-3/2` `aspect-4/3` `aspect-21/9` | `aspect-[..]` |
+| Layout utilities | `max-w-show-fit` (show mode video panel: caps a 16:9 panel to the viewport height), `ride-banner-float` (no-token banner: centred above the transport bar; below `sm` it clears the mobile detail dock). v2 (P2.4): `max-h-hero-fit` (Home hero plate, 100vh − 13rem), `max-h-finish-fit` (finish plate, 100vh − 26rem), `w-hero-label` (Today's ride label, 27rem), `hud-inset-t/-x/-l/-r/-b` (safe-area-aware HUD insets: spacing 4, 3 below `sm`), `max-w-hud-strip` (ride strip ≤ viewport − 2rem), `show-inset-t/-l/-r` (show mode, spacing 6), `w-show-s/-m/-l` + `max-h-show-fit` (show video sizes; L = 55vw, capped above the rider), `top-ride-stack` (phone HUD column under the top row), `grid-cols-devices` + `grid-rows-devices` (Devices 7fr/4fr), `grid-cols-device-row` / `-narrow` (device row: glyph, text, action) | one-off `calc()` widths in TSX |
 
 Need a new semantic colour (e.g. a "scenery" tint)? Add a CSS variable to both
 themes in `src/index.css`, map it in `tailwind.config.ts`, and add it to the
@@ -154,12 +155,15 @@ Score each line pass / fail in the PR. Any fail blocks merge.
 
 ## 10. Reference pages and legacy
 
-- **Reference:** `/app` Home (rider switcher, Easy & Scenic grid, comfort
-  card) as shipped by P2a. Later cards compare against it.
-- **In-ride reference:** show mode (P2b) — one glass ride strip, the show
-  panel, and HUD fade on idle. New in-ride surfaces follow its pattern:
-  glass top-level panel, `h-10`+ targets, figures `text-2xl`+, and nothing
-  that competes with the video while the rider is idle.
+- **Reference (v2, P2.4):** the warm-atlas screens built from the approved
+  mockups `docs/design/mockups/v2-{home,ride-hud,devices,show,finish}.html`.
+  Side by side (mockup | build) at 1440, 390 and TV in
+  `docs/design/screenshots/v2/build/compare/`. Later cards compare against
+  `/app` Home, `/devices` and the ride HUD.
+- **In-ride reference:** the v2 ride HUD — corners plus one bottom strip on
+  solid `hud` panels (no blur), `h-10`+ targets (`h-12` transport), figures
+  `text-2xl`+, nothing over the rider, and in show mode nothing that competes
+  with the video while the rider is idle.
 - **Legacy:** upstream GlobeRide components use arbitrary px sizes and palette
   colours. They are grandfathered. Lines you touch in a legacy file move to
   tokens. Once a whole file is clean, add it to `CHECKED_FILES` in
