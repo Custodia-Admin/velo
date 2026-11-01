@@ -19,8 +19,9 @@
   },
   "vegetation": {
     "seed": 1107,
-    "maxInstances": 160000,
-    "spacingM": { "forest": 11, "wood": 11, "scrub": 16, "orchard": 7, "park": 20 }
+    "maxInstances": 280000,
+    "spacingM": { "forest": 11, "wood": 11, "scrub": 16, "orchard": 7, "park": 20 },
+    "character": { "gardenKeep": 0.3 }
   },
   "moods": ["clear-afternoon", "clear-noon", "golden-hour", "overcast", "valley-fog"],
   "defaultMood": "clear-afternoon",

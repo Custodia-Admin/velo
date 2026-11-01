@@ -2,13 +2,13 @@
   "world": "perugia",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 2.6,
+    "dem": 0.5,
     "heightfield+routes": 0.1,
-    "osm": 322.6,
-    "vectors": 2.7,
-    "write": 13.7,
-    "validate": 0.2,
-    "total": 341.9
+    "osm": 0.2,
+    "vectors": 4,
+    "write": 10.2,
+    "validate": 0,
+    "total": 14.9
   },
   "sizes": {
     "height.bin.gz": {
@@ -32,14 +32,14 @@
       "brotli": 320355
     },
     "buildings.bin.gz": {
-      "stored": 451181,
-      "content": 763048,
-      "brotli": 364805
+      "stored": 453899,
+      "content": 787104,
+      "brotli": 366820
     },
     "vegetation.bin.gz": {
-      "stored": 514175,
-      "content": 960016,
-      "brotli": 489587
+      "stored": 970851,
+      "content": 1680016,
+      "brotli": 919979
     },
     "routes.json.gz": {
       "stored": 38901,
@@ -47,25 +47,25 @@
       "brotli": 27113
     },
     "manifest.json": {
-      "stored": 40394,
-      "content": 40394,
-      "brotli": 7232
+      "stored": 44436,
+      "content": 44436,
+      "brotli": 7503
     }
   },
   "totals": {
-    "stored": 4729072,
-    "content": 9524225,
-    "brotli": 3560194
+    "stored": 5192508,
+    "content": 10272323,
+    "brotli": 3992872
   },
   "hashes": {
     "height.bin.gz": "6fe9fb14a0efc52b6230f538b3ca02715b839ff4be8cfc889a0ad62e805751a1",
     "roads.json.gz": "f97b3e011d001e02b3a5ea1114ceeb5ff108d3233651773e7e887c58d4dea15d",
     "water.json.gz": "336e1fa7740ce2525f6f53ef7f2dc92f4143649a79f745244cd562006faf31b8",
     "landcover.json.gz": "bdf6cd0a665e6b828281ca1dfa88648c9715f5a2154c5e949bab40c702dfb0be",
-    "buildings.bin.gz": "5aecc61964dc1cbeb72702e70549b1773473e31311b73f584e875a9b15f5c58b",
-    "vegetation.bin.gz": "10ef776b0df840b7f60f9981fd6cbbc99899fd2b8486f010410ffc567e350924",
+    "buildings.bin.gz": "b4885fcc53d8dd65d5c64b5f58da2b92bc0043e7f8ff56331d434134a1a800a1",
+    "vegetation.bin.gz": "dd04b961307b6d4e2acc67f99fd925ba11c729150f58af8973101fea2822aa19",
     "routes.json.gz": "3aecc65957257b34340c254663f17c6369b904e4d081138e61bd82ca09ab64e4",
-    "manifest.json": "7e83b244454d32db8c4d37641e1f3f5439cbbcb6b2aabecb7a58a53e12fd3df6"
+    "manifest.json": "635828f89b2fb0c4ef1b68fea65e328c7f843caf48d307efdaa4b7d5387ee38c"
   },
   "routes": [
     {
@@ -165,6 +165,7 @@
       "water": "[out:json][timeout:300][date:\"2026-10-01T00:00:00Z\"];(way[natural=water](43.03391,12.31702,43.16021,12.63672);relation[natural=water](43.03391,12.31702,43.16021,12.63672);way[waterway~\"^(river|stream|canal|riverbank)$\"](43.03391,12.31702,43.16021,12.63672);relation[waterway=riverbank](43.03391,12.31702,43.16021,12.63672););out geom;",
       "landcover": "[out:json][timeout:300][date:\"2026-10-01T00:00:00Z\"];(way[landuse~\"^(forest|farmland|meadow|grass|orchard|vineyard|residential|industrial|commercial|retail|farmyard|allotments|cemetery|recreation_ground|village_green|quarry)$\"](43.03391,12.31702,43.16021,12.63672);relation[landuse~\"^(forest|farmland|meadow|grass|orchard|vineyard|residential|industrial|commercial|retail)$\"](43.03391,12.31702,43.16021,12.63672);way[natural~\"^(wood|scrub|grassland|heath)$\"](43.03391,12.31702,43.16021,12.63672);relation[natural~\"^(wood|scrub|grassland)$\"](43.03391,12.31702,43.16021,12.63672);way[leisure~\"^(park|garden|golf_course|pitch)$\"](43.03391,12.31702,43.16021,12.63672););out geom;",
       "buildings": "[out:json][timeout:300][date:\"2026-10-01T00:00:00Z\"];(way[building](43.03391,12.31702,43.16021,12.63672);relation[building](43.03391,12.31702,43.16021,12.63672););out geom;",
+      "treerows": "[out:json][timeout:300][date:\"2026-10-01T00:00:00Z\"];way[natural=tree_row](43.03391,12.31702,43.16021,12.63672);out geom;",
       "pois": "[out:json][timeout:300][date:\"2026-10-01T00:00:00Z\"];(node[place~\"^(city|town|village|hamlet|suburb)$\"](43.03391,12.31702,43.16021,12.63672);node[natural=peak][name](43.03391,12.31702,43.16021,12.63672);node[tourism=viewpoint](43.03391,12.31702,43.16021,12.63672);node[historic~\"^(castle|monument|tower|city_gate|fort|archaeological_site)$\"][name](43.03391,12.31702,43.16021,12.63672);node[amenity=place_of_worship][name][wikidata](43.03391,12.31702,43.16021,12.63672);node[tourism=attraction][name][wikidata](43.03391,12.31702,43.16021,12.63672););out;",
       "landmarks": "[out:json][timeout:300][date:\"2026-10-01T00:00:00Z\"];(way[historic~\"^(castle|monument|tower|city_gate|fort|archaeological_site)$\"][name](43.03391,12.31702,43.16021,12.63672);way[amenity=place_of_worship][name][wikidata](43.03391,12.31702,43.16021,12.63672);way[tourism=attraction][name][wikidata](43.03391,12.31702,43.16021,12.63672);relation[amenity=place_of_worship][name][wikidata](43.03391,12.31702,43.16021,12.63672););out center;"
     }

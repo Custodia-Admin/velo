@@ -38,7 +38,20 @@ export const LANDCOVER_KINDS = [
   'forest', 'scrub', 'grass', 'park', 'farmland', 'orchard', 'vineyard', 'residential', 'industrial', 'cemetery',
 ];
 export const BUILDING_KINDS = ['generic', 'house', 'apartments', 'church', 'industrial', 'shed', 'civic'];
-export const VEGETATION_KINDS = ['broadleaf', 'conifer', 'scrub', 'olive', 'park'];
+/**
+ * Where a building stands, for its palette and massing: the dense historic
+ * core (stone, taller, tight), the modern suburb (plaster), the open
+ * countryside (stone farmhouses, sheds) and industrial estates.
+ */
+export const BUILDING_DISTRICTS = ['suburb', 'old-town', 'rural', 'industrial'];
+/**
+ * Tree kinds. The first five come from landcover polygons; the rest give the
+ * Umbrian countryside its character: cypress rows round cemeteries, poplars
+ * and willows along the rivers, field-edge trees and tree rows, garden trees
+ * in the suburbs.
+ */
+export const VEGETATION_KINDS = ['broadleaf', 'conifer', 'scrub', 'olive', 'park', 'cypress', 'riparian', 'hedgerow', 'garden'];
+const VK = Object.fromEntries(VEGETATION_KINDS.map((k, i) => [k, i]));
 
 const dm = (v) => Math.round(v * 10);
 
@@ -359,8 +372,100 @@ function buildingKind(t) {
   }
 }
 
-/** Buildings → binary (see WORLD-FORMAT.md "buildings.bin"). Outer rings only in v1. */
-export function buildBuildings(elements, projection, ext) {
+/** Uniform grid over points for radius queries (metres). */
+class PointGrid {
+  constructor(cell) {
+    this.cell = cell;
+    this.map = new Map();
+  }
+  key(i, j) {
+    return `${i},${j}`;
+  }
+  add(x, y, item) {
+    const k = this.key(Math.floor(x / this.cell), Math.floor(y / this.cell));
+    let list = this.map.get(k);
+    if (!list) this.map.set(k, (list = []));
+    list.push(item);
+  }
+  *near(x, y, r) {
+    const c = this.cell;
+    for (let j = Math.floor((y - r) / c); j <= Math.floor((y + r) / c); j++) {
+      for (let i = Math.floor((x - r) / c); i <= Math.floor((x + r) / c); i++) {
+        const list = this.map.get(this.key(i, j));
+        if (list) yield* list;
+      }
+    }
+  }
+}
+
+/** Radius of the built-up density disc, m. */
+export const DISTRICT_RADIUS_M = 70;
+/** Footprint share of that disc from which a building counts as dense. */
+export const OLD_TOWN_COVERAGE = 0.36;
+/** Fewer buildings than this within 120 m = open countryside. */
+export const RURAL_NEIGHBOURS = 5;
+
+function ringBbox(r) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let i = 0; i < r.length; i += 2) {
+    x0 = Math.min(x0, r[i]); x1 = Math.max(x1, r[i]);
+    y0 = Math.min(y0, r[i + 1]); y1 = Math.max(y1, r[i + 1]);
+  }
+  return [x0, y0, x1, y1];
+}
+
+/**
+ * District per building, from the built fabric itself: medieval cores are
+ * far denser (footprint share of a 70 m disc ≥ 0.36, with most neighbours
+ * dense too) than any suburb; farmhouses stand alone; industrial kinds or
+ * industrial landcover make an estate. `list` items need { cx, cy, area, k }.
+ * Pure and deterministic. Returns indices into BUILDING_DISTRICTS.
+ */
+export function classifyDistricts(list, industrialPolys = []) {
+  const grid = new PointGrid(60);
+  list.forEach((b, i) => grid.add(b.cx, b.cy, i));
+  const R = DISTRICT_RADIUS_M;
+  const disc = Math.PI * R * R;
+  const dense = new Uint8Array(list.length);
+  const neighbours = new Uint32Array(list.length);
+  list.forEach((b, i) => {
+    let cover = 0;
+    let n = 0;
+    for (const j of grid.near(b.cx, b.cy, 120)) {
+      const o = list[j];
+      const d = Math.hypot(o.cx - b.cx, o.cy - b.cy);
+      if (d <= 120) n++;
+      if (d <= R) cover += o.area;
+    }
+    neighbours[i] = n;
+    dense[i] = cover / disc >= OLD_TOWN_COVERAGE ? 1 : 0;
+  });
+  const inIndustrial = (x, y) =>
+    industrialPolys.some((p) => p.bbox[0] <= x && x <= p.bbox[2] && p.bbox[1] <= y && y <= p.bbox[3] && pointInPolygon(x, y, p.rings));
+  return list.map((b, i) => {
+    if (b.k === 4 || inIndustrial(b.cx, b.cy)) return 3;
+    if (neighbours[i] < RURAL_NEIGHBOURS) return 2;
+    if (dense[i]) {
+      // A dense block among dense blocks: the historic core, not one tight courtyard.
+      let d = 0;
+      let all = 0;
+      for (const j of grid.near(b.cx, b.cy, R)) {
+        if (Math.hypot(list[j].cx - b.cx, list[j].cy - b.cy) > R) continue;
+        all++;
+        d += dense[j];
+      }
+      if (d >= 0.6 * all) return 1;
+    }
+    return 0;
+  });
+}
+
+/**
+ * Buildings → binary (see WORLD-FORMAT.md "buildings.bin"; VWB2 = VWB1 plus
+ * one district byte per building). Outer rings only. Also returns the
+ * footprints in metres so the vegetation pass keeps trees out of houses.
+ */
+export function buildBuildings(elements, projection, ext, landcoverPolys = []) {
   const list = [];
   for (const el of elements) {
     const t = el.tags ?? {};
@@ -387,59 +492,221 @@ export function buildBuildings(elements, projection, ext) {
       let ok = true;
       for (let i = 2; i < ring.length; i++) if (Math.abs(ring[i] - ring[i - 2]) > 32767) ok = false;
       if (!ok) continue;
-      list.push({ ring, h: Math.min(65535, Math.round(buildingHeight(t) * 10)), k: buildingKind(t) });
+      list.push({ ring, h: Math.min(65535, Math.round(buildingHeight(t) * 10)), k: buildingKind(t), cx, cy, area: Math.abs(a) / 200 });
     }
   }
+  const industrial = landcoverPolys
+    .filter((p) => p.kind === 'industrial')
+    .map((p) => ({ rings: p.rings, bbox: ringBbox(p.rings[0]) }));
+  const district = classifyDistricts(list, industrial);
   const count = list.length;
   const totalVerts = list.reduce((s, b) => s + b.ring.length / 2, 0);
   const headBytes = 12;
-  const metaBytes = count * (2 + 2 + 1);
+  const metaBytes = count * (2 + 2 + 1 + 1);
   const pad = (4 - ((headBytes + metaBytes) % 4)) % 4;
   const firstBytes = count * 8;
   const deltaBytes = (totalVerts - count) * 4;
   const buf = Buffer.alloc(headBytes + metaBytes + pad + firstBytes + deltaBytes);
-  buf.write('VWB1', 0, 'latin1');
+  buf.write('VWB2', 0, 'latin1');
   buf.writeUInt32LE(count, 4);
   buf.writeUInt32LE(totalVerts, 8);
   let o = headBytes;
   for (const b of list) { buf.writeUInt16LE(b.ring.length / 2, o); o += 2; }
   for (const b of list) { buf.writeUInt16LE(b.h, o); o += 2; }
   for (const b of list) { buf.writeUInt8(b.k, o); o += 1; }
+  for (const d of district) { buf.writeUInt8(d, o); o += 1; }
   o += pad;
   for (const b of list) { buf.writeInt32LE(b.ring[0], o); buf.writeInt32LE(b.ring[1], o + 4); o += 8; }
   for (const b of list) {
     for (let i = 2; i < b.ring.length; i++) { buf.writeInt16LE(b.ring[i] - b.ring[i - 2], o); o += 2; }
   }
-  return { bytes: buf, count, totalVerts };
+  const districts = Object.fromEntries(BUILDING_DISTRICTS.map((name, i) => [name, district.filter((d) => d === i).length]));
+  const footprints = list.map((b) => ({ cx: b.cx, cy: b.cy, ring: b.ring.map((v) => v / 10), r: Math.sqrt(b.area) }));
+  return { bytes: buf, count, totalVerts, districts, footprints };
 }
 
+/** Segment index for clearance tests: every segment of every polyline, bucketed by cell. */
+class SegmentGrid {
+  constructor(cell) {
+    this.cell = cell;
+    this.grid = new PointGrid(cell);
+  }
+  addLine(p, halfWidth) {
+    for (let i = 0; i + 3 < p.length; i += 2) {
+      const seg = [p[i], p[i + 1], p[i + 2], p[i + 3], halfWidth];
+      const len = Math.hypot(p[i + 2] - p[i], p[i + 3] - p[i + 1]);
+      const steps = Math.max(1, Math.ceil(len / this.cell));
+      const seen = new Set();
+      for (let k = 0; k <= steps; k++) {
+        const x = p[i] + ((p[i + 2] - p[i]) * k) / steps;
+        const y = p[i + 1] + ((p[i + 3] - p[i + 1]) * k) / steps;
+        const key = this.grid.key(Math.floor(x / this.cell), Math.floor(y / this.cell));
+        if (seen.has(key)) continue;
+        seen.add(key);
+        this.grid.add(x, y, seg);
+      }
+    }
+  }
+  /** True when (x, y) lies within a segment's half-width + `margin`. */
+  hits(x, y, margin) {
+    for (const [ax, ay, bx, by, hw] of this.grid.near(x, y, this.cell)) {
+      const dx = bx - ax, dy = by - ay;
+      const l2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+      if (Math.hypot(x - ax - t * dx, y - ay - t * dy) < hw + margin) return true;
+    }
+    return false;
+  }
+}
+
+/** Points every `step` m along a polyline, `offset` m to its left (negative = right), jittered by hash. */
+function alongLine(p, step, offset, jitterSeed, out) {
+  let carry = 0;
+  for (let i = 0; i + 3 < p.length; i += 2) {
+    const ax = p[i], ay = p[i + 1], bx = p[i + 2], by = p[i + 3];
+    const len = Math.hypot(bx - ax, by - ay);
+    if (len < 1e-6) continue;
+    const ux = (bx - ax) / len, uy = (by - ay) / len;
+    let d = carry;
+    for (; d < len; d += step) {
+      const h = hash32(Math.round((ax + ux * d) * 10), Math.round((ay + uy * d) * 10), jitterSeed);
+      const j = ((h & 0xffff) / 0x10000 - 0.5) * step * 0.5;
+      const o = offset * (0.85 + (((h >>> 16) & 0xff) / 255) * 0.4);
+      out.push({ x: ax + ux * (d + j) - uy * o, y: ay + uy * (d + j) + ux * o, h });
+    }
+    carry = d - len;
+  }
+}
+
+/** Defaults for the character kinds; a recipe's `vegetation.character` overrides them. */
+export const CHARACTER_DEFAULTS = {
+  /** Cypress spacing along cemetery boundaries, m (2 m inside the wall). */
+  cypressM: 5,
+  /** Poplar/willow spacing along each bank of a river or stream, m. */
+  riparianM: 9,
+  /** Field-edge tree spacing along farmland boundaries, m, and the share of 40 m runs kept. */
+  hedgerowM: 9,
+  hedgerowKeep: 0.32,
+  /** OSM natural=tree_row spacing, m. */
+  treeRowM: 7,
+  /** Garden-tree lattice in residential land, m, and the share kept. */
+  gardenM: 15,
+  gardenKeep: 0.45,
+  /** Lone field oaks: lattice m and share kept. */
+  fieldOakM: 60,
+  fieldOakKeep: 0.12,
+  /** Clearance from road edges and building walls, m. */
+  roadClearM: 1.8,
+  buildingClearM: 1.5,
+};
+
 /**
- * Tree instance seeds: a jittered global lattice per kind, kept where the
- * lattice point falls inside a forest/scrub/orchard/park polygon.
- * Deterministic (integer hash per lattice cell). Single mapped trees
- * (natural=tree) are not used: Overpass attic queries for them run out of
- * memory on the public instance.
+ * Tree instance seeds (see WORLD-FORMAT.md "vegetation.bin").
+ *
+ * Woodland kinds come from a jittered global lattice per kind, kept where the
+ * lattice point falls inside a forest/scrub/orchard/park polygon. Character
+ * kinds follow lines: cypress rows round cemeteries, poplars along both banks
+ * of rivers and streams, sparse field-edge trees on farmland boundaries, OSM
+ * tree rows, garden trees in residential land and lone oaks in fields. Every
+ * seed keeps clear of roads, buildings and open water. Character kinds are
+ * kept whole; woodland is thinned uniformly to fit `maxInstances`.
+ * Deterministic (integer hashes only). Single mapped trees (natural=tree) are
+ * not used: Overpass attic queries for them run out of memory.
  */
-export function buildVegetation({ polys, ext, recipe }) {
+export function buildVegetation({ polys, ext, recipe, roads = null, water = null, footprints = [], treeRows = [] }) {
   const { seed, maxInstances, spacingM } = recipe;
+  const C = { ...CHARACTER_DEFAULTS, ...(recipe.character ?? {}) };
   const seen = new Set();
   const out = [];
+  const character = [];
+
+  const roadGrid = new SegmentGrid(40);
+  if (roads) {
+    for (const r of roads.roads) {
+      if (r.f && r.f & ROAD_FLAGS.tunnel) continue;
+      const w = r.w ?? roads.widths[r.c];
+      roadGrid.addLine(r.p.map((v) => v / 10), w / 2);
+    }
+  }
+  const bGrid = new PointGrid(40);
+  for (const b of footprints) bGrid.add(b.cx, b.cy, b);
+  const nearWall = (x, y, r) => {
+    for (let i = 0, n = r.length / 2, j = n - 1; i < n; j = i++) {
+      const ax = r[2 * j], ay = r[2 * j + 1], bx = r[2 * i], by = r[2 * i + 1];
+      const dx = bx - ax, dy = by - ay;
+      const l2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+      if (Math.hypot(x - ax - t * dx, y - ay - t * dy) < C.buildingClearM) return true;
+    }
+    return false;
+  };
+  const waterPolys = (water?.areas ?? []).map((a) => {
+    const rings = a.r.map((r) => r.map((v) => v / 10));
+    return { rings, bbox: ringBbox(rings[0]) };
+  });
+  const blocked = (x, y) => {
+    if (x < ext.xMin || x > ext.xMax || y < ext.yMin || y > ext.yMax) return true;
+    if (roads && roadGrid.hits(x, y, C.roadClearM)) return true;
+    for (const b of bGrid.near(x, y, 40)) {
+      if (Math.hypot(b.cx - x, b.cy - y) > b.r * 1.5 + C.buildingClearM + 2) continue;
+      if (pointInRing(x, y, b.ring) || nearWall(x, y, b.ring)) return true;
+    }
+    return waterPolys.some((p) => p.bbox[0] <= x && x <= p.bbox[2] && p.bbox[1] <= y && y <= p.bbox[3] && pointInPolygon(x, y, p.rings));
+  };
+  const pushCharacter = (pts, k) => {
+    for (const p of pts) {
+      if (blocked(p.x, p.y)) continue;
+      character.push({ x: p.x, y: p.y, k, s: (p.h >>> 8) & 0xff });
+    }
+  };
+  const scatter = (rings, step, keep, salt, jitter) => {
+    const [x0, y0, x1, y1] = ringBbox(rings[0]);
+    const pts = [];
+    for (let j = Math.floor(y0 / step); j <= Math.ceil(y1 / step); j++) {
+      for (let i = Math.floor(x0 / step); i <= Math.ceil(x1 / step); i++) {
+        const h = hash32(i, j, seed ^ salt);
+        if ((h & 0xffff) / 0x10000 >= keep) continue;
+        const x = (i + (((h >>> 16) & 0xff) / 255 - 0.5) * jitter) * step;
+        const y = (j + (((h >>> 24) & 0xff) / 255 - 0.5) * jitter) * step;
+        if (pointInPolygon(x, y, rings)) pts.push({ x, y, h });
+      }
+    }
+    return pts;
+  };
+
   for (let pi = 0; pi < polys.length; pi++) {
     const { kind, tags, rings } = polys[pi];
+    const outer = rings[0];
+    if (kind === 'cemetery') {
+      const pts = [];
+      alongLine([...outer, outer[0], outer[1]], C.cypressM, ringArea(outer) > 0 ? 2 : -2, seed ^ 0xc1, pts);
+      pushCharacter(pts, VK.cypress);
+      continue;
+    }
+    if (kind === 'farmland') {
+      // Field-edge trees in runs (kept per 40 m block), like real hedgerows.
+      const pts = [];
+      alongLine([...outer, outer[0], outer[1]], C.hedgerowM, 0, seed ^ 0x4e, pts);
+      pushCharacter(
+        pts.filter((p) => (hash32(Math.floor(p.x / 40), Math.floor(p.y / 40), seed ^ 0x77) & 0xffff) / 0x10000 < C.hedgerowKeep),
+        VK.hedgerow,
+      );
+      pushCharacter(scatter(rings, C.fieldOakM, C.fieldOakKeep, 0x0a6, 1), VK.broadleaf);
+      continue;
+    }
+    if (kind === 'residential') {
+      pushCharacter(scatter(rings, C.gardenM, C.gardenKeep, 0x6a2, 0.8), VK.garden);
+      continue;
+    }
     const spacing = spacingM[kind === 'forest' ? (tags.landuse === 'forest' ? 'forest' : 'wood') : kind];
     if (!spacing) continue;
     let vk;
-    if (kind === 'forest') vk = tags.leaf_type === 'needleleaved' ? 1 : 0;
-    else if (kind === 'scrub') vk = 2;
-    else if (kind === 'orchard') vk = 3;
-    else if (kind === 'park') vk = 4;
+    if (kind === 'forest') vk = tags.leaf_type === 'needleleaved' ? VK.conifer : VK.broadleaf;
+    else if (kind === 'scrub') vk = VK.scrub;
+    else if (kind === 'orchard') vk = VK.olive;
+    else if (kind === 'park') vk = VK.park;
     else continue;
-    const outer = rings[0];
-    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    for (let i = 0; i < outer.length; i += 2) {
-      x0 = Math.min(x0, outer[i]); x1 = Math.max(x1, outer[i]);
-      y0 = Math.min(y0, outer[i + 1]); y1 = Math.max(y1, outer[i + 1]);
-    }
+    const [x0, y0, x1, y1] = ringBbox(outer);
     const lattice = Math.round(spacing * 10);
     for (let j = Math.floor(y0 / spacing); j <= Math.ceil(y1 / spacing); j++) {
       for (let i = Math.floor(x0 / spacing); i <= Math.ceil(x1 / spacing); i++) {
@@ -451,19 +718,36 @@ export function buildVegetation({ polys, ext, recipe }) {
         if (x < ext.xMin || x > ext.xMax || y < ext.yMin || y > ext.yMax) continue;
         if (!pointInPolygon(x, y, rings)) continue;
         seen.add(key);
+        if (blocked(x, y)) continue;
         out.push({ x, y, k: vk, s: hash32(j, i, seed) & 0xff, h });
       }
     }
   }
-  let thinned = out;
-  if (out.length > maxInstances) {
-    // Keep a hash-ranked subset: uniform thinning, stable across runs.
-    thinned = [...out].sort((a, b) => a.h - b.h || a.x - b.x || a.y - b.y).slice(0, maxInstances);
+
+  if (water) {
+    for (const line of water.lines) {
+      const w = line.w ?? water.lineWidths[line.k];
+      const p = line.p.map((v) => v / 10);
+      const pts = [];
+      alongLine(p, C.riparianM, w / 2 + 3, seed ^ 0x51, pts);
+      alongLine(p, C.riparianM, -(w / 2 + 3), seed ^ 0x52, pts);
+      pushCharacter(pts, VK.riparian);
+    }
   }
+  for (const p of treeRows) {
+    const pts = [];
+    alongLine(p, C.treeRowM, 0, seed ^ 0x7e, pts);
+    pushCharacter(pts, VK.hedgerow);
+  }
+
+  // Character trees whole, then woodland thinned uniformly to fit.
+  const kept = character.slice(0, maxInstances);
+  const room = maxInstances - kept.length;
+  const thinned = out.length > room ? [...out].sort((a, b) => a.h - b.h || a.x - b.x || a.y - b.y).slice(0, room) : out;
   const quantum = Math.max(0.25, Math.ceil(((Math.max(ext.xMax - ext.xMin, ext.yMax - ext.yMin) / 65535) * 100)) / 100);
-  const items = thinned.map((t) => ({
-    qx: Math.min(65535, Math.round((t.x - ext.xMin) / quantum)),
-    qy: Math.min(65535, Math.round((t.y - ext.yMin) / quantum)),
+  const items = [...kept, ...thinned].map((t) => ({
+    qx: Math.min(65535, Math.max(0, Math.round((t.x - ext.xMin) / quantum))),
+    qy: Math.min(65535, Math.max(0, Math.round((t.y - ext.yMin) / quantum))),
     k: t.k,
     s: t.s,
   }));
@@ -479,7 +763,30 @@ export function buildVegetation({ polys, ext, recipe }) {
   for (const it of items) { buf.writeUInt16LE(it.qy, o); o += 2; }
   for (const it of items) buf[o++] = it.k;
   for (const it of items) buf[o++] = it.s;
-  return { bytes: buf, count: n, lattice: out.length, quantum };
+  const byKind = Object.fromEntries(VEGETATION_KINDS.map((k, i) => [k, items.filter((it) => it.k === i).length]));
+  return { bytes: buf, count: n, lattice: out.length, character: character.length, quantum, byKind };
+}
+
+/** OSM natural=tree_row ways → polylines in world metres, clipped to the extent. */
+export function buildTreeRows(elements, projection, ext) {
+  const rows = [];
+  for (const el of elements ?? []) {
+    if (el.type !== 'way' || !el.geometry) continue;
+    for (const piece of clipLine(projectGeom(el.geometry, projection), ext)) rows.push(piece);
+  }
+  return rows;
+}
+
+/**
+ * How prominent a POI is for in-world labels: 3 = city/town, 2 = a place
+ * with a Wikipedia article (basilicas, castles, named peaks), a non-village
+ * with a Wikidata entry, or a village of 1,000+; 1 = everything else.
+ */
+export function poiRank(kind, t) {
+  if (kind === 'town') return 3;
+  const pop = parseInt(t.population ?? '', 10);
+  if (t.wikipedia || (kind !== 'village' && t.wikidata) || pop >= 1000) return 2;
+  return 1;
 }
 
 export function buildPois(elements, projection, ext) {
@@ -505,7 +812,7 @@ export function buildPois(elements, projection, ext) {
     const key = `${kind}:${name}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ name, kind, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, osm: `${el.type}/${el.id}` });
+    out.push({ name, kind, rank: poiRank(kind, t), x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, osm: `${el.type}/${el.id}` });
   }
   return out;
 }

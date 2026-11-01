@@ -80,19 +80,19 @@
     },
     {
       "path": "buildings.bin.gz",
-      "bytes": 451181,
-      "sha256": "5aecc61964dc1cbeb72702e70549b1773473e31311b73f584e875a9b15f5c58b",
+      "bytes": 453899,
+      "sha256": "b4885fcc53d8dd65d5c64b5f58da2b92bc0043e7f8ff56331d434134a1a800a1",
       "compression": "gzip",
-      "contentBytes": 763048,
-      "contentSha256": "1fe9f805d9392769d0852b8ea9664ad7e1f8199c5bb64ac2aff57776bebf9f06"
+      "contentBytes": 787104,
+      "contentSha256": "e4acb677d6d3e699af9e4c7493088fbfd9ec08af4fe465e0d82dc44339b12937"
     },
     {
       "path": "vegetation.bin.gz",
-      "bytes": 514175,
-      "sha256": "10ef776b0df840b7f60f9981fd6cbbc99899fd2b8486f010410ffc567e350924",
+      "bytes": 970851,
+      "sha256": "dd04b961307b6d4e2acc67f99fd925ba11c729150f58af8973101fea2822aa19",
       "compression": "gzip",
-      "contentBytes": 960016,
-      "contentSha256": "e61b9c2aea8c32a9ba47268e413c6895ba6429a345d33c3fc7be7fe8ce5052f1"
+      "contentBytes": 1680016,
+      "contentSha256": "5aac6280346c2f7197ac7db5943db77512a551d2f97c1ee78c4dd40de6425b02"
     },
     {
       "path": "routes.json.gz",
@@ -115,6 +115,7 @@
     {
       "name": "Perugia",
       "kind": "town",
+      "rank": 3,
       "x": -145.7,
       "y": 140.1,
       "osm": "node/68507505",
@@ -123,6 +124,7 @@
     {
       "name": "Bastia Umbra",
       "kind": "town",
+      "rank": 3,
       "x": 12933,
       "y": -4758.7,
       "osm": "node/68507516",
@@ -131,6 +133,7 @@
     {
       "name": "Valfabbrica",
       "kind": "village",
+      "rank": 2,
       "x": 17087.2,
       "y": 5375.9,
       "osm": "node/68507641",
@@ -139,6 +142,7 @@
     {
       "name": "Assisi",
       "kind": "town",
+      "rank": 3,
       "x": 18233.2,
       "y": -4364.4,
       "osm": "node/68507678",
@@ -147,6 +151,7 @@
     {
       "name": "Castel d'Arno",
       "kind": "village",
+      "rank": 1,
       "x": 11990.7,
       "y": 4359,
       "osm": "node/312446694",
@@ -155,6 +160,7 @@
     {
       "name": "Cenerente",
       "kind": "village",
+      "rank": 2,
       "x": -3127.2,
       "y": 3901,
       "osm": "node/312446696",
@@ -163,6 +169,7 @@
     {
       "name": "Colombella",
       "kind": "village",
+      "rank": 2,
       "x": 8064.2,
       "y": 5267.7,
       "osm": "node/312446704",
@@ -171,6 +178,7 @@
     {
       "name": "Capocavallo",
       "kind": "village",
+      "rank": 2,
       "x": -5612.7,
       "y": 5485.6,
       "osm": "node/312446710",
@@ -179,6 +187,7 @@
     {
       "name": "Fosso del Diavolo",
       "kind": "village",
+      "rank": 1,
       "x": 5998.9,
       "y": 5173.6,
       "osm": "node/312446723",
@@ -187,6 +196,7 @@
     {
       "name": "Canneto",
       "kind": "village",
+      "rank": 2,
       "x": -4524,
       "y": 5236.5,
       "osm": "node/312446780",
@@ -195,6 +205,7 @@
     {
       "name": "Podere Castellaccio",
       "kind": "village",
+      "rank": 1,
       "x": -3679.8,
       "y": 5194,
       "osm": "node/312446801",
@@ -203,6 +214,7 @@
     {
       "name": "Pieve Pagliaccia",
       "kind": "village",
+      "rank": 1,
       "x": 6978.3,
       "y": 4271,
       "osm": "node/312446815",
@@ -211,6 +223,7 @@
     {
       "name": "San Donato",
       "kind": "village",
+      "rank": 1,
       "x": 19783.7,
       "y": 4515,
       "osm": "node/312446856",
@@ -219,6 +232,7 @@
     {
       "name": "Tegolaio",
       "kind": "village",
+      "rank": 1,
       "x": -4895.6,
       "y": 5449,
       "osm": "node/312446891",
@@ -227,6 +241,7 @@
     {
       "name": "Col d'Erba",
       "kind": "village",
+      "rank": 1,
       "x": 16380,
       "y": -3454.3,
       "osm": "node/317001011",
@@ -235,6 +250,7 @@
     {
       "name": "Col d'Erba III",
       "kind": "village",
+      "rank": 1,
       "x": 16657.2,
       "y": -3193.5,
       "osm": "node/317001013",
@@ -243,6 +259,7 @@
     {
       "name": "Palazzo",
       "kind": "village",
+      "rank": 2,
       "x": 14241.3,
       "y": -1570.2,
       "osm": "node/317001051",
@@ -251,6 +268,7 @@
     {
       "name": "Renaiola",
       "kind": "village",
+      "rank": 1,
       "x": 19662.8,
       "y": -6593.1,
       "osm": "node/317001063",
@@ -259,6 +277,7 @@
     {
       "name": "Rivotorto",
       "kind": "village",
+      "rank": 2,
       "x": 18526.8,
       "y": -7343.9,
       "osm": "node/317001065",
@@ -267,6 +286,7 @@
     {
       "name": "San Martino",
       "kind": "village",
+      "rank": 1,
       "x": 15859.4,
       "y": -2975.2,
       "osm": "node/317001073",
@@ -275,6 +295,7 @@
     {
       "name": "San Martino Basso",
       "kind": "village",
+      "rank": 1,
       "x": 15942.5,
       "y": -3305.5,
       "osm": "node/317001075",
@@ -283,6 +304,7 @@
     {
       "name": "Santa Tecla",
       "kind": "village",
+      "rank": 1,
       "x": 13073.1,
       "y": -956.3,
       "osm": "node/317001084",
@@ -291,6 +313,7 @@
     {
       "name": "Santa Maria degli Angeli",
       "kind": "village",
+      "rank": 2,
       "x": 15224.8,
       "y": -5838.8,
       "osm": "node/317001088",
@@ -299,6 +322,7 @@
     {
       "name": "Santa Maria della Spina",
       "kind": "village",
+      "rank": 1,
       "x": 18111.2,
       "y": -8174.5,
       "osm": "node/317001091",
@@ -307,6 +331,7 @@
     {
       "name": "Tomba",
       "kind": "village",
+      "rank": 1,
       "x": 16185.8,
       "y": -7862.6,
       "osm": "node/317001095",
@@ -315,6 +340,7 @@
     {
       "name": "Sterpeto",
       "kind": "village",
+      "rank": 1,
       "x": 13206.6,
       "y": 338.3,
       "osm": "node/317001100",
@@ -323,6 +349,7 @@
     {
       "name": "Valecchie",
       "kind": "village",
+      "rank": 1,
       "x": 17593.8,
       "y": -4808.1,
       "osm": "node/317001102",
@@ -331,6 +358,7 @@
     {
       "name": "Tordibetto",
       "kind": "village",
+      "rank": 2,
       "x": 14974.8,
       "y": -2217.3,
       "osm": "node/317001105",
@@ -339,6 +367,7 @@
     {
       "name": "Tordandrea",
       "kind": "village",
+      "rank": 2,
       "x": 13358.4,
       "y": -8391.2,
       "osm": "node/317001107",
@@ -347,6 +376,7 @@
     {
       "name": "Oratorio di San Francesco piccolino",
       "kind": "church",
+      "rank": 2,
       "x": 18328,
       "y": -4467.6,
       "osm": "node/539477550",
@@ -355,6 +385,7 @@
     {
       "name": "Petrignano",
       "kind": "village",
+      "rank": 2,
       "x": 11500.7,
       "y": -795.7,
       "osm": "node/652808636",
@@ -363,6 +394,7 @@
     {
       "name": "Villa Pitignano",
       "kind": "village",
+      "rank": 2,
       "x": 5008.2,
       "y": 4057.9,
       "osm": "node/748805393",
@@ -371,6 +403,7 @@
     {
       "name": "Ponte Felcino",
       "kind": "village",
+      "rank": 2,
       "x": 4173.9,
       "y": 2540.7,
       "osm": "node/748805395",
@@ -379,6 +412,7 @@
     {
       "name": "Ponte Valleceppi",
       "kind": "village",
+      "rank": 2,
       "x": 4720.3,
       "y": -119.8,
       "osm": "node/748805397",
@@ -387,6 +421,7 @@
     {
       "name": "Montelaguardia",
       "kind": "village",
+      "rank": 2,
       "x": 584.9,
       "y": 3082.1,
       "osm": "node/906849816",
@@ -395,6 +430,7 @@
     {
       "name": "Casaglia",
       "kind": "village",
+      "rank": 1,
       "x": 3410,
       "y": -508.4,
       "osm": "node/928996602",
@@ -403,6 +439,7 @@
     {
       "name": "La Terrazza",
       "kind": "viewpoint",
+      "rank": 1,
       "x": -21.8,
       "y": 48.2,
       "osm": "node/946198414",
@@ -411,6 +448,7 @@
     {
       "name": "Monte Pacciano",
       "kind": "peak",
+      "rank": 1,
       "x": -857.5,
       "y": 4618.9,
       "osm": "node/1129736296",
@@ -419,6 +457,7 @@
     {
       "name": "Antichi conservoni dell'acqua di Perugia",
       "kind": "landmark",
+      "rank": 1,
       "x": -1611.8,
       "y": 4274.6,
       "osm": "node/1129745714",
@@ -427,6 +466,7 @@
     {
       "name": "Pretola",
       "kind": "village",
+      "rank": 2,
       "x": 3952.1,
       "y": 450.1,
       "osm": "node/1403182439",
@@ -435,6 +475,7 @@
     {
       "name": "Conservoni",
       "kind": "village",
+      "rank": 1,
       "x": -2070.2,
       "y": 3793,
       "osm": "node/1637706702",
@@ -443,6 +484,7 @@
     {
       "name": "Pila",
       "kind": "village",
+      "rank": 2,
       "x": -4725,
       "y": -6622.7,
       "osm": "node/1667177034",
@@ -451,6 +493,7 @@
     {
       "name": "Porta Marzia",
       "kind": "landmark",
+      "rank": 2,
       "x": -161.3,
       "y": -270.9,
       "osm": "node/1727486267",
@@ -459,6 +502,7 @@
     {
       "name": "Mosaico di Orfeo e le fiere",
       "kind": "landmark",
+      "rank": 1,
       "x": -265,
       "y": 479.6,
       "osm": "node/1727496703",
@@ -467,6 +511,7 @@
     {
       "name": "Tomba Etrusca dei Cai Cutu",
       "kind": "landmark",
+      "rank": 1,
       "x": 77.8,
       "y": -416.8,
       "osm": "node/1728836584",
@@ -475,6 +520,7 @@
     {
       "name": "Brufa",
       "kind": "village",
+      "rank": 2,
       "x": 6830.1,
       "y": -5721.9,
       "osm": "node/1885986581",
@@ -483,6 +529,7 @@
     {
       "name": "Conserva delle Vene",
       "kind": "landmark",
+      "rank": 1,
       "x": -1687,
       "y": 4140.3,
       "osm": "node/1941158276",
@@ -491,6 +538,7 @@
     {
       "name": "Pianello",
       "kind": "village",
+      "rank": 2,
       "x": 12198,
       "y": 3542.3,
       "osm": "node/1969630002",
@@ -499,6 +547,7 @@
     {
       "name": "Bosco",
       "kind": "village",
+      "rank": 2,
       "x": 6306,
       "y": 3543.4,
       "osm": "node/2078389134",
@@ -507,6 +556,7 @@
     {
       "name": "Torchiagina",
       "kind": "village",
+      "rank": 2,
       "x": 11861.5,
       "y": 1175.7,
       "osm": "node/2150518898",
@@ -515,6 +565,7 @@
     {
       "name": "Ripa",
       "kind": "village",
+      "rank": 2,
       "x": 9655.1,
       "y": 1897.8,
       "osm": "node/2157247429",
@@ -523,6 +574,7 @@
     {
       "name": "Sant'Egidio",
       "kind": "village",
+      "rank": 2,
       "x": 8160.3,
       "y": -700,
       "osm": "node/2272592819",
@@ -531,6 +583,7 @@
     {
       "name": "Lidarno",
       "kind": "village",
+      "rank": 2,
       "x": 6890.4,
       "y": 32.2,
       "osm": "node/2279269771",
@@ -539,6 +592,7 @@
     {
       "name": "Osteriaccia",
       "kind": "village",
+      "rank": 1,
       "x": 8356.3,
       "y": 2261.8,
       "osm": "node/2283007997",
@@ -547,6 +601,7 @@
     {
       "name": "Civitella d'Arna",
       "kind": "village",
+      "rank": 2,
       "x": 8102.8,
       "y": 1836.1,
       "osm": "node/2283007998",
@@ -555,6 +610,7 @@
     {
       "name": "Collestrada",
       "kind": "village",
+      "rank": 2,
       "x": 7341.9,
       "y": -2789.8,
       "osm": "node/2289006904",
@@ -563,6 +619,7 @@
     {
       "name": "Ospedalicchio",
       "kind": "village",
+      "rank": 2,
       "x": 9179.8,
       "y": -3452.8,
       "osm": "node/2290069769",
@@ -571,6 +628,7 @@
     {
       "name": "Bastiola",
       "kind": "village",
+      "rank": 2,
       "x": 12359.5,
       "y": -3782.9,
       "osm": "node/2293109808",
@@ -579,6 +637,7 @@
     {
       "name": "Costano",
       "kind": "village",
+      "rank": 2,
       "x": 11355.8,
       "y": -7168.8,
       "osm": "node/2297890996",
@@ -587,6 +646,7 @@
     {
       "name": "San Gregorio borgo medioevale",
       "kind": "landmark",
+      "rank": 1,
       "x": 12862.4,
       "y": 2890.3,
       "osm": "node/2328041071",
@@ -595,6 +655,7 @@
     {
       "name": "Torre di Torchiagina",
       "kind": "landmark",
+      "rank": 1,
       "x": 11950.6,
       "y": 1728,
       "osm": "node/2330420606",
@@ -603,6 +664,7 @@
     {
       "name": "Ponte della Pietra",
       "kind": "village",
+      "rank": 1,
       "x": -2116.5,
       "y": -3656.6,
       "osm": "node/2331721957",
@@ -611,6 +673,7 @@
     {
       "name": "Ferro di Cavallo",
       "kind": "village",
+      "rank": 1,
       "x": -3566,
       "y": -666.3,
       "osm": "node/2368275894",
@@ -619,6 +682,7 @@
     {
       "name": "San Martino in Campo",
       "kind": "village",
+      "rank": 2,
       "x": 695.2,
       "y": -8089.5,
       "osm": "node/2444110248",
@@ -627,6 +691,7 @@
     {
       "name": "Montebello",
       "kind": "village",
+      "rank": 2,
       "x": 843.6,
       "y": -3801.3,
       "osm": "node/2444125163",
@@ -635,6 +700,7 @@
     {
       "name": "San Fortunato della Collina",
       "kind": "village",
+      "rank": 2,
       "x": -306.3,
       "y": -6313.9,
       "osm": "node/2444149575",
@@ -643,6 +709,7 @@
     {
       "name": "Monte Murce",
       "kind": "peak",
+      "rank": 1,
       "x": 18813,
       "y": 746.2,
       "osm": "node/2525311749",
@@ -651,6 +718,7 @@
     {
       "name": "Fonte Santo Raggio",
       "kind": "landmark",
+      "rank": 1,
       "x": 18362.4,
       "y": -4874.4,
       "osm": "node/2608687058",
@@ -659,6 +727,7 @@
     {
       "name": "Basilica inferiore di San Francesco d'Assisi",
       "kind": "church",
+      "rank": 2,
       "x": 17530.1,
       "y": -3989,
       "osm": "node/2622319811",
@@ -667,6 +736,7 @@
     {
       "name": "Basilica superiore di San Francesco d'Assisi",
       "kind": "church",
+      "rank": 2,
       "x": 17537.1,
       "y": -3967.6,
       "osm": "node/2622319814",
@@ -675,6 +745,7 @@
     {
       "name": "Fontana di Veggio",
       "kind": "landmark",
+      "rank": 1,
       "x": -936.3,
       "y": -546.1,
       "osm": "node/2697092231",
@@ -683,6 +754,7 @@
     {
       "name": "Pozzo Etrusco",
       "kind": "landmark",
+      "rank": 2,
       "x": -71.8,
       "y": 198.3,
       "osm": "node/2944119126",
@@ -691,6 +763,7 @@
     {
       "name": "Sant'Andrea di Agliano",
       "kind": "village",
+      "rank": 2,
       "x": 348.4,
       "y": -6322,
       "osm": "node/3125732329",
@@ -699,6 +772,7 @@
     {
       "name": "San Marino",
       "kind": "village",
+      "rank": 1,
       "x": -553.5,
       "y": 3473.7,
       "osm": "node/3197950437",
@@ -707,6 +781,7 @@
     {
       "name": "Castello di Civitella d'Arna",
       "kind": "landmark",
+      "rank": 2,
       "x": 7733.6,
       "y": 1934.7,
       "osm": "node/3213969173",
@@ -715,6 +790,7 @@
     {
       "name": "Cisterne romane presso Padri Filippini",
       "kind": "landmark",
+      "rank": 1,
       "x": 7697.9,
       "y": 1855.9,
       "osm": "node/3213972217",
@@ -723,6 +799,7 @@
     {
       "name": "Rocca Sant'Angelo",
       "kind": "village",
+      "rank": 2,
       "x": 13617.7,
       "y": 1736.5,
       "osm": "node/3237620959",
@@ -731,6 +808,7 @@
     {
       "name": "Santa Sabina",
       "kind": "village",
+      "rank": 2,
       "x": -5609.3,
       "y": -2493.4,
       "osm": "node/3260947672",
@@ -739,6 +817,7 @@
     {
       "name": "Ponte Rio",
       "kind": "village",
+      "rank": 1,
       "x": 504.6,
       "y": 1548.1,
       "osm": "node/3262616394",
@@ -747,6 +826,7 @@
     {
       "name": "Badioli",
       "kind": "village",
+      "rank": 1,
       "x": -2733.4,
       "y": 4249.4,
       "osm": "node/3266842944",
@@ -755,6 +835,7 @@
     {
       "name": "Cipresso",
       "kind": "village",
+      "rank": 1,
       "x": 9899.4,
       "y": -4993,
       "osm": "node/3321890238",
@@ -763,6 +844,7 @@
     {
       "name": "Domus di Sesto Properzio",
       "kind": "landmark",
+      "rank": 2,
       "x": 18232,
       "y": -4539.7,
       "osm": "node/3765145377",
@@ -771,6 +853,7 @@
     {
       "name": "Locanda del Cardinale",
       "kind": "landmark",
+      "rank": 1,
       "x": 18219,
       "y": -4493.6,
       "osm": "node/3765145378",
@@ -779,6 +862,7 @@
     {
       "name": "Domus del Lararium",
       "kind": "landmark",
+      "rank": 2,
       "x": 18227.7,
       "y": -4496.7,
       "osm": "node/3765152148",
@@ -787,6 +871,7 @@
     {
       "name": "Cisterna romana",
       "kind": "landmark",
+      "rank": 1,
       "x": 18491.3,
       "y": -4433.5,
       "osm": "node/3765154665",
@@ -795,6 +880,7 @@
     {
       "name": "Biagiano",
       "kind": "village",
+      "rank": 1,
       "x": 16681.4,
       "y": -1172.6,
       "osm": "node/3846406249",
@@ -803,6 +889,7 @@
     {
       "name": "Pieve San Nicolò",
       "kind": "village",
+      "rank": 1,
       "x": 18511.1,
       "y": 1903.2,
       "osm": "node/3961816397",
@@ -811,6 +898,7 @@
     {
       "name": "Podere Casanova",
       "kind": "village",
+      "rank": 1,
       "x": 11559.5,
       "y": 2039.9,
       "osm": "node/3961816398",
@@ -819,6 +907,7 @@
     {
       "name": "San Gregorio",
       "kind": "village",
+      "rank": 2,
       "x": 12833.3,
       "y": 2886.9,
       "osm": "node/3961816399",
@@ -827,6 +916,7 @@
     {
       "name": "Madonna di Campagna",
       "kind": "village",
+      "rank": 1,
       "x": 10606.6,
       "y": -4494.4,
       "osm": "node/3961897500",
@@ -835,6 +925,7 @@
     {
       "name": "Vicinato le Basse",
       "kind": "village",
+      "rank": 1,
       "x": 10652.5,
       "y": -7055.7,
       "osm": "node/3961897501",
@@ -843,6 +934,7 @@
     {
       "name": "Vicinato",
       "kind": "village",
+      "rank": 1,
       "x": 9704.5,
       "y": -2933.5,
       "osm": "node/3961897502",
@@ -851,6 +943,7 @@
     {
       "name": "Boneggio",
       "kind": "village",
+      "rank": 1,
       "x": -2215.9,
       "y": -6007.3,
       "osm": "node/4022428446",
@@ -859,6 +952,7 @@
     {
       "name": "Borgo Collestrada",
       "kind": "village",
+      "rank": 2,
       "x": 6666.5,
       "y": -2808.7,
       "osm": "node/4022428451",
@@ -867,6 +961,7 @@
     {
       "name": "Fontana",
       "kind": "village",
+      "rank": 1,
       "x": -5414.6,
       "y": 292.2,
       "osm": "node/4022428453",
@@ -875,6 +970,7 @@
     {
       "name": "Gualtarella",
       "kind": "village",
+      "rank": 1,
       "x": -3703.3,
       "y": -1309.5,
       "osm": "node/4022428455",
@@ -883,6 +979,7 @@
     {
       "name": "Lacugnano",
       "kind": "village",
+      "rank": 2,
       "x": -4839.3,
       "y": -1749.7,
       "osm": "node/4022428457",
@@ -891,6 +988,7 @@
     {
       "name": "Monte Bagnolo I",
       "kind": "village",
+      "rank": 1,
       "x": 811.3,
       "y": 4974.5,
       "osm": "node/4022428459",
@@ -899,6 +997,7 @@
     {
       "name": "Monte Bagnolo II",
       "kind": "village",
+      "rank": 1,
       "x": 101.9,
       "y": 5118.2,
       "osm": "node/4022428460",
@@ -907,6 +1006,7 @@
     {
       "name": "Podere le Spiagge",
       "kind": "village",
+      "rank": 1,
       "x": 10172.4,
       "y": 2474.6,
       "osm": "node/4024099820",
@@ -915,6 +1015,7 @@
     {
       "name": "Romano di Sotto",
       "kind": "village",
+      "rank": 1,
       "x": 2142.5,
       "y": -7969.3,
       "osm": "node/4024099822",
@@ -923,6 +1024,7 @@
     {
       "name": "San Marco",
       "kind": "village",
+      "rank": 2,
       "x": -2347.4,
       "y": 2372.2,
       "osm": "node/4024099825",
@@ -931,6 +1033,7 @@
     {
       "name": "Sodo degli Ebrei",
       "kind": "village",
+      "rank": 1,
       "x": 1865.5,
       "y": -1506,
       "osm": "node/4024099828",
@@ -939,6 +1042,7 @@
     {
       "name": "Valtiera",
       "kind": "village",
+      "rank": 1,
       "x": 5310.6,
       "y": -2325.2,
       "osm": "node/4024099829",
@@ -947,6 +1051,7 @@
     {
       "name": "Villa",
       "kind": "village",
+      "rank": 1,
       "x": -3749.3,
       "y": -7259.6,
       "osm": "node/4024099830",
@@ -955,6 +1060,7 @@
     {
       "name": "Ferriera",
       "kind": "village",
+      "rank": 1,
       "x": 4775.6,
       "y": -2650.5,
       "osm": "node/4033323753",
@@ -963,6 +1069,7 @@
     {
       "name": "Miralduolo Zona Industriale",
       "kind": "village",
+      "rank": 1,
       "x": 4652.9,
       "y": -5224.8,
       "osm": "node/4033323755",
@@ -971,6 +1078,7 @@
     {
       "name": "Miralduolo",
       "kind": "village",
+      "rank": 1,
       "x": 4138.7,
       "y": -5641.1,
       "osm": "node/4033323756",
@@ -979,6 +1087,7 @@
     {
       "name": "Madonna Alta",
       "kind": "village",
+      "rank": 2,
       "x": -1789.3,
       "y": -597.4,
       "osm": "node/4433375150",
@@ -987,6 +1096,7 @@
     {
       "name": "Ponte di legno e vista del Tevere",
       "kind": "viewpoint",
+      "rank": 1,
       "x": 4845.9,
       "y": -2221.9,
       "osm": "node/4550109289",
@@ -995,6 +1105,7 @@
     {
       "name": "Col Caprile",
       "kind": "peak",
+      "rank": 1,
       "x": 19412,
       "y": -3174.8,
       "osm": "node/4748899714",
@@ -1003,6 +1114,7 @@
     {
       "name": "Punto panoramico sulla Basilica di Assisi",
       "kind": "viewpoint",
+      "rank": 1,
       "x": 17678.6,
       "y": -4013.9,
       "osm": "node/5271930823",
@@ -1011,6 +1123,7 @@
     {
       "name": "Oscano",
       "kind": "village",
+      "rank": 1,
       "x": -2816.5,
       "y": 4951,
       "osm": "node/5534189789",
@@ -1019,6 +1132,7 @@
     {
       "name": "Panorama dai Giardini Pubblici",
       "kind": "viewpoint",
+      "rank": 1,
       "x": -189.2,
       "y": -326.6,
       "osm": "node/5846880894",
@@ -1027,6 +1141,7 @@
     {
       "name": "Piramide",
       "kind": "landmark",
+      "rank": 1,
       "x": -3009.7,
       "y": 444.2,
       "osm": "node/5849520772",
@@ -1035,6 +1150,7 @@
     {
       "name": "Ciminiera Perugina",
       "kind": "landmark",
+      "rank": 1,
       "x": -1134.5,
       "y": -552.1,
       "osm": "node/5872864268",
@@ -1043,6 +1159,7 @@
     {
       "name": "Porta Sant'Antonio",
       "kind": "landmark",
+      "rank": 1,
       "x": 402.1,
       "y": 554.5,
       "osm": "node/5985075607",
@@ -1051,6 +1168,7 @@
     {
       "name": "San Lorenzo",
       "kind": "village",
+      "rank": 1,
       "x": 11536.3,
       "y": -6277.8,
       "osm": "node/7725089836",
@@ -1059,6 +1177,7 @@
     {
       "name": "Sant'Erminio",
       "kind": "village",
+      "rank": 1,
       "x": 639.6,
       "y": 904.7,
       "osm": "node/8660388194",
@@ -1067,6 +1186,7 @@
     {
       "name": "Ponte San Giovanni",
       "kind": "town",
+      "rank": 3,
       "x": 3932.8,
       "y": -2218.4,
       "osm": "node/8677786740",
@@ -1075,6 +1195,7 @@
     {
       "name": "Porta Sole",
       "kind": "viewpoint",
+      "rank": 2,
       "x": -10,
       "y": 350.1,
       "osm": "node/9702827539",
@@ -1083,6 +1204,7 @@
     {
       "name": "Monte Lacugnano",
       "kind": "peak",
+      "rank": 1,
       "x": -4504.3,
       "y": -1354.6,
       "osm": "node/9749284893",
@@ -1091,6 +1213,7 @@
     {
       "name": "Collina di Prepo",
       "kind": "peak",
+      "rank": 1,
       "x": -993.6,
       "y": -2426.2,
       "osm": "node/9761807926",
@@ -1099,6 +1222,7 @@
     {
       "name": "Porta Sant'Elia",
       "kind": "landmark",
+      "rank": 1,
       "x": 17589.8,
       "y": -4083.5,
       "osm": "node/9863056816",
@@ -1107,6 +1231,7 @@
     {
       "name": "Posto bello",
       "kind": "viewpoint",
+      "rank": 1,
       "x": -988,
       "y": 4291,
       "osm": "node/10130583133",
@@ -1115,6 +1240,7 @@
     {
       "name": "Arco di Via delle Volte",
       "kind": "landmark",
+      "rank": 1,
       "x": -223,
       "y": 198.5,
       "osm": "node/10718704775",
@@ -1123,6 +1249,7 @@
     {
       "name": "Santa Lucia",
       "kind": "village",
+      "rank": 1,
       "x": -2137.9,
       "y": 805.8,
       "osm": "node/10919502316",
@@ -1131,6 +1258,7 @@
     {
       "name": "Monte Santa Lucia",
       "kind": "peak",
+      "rank": 1,
       "x": 15079.9,
       "y": 2060.5,
       "osm": "node/11283286194",
@@ -1139,6 +1267,7 @@
     {
       "name": "Monte Villano Basso",
       "kind": "village",
+      "rank": 1,
       "x": 16848,
       "y": 3265.2,
       "osm": "node/11289309457",
@@ -1147,6 +1276,7 @@
     {
       "name": "Monte Villano Alto",
       "kind": "village",
+      "rank": 1,
       "x": 16488.7,
       "y": 2774.2,
       "osm": "node/11289365608",
@@ -1155,6 +1285,7 @@
     {
       "name": "Toppo Tanella",
       "kind": "peak",
+      "rank": 1,
       "x": -4942.6,
       "y": 2320.7,
       "osm": "node/11338710215",
@@ -1163,6 +1294,7 @@
     {
       "name": "Col Maiale",
       "kind": "peak",
+      "rank": 1,
       "x": -4738.8,
       "y": 1435.8,
       "osm": "node/11338710216",
@@ -1171,6 +1303,7 @@
     {
       "name": "Colle Pulito",
       "kind": "peak",
+      "rank": 1,
       "x": -4116.5,
       "y": 484.9,
       "osm": "node/11338710217",
@@ -1179,6 +1312,7 @@
     {
       "name": "Tombetta",
       "kind": "village",
+      "rank": 1,
       "x": 16608,
       "y": -7687.1,
       "osm": "node/12112367343",
@@ -1187,6 +1321,7 @@
     {
       "name": "Case Beretta",
       "kind": "village",
+      "rank": 1,
       "x": 11567.5,
       "y": -4066.1,
       "osm": "node/12112504452",
@@ -1195,6 +1330,7 @@
     {
       "name": "Boschetti",
       "kind": "village",
+      "rank": 1,
       "x": 13781.2,
       "y": -3249.7,
       "osm": "node/12112504459",
@@ -1203,6 +1339,7 @@
     {
       "name": "Romano di Sopra",
       "kind": "village",
+      "rank": 1,
       "x": 2344.6,
       "y": -6873.9,
       "osm": "node/12138274991",
@@ -1211,6 +1348,7 @@
     {
       "name": "Collicello",
       "kind": "village",
+      "rank": 1,
       "x": 8722.5,
       "y": 245.3,
       "osm": "node/12138274993",
@@ -1219,6 +1357,7 @@
     {
       "name": "Piscinello",
       "kind": "village",
+      "rank": 1,
       "x": 1617.2,
       "y": -5794.8,
       "osm": "node/12138274998",
@@ -1227,6 +1366,7 @@
     {
       "name": "Mora",
       "kind": "village",
+      "rank": 1,
       "x": 15023.7,
       "y": 304.1,
       "osm": "node/12144602789",
@@ -1235,6 +1375,7 @@
     {
       "name": "La Bruciata",
       "kind": "peak",
+      "rank": 1,
       "x": -5972.8,
       "y": 1545.6,
       "osm": "node/12161936138",
@@ -1243,6 +1384,7 @@
     {
       "name": "Castello di Beviglie",
       "kind": "landmark",
+      "rank": 1,
       "x": 15167.6,
       "y": -1860.6,
       "osm": "node/12694913237",
@@ -1251,6 +1393,7 @@
     {
       "name": "Castello di Petrata",
       "kind": "landmark",
+      "rank": 1,
       "x": 19236.6,
       "y": -427.6,
       "osm": "node/12709719391",
@@ -1259,6 +1402,7 @@
     {
       "name": "Villa Spinola",
       "kind": "landmark",
+      "rank": 1,
       "x": 562.6,
       "y": -5455.8,
       "osm": "node/12733933182",
@@ -1267,6 +1411,7 @@
     {
       "name": "Basilica di San Francesco d'Assisi",
       "kind": "church",
+      "rank": 2,
       "x": 17510.4,
       "y": -3960.2,
       "osm": "way/34357303",
@@ -1275,6 +1420,7 @@
     {
       "name": "Porta dei Capuccini",
       "kind": "landmark",
+      "rank": 1,
       "x": 18828.7,
       "y": -4595.1,
       "osm": "way/34398105",
@@ -1283,6 +1429,7 @@
     {
       "name": "Porta San Giacomo",
       "kind": "landmark",
+      "rank": 1,
       "x": 17767.9,
       "y": -4001,
       "osm": "way/34398111",
@@ -1291,6 +1438,7 @@
     {
       "name": "Basilica di Santa Chiara",
       "kind": "church",
+      "rank": 2,
       "x": 18431.5,
       "y": -4622.5,
       "osm": "way/36994747",
@@ -1299,6 +1447,7 @@
     {
       "name": "Cattedrale di San Rufino",
       "kind": "church",
+      "rank": 2,
       "x": 18483.8,
       "y": -4454,
       "osm": "way/36994753",
@@ -1307,6 +1456,7 @@
     {
       "name": "Chiesa Nuova",
       "kind": "church",
+      "rank": 2,
       "x": 18285.7,
       "y": -4448.9,
       "osm": "way/36996024",
@@ -1315,6 +1465,7 @@
     {
       "name": "Chiesa di Santo Stefano",
       "kind": "church",
+      "rank": 2,
       "x": 18059.3,
       "y": -4276.4,
       "osm": "way/37027013",
@@ -1323,6 +1474,7 @@
     {
       "name": "Chiesa di San Pietro",
       "kind": "church",
+      "rank": 2,
       "x": 17732.2,
       "y": -4336.3,
       "osm": "way/37027017",
@@ -1331,6 +1483,7 @@
     {
       "name": "Santa Maria sopra Minerva",
       "kind": "church",
+      "rank": 2,
       "x": 18245.4,
       "y": -4341.2,
       "osm": "way/37027664",
@@ -1339,6 +1492,7 @@
     {
       "name": "Chiesa di San Damiano",
       "kind": "church",
+      "rank": 2,
       "x": 18519.8,
       "y": -5445.3,
       "osm": "way/37028360",
@@ -1347,6 +1501,7 @@
     {
       "name": "Chiesa di Santa Maria",
       "kind": "church",
+      "rank": 2,
       "x": 18032.6,
       "y": -7208.1,
       "osm": "way/43051908",
@@ -1355,6 +1510,7 @@
     {
       "name": "Basilica di San Domenico",
       "kind": "church",
+      "rank": 2,
       "x": 93.1,
       "y": -458.5,
       "osm": "way/58565390",
@@ -1363,6 +1519,7 @@
     {
       "name": "Chiesa di Santa Maria Maggiore",
       "kind": "church",
+      "rank": 2,
       "x": 18219.5,
       "y": -4540,
       "osm": "way/76844973",
@@ -1371,6 +1528,7 @@
     {
       "name": "Palazzo dei Priori",
       "kind": "landmark",
+      "rank": 2,
       "x": -192.2,
       "y": 96.1,
       "osm": "way/84301937",
@@ -1379,6 +1537,7 @@
     {
       "name": "Chiesa di Sant'Ercolano",
       "kind": "church",
+      "rank": 2,
       "x": -102,
       "y": -226.2,
       "osm": "way/84653076",
@@ -1387,6 +1546,7 @@
     {
       "name": "San Costanzo",
       "kind": "church",
+      "rank": 2,
       "x": 475.5,
       "y": -1343.9,
       "osm": "way/84653078",
@@ -1395,6 +1555,7 @@
     {
       "name": "Fontana Maggiore",
       "kind": "landmark",
+      "rank": 2,
       "x": -161.6,
       "y": 160.3,
       "osm": "way/106360715",
@@ -1403,6 +1564,7 @@
     {
       "name": "Arco Etrusco",
       "kind": "landmark",
+      "rank": 2,
       "x": -91.8,
       "y": 414.6,
       "osm": "way/106692825",
@@ -1411,6 +1573,7 @@
     {
       "name": "Cattedrale di San Lorenzo",
       "kind": "church",
+      "rank": 2,
       "x": -160.4,
       "y": 200.7,
       "osm": "way/122630414",
@@ -1419,6 +1582,7 @@
     {
       "name": "Chiesa di Santa Maria di Monteluce",
       "kind": "church",
+      "rank": 2,
       "x": 753.8,
       "y": 428.9,
       "osm": "way/126616528",
@@ -1427,6 +1591,7 @@
     {
       "name": "Arco di Casaglia",
       "kind": "landmark",
+      "rank": 1,
       "x": 3333.3,
       "y": -484.6,
       "osm": "way/126630843",
@@ -1435,6 +1600,7 @@
     {
       "name": "Torre di Pretola",
       "kind": "landmark",
+      "rank": 1,
       "x": 3795.3,
       "y": 582.1,
       "osm": "way/126671022",
@@ -1443,6 +1609,7 @@
     {
       "name": "Porta San Pietro",
       "kind": "landmark",
+      "rank": 2,
       "x": 174.1,
       "y": -676.8,
       "osm": "way/126736585",
@@ -1451,6 +1618,7 @@
     {
       "name": "Porta Santa Croce",
       "kind": "landmark",
+      "rank": 1,
       "x": -70.5,
       "y": -361.6,
       "osm": "way/126738926",
@@ -1459,6 +1627,7 @@
     {
       "name": "Castello dell'Oscano",
       "kind": "landmark",
+      "rank": 1,
       "x": -2848.3,
       "y": 4982.9,
       "osm": "way/126784736",
@@ -1467,6 +1636,7 @@
     {
       "name": "Arco di Sant'Ercolano",
       "kind": "landmark",
+      "rank": 2,
       "x": -88.2,
       "y": -201.2,
       "osm": "way/126832465",
@@ -1475,6 +1645,7 @@
     {
       "name": "Chiesa di San Michele Arcangelo",
       "kind": "church",
+      "rank": 2,
       "x": -447.7,
       "y": 1041.8,
       "osm": "way/126917283",
@@ -1483,6 +1654,7 @@
     {
       "name": "Arco dei Tei",
       "kind": "landmark",
+      "rank": 1,
       "x": 210,
       "y": 358.5,
       "osm": "way/127586226",
@@ -1491,6 +1663,7 @@
     {
       "name": "Porta Crucia o Eburnea nuova",
       "kind": "landmark",
+      "rank": 1,
       "x": -457.2,
       "y": -341.5,
       "osm": "way/127587103",
@@ -1499,6 +1672,7 @@
     {
       "name": "Arco dei Gigli",
       "kind": "landmark",
+      "rank": 2,
       "x": 150.9,
       "y": 204.1,
       "osm": "way/127725824",
@@ -1507,6 +1681,7 @@
     {
       "name": "Porta nuova",
       "kind": "landmark",
+      "rank": 1,
       "x": 18612.1,
       "y": -4824.7,
       "osm": "way/149526919",
@@ -1515,6 +1690,7 @@
     {
       "name": "Chiesa di San Filippo Neri",
       "kind": "church",
+      "rank": 2,
       "x": -299.5,
       "y": 149.6,
       "osm": "way/215025934",
@@ -1523,6 +1699,7 @@
     {
       "name": "Santuario di Santa Maria della Misericordia",
       "kind": "church",
+      "rank": 2,
       "x": -2226.9,
       "y": -3946.4,
       "osm": "way/222460662",
@@ -1531,6 +1708,7 @@
     {
       "name": "Santa Maria Nuova",
       "kind": "church",
+      "rank": 2,
       "x": 176.5,
       "y": 348.6,
       "osm": "way/249518839",
@@ -1539,6 +1717,7 @@
     {
       "name": "Porta Eburnea",
       "kind": "landmark",
+      "rank": 2,
       "x": -415.1,
       "y": -229,
       "osm": "way/251963062",
@@ -1547,6 +1726,7 @@
     {
       "name": "Porta Trasimena",
       "kind": "landmark",
+      "rank": 2,
       "x": -544.3,
       "y": 242.3,
       "osm": "way/251983605",
@@ -1555,6 +1735,7 @@
     {
       "name": "Porta di Sant'Angelo",
       "kind": "landmark",
+      "rank": 2,
       "x": -506.7,
       "y": 982.5,
       "osm": "way/251986073",
@@ -1563,6 +1744,7 @@
     {
       "name": "Chiesa di San Severo",
       "kind": "church",
+      "rank": 2,
       "x": 105.8,
       "y": 254.6,
       "osm": "way/255201750",
@@ -1571,6 +1753,7 @@
     {
       "name": "Palazzo del Capitano del Popolo",
       "kind": "landmark",
+      "rank": 2,
       "x": -71.2,
       "y": 45.2,
       "osm": "way/255536944",
@@ -1579,6 +1762,7 @@
     {
       "name": "Chiesa di San Giovanni Battista",
       "kind": "church",
+      "rank": 2,
       "x": 18563.1,
       "y": -6743.8,
       "osm": "way/264460629",
@@ -1587,6 +1771,7 @@
     {
       "name": "Rocca Minore",
       "kind": "landmark",
+      "rank": 2,
       "x": 18906.5,
       "y": -4401,
       "osm": "way/266175194",
@@ -1595,6 +1780,7 @@
     {
       "name": "Palazzo Sorbello",
       "kind": "landmark",
+      "rank": 2,
       "x": -22.8,
       "y": 212.9,
       "osm": "way/283097393",
@@ -1603,6 +1789,7 @@
     {
       "name": "Chiesa di San Matteo degli Armeni",
       "kind": "church",
+      "rank": 2,
       "x": -594.3,
       "y": 1031.5,
       "osm": "way/289417641",
@@ -1611,6 +1798,7 @@
     {
       "name": "Oratorio di San Bernardino",
       "kind": "church",
+      "rank": 2,
       "x": -624.9,
       "y": 331.5,
       "osm": "way/289417642",
@@ -1619,6 +1807,7 @@
     {
       "name": "Necropoli del Palazzone",
       "kind": "landmark",
+      "rank": 1,
       "x": 2814.6,
       "y": -2305.5,
       "osm": "way/379480102",
@@ -1627,6 +1816,7 @@
     {
       "name": "Basilica Papale di Santa Maria degli Angeli in Porziuncola",
       "kind": "church",
+      "rank": 2,
       "x": 15441,
       "y": -5809.8,
       "osm": "way/432970256",
@@ -1635,6 +1825,7 @@
     {
       "name": "Chiesa dei Santi Stefano e Valentino",
       "kind": "church",
+      "rank": 2,
       "x": -452.4,
       "y": 210.2,
       "osm": "way/474770551",
@@ -1643,6 +1834,7 @@
     {
       "name": "Chiesa di Sant'Agostino",
       "kind": "church",
+      "rank": 2,
       "x": -56.7,
       "y": 605.8,
       "osm": "way/475235603",
@@ -1651,6 +1843,7 @@
     {
       "name": "Chiesa Santa Croce",
       "kind": "church",
+      "rank": 2,
       "x": 18268.8,
       "y": -3154.7,
       "osm": "way/487784990",
@@ -1659,6 +1852,7 @@
     {
       "name": "San Bevignate",
       "kind": "church",
+      "rank": 2,
       "x": 1503.4,
       "y": -10.2,
       "osm": "way/529710056",
@@ -1667,6 +1861,7 @@
     {
       "name": "Castello di Biagiano",
       "kind": "landmark",
+      "rank": 1,
       "x": 16618.2,
       "y": -983.2,
       "osm": "way/547048886",
@@ -1675,6 +1870,7 @@
     {
       "name": "Porta San Costanzo",
       "kind": "landmark",
+      "rank": 1,
       "x": 401.9,
       "y": -1192.6,
       "osm": "way/564994440",
@@ -1683,6 +1879,7 @@
     {
       "name": "Basilica di San Pietro",
       "kind": "church",
+      "rank": 2,
       "x": 400.2,
       "y": -1016.6,
       "osm": "way/564994508",
@@ -1691,6 +1888,7 @@
     {
       "name": "Chiesa o piccola basilica cimiteriale longobarda",
       "kind": "landmark",
+      "rank": 1,
       "x": 12678.4,
       "y": -3712.2,
       "osm": "way/609416459",
@@ -1699,6 +1897,7 @@
     {
       "name": "Porziuncola",
       "kind": "church",
+      "rank": 2,
       "x": 15449,
       "y": -5801.5,
       "osm": "way/712474839",
@@ -1707,6 +1906,7 @@
     {
       "name": "Porta Conca",
       "kind": "landmark",
+      "rank": 2,
       "x": -588.5,
       "y": 481.8,
       "osm": "way/775377800",
@@ -1715,6 +1915,7 @@
     {
       "name": "Torre del Molino della Catasta",
       "kind": "landmark",
+      "rank": 1,
       "x": 4621.8,
       "y": 2739.2,
       "osm": "way/1021048936",
@@ -1723,6 +1924,7 @@
     {
       "name": "Castello di San Sisto",
       "kind": "landmark",
+      "rank": 1,
       "x": -3932.3,
       "y": -2293.5,
       "osm": "way/1061416529",
@@ -1731,6 +1933,7 @@
     {
       "name": "Castello di Sant'Andrea delle Fratte",
       "kind": "landmark",
+      "rank": 1,
       "x": -4319.8,
       "y": -4022.6,
       "osm": "way/1061421125",
@@ -1739,6 +1942,7 @@
     {
       "name": "Porta San Francesco",
       "kind": "landmark",
+      "rank": 1,
       "x": 17622.9,
       "y": -4163,
       "osm": "way/1075429883",
@@ -1747,6 +1951,7 @@
     {
       "name": "Porta Romana",
       "kind": "landmark",
+      "rank": 1,
       "x": 17970.2,
       "y": -4250.8,
       "osm": "way/1104972940",
@@ -1755,6 +1960,7 @@
     {
       "name": "Porta di Santa Susanna",
       "kind": "landmark",
+      "rank": 2,
       "x": -640.1,
       "y": 129.1,
       "osm": "way/1149290959",
@@ -1763,6 +1969,7 @@
     {
       "name": "Porta del Bulagaio",
       "kind": "landmark",
+      "rank": 1,
       "x": -9.4,
       "y": 573.2,
       "osm": "way/1167109016",
@@ -1771,6 +1978,7 @@
     {
       "name": "Castello di Betto di Menico",
       "kind": "landmark",
+      "rank": 1,
       "x": 14908.9,
       "y": -2155.1,
       "osm": "way/1167540334",
@@ -1779,6 +1987,7 @@
     {
       "name": "Chiesa di San Bernardino da Siena",
       "kind": "church",
+      "rank": 2,
       "x": 14942.2,
       "y": -2183.8,
       "osm": "way/1167540730",
@@ -1787,6 +1996,7 @@
     {
       "name": "Castello dei figli di Cambio",
       "kind": "landmark",
+      "rank": 1,
       "x": 14193.5,
       "y": -1574.1,
       "osm": "way/1167562900",
@@ -1795,6 +2005,7 @@
     {
       "name": "Porta San Girolamo",
       "kind": "landmark",
+      "rank": 1,
       "x": 302.2,
       "y": -700.6,
       "osm": "way/1167927855",
@@ -1803,6 +2014,7 @@
     {
       "name": "Chiesa di Santa Tecla",
       "kind": "church",
+      "rank": 2,
       "x": 14256.7,
       "y": -1546,
       "osm": "way/1284584294",
@@ -1811,6 +2023,7 @@
     {
       "name": "Rocca Maggiore",
       "kind": "landmark",
+      "rank": 2,
       "x": 18274,
       "y": -4122.7,
       "osm": "way/1286496148",
@@ -1819,6 +2032,7 @@
     {
       "name": "Palazzo Serafini",
       "kind": "landmark",
+      "rank": 1,
       "x": 13272,
       "y": 3107.9,
       "osm": "way/1372499490",
@@ -1827,6 +2041,7 @@
     {
       "name": "San Giacomo del muro rotto",
       "kind": "church",
+      "rank": 2,
       "x": 17777.3,
       "y": -4042.2,
       "osm": "way/1490850416",
@@ -1835,6 +2050,7 @@
     {
       "name": "Santa Giuliana",
       "kind": "church",
+      "rank": 2,
       "x": -391.3,
       "y": -725.1,
       "osm": "relation/9539288",
@@ -1864,7 +2080,20 @@
     "landcoverAreas": 5879,
     "buildings": 24056,
     "buildingVertices": 136633,
-    "trees": 160000,
+    "buildings:suburb": 17091,
+    "buildings:old-town": 2196,
+    "buildings:rural": 3069,
+    "buildings:industrial": 1700,
+    "trees": 280000,
+    "trees:broadleaf": 105302,
+    "trees:conifer": 15,
+    "trees:scrub": 4854,
+    "trees:olive": 75723,
+    "trees:park": 1544,
+    "trees:cypress": 2511,
+    "trees:riparian": 17544,
+    "trees:hedgerow": 37580,
+    "trees:garden": 34927,
     "pois": 216,
     "carvedNodes": 13108
   },
@@ -1901,7 +2130,7 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "f1f2072f46734c796e909c7598359d8d4b67ef6481d26585500ebb9eaf9cc2cd",
+    "recipeSha256": "25b85cfe0a649c7bc6f1eab92dab04471552303b1ef8745077efe4337ae50acc",
     "osmDate": "2026-10-01T00:00:00Z",
     "demSource": "aws-terrain-tiles/terrarium",
     "demZoom": 13,
