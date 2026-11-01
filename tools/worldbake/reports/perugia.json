@@ -5,10 +5,10 @@
     "dem": 0.5,
     "heightfield+routes": 0.1,
     "osm": 0.2,
-    "vectors": 4,
-    "write": 10.2,
+    "vectors": 4.3,
+    "write": 11.2,
     "validate": 0,
-    "total": 14.9
+    "total": 16.2
   },
   "sizes": {
     "height.bin.gz": {
@@ -37,9 +37,9 @@
       "brotli": 366820
     },
     "vegetation.bin.gz": {
-      "stored": 970851,
-      "content": 1680016,
-      "brotli": 919979
+      "stored": 1593825,
+      "content": 2880016,
+      "brotli": 1510173
     },
     "routes.json.gz": {
       "stored": 38901,
@@ -47,15 +47,15 @@
       "brotli": 27113
     },
     "manifest.json": {
-      "stored": 44436,
-      "content": 44436,
-      "brotli": 7503
+      "stored": 44439,
+      "content": 44439,
+      "brotli": 7469
     }
   },
   "totals": {
-    "stored": 5192508,
-    "content": 10272323,
-    "brotli": 3992872
+    "stored": 5815485,
+    "content": 11472326,
+    "brotli": 4583032
   },
   "hashes": {
     "height.bin.gz": "6fe9fb14a0efc52b6230f538b3ca02715b839ff4be8cfc889a0ad62e805751a1",
@@ -63,9 +63,9 @@
     "water.json.gz": "336e1fa7740ce2525f6f53ef7f2dc92f4143649a79f745244cd562006faf31b8",
     "landcover.json.gz": "bdf6cd0a665e6b828281ca1dfa88648c9715f5a2154c5e949bab40c702dfb0be",
     "buildings.bin.gz": "b4885fcc53d8dd65d5c64b5f58da2b92bc0043e7f8ff56331d434134a1a800a1",
-    "vegetation.bin.gz": "dd04b961307b6d4e2acc67f99fd925ba11c729150f58af8973101fea2822aa19",
+    "vegetation.bin.gz": "da896d0a34bbfd3df5cc7af5c1151b0245913c7cad0c260f860f36cdbcd4133b",
     "routes.json.gz": "3aecc65957257b34340c254663f17c6369b904e4d081138e61bd82ca09ab64e4",
-    "manifest.json": "635828f89b2fb0c4ef1b68fea65e328c7f843caf48d307efdaa4b7d5387ee38c"
+    "manifest.json": "674fe433f083549f18649f4c2f10a84fd938a99405306a5e156e3f0fcc72765b"
   },
   "routes": [
     {

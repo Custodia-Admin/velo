@@ -88,11 +88,11 @@
     },
     {
       "path": "vegetation.bin.gz",
-      "bytes": 970851,
-      "sha256": "dd04b961307b6d4e2acc67f99fd925ba11c729150f58af8973101fea2822aa19",
+      "bytes": 1593825,
+      "sha256": "da896d0a34bbfd3df5cc7af5c1151b0245913c7cad0c260f860f36cdbcd4133b",
       "compression": "gzip",
-      "contentBytes": 1680016,
-      "contentSha256": "5aac6280346c2f7197ac7db5943db77512a551d2f97c1ee78c4dd40de6425b02"
+      "contentBytes": 2880016,
+      "contentSha256": "9a7e38701fc91a98fb5b56a32663808307ab56b5c98932a8a452f06c87fc6f3e"
     },
     {
       "path": "routes.json.gz",
@@ -2084,12 +2084,12 @@
     "buildings:old-town": 2196,
     "buildings:rural": 3069,
     "buildings:industrial": 1700,
-    "trees": 280000,
-    "trees:broadleaf": 105302,
-    "trees:conifer": 15,
-    "trees:scrub": 4854,
-    "trees:olive": 75723,
-    "trees:park": 1544,
+    "trees": 480000,
+    "trees:broadleaf": 216366,
+    "trees:conifer": 35,
+    "trees:scrub": 10205,
+    "trees:olive": 157588,
+    "trees:park": 3244,
     "trees:cypress": 2511,
     "trees:riparian": 17544,
     "trees:hedgerow": 37580,
@@ -2130,7 +2130,7 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "25b85cfe0a649c7bc6f1eab92dab04471552303b1ef8745077efe4337ae50acc",
+    "recipeSha256": "b83c39f003fcf85c81cbf8eec9b423cc15852afeadfe86af4a66647ac854bbdb",
     "osmDate": "2026-10-01T00:00:00Z",
     "demSource": "aws-terrain-tiles/terrarium",
     "demZoom": 13,
