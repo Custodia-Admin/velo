@@ -73,6 +73,10 @@ describe('MobileDetailDock source guarantees', () => {
     expect(dockSrc).toContain("document.addEventListener('keydown'");
   });
 
+  it('keeps that Escape from reaching the window (the ride pause / finish shortcut)', () => {
+    expect(dockSrc).toContain('e.stopPropagation()');
+  });
+
   it('stays click-through except for the toggles and the open panel', () => {
     // The root spans the phone width; an auto root would swallow canvas
     // gestures in its band (the e27214a overlay lesson).
@@ -84,9 +88,13 @@ describe('MobileDetailDock source guarantees', () => {
     expect(dockSrc).toContain('<Minimap className="h-32 w-32" />');
   });
 
-  it('is mounted by Ride.tsx inside a sm:hidden wrapper above the transport bar', () => {
-    expect(rideSrc).toContain('<MobileDetailDock />');
-    expect(rideSrc).toContain('sm:hidden absolute left-3 right-3 z-[3] pointer-events-none');
-    expect(rideSrc).toContain('4.75rem');
+  it('is mounted by Ride.tsx, phones only, in the bottom column right above the ride strip', () => {
+    expect(rideSrc).toContain('<MobileDetailDock className="sm:hidden" />');
+    expect(rideSrc.indexOf('<MobileDetailDock')).toBeLessThan(rideSrc.indexOf('<RideStrip'));
+  });
+
+  it('toggles are solid HUD buttons (no glass over the live canvas)', () => {
+    expect(dockSrc.match(/variant="hud"/g)?.length).toBe(2);
+    expect(dockSrc).not.toContain('glass');
   });
 });

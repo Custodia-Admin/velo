@@ -1,7 +1,9 @@
 /**
- * One line of live conditions at a route's start, for route cards and the
- * featured ride. Covers loading (skeleton the size of the line), ready,
+ * One line of live conditions at a route's start, for route tiles and
+ * Today's ride. Covers loading (skeleton the size of the line), ready,
  * stale-from-cache (shows the time it was observed) and offline.
+ * Always muted, icon included: the ride's own figures stay the strongest
+ * line (v2 home mockup).
  */
 
 import { RotateCw } from 'lucide-react';
@@ -59,17 +61,12 @@ export function WeatherLine({ entry, size = 'sm', prefix, onRetry, className }: 
   const asOf = entry.source === 'stale' ? observedTimeText(w.observedAt) : '';
   const label = `${prefix ? `${prefix}: ` : ''}${conditions}${asOf ? ` (as of ${asOf})` : ''}`;
   return (
-    // Featured card: full weight. Grid cards: muted, so the ride's own
-    // figures stay the strongest line.
-    <p
-      className={cn('flex min-h-6 items-center gap-2', text, size === 'base' ? 'text-foreground' : 'text-muted-foreground', className)}
-      aria-label={label}
-    >
-      <WeatherIcon condition={conditionFor(w)} isDay={w.isDay} className={cn(icon, 'shrink-0 text-primary')} />
+    <p className={cn('flex items-center gap-1.5 text-muted-foreground', text, className)} aria-label={label}>
+      <WeatherIcon condition={conditionFor(w)} isDay={w.isDay} className={cn(icon, 'shrink-0')} />
       <span aria-hidden>
-        {prefix && <span className="font-semibold">{prefix}: </span>}
+        {prefix && `${prefix}: `}
         <span className="num">{conditions}</span>
-        {asOf && <span className="text-muted-foreground"> · as of {asOf}</span>}
+        {asOf && ` · as of ${asOf}`}
       </span>
     </p>
   );

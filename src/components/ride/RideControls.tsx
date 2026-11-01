@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Play, Pause, Square, Save, RotateCcw, Upload,
@@ -7,11 +6,10 @@ import {
 } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
-import { useSettingsStore } from '@/stores/settingsStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { buildFit, downloadFit } from '@/lib/fitExporter';
-import { uploadFit, stravaCredsPresent, StravaError, clearCachedToken, type UploadState, type StravaErrorKind } from '@/lib/strava';
+import { stravaCredsPresent, clearCachedToken, type UploadState, type StravaErrorKind } from '@/lib/strava';
+import { useRideExport } from '@/hooks/useRideExport';
 import { forceReauth } from '@/lib/stravaOauth';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +20,7 @@ import { cn } from '@/lib/utils';
  * Design: a pill-shaped glass bar with a glow that changes color based on
  * ride state. Large touch targets (min 48 px) for sweaty-finger use.
  *
- * Post-ride: export .FIT and Strava upload inline.
+ * Post-ride: export .FIT and Strava upload inline (via useRideExport).
  */
 export function RideControls() {
   const navigate  = useNavigate();
@@ -33,112 +31,16 @@ export function RideControls() {
   const finish    = useRideStore((s) => s.finish);
   const reset     = useRideStore((s) => s.reset);
   const samples   = useRideStore((s) => s.samples);
-  const startedAt = useRideStore((s) => s.startedAt);
   const route     = useRideStore((s) => s.route);
 
-  const autoUploadStrava = useSettingsStore((s) => s.autoUploadStrava);
-
-  const [uploadState, setUploadState] = useState<UploadState>({ phase: 'idle' });
-
-  // ---------------------------------------------------------------------------
-  // Idempotency guard: localStorage-backed cache of already-uploaded ride keys.
-  // Key: `globeride.strava.uploaded.v1` → JSON array of ride start-time strings.
-  // Capped at 20 entries (oldest dropped). Survives FinishCard unmount/remount.
-  // In-session ref prevents a second auto-upload within the same component life.
-  // ---------------------------------------------------------------------------
-  const hasAutoUploadedRef = useRef(false);
-
-  const UPLOADED_CACHE_KEY = 'globeride.strava.uploaded.v1';
-  const UPLOADED_CACHE_CAP = 20;
-
-  const isRideAlreadyUploaded = useCallback((rideKey: string): boolean => {
-    try {
-      const raw = localStorage.getItem(UPLOADED_CACHE_KEY);
-      const cache: string[] = raw ? (JSON.parse(raw) as string[]) : [];
-      return cache.includes(rideKey);
-    } catch {
-      return false;
-    }
-  }, []);
-
-  const markRideAsUploaded = useCallback((rideKey: string): void => {
-    try {
-      const raw = localStorage.getItem(UPLOADED_CACHE_KEY);
-      const cache: string[] = raw ? (JSON.parse(raw) as string[]) : [];
-      if (!cache.includes(rideKey)) {
-        cache.push(rideKey);
-        // Keep only the most-recent UPLOADED_CACHE_CAP entries
-        if (cache.length > UPLOADED_CACHE_CAP) {
-          cache.splice(0, cache.length - UPLOADED_CACHE_CAP);
-        }
-        localStorage.setItem(UPLOADED_CACHE_KEY, JSON.stringify(cache));
-      }
-    } catch {
-      // localStorage unavailable — silent fail; in-session ref still guards
-    }
-  }, []);
-
-  const handleExport = useCallback(() => {
-    if (!startedAt || samples.length === 0) return;
-    const blob  = buildFit({ startTime: startedAt, samples });
-    const safe  = (route?.name ?? 'globeride').replace(/[^a-z0-9-_]+/gi, '_');
-    const stamp = new Date(startedAt).toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    downloadFit(blob, `${safe}_${stamp}.fit`);
-  }, [startedAt, samples, route?.name]);
-
-  const handleStravaUpload = useCallback(async () => {
-    if (!startedAt || samples.length === 0) return;
-    if (uploadState.phase === 'uploading' || uploadState.phase === 'polling') return;
-
-    const blob         = buildFit({ startTime: startedAt, samples });
-    const activityName = route?.name
-      ? `${route.name} — GlobeRide`
-      : `GlobeRide — ${new Date(startedAt).toLocaleDateString()}`;
-
-    try {
-      const result = await uploadFit(
-        blob,
-        { name: activityName, description: 'Uploaded via GlobeRide', trainer: true },
-        (state) => setUploadState(state),
-      );
-      // Persist the uploaded key so remounts don't re-trigger auto-upload
-      if (result.id) markRideAsUploaded(String(startedAt));
-    } catch (err) {
-      if (err instanceof StravaError) {
-        setUploadState({
-          phase: 'error',
-          errorMessage: err.message,
-          errorKind: err.kind,
-          actionUrl: err.actionUrl,
-        });
-      } else {
-        setUploadState({
-          phase: 'error',
-          errorMessage: err instanceof Error ? err.message : 'Upload failed — check console.',
-          errorKind: 'unknown',
-        });
-      }
-    }
-  }, [startedAt, samples, route?.name, uploadState.phase, markRideAsUploaded]);
-
-  // Auto-upload: fires once when the ride finishes, Strava is connected,
-  // the preference is on, and there are recorded samples.
-  // Double-upload prevention: in-session ref (hasAutoUploadedRef) catches the
-  // common case; localStorage cache (isRideAlreadyUploaded) catches remounts.
-  useEffect(() => {
-    if (
-      rideState === 'finished' &&
-      autoUploadStrava &&
-      stravaCredsPresent() &&
-      samples.length > 0 &&
-      startedAt &&
-      !hasAutoUploadedRef.current &&
-      !isRideAlreadyUploaded(String(startedAt))
-    ) {
-      hasAutoUploadedRef.current = true;
-      handleStravaUpload();
-    }
-  }, [rideState, autoUploadStrava, samples.length, startedAt, handleStravaUpload, isRideAlreadyUploaded]);
+  // FIT export + Strava upload live in useRideExport. Auto-upload on finish
+  // is owned by the v2 finish page (one mounted owner), so it stays off here.
+  const {
+    downloadFit: handleExport,
+    uploadState,
+    uploadToStrava: handleStravaUpload,
+    resetUpload,
+  } = useRideExport();
 
   if (!route) return null;
 
@@ -240,7 +142,7 @@ export function RideControls() {
             <StravaUploadButton
               uploadState={uploadState}
               onUpload={handleStravaUpload}
-              onReset={() => setUploadState({ phase: 'idle' })}
+              onReset={resetUpload}
             />
 
             <Button

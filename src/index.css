@@ -205,8 +205,66 @@
   /* v2 utilities: home (add home-only rules below this line) */
 
   /* v2 utilities: ride + show (add ride/show-only rules below this line) */
+  /* Show mode insets (v2-show.html): 1.5rem from the screen edges from sm,
+     the HUD's 0.75rem below sm; safe-area aware like .hud-inset-*. */
+  .show-inset-t { top: max(env(safe-area-inset-top), 1.5rem); }
+  .show-inset-l { left: max(env(safe-area-inset-left), 1.5rem); }
+  .show-inset-r { right: max(env(safe-area-inset-right), 1.5rem); }
+  @media (max-width: 639.98px) {
+    .show-inset-t { top: max(env(safe-area-inset-top), 0.75rem); }
+    .show-inset-l { left: max(env(safe-area-inset-left), 0.75rem); }
+    .show-inset-r { right: max(env(safe-area-inset-right), 0.75rem); }
+  }
+  /* Show video panel widths (S / M / L; L = the mockup's 55vw) and its
+     height cap: never taller than the screen minus the ride strip. L is
+     also capped so its bottom stays above the chase-camera rider, whose
+     head sits at ~53 % of the screen height (16:9 screens and TV). */
+  .w-show-s { width: 30vw; }
+  .w-show-m { width: 42vw; }
+  .w-show-l { width: min(55vw, (53vh - 2rem) * 16 / 9); }
+  .max-h-show-fit { max-height: calc(100vh - 10rem); }
+  /* Ride HUD v2, phones: the panel column starts under the top row
+     (Exit + route panel, about 4rem tall below sm). */
+  .top-ride-stack { top: calc(max(env(safe-area-inset-top), 0.75rem) + 4.5rem); }
+  /* Ride HUD v2: the no-token banner floats above the centred ride strip
+     (sm+) or above the phone strip + detail dock (below sm), instead of
+     the legacy transport bar offsets in .ride-banner-float. */
+  .ride-hud-v2 .ride-banner-float { bottom: calc(max(env(safe-area-inset-bottom), 1.5rem) + 6rem); }
+  @media (max-width: 639.98px) {
+    .ride-hud-v2 .ride-banner-float { bottom: calc(max(env(safe-area-inset-bottom), 0.75rem) + 12.5rem); }
+  }
+  /* Ride HUD v2: the legacy gesture-legend "?" chip becomes a HUD icon
+     button (2.5rem target, solid hud surface) in a free corner:
+     bottom-right from sm (the strip is centred), and below sm at the right
+     end of the detail-dock row, just above the full-width phone strip. */
+  .hud-flat .ride-gesture-slot button[aria-label="Show gesture controls legend"] {
+    top: auto;
+    right: max(env(safe-area-inset-right), 1rem);
+    bottom: max(env(safe-area-inset-bottom), 1.5rem);
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: calc(var(--radius) - 2px);
+    border: 1px solid hsl(var(--border) / 0.6);
+    background: hsl(var(--hud) / 0.9);
+    color: hsl(var(--hud-foreground));
+    box-shadow: var(--shadow-md, none);
+  }
+  @media (max-width: 639.98px) {
+    .hud-flat .ride-gesture-slot button[aria-label="Show gesture controls legend"] {
+      right: max(env(safe-area-inset-right), 0.75rem);
+      bottom: calc(max(env(safe-area-inset-bottom), 0.75rem) + 8.625rem);
+    }
+  }
 
   /* v2 utilities: devices + finish (add rules below this line) */
+  /* Devices page at lg: device panels | Ride + pairing tips (7fr / 4fr),
+     the right column's Ride row sized to its content. */
+  .grid-cols-devices { grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); }
+  .grid-rows-devices { grid-template-rows: auto 1fr; }
+  /* Device row: glyph | name + state | one action (glyph | text below sm,
+     the action drops under the text). */
+  .grid-cols-device-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .grid-cols-device-row-narrow { grid-template-columns: auto minmax(0, 1fr); }
 
   /* Show mode video panel: never taller than the viewport minus the ride
      strip, the panel controls and the transport bar (16:9 video). */

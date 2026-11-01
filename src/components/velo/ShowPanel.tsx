@@ -1,25 +1,17 @@
 /**
- * Show mode's video surface: play the rider's own videos over the live ride.
+ * Show mode's video surface (docs/design/mockups/v2-show.html): play the
+ * rider's own videos over the live ride.
  *
- * States: choose (nothing picked yet), playing local files, a show running in
- * picture-in-picture from another tab, and errors. The 3D world keeps
- * rendering around it and ride recording is untouched. On-system per
- * docs/design/UI-RULES.md.
+ * The player is a scrim panel at the top-left: the video, a thin progress
+ * bar (tap to seek), and one control bar (play/pause, title, time left,
+ * S/M/L size, next). The corner holds the camera choice and Close. Other
+ * states: choose (nothing picked yet), a show running in picture-in-picture
+ * from another tab, and errors. The 3D world keeps rendering around it and
+ * ride recording is untouched. On-system per docs/design/UI-RULES.md.
  */
 
-import { useEffect, useRef, useState } from 'react';
-import {
-  Camera,
-  ChevronDown,
-  Film,
-  Pause,
-  PictureInPicture2,
-  Play,
-  RotateCcw,
-  RotateCw,
-  SkipForward,
-  X,
-} from 'lucide-react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { Camera, ChevronDown, Film, Pause, PictureInPicture2, Play, SkipForward, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { CameraMode } from '@/lib/cesiumCameras';
@@ -36,11 +28,14 @@ import {
 } from '@/lib/show/showLibrary';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useShowStore, type ShowSize } from '@/stores/showStore';
+import { ShowToggle } from './ShowToggle';
+import { HUD_PANEL } from './v2';
 
+/** Panel width per size from sm (L = 55 % of the screen, as in the mockup). */
 const SIZE_CLASS: Record<ShowSize, string> = {
-  s: 'sm:w-1/2 lg:w-1/3',
-  m: 'sm:w-2/3 lg:w-1/2',
-  l: 'sm:w-11/12 lg:w-2/3',
+  s: 'sm:w-show-s',
+  m: 'sm:w-show-m',
+  l: 'sm:w-show-l',
 };
 
 const SIZE_LABEL: Record<ShowSize, string> = { s: 'Small', m: 'Medium', l: 'Large' };
@@ -54,8 +49,11 @@ const CAMERA_LABEL: Partial<Record<CameraMode, string>> = {
   overhead: 'Overhead',
 };
 
-const PANEL_FRAME =
-  'glass glass-hairline absolute left-3 right-3 top-16 z-10 flex flex-col overflow-hidden rounded-lg sm:left-auto sm:right-3 sm:top-24 sm:max-w-show-fit';
+/** Top-left on every width; full width (minus the HUD insets) below sm. */
+const PANEL_PLACE = 'absolute show-inset-t show-inset-l show-inset-r z-20 sm:right-auto';
+
+/** Control-bar icon buttons: no surface of their own, light on the scrim. */
+const ON_SCRIM = 'text-on-scrim hover:bg-on-scrim/15 hover:text-on-scrim';
 
 const NOT_PLAYABLE = 'Those files are not videos Chrome can play. Try MP4 or WebM.';
 
@@ -70,14 +68,38 @@ export function ShowPanel({ dimmed }: { dimmed: boolean }) {
   if (source === 'pip') return <PipBar dimmed={dimmed} />;
   if (!panelOpen) return null;
 
+  if (!item) {
+    return (
+      <section aria-label="Show" data-testid="show-panel" className={cn(PANEL_PLACE, HUD_PANEL, 'sm:w-full sm:max-w-lg')}>
+        <ShowChooser />
+      </section>
+    );
+  }
+
   return (
     <section
-      aria-label="Show"
+      aria-label="Your video"
       data-testid="show-panel"
-      className={cn(PANEL_FRAME, SIZE_CLASS[size])}
+      className={cn(
+        PANEL_PLACE,
+        'flex aspect-video flex-col overflow-hidden rounded-lg bg-scrim text-on-scrim shadow-md sm:max-h-show-fit',
+        SIZE_CLASS[size],
+      )}
     >
-      {item ? <ShowPlayer key={item.url} dimmed={dimmed} /> : <ShowChooser />}
+      <ShowPlayer key={item.url} dimmed={dimmed} />
     </section>
+  );
+}
+
+/** Top-right corner in show mode (sm+): the camera choice and Close. */
+export function ShowCorner({ className }: { className?: string }) {
+  const active = useShowStore((s) => s.active);
+  if (!active) return null;
+  return (
+    <div className={cn('absolute show-inset-t show-inset-r z-20 hidden items-start gap-2 sm:flex', className)}>
+      <CameraButton />
+      <ShowToggle />
+    </div>
   );
 }
 
@@ -131,9 +153,9 @@ function ShowChooser() {
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6" data-testid="show-chooser">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-xl font-bold text-foreground sm:text-2xl">Watch something while you ride</h2>
+        <h2 className="font-display text-xl font-semibold sm:text-2xl">Watch something while you ride</h2>
         <Button variant="ghost" size="icon" aria-label="Close show" onClick={endShow}>
-          <X className="h-5 w-5" />
+          <X className="h-5 w-5" aria-hidden="true" />
         </Button>
       </div>
       <p className="max-w-prose text-sm text-muted-foreground">
@@ -144,20 +166,16 @@ function ShowChooser() {
         {canContinue && resume && (
           <Button
             size="lg"
-            variant="accent"
+            variant="primary"
             className="h-auto min-h-12 whitespace-normal py-2 text-left"
             onClick={() => void onContinue()}
           >
-            <Play className="h-5 w-5" />
+            <Play className="h-5 w-5" aria-hidden="true" />
             Continue {resume.name} · {formatClock(resume.positionS)}
           </Button>
         )}
-        <Button
-          size="lg"
-          variant={canContinue ? 'outline' : 'accent'}
-          onClick={() => void choose()}
-        >
-          <Film className="h-5 w-5" />
+        <Button size="lg" variant={canContinue ? 'outline' : 'primary'} onClick={() => void choose()}>
+          <Film className="h-5 w-5" aria-hidden="true" />
           Choose videos
         </Button>
       </div>
@@ -172,7 +190,7 @@ function ShowChooser() {
         </p>
       )}
       <details className="group flex flex-col gap-3 border-t border-border pt-4">
-        <summary className="flex h-10 cursor-pointer list-none items-center justify-between gap-3 text-base font-semibold text-foreground">
+        <summary className="flex h-10 cursor-pointer list-none items-center justify-between gap-3 text-base font-semibold">
           Watching in another tab?
           <ChevronDown
             className="h-5 w-5 text-muted-foreground transition-transform duration-150 group-open:rotate-180"
@@ -186,7 +204,7 @@ function ShowChooser() {
         </ol>
         <div>
           <Button variant="outline" onClick={usePip} className="mt-3">
-            <PictureInPicture2 className="h-4 w-4" />
+            <PictureInPicture2 className="h-4 w-4" aria-hidden="true" />
             Use picture-in-picture
           </Button>
         </div>
@@ -203,20 +221,22 @@ function PipBar({ dimmed }: { dimmed: boolean }) {
       aria-label="Show"
       data-testid="show-pip-bar"
       className={cn(
-        'glass glass-hairline absolute left-3 right-3 top-16 z-10 flex flex-col gap-2 rounded-lg p-3 transition-opacity duration-300 sm:left-auto sm:right-3 sm:top-24 sm:w-auto',
+        PANEL_PLACE,
+        HUD_PANEL,
+        'flex flex-col gap-2 p-3 transition-opacity duration-300 sm:w-auto',
         dimmed && 'opacity-20',
       )}
     >
       <div className="flex flex-wrap items-center gap-3">
         <PictureInPicture2 className="h-5 w-5 text-primary" aria-hidden />
-        <p className="text-sm text-foreground">Your show is in picture-in-picture.</p>
+        <p className="text-sm">Your show is in picture-in-picture.</p>
         <div className="ml-auto flex items-center gap-2">
           <Button variant="outline" onClick={() => void choose()}>
-            <Film className="h-4 w-4" />
+            <Film className="h-4 w-4" aria-hidden="true" />
             Choose videos
           </Button>
           <Button variant="ghost" size="icon" aria-label="Close show" onClick={endShow}>
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </Button>
         </div>
       </div>
@@ -235,12 +255,16 @@ function PipBar({ dimmed }: { dimmed: boolean }) {
 
 type LoadState = 'loading' | 'ready' | 'error';
 
+/** Progress width on a 0..1000 viewBox, so the bar needs no inline style. */
+const BAR_W = 1000;
+
 function ShowPlayer({ dimmed }: { dimmed: boolean }) {
   const items = useShowStore((s) => s.items);
   const index = useShowStore((s) => s.index);
   const playing = useShowStore((s) => s.playing);
   const setPlaying = useShowStore((s) => s.setPlaying);
   const next = useShowStore((s) => s.next);
+  const endShow = useShowStore((s) => s.endShow);
   const item = items[index];
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -290,7 +314,8 @@ function ShowPlayer({ dimmed }: { dimmed: boolean }) {
   const onTimeUpdate = () => {
     const v = videoRef.current;
     if (!v) return;
-    setTime(v.currentTime);
+    // Whole seconds: the bar and the "left" clock need no finer steps.
+    setTime(Math.floor(v.currentTime));
     if (Math.abs(v.currentTime - lastSavedRef.current) >= 5) {
       lastSavedRef.current = v.currentTime;
       save();
@@ -304,21 +329,26 @@ function ShowPlayer({ dimmed }: { dimmed: boolean }) {
     else v.pause();
   };
 
-  const skip = (seconds: number) => {
+  const seek = (e: ReactPointerEvent<HTMLDivElement>) => {
     const v = videoRef.current;
-    if (!v) return;
-    v.currentTime = Math.max(0, Math.min(v.duration || 0, v.currentTime + seconds));
+    if (!v || !(duration > 0)) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const f = Math.min(1, Math.max(0, (e.clientX - r.left) / Math.max(1, r.width)));
+    v.currentTime = f * duration;
+    setTime(Math.floor(v.currentTime));
   };
 
   const hasNext = index + 1 < items.length;
+  const progress = duration > 0 ? Math.min(1, time / duration) : 0;
+  const controlsHidden = dimmed && 'invisible';
 
   return (
     <>
-      <div className="relative aspect-video w-full bg-background">
+      <div className="relative min-h-0 flex-1 bg-scrim">
         <video
           ref={videoRef}
           src={item.url}
-          className="h-full w-full"
+          className="h-full w-full object-contain"
           playsInline
           preload="metadata"
           data-testid="show-video"
@@ -342,9 +372,9 @@ function ShowPlayer({ dimmed }: { dimmed: boolean }) {
         {load !== 'ready' && (
           <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
             {load === 'loading' ? (
-              <p className="text-sm text-muted-foreground">Opening {item.title}…</p>
+              <p className="text-sm text-on-scrim/70">Opening {item.title}…</p>
             ) : (
-              <p role="alert" className="max-w-prose text-sm font-medium text-destructive">
+              <p role="alert" className="max-w-prose text-sm font-medium text-on-scrim">
                 {item.title} can’t play in Chrome. Try an MP4 or WebM copy.
               </p>
             )}
@@ -352,70 +382,62 @@ function ShowPlayer({ dimmed }: { dimmed: boolean }) {
         )}
       </div>
 
-      <div className={cn('flex flex-col gap-1 px-3 pb-3 pt-2', dimmed && 'hidden')} data-testid="show-controls">
-        <label className="flex h-10 items-center gap-3 text-sm text-muted-foreground">
-          <span className="num w-14 shrink-0">{formatClock(time)}</span>
-          <input
-            type="range"
-            min={0}
-            max={Math.max(duration, 1)}
-            step={1}
-            value={Math.min(time, Math.max(duration, 1))}
-            onChange={(e) => {
-              const v = videoRef.current;
-              if (v) v.currentTime = Number(e.target.value);
-            }}
-            aria-label="Position in video"
-            className="h-10 min-w-0 flex-1"
-          />
-          <span className="num w-14 shrink-0 text-right">{formatClock(duration)}</span>
-        </label>
+      <div
+        className={cn('h-1 shrink-0 cursor-pointer bg-on-scrim/25', controlsHidden)}
+        aria-hidden="true"
+        data-testid="show-progress"
+        onPointerDown={seek}
+      >
+        <svg className="block h-full w-full text-primary" viewBox={`0 0 ${BAR_W} 4`} preserveAspectRatio="none">
+          <rect width={Math.round(progress * BAR_W)} height="4" fill="currentColor" />
+        </svg>
+      </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="icon" aria-label="Back 10 seconds" onClick={() => skip(-10)}>
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="accent"
-            size="lg"
-            className="w-12 px-0"
-            aria-label={playing ? 'Pause video' : 'Play video'}
-            onClick={togglePlay}
-          >
-            {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-          </Button>
-          <Button variant="outline" size="icon" aria-label="Forward 30 seconds" onClick={() => skip(30)}>
-            <RotateCw className="h-4 w-4" />
-          </Button>
-          <div className="flex min-w-0 flex-1 basis-40 flex-col px-1">
-            <p className="text-base font-semibold text-foreground" data-testid="show-title">
-              {item.title}
-            </p>
-            {items.length > 1 && (
-              <p className="num text-xs text-muted-foreground">
-                {index + 1} of {items.length}
-                {hasNext ? ` · next: ${items[index + 1].title}` : ''}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {items.length > 1 && (
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label="Next video"
-                disabled={!hasNext}
-                onClick={() => next()}
-              >
-                <SkipForward className="h-4 w-4" />
-              </Button>
-            )}
-            <CameraButton />
-            <SizePicker />
-            <PopOutButton videoRef={videoRef} />
-            <CloseButton />
-          </div>
-        </div>
+      <div
+        className={cn('flex shrink-0 items-center gap-3 bg-scrim/90 px-3 py-2', controlsHidden)}
+        data-testid="show-controls"
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          className={ON_SCRIM}
+          aria-label={playing ? 'Pause video' : 'Play video'}
+          onClick={togglePlay}
+        >
+          {playing ? <Pause className="h-5 w-5" aria-hidden="true" /> : <Play className="h-5 w-5" aria-hidden="true" />}
+        </Button>
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold" data-testid="show-title" title={item.title}>
+          {item.title}
+          {items.length > 1 && (
+            <span className="num font-normal text-on-scrim/70">
+              {' '}
+              · {index + 1} of {items.length}
+            </span>
+          )}
+        </p>
+        {duration > 0 && (
+          <span className="num shrink-0 text-sm">{formatClock(Math.max(0, duration - time))} left</span>
+        )}
+        <SizePicker />
+        <Button
+          variant="ghost"
+          size="icon"
+          className={ON_SCRIM}
+          aria-label="Next video"
+          disabled={!hasNext}
+          onClick={() => next()}
+        >
+          <SkipForward className="h-5 w-5" aria-hidden="true" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(ON_SCRIM, 'sm:hidden')}
+          aria-label="Close show mode"
+          onClick={endShow}
+        >
+          <X className="h-5 w-5" aria-hidden="true" />
+        </Button>
       </div>
     </>
   );
@@ -440,13 +462,8 @@ function CameraButton() {
   };
 
   return (
-    <Button
-      variant="outline"
-      onClick={onClick}
-      aria-label={`Camera: ${label}. Switch camera`}
-      data-testid="show-camera"
-    >
-      <Camera className="h-4 w-4" />
+    <Button variant="hud" onClick={onClick} aria-label={`Camera: ${label}. Switch camera`} data-testid="show-camera">
+      <Camera className="h-4 w-4" aria-hidden="true" />
       {label}
     </Button>
   );
@@ -456,11 +473,7 @@ function SizePicker() {
   const size = useShowStore((s) => s.size);
   const setSize = useShowStore((s) => s.setSize);
   return (
-    <div
-      role="radiogroup"
-      aria-label="Video size"
-      className="hidden overflow-hidden rounded-md border border-border sm:flex"
-    >
+    <div role="radiogroup" aria-label="Video size" className="hidden shrink-0 gap-1 sm:flex">
       {(['s', 'm', 'l'] as const).map((s) => (
         <button
           key={s}
@@ -470,41 +483,13 @@ function SizePicker() {
           aria-label={SIZE_LABEL[s]}
           onClick={() => setSize(s)}
           className={cn(
-            'h-10 w-11 text-sm font-semibold transition-colors duration-150',
-            size === s ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-muted',
+            'h-10 w-10 rounded-md text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+            size === s ? 'bg-on-scrim/15' : 'hover:bg-on-scrim/10',
           )}
         >
           {s.toUpperCase()}
         </button>
       ))}
     </div>
-  );
-}
-
-function PopOutButton({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement | null> }) {
-  if (typeof document === 'undefined' || !document.pictureInPictureEnabled) return null;
-  return (
-    <Button
-      variant="outline"
-      size="icon"
-      aria-label="Pop out video"
-      onClick={() => {
-        const v = videoRef.current;
-        if (!v) return;
-        if (document.pictureInPictureElement) void document.exitPictureInPicture();
-        else void v.requestPictureInPicture().catch(() => undefined);
-      }}
-    >
-      <PictureInPicture2 className="h-4 w-4" />
-    </Button>
-  );
-}
-
-function CloseButton() {
-  const endShow = useShowStore((s) => s.endShow);
-  return (
-    <Button variant="outline" size="icon" aria-label="Close show" onClick={endShow}>
-      <X className="h-4 w-4" />
-    </Button>
   );
 }

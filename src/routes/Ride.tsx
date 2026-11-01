@@ -1,35 +1,25 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, Users } from 'lucide-react';
 
 import { RideView } from '@/components/ride/RideView';
 import type { WorldRenderer } from '@/lib/world/renderer';
 import { worldForRoute } from '@/lib/world/catalog';
 import { NoTokenBanner } from '@/components/ride/NoTokenBanner';
-import { RideHUD } from '@/components/ride/RideHUD';
-import { RideControls } from '@/components/ride/RideControls';
-import { Minimap } from '@/components/ride/Minimap';
-import { ElevationProfile } from '@/components/ride/ElevationProfile';
-import { ThemeToggle } from '@/components/setup/ThemeToggle';
-import { SoundToggle } from '@/components/ride/SoundToggle';
-import { GhostToggle } from '@/components/ride/GhostToggle';
 import { PlayPanel } from '@/components/velo/PlayMode';
 import { MobileDetailDock } from '@/components/velo/MobileDetailDock';
-import { ConnectionStatus } from '@/components/ride/ConnectionStatus';
+import { RideHud } from '@/components/velo/RideHud';
+import { RideStrip } from '@/components/velo/RideStrip';
 import { SensorStatusPills } from '@/components/trainer/SensorConnect';
 import { ReplayBadge } from '@/components/ride/ReplayBadge';
-import { SettingsButton } from '@/components/profile/SettingsPanel';
 import { GestureLegend } from '@/components/ride/GestureLegend';
-import { CameraSwitcher } from '@/components/ride/CameraSwitcher';
-import { Button } from '@/components/ui/button';
-import { ShowPanel } from '@/components/velo/ShowPanel';
+import { ShowCorner, ShowPanel } from '@/components/velo/ShowPanel';
 import { ShowRideStrip } from '@/components/velo/ShowRideStrip';
-import { ShowToggle } from '@/components/velo/ShowToggle';
 import { retainShowForRide, useShowStore } from '@/stores/showStore';
 import { useIdle } from '@/hooks/useIdle';
 import { cn } from '@/lib/utils';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useControllerStore } from '@/stores/controllerStore';
 import { useRideLoop } from '@/hooks/useRideLoop';
 import { useReplayLoop } from '@/hooks/useReplayLoop';
 import { useWorkoutEngine } from '@/hooks/useWorkoutEngine';
@@ -46,13 +36,12 @@ import { ControllerDebugOverlay, useControllerDebugVisible } from '@/components/
 import { PerfOverlay } from '@/components/velo/PerfOverlay';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
-import { FinishCard } from '@/components/ride/FinishCard';
+import { FinishCard } from '@/components/velo/FinishCard';
 import { useCompanionReceiver } from '@/hooks/useCompanionReceiver';
 import { useGeolocationWatch } from '@/hooks/useGeolocationWatch';
 import { useRaceRecorder } from '@/hooks/useRaceRecorder';
 import { cancelSpeech } from '@/lib/speechSynthesis';
 import { useVoiceControl } from '@/hooks/useVoiceControl';
-import { VoiceControlButton } from '@/components/ride/VoiceControlButton';
 import { useMultiriderSync } from '@/hooks/useMultiriderSync';
 import { MultiRiderInvite } from '@/components/ride/MultiRiderInvite';
 import { SegmentHUD } from '@/components/ride/SegmentHUD';
@@ -80,12 +69,16 @@ const VRHud = lazy(() => import('@/components/ride/VRHud').then((m) => ({ defaul
  * A global click handler cancels any in-progress commentary speech so the
  * user can dismiss the commentator by tapping anywhere.
  *
- * HUD overlays mounted:
+ * HUD (v2 warm atlas, docs/design/mockups/v2-ride-hud.html): RideHud top row
+ * (Exit + route panel | status chip, Show, Camera, Settings, More) and the
+ * RideStrip at the bottom; show mode swaps them for the video panel and the
+ * show strip (v2-show.html). Solid HUD surfaces only: `hud-flat` keeps every
+ * backdrop-filter off the live canvas.
+ *
+ * Also mounted:
  *   - Handlebar gesture detection on the main ride container (double-tap,
  *     long-press, two-finger swipe) — gated by settings.gestureControlsEnabled.
- *   - GestureLegend overlay (the "?" chip in the top-right corner of the
- *     ride canvas).
- *   - CameraSwitcher overlay (top-right, below gesture legend) — always shown.
+ *   - GestureLegend overlay (the "?" chip, restyled by .ride-gesture-slot).
  */
 export function Ride() {
   const navigate      = useNavigate();
@@ -99,6 +92,8 @@ export function Ride() {
 
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
   const controllerDebugVisible = useControllerDebugVisible();
+  // The handlebar chip shows once a unit has been paired this session.
+  const handlebarsPaired = useControllerStore((s) => s.status !== 'idle');
 
   // A trainer paired in an earlier session reconnects on its own (no chooser).
   useEffect(() => {
@@ -289,202 +284,124 @@ export function Ride() {
 
   if (!route) return null;
 
+  // The v2 HUD (top row + ride strip) shows while riding; show mode swaps
+  // it for the video panel + show strip; the finish page replaces both.
+  const rideHudOn = !showActive && rideState !== 'finished';
+
+  // VR / AR need the Cesium viewer (photoreal only); each button renders
+  // nothing on browsers without WebXR. They live in the HUD's "More" menu.
+  const xrButtons = cesiumViewer ? (
+    <Suspense fallback={null}>
+      <EnterVRButton viewer={cesiumViewer} />
+      <EnterARButton viewer={cesiumViewer} />
+    </Suspense>
+  ) : null;
+
   return (
     <div
       ref={rideCanvasRef}
-      className="hud-flat fixed inset-0 w-screen h-screen overflow-hidden bg-background"
+      className="hud-flat ride-hud-v2 fixed inset-0 w-screen h-screen overflow-hidden bg-background"
     >
       <RideView ionToken={token} onRendererReady={setWorldRenderer} />
 
       {/* No-token banner — subtle nudge offering the photoreal upgrade.
           Invisible when a token is already installed; dismissible per-session
           so it never gets in the way of the ride. */}
-      {/* Hidden in show mode: below lg it would sit on the ride strip. */}
+      {/* Hidden in show mode: it would sit on the show strip. */}
       {/* Hidden on world-renderer rides too: they need no token, so the
           photoreal pitch and the Bing watchdog don't apply there. */}
       {!showActive && !worldRide && <NoTokenBanner hasToken={token !== null && token.length > 0} />}
 
-      {/* Paused dim veil -- subtle darkening when ride is paused */}
+      {/* Paused veil: a light scrim, no blur (no backdrop-filter may sit over
+          the live canvas: it cost 10–25 fps, PR #16). */}
       {rideState === 'paused' && (
         <div
-          className="absolute inset-0 bg-background/30 backdrop-blur-[2px] pointer-events-none z-[1] transition-opacity duration-300"
+          className="absolute inset-0 z-10 bg-scrim/20 pointer-events-none transition-opacity duration-300"
           aria-hidden="true"
         />
       )}
 
-      {/* -- Top bar -------------------------------------------------------- */}
-      <div
-        className={cn(
-          'absolute top-0 left-0 right-0 flex items-start justify-between gap-3 pointer-events-none z-[2]',
-          dimClass,
-        )}
-        style={{
-          paddingTop:   'max(env(safe-area-inset-top), 0.75rem)',
-          paddingLeft:  'max(env(safe-area-inset-left), 0.75rem)',
-          paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
-        }}
-      >
-        {/* ── Left column: nav buttons + map awareness (tablet+) ── */}
-        <div className="flex flex-col gap-2 items-start pointer-events-auto">
-          {/* Top-bar nav row */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              aria-label="Exit ride and return to setup"
-              className="rounded-pill glass glass-hairline border-transparent text-foreground hover:text-foreground"
-              onClick={() => navigate('/')}
-            >
-              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              Exit
-            </Button>
-            <ThemeToggle />
-            <SoundToggle />
-            <GhostToggle />
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Invite a friend to ride with you"
-              className="rounded-full glass glass-hairline border-transparent"
-              onClick={() => setInviteOpen((o) => !o)}
-            >
-              <Users className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <SettingsButton
-              variant="outline"
-              size="icon"
-              className="rounded-full glass glass-hairline border-transparent"
-            />
-            <ShowToggle />
-          </div>
-          <ConnectionStatus compact />
-          {replayData && <ReplayBadge />}
-          <SensorStatusPills />
-          {/* Mobile shows the chip in the HUD stack below instead. */}
-          <div className="hidden sm:flex flex-col gap-2">
-            <ControllerChip />
-            <ControllerDebugOverlay />
-            <PerfOverlay />
-          </div>
-
-          {/* Minimap — below the nav row, left column, tablet+ only */}
-          {!showActive && (<>
-          <div className="hidden sm:block pointer-events-none mt-1">
-            <Minimap />
-          </div>
-
-          {/* Elevation profile — below minimap, left column, tablet+ only */}
-          <div
-            className="hidden sm:block pointer-events-auto mt-1 w-[22rem] md:w-[26rem] lg:w-[30rem] xl:w-[34rem]"
-          >
-            <div className="glass glass-hairline rounded-2xl p-3 sm:p-4 transition-all duration-300">
-              <ElevationProfile />
-            </div>
-          </div>
-          </>)}
-        </div>
-
-        {/* ── Right column: stats + workout HUD (tablet+) ── */}
-        {/* Show mode: the ride strip sits top-right from lg, above the video. */}
-        {showActive && (
-          <ShowRideStrip dimmed={dimmed} className="hidden lg:flex pointer-events-auto" />
-        )}
-        {!showActive && <div
-          className="hidden sm:flex flex-col gap-2 pointer-events-none w-full max-w-[22rem] md:max-w-[25rem] lg:max-w-[28rem] xl:max-w-[31rem] overflow-y-auto"
-          style={{ maxHeight: 'calc(100vh - 6rem)' }}
-        >
-          <RideHUD />
-          <PlayPanel />
-          {activeWorkout && <WorkoutHUD />}
-          {/* Strava Live Segments HUD */}
-          <SegmentHUD />
-        </div>}
-      </div>
-
-      {/* -- Mobile HUD -- below the top bar (single column stack) ---------- */}
-      {/* Show mode: ride strip above the transport bar (and the no-token
-          banner) below lg. */}
-      {showActive && (
-        <ShowRideStrip
-          dimmed={dimmed}
-          className="lg:hidden absolute left-3 right-3 bottom-40 z-[2] sm:left-1/2 sm:right-auto sm:-translate-x-1/2"
+      {/* -- HUD top row: Exit + route panel | tools + panels under them ---- */}
+      {rideHudOn && (
+        <RideHud
+          onExit={() => navigate('/app')}
+          onInvite={() => setInviteOpen((o) => !o)}
+          onShortcuts={() => setHelpOpen((o) => !o)}
+          voice={{ isListening, onToggle: isListening ? stopListening : startListening }}
+          xr={xrButtons}
+          side={
+            <>
+              {replayData && <ReplayBadge />}
+              <SensorStatusPills />
+              {(handlebarsPaired || controllerDebugVisible) && <ControllerChip />}
+              <ControllerDebugOverlay />
+              <PerfOverlay />
+              <PlayPanel />
+              {activeWorkout && <WorkoutHUD />}
+              {/* Strava Live Segments HUD */}
+              <SegmentHUD />
+            </>
+          }
         />
       )}
-      {showActive && rideState !== 'finished' && <ShowPanel dimmed={dimmed} />}
 
-      <div
-        className={cn('sm:hidden absolute left-0 right-0 pointer-events-none z-[2]', showActive && 'hidden')}
-        style={{
-          // Below the top bar AND the connection / Demo mode pill under it.
-          top:          'calc(max(env(safe-area-inset-top), 0.75rem) + 6.5rem)',
-          paddingLeft:  'max(env(safe-area-inset-left), 0.75rem)',
-          paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
-        }}
-      >
-        {/* Controller debug on: controls + raw log first, so one phone screenshot holds both. */}
-        {controllerDebugVisible && (
-          <div className="mb-2 flex flex-col gap-2">
-            <ControllerChip />
-            <ControllerDebugOverlay />
-          </div>
-        )}
-        {/* ?perf=1: frame rate first, so one phone screenshot carries it. */}
-        <PerfOverlay className="mb-2" />
-        {/* Stats first on mobile */}
-        <RideHUD />
-        {/* Handlebar controls readout (renders nothing without Web Bluetooth) */}
-        {!controllerDebugVisible && (
-          <div className="mt-2 flex empty:hidden">
-            <ControllerChip />
-          </div>
-        )}
-        <PlayPanel className="mt-2" compact />
-        {activeWorkout && (
-          <div className="mt-2">
-            <WorkoutHUD />
-          </div>
-        )}
-        {/* Strava Live Segments HUD — mobile */}
-        <div className="mt-2">
+      {/* -- Mobile HUD -- below the top row (single column stack) ---------- */}
+      {/* The same panels as the sm+ column under the tools, one column. */}
+      {rideHudOn && (
+        <div className="sm:hidden absolute hud-inset-x top-ride-stack z-20 flex flex-col gap-2 pointer-events-none">
+          {/* Controller debug on: controls + raw log first, so one phone screenshot holds both. */}
+          {controllerDebugVisible && (
+            <>
+              <ControllerChip />
+              <ControllerDebugOverlay />
+            </>
+          )}
+          {/* ?perf=1: frame rate first, so one phone screenshot carries it. */}
+          <PerfOverlay />
+          {/* Handlebar controls readout, once a unit has been paired. */}
+          {!controllerDebugVisible && handlebarsPaired && <ControllerChip />}
+          {replayData && <ReplayBadge />}
+          <PlayPanel compact />
+          {activeWorkout && <WorkoutHUD />}
+          {/* Strava Live Segments HUD — mobile */}
           <SegmentHUD />
-        </div>
-      </div>
-
-      {/* -- Detail dock -- minimap + elevation on demand, above transport -- */}
-      {/* Phones keep the scene band (horizon + rider) clear: the map and the
-          elevation profile open only when the rider taps for them. Hidden in
-          show mode (the ride strip owns the bottom) and after the finish. */}
-      {!showActive && rideState !== 'finished' && (
-        <div
-          className="sm:hidden absolute left-3 right-3 z-[3] pointer-events-none"
-          style={{ bottom: 'calc(max(env(safe-area-inset-bottom), 1.25rem) + 4.75rem)' }}
-        >
-          <MobileDetailDock />
         </div>
       )}
 
-      {/* -- Transport controls -- bottom-center ----------------------------- */}
-      {/* z-50 (above every other HUD layer) so the Start ride button can
-          never be intercepted by a stray sibling. pointer-events-auto on
-          the wrapper means clicks always land on the button.
-          w-max: an absolutely-positioned left-1/2 wrapper shrink-fits to the
-          width available from its left edge (~195 px at 390), which made
-          RideControls' inner flex-wrap stack Pause/Finish into a 2-story
-          110 px block. Sizing the wrapper to max-content keeps the running
-          controls on one ~62 px row; max-w caps it so the 4-button finished
-          state still wraps gracefully inside the viewport. */}
-      <div
-        className={cn('absolute left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-1.5rem)] pointer-events-auto z-50', dimClass)}
-        style={{ bottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
-      >
-        <RideControls />
-      </div>
+      {/* -- Transport controls -- the ride strip, bottom centre ------------ */}
+      {/* Phones: the strip spans the screen and the detail dock (map +
+          elevation on demand) sits right above it, in the same column, so
+          the two can never collide. Hidden in show mode (the show strip
+          owns the bottom) and after the finish.
+          sm+: w-max — an absolutely-positioned left-1/2 box shrink-fits to
+          the width left of its left edge, which would wrap the strip;
+          max-w-hud-strip caps it to the viewport. */}
+      {rideHudOn && (
+        <div className="absolute hud-inset-b hud-inset-x z-20 flex flex-col items-stretch gap-2 pointer-events-none sm:left-1/2 sm:right-auto sm:w-max sm:max-w-hud-strip sm:-translate-x-1/2">
+          <MobileDetailDock className="sm:hidden" />
+          <RideStrip />
+        </div>
+      )}
+
+      {/* -- Show mode: video panel, corner (camera + close), show strip ---- */}
+      {showActive && rideState !== 'finished' && (
+        <>
+          <ShowPanel dimmed={dimmed} />
+          <ShowCorner className={dimClass} />
+          <ShowRideStrip
+            dimmed={dimmed}
+            className="absolute hud-inset-b show-inset-l show-inset-r z-20 sm:left-auto"
+          />
+        </>
+      )}
 
       {/* -- Gesture legend "?" chip + overlay ------------------- */}
       {/* The full-screen wrapper must stay click-through: only the chip and
-          its dialog take pointer events, or the top bar below is unclickable. */}
-      {gestureControlsEnabled && !showActive && (
-        <div className="absolute inset-0 pointer-events-none z-[4]">
+          its dialog take pointer events, or the HUD below is unclickable.
+          ride-gesture-slot (index.css) turns the chip into a HUD icon button
+          in a free corner. */}
+      {gestureControlsEnabled && rideHudOn && (
+        <div className="ride-gesture-slot absolute inset-0 pointer-events-none z-30">
           {/* GestureLegend positions itself absolutely within this container.
               The wrapper spans the screen, so it must stay click-through: only
               the chip and the open legend take pointer events. */}
@@ -494,68 +411,6 @@ export function Ride() {
         </div>
       )}
 
-      {/* Right-hand buttons step aside in show mode: the video panel lives
-          there and the camera is directed from the panel. */}
-      {!showActive && (<>
-      {/* -- Camera switcher — top-right, below gesture chip ----- */}
-      <div
-        className="absolute pointer-events-auto z-[4]"
-        style={{
-          top:   'calc(max(env(safe-area-inset-top), 0.75rem) + 2.5rem)',
-          right: 'max(env(safe-area-inset-right), 0.75rem)',
-        }}
-      >
-        <CameraSwitcher />
-      </div>
-
-      {/* -- Enter VR button — top-right, below camera switcher -- */}
-      {/* Invisible on non-XR browsers (EnterVRButton returns null). */}
-      <div
-        className="absolute pointer-events-auto z-[4]"
-        style={{
-          top:   'calc(max(env(safe-area-inset-top), 0.75rem) + 6.5rem)',
-          right: 'max(env(safe-area-inset-right), 0.75rem)',
-        }}
-      >
-        {cesiumViewer && (
-          <Suspense fallback={null}>
-            <EnterVRButton viewer={cesiumViewer} />
-          </Suspense>
-        )}
-      </div>
-
-      {/* -- Enter AR button — top-right, below VR button -------- */}
-      {/* Invisible on non-AR browsers (EnterARButton returns null). */}
-      <div
-        className="absolute pointer-events-auto z-[4]"
-        style={{
-          top:   'calc(max(env(safe-area-inset-top), 0.75rem) + 10rem)',
-          right: 'max(env(safe-area-inset-right), 0.75rem)',
-        }}
-      >
-        {cesiumViewer && (
-          <Suspense fallback={null}>
-            <EnterARButton viewer={cesiumViewer} />
-          </Suspense>
-        )}
-      </div>
-
-      {/* -- Voice control button — top-right, below AR button -- */}
-      {/* Invisible on Firefox / unsupported browsers (returns null). */}
-      <div
-        className="absolute pointer-events-auto z-[4]"
-        style={{
-          top:   'calc(max(env(safe-area-inset-top), 0.75rem) + 13.5rem)',
-          right: 'max(env(safe-area-inset-right), 0.75rem)',
-        }}
-      >
-        <VoiceControlButton
-          isListening={isListening}
-          onToggle={isListening ? stopListening : startListening}
-        />
-      </div>
-      </>)}
-
       {/* -- VR HUD overlay — visible only during XR session ------ */}
       {cesiumViewer && (
         <Suspense fallback={null}>
@@ -563,7 +418,7 @@ export function Ride() {
         </Suspense>
       )}
 
-      {/* -- Finish overlay ------------------------------------------------- */}
+      {/* -- Finish page ---------------------------------------------------- */}
       {rideState === 'finished' && <FinishCard />}
 
       {/* -- Keyboard shortcuts overlay ------------------------------------- */}

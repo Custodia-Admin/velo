@@ -1,0 +1,516 @@
+{
+ "ride-hud-1440-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Exit",
+   "minTarget": 40,
+   "minTargetEl": "Exit ride and return to setup",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "panels": {
+   "camera": {
+    "h": 40,
+    "w": 40,
+    "x": 1288,
+    "y": 16
+   },
+   "chip": {
+    "h": 40,
+    "w": 193,
+    "x": 1039,
+    "y": 16
+   },
+   "chipText": "Demo ride \u00b7 no trainer",
+   "dist": "180 m of 10.88 km",
+   "dock": null,
+   "exit": {
+    "h": 40,
+    "w": 84,
+    "x": 16,
+    "y": 16
+   },
+   "gesture": {
+    "h": 40,
+    "w": 40,
+    "x": 1384,
+    "y": 836
+   },
+   "more": {
+    "h": 40,
+    "w": 40,
+    "x": 1384,
+    "y": 16
+   },
+   "renderer": "world",
+   "rideState": null,
+   "rider": [
+    720,
+    559
+   ],
+   "route": {
+    "h": 114,
+    "w": 320,
+    "x": 112,
+    "y": 16
+   },
+   "routeText": "Tiber river park\n\n10.7 km to go \u00b7 about 34 min",
+   "settings": {
+    "h": 40,
+    "w": 40,
+    "x": 1336,
+    "y": 16
+   },
+   "show": {
+    "h": 40,
+    "w": 40,
+    "x": 1240,
+    "y": 16
+   },
+   "speed": "Speed: 37.3 km/h",
+   "strip": {
+    "h": 78,
+    "w": 786,
+    "x": 327,
+    "y": 798
+   }
+  },
+  "riderBox": [
+   655,
+   470,
+   785,
+   686
+  ],
+  "secs": 38
+ },
+ "ride-hud-1440.jpg": {
+  "covering": [],
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Exit",
+   "minTarget": 40,
+   "minTargetEl": "Exit ride and return to setup",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "panels": {
+   "camera": {
+    "h": 40,
+    "w": 40,
+    "x": 1288,
+    "y": 16
+   },
+   "chip": {
+    "h": 40,
+    "w": 193,
+    "x": 1039,
+    "y": 16
+   },
+   "chipText": "Demo ride \u00b7 no trainer",
+   "dist": "240 m of 10.88 km",
+   "dock": null,
+   "exit": {
+    "h": 40,
+    "w": 84,
+    "x": 16,
+    "y": 16
+   },
+   "gesture": {
+    "h": 40,
+    "w": 40,
+    "x": 1384,
+    "y": 836
+   },
+   "more": {
+    "h": 40,
+    "w": 40,
+    "x": 1384,
+    "y": 16
+   },
+   "renderer": "world",
+   "rideState": null,
+   "rider": [
+    720,
+    560
+   ],
+   "route": {
+    "h": 114,
+    "w": 320,
+    "x": 112,
+    "y": 16
+   },
+   "routeText": "Tiber river park\n\n10.6 km to go \u00b7 about 34 min",
+   "settings": {
+    "h": 40,
+    "w": 40,
+    "x": 1336,
+    "y": 16
+   },
+   "show": {
+    "h": 40,
+    "w": 40,
+    "x": 1240,
+    "y": 16
+   },
+   "speed": "Speed: 37.3 km/h",
+   "strip": {
+    "h": 78,
+    "w": 786,
+    "x": 327,
+    "y": 798
+   }
+  },
+  "riderBox": [
+   655,
+   471,
+   785,
+   687
+  ],
+  "secs": 35
+ },
+ "ride-hud-390-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "10.6 km to go \u00b7 about 34 min",
+   "minTarget": 40,
+   "minTargetEl": "Exit ride and return to setup",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "panels": {
+   "camera": null,
+   "chip": null,
+   "chipText": "Demo ride \u00b7 no trainer",
+   "dist": "265 m of 10.88 km",
+   "dock": {
+    "h": 40,
+    "w": 84,
+    "x": 100,
+    "y": 654
+   },
+   "exit": {
+    "h": 40,
+    "w": 40,
+    "x": 12,
+    "y": 12
+   },
+   "gesture": {
+    "h": 40,
+    "w": 40,
+    "x": 338,
+    "y": 654
+   },
+   "more": {
+    "h": 40,
+    "w": 40,
+    "x": 338,
+    "y": 12
+   },
+   "renderer": "world",
+   "rideState": null,
+   "rider": [
+    195,
+    525
+   ],
+   "route": {
+    "h": 63,
+    "w": 222,
+    "x": 60,
+    "y": 12
+   },
+   "routeText": "Tiber river park\n\n10.6 km to go \u00b7 about 34 min",
+   "settings": null,
+   "show": {
+    "h": 40,
+    "w": 40,
+    "x": 290,
+    "y": 12
+   },
+   "speed": "Speed: 37.3 km/h",
+   "strip": {
+    "h": 130,
+    "w": 366,
+    "x": 12,
+    "y": 702
+   }
+  },
+  "riderBox": [
+   134,
+   442,
+   256,
+   644
+  ],
+  "secs": 33
+ },
+ "ride-hud-390.jpg": {
+  "covering": [],
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "10.6 km to go \u00b7 about 34 min",
+   "minTarget": 40,
+   "minTargetEl": "Exit ride and return to setup",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "panels": {
+   "camera": null,
+   "chip": null,
+   "chipText": "Demo ride \u00b7 no trainer",
+   "dist": "270 m of 10.88 km",
+   "dock": {
+    "h": 40,
+    "w": 84,
+    "x": 100,
+    "y": 654
+   },
+   "exit": {
+    "h": 40,
+    "w": 40,
+    "x": 12,
+    "y": 12
+   },
+   "gesture": {
+    "h": 40,
+    "w": 40,
+    "x": 338,
+    "y": 654
+   },
+   "more": {
+    "h": 40,
+    "w": 40,
+    "x": 338,
+    "y": 12
+   },
+   "renderer": "world",
+   "rideState": null,
+   "rider": [
+    195,
+    525
+   ],
+   "route": {
+    "h": 63,
+    "w": 222,
+    "x": 60,
+    "y": 12
+   },
+   "routeText": "Tiber river park\n\n10.6 km to go \u00b7 about 34 min",
+   "settings": null,
+   "show": {
+    "h": 40,
+    "w": 40,
+    "x": 290,
+    "y": 12
+   },
+   "speed": "Speed: 37.3 km/h",
+   "strip": {
+    "h": 130,
+    "w": 366,
+    "x": 12,
+    "y": 702
+   }
+  },
+  "riderBox": [
+   134,
+   442,
+   256,
+   644
+  ],
+  "secs": 41
+ },
+ "ride-hud-tv-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Exit",
+   "minTarget": 70,
+   "minTargetEl": "Exit ride and return to setup",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "panels": {
+   "camera": {
+    "h": 70,
+    "w": 70,
+    "x": 1654,
+    "y": 28
+   },
+   "chip": {
+    "h": 70,
+    "w": 338,
+    "x": 1218,
+    "y": 28
+   },
+   "chipText": "Demo ride \u00b7 no trainer",
+   "dist": "265 m of 10.88 km",
+   "dock": null,
+   "exit": {
+    "h": 70,
+    "w": 145,
+    "x": 28,
+    "y": 28
+   },
+   "gesture": {
+    "h": 70,
+    "w": 70,
+    "x": 1822,
+    "y": 968
+   },
+   "more": {
+    "h": 70,
+    "w": 70,
+    "x": 1822,
+    "y": 28
+   },
+   "renderer": "world",
+   "rideState": null,
+   "rider": [
+    960,
+    671
+   ],
+   "route": {
+    "h": 199,
+    "w": 560,
+    "x": 194,
+    "y": 28
+   },
+   "routeText": "Tiber river park\n\n10.6 km to go \u00b7 about 34 min",
+   "settings": {
+    "h": 70,
+    "w": 70,
+    "x": 1738,
+    "y": 28
+   },
+   "show": {
+    "h": 70,
+    "w": 70,
+    "x": 1570,
+    "y": 28
+   },
+   "speed": "Speed: 37.3 km/h",
+   "strip": {
+    "h": 137,
+    "w": 1373,
+    "x": 273,
+    "y": 902
+   }
+  },
+  "riderBox": [
+   882,
+   564,
+   1038,
+   823
+  ],
+  "secs": 38
+ },
+ "ride-hud-tv.jpg": {
+  "covering": [],
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Exit",
+   "minTarget": 70,
+   "minTargetEl": "Exit ride and return to setup",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "panels": {
+   "camera": {
+    "h": 70,
+    "w": 70,
+    "x": 1654,
+    "y": 28
+   },
+   "chip": {
+    "h": 70,
+    "w": 338,
+    "x": 1218,
+    "y": 28
+   },
+   "chipText": "Demo ride \u00b7 no trainer",
+   "dist": "245 m of 10.88 km",
+   "dock": null,
+   "exit": {
+    "h": 70,
+    "w": 145,
+    "x": 28,
+    "y": 28
+   },
+   "gesture": {
+    "h": 70,
+    "w": 70,
+    "x": 1822,
+    "y": 968
+   },
+   "more": {
+    "h": 70,
+    "w": 70,
+    "x": 1822,
+    "y": 28
+   },
+   "renderer": "world",
+   "rideState": null,
+   "rider": [
+    960,
+    671
+   ],
+   "route": {
+    "h": 199,
+    "w": 560,
+    "x": 194,
+    "y": 28
+   },
+   "routeText": "Tiber river park\n\n10.6 km to go \u00b7 about 34 min",
+   "settings": {
+    "h": 70,
+    "w": 70,
+    "x": 1738,
+    "y": 28
+   },
+   "show": {
+    "h": 70,
+    "w": 70,
+    "x": 1570,
+    "y": 28
+   },
+   "speed": "Speed: 37.3 km/h",
+   "strip": {
+    "h": 137,
+    "w": 1373,
+    "x": 273,
+    "y": 902
+   }
+  },
+  "riderBox": [
+   882,
+   564,
+   1038,
+   823
+  ],
+  "secs": 36
+ }
+}

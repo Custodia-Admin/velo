@@ -1,0 +1,330 @@
+{
+ "show-1440-night.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Episode 4",
+   "minTarget": 40,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "state": {
+   "camera": {
+    "h": 40,
+    "w": 91,
+    "x": 1277,
+    "y": 24
+   },
+   "controls": {
+    "h": 56,
+    "w": 791,
+    "x": 24,
+    "y": 413
+   },
+   "corner": {
+    "h": 40,
+    "w": 40,
+    "x": 1376,
+    "y": 24
+   },
+   "panel": {
+    "h": 445,
+    "w": 791,
+    "x": 24,
+    "y": 24
+   },
+   "renderer": "world",
+   "rider": [
+    720,
+    559
+   ],
+   "strip": {
+    "h": 78,
+    "w": 354,
+    "x": 1062,
+    "y": 798
+   },
+   "stripText": "0:18 TIME 0.2km DISTANCE -1.3% GRADE",
+   "title": "Episode 4",
+   "video": {
+    "paused": false,
+    "t": 22.3,
+    "w": 1280
+   }
+  }
+ },
+ "show-1440.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Episode 4",
+   "minTarget": 40,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "state": {
+   "camera": {
+    "h": 40,
+    "w": 91,
+    "x": 1277,
+    "y": 24
+   },
+   "controls": {
+    "h": 56,
+    "w": 791,
+    "x": 24,
+    "y": 413
+   },
+   "corner": {
+    "h": 40,
+    "w": 40,
+    "x": 1376,
+    "y": 24
+   },
+   "panel": {
+    "h": 445,
+    "w": 791,
+    "x": 24,
+    "y": 24
+   },
+   "renderer": "world",
+   "rider": [
+    720,
+    559
+   ],
+   "strip": {
+    "h": 78,
+    "w": 354,
+    "x": 1062,
+    "y": 798
+   },
+   "stripText": "0:17 TIME 0.2km DISTANCE -1.3% GRADE",
+   "title": "Episode 4",
+   "video": {
+    "paused": false,
+    "t": 21.7,
+    "w": 1280
+   }
+  }
+ },
+ "show-390-night.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Episode 4",
+   "minTarget": 40,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "state": {
+   "camera": null,
+   "controls": {
+    "h": 56,
+    "w": 366,
+    "x": 12,
+    "y": 162
+   },
+   "corner": null,
+   "panel": {
+    "h": 206,
+    "w": 366,
+    "x": 12,
+    "y": 12
+   },
+   "renderer": "world",
+   "rider": [
+    195,
+    525
+   ],
+   "strip": {
+    "h": 130,
+    "w": 366,
+    "x": 12,
+    "y": 702
+   },
+   "stripText": "0:17 TIME 0.2km DISTANCE -1.3% GRADE",
+   "title": "Episode 4",
+   "video": {
+    "paused": false,
+    "t": 21.6,
+    "w": 1280
+   }
+  }
+ },
+ "show-390.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Episode 4",
+   "minTarget": 40,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "state": {
+   "camera": null,
+   "controls": {
+    "h": 56,
+    "w": 366,
+    "x": 12,
+    "y": 162
+   },
+   "corner": null,
+   "panel": {
+    "h": 206,
+    "w": 366,
+    "x": 12,
+    "y": 12
+   },
+   "renderer": "world",
+   "rider": [
+    195,
+    524
+   ],
+   "strip": {
+    "h": 130,
+    "w": 366,
+    "x": 12,
+    "y": 702
+   },
+   "stripText": "0:15 TIME 0.2km DISTANCE -1.3% GRADE",
+   "title": "Episode 4",
+   "video": {
+    "paused": false,
+    "t": 21.5,
+    "w": 1280
+   }
+  }
+ },
+ "show-tv-night.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Episode 4",
+   "minTarget": 70,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "state": {
+   "camera": {
+    "h": 70,
+    "w": 158,
+    "x": 1636,
+    "y": 42
+   },
+   "controls": {
+    "h": 98,
+    "w": 918,
+    "x": 42,
+    "y": 460
+   },
+   "corner": {
+    "h": 70,
+    "w": 70,
+    "x": 1808,
+    "y": 42
+   },
+   "panel": {
+    "h": 516,
+    "w": 918,
+    "x": 42,
+    "y": 42
+   },
+   "renderer": "world",
+   "rider": [
+    960,
+    671
+   ],
+   "strip": {
+    "h": 137,
+    "w": 619,
+    "x": 1259,
+    "y": 902
+   },
+   "stripText": "0:17 TIME 0.2km DISTANCE -1.3% GRADE",
+   "title": "Episode 4",
+   "video": {
+    "paused": false,
+    "t": 21.8,
+    "w": 1280
+   }
+  }
+ },
+ "show-tv.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Episode 4",
+   "minTarget": 70,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "state": {
+   "camera": {
+    "h": 70,
+    "w": 158,
+    "x": 1636,
+    "y": 42
+   },
+   "controls": {
+    "h": 98,
+    "w": 918,
+    "x": 42,
+    "y": 460
+   },
+   "corner": {
+    "h": 70,
+    "w": 70,
+    "x": 1808,
+    "y": 42
+   },
+   "panel": {
+    "h": 516,
+    "w": 918,
+    "x": 42,
+    "y": 42
+   },
+   "renderer": "world",
+   "rider": [
+    960,
+    671
+   ],
+   "strip": {
+    "h": 137,
+    "w": 619,
+    "x": 1259,
+    "y": 902
+   },
+   "stripText": "0:18 TIME 0.2km DISTANCE -1.3% GRADE",
+   "title": "Episode 4",
+   "video": {
+    "paused": false,
+    "t": 21.6,
+    "w": 1280
+   }
+  }
+ }
+}

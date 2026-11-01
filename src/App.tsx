@@ -16,6 +16,7 @@ const Ride = React.lazy(() => import('@/routes/Ride').then(m => ({ default: m.Ri
 const Explore = React.lazy(() => import('@/routes/Explore').then(m => ({ default: m.Explore })));
 const Companion = React.lazy(() => import('@/routes/Companion').then(m => ({ default: m.Companion })));
 const Replay = React.lazy(() => import('@/routes/Replay').then(m => ({ default: m.Replay })));
+const Devices = React.lazy(() => import('@/routes/Devices').then(m => ({ default: m.Devices })));
 const WorkoutBuilderRoute = React.lazy(() => import('@/routes/WorkoutBuilderRoute').then(m => ({ default: m.WorkoutBuilderRoute })));
 
 function LoadingFallback() {
@@ -51,6 +52,8 @@ export default function App() {
           <Route path="/" element={<RouteErrorBoundary routeName="Landing"><Landing /></RouteErrorBoundary>} />
           {/* Ride-setup app */}
           <Route path="/app" element={<RouteErrorBoundary routeName="Home"><Home /></RouteErrorBoundary>} />
+          {/* Pair the trainer, handlebar controls and heart-rate strap */}
+          <Route path="/devices" element={<RouteErrorBoundary routeName="Devices"><Suspense fallback={<LoadingFallback />}><Devices /></Suspense></RouteErrorBoundary>} />
           <Route path="/explore" element={<RouteErrorBoundary routeName="Explore"><Suspense fallback={<LoadingFallback />}><Explore /></Suspense></RouteErrorBoundary>} />
           <Route path="/ride" element={<RouteErrorBoundary routeName="Ride"><Suspense fallback={<LoadingFallback />}><Ride /></Suspense></RouteErrorBoundary>} />
           {/* Phone companion screen — same-origin BroadcastChannel peer */}

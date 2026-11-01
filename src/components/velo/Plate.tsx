@@ -25,7 +25,7 @@ export function Plate({ src, nightSrc, portraitSrc, alt, className, priority = f
   const loading = priority ? 'eager' : 'lazy';
   const img = (url: string, extra?: string) => (
     <picture className={cn('contents', extra)}>
-      {portraitSrc && <source media="(max-width: 639.98px)" srcSet={portraitSrc} />}
+      {portraitSrc && <source media="(max-width: 39.99rem)" srcSet={portraitSrc} />}
       <img
         src={url}
         alt={alt}

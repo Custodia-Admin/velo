@@ -1,0 +1,427 @@
+{
+ "devices-1440-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "minFont": 12,
+  "minFontEl": "Options",
+  "minTarget": 40,
+  "minTargetEl": "Home",
+  "overflow": false,
+  "rects": {
+   "h1": [
+    208,
+    88,
+    621,
+    40
+   ],
+   "handlebar": [
+    209,
+    266,
+    619,
+    124
+   ],
+   "hr": [
+    209,
+    390,
+    619,
+    80
+   ],
+   "ride": [
+    877,
+    144,
+    110,
+    48
+   ],
+   "trainer": [
+    209,
+    187,
+    619,
+    79
+   ],
+   "vh": 900
+  },
+  "scrollWidth": 1440,
+  "tones": {
+   "device-handlebar": "ok",
+   "device-heart-rate": "idle",
+   "device-trainer": "ok"
+  },
+  "tv": false
+ },
+ "devices-1440.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "minFont": 12,
+  "minFontEl": "Options",
+  "minTarget": 40,
+  "minTargetEl": "Home",
+  "overflow": false,
+  "rects": {
+   "h1": [
+    208,
+    88,
+    621,
+    40
+   ],
+   "handlebar": [
+    209,
+    266,
+    619,
+    124
+   ],
+   "hr": [
+    209,
+    390,
+    619,
+    80
+   ],
+   "ride": [
+    877,
+    144,
+    110,
+    48
+   ],
+   "trainer": [
+    209,
+    187,
+    619,
+    79
+   ],
+   "vh": 900
+  },
+  "scrollWidth": 1440,
+  "tones": {
+   "device-handlebar": "ok",
+   "device-heart-rate": "idle",
+   "device-trainer": "ok"
+  },
+  "tv": false
+ },
+ "devices-390-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "minFont": 12,
+  "minFontEl": "Options",
+  "minTarget": 40,
+  "minTargetEl": "Home",
+  "overflow": false,
+  "rects": {
+   "h1": [
+    16,
+    80,
+    358,
+    36
+   ],
+   "handlebar": [
+    17,
+    351,
+    356,
+    210
+   ],
+   "hr": [
+    17,
+    561,
+    356,
+    136
+   ],
+   "ride": [
+    16,
+    746,
+    358,
+    48
+   ],
+   "trainer": [
+    17,
+    200,
+    356,
+    151
+   ],
+   "vh": 844
+  },
+  "scrollWidth": 390,
+  "tones": {
+   "device-handlebar": "ok",
+   "device-heart-rate": "idle",
+   "device-trainer": "ok"
+  },
+  "tv": false
+ },
+ "devices-390.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "minFont": 12,
+  "minFontEl": "Options",
+  "minTarget": 40,
+  "minTargetEl": "Home",
+  "overflow": false,
+  "rects": {
+   "h1": [
+    16,
+    80,
+    358,
+    36
+   ],
+   "handlebar": [
+    17,
+    351,
+    356,
+    210
+   ],
+   "hr": [
+    17,
+    561,
+    356,
+    136
+   ],
+   "ride": [
+    16,
+    746,
+    358,
+    48
+   ],
+   "trainer": [
+    17,
+    200,
+    356,
+    151
+   ],
+   "vh": 844
+  },
+  "scrollWidth": 390,
+  "tones": {
+   "device-handlebar": "ok",
+   "device-heart-rate": "idle",
+   "device-trainer": "ok"
+  },
+  "tv": false
+ },
+ "devices-empty-1440.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "minFont": 12,
+  "minFontEl": "Options",
+  "minTarget": 40,
+  "minTargetEl": "Home",
+  "overflow": false,
+  "rects": {
+   "h1": [
+    208,
+    88,
+    621,
+    40
+   ],
+   "handlebar": [
+    209,
+    357,
+    619,
+    106
+   ],
+   "hr": [
+    209,
+    463,
+    619,
+    80
+   ],
+   "ride": [
+    877,
+    144,
+    110,
+    48
+   ],
+   "trainer": [
+    209,
+    187,
+    619,
+    170
+   ],
+   "vh": 900
+  },
+  "scrollWidth": 1440,
+  "tv": false
+ },
+ "devices-error-1440.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "minFont": 12,
+  "minFontEl": "Options",
+  "minTarget": 40,
+  "minTargetEl": "Home",
+  "overflow": false,
+  "rects": {
+   "h1": [
+    208,
+    88,
+    621,
+    40
+   ],
+   "handlebar": [
+    209,
+    266,
+    619,
+    124
+   ],
+   "hr": [
+    209,
+    390,
+    619,
+    106
+   ],
+   "ride": [
+    877,
+    144,
+    110,
+    48
+   ],
+   "trainer": [
+    209,
+    187,
+    619,
+    79
+   ],
+   "vh": 900
+  },
+  "scrollWidth": 1440,
+  "tv": false
+ },
+ "devices-nobt-390.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "minFont": 12,
+  "minFontEl": "Options",
+  "minTarget": 40,
+  "minTargetEl": "Home",
+  "overflow": false,
+  "rects": {
+   "h1": [
+    16,
+    80,
+    358,
+    36
+   ],
+   "handlebar": null,
+   "hr": null,
+   "ride": [
+    16,
+    726,
+    358,
+    48
+   ],
+   "trainer": [
+    17,
+    200,
+    356,
+    214
+   ],
+   "vh": 844
+  },
+  "scrollWidth": 390,
+  "tv": false
+ },
+ "devices-tv-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "minFont": 21,
+  "minFontEl": "Options",
+  "minTarget": 70,
+  "minTargetEl": "Home",
+  "overflow": false,
+  "rects": {
+   "h1": [
+    70,
+    154,
+    1079,
+    70
+   ],
+   "handlebar": [
+    71,
+    464,
+    1077,
+    217
+   ],
+   "hr": [
+    71,
+    681,
+    1077,
+    140
+   ],
+   "ride": [
+    1233,
+    252,
+    193,
+    84
+   ],
+   "trainer": [
+    71,
+    326,
+    1077,
+    139
+   ],
+   "vh": 1080
+  },
+  "scrollWidth": 1920,
+  "tones": {
+   "device-handlebar": "ok",
+   "device-heart-rate": "idle",
+   "device-trainer": "ok"
+  },
+  "tv": true
+ },
+ "devices-tv.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "minFont": 21,
+  "minFontEl": "Options",
+  "minTarget": 70,
+  "minTargetEl": "Home",
+  "overflow": false,
+  "rects": {
+   "h1": [
+    70,
+    154,
+    1079,
+    70
+   ],
+   "handlebar": [
+    71,
+    464,
+    1077,
+    217
+   ],
+   "hr": [
+    71,
+    681,
+    1077,
+    140
+   ],
+   "ride": [
+    1233,
+    252,
+    193,
+    84
+   ],
+   "trainer": [
+    71,
+    326,
+    1077,
+    139
+   ],
+   "vh": 1080
+  },
+  "scrollWidth": 1920,
+  "tones": {
+   "device-handlebar": "ok",
+   "device-heart-rate": "idle",
+   "device-trainer": "ok"
+  },
+  "tv": true
+ }
+}
