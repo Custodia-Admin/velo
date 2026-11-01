@@ -1,0 +1,91 @@
+<!doctype html>
+<!--
+  Velo v2 in-ride HUD — "warm atlas". Mockup only (P1.5 design gate).
+  Scene: offline still from the Perugia world bake (scripts/v2-world-thumbs),
+  chase camera framed with the rider prominent (~35 % of frame height).
+  HUD surfaces are solid (no backdrop-filter): blur over the live canvas cost 10–25 fps.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — Ride HUD (v2 mockup)</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="v2-kit.css" />
+<script src="v2-data.js"></script>
+<script src="v2-kit.js"></script>
+<style>
+  body { overflow: hidden; }
+  .hud-top { position: fixed; top: var(--s-4); left: var(--s-4); right: var(--s-4); display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-3); }
+  .route { padding: var(--s-3) var(--s-4); width: 20rem; display: flex; flex-direction: column; gap: var(--s-1); }
+  .route .name { font-size: var(--text-xl); line-height: var(--lh-xl); }
+  .route .profile { height: var(--s-8); }
+  .route .next { display: flex; align-items: center; gap: var(--s-1-5); }
+  .left { display: flex; gap: var(--s-3); align-items: flex-start; }
+  .tools { display: flex; gap: var(--s-2); }
+  .status { display: inline-flex; align-items: center; gap: var(--s-2); height: var(--s-10); padding: 0 var(--s-3); font-size: var(--text-sm); font-weight: 600; }
+  .strip { position: fixed; left: 50%; bottom: var(--s-6); transform: translateX(-50%); width: max-content; max-width: calc(100vw - var(--s-8));
+           display: flex; align-items: center; gap: var(--s-8); padding: var(--s-3) var(--s-4) var(--s-3) var(--s-6); }
+  .figs { display: flex; gap: var(--s-8); }
+  .fig.minor .v { font-size: var(--text-2xl); line-height: var(--lh-2xl); }
+  .transport { display: flex; gap: var(--s-2); padding-left: var(--s-6); border-left: var(--hairline) solid hsl(var(--border)); }
+  .compact-only { display: none; }
+  @media (max-width: 639px) {
+    .hud-top { top: var(--s-3); left: var(--s-3); right: var(--s-3); gap: var(--s-2); }
+    .left { flex: 1; min-width: 0; gap: var(--s-2); }
+    .route { width: auto; flex: 1; min-width: 0; padding: var(--s-2) var(--s-3); gap: 0; }
+    .route .name { font-size: var(--text-base); line-height: var(--lh-base); }
+    .route .profile-wrap, .route .next, .wide-only { display: none; }
+    .compact-only { display: inline-flex; }
+    .strip { bottom: var(--s-3); width: calc(100vw - var(--s-6)); flex-direction: column; align-items: stretch; gap: var(--s-2); padding: var(--s-3); }
+    .figs { justify-content: space-between; gap: var(--s-3); }
+    .fig.minor { display: none; }
+    .transport { border-left: 0; padding-left: 0; justify-content: space-between; align-items: center; }
+  }
+</style>
+</head>
+<body>
+<div class="scene" aria-hidden="true">
+  <picture>
+    <source media="(max-width: 639px)" srcset="../screenshots/v2/thumbs/ride-chase-portrait.jpg" />
+    <img src="../screenshots/v2/thumbs/ride-chase.jpg" alt="" />
+  </picture>
+</div>
+
+<div class="hud-top">
+  <div class="left">
+    <button class="btn hud" aria-label="Exit ride and return to setup"><i data-icon="arrow-left"></i><span class="wide-only">Exit</span></button>
+    <section class="hud route" aria-label="Route progress">
+      <span class="name display">Tiber river park</span>
+      <span class="t-sm num muted">6.7 km to go · about 20 min</span>
+      <div class="profile-wrap"><svg class="profile" data-profile="scenic-perugia-tiber-park" data-at="0.386" data-h="32"></svg></div>
+      <span class="next t-sm"><i data-icon="flag"></i>Ponte Valleceppi in 1.2 km</span>
+    </section>
+  </div>
+  <div class="tools">
+    <span class="hud status wide-only" aria-label="Trainer connected, hills feel 35 percent"><span class="dot on"></span>KICKR CORE · hills 35 %</span>
+    <button class="btn hud icon-only" aria-label="Ride and watch: open show mode"><i data-icon="clapperboard" class="lg"></i></button>
+    <button class="btn hud icon-only wide-only" aria-label="Camera: chase"><i data-icon="camera" class="lg"></i></button>
+    <button class="btn hud icon-only wide-only" aria-label="Ride settings"><i data-icon="settings" class="lg"></i></button>
+  </div>
+</div>
+
+<section class="hud strip" aria-label="Ride numbers">
+  <div class="figs">
+    <div class="fig"><span class="v">24.6<small>km/h</small></span><span class="l">Speed</span></div>
+    <div class="fig"><span class="v">12:41</span><span class="l">Time</span></div>
+    <div class="fig"><span class="v">4.2<small>km</small></span><span class="l">Distance</span></div>
+    <div class="fig minor"><span class="v">1.2<small>%</small></span><span class="l">Grade</span></div>
+    <div class="fig minor"><span class="v">142<small>W</small></span><span class="l">Power</span></div>
+    <div class="fig minor"><span class="v">6<small>/ 11</small></span><span class="l">Gear</span></div>
+  </div>
+  <div class="transport">
+    <span class="compact-only t-sm num muted">1.2 % · 142 W · gear 6</span>
+    <div class="row">
+      <button class="btn outline lg"><i data-icon="pause" class="lg"></i>Pause</button>
+      <button class="btn quiet lg"><i data-icon="flag" class="lg"></i>Finish</button>
+    </div>
+  </div>
+</section>
+</body>
+</html>
