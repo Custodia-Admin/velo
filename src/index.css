@@ -203,6 +203,10 @@
   }
 
   /* v2 utilities: home (add home-only rules below this line) */
+  /* Today's ride label on the hero plate (sm+). */
+  .w-hero-label {
+    width: 27rem;
+  }
 
   /* v2 utilities: ride + show (add ride/show-only rules below this line) */
   /* Show mode insets (v2-show.html): 1.5rem from the screen edges from sm,

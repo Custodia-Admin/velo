@@ -71,6 +71,16 @@ describe('ScenicRouteGrid (area tiles)', () => {
     expect(out).toMatch(/aria-label="Ride Lake Trasimeno shore, [^"]*, map view"/);
   });
 
+  it('does not repeat the Map view badge in an area where every route is a map ride', () => {
+    const hometown = SCENIC_ROUTES.filter((r) => r.area === 'hometown');
+    const all = html(createElement(ScenicRouteGrid, { routes: hometown, onRide: noop }));
+    expect(all.match(/data-scenic-route="/g)).toHaveLength(hometown.length);
+    expect(all).not.toContain('Map view');
+    expect(all).not.toContain('3D world coming');
+    // Screen readers still hear it on every map tile.
+    expect(all.match(/, map view"/g)).toHaveLength(hometown.length);
+  });
+
   it('uses two columns at lg for two or four routes, else three', () => {
     expect(out).not.toContain('lg:grid-cols-3');
     const three = html(createElement(ScenicRouteGrid, { routes: SCENIC_ROUTES.slice(0, 3), onRide: noop }));

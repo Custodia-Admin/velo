@@ -84,7 +84,7 @@ export function FeaturedScenicRide({
       ) : (
         <MapPlate route={info.route} aspect={16 / 9} className={plateClass} />
       )}
-      <figcaption className="flex flex-col gap-2 pt-4 sm:absolute sm:bottom-6 sm:left-6 sm:w-full sm:max-w-md sm:rounded-lg sm:bg-background sm:p-6 sm:shadow-md">
+      <figcaption className="flex flex-col gap-2 pt-4 sm:absolute sm:bottom-6 sm:left-6 sm:w-hero-label sm:rounded-lg sm:bg-background sm:p-6 sm:shadow-md">
         <span className={KICKER}>Today’s ride{area ? ` · ${area}` : ''}</span>
         <h2 id="todays-ride-title" className={cn(DISPLAY, 'text-3xl text-foreground sm:text-4xl')}>
           {info.name}
@@ -131,11 +131,14 @@ function ScenicRouteTile({
   isActive,
   onRide,
   weather,
+  flagMapView,
 }: {
   info: ScenicRouteInfo;
   isActive: boolean;
   onRide: (info: ScenicRouteInfo) => void;
   weather?: WeatherEntry;
+  /** Say "Map view" on this tile: only where an area mixes 3D worlds and map rides. */
+  flagMapView: boolean;
 }) {
   const units = useSettingsStore((s) => s.units);
   const text = figures(info, units);
@@ -169,19 +172,17 @@ function ScenicRouteTile({
       </h4>
       <span className="flex flex-wrap items-center gap-2 text-sm">
         <span className="num font-semibold text-foreground">{text}</span>
-        {!hasWorld && (
+        {flagMapView && (
           <span className="inline-flex h-6 items-center gap-1 rounded-pill bg-muted px-2 text-xs font-semibold text-foreground">
             <MapIcon className="h-4 w-4" aria-hidden />
             Map view
           </span>
         )}
       </span>
-      {hasWorld ? (
-        // Offline is said once, on Today's ride; tiles just omit the line.
-        weather?.status !== 'unavailable' && <WeatherLine entry={weather} prefix="Now" />
-      ) : (
-        <span className="text-sm text-muted-foreground">3D world coming; rides on the map today</span>
-      )}
+      {hasWorld
+        ? // Offline is said once, on Today's ride; tiles just omit the line.
+          weather?.status !== 'unavailable' && <WeatherLine entry={weather} prefix="Now" />
+        : flagMapView && <span className="text-sm text-muted-foreground">3D world coming; rides on the map today</span>}
     </button>
   );
 }
@@ -199,15 +200,20 @@ export function ScenicRouteGrid({
   weatherById,
   className,
 }: ScenicPickProps & { routes: ScenicRouteInfo[]; className?: string }) {
+  // A badge must carry information (UI-RULES §7): "Map view" only where the
+  // area mixes 3D worlds and map rides. In an all-map area it would repeat.
+  const withWorld = routes.map((r) => worldForRoute(r.route) !== null);
+  const mixed = withWorld.includes(true) && withWorld.includes(false);
   return (
     <div className={cn(gridCols(routes.length), className)}>
-      {routes.map((info) => (
+      {routes.map((info, i) => (
         <ScenicRouteTile
           key={info.route.id}
           info={info}
           isActive={info.route.id === activeRouteId}
           onRide={onRide}
           weather={weatherById?.[info.route.id]}
+          flagMapView={mixed && !withWorld[i]}
         />
       ))}
     </div>
