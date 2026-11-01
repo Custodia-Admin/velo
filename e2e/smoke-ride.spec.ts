@@ -36,6 +36,26 @@ interface WorldDebug {
   frames: number;
 }
 
+/**
+ * Start a scenic route from Home, wherever Home shows it today.
+ *
+ * Home features "Today's ride" (`todaysScenicRoute`, rotates daily through
+ * the near-home routes) in its own card and drops that route from the
+ * `[data-scenic-route]` grid. So a near-home route is a grid card on most
+ * days and the featured card's Ride button on the day it is featured; the
+ * spec must accept both or it fails on that one day (1 Nov 2026: Tiber park).
+ */
+async function rideScenicRoute(page: Page, id: string, name: string) {
+  const card = page.locator(`[data-scenic-route="${id}"]`);
+  const featured = page
+    .getByTestId('featured-scenic-ride')
+    .getByRole('button', { name: `Ride ${name}`, exact: true });
+  const target = card.or(featured).first();
+  await expect(target).toBeVisible();
+  await target.click();
+  await page.waitForURL('**/ride**');
+}
+
 const worldDebug = (page: Page) =>
   page.evaluate(() => {
     const fn = (window as unknown as { __veloRideDebug?: () => unknown }).__veloRideDebug;
@@ -59,11 +79,7 @@ test('token-free smoke ride: Home → Perugia route → riding in the world rend
   await page.addInitScript(INIT);
 
   await page.goto('/app');
-  const route = page.locator('[data-scenic-route="scenic-perugia-tiber-park"]').first();
-  await expect(route).toBeVisible();
-
-  await route.click();
-  await page.waitForURL('**/ride**');
+  await rideScenicRoute(page, 'scenic-perugia-tiber-park', 'Tiber river park');
 
   // RideView picked the world renderer: the default, and Perugia is baked.
   const view = page.locator('[data-renderer]');
@@ -125,10 +141,8 @@ test('a route outside every baked world rides photoreal (OSM fallback with no to
   await page.addInitScript(INIT);
 
   await page.goto('/app');
-  const route = page.locator('[data-scenic-route="scenic-lugano-melide"]').first();
-  await expect(route).toBeVisible();
-  await route.click();
-  await page.waitForURL('**/ride**');
+  // Lugano is area 'hometown', never Today's ride, but go through the same path.
+  await rideScenicRoute(page, 'scenic-lugano-melide', 'Lugano lakefront to Melide');
 
   const view = page.locator('[data-renderer]');
   await expect(view).toHaveAttribute('data-renderer-preferred', 'world');
