@@ -135,7 +135,7 @@ export function Replay() {
   if (error || !record) return <ErrorScreen message={error ?? 'Unknown error'} />;
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-background">
+    <div className="hud-flat relative h-dvh w-full overflow-hidden bg-background">
       {/* The ride's world renderer (lazy), driven by useReplayLoop */}
       <RideView ionToken={ionToken} fallback={<LoadingScreen />} />
 

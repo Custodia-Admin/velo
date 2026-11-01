@@ -55,6 +55,9 @@
     --glass-hairline-top-a: 0.70;
     --glass-shadow: 15 23 42;
     --glass-shadow-a: 0.13;
+    /* Glass without blur (.hud-flat, ride HUD over the live 3D canvas) */
+    --glass-flat-from-a: 0.92;
+    --glass-flat-to-a: 0.86;
   }
 
   .dark {
@@ -87,6 +90,8 @@
     --glass-hairline-top-a: 0.07;
     --glass-shadow: 0 0 0;
     --glass-shadow-a: 0.68;
+    --glass-flat-from-a: 0.9;
+    --glass-flat-to-a: 0.86;
   }
 
   * {
@@ -555,4 +560,28 @@ html:not(.dark) .cesium-viewer {
 @keyframes voicePulse {
   0%, 100% { box-shadow: 0 0 8px 1px rgba(74, 222, 128, 0.3); }
   50%       { box-shadow: 0 0 18px 4px rgba(74, 222, 128, 0.6); }
+}
+
+/* -------------------------------------------------------------------
+   Ride HUD over a live 3D canvas: glass without the blur.
+   `.hud-flat` sits on the ride (and replay) root. A backdrop-filter over a
+   WebGL canvas makes the compositor re-read and re-blur the canvas under
+   every panel on every frame: 10–25 fps on the Intel Arc iGPU (card
+   t_12c297fd). The panels keep the glass gradient at a higher opacity
+   (--glass-flat-*) so text stays legible over the moving scene.
+   !important so it also beats Tailwind backdrop-blur-* classes and the
+   inline blurs in legacy ride components (Minimap label, climb banner).
+   Modals portalled to <body> keep their blur (they pause the view).
+------------------------------------------------------------------- */
+.hud-flat,
+.hud-flat * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.hud-flat .glass {
+  background: linear-gradient(
+    155deg,
+    rgb(var(--glass-from) / var(--glass-flat-from-a)),
+    rgb(var(--glass-to) / var(--glass-flat-to-a))
+  );
 }

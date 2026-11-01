@@ -64,6 +64,25 @@ function publish(next: ScenePerf): void {
   for (const cb of listeners) cb();
 }
 
+/**
+ * Engine-neutral feed for renderers without a Cesium viewer (the three.js
+ * world renderer): publish a snapshot and point `window.__veloPerf` at a
+ * getter. `null` detaches and clears the readout.
+ */
+export function publishScenePerf(next: ScenePerf): void {
+  publish(next);
+}
+
+export function exposeScenePerf(get: (() => ScenePerf) | null): void {
+  if (typeof window === 'undefined') return;
+  const w = window as unknown as { __veloPerf?: () => ScenePerf };
+  if (get) w.__veloPerf = get;
+  else {
+    delete w.__veloPerf;
+    publish(EMPTY_PERF);
+  }
+}
+
 interface MinimalTileset {
   show: boolean;
   tilesLoaded?: boolean;
