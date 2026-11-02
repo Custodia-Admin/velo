@@ -46,6 +46,8 @@ interface ControllerState {
   buzz: BuzzResult | null;
   /** At least one button/lever message arrived this session. */
   inputSeen: boolean;
+  /** Asleep controls: the browser is watching for a button press to reconnect them. */
+  wakeArmed: boolean;
   gear: number;
   /** -1 (left) .. 1 (right), 0 at rest. */
   steer: number;
@@ -62,6 +64,7 @@ interface ControllerState {
   setSide: (side: ControllerSideCheck | null) => void;
   setBuzz: (buzz: BuzzResult | null) => void;
   setInputSeen: (seen: boolean) => void;
+  setWakeArmed: (armed: boolean) => void;
   setSteer: (steer: number) => void;
   setSteeringEnabled: (on: boolean) => void;
   setGearBuzz: (on: boolean) => void;
@@ -82,6 +85,7 @@ export const useControllerStore = create<ControllerState>()(
       side: null,
       buzz: null,
       inputSeen: false,
+      wakeArmed: false,
       gear: NEUTRAL_GEAR,
       steer: 0,
       steeringEnabled: true,
@@ -98,6 +102,7 @@ export const useControllerStore = create<ControllerState>()(
       setDevice: (deviceName) => set({ deviceName }),
       setBattery: (battery) => set({ battery }),
       setSilent: (silent) => set({ silent }),
+      setWakeArmed: (wakeArmed) => set({ wakeArmed }),
       setSide: (side) => set({ side }),
       setBuzz: (buzz) => set({ buzz }),
       setInputSeen: (inputSeen) => set({ inputSeen }),

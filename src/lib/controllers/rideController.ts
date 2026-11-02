@@ -41,7 +41,9 @@ import {
   forgetDevice,
   rememberDevice,
   retryWithBackoff,
+  watchAdverts,
   watchForWake,
+  type AdvertWatch,
   type GrantedDevices,
 } from '@/lib/controllers/reconnect';
 import { onRideSession, rideSessionActive } from '@/lib/controllers/rideSession';
@@ -80,8 +82,8 @@ interface Link {
   silentTimer: ReturnType<typeof setTimeout> | null;
   /** A retry run is in flight. */
   retrying: boolean;
-  /** Stops the wake watch (asleep controls coming back on a button press). */
-  stopWake: (() => void) | null;
+  /** The wake watch (asleep controls coming back on a button press). */
+  wake: AdvertWatch | null;
   battery: BatteryWatch | null;
   /** performance.now()-ish time of the last buzz written. */
   lastBuzzMs: number;
@@ -257,10 +259,27 @@ function handleMessage(l: Link, msg: Uint8Array): void {
   }
 }
 
-async function setupSession(l: Link): Promise<void> {
+/** An autonomous reconnect found the ride closed: it stops before writing. */
+function rideClosedError(): Error {
+  const err = new Error('The ride closed: no Bluetooth write outside a ride.');
+  err.name = 'RideClosed';
+  return err;
+}
+
+function isRideClosedError(err: unknown): boolean {
+  return err instanceof Error && err.name === 'RideClosed';
+}
+
+/**
+ * GATT connect + wiring + RideOn. `allowWrites` (autonomous reconnects
+ * only): checked after the connect and right before RideOn; false throws
+ * RideClosed with nothing written.
+ */
+async function setupSession(l: Link, allowWrites?: () => boolean): Promise<void> {
   const gatt = l.device.gatt;
   if (!gatt) throw new Error('This device has no Bluetooth services.');
   const server = gatt.connected ? gatt : await gatt.connect();
+  if (allowWrites && !allowWrites()) throw rideClosedError();
   l.rx = null;
   l.pressed = new Set();
   l.gotMessage = false;
@@ -292,6 +311,10 @@ async function setupSession(l: Link): Promise<void> {
   }
 
   l.rx = await svc.getCharacteristic(RIDE_SYNC_RX);
+  if (allowWrites && !allowWrites()) {
+    l.rx = null;
+    throw rideClosedError();
+  }
   await write(l, RIDE_ON);
 
   // Standard Battery Service (0x180F): first reading + notifications; the
@@ -310,8 +333,7 @@ async function setupSession(l: Link): Promise<void> {
 function clearTimers(l: Link): void {
   if (l.silentTimer) clearTimeout(l.silentTimer);
   l.silentTimer = null;
-  l.stopWake?.();
-  l.stopWake = null;
+  disarmWake(l);
 }
 
 /** The link was given up on or torn down: nothing of it may act any more. */
@@ -327,14 +349,20 @@ function onGattDisconnected(l: Link): void {
   if (gone(l) || l.locked || store().status === 'asleep') return;
   l.rx = null;
   clearTimers(l);
+  // No ride open: no retries (each one writes RideOn). Asleep until a tap
+  // on Reconnect, or a button press once a ride opens.
+  if (!rideSessionActive()) {
+    goAsleep(l);
+    return;
+  }
   void retryLink(l);
 }
 
 /**
- * Retry an unexpected drop with backoff (1, 2, 4, 8, 15 s). The gear is
- * kept meanwhile so resistance does not jump. Out of retries → asleep, and
- * during a ride the controls come back by themselves on the next button
- * press (wake watch).
+ * Retry an unexpected drop with backoff (1, 2, 4, 8, 15 s), inside the ride
+ * session only. The gear is kept meanwhile so resistance does not jump. Out
+ * of retries, or the rider left the ride → asleep, and during a ride the
+ * controls come back by themselves on the next button press (wake watch).
  */
 async function retryLink(l: Link): Promise<void> {
   if (l.retrying) return;
@@ -342,9 +370,9 @@ async function retryLink(l: Link): Promise<void> {
   store().setStatus('reconnecting');
   const result = await retryWithBackoff({
     delays: CONTROLLER_RETRY_DELAYS_MS,
-    attempt: () => setupSession(l),
+    attempt: () => (rideSessionActive() ? setupSession(l, rideSessionActive) : Promise.reject(rideClosedError())),
     cancelled: () => gone(l),
-    fatal: isLockedError,
+    fatal: (err) => isLockedError(err) || isRideClosedError(err),
   });
   l.retrying = false;
   if (gone(l)) return;
@@ -368,7 +396,7 @@ function goAsleep(l: Link): void {
   } catch {
     /* already gone */
   }
-  armWake(l);
+  void armWake(l);
 }
 
 /**
@@ -376,22 +404,42 @@ function goAsleep(l: Link): void {
  * Velo reconnects without a tap. Only during a ride (no Bluetooth write
  * outside a rider-started ride); onRideSession re-arms it when one opens.
  */
-function armWake(l: Link): void {
-  if (gone(l) || l.locked || l.stopWake || store().status !== 'asleep' || !rideSessionActive()) return;
-  l.stopWake = watchForWake(l.device, () => {
-    l.stopWake = null;
+function armWake(l: Link): Promise<boolean> {
+  if (gone(l) || l.locked || store().status !== 'asleep' || !rideSessionActive()) return Promise.resolve(false);
+  if (l.wake) {
+    const w = l.wake;
+    return w.started.then((ok) => ok && l.wake === w);
+  }
+  const w = watchForWake(l.device, () => {
+    disarmWake(l);
     if (gone(l) || store().status !== 'asleep' || !rideSessionActive()) return;
     void wakeReconnect(l);
   });
+  if (!w) return Promise.resolve(false);
+  l.wake = w;
+  return w.started.then((ok) => {
+    const armed = ok && l.wake === w;
+    if (!ok && l.wake === w) l.wake = null;
+    // The asleep copy promises a self-reconnect only when this is true.
+    if (link === l) store().setWakeArmed(armed);
+    return armed;
+  });
+}
+
+function disarmWake(l: Link): void {
+  const w = l.wake;
+  l.wake = null;
+  w?.stop();
+  if (link === l || link === null) store().setWakeArmed(false);
 }
 
 async function wakeReconnect(l: Link): Promise<void> {
   store().setStatus('connecting');
   try {
-    await setupSession(l);
+    await setupSession(l, rideSessionActive);
     if (gone(l)) return;
     store().setStatus('connected');
-    await confirmBuzz(l);
+    if (rideSessionActive()) await confirmBuzz(l);
   } catch (err) {
     if (gone(l)) return;
     if (isLockedError(err)) markLocked(l);
@@ -402,11 +450,8 @@ async function wakeReconnect(l: Link): Promise<void> {
 onRideSession((active) => {
   const l = link;
   if (!l) return;
-  if (active) armWake(l);
-  else {
-    l.stopWake?.();
-    l.stopWake = null;
-  }
+  if (active) void armWake(l);
+  else disarmWake(l);
 });
 
 function markLocked(l: Link): void {
@@ -420,51 +465,40 @@ function markLocked(l: Link): void {
   store().setStatus('locked');
 }
 
-type AdvertisingDevice = BluetoothDevice & {
-  watchAdvertisements?: (options?: { signal?: AbortSignal }) => Promise<void>;
-  unwatchAdvertisements?: () => void;
-};
-
 /**
  * Tell the left controller from the right one by its advert (manufacturer
  * byte 0x08 / 0x07). Must run before connecting: a connected controller
  * stops advertising. Needs watchAdvertisements (Chrome 85+, some builds
- * behind a flag); without it the side stays 'unsupported'. Never throws.
+ * behind a flag); without it the side stays 'unsupported'. Shares the
+ * device's one advert watch (watchAdverts). Never throws.
  */
 export async function detectControllerSide(
   device: BluetoothDevice,
   timeoutMs = SIDE_WATCH_MS,
 ): Promise<ControllerSideCheck> {
-  const d = device as AdvertisingDevice;
-  if (typeof d.watchAdvertisements !== 'function') return 'unsupported';
-  const abort = typeof AbortController === 'function' ? new AbortController() : null;
   return new Promise<ControllerSideCheck>((resolve) => {
     let done = false;
-    const onAdvert = (ev: Event) => {
-      const data = (ev as Event & { manufacturerData?: Map<number, DataView> }).manufacturerData;
-      const side = sideFromManufacturerData(data?.get(RIDE_COMPANY_ID));
-      if (side) finish(side);
-    };
+    let watch: AdvertWatch | null = null;
     const timer = setTimeout(() => finish('unknown'), timeoutMs);
     function finish(result: ControllerSideCheck): void {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      device.removeEventListener('advertisementreceived', onAdvert);
-      try {
-        abort?.abort();
-        if (!abort) d.unwatchAdvertisements?.();
-      } catch {
-        /* already stopped */
-      }
+      watch?.stop();
       resolve(result);
     }
-    device.addEventListener('advertisementreceived', onAdvert);
-    try {
-      void d.watchAdvertisements!(abort ? { signal: abort.signal } : undefined).catch(() => finish('unsupported'));
-    } catch {
+    watch = watchAdverts(device, (ev) => {
+      const data = (ev as Event & { manufacturerData?: Map<number, DataView> }).manufacturerData;
+      const side = sideFromManufacturerData(data?.get(RIDE_COMPANY_ID));
+      if (side) finish(side);
+    });
+    if (!watch) {
       finish('unsupported');
+      return;
     }
+    void watch.started.then((ok) => {
+      if (!ok) finish('unsupported');
+    });
   });
 }
 
@@ -492,7 +526,7 @@ function newLink(device: BluetoothDevice): Link {
     queue: Promise.resolve(),
     silentTimer: null,
     retrying: false,
-    stopWake: null,
+    wake: null,
     battery: null,
     lastBuzzMs: Number.NEGATIVE_INFINITY,
     intentional: false,

@@ -9,6 +9,7 @@ import {
   rememberDevice,
   rememberedDevice,
   retryWithBackoff,
+  watchAdverts,
   watchForWake,
   type KeyValueStore,
 } from './reconnect';
@@ -147,23 +148,24 @@ describe('watchForWake', () => {
   it('fires once on the first advert and stops watching', async () => {
     const dev = advertiser();
     let woke = 0;
-    const stop = watchForWake(dev as unknown as BluetoothDevice, () => woke++);
-    expect(stop).toBeTypeOf('function');
+    const w = watchForWake(dev as unknown as BluetoothDevice, () => woke++);
+    expect(await w!.started).toBe(true);
     expect(canWatchForWake(dev as unknown as BluetoothDevice)).toBe(true);
     dev.advert();
     dev.advert();
     expect(woke).toBe(1);
     expect(dev.aborted).toBe(true);
-    stop!(); // idempotent
+    w!.stop(); // idempotent
   });
 
-  it('stop() before an advert: never fires', () => {
+  it('stop() before an advert: never fires, and is not reported as watching', async () => {
     const dev = advertiser();
     let woke = 0;
-    const stop = watchForWake(dev as unknown as BluetoothDevice, () => woke++);
-    stop!();
+    const w = watchForWake(dev as unknown as BluetoothDevice, () => woke++);
+    w!.stop();
     dev.advert();
     expect(woke).toBe(0);
+    expect(await w!.started).toBe(false);
   });
 
   it('no watchAdvertisements: null (no wake reconnect on this browser)', () => {
@@ -172,16 +174,19 @@ describe('watchForWake', () => {
     expect(watchForWake(plain, () => undefined)).toBeNull();
   });
 
-  it('a throwing or refused watch never fires', async () => {
+  it('a throwing or refused watch reports started=false and never fires', async () => {
     const sync = advertiser({ throwSync: true });
-    expect(watchForWake(sync as unknown as BluetoothDevice, () => undefined)).toBeNull();
+    const s = watchForWake(sync as unknown as BluetoothDevice, () => undefined);
+    expect(await s!.started).toBe(false);
     const refused = advertiser({ reject: true });
     let woke = 0;
-    watchForWake(refused as unknown as BluetoothDevice, () => woke++);
-    await Promise.resolve();
-    await Promise.resolve();
+    const w = watchForWake(refused as unknown as BluetoothDevice, () => woke++);
+    expect(await w!.started).toBe(false);
     refused.advert();
     expect(woke).toBe(0);
+    // A refused watch is gone: the next caller asks the browser again.
+    watchForWake(refused as unknown as BluetoothDevice, () => undefined);
+    expect(refused.watched).toBe(2);
   });
 
   it('an abort that throws is swallowed', () => {
@@ -209,6 +214,91 @@ describe('watchForWake', () => {
     dev.advert();
     expect(dev.unwatched).toBe(1);
     vi.unstubAllGlobals();
+  });
+});
+
+/**
+ * Chromium's per-device advert watch (bluetooth_device.cc): one watch per
+ * BluetoothDevice; a call while one is pending rejects, a call while one is
+ * active shares it, and aborting ANY caller's signal stops it for everyone.
+ */
+function chromiumAdvertiser() {
+  const dev = new EventTarget() as EventTarget & {
+    watchAdvertisements: (o?: { signal?: AbortSignal }) => Promise<void>;
+    calls: number;
+    watching: boolean;
+    advert: () => boolean;
+  };
+  let pending = false;
+  dev.calls = 0;
+  dev.watching = false;
+  dev.watchAdvertisements = (o) => {
+    dev.calls++;
+    if (pending) return Promise.reject(Object.assign(new Error('in progress'), { name: 'InvalidStateError' }));
+    o?.signal?.addEventListener('abort', () => {
+      dev.watching = false;
+    });
+    if (dev.watching) return Promise.resolve();
+    pending = true;
+    return Promise.resolve().then(() => {
+      pending = false;
+      dev.watching = true;
+    });
+  };
+  dev.advert = () => {
+    if (!dev.watching) return false;
+    dev.dispatchEvent(new Event('advertisementreceived'));
+    return true;
+  };
+  return dev;
+}
+
+describe('watchAdverts: one browser watch per device', () => {
+  it('two listeners share one watchAdvertisements call; one stopping leaves the other watching', async () => {
+    const dev = chromiumAdvertiser();
+    const bt = dev as unknown as BluetoothDevice;
+    let a = 0;
+    let b = 0;
+    const wa = watchAdverts(bt, () => a++)!;
+    const wb = watchAdverts(bt, () => b++)!;
+    expect(await wa.started).toBe(true);
+    expect(await wb.started).toBe(true);
+    expect(dev.calls).toBe(1);
+    expect(dev.advert()).toBe(true);
+    expect([a, b]).toEqual([1, 1]);
+    wb.stop(); // e.g. the trainer's reconnect wait timing out
+    expect(dev.watching).toBe(true);
+    expect(dev.advert()).toBe(true);
+    expect([a, b]).toEqual([2, 1]);
+    wa.stop();
+    expect(dev.watching).toBe(false);
+  });
+
+  it('a wake watch survives a second watcher coming and going (the double-watch kill)', async () => {
+    const dev = chromiumAdvertiser();
+    const bt = dev as unknown as BluetoothDevice;
+    let woke = 0;
+    const wake = watchForWake(bt, () => woke++)!;
+    expect(await wake.started).toBe(true);
+    const wait = watchAdverts(bt, () => undefined)!;
+    expect(await wait.started).toBe(true);
+    wait.stop();
+    expect(dev.advert()).toBe(true);
+    expect(woke).toBe(1);
+    expect(dev.watching).toBe(false); // the wake listener was the last one
+  });
+
+  it('after the last listener stops, the next one opens a fresh watch', async () => {
+    const dev = chromiumAdvertiser();
+    const bt = dev as unknown as BluetoothDevice;
+    const w1 = watchAdverts(bt, () => undefined)!;
+    expect(await w1.started).toBe(true);
+    w1.stop();
+    const w2 = watchAdverts(bt, () => undefined)!;
+    expect(await w2.started).toBe(true);
+    expect(dev.calls).toBe(2);
+    expect(dev.watching).toBe(true);
+    w2.stop();
   });
 });
 
@@ -269,13 +359,13 @@ describe('findGrantedDevice', () => {
   const s = memStore();
   beforeEach(() => s.map.clear());
 
-  it('by id first, then by name', async () => {
+  it('by id only: never a same-named device (both Zwift Ride units share a name)', async () => {
     rememberDevice('ctl', dev('left-id', 'Zwift Ride'), s);
     const left = dev('left-id', 'Zwift Ride');
     const right = dev('right-id', 'Zwift Ride');
     expect(await findGrantedDevice('ctl', { getDevices: async () => [right, left] }, s)).toBe(left);
     rememberDevice('ctl', dev('rotated', 'Zwift Ride'), s);
-    expect(await findGrantedDevice('ctl', { getDevices: async () => [right, left] }, s)).toBe(right);
+    expect(await findGrantedDevice('ctl', { getDevices: async () => [right, left] }, s)).toBeNull();
   });
 
   it('nothing when getDevices is missing, nothing was paired, the grant is gone, or getDevices throws', async () => {

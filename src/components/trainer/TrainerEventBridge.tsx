@@ -19,9 +19,11 @@ import { LOW_BATTERY_PCT, formatBattery } from '@/lib/controllers/battery';
  * Effects:
  *   - trainer data       → store.ingestTrainerData
  *   - battery level      → store.setBatteryLevel + low-battery toast
- *   - unexpected drop    → store.setConnection('reconnecting' | 'disconnected')
- *                          + toast
- *   - reconnect phases   → store.setReconnect + toasts (success / failure)
+ *   - unexpected drop    → store.setConnection('reconnecting') + toast
+ *                          (only inside a ride: outside one ftms holds the
+ *                          trainer for a tap and reports phase 'held')
+ *   - reconnect phases   → store.setReconnect + toasts (success / failure /
+ *                          held for a tap)
  *   - control-point errs → toasts so the user knows resistance is misbehaving
  */
 export function TrainerEventBridge(): null {
@@ -106,20 +108,37 @@ export function TrainerEventBridge(): null {
             error: 'Auto-reconnect failed',
             code: 'reconnect-failed',
           });
-          // Reconnect on its own when it wakes up (during the ride).
-          const wakes = trainerLost(lostName);
           st.setReconnect(0, 0);
           // Fall back to demo so the ride doesn't freeze with zero speed.
           if (st.mode === 'trainer') st.setMode('demo');
-          st.pushToast({
-            id: 'trainer-connection',
-            kind: 'error',
-            title: "Couldn't reconnect after several attempts",
-            message:
-              wakes
+          // Reconnect on its own when it wakes up (during the ride), and say
+          // so only once the browser has actually agreed to watch for it.
+          void trainerLost(lostName).then((wakes) => {
+            useRideStore.getState().pushToast({
+              id: 'trainer-connection',
+              kind: 'error',
+              title: "Couldn't reconnect after several attempts",
+              message: wakes
                 ? 'Switched to Demo Mode so the ride keeps going. Pedal once to wake the trainer: it reconnects by itself.'
                 : 'Switched to Demo Mode so the ride keeps going. Pedal once to wake the trainer, then tap Reconnect.',
-            durationMs: 10_000,
+              durationMs: 10_000,
+            });
+          });
+          break;
+        }
+        case 'held': {
+          // No ride open: nothing reconnects on its own. One tap brings it back.
+          const lostName = st.deviceName;
+          st.setConnection('disconnected', { deviceName: null });
+          st.setReconnect(0, 0);
+          if (st.mode === 'trainer') st.setMode('demo');
+          void trainerLost(lostName);
+          st.pushToast({
+            id: 'trainer-connection',
+            kind: 'warning',
+            title: 'Trainer disconnected',
+            message: 'Pedal once to wake it, then tap Reconnect.',
+            durationMs: 8_000,
           });
           break;
         }

@@ -9,14 +9,16 @@
  *
  * A trainer that dropped mid-ride and did not come back within its retries
  * (it went to sleep) reconnects by itself when it wakes up: the first
- * pedal stroke makes it advertise again. Only inside the ride session.
+ * pedal stroke makes it advertise again. Only inside the ride session, and
+ * only while it is not connected: the wake watch stops the moment the
+ * trainer is back, so nothing scans through a connected ride.
  *
  * The phase logic is a pure reducer so it is unit-tested without Bluetooth.
  */
 
 import { create } from 'zustand';
 import { findGrantedTrainer, getDeviceName, reconnectGranted, retainedTrainer } from '@/lib/ftms';
-import { canWatchForWake, watchForWake } from '@/lib/controllers/reconnect';
+import { watchForWake, type AdvertWatch } from '@/lib/controllers/reconnect';
 import { onRideSession, rideSessionActive } from '@/lib/controllers/rideSession';
 import { useRideStore } from '@/stores/rideStore';
 
@@ -107,14 +109,18 @@ export function checkGrantedTrainer(): Promise<void> {
 }
 
 /**
- * Reconnect the granted trainer. `silent`: started by the Ride page, so a
- * failure only updates the panel state (no error toast mid-ride start).
- * Resolves true when connected.
+ * Reconnect the granted trainer. `silent`: started by the Ride page or a
+ * wake, so a failure only updates the panel state (no error toast mid-ride
+ * start), and it writes nothing once the ride has closed. Without `silent`
+ * it is a tap on Reconnect. Resolves true when connected. A failure inside
+ * the ride session goes back to waiting for the trainer to wake.
  */
 export async function reconnectGrantedTrainer(opts: { silent?: boolean; wake?: boolean } = {}): Promise<boolean> {
   await checkGrantedTrainer();
   const ride = useRideStore.getState();
   if (ride.connection === 'connected' || ride.connection === 'connecting') return ride.connection === 'connected';
+  // Nobody tapped: only inside a ride the rider opened.
+  if (opts.silent && !rideSessionActive()) return false;
   // The handle kept after a mid-ride drop works even where getDevices doesn't.
   const dev = granted ?? retainedTrainer();
   const phase = useTrainerReconnectStore.getState().phase;
@@ -124,7 +130,7 @@ export async function reconnectGrantedTrainer(opts: { silent?: boolean; wake?: b
   dispatch({ type: 'start' });
   ride.setConnection('connecting');
   try {
-    await reconnectGranted(dev);
+    await reconnectGranted(dev, opts.silent ? { allowWrites: rideSessionActive } : {});
     const name = getDeviceName() ?? dev.name ?? null;
     const st = useRideStore.getState();
     st.setConnection('connected', { deviceName: name });
@@ -136,62 +142,82 @@ export async function reconnectGrantedTrainer(opts: { silent?: boolean; wake?: b
     // Back to a clean "not paired" panel: the chooser is the fallback.
     useRideStore.getState().setConnection('disconnected', { deviceName: null });
     dispatch({ type: 'fail' });
+    if (rideSessionActive()) void armTrainerWake();
     return false;
   }
 }
 
 // ---- wake ------------------------------------------------------------------
 
-let stopWake: (() => void) | null = null;
+let wake: AdvertWatch | null = null;
 
 function disarmWake(): void {
-  stopWake?.();
-  stopWake = null;
+  const w = wake;
+  wake = null;
+  w?.stop();
 }
 
 /**
- * The automatic reconnect after a drop gave up: remember the trainer as
- * reconnectable and, during a ride, wait for it to wake (TrainerEventBridge
- * calls this on the 'failed' reconnect phase). True when it will come
- * back by itself on wake.
+ * The automatic reconnect after a drop gave up, or the trainer dropped
+ * outside a ride: remember it as reconnectable and, during a ride, wait for
+ * it to wake (TrainerEventBridge calls this on the 'failed' and 'held'
+ * reconnect phases). Resolves true only when the browser is actually
+ * watching, so the rider is never told it will come back by itself when it
+ * cannot.
  */
-export function trainerLost(name: string | null): boolean {
-  const dev = retainedTrainer();
+export async function trainerLost(name: string | null): Promise<boolean> {
   // After the grant check, so a late "nothing granted" cannot undo it.
-  void checkGrantedTrainer().then(() => {
-    dispatch({ type: 'lost', name });
-    armTrainerWake();
-  });
-  return dev !== null && rideSessionActive() && canWatchForWake(dev);
+  await checkGrantedTrainer();
+  dispatch({ type: 'lost', name });
+  return armTrainerWake();
 }
 
 /**
  * Reconnect the trainer the moment it advertises again (first pedal stroke
  * after it slept). Inside the ride session only, so nothing is ever sent to
- * the trainer outside a ride the rider opened. No-op without
- * watchAdvertisements. Returns true when a watch is armed.
+ * the trainer outside a ride the rider opened, and only while it is not
+ * connected. Resolves true when the browser accepted the watch; false
+ * without watchAdvertisements, or when the browser refused it (then nothing
+ * is kept armed).
  */
-export function armTrainerWake(): boolean {
-  if (stopWake || !rideSessionActive()) return stopWake !== null;
+export async function armTrainerWake(): Promise<boolean> {
+  if (!rideSessionActive()) return false;
   const conn = useRideStore.getState().connection;
   if (conn === 'connected' || conn === 'connecting' || conn === 'reconnecting') return false;
+  if (wake) {
+    const w = wake;
+    return (await w.started) && wake === w;
+  }
   const dev = retainedTrainer() ?? granted;
   if (!dev) return false;
   const phase = useTrainerReconnectStore.getState().phase;
   if (phase !== 'available' && phase !== 'failed') return false;
-  stopWake = watchForWake(dev, () => {
-    stopWake = null;
+  const w = watchForWake(dev, () => {
+    if (wake === w) wake = null;
     if (!rideSessionActive()) return;
-    void reconnectGrantedTrainer({ silent: true, wake: true }).then((ok) => {
-      if (!ok) armTrainerWake();
-    });
+    // A failure re-arms from reconnectGrantedTrainer.
+    void reconnectGrantedTrainer({ silent: true, wake: true });
   });
-  return stopWake !== null;
+  if (!w) return false;
+  wake = w;
+  const ok = await w.started;
+  if (!ok && wake === w) wake = null;
+  return ok && wake === w;
+}
+
+/** True while a wake watch is armed (tests and diagnostics). */
+export function trainerWakeArmed(): boolean {
+  return wake !== null;
 }
 
 onRideSession((active) => {
-  if (active) armTrainerWake();
+  if (active) void armTrainerWake();
   else disarmWake();
+});
+
+// Back by any route (retry loop, chooser, tap): stop scanning for it.
+useRideStore.subscribe((s, prev) => {
+  if (s.connection === 'connected' && prev.connection !== 'connected') disarmWake();
 });
 
 /** Tests only. */

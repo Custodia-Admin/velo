@@ -21,12 +21,12 @@ import {
 } from '@/lib/controllers/rideController';
 import { ACTION_LEGEND, SHOW_LEGEND, type LegendRow } from '@/lib/controllers/controllerActions';
 import {
-  ASLEEP_TEXT,
   LOCKED_INTRO,
   MAYBE_RIGHT_TEXT,
   PAIR_OTHER_LABEL,
   RIGHT_SIDE_TEXT,
   UNLOCK_INTRO,
+  asleepText,
   controllerPhase,
   panelStatusLine,
 } from '@/lib/controllers/controllerView';
@@ -102,6 +102,7 @@ export function ControllerPanel() {
   const gearBuzz = useControllerStore((s) => s.gearBuzz);
   const setGearBuzz = useControllerStore((s) => s.setGearBuzz);
   const debugOverlay = useControllerStore((s) => s.debugOverlay);
+  const wakeArmed = useControllerStore((s) => s.wakeArmed);
   const setDebugOverlay = useControllerStore((s) => s.setDebugOverlay);
   const titleId = useId();
   const statusId = useId();
@@ -260,7 +261,7 @@ export function ControllerPanel() {
         </>
       )}
       {status === 'locked' && <UnlockSteps intro={LOCKED_INTRO} />}
-      {status === 'asleep' && <Note>{ASLEEP_TEXT}</Note>}
+      {status === 'asleep' && <Note>{asleepText(wakeArmed)}</Note>}
       {status === 'error' && errorMessage && <Note>{errorMessage}</Note>}
 
       {live && (

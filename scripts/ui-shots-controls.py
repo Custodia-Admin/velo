@@ -27,6 +27,14 @@ Battery and reconnect (P2.5):
                                 "Reconnect Zwift Ride", no write before the tap;
                                 prints the chip + writes after a ride opens
                                 (silent reconnect: RideOn + one confirm buzz)
+Rework (P2.5 round 2), ONLY=rework:
+  trainer-battery-medium-<vp>.png  76 % draws the two-bar medium icon (mockup)
+  trainer-asleep-home-<vp>.png     controls drop on Home: asleep at once, no
+                                   retry, no write; copy asks for a tap
+  ride-asleep-armed-<vp>.png       asleep in a ride with the wake watch accepted:
+                                   "they reconnect by themselves"
+  ride-asleep-refused-<vp>.png     same, but the browser refuses the watch:
+                                   "then tap Reconnect"
 Skip them with ONLY=base; run only them with ONLY=diag (or ONLY=granted).
 """
 import os
@@ -66,8 +74,12 @@ localStorage.setItem('globeride.onboarding.v2', JSON.stringify({state:{hasSeenOn
   device.name = 'Zwift Ride';
   device.id = 'fake-ride';
   // Left = 0x08, right = 0x07 (real adverts: 08 db f4 / 07 f7 0e). 'noadv' = API missing.
+  // window.__fakeRide.quiet: accept watches but send no adverts (a unit asleep).
+  // window.__fakeRide.refuseWatch: the browser refuses watchAdvertisements.
   if (mode !== 'noadv') {
     device.watchAdvertisements = async (o) => {
+      if (window.__fakeRide && window.__fakeRide.refuseWatch) throw Object.assign(new Error('flag off'), { name: 'NotSupportedError' });
+      if (window.__fakeRide && window.__fakeRide.quiet) return;
       setTimeout(() => {
         const ev = new Event('advertisementreceived');
         const side = mode === 'right' ? 0x07 : 0x08;
@@ -78,7 +90,10 @@ localStorage.setItem('globeride.onboarding.v2', JSON.stringify({state:{hasSeenOn
   }
   const gatt = {
     connected: false, device,
-    async connect() { gatt.connected = true; return gatt; },
+    async connect() {
+      if (window.__fakeRide && window.__fakeRide.asleep) throw Object.assign(new Error('out of range'), { name: 'NetworkError' });
+      gatt.connected = true; return gatt;
+    },
     disconnect() { gatt.connected = false; },
     async getPrimaryService(u) {
       if (u === '0000fc82-0000-1000-8000-00805f9b34fb' && mode !== 'locked') return { getCharacteristic: async (c) => chars[c] };
@@ -98,6 +113,8 @@ localStorage.setItem('globeride.onboarding.v2', JSON.stringify({state:{hasSeenOn
     notify: (h) => asyncCh.notify(h),
     battery: (pct) => bas.notify(pct.toString(16).padStart(2, '0')),
     writes: () => rx.writes,
+    // The unit goes to sleep: the link drops and every reconnect fails.
+    sleep: () => { window.__fakeRide.asleep = true; window.__fakeRide.quiet = true; gatt.connected = false; device.dispatchEvent(new Event('gattserverdisconnected')); },
   };
 })();
 """
@@ -140,7 +157,7 @@ with sync_playwright() as p:
         args=["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
     )
     only = os.environ.get("ONLY", "")
-    for vp, (w, h) in (VIEWPORTS.items() if only != "diag" else []):
+    for vp, (w, h) in (VIEWPORTS.items() if only not in ("diag", "rework") else []):
         for scheme in (["dark"] if before else ["dark", "light"]):
             suffix = vp if scheme == "dark" else f"light-{vp}"
             ctx = browser.new_context(viewport={"width": w, "height": h}, device_scale_factor=1, color_scheme=scheme)
@@ -249,6 +266,44 @@ with sync_playwright() as p:
         writes = page.evaluate("window.__fakeRide.writes().map(w => w.map(b => b.toString(16).padStart(2,'0')).join(' '))")
         print(vp, "granted: writes after ride start:", writes)
         ctx.close()
+
+    for vp in (VIEWPORTS if only in ("", "rework") and not before else []):
+        # Battery 76 %: the mockup's medium icon.
+        ctx, page = diag_ctx(vp, "ok")
+        click_text(page, "Pair handlebar controls")
+        page.wait_for_selector("text=Left controller · connected · buzzed", timeout=8000)
+        page.evaluate("window.__fakeRide.battery(76)")
+        page.wait_for_selector("[data-testid='battery-reading'][data-band='medium']:has-text('76 %')", timeout=4000)
+        shot_trainer(page, f"trainer-battery-medium-{vp}")
+        # The controls drop with no ride open: asleep at once, nothing written.
+        n = page.evaluate("window.__fakeRide.writes().length")
+        page.evaluate("window.__fakeRide.sleep()")
+        page.wait_for_selector("text=then tap Reconnect", timeout=4000)
+        page.wait_for_timeout(5000)
+        print(vp, "home drop: writes since drop:", page.evaluate("window.__fakeRide.writes().length") - n)
+        shot_trainer(page, f"trainer-asleep-home-{vp}")
+        ctx.close()
+
+        for refuse in (False, True):
+            ctx, page = diag_ctx(vp, "ok")
+            click_text(page, "Pair handlebar controls")
+            page.wait_for_selector("text=Left controller · connected · buzzed", timeout=8000)
+            page.evaluate("window.__fakeRide.battery(76)")
+            ride_page(page)
+            if refuse:
+                page.evaluate("window.__fakeRide.refuseWatch = true")
+            page.evaluate("window.__fakeRide.sleep()")
+            # Five retries (1 + 2 + 4 + 8 + 15 s), then asleep.
+            page.wait_for_function(
+                "() => [...document.querySelectorAll(\"[aria-label='Handlebar controls'][role='group']\")].some((e) => e.offsetParent && /Asleep/.test(e.textContent))",
+                timeout=60000,
+            )
+            page.wait_for_timeout(800)
+            name = "ride-asleep-refused" if refuse else "ride-asleep-armed"
+            print(vp, name, "chip:", chip_text(page))
+            measure(page, vp, name)
+            page.screenshot(path=str(out / f"{name}-{vp}.png"))
+            ctx.close()
 
     for vp in (VIEWPORTS if only in ("", "diag") and not before else []):
         # Right controller picked.

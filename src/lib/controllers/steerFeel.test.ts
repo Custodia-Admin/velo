@@ -98,8 +98,10 @@ describe('stepLane — lane-centring spring', () => {
     expect(Math.min(...back)).toBeGreaterThanOrEqual(0); // never crosses to the other side
     const halfSecond = back[29];
     expect(halfSecond).toBeGreaterThan(MAX_LANE_OFFSET_M * 0.7); // gentler than steering
-    // Back within 5 cm by ~2.4 s (4.74 / ω), exactly 0 a bit later.
+    // ~95 % of the way back by ~2.4 s (4.74 / ω), on the line after ~4 s (snap at 5 mm).
     expect(back[Math.round(60 * (4.74 / CENTRE_OMEGA))]).toBeLessThan(0.1);
+    expect(back[Math.round(60 * 3.5)]).toBeGreaterThan(0);
+    expect(back[Math.round(60 * 4.5)]).toBe(0);
     expect(back[back.length - 1]).toBe(0);
     expect(s.velMs).toBe(0);
   });

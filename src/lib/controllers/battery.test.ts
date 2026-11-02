@@ -70,12 +70,13 @@ describe('parseBatteryLevel', () => {
 });
 
 describe('display helpers', () => {
-  it('bands: low at ≤ 20 %, medium to 70 %, then full', () => {
+  it('bands: low at ≤ 20 %, medium to 80 % (the mockup draws 76 % as medium), then full', () => {
     expect(batteryBand(0)).toBe('low');
     expect(batteryBand(LOW_BATTERY_PCT)).toBe('low');
     expect(batteryBand(21)).toBe('medium');
-    expect(batteryBand(70)).toBe('medium');
-    expect(batteryBand(71)).toBe('full');
+    expect(batteryBand(76)).toBe('medium');
+    expect(batteryBand(80)).toBe('medium');
+    expect(batteryBand(81)).toBe('full');
   });
   it('formats with a space before %, and says "low" to screen readers', () => {
     expect(formatBattery(76)).toBe('76 %');

@@ -6,7 +6,7 @@
  *     reconnects with gatt.connect() (no user gesture), retried with backoff.
  *   - Granted device: after a reload, navigator.bluetooth.getDevices() hands
  *     back devices this site was allowed before; the one paired last is
- *     remembered by id (and name) in localStorage.
+ *     remembered by id in localStorage (names are not unique).
  *   - Wake: a sleeping device that gave up retrying comes back when it
  *     advertises again (a pedal stroke, a button press). watchAdvertisements
  *     tells us; browsers without it simply don't get wake reconnects.
@@ -73,7 +73,7 @@ export async function retryWithBackoff(o: RetryOptions): Promise<RetryResult> {
   return { ok: false, attempts: total, cancelled: false, error };
 }
 
-// ---- wake ------------------------------------------------------------------
+// ---- advert watches ----------------------------------------------------------
 
 type WatchableDevice = BluetoothDevice & {
   watchAdvertisements?: (options?: { signal?: AbortSignal }) => Promise<void>;
@@ -85,38 +85,103 @@ export function canWatchForWake(device: BluetoothDevice): boolean {
   return typeof (device as WatchableDevice).watchAdvertisements === 'function';
 }
 
+export interface AdvertWatch {
+  /**
+   * True once the browser is watching for this listener; false when it
+   * refused (the watch is then already stopped) or the listener stopped first.
+   */
+  started: Promise<boolean>;
+  /** Stop listening. The browser watch ends when its last listener stops. */
+  stop: () => void;
+}
+
+interface SharedWatch {
+  subs: Set<(ev: Event) => void>;
+  started: Promise<boolean>;
+  close: () => void;
+}
+
+const sharedWatches = new WeakMap<BluetoothDevice, SharedWatch>();
+
+function openSharedWatch(device: BluetoothDevice, d: WatchableDevice): SharedWatch {
+  const abort = typeof AbortController === 'function' ? new AbortController() : null;
+  let closed = false;
+  const dispatch = (ev: Event) => {
+    for (const fn of [...w.subs]) fn(ev);
+  };
+  const w: SharedWatch = {
+    subs: new Set(),
+    started: Promise.resolve(false),
+    close: () => {
+      if (closed) return;
+      closed = true;
+      if (sharedWatches.get(device) === w) sharedWatches.delete(device);
+      device.removeEventListener('advertisementreceived', dispatch);
+      try {
+        if (abort) abort.abort();
+        else d.unwatchAdvertisements?.();
+      } catch {
+        /* already stopped */
+      }
+    },
+  };
+  sharedWatches.set(device, w);
+  device.addEventListener('advertisementreceived', dispatch);
+  let call: Promise<void>;
+  try {
+    call = d.watchAdvertisements!(abort ? { signal: abort.signal } : undefined);
+  } catch (err) {
+    call = Promise.reject(err);
+  }
+  w.started = call.then(
+    () => !closed,
+    () => {
+      w.close();
+      return false;
+    },
+  );
+  return w;
+}
+
 /**
- * Call `onWake` once, on the device's first advertisement. Returns a stop
- * function, or null when the browser cannot watch adverts (or refused).
+ * Listen for a device's advertisements. Chromium keeps ONE advert watch per
+ * BluetoothDevice: a second watchAdvertisements() while one is pending
+ * rejects, and aborting any caller's signal stops the watch for every
+ * caller. So every watcher in Velo (side check, wake, the trainer's
+ * reconnect wait) goes through here: one browser watch per device, shared,
+ * aborted only when its last listener stops. Null without watchAdvertisements.
  */
-export function watchForWake(device: BluetoothDevice, onWake: () => void): (() => void) | null {
+export function watchAdverts(device: BluetoothDevice, onAdvert: (ev: Event) => void): AdvertWatch | null {
   const d = device as WatchableDevice;
   if (typeof d.watchAdvertisements !== 'function') return null;
-  const abort = typeof AbortController === 'function' ? new AbortController() : null;
-  let done = false;
+  const shared = sharedWatches.get(device) ?? openSharedWatch(device, d);
+  shared.subs.add(onAdvert);
+  let stopped = false;
   const stop = () => {
-    if (done) return;
-    done = true;
-    device.removeEventListener('advertisementreceived', onAdvert);
-    try {
-      if (abort) abort.abort();
-      else d.unwatchAdvertisements?.();
-    } catch {
-      /* already stopped */
-    }
+    if (stopped) return;
+    stopped = true;
+    shared.subs.delete(onAdvert);
+    if (shared.subs.size === 0) shared.close();
   };
-  function onAdvert(): void {
-    stop(); // removes this listener, so a second advert never gets here
+  const started = shared.started.then((ok) => {
+    if (!ok) stop();
+    return ok && !stopped;
+  });
+  return { started, stop };
+}
+
+/**
+ * Call `onWake` once, on the device's first advertisement. Null when the
+ * browser cannot watch adverts. Check `started` before telling the rider
+ * the device will come back by itself: the browser may still refuse.
+ */
+export function watchForWake(device: BluetoothDevice, onWake: () => void): AdvertWatch | null {
+  // stop() drops this listener, so a second advert never reaches it.
+  const w: AdvertWatch | null = watchAdverts(device, () => {
+    w?.stop();
     onWake();
-  }
-  device.addEventListener('advertisementreceived', onAdvert);
-  try {
-    void d.watchAdvertisements(abort ? { signal: abort.signal } : undefined).catch(stop);
-  } catch {
-    stop();
-    return null;
-  }
-  return stop;
+  });
+  return w;
 }
 
 // ---- remembered + granted devices -------------------------------------------
@@ -180,7 +245,7 @@ function bluetooth(): GrantedDevices | null {
 
 /**
  * The device remembered under `key` among the ones this site may use
- * without the chooser: by id, then by name. Null when getDevices is missing
+ * without the chooser, matched by id (never by name). Null when getDevices is missing
  * (some Chrome builds keep it behind a flag), nothing was paired, or the
  * grant is gone. Never throws.
  */
@@ -198,5 +263,7 @@ export async function findGrantedDevice(
   } catch {
     return null;
   }
-  return devices.find((d) => d.id === last.id) ?? (last.name ? devices.find((d) => d.name === last.name) : undefined) ?? null;
+  // By id only. Names are not unique: both Zwift Ride units are called
+  // 'Zwift Ride', and a name match could hand back the buttonless right one.
+  return devices.find((d) => d.id === last.id) ?? null;
 }

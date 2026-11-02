@@ -264,6 +264,7 @@ describe('messages', () => {
 describe('drops', () => {
   it('reconnects after an unexpected drop, without duplicate button events', async () => {
     vi.useFakeTimers();
+    retainRideSession();
     await pairRideController();
     device.drop();
     expect(st().status).toBe('reconnecting');
@@ -278,6 +279,7 @@ describe('drops', () => {
 
   it('gives up as asleep after the retries', async () => {
     vi.useFakeTimers();
+    retainRideSession();
     await pairRideController();
     device.failConnect = true;
     device.drop();
@@ -288,6 +290,7 @@ describe('drops', () => {
   it('keeps the gear through a short drop, neutral once asleep', async () => {
     const { activeGear } = await import('@/stores/controllerStore');
     vi.useFakeTimers();
+    retainRideSession();
     await pairRideController();
     st().shift(2);
     device.failConnect = true;
@@ -385,6 +388,7 @@ describe('state machine', () => {
 
   it('a drop goes reconnecting, then back to connected', async () => {
     vi.useFakeTimers();
+    retainRideSession();
     await pairRideController();
     device.drop();
     expect(phase()).toBe('reconnecting');
@@ -476,29 +480,49 @@ describe('battery (standard Battery Service)', () => {
 });
 
 describe('gear buzz', () => {
-  it('only inside a ride session, only with the setting on, at most one per gap', async () => {
+  // Every gate is checked with the 150 ms limiter well out of the way, so
+  // each assertion fails on its own gate and nothing else.
+  const pastGap = () => vi.advanceTimersByTimeAsync(BUZZ_MIN_GAP_MS * 4);
+
+  it('no ride open: no gear buzz, however long since the last one', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
     await pairRideController();
     const base = buzzes(); // the confirm buzz
-    expect(buzzRideController('gear')).toBe(false); // Home: no ride, no buzz
-    await vi.advanceTimersByTimeAsync(BUZZ_MIN_GAP_MS + 1);
+    await pastGap();
+    expect(buzzRideController('gear')).toBe(false);
+    await pastGap();
+    expect(buzzRideController('gear')).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
     expect(buzzes()).toBe(base);
 
+    // The same moment with a ride open does buzz: only the session differs.
     const release = retainRideSession();
     expect(buzzRideController('gear')).toBe(true);
+    await pastGap();
+    release();
+    expect(buzzRideController('gear')).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(buzzes()).toBe(base + 1);
+  });
+
+  it('inside a ride: at most one per gap, and only with the setting on', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+    retainRideSession();
+    await pairRideController();
+    const base = buzzes();
+    await pastGap();
+    expect(buzzRideController('gear')).toBe(true);
     expect(buzzRideController('gear')).toBe(false); // a fast double shift: one buzz
-    await vi.advanceTimersByTimeAsync(BUZZ_MIN_GAP_MS + 1);
+    await pastGap();
     expect(buzzRideController('gear')).toBe(true);
     await vi.advanceTimersByTimeAsync(1);
     expect(buzzes()).toBe(base + 2);
 
     st().setGearBuzz(false);
-    await vi.advanceTimersByTimeAsync(BUZZ_MIN_GAP_MS + 1);
+    await pastGap();
     expect(buzzRideController('gear')).toBe(false);
     // "Test buzz" is a tap: always allowed while connected.
     expect(buzzRideController('test')).toBe(true);
-    release();
-    expect(buzzRideController('gear')).toBe(false);
   });
 
   it('never while reconnecting or asleep', async () => {
@@ -507,6 +531,7 @@ describe('gear buzz', () => {
     await pairRideController();
     device.failConnect = true;
     device.drop();
+    await pastGap();
     expect(buzzRideController('gear')).toBe(false);
     await vi.advanceTimersByTimeAsync(60_000);
     expect(st().status).toBe('asleep');
@@ -688,5 +713,121 @@ describe('no unrequested writes outside a ride', () => {
     device.async_.notify('19 08 50');
     await vi.advanceTimersByTimeAsync(60_000);
     expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e', BUZZ]);
+  });
+
+  it('a drop with no ride open: no retries, no RideOn; asleep until a tap, which still works', async () => {
+    vi.useFakeTimers();
+    await pairRideController();
+    const connects = vi.spyOn(device.gatt, 'connect');
+    device.rx.writes = [];
+    device.drop();
+    expect(st().status).toBe('asleep');
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(connects).not.toHaveBeenCalled();
+    expect(device.rx.writes).toEqual([]);
+
+    // Tap on Reconnect: RideOn + the confirm buzz.
+    await reconnectRideController();
+    expect(st().status).toBe('connected');
+    expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e', BUZZ]);
+  });
+
+  it('leaving the ride mid-retry stops the retries before the next RideOn', async () => {
+    vi.useFakeTimers();
+    const release = retainRideSession();
+    await pairRideController();
+    device.failConnect = true;
+    device.drop();
+    await vi.advanceTimersByTimeAsync(1100); // first retry fails
+    expect(st().status).toBe('reconnecting');
+    release();
+    device.failConnect = false;
+    const connects = vi.spyOn(device.gatt, 'connect');
+    device.rx.writes = [];
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(connects).not.toHaveBeenCalled();
+    expect(device.rx.writes).toEqual([]);
+    expect(st().status).toBe('asleep');
+  });
+
+  it('leaving the ride while a retry is connecting: connected over GATT, but RideOn is never sent', async () => {
+    vi.useFakeTimers();
+    const release = retainRideSession();
+    await pairRideController();
+    let letConnect: () => void = () => undefined;
+    const realConnect = device.gatt.connect;
+    device.gatt.connect = () =>
+      new Promise((resolve) => {
+        letConnect = () => resolve(realConnect());
+      });
+    device.rx.writes = [];
+    device.drop();
+    await vi.advanceTimersByTimeAsync(1100); // the first retry is now waiting on gatt.connect()
+    release();
+    letConnect();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(device.rx.writes).toEqual([]);
+    expect(st().status).toBe('asleep');
+    expect(device.gatt.connected).toBe(false);
+  });
+
+  it('leaving the ride while a retry subscribes to the controls: RideOn is never sent', async () => {
+    vi.useFakeTimers();
+    const release = retainRideSession();
+    await pairRideController();
+    let letNotify: () => void = () => undefined;
+    const hold = new Promise<void>((r) => {
+      letNotify = r;
+    });
+    const realStart = device.async_.startNotifications.bind(device.async_);
+    device.async_.startNotifications = async () => {
+      await hold;
+      return realStart();
+    };
+    device.rx.writes = [];
+    device.drop();
+    await vi.advanceTimersByTimeAsync(1100); // the first retry: connected, subscribing
+    release();
+    letNotify();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(device.rx.writes).toEqual([]);
+    expect(st().status).toBe('asleep');
+  });
+});
+
+describe('wake watch: armed honestly, never while connected', () => {
+  it('a refused watch is not reported as armed; the copy asks for a tap', async () => {
+    vi.useFakeTimers();
+    retainRideSession();
+    await pairRideController();
+    (device as unknown as { watchAdvertisements: () => Promise<void> }).watchAdvertisements = async () => {
+      throw Object.assign(new Error('flag off'), { name: 'NotSupportedError' });
+    };
+    device.failConnect = true;
+    device.drop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(st().status).toBe('asleep');
+    expect(st().wakeArmed).toBe(false);
+  });
+
+  it('an accepted watch is armed while asleep and stopped once the controls are back', async () => {
+    vi.useFakeTimers();
+    retainRideSession();
+    await pairRideController();
+    let aborted = 0;
+    (device as unknown as { watchAdvertisements: (o?: { signal?: AbortSignal }) => Promise<void> }).watchAdvertisements =
+      async (o) => {
+        o?.signal?.addEventListener('abort', () => aborted++);
+      };
+    device.failConnect = true;
+    device.drop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(st().wakeArmed).toBe(true);
+    // A tap on Reconnect brings them back: the watch stops with it.
+    device.failConnect = false;
+    await reconnectRideController();
+    expect(st().status).toBe('connected');
+    expect(st().wakeArmed).toBe(false);
+    expect(aborted).toBe(1);
   });
 });

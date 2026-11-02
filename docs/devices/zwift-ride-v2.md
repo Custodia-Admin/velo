@@ -63,9 +63,10 @@ type byte of company `0x094A` (`optionalManufacturerData` makes it visible):
 `0x08` → left, `0x07` → right. On the right unit the panel and the in-ride chip
 say "Right controller paired — buttons need the left one" with a "Pair the
 other controller" button, until a press actually comes through (some firmware
-forwards them). Browsers without `watchAdvertisements` (it is behind a flag in
-some Chrome builds) skip the check; the silent detection below still catches a
-dead link and the help text suggests pairing the other entry.
+forwards them). Browsers without `watchAdvertisements` skip the check (on
+Linux Chrome it exists only behind a flag that breaks the chooser, see
+"Platforms" below); the silent detection below still catches a dead link and
+the help text suggests pairing the other entry.
 
 ### Services
 
@@ -291,6 +292,9 @@ So it is a follow-up, not part of this card.
   jump. If it does not come back it is shown as "asleep" and the trainer goes
   back to the neutral gear (plain trainer feel). "Reconnect" in the Trainer
   panel tries again without the chooser.
+- Controller drops with no ride open: no retries (each one would write
+  RideOn). It is "asleep" at once, until a tap on Reconnect, or a button press
+  once a ride is open.
 
 ### Battery and reconnect (P2.5)
 
@@ -302,26 +306,69 @@ So it is a follow-up, not part of this card.
   in the in-ride chip; at or below 20 % it turns red and the in-ride chip
   says "Battery low: charge after this ride".
 - **After a reload**, the controls paired last (remembered as
-  `velo.lastController`, id + name) come back through
+  `velo.lastController`) come back through
   `navigator.bluetooth.getDevices()` without the chooser: silently when a
   ride opens, or with one tap ("Reconnect Zwift Ride") in the panel.
   "Forget" drops the memory. The trainer has done the same since 098dd81.
-- **Wake.** Controls that went to sleep (asleep after the retries) and a
-  trainer whose own retries gave up (0.6, 1.2, 2.4, 4 s) are watched with
-  `watchAdvertisements()`; the first advert (a button press, a pedal stroke)
-  reconnects them. During the ride only: on Home nothing reconnects by
-  itself. The trainer comes back from Demo Mode to trainer mode, and the
-  ride loop re-sends the current SIM grade on the next frame.
+  The lookup matches the remembered device **id only**, never the name:
+  both units are called "Zwift Ride", and a name match could hand back the
+  buttonless right one.
+- **Wake.** Controls that went to sleep and a trainer that is not connected
+  (its own retries gave up after 0.6, 1.2, 2.4, 4 s, or it dropped before the
+  ride) are watched with `watchAdvertisements()`; the first advert (a button
+  press, a pedal stroke) reconnects them. During the ride only: on Home
+  nothing reconnects by itself. The trainer comes back from Demo Mode to
+  trainer mode, and the ride loop re-sends the current SIM grade on the next
+  frame. The watch stops the moment the device is connected again (by the
+  wake, a retry, the ride-start reconnect or a tap), so nothing scans through
+  a connected ride.
+- **One advert watch per device.** Chromium keeps a single advert watch per
+  `BluetoothDevice`: a second `watchAdvertisements()` while one is pending
+  rejects, and aborting any caller's signal stops it for every caller. Every
+  watcher in Velo (side check, wake, the trainer's 6 s wait before its second
+  reconnect try) goes through `watchAdverts()` in `reconnect.ts`, which opens
+  one browser watch per device, shares it, and aborts it only when its last
+  listener stops. Before this, the ride-start reconnect's wait killed the
+  wake watch, so a trainer asleep at ride open never came back by itself.
+- **Honest copy.** The rider is told a device "reconnects by itself" only
+  once the browser has accepted the watch. When it refuses (or the API is
+  missing), nothing is reported as armed and the copy says "then tap
+  Reconnect".
 - **What may write when.** Resistance (FTMS 0x05 / 0x11) goes out only while
   a ride the rider started is riding (`rideFsm.resistanceOf`, unchanged).
   Reconnects re-run the full FTMS handshake (Request Control 0x00, Start
-  0x07) and nothing else. Automatic reconnects, wake reconnects and gear
-  buzzes happen only inside the ride session (`rideSession.ts`: the Ride
-  page is open); outside it every Bluetooth write follows a tap. Pinned in
+  0x07) and nothing else. Outside the ride session (`rideSession.ts`: the
+  Ride page is open) there is **no autonomous Bluetooth write at all**: a
+  trainer or controller that drops is held for a tap (no retries, no 0x00 /
+  0x07, no RideOn), and leaving a ride mid-retry stops the retries; an attempt
+  already waiting on `gatt.connect()` stops before its first write. Gear
+  buzzes are ride-only too. Every write outside a ride follows a tap (Pair,
+  Reconnect, Test buzz). Pinned and mutation-checked in
   `src/lib/deviceLayer.test.ts` (real FTMS client on a fake KICKR) and
   `rideController.test.ts`.
 - Browsers without Web Bluetooth: the "Handlebar controls" section does not
   render.
+
+### Platforms: what reconnects silently where
+
+| | Linux Chrome / Chromium (the laptop) | Android Chrome |
+| --- | --- | --- |
+| Pair (chooser) | yes, with `#enable-web-bluetooth` only | yes |
+| `getDevices()` (reconnect after a reload) | no | yes |
+| `watchAdvertisements()` (side check, wake) | no | yes |
+| Mid-ride drop retries (retained device) | yes | yes |
+| Tap on Reconnect | yes (the first-class path) | yes |
+
+On Linux Chrome (verified 154) and Chromium (153), `getDevices()` and
+`watchAdvertisements()` only exist with
+`chrome://flags/#enable-web-bluetooth-new-permissions-backend`, and that flag
+breaks the device chooser (it scans for half a second and lists nothing). The
+working laptop setup is `#enable-web-bluetooth` alone, so on the laptop
+silent reload reconnect, wake reconnect and left/right detection are
+unavailable **by design**: Velo detects the missing APIs and falls back to
+tap-to-Reconnect, which is the first-class path there (the copy never
+promises a self-reconnect). Android Chrome has both APIs with its default
+settings, so the full behaviour is there.
 
 ## Where it lives in the code
 
@@ -331,8 +378,9 @@ So it is a follow-up, not part of this card.
 | `src/lib/controllers/rideController.ts` | Web Bluetooth client: chooser, handshake, notifications, lock / silent detection, reconnect, buzz, hex log |
 | `src/lib/controllers/controllerActions.ts` | Button → Velo action mapping (ride and show mode), the action runner and the legend text |
 | `src/lib/controllers/battery.ts` | Standard Battery Service read + notifications, display bands |
-| `src/lib/controllers/reconnect.ts` | Backoff retries, wake watch, remembered / granted devices (controls and trainer) |
-| `src/lib/controllers/rideSession.ts` | The ride session: when devices may act on their own |
+| `src/lib/controllers/reconnect.ts` | Backoff retries, the shared advert watch (one browser watch per device) and wake, remembered / granted devices by id (controls and trainer) |
+| `src/lib/controllers/rideSession.ts` | The ride session: the only time devices may act (and be written to) without a tap |
+| `scripts/device-gate-mutations.py` | Removes each write gate in turn and checks a test fails |
 | `src/lib/controllers/steerFeel.ts` | Steering feel: deadzone, expo, lane-centring spring |
 | `src/lib/virtualGears.ts` | Gear table and the equivalent-grade formula |
 | `src/lib/laneOffset.ts` | The sideways shift for a lane offset |
@@ -347,27 +395,41 @@ retries with the name filter only.
 
 ## Owner hardware check (P2.5, about 5 minutes)
 
-Ride V2 + KICKR CORE 2, Chrome on the laptop. Record the result in the PR.
+Ride V2 (left unit) + KICKR CORE 2. Steps 1–5 on the laptop (Chrome,
+`#enable-web-bluetooth` only); step 6 needs Android Chrome (phone or tablet
+on the tailnet), because the laptop browser has no `getDevices()` /
+`watchAdvertisements()` (see "Platforms" above). Record the result in the PR.
 
-1. **Battery %.** Home → Trainer: pair the handlebar controls (left unit) and
-   the trainer. Both rows show a battery icon and a percent. Compare with the
-   maker's app if handy (within a few %).
-2. **Reconnect on wake.** Start a ride. Leave the bars untouched until the
-   chip says "Asleep" (or switch the left unit off and on). Press any button:
-   the chip goes back to Controls within a few seconds and the bars buzz once.
-   Stop pedalling until the trainer drops (or unplug it for 10 s and plug it
-   back), then pedal: it reconnects, the toast says so, and resistance follows
-   the road again.
-3. **Reload.** Reload the page, open a ride: trainer and controls reconnect
-   without the chooser.
+1. **Battery %.** Home → Trainer: pair the handlebar controls and the
+   trainer. Both rows show a battery icon and a percent (76 % draws the
+   two-bar "medium" icon). Compare with the maker's app if handy (within a
+   few %).
+2. **No ride open = no writes.** Still on Home, switch the bars off (or let
+   the trainer drop by unplugging it 10 s): the row says asleep /
+   disconnected with "tap Reconnect", and nothing reconnects by itself. Tap
+   Reconnect: it comes back (the bars buzz once).
+3. **Mid-ride drop.** Start a ride, pedal. Unplug the trainer for ~3 s and
+   plug it back: "Reconnecting… attempt n of 4", then "Trainer reconnected",
+   and resistance follows the road again on the next frame.
 4. **Gear buzz.** Shift up and down a few times: one short buzz per shift, a
    fast double shift gives one buzz, nothing at gear 1 or 11. Turn "Buzz on
-   gear change" off in the Trainer panel: shifting is silent.
+   gear change" off in the Trainer panel: shifting is silent. On Home (no
+   ride) shifting never buzzes; "Test buzz" does.
 5. **Steering feel.** Push a lever lightly: a small, slow move across the
    lane. Push fully: the bike reaches the lane edge in about a second without
-   overshooting. Let go: it eases back to the line in about 2–3 s.
-6. In show mode: Y plays/pauses, Z skips, B toggles the auto camera; the hood
-   buttons move the camera closer / further.
+   overshooting. Let go: most of the way back in about 2.5 s, exactly on the
+   line after about 4 s.
+6. **Android Chrome: wake + reload.** Pair both on the phone/tablet, start a
+   ride. Leave the bars untouched until the chip says "Asleep… they reconnect
+   by themselves" (or switch the left unit off and on), press any button: the
+   chip goes back to Controls within a few seconds and the bars buzz once.
+   Stop pedalling until the trainer drops and its retries give up (Demo Mode
+   toast says "it reconnects by itself"), then pedal: it reconnects and
+   resistance returns. Reload the page and open a ride: trainer and controls
+   reconnect without the chooser.
+
+Show mode, if there is time: Y plays/pauses, Z skips, B toggles the auto
+camera; the hood buttons move the camera closer / further.
 
 ## Hardware session checklist (Federico)
 

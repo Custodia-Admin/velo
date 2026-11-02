@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""Mutation checks for the device layer's write gates (P2.5).
+
+Each entry removes one guard (no autonomous BLE write outside the ride
+session, one advert watch per device, honest wake state, gear-buzz gate,
+id-only device lookup, battery band) and runs the tests that should catch it.
+Every mutation must make a test fail ("KILLED"). Sources are restored after
+each run. Usage, from the repo root:
+
+    python3 scripts/device-gate-mutations.py            # all
+    python3 scripts/device-gate-mutations.py M1 M8      # some
+"""
+import shutil, subprocess, sys, os
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.chdir(ROOT)
+
+M = [
+    ('M0 ftms: every ride-session gate removed (drop, loop attempt, handshake)', 'src/lib/ftms.ts',
+     [('  if (!rideSessionActive()) {\n    holdForTap(device);', '  if (false) {\n    holdForTap(device);'),
+      ('        if (!rideSessionActive()) throw new RideClosedError();\n', ''),
+      ('await setupGattSession(dev, rideSessionActive);', 'await setupGattSession(dev);')],
+     None,
+     ['src/lib/deviceLayer.test.ts']),
+    ('M1 ftms: no-ride drop gate removed', 'src/lib/ftms.ts',
+     '  if (!rideSessionActive()) {\n    holdForTap(device);', '  if (false) {\n    holdForTap(device);',
+     ['src/lib/deviceLayer.test.ts']),
+    ('M2 ftms: loop attempt session check removed', 'src/lib/ftms.ts',
+     '        if (!rideSessionActive()) throw new RideClosedError();\n', '',
+     ['src/lib/deviceLayer.test.ts']),
+    ('M3 ftms: handshake allowWrites dropped in loop', 'src/lib/ftms.ts',
+     'await setupGattSession(dev, rideSessionActive);', 'await setupGattSession(dev);',
+     ['src/lib/deviceLayer.test.ts']),
+    ('M4 ftms: mayWrite before handshake removed', 'src/lib/ftms.ts',
+     '  // RESULT_CONTROL_NOT_PERMITTED back, which writeControl will surface.\n  mayWrite();\n',
+     '  // RESULT_CONTROL_NOT_PERMITTED back, which writeControl will surface.\n',
+     ['src/lib/deviceLayer.test.ts']),
+    ('M5 controls: no-ride drop gate removed', 'src/lib/controllers/rideController.ts',
+     '  if (!rideSessionActive()) {\n    goAsleep(l);\n    return;\n  }\n  void retryLink(l);', '  void retryLink(l);',
+     ['src/lib/controllers/rideController.test.ts']),
+    ('M6 controls: retry session check removed', 'src/lib/controllers/rideController.ts',
+     'attempt: () => (rideSessionActive() ? setupSession(l, rideSessionActive) : Promise.reject(rideClosedError())),',
+     'attempt: () => setupSession(l, rideSessionActive),',
+     ['src/lib/controllers/rideController.test.ts']),
+    ('M7 controls: RideOn allowWrites check removed', 'src/lib/controllers/rideController.ts',
+     '  if (allowWrites && !allowWrites()) {\n    l.rx = null;\n    throw rideClosedError();\n  }\n', '',
+     ['src/lib/controllers/rideController.test.ts']),
+    ('M8 gear buzz: ride-session gate removed', 'src/lib/controllers/rideController.ts',
+     "if (!store().gearBuzz || !rideSessionActive()) return false;", "if (!store().gearBuzz) return false;",
+     ['src/lib/controllers/rideController.test.ts']),
+    ('M9 watchAdverts: no sharing (one browser watch per caller)', 'src/lib/controllers/reconnect.ts',
+     'const shared = sharedWatches.get(device) ?? openSharedWatch(device, d);', 'const shared = openSharedWatch(device, d);',
+     ['src/lib/deviceLayer.test.ts', 'src/lib/controllers/reconnect.test.ts']),
+    ('M10 trainer wake: not disarmed on connect', 'src/lib/trainerReconnect.ts',
+     "  if (s.connection === 'connected' && prev.connection !== 'connected') disarmWake();", '',
+     ['src/lib/deviceLayer.test.ts']),
+    ('M11 trainer wake: refused watch reported armed', 'src/lib/trainerReconnect.ts',
+     '  if (!ok && wake === w) wake = null;\n  return ok && wake === w;', '  return true;',
+     ['src/lib/deviceLayer.test.ts']),
+    ('M12 controls wake: refused watch reported armed', 'src/lib/controllers/rideController.ts',
+     'const armed = ok && l.wake === w;', 'const armed = true;',
+     ['src/lib/controllers/rideController.test.ts']),
+    ('M13 controls wake: not disarmed on reconnect', 'src/lib/controllers/rideController.ts',
+     '  l.silentTimer = null;\n  disarmWake(l);\n}', '  l.silentTimer = null;\n}',
+     ['src/lib/controllers/rideController.test.ts']),
+    ('M14 granted lookup: name fallback back', 'src/lib/controllers/reconnect.ts',
+     'return devices.find((d) => d.id === last.id) ?? null;',
+     'return devices.find((d) => d.id === last.id) ?? (last.name ? devices.find((d) => d.name === last.name) : undefined) ?? null;',
+     ['src/lib/controllers/reconnect.test.ts']),
+    ('M15 trainer silent reconnect: session check removed', 'src/lib/trainerReconnect.ts',
+     '  if (opts.silent && !rideSessionActive()) return false;\n', '',
+     ['src/lib/trainerReconnect.test.ts']),
+    ('M16 battery: 76 % full again', 'src/lib/controllers/battery.ts',
+     'export const MEDIUM_BATTERY_MAX_PCT = 80;', 'export const MEDIUM_BATTERY_MAX_PCT = 70;',
+     ['src/lib/controllers/battery.test.ts']),
+]
+
+only = set(sys.argv[1:])
+bad = []
+for name, path, old, new, tests in M:
+    if only and name.split()[0] not in only:
+        continue
+    src = open(path).read()
+    pairs = old if isinstance(old, list) else [(old, new)]
+    missing = [o for o, _ in pairs if src.count(o) != 1]
+    if missing:
+        print(f'!! {name}: pattern not unique/found: {missing[0][:60]!r}')
+        bad.append(name)
+        continue
+    mutated = src
+    for o, n in pairs:
+        mutated = mutated.replace(o, n)
+    shutil.copy(path, path + '.bak')
+    try:
+        open(path, 'w').write(mutated)
+        r = subprocess.run(['npx', 'vitest', 'run', *tests], capture_output=True, text=True)
+        out = r.stdout + r.stderr
+        failed = [ln.strip() for ln in out.splitlines() if ln.strip().startswith('×')]
+        verdict = 'KILLED' if r.returncode != 0 else 'SURVIVED'
+        print(f'{verdict}  {name}')
+        for f in failed[:8]:
+            print('     ', f)
+        if r.returncode == 0:
+            bad.append(name)
+    finally:
+        shutil.move(path + '.bak', path)
+
+print('ALL KILLED' if not bad else f'SURVIVORS: {bad}')
+sys.exit(1 if bad else 0)

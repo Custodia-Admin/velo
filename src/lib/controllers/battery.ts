@@ -26,10 +26,13 @@ export function parseBatteryLevel(value: DataView | Uint8Array | null | undefine
 
 export type BatteryBand = 'low' | 'medium' | 'full';
 
-/** Which battery glyph to draw: low (≤ 20 %), medium (≤ 70 %), full. */
+/** Top of the medium band: the v2-devices mockup draws 76 % as battery-medium. */
+export const MEDIUM_BATTERY_MAX_PCT = 80;
+
+/** Which battery glyph to draw: low (≤ 20 %), medium (≤ 80 %), full. */
 export function batteryBand(pct: number): BatteryBand {
   if (pct <= LOW_BATTERY_PCT) return 'low';
-  if (pct <= 70) return 'medium';
+  if (pct <= MEDIUM_BATTERY_MAX_PCT) return 'medium';
   return 'full';
 }
 

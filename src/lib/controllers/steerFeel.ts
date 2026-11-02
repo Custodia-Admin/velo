@@ -24,9 +24,12 @@ export const STEER_DEADZONE = 0.12;
 /** 0 = linear, 1 = pure cubic. */
 export const STEER_EXPO = 0.45;
 
-/** Spring stiffness while steering, rad/s: about 0.9 s to settle. */
+/** Spring stiffness while steering, rad/s: ~95 % of the way there in about 0.95 s. */
 export const STEER_OMEGA = 5;
-/** Spring stiffness when the levers are released, rad/s: back on the line in about 2.4 s. */
+/**
+ * Spring stiffness when the levers are released, rad/s: ~95 % of the way
+ * back in 2.4 s, on the line (snapped inside 5 mm) after about 4 s.
+ */
 export const CENTRE_OMEGA = 2;
 
 /** Lever input (-1..1) after the deadzone and the expo curve. */

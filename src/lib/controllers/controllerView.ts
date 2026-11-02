@@ -72,10 +72,25 @@ export const LOCKED_INTRO = 'The controls are locked. Unlock lasts 24 h.';
 /** Extra line when we could not tell which side is paired. */
 export const MAYBE_RIGHT_TEXT = 'Two entries with the same name? Only the left one sends presses: pair the other.';
 
-/** Asleep controls wake on a button press; during a ride they reconnect on their own. */
-export const ASLEEP_NOTE = 'Press a button on the bars to wake them.';
-export const ASLEEP_TEXT =
-  'The controls went to sleep. Press any button on the bars: during a ride they reconnect by themselves, or tap Reconnect.';
+/**
+ * Asleep controls wake on a button press. They reconnect on their own only
+ * when the browser is really watching for it (during a ride, where
+ * watchAdvertisements exists and was accepted); otherwise the copy asks for
+ * a tap, never promising what cannot happen.
+ */
+export const ASLEEP_NOTE_ARMED = 'Press a button on the bars: they reconnect by themselves.';
+export const ASLEEP_NOTE = 'Press a button on the bars, then tap Reconnect.';
+export const ASLEEP_TEXT_ARMED =
+  'The controls went to sleep. Press any button on the bars: they reconnect by themselves.';
+export const ASLEEP_TEXT = 'The controls went to sleep. Press any button on the bars, then tap Reconnect.';
+
+export function asleepNote(wakeArmed: boolean): string {
+  return wakeArmed ? ASLEEP_NOTE_ARMED : ASLEEP_NOTE;
+}
+
+export function asleepText(wakeArmed: boolean): string {
+  return wakeArmed ? ASLEEP_TEXT_ARMED : ASLEEP_TEXT;
+}
 
 export type ChipTone = 'ok' | 'busy' | 'warn' | 'off';
 export type ChipAction = 'pair' | 'pairOther' | 'reconnect' | null;
@@ -105,7 +120,7 @@ function withBattery(label: string, battery: number | null): string {
   return battery === null ? label : `${label} · ${formatBattery(battery)}`;
 }
 
-export function chipView(phase: ControllerPhase, battery: number | null): ChipView {
+export function chipView(phase: ControllerPhase, battery: number | null, wakeArmed = false): ChipView {
   const v = (
     label: string,
     tone: ChipTone,
@@ -144,7 +159,7 @@ export function chipView(phase: ControllerPhase, battery: number | null): ChipVi
     case 'reconnecting':
       return v('Reconnecting controls…', 'busy', true);
     case 'asleep':
-      return v('Asleep', 'warn', false, 'reconnect', { note: ASLEEP_NOTE });
+      return v('Asleep', 'warn', false, 'reconnect', { note: asleepNote(wakeArmed) });
   }
 }
 
