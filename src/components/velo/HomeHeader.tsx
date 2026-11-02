@@ -1,33 +1,52 @@
 /**
- * Home's top bar (v2 home mockup): the Velo wordmark, then Devices (trainer
- * state at a glance; opens /devices), a day/night toggle and Settings.
- * Scrolls with the page (not sticky).
+ * Home's top bar (v2 home mockup): the Velo wordmark, then the device pill
+ * (the trainer's name and a status dot; opens /devices) and Settings —
+ * exactly the mockup's bar. Day / night lives in Settings > Visual (and the
+ * ride's Settings menu). Scrolls with the page.
  */
 
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bluetooth, Moon, Sun } from 'lucide-react';
+import { Bluetooth } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SettingsButton } from '@/components/profile/SettingsPanel';
 import { cn } from '@/lib/utils';
+import { checkGrantedTrainer, useTrainerReconnectStore } from '@/lib/trainerReconnect';
 import { useRideStore } from '@/stores/rideStore';
-import { useThemeStore } from '@/stores/themeStore';
 import { COLUMN, PAGE_X, WORDMARK } from '@/components/velo/v2';
+import { shortDeviceName } from '@/components/velo/rideHudText';
 
-/** Devices button copy: the paired trainer's name when connected. */
-export function devicesButtonText(connected: boolean, deviceName: string | null): { label: string; ariaLabel: string } {
-  return connected
-    ? { label: deviceName || 'Trainer', ariaLabel: 'Devices: trainer connected' }
-    : { label: 'Devices', ariaLabel: 'Devices: no trainer paired' };
+/**
+ * Device pill copy: the trainer's model name ("KICKR CORE") when one is
+ * connected or paired in an earlier session (the dot tells which), else
+ * "Devices".
+ */
+export function devicesButtonText(
+  connected: boolean,
+  deviceName: string | null,
+  pairedName: string | null = null,
+): { label: string; ariaLabel: string; on: boolean } {
+  if (connected) {
+    const name = deviceName?.trim() || 'Trainer';
+    return { label: shortDeviceName(name), ariaLabel: `Devices: ${name} connected`, on: true };
+  }
+  if (pairedName?.trim()) {
+    const name = pairedName.trim();
+    return { label: shortDeviceName(name), ariaLabel: `Devices: ${name} paired, not connected`, on: false };
+  }
+  return { label: 'Devices', ariaLabel: 'Devices: no trainer paired', on: false };
 }
 
 export function HomeHeader() {
   const navigate = useNavigate();
   const connected = useRideStore((s) => s.connection === 'connected');
   const deviceName = useRideStore((s) => s.deviceName);
-  const theme = useThemeStore((s) => s.theme);
-  const toggleTheme = useThemeStore((s) => s.toggleTheme);
-  const night = theme === 'dark';
-  const devices = devicesButtonText(connected, deviceName);
+  const pairedName = useTrainerReconnectStore((s) => (s.phase === 'none' ? null : s.name));
+  // Read-only: asks the browser which trainer is already granted (no BLE traffic).
+  useEffect(() => {
+    void checkGrantedTrainer();
+  }, []);
+  const devices = devicesButtonText(connected, deviceName, pairedName);
 
   return (
     <header className={PAGE_X}>
@@ -43,17 +62,8 @@ export function HomeHeader() {
             <span className="hidden sm:inline">{devices.label}</span>
             <span
               aria-hidden
-              className={cn('h-2 w-2 shrink-0 rounded-full', connected ? 'bg-primary' : 'bg-muted-foreground')}
+              className={cn('h-2 w-2 shrink-0 rounded-full', devices.on ? 'bg-primary' : 'bg-muted-foreground')}
             />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground"
-            onClick={toggleTheme}
-            aria-label={night ? 'Switch to day theme' : 'Switch to night theme'}
-          >
-            {night ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
           <SettingsButton variant="ghost" className="text-muted-foreground" />
         </nav>

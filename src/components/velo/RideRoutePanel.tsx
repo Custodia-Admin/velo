@@ -2,22 +2,23 @@
  * v2 route panel (top-left of the ride HUD, docs/design/mockups/v2-ride-hud.html):
  * the place name in the book serif, "6.7 km to go · about 20 min", the
  * elevation profile with a "you are here" dot (sm+), and the next named
- * landmark when the route has one (detected climbs; nothing is invented).
+ * place on the road: a village, church or tower the route passes (the world
+ * bundle's OSM points of interest) or a detected climb. Nothing is invented:
+ * routes with neither show no line.
  *
  * Quantised reads (10 m, 10 s) keep it at display-change rate.
  */
 
-import { useMemo } from 'react';
 import { Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { findClimbs } from '@/lib/climbDetection';
 import { quantizedMeters } from '@/lib/hudThrottle';
 import { scenicRouteById } from '@/lib/scenicRoutes';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useNextLandmarkText } from '@/hooks/useRouteLandmarks';
 import { RouteProfile } from './RouteProfile';
 import { DISPLAY, HUD_PANEL } from './v2';
-import { nextLandmarkText, remainingText } from './rideHudText';
+import { remainingText } from './rideHudText';
 
 export function RideRoutePanel({ className }: { className?: string }) {
   const route = useRideStore((s) => s.route);
@@ -27,12 +28,11 @@ export function RideRoutePanel({ className }: { className?: string }) {
   const units = useSettingsStore((s) => s.units);
 
   const estMinutes = route ? scenicRouteById(route.id)?.estMinutes ?? null : null;
-  const climbs = useMemo(() => (route && !route.isLive ? findClimbs(route) : []), [route]);
+  const next = useNextLandmarkText(route, distance, units);
 
   if (!route) return null;
   const total = route.isLive ? 0 : route.totalDistance;
   const left = remainingText({ distanceM: distance, totalM: total, elapsedS, estMinutes, units });
-  const next = nextLandmarkText(climbs, distance, units);
   const at = total > 0 ? Math.min(1, distance / total) : undefined;
 
   return (
@@ -51,7 +51,7 @@ export function RideRoutePanel({ className }: { className?: string }) {
       )}
       {next && (
         <p className="hidden items-center gap-1.5 text-sm sm:flex">
-          <Flag className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+          <Flag className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="truncate">{next}</span>
         </p>
       )}

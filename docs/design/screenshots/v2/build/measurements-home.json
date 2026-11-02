@@ -7,7 +7,7 @@
   "minFont": 12,
   "minFontEl": "Today\u2019s ride",
   "minTarget": 40,
-  "minTargetEl": "Devices: no trainer paired",
+  "minTargetEl": "Devices: KICKR CORE 78C1 connected",
   "overflow": false,
   "rects": {
    "area": [
@@ -23,9 +23,9 @@
     40
    ],
    "devices": [
-    1002,
+    1025,
     12,
-    126,
+    155,
     40
    ],
    "h1": [
@@ -67,11 +67,11 @@
    "ride": [
     256,
     632,
-    110,
+    112,
     48
    ],
    "riders": [
-    944,
+    992,
     88,
     240,
     40
@@ -100,7 +100,7 @@
   "minFont": 12,
   "minFontEl": "Today\u2019s ride",
   "minTarget": 40,
-  "minTargetEl": "Devices: no trainer paired",
+  "minTargetEl": "Devices: KICKR CORE 78C1 connected",
   "overflow": false,
   "rects": {
    "area": [
@@ -116,9 +116,9 @@
     40
    ],
    "devices": [
-    1002,
+    1025,
     12,
-    126,
+    155,
     40
    ],
    "h1": [
@@ -160,11 +160,11 @@
    "ride": [
     256,
     632,
-    110,
+    112,
     48
    ],
    "riders": [
-    944,
+    992,
     88,
     240,
     40
@@ -193,23 +193,23 @@
   "minFont": 12,
   "minFontEl": "Today\u2019s ride",
   "minTarget": 40,
-  "minTargetEl": "Devices: no trainer paired",
+  "minTargetEl": "Devices: KICKR CORE 78C1 connected",
   "overflow": false,
   "rects": {
    "area": [
     16,
-    925,
+    926,
     122,
     32
    ],
    "comfort": [
     297,
-    845,
+    846,
     68,
     40
    ],
    "devices": [
-    204,
+    256,
     12,
     66,
     40
@@ -236,13 +236,13 @@
     16,
     192,
     358,
-    633
+    634
    ],
    "label": [
     16,
     461,
     358,
-    364
+    365
    ],
    "plate": [
     16,
@@ -252,7 +252,7 @@
    ],
    "ride": [
     16,
-    717,
+    718,
     358,
     48
    ],
@@ -264,13 +264,13 @@
    ],
    "tile": [
     16,
-    977,
+    978,
     358,
-    330
+    331
    ],
    "tilePlate": [
     16,
-    977,
+    978,
     358,
     239
    ]
@@ -286,23 +286,23 @@
   "minFont": 12,
   "minFontEl": "Today\u2019s ride",
   "minTarget": 40,
-  "minTargetEl": "Devices: no trainer paired",
+  "minTargetEl": "Devices: KICKR CORE 78C1 connected",
   "overflow": false,
   "rects": {
    "area": [
     16,
-    925,
+    926,
     122,
     32
    ],
    "comfort": [
     297,
-    845,
+    846,
     68,
     40
    ],
    "devices": [
-    204,
+    256,
     12,
     66,
     40
@@ -329,13 +329,13 @@
     16,
     192,
     358,
-    633
+    634
    ],
    "label": [
     16,
     461,
     358,
-    364
+    365
    ],
    "plate": [
     16,
@@ -345,7 +345,7 @@
    ],
    "ride": [
     16,
-    717,
+    718,
     358,
     48
    ],
@@ -357,13 +357,13 @@
    ],
    "tile": [
     16,
-    977,
+    978,
     358,
-    330
+    331
    ],
    "tilePlate": [
     16,
-    977,
+    978,
     358,
     239
    ]
@@ -379,7 +379,7 @@
   "minFont": 21,
   "minFontEl": "Today\u2019s ride",
   "minTarget": 70,
-  "minTargetEl": "Devices: no trainer paired",
+  "minTargetEl": "Devices: KICKR CORE 78C1 connected",
   "overflow": false,
   "rects": {
    "area": [
@@ -395,9 +395,9 @@
     70
    ],
    "devices": [
-    1449,
+    1489,
     21,
-    219,
+    270,
     70
    ],
    "h1": [
@@ -439,11 +439,11 @@
    "ride": [
     154,
     814,
-    193,
+    195,
     84
    ],
    "riders": [
-    1349,
+    1433,
     154,
     417,
     70
@@ -472,7 +472,7 @@
   "minFont": 21,
   "minFontEl": "Today\u2019s ride",
   "minTarget": 70,
-  "minTargetEl": "Devices: no trainer paired",
+  "minTargetEl": "Devices: KICKR CORE 78C1 connected",
   "overflow": false,
   "rects": {
    "area": [
@@ -488,9 +488,9 @@
     70
    ],
    "devices": [
-    1449,
+    1489,
     21,
-    219,
+    270,
     70
    ],
    "h1": [
@@ -532,11 +532,11 @@
    "ride": [
     154,
     814,
-    193,
+    195,
     84
    ],
    "riders": [
-    1349,
+    1433,
     154,
     417,
     70

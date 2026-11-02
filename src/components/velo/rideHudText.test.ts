@@ -11,6 +11,7 @@ import {
   nextLandmarkText,
   remainingMinutes,
   remainingText,
+  shortDeviceName,
   statusChip,
   type ChipInput,
 } from './rideHudText';
@@ -75,6 +76,11 @@ describe('next landmark', () => {
 });
 
 describe('status chip', () => {
+  it('shows the model name without the 4-hex unit suffix', () => {
+    expect(shortDeviceName('KICKR CORE 78C1')).toBe('KICKR CORE');
+    expect(shortDeviceName(' Elite Direto XR ')).toBe('Elite Direto XR');
+    expect(shortDeviceName('78C1')).toBe('78C1');
+  });
   const base: ChipInput = {
     connection: 'connected',
     mode: 'trainer',
@@ -90,19 +96,19 @@ describe('status chip', () => {
 
   it('connected trainer: name and how hard the hills feel, primary dot, quiet on phones', () => {
     const v = statusChip(base);
-    expect(v.label).toBe('KICKR CORE 78C1 · hills 35 %');
+    expect(v.label).toBe('KICKR CORE · hills 35 %');
     expect(v.tone).toBe('ok');
     expect(v.alert).toBe(false);
     expect(v.aria).toContain('hills feel 35 percent');
   });
 
   it('ERG mode shows the target instead of hills', () => {
-    expect(statusChip({ ...base, erg: true, targetPowerW: 180 }).label).toBe('KICKR CORE 78C1 · ERG 180 W');
+    expect(statusChip({ ...base, erg: true, targetPowerW: 180 }).label).toBe('KICKR CORE · ERG 180 W');
   });
 
   it('a low trainer battery turns it into a warning', () => {
     const v = statusChip({ ...base, battery: 9 });
-    expect(v.label).toBe('KICKR CORE 78C1 · hills 35 % · battery 9 %');
+    expect(v.label).toBe('KICKR CORE · hills 35 % · battery 9 %');
     expect(v.tone).toBe('warn');
     expect(v.alert).toBe(true);
   });

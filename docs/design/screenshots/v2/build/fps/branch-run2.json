@@ -4,31 +4,31 @@
   1920,
   1080
  ],
- "base": "http://localhost:4198",
+ "base": "http://127.0.0.1:4199",
  "loadavg_start": [
-  5.8017578125,
-  6.80029296875,
-  7.52392578125
+  1.1181640625,
+  2.20654296875,
+  2.68505859375
  ],
  "medium": {
   "renderer": "world",
   "bundle": [
-   "index-BLLBYKHZ.js"
+   "index-vun-ktUf.js"
   ],
   "gpu": "ANGLE (Intel, Vulkan 1.4.354 (Intel(R) Arc(tm) Graphics (MTL) (0x00007D55)), Intel open-source Mesa driver)",
   "dpr": 1,
   "noTokenBanner": 0,
   "backdropHud": [],
-  "backdropGlass": 1,
+  "backdropGlass": 0,
   "rounds": [
    {
     "round": 0,
     "mode": "hud",
-    "fps": 55,
+    "fps": 60,
     "p95": 16.8,
-    "worst": 83,
-    "over20": 3.6,
-    "load1": 5.42
+    "worst": 17,
+    "over20": 0,
+    "load1": 1.07
    },
    {
     "round": 0,
@@ -37,16 +37,43 @@
     "p95": 16.7,
     "worst": 17,
     "over20": 0,
-    "load1": 5.55
+    "load1": 1.14
    },
    {
     "round": 0,
     "mode": "canvas",
     "fps": 60,
+    "p95": 16.8,
+    "worst": 17,
+    "over20": 0,
+    "load1": 1.04
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 57.4,
+    "p95": 16.8,
+    "worst": 33,
+    "over20": 4.5,
+    "load1": 1.04
+   },
+   {
+    "round": 1,
+    "mode": "hud-glass",
+    "fps": 60,
     "p95": 16.7,
     "worst": 17,
     "over20": 0,
-    "load1": 5.26
+    "load1": 0.96
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.88
    }
   ],
   "long": {
@@ -55,6 +82,7 @@
    "fps5s": [
     60.0,
     60.0,
+    59.8,
     60.0,
     60.0,
     60.0,
@@ -68,26 +96,25 @@
     60.0,
     60.0,
     60.0,
-    60.0,
-    59.8
+    60.0
    ],
    "pctOver20ms": 0.0,
    "riderInFramePct": 100.0,
    "riderXRange": [
-    826,
-    1034
+    827,
+    1017
    ],
    "distRange": [
-    223,
-    1005
+    376,
+    1170
    ],
-   "load1": 4.9
+   "load1": 1.16
   },
   "pageErrors": []
  },
  "loadavg_end": [
-  4.90283203125,
-  5.92236328125,
-  7.10009765625
+  1.1640625,
+  1.751953125,
+  2.43701171875
  ]
 }

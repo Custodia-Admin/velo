@@ -3,8 +3,9 @@
  * low-light HUD, avatar/garage colours.
  */
 
-import { Camera, Monitor, Palette, Smartphone } from 'lucide-react';
+import { Camera, Monitor, Moon, Palette, Smartphone } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useThemeStore } from '@/stores/themeStore';
 import type { LowLightSetting } from '@/lib/lowLightMode';
 import { type GraphicsQuality, QUALITY_LABELS } from '@/lib/graphicsQuality';
 import { CAMERA_MODES, type CameraMode } from '@/lib/cesiumCameras';
@@ -49,9 +50,19 @@ const QUALITY_TIERS: GraphicsQuality[] = ['low', 'medium', 'high'];
 
 export function VisualSettings() {
   const s = useSettingsStore();
+  const theme = useThemeStore((t) => t.theme);
+  const setTheme = useThemeStore((t) => t.setTheme);
 
   return (
     <div className="space-y-6">
+      {/* Day / night colours (Home's top bar has no toggle, as mocked) */}
+      <Section icon={<Moon className="h-4 w-4" />} title="Colours">
+        <div className="grid grid-cols-2 gap-2">
+          <PickerButton selected={theme === 'light'} onClick={() => setTheme('light')} label="Day" sub="paper" />
+          <PickerButton selected={theme === 'dark'} onClick={() => setTheme('dark')} label="Night" sub="deep umber" />
+        </div>
+      </Section>
+
       {/* Camera mode */}
       <Section icon={<Camera className="h-4 w-4" />} title="Camera">
         <div className="grid grid-cols-3 gap-2">

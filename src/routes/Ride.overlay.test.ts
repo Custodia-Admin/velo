@@ -32,10 +32,12 @@ describe('Ride overlay layers stay click-through', () => {
     expect(rideSrc).not.toContain('className="relative w-full h-full pointer-events-auto"');
   });
 
-  it('GestureLegend opts its interactive parts back in', () => {
-    // The "?" chip and the open legend dialog take pointer events; nothing else.
+  it('GestureLegend opts only its open dialog back in; no floating "?" chip', () => {
     const auto = legendSrc.match(/pointer-events-auto/g) ?? [];
-    expect(auto.length).toBeGreaterThanOrEqual(2);
+    expect(auto.length).toBeGreaterThanOrEqual(1);
+    expect(legendSrc).not.toContain('aria-label="Show gesture controls legend"');
+    // Help lives in the ride Settings menu instead.
+    expect(legendSrc).toContain('OPEN_GESTURE_LEGEND_EVENT');
   });
 
   it('the v2 HUD row and the bottom column span the screen but stay click-through', () => {

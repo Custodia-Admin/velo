@@ -15,20 +15,20 @@ const buttonVariants = cva(
         destructive:
           'bg-destructive text-destructive-foreground hover:brightness-110 shadow-[0_4px_14px_-5px_hsl(var(--destructive)/0.45)]',
         outline:
-          'border border-border bg-card/70 text-foreground hover:bg-card hover:border-primary/45 hover:text-primary',
+          'border border-border bg-card text-foreground hover:border-primary/45 hover:text-primary',
         ghost:
           'text-foreground hover:bg-muted/70 hover:text-foreground',
         link:
           'text-primary underline-offset-4 hover:underline p-0 h-auto font-medium',
         /* Velo v2 (warm atlas): flat terracotta primary, no glow. One per view. */
         primary:
-          'bg-primary text-primary-foreground hover:bg-primary/90',
+          'border border-transparent bg-primary text-primary-foreground hover:bg-primary/90',
         /* Text-weight action beside a primary ("Ride and watch", "Finish"). */
         quiet:
-          'text-foreground hover:bg-muted/70',
-        /* Solid in-ride surface: never glass over the live canvas. */
+          'border border-transparent text-foreground hover:bg-muted/70',
+        /* Translucent in-ride surface (.hud-surface): never glass blur over the live canvas. */
         hud:
-          'border border-border/60 bg-hud/90 text-hud-foreground shadow-md hover:bg-hud',
+          'border border-border/60 hud-surface text-hud-foreground',
         /* Underlined inline action ("Change"). */
         textlink:
           'px-2 text-foreground underline decoration-muted-foreground underline-offset-4 hover:decoration-foreground',
@@ -36,7 +36,7 @@ const buttonVariants = cva(
       size: {
         default: 'h-10 px-4 py-2 min-w-[2.5rem]',
         sm:      'h-8 rounded-md px-3 text-xs min-w-[2rem]',
-        lg:      'h-12 rounded-lg px-6 text-[0.9375rem] min-w-[3rem]',
+        lg:      'h-12 rounded-md px-6 text-base min-w-[3rem]',
         icon:    'h-10 w-10 p-0',
       },
     },

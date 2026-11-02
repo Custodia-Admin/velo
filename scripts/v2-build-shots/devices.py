@@ -30,84 +30,13 @@ from playwright.sync_api import sync_playwright  # noqa: E402
 
 SCREEN = "devices"
 
-FAKE_BT = r"""
-(() => {
-  const opts = JSON.parse(localStorage.getItem('fakeDevices') || '{}');
-  if (opts.noBluetooth) return;
-  if (opts.granted) localStorage.setItem('velo.lastTrainer', JSON.stringify({ id: 'kickr-fake', name: 'KICKR CORE 78C1' }));
-  else localStorage.removeItem('velo.lastTrainer');
-  const hex = (h) => Uint8Array.from(h.trim().split(/\s+/).map((b) => parseInt(b, 16)));
-  class Char extends EventTarget {
-    constructor(read) { super(); this.read = read; this.value = undefined; this.writes = [];
-      this.properties = { write: true, writeWithoutResponse: true, notify: true }; }
-    async startNotifications() { return this; }
-    async writeValue(b) { this.writes.push(Array.from(new Uint8Array(b.buffer || b))); }
-    async writeValueWithResponse(b) { return this.writeValue(b); }
-    async writeValueWithoutResponse(b) { return this.writeValue(b); }
-    async readValue() { return new DataView(Uint8Array.of(this.read || 0).buffer); }
-    notify(h) { const b = hex(h); this.value = new DataView(b.buffer); this.dispatchEvent(new Event('characteristicvaluechanged')); }
-  }
-  const notFound = () => Object.assign(new Error('not found'), { name: 'NotFoundError' });
-  const isBattery = (u) => u === 0x180f || u === 'battery_service' || String(u).startsWith('0000180f');
-
-  // Trainer: granted in an earlier session (mains powered: no battery service).
-  const tChars = new Map();
-  const tch = (u) => { if (!tChars.has(u)) tChars.set(u, new Char(0)); return tChars.get(u); };
-  const kickr = new EventTarget();
-  kickr.id = 'kickr-fake'; kickr.name = 'KICKR CORE 78C1';
-  const kgatt = { connected: false, device: kickr,
-    async connect() { kgatt.connected = true; return kgatt; },
-    disconnect() { kgatt.connected = false; },
-    async getPrimaryService(u) { if (isBattery(u)) throw notFound(); return { getCharacteristic: async (c) => tch(c) }; } };
-  kickr.gatt = kgatt;
-
-  // Left Zwift Ride handlebar (advert type byte 0x08), battery 76 %.
-  const asyncCh = new Char(), rx = new Char(), tx = new Char(), bas = new Char(76);
-  const rChars = {
-    '00000002-19ca-4651-86e5-fa29dcdd09d1': asyncCh,
-    '00000003-19ca-4651-86e5-fa29dcdd09d1': rx,
-    '00000004-19ca-4651-86e5-fa29dcdd09d1': tx,
-  };
-  const ride = new EventTarget();
-  ride.name = 'Zwift Ride'; ride.id = 'fake-ride';
-  ride.watchAdvertisements = async () => {
-    setTimeout(() => {
-      const ev = new Event('advertisementreceived');
-      ev.manufacturerData = new Map([[0x094a, new DataView(Uint8Array.of(0x08, 0xdb, 0xf4).buffer)]]);
-      ride.dispatchEvent(ev);
-    }, 120);
-  };
-  const rgatt = { connected: false, device: ride,
-    async connect() { rgatt.connected = true; return rgatt; },
-    disconnect() { rgatt.connected = false; },
-    async getPrimaryService(u) {
-      if (u === '0000fc82-0000-1000-8000-00805f9b34fb') return { getCharacteristic: async (c) => rChars[c] };
-      if (isBattery(u)) return { getCharacteristic: async () => bas };
-      throw notFound();
-    } };
-  ride.gatt = rgatt;
-
-  const bt = new EventTarget();
-  bt.getAvailability = async () => true;
-  bt.getDevices = async () => (opts.granted ? [kickr] : []);
-  bt.requestDevice = async (o) => {
-    const wantsHr = JSON.stringify(o || {}).includes('0000180d');
-    if (wantsHr) throw Object.assign(new Error('No devices found.'), { name: 'NotFoundError' });
-    if (JSON.stringify(o || {}).includes('Zwift') || (o && o.acceptAllDevices)) return ride;
-    throw Object.assign(new Error('User cancelled the requestDevice() chooser.'), { name: 'NotFoundError' });
-  };
-  Object.defineProperty(navigator, 'bluetooth', { value: bt, configurable: true });
-  window.__fakeRide = { notify: (h) => asyncCh.notify(h) };
-})();
-"""
 
 
 def open_page(browser, vp, theme, fake: dict):
-    extra = f"localStorage.setItem('fakeDevices', {json.dumps(json.dumps(fake))});\n" + FAKE_BT
-    ctx, page = common.new_page(browser, vp, theme, extra)
+    ctx, page = common.new_page(browser, vp, theme, fake=fake)
     page.goto(common.url("/devices", vp), wait_until="domcontentloaded", timeout=60000)
     page.wait_for_selector("h1:has-text('Devices')", timeout=30000)
-    page.evaluate("document.fonts.ready")
+    common.fonts_ready(page)
     page.wait_for_timeout(600)
     return ctx, page
 

@@ -1,16 +1,31 @@
 /**
  * v2 ride tools (top-right of the ride HUD, docs/design/mockups/v2-ride-hud.html):
- * the status chip ("KICKR CORE · hills 35 %"), Show, Camera, Settings, and
- * one "More" button for the legacy ride tools the mockup left out (theme,
- * sound, ghosts, invite, shortcuts, voice, VR/AR). "More" is a deliberate
- * addition to the mockup so nothing the rider had before goes missing.
+ * the status chip ("KICKR CORE · hills 35 %"), Show, Camera and Settings —
+ * exactly the mockup's row. Settings opens the ride options menu: rider and
+ * trainer settings first, then the ride tools the mockup has no button for
+ * (route map, night colours, sounds, ghosts, voice, invite, shortcuts,
+ * gesture help, VR/AR), so nothing the rider had before goes missing and no
+ * extra button floats on the HUD.
  *
- * Below sm the chip shows only when something is wrong, and Camera and
- * Settings move into "More".
+ * Below sm the chip shows only when something is wrong, and Camera moves
+ * into the Settings menu.
  */
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Camera, Ellipsis, Ghost, Keyboard, Map as MapIcon, Mic, Moon, Settings, UserPlus, Volume2 } from 'lucide-react';
+import {
+  Camera,
+  Ghost,
+  Hand,
+  Keyboard,
+  Map as MapIcon,
+  Mic,
+  Moon,
+  Mountain,
+  Settings,
+  SlidersHorizontal,
+  UserPlus,
+  Volume2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SettingsPanel } from '@/components/profile/SettingsPanel';
 import { cn } from '@/lib/utils';
@@ -21,7 +36,9 @@ import { useGhostStore } from '@/stores/ghostStore';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { OPEN_GESTURE_LEGEND_EVENT } from '@/components/ride/GestureLegend';
 import { ShowToggle } from './ShowToggle';
+import { toggleRideDetail } from './MobileDetailDock';
 import { HUD_PANEL } from './v2';
 import { statusChip } from './rideHudText';
 
@@ -57,8 +74,7 @@ export function RideTools({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, 
       <StatusChip />
       <ShowToggle />
       <CameraButton className="hidden sm:inline-flex" />
-      <RideSettingsButton className="hidden sm:inline-flex" />
-      <MoreMenu
+      <RideOptionsMenu
         mapOpen={mapOpen}
         onToggleMap={onToggleMap}
         onInvite={onInvite}
@@ -143,42 +159,9 @@ export function CameraButton({ className }: { className?: string }) {
   );
 }
 
-/** Settings as a HUD icon; also opens on the app-wide 'globeride:open-settings' event. */
-export function RideSettingsButton({ className }: { className?: string }) {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Parameters<typeof SettingsPanel>[0]['initialTab']>('rider');
-
-  useEffect(() => {
-    const onOpen = (e: Event) => {
-      const detail = (e as CustomEvent<{ tab?: typeof tab }>).detail;
-      setTab(detail?.tab ?? 'rider');
-      setOpen(true);
-    };
-    window.addEventListener('globeride:open-settings', onOpen);
-    return () => window.removeEventListener('globeride:open-settings', onOpen);
-  }, []);
-
-  return (
-    <>
-      <Button
-        variant="hud"
-        size="icon"
-        className={className}
-        aria-label="Ride settings"
-        onClick={() => {
-          setTab('rider');
-          setOpen(true);
-        }}
-      >
-        <Settings className="h-5 w-5" aria-hidden="true" />
-      </Button>
-      <SettingsPanel open={open} onClose={() => setOpen(false)} initialTab={tab} />
-    </>
-  );
-}
-
 // ---------------------------------------------------------------------------
-// More: the legacy tools, one tap away
+// Settings: the ride options menu (rider and trainer settings + the legacy
+// ride tools), one tap away
 // ---------------------------------------------------------------------------
 
 function MenuItem({
@@ -212,8 +195,15 @@ function MenuItem({
 
 const ICON = 'h-4 w-4 shrink-0';
 
-function MoreMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, xr }: RideToolsProps) {
+/**
+ * The Settings icon (mockup) opens this menu. Rider and trainer settings
+ * (the full SettingsPanel) is the first item; the app-wide
+ * 'globeride:open-settings' event still opens the panel directly.
+ */
+function RideOptionsMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, xr }: RideToolsProps) {
   const [open, setOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [tab, setTab] = useState<Parameters<typeof SettingsPanel>[0]['initialTab']>('rider');
   const rootRef = useRef<HTMLDivElement>(null);
 
   const isDark = useThemeStore((s) => s.theme === 'dark');
@@ -224,8 +214,20 @@ function MoreMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, xr }: Ri
   const ghostCount = useGhostStore((s) => s.ghostCount);
   const setGhosts = useGhostStore((s) => s.setGhostsEnabled);
   const voiceEnabled = useSettingsStore((s) => s.voiceControlEnabled);
+  const gestures = useSettingsStore((s) => s.gestureControlsEnabled);
   const cameraMode = useSettingsStore((s) => s.cameraMode);
   const setCameraMode = useSettingsStore((s) => s.setCameraMode);
+
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const detail = (e as CustomEvent<{ tab?: typeof tab }>).detail;
+      setTab(detail?.tab ?? 'rider');
+      setOpen(false);
+      setPanelOpen(true);
+    };
+    window.addEventListener('globeride:open-settings', onOpen);
+    return () => window.removeEventListener('globeride:open-settings', onOpen);
+  }, []);
 
   // Escape or a tap outside closes the menu. Escape stops here: on the
   // window it is the ride's pause / finish shortcut.
@@ -260,20 +262,28 @@ function MoreMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, xr }: Ri
       <Button
         variant="hud"
         size="icon"
-        aria-label="More ride options"
+        aria-label="Ride settings"
         aria-expanded={open}
-        aria-controls="ride-more-menu"
+        aria-controls="ride-options-menu"
         onClick={() => setOpen((o) => !o)}
       >
-        <Ellipsis className="h-5 w-5" aria-hidden="true" />
+        <Settings className="h-5 w-5" aria-hidden="true" />
       </Button>
       {open && (
         <div
-          id="ride-more-menu"
+          id="ride-options-menu"
           role="group"
-          aria-label="More ride options"
+          aria-label="Ride settings"
           className={cn(HUD_PANEL, 'absolute right-0 top-full z-40 mt-2 flex w-64 flex-col gap-1 p-2')}
         >
+          <MenuItem
+            icon={<SlidersHorizontal className={ICON} aria-hidden="true" />}
+            label="Rider and trainer"
+            onClick={then(() => {
+              setTab('rider');
+              setPanelOpen(true);
+            })}
+          />
           <MenuItem
             className="sm:hidden"
             icon={<Camera className={ICON} aria-hidden="true" />}
@@ -282,18 +292,24 @@ function MoreMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, xr }: Ri
             onClick={() => setCameraMode(nextCameraMode(cameraMode))}
           />
           <MenuItem
-            className="sm:hidden"
-            icon={<Settings className={ICON} aria-hidden="true" />}
-            label="Settings"
-            onClick={then(() => window.dispatchEvent(new CustomEvent('globeride:open-settings')))}
-          />
-          <MenuItem
             className="hidden sm:inline-flex"
             icon={<MapIcon className={ICON} aria-hidden="true" />}
             label="Route map"
             state={mapOpen ? 'On' : 'Off'}
             pressed={mapOpen}
             onClick={onToggleMap}
+          />
+          <MenuItem
+            className="sm:hidden"
+            icon={<MapIcon className={ICON} aria-hidden="true" />}
+            label="Route map"
+            onClick={then(() => toggleRideDetail('map'))}
+          />
+          <MenuItem
+            className="sm:hidden"
+            icon={<Mountain className={ICON} aria-hidden="true" />}
+            label="Elevation profile"
+            onClick={then(() => toggleRideDetail('profile'))}
           />
           <MenuItem
             icon={<Moon className={ICON} aria-hidden="true" />}
@@ -336,9 +352,17 @@ function MoreMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, xr }: Ri
             label="Keyboard shortcuts"
             onClick={then(onShortcuts)}
           />
+          {gestures && (
+            <MenuItem
+              icon={<Hand className={ICON} aria-hidden="true" />}
+              label="Gesture help"
+              onClick={then(() => window.dispatchEvent(new Event(OPEN_GESTURE_LEGEND_EVENT)))}
+            />
+          )}
           {xr && <div className="flex flex-wrap gap-2 px-1 pt-1 empty:hidden">{xr}</div>}
         </div>
       )}
+      <SettingsPanel open={panelOpen} onClose={() => setPanelOpen(false)} initialTab={tab} />
     </div>
   );
 }

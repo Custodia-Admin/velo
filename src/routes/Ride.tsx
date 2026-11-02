@@ -70,15 +70,16 @@ const VRHud = lazy(() => import('@/components/ride/VRHud').then((m) => ({ defaul
  * user can dismiss the commentator by tapping anywhere.
  *
  * HUD (v2 warm atlas, docs/design/mockups/v2-ride-hud.html): RideHud top row
- * (Exit + route panel | status chip, Show, Camera, Settings, More) and the
+ * (Exit + route panel | status chip, Show, Camera, Settings) and the
  * RideStrip at the bottom; show mode swaps them for the video panel and the
- * show strip (v2-show.html). Solid HUD surfaces only: `hud-flat` keeps every
- * backdrop-filter off the live canvas.
+ * show strip (v2-show.html). Translucent HUD surfaces without blur:
+ * `hud-flat` keeps every backdrop-filter off the live canvas.
  *
  * Also mounted:
  *   - Handlebar gesture detection on the main ride container (double-tap,
  *     long-press, two-finger swipe) — gated by settings.gestureControlsEnabled.
- *   - GestureLegend overlay (the "?" chip, restyled by .ride-gesture-slot).
+ *   - GestureLegend overlay, opened from the ride options menu ("Gesture
+ *     help"); no floating "?" chip.
  */
 export function Ride() {
   const navigate      = useNavigate();
@@ -395,16 +396,12 @@ export function Ride() {
         </>
       )}
 
-      {/* -- Gesture legend "?" chip + overlay ------------------- */}
-      {/* The full-screen wrapper must stay click-through: only the chip and
-          its dialog take pointer events, or the HUD below is unclickable.
-          ride-gesture-slot (index.css) turns the chip into a HUD icon button
-          in a free corner. */}
+      {/* -- Gesture legend overlay ------------------------------- */}
+      {/* Opened from Settings > Gesture help (OPEN_GESTURE_LEGEND_EVENT).
+          The wrapper spans the screen, so it stays click-through: only the
+          open legend takes pointer events. */}
       {gestureControlsEnabled && rideHudOn && (
-        <div className="ride-gesture-slot absolute inset-0 pointer-events-none z-30">
-          {/* GestureLegend positions itself absolutely within this container.
-              The wrapper spans the screen, so it must stay click-through: only
-              the chip and the open legend take pointer events. */}
+        <div className="absolute inset-0 pointer-events-none z-30">
           <div className="relative w-full h-full pointer-events-none">
             <GestureLegend />
           </div>

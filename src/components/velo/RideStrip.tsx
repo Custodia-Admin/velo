@@ -16,8 +16,8 @@ import { Button } from '@/components/ui/button';
 import { cn, formatDistance, formatDuration } from '@/lib/utils';
 import { quantizedMeters } from '@/lib/hudThrottle';
 import { trainerDrivesRide } from '@/lib/rideDrive';
-import { GEAR_COUNT } from '@/lib/virtualGears';
-import { useControllerStore } from '@/stores/controllerStore';
+import { GEAR_COUNT, NEUTRAL_GEAR } from '@/lib/virtualGears';
+import { useControllerStore, type ControllerStatus } from '@/stores/controllerStore';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { Figure } from './Figure';
@@ -25,13 +25,23 @@ import { HUD_PANEL } from './v2';
 
 const M_PER_MI = 1609.344;
 
-/** The live virtual gear, or null when no handlebar controls drive one (or ERG holds the power). */
+/**
+ * The virtual gear the trainer resistance uses right now (controllerStore
+ * activeGear): the live gear while handlebar controls are connected, else
+ * neutral (6 / 11). Null only in ERG, where the trainer holds the power and
+ * gears do nothing.
+ */
 export function useLiveGear(): number | null {
   const status = useControllerStore((s) => s.status);
   const gear = useControllerStore((s) => s.gear);
   const erg = useRideStore((s) => s.trainerControlMode === 'erg');
-  const live = status === 'connected' || status === 'reconnecting';
-  return live && !erg ? gear : null;
+  return shownGear(status, gear, erg);
+}
+
+/** Pure part of {@link useLiveGear} (same rule as controllerStore.activeGear). */
+export function shownGear(status: ControllerStatus, gear: number, erg: boolean): number | null {
+  if (erg) return null;
+  return status === 'connected' || status === 'reconnecting' ? gear : NEUTRAL_GEAR;
 }
 
 export function RideStrip({ className }: { className?: string }) {

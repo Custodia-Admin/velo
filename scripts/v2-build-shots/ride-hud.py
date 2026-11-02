@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """P2.4 build shots: the v2 in-ride HUD (docs/design/mockups/v2-ride-hud.html).
 
-Home (/app) -> Today's ride (Tiber river park on the pinned 1 Nov 2026) -> the
-token-free world renderer -> riding ~25 s -> shot, at 1440 / 390 / tv, day and
-night. Also records window.__veloRideDebug().riderScreen and every HUD panel
-rect, and flags panels that overlap the rider box.
+Staged as mocked (scripts/v2-build-shots/common.py): a fake granted KICKR CORE
+is reconnected on /devices (no hardware) and streams 142 W / 88 rpm, then Home
+(/app) -> Today's ride (Tiber river park on the pinned 1 Nov 2026) -> the
+token-free world renderer. Once riding, the ride is staged at the mockup's
+point in the ride (9.06 km, 24:42 — the mockup still's place on the route; set on the dev
+server's rideStore module)
+and the world is pinned to golden hour, clear (window.__veloWorldLight), then
+it rides on ~RIDE_S s before the shot, at 1440 / 390 / tv, day and night. Also
+records window.__veloRideDebug().riderScreen and every HUD panel rect, and
+flags panels that overlap the rider box. Needs a DEV server (BASE): the
+staging imports /src/stores/rideStore.ts.
 
     BASE=http://localhost:5183 uv run --with playwright --with pillow \
         python scripts/v2-build-shots/ride-hud.py [vp ...]
@@ -24,7 +31,20 @@ import common  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
 SCREEN = "ride-hud"
-RIDE_S = float(os.environ.get("RIDE_S", "25"))
+RIDE_S = float(os.environ.get("RIDE_S", "12"))
+# The mockup still is the tree avenue at 9.06 km (scripts/v2-world-thumbs/views.json
+# ride-chase, s 9060); ride time to match an easy 22 km/h average.
+STAGE_M = float(os.environ.get("STAGE_M", "9060"))
+STAGE_S = float(os.environ.get("STAGE_S", "1482"))
+TIME = os.environ.get("WORLD_TIME", "golden")
+
+STAGE = """async ([m, s, time]) => {
+  const { useRideStore } = await import('/src/stores/rideStore.ts');
+  useRideStore.setState({ distance: m, elapsedMs: s * 1000 });
+  const light = !!window.__veloWorldLight;
+  window.__veloWorldLight?.set({ time, weather: 'clear' });
+  return { conn: useRideStore.getState().connection, name: useRideStore.getState().deviceName, light };
+}"""
 ROUTE = "scenic-perugia-tiber-park"
 
 PANELS = """() => {
@@ -37,10 +57,7 @@ PANELS = """() => {
     show: '[data-testid=show-toggle]',
     camera: '[aria-label^="Camera:"]',
     settings: '[aria-label="Ride settings"]',
-    more: '[aria-label="More ride options"]',
     strip: '[data-testid=ride-strip]',
-    dock: '[data-dock-toggle]',
-    gesture: '[aria-label="Show gesture controls legend"]',
   };
   const out = {};
   for (const [k, s] of Object.entries(sel)) {
@@ -110,7 +127,8 @@ NO_HMR = """
 
 
 def _start_ride(page, vp):
-    page.goto(common.url("/app", vp), wait_until="domcontentloaded", timeout=60000)
+    common.connect_trainer(page, vp)
+    common.go_home_in_app(page)
     card = page.locator(f'[data-scenic-route="{ROUTE}"]')
     featured = page.locator('[data-testid=featured-scenic-ride] button[aria-label^="Ride "]:not([data-testid])')
     target = card.or_(featured).first
@@ -131,10 +149,15 @@ def main() -> None:
         browser = common.launch(p)
         for vp in vps:
             for theme in themes:
-                ctx, page = common.new_page(browser, vp, theme, NO_HMR)
+                ctx, page = common.new_page(browser, vp, theme, NO_HMR, fake={"granted": True})
                 t0 = time.time()
                 start_ride(page, vp)
+                page.wait_for_selector('[data-world-status=ready]', timeout=90000)
+                page.wait_for_timeout(3000)
+                staged = page.evaluate(STAGE, [STAGE_M, STAGE_S, TIME])
+                print("  staged", staged, flush=True)
                 page.wait_for_timeout(int(RIDE_S * 1000))
+                common.fonts_ready(page)
                 page.mouse.move(5, 5)
                 info = page.evaluate(PANELS)
                 m = common.measure(page)

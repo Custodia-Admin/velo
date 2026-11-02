@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """P2.4 build shots: the v2 finish page (src/components/velo/FinishCard.tsx).
 
-Real flow per viewport x theme: /app -> ride "Tiber river park" token-free
-(featured "Ride Tiber river park" button or its grid card) -> wait until the
-ride runs -> ride RIDE_S seconds (default 34, so the history recorder's 30 s
-minimum is passed and the ride really is saved on this device) -> Finish ->
-wait for the finish dialog, the fonts and the plate image -> shoot + measure.
+Real flow per viewport x theme, staged as mocked (common.py): the fake KICKR
+is reconnected on /devices (142 W), then /app -> ride "Tiber river park"
+token-free (featured "Ride Tiber river park" button or its grid card) -> wait
+until the ride runs -> stage the ride near its end (10.80 km, 34:41 — set on
+the dev server's rideStore module) -> ride on RIDE_S seconds of ride time to
+the finish -> Finish -> wait for the finish dialog, the fonts and the plate
+image -> shoot + measure. Needs a DEV server (BASE).
 
     BASE=http://localhost:5184 uv run --with playwright --with pillow \
         python scripts/v2-build-shots/finish.py
@@ -25,7 +27,21 @@ import common  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
 SCREEN = "finish"
-RIDE_S = float(os.environ.get("RIDE_S", "34"))
+RIDE_S = float(os.environ.get("RIDE_S", "8"))
+# The ride up to the staged point, as the store would hold it: one telemetry
+# sample every 5 s along the route at an easy 18.7 km/h, 142 W.
+STAGE = """async () => {
+  const { useRideStore } = await import('/src/stores/rideStore.ts');
+  const { sampleRouteAtDistance } = await import('/src/lib/gpxParser.ts');
+  const st = useRideStore.getState();
+  const v = 10800 / 2081, t0 = Date.now() - 2081 * 1000, pre = [];
+  for (let t = 0; t < 2081; t += 5) {
+    const p = sampleRouteAtDistance(st.route, v * t);
+    pre.push({ t: t0 + t * 1000, lat: p.lat, lon: p.lon, ele: p.ele, distance: v * t, speed: v, grade: 0, power: 142 });
+  }
+  useRideStore.setState({ distance: 10800, elapsedMs: 2081 * 1000, samples: pre });
+  return { conn: st.connection, samples: pre.length };
+}"""
 ONLY = [v for v in os.environ.get("ONLY", "1440,390,tv").split(",") if v]
 THEMES = [t for t in os.environ.get("THEMES", "day,night").split(",") if t]
 DIALOG = '[role="dialog"][aria-labelledby="finish-title"]'
@@ -53,7 +69,8 @@ RECTS = """() => {
 
 
 def ride_and_finish(page, vp: str) -> None:
-    page.goto(common.url("/app", vp), wait_until="domcontentloaded")
+    common.connect_trainer(page, vp)
+    common.go_home_in_app(page)
     featured = page.get_by_test_id("featured-scenic-ride").get_by_role("button", name="Ride Tiber river park", exact=True)
     card = page.locator('[data-scenic-route="scenic-perugia-tiber-park"]')
     target = card.or_(featured).first
@@ -68,9 +85,12 @@ def ride_and_finish(page, vp: str) -> None:
         if page.locator('[aria-label="Pause ride"]').count() or st.get("rideState") == "running":
             break
         time.sleep(0.5)
-    # Ride RIDE_S seconds of RIDE time (the HUD's Time figure), not wall time:
-    # a slow headless frame rate clamps sim steps, and the history recorder
-    # only saves rides of 30 s or more.
+    page.wait_for_timeout(1500)
+    print("  staged", page.evaluate(STAGE), flush=True)
+    start_label = page.evaluate("""() => document.querySelector('[aria-label^="Time: "]')?.getAttribute('aria-label') || ''""")
+    base = sum(int(x) * 60 ** i for i, x in enumerate(reversed(start_label.replace("Time: ", "").split(":")))) if ":" in start_label else 0
+    # Ride RIDE_S more seconds of RIDE time (the HUD's Time figure), not wall
+    # time: a slow headless frame rate clamps sim steps.
     t1 = time.time()
     while time.time() - t1 < RIDE_S * 4:
         label = page.evaluate("() => document.querySelector('[aria-label^=\"Time: \"]')?.getAttribute('aria-label') || ''")
@@ -79,10 +99,11 @@ def ride_and_finish(page, vp: str) -> None:
             secs = sum(int(x) * 60 ** i for i, x in enumerate(reversed(parts)))
         except ValueError:
             secs = 0
-        if secs >= RIDE_S:
+        if secs >= base + RIDE_S or page.locator(DIALOG).count():
             break
         time.sleep(0.5)
-    page.evaluate("""() => { const b = document.querySelector('[aria-label="Finish ride"]'); b && b.click(); }""")
+    if not page.locator(DIALOG).count():
+        page.evaluate("""() => { const b = document.querySelector('[aria-label="Finish ride"]'); b && b.click(); }""")
     page.locator(DIALOG).wait_for(state="visible", timeout=30_000)
     # The kicker turns to "saved on this device" once the recorder's save is read back.
     try:
@@ -97,9 +118,10 @@ def main() -> None:
         browser = common.launch(p)
         for vp in ONLY:
             for theme in THEMES:
-                ctx, page = common.new_page(browser, vp, theme)
+                ctx, page = common.new_page(browser, vp, theme, fake={"granted": True})
                 try:
                     ride_and_finish(page, vp)
+                    common.fonts_ready(page)
                     imgs = page.evaluate(READY)
                     time.sleep(0.6)
                     path = common.save(page, SCREEN, vp, theme)

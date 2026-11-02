@@ -63,6 +63,16 @@
     /* Elevation, tinted with the scrim (warm, not grey-blue). */
     --shadow-md: 0 0.25rem 1rem -0.25rem hsl(var(--scrim) / 0.18);
 
+    /* In-ride translucent paper (.hud-surface): an alpha gradient + a fixed
+       grain tile, never backdrop-filter. Soft, diffuse lift; a faint top
+       highlight reads as the panel's edge over a bright scene. */
+    /* Floor 85 %: muted text keeps 4.5:1 even over dark tree shade
+       (L ≈ 15 %); the scene still reads through the paper. */
+    --hud-a-top: 0.88;
+    --hud-a-bottom: 0.85;
+    --hud-highlight: 0 0.0625rem 0 hsl(var(--on-scrim) / 0.55) inset;
+    --shadow-hud: 0 0.0625rem 0.125rem hsl(var(--scrim) / 0.06), 0 0.5rem 1.5rem -0.5rem hsl(var(--scrim) / 0.22);
+
     /* Single radius source — lg cards, md buttons/inputs, sm chips */
     --radius: 0.625rem;
 
@@ -103,6 +113,11 @@
     --hud: 26 14% 8%;
     --hud-foreground: 38 28% 91%;
     --shadow-md: 0 0.25rem 1rem -0.25rem hsl(var(--scrim) / 0.6);
+    /* Umber over a sunlit scene washes out fast: night keeps more body. */
+    --hud-a-top: 0.93;
+    --hud-a-bottom: 0.87;
+    --hud-highlight: 0 0.0625rem 0 hsl(var(--on-scrim) / 0.07) inset;
+    --shadow-hud: 0 0.0625rem 0.125rem hsl(var(--scrim) / 0.2), 0 0.5rem 1.5rem -0.5rem hsl(var(--scrim) / 0.5);
 
     --glass-from: 15 22 40;
     --glass-from-a: 0.84;
@@ -209,6 +224,23 @@
   }
 
   /* v2 utilities: ride + show (add ride/show-only rules below this line) */
+  /* In-ride translucent paper: the scene shows through a vertical alpha
+     gradient with a fixed grain tile on top, so panels read as frosted
+     paper without backdrop-filter (blur over the live WebGL canvas costs
+     10–25 fps, PR #16). Tokens: --hud-a-*, --hud-highlight, --shadow-hud. */
+  .hud-surface {
+    background-color: transparent;
+    background-image:
+      url('/textures/hud-grain.png'),
+      linear-gradient(180deg, hsl(var(--hud) / var(--hud-a-top)), hsl(var(--hud) / var(--hud-a-bottom)));
+    background-size: 8rem 8rem, auto;
+    box-shadow: var(--hud-highlight), var(--shadow-hud);
+  }
+  button.hud-surface:hover {
+    background-image:
+      url('/textures/hud-grain.png'),
+      linear-gradient(180deg, hsl(var(--hud) / 0.96), hsl(var(--hud) / 0.9));
+  }
   /* Show mode insets (v2-show.html): 1.5rem from the screen edges from sm,
      the HUD's 0.75rem below sm; safe-area aware like .hud-inset-*. */
   .show-inset-t { top: max(env(safe-area-inset-top), 1.5rem); }
@@ -237,29 +269,6 @@
   @media (max-width: 639.98px) {
     .ride-hud-v2 .ride-banner-float { bottom: calc(max(env(safe-area-inset-bottom), 0.75rem) + 12.5rem); }
   }
-  /* Ride HUD v2: the legacy gesture-legend "?" chip becomes a HUD icon
-     button (2.5rem target, solid hud surface) in a free corner:
-     bottom-right from sm (the strip is centred), and below sm at the right
-     end of the detail-dock row, just above the full-width phone strip. */
-  .hud-flat .ride-gesture-slot button[aria-label="Show gesture controls legend"] {
-    top: auto;
-    right: max(env(safe-area-inset-right), 1rem);
-    bottom: max(env(safe-area-inset-bottom), 1.5rem);
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: calc(var(--radius) - 2px);
-    border: 1px solid hsl(var(--border) / 0.6);
-    background: hsl(var(--hud) / 0.9);
-    color: hsl(var(--hud-foreground));
-    box-shadow: var(--shadow-md, none);
-  }
-  @media (max-width: 639.98px) {
-    .hud-flat .ride-gesture-slot button[aria-label="Show gesture controls legend"] {
-      right: max(env(safe-area-inset-right), 0.75rem);
-      bottom: calc(max(env(safe-area-inset-bottom), 0.75rem) + 8.625rem);
-    }
-  }
-
   /* v2 utilities: devices + finish (add rules below this line) */
   /* Devices page at lg: device panels | Ride + pairing tips (7fr / 4fr),
      the right column's Ride row sized to its content. */
@@ -705,10 +714,16 @@ html:not(.dark) .cesium-viewer {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
-.hud-flat .glass {
-  background: linear-gradient(
-    155deg,
-    rgb(var(--glass-from) / var(--glass-flat-from-a)),
-    rgb(var(--glass-to) / var(--glass-flat-to-a))
-  );
+.hud-flat .glass,
+.hud-flat .glass-strong {
+  background-color: transparent;
+  background-image:
+    url('/textures/hud-grain.png'),
+    linear-gradient(180deg, hsl(var(--hud) / var(--hud-a-top)), hsl(var(--hud) / var(--hud-a-bottom)));
+  background-size: 8rem 8rem, auto;
+  color: hsl(var(--hud-foreground));
+}
+/* Legacy in-ride panels take the v2 HUD lift, not the deep glass shadow. */
+.hud-flat .glass-hairline {
+  box-shadow: var(--hud-highlight), var(--shadow-hud);
 }

@@ -23,7 +23,22 @@ export const AVATAR_COLOR_ROLES: { key: keyof AvatarColors; label: string }[] = 
   { key: 'skin', label: 'Skin' },
 ];
 
+/**
+ * Velo v2 "warm atlas" default rider (docs/design/mockups/v2-ride-hud.html and
+ * the world stills, scripts/v2-world-thumbs/rider.js): dark kit and frame, a
+ * white helmet, one terracotta accent.
+ */
 export const DEFAULT_AVATAR_COLORS: AvatarColors = {
+  frame: '#1a1c20',
+  wheel: '#141518',
+  kit: '#23262d',
+  skin: '#b07a5a',
+  helmet: '#e8e6e1',
+  accent: '#d8622a',
+};
+
+/** The GlobeRide-era default (cyan kit, blue helmet); still a Garage preset. */
+export const LEGACY_DEFAULT_AVATAR_COLORS: AvatarColors = {
   frame: '#e2e8f0',
   wheel: '#0b1220',
   kit: '#22d3ee',
@@ -31,6 +46,23 @@ export const DEFAULT_AVATAR_COLORS: AvatarColors = {
   helmet: '#0ea5e9',
   accent: '#f59e0b',
 };
+
+const ROLES: (keyof AvatarColors)[] = ['frame', 'wheel', 'kit', 'skin', 'helmet', 'accent'];
+
+function sameColors(a: Partial<AvatarColors>, b: AvatarColors): boolean {
+  return ROLES.every((k) => typeof a[k] === 'string' && a[k]!.toLowerCase() === b[k].toLowerCase());
+}
+
+/**
+ * Saved avatar colours on load: a rider who never changed the old cyan
+ * default gets the v2 default; any colour the rider picked is kept (missing
+ * roles fall back to the default).
+ */
+export function migrateAvatarColors(saved: Partial<AvatarColors> | null | undefined): AvatarColors {
+  if (!saved || typeof saved !== 'object') return { ...DEFAULT_AVATAR_COLORS };
+  if (sameColors(saved, LEGACY_DEFAULT_AVATAR_COLORS)) return { ...DEFAULT_AVATAR_COLORS };
+  return { ...DEFAULT_AVATAR_COLORS, ...saved };
+}
 
 export interface AvatarPreset {
   id: string;
@@ -40,7 +72,8 @@ export interface AvatarPreset {
 
 /** Built-in kit/bike presets shown in the Garage. */
 export const AVATAR_PRESETS: AvatarPreset[] = [
-  { id: 'cyan', name: 'Cyan Pro', colors: DEFAULT_AVATAR_COLORS },
+  { id: 'atlas', name: 'Atlas', colors: DEFAULT_AVATAR_COLORS },
+  { id: 'cyan', name: 'Cyan Pro', colors: LEGACY_DEFAULT_AVATAR_COLORS },
   {
     id: 'sunset',
     name: 'Sunset',

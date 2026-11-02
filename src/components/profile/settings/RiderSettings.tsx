@@ -3,7 +3,7 @@
  */
 
 import { useMemo } from 'react';
-import { Activity, Bike, Weight } from 'lucide-react';
+import { Activity, Bike, User, Weight } from 'lucide-react';
 import {
   useSettingsStore,
   type UnitSystem,
@@ -17,6 +17,7 @@ import {
 import { CDA_BY_POSITION, CRR_BY_BIKE, type BikeType, type RiderPosition } from '@/lib/physics';
 import { Section } from '@/components/ui/section-header';
 import { PickerButton, SliderRow, NumberField } from './shared';
+import { RiderRename } from '@/components/velo/RiderPanel';
 
 // ---------------------------------------------------------------------------
 // Rider tab
@@ -27,6 +28,10 @@ export function RiderSettings() {
 
   return (
     <div className="space-y-6">
+      <Section icon={<User className="h-4 w-4" />} title="Rider">
+        <RiderRename />
+      </Section>
+
       <UnitsRow value={s.units} onChange={(units) => s.setSettings({ units })} />
 
       {/* FTP */}

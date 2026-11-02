@@ -14,6 +14,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { DEFAULT_SETTINGS, useSettingsStore, type RiderSettings } from '@/stores/settingsStore';
 import { useProfileStore, type RiderProfile } from '@/stores/profileStore';
+import { migrateAvatarColors } from '@/lib/avatarConfig';
 
 /** Settings that belong to a person rather than to the household. */
 export const PER_RIDER_KEYS = [
@@ -143,7 +144,9 @@ export const useRiderRosterStore = create<RosterState>()(
             ? {
                 id: base.id,
                 name: cleanName(String(saved.name ?? ''), base.name),
-                settings: saved.settings ? { ...comfortDefaults(), ...saved.settings } : null,
+                settings: saved.settings
+                  ? { ...comfortDefaults(), ...saved.settings, avatar: migrateAvatarColors(saved.settings.avatar) }
+                  : null,
                 profile: saved.profile ?? null,
               }
             : base;

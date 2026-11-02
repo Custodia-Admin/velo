@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """P2.4 build shots: show mode (docs/design/mockups/v2-show.html).
 
-Home (/app) -> "Ride and watch" on Today's ride (Tiber river park on the pinned
-1 Nov 2026) -> the file chooser picks a local test video -> the ride starts
-token-free with the video playing -> shot with the controls awake, at 1440 /
-390 / tv, day and night. The video size is set to L (the mockup's size).
+Staged as mocked (common.py): the fake KICKR is reconnected on /devices, then
+Home (/app) -> "Ride and watch" on Today's ride (Assisi valley floor on the
+pinned 2 Nov 2026, the mockup's place) -> the file chooser picks a local test
+video -> the ride starts token-free with the video playing -> the ride is
+staged at the mockup still's spot (3.0 km, 18:05; drone camera, afternoon
+light, clear) -> shot with the controls awake, at 1440 / 390 / tv, day and
+night. The video size is set to L (the mockup's size). Needs a DEV server.
 
 The File System Access picker is removed in an init script so Playwright's
 expect_file_chooser drives the plain <input type=file> fallback (as in
@@ -31,7 +34,19 @@ import common  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
 SCREEN = "show"
-SETTLE_S = float(os.environ.get("SETTLE_S", "20"))
+SETTLE_S = float(os.environ.get("SETTLE_S", "12"))
+# 2 Nov 2026 16:30 Europe/Rome: Today's ride is Assisi valley floor.
+PINNED_MS = common.PINNED_MS + 86_400_000
+STAGE = """async () => {
+  const { useRideStore } = await import('/src/stores/rideStore.ts');
+  const { useSettingsStore } = await import('/src/stores/settingsStore.ts');
+  const { useShowStore } = await import('/src/stores/showStore.ts');
+  useShowStore.getState().setAutoCamera(false);
+  useRideStore.setState({ distance: 3000, elapsedMs: 1085 * 1000 });
+  useSettingsStore.getState().setCameraMode('drone');
+  window.__veloWorldLight?.set({ time: 'golden', weather: 'clear' });
+  return { route: useRideStore.getState().route?.id, conn: useRideStore.getState().connection, light: !!window.__veloWorldLight };
+}"""
 VIDEO = os.environ.get("VIDEO", "")
 
 INIT = """
@@ -79,7 +94,8 @@ STATE = """() => {
 
 
 def open_show(page, vp):
-    page.goto(common.url("/app", vp), wait_until="domcontentloaded", timeout=60000)
+    common.connect_trainer(page, vp)
+    common.go_home_in_app(page)
     btn = page.locator("[data-testid=featured-scenic-ride] [data-testid=ride-and-watch], [data-testid=ride-and-watch]").first
     btn.wait_for(state="visible", timeout=30000)
     page.wait_for_timeout(800)
@@ -102,7 +118,8 @@ def main() -> None:
         browser = common.launch(p)
         for vp in vps:
             for theme in themes:
-                ctx, page = common.new_page(browser, vp, theme, INIT + NO_HMR)
+                ctx, page = common.new_page(browser, vp, theme, INIT + NO_HMR, fake={"granted": True},
+                                            pinned_ms=PINNED_MS)
                 for attempt in range(3):
                     try:
                         open_show(page, vp)
@@ -111,7 +128,11 @@ def main() -> None:
                         print(f"  open_show attempt {attempt + 1}: {str(e).splitlines()[0]}", flush=True)
                 else:
                     raise SystemExit("could not open show mode")
+                page.wait_for_selector('[data-world-status=ready]', timeout=90000)
+                page.wait_for_timeout(2000)
+                print("  staged", page.evaluate(STAGE), flush=True)
                 page.wait_for_timeout(int(SETTLE_S * 1000))
+                common.fonts_ready(page)
                 w, h, _ = common.VIEWPORTS[vp]
                 page.mouse.move(w // 2, h // 2)
                 page.mouse.move(w // 2 + 7, h // 2 + 7)

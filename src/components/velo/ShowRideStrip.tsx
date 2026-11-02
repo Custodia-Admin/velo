@@ -7,17 +7,15 @@
  * Quantised reads (whole seconds, 5 m, 0.1 %) keep re-renders at display rate.
  */
 
-import { useMemo } from 'react';
 import { Flag, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn, formatDistance, formatDuration } from '@/lib/utils';
-import { findClimbs } from '@/lib/climbDetection';
+import { useNextLandmarkText } from '@/hooks/useRouteLandmarks';
 import { quantizedMeters } from '@/lib/hudThrottle';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { Figure } from './Figure';
 import { HUD_PANEL } from './v2';
-import { nextLandmarkText } from './rideHudText';
 
 const M_PER_MI = 1609.344;
 
@@ -33,8 +31,7 @@ export function ShowRideStrip({ dimmed, className }: { dimmed: boolean; classNam
   const units = useSettingsStore((s) => s.units);
   const imperial = units === 'imperial';
 
-  const climbs = useMemo(() => (route && !route.isLive ? findClimbs(route) : []), [route]);
-  const next = nextLandmarkText(climbs, distance, units);
+  const next = useNextLandmarkText(route, distance, units);
 
   const total = route && !route.isLive ? route.totalDistance : 0;
   const fmt = (m: number) => (imperial ? `${(m / M_PER_MI).toFixed(2)} mi` : formatDistance(m));
@@ -75,7 +72,7 @@ export function ShowRideStrip({ dimmed, className }: { dimmed: boolean; classNam
         <div className="flex items-center justify-between gap-3">
           {next ? (
             <span className="flex min-w-0 max-w-56 items-center gap-1.5 text-sm">
-              <Flag className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              <Flag className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="truncate">{next}</span>
             </span>
           ) : (

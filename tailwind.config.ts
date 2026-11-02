@@ -64,7 +64,7 @@ export default {
       /* Radius scale — one source of truth, matches CSS vars */
       borderRadius: {
         lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 3px)',
+        md: 'calc(var(--radius) - 0.125rem)', // v2-kit .btn
         sm: 'calc(var(--radius) - 6px)',
         pill: '9999px',
       },

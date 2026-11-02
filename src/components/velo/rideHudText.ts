@@ -119,6 +119,17 @@ export interface ChipInput {
 
 export const LOW_BATTERY = 20;
 
+/**
+ * The model name a rider recognises, without the unit's 4-hex BLE suffix:
+ * "KICKR CORE 78C1" -> "KICKR CORE" (status chip, Home device pill; the
+ * Devices page and screen-reader labels keep the full name).
+ */
+export function shortDeviceName(name: string): string {
+  const t = name.trim();
+  const short = t.replace(/\s+[0-9A-F]{4}$/i, '');
+  return short || t;
+}
+
 export function statusChip(i: ChipInput): ChipView {
   if (i.replay) {
     return { label: 'Replay', aria: 'Replaying a recorded ride', tone: 'calm', pulse: false, alert: false };
@@ -127,6 +138,7 @@ export function statusChip(i: ChipInput): ChipView {
     return { label: 'Outdoor · GPS', aria: 'Outdoor ride on phone GPS', tone: 'calm', pulse: false, alert: false };
   }
   const name = i.deviceName?.trim() || 'Trainer';
+  const shown = shortDeviceName(name);
   switch (i.connection) {
     case 'connected': {
       const hills = Math.round(i.difficulty * 100);
@@ -134,7 +146,7 @@ export function statusChip(i: ChipInput): ChipView {
         ? i.targetPowerW !== null ? `ERG ${i.targetPowerW} W` : 'ERG'
         : `hills ${hills} %`;
       const lowBattery = i.battery !== null && i.battery <= LOW_BATTERY;
-      const label = lowBattery ? `${name} · ${feel} · battery ${i.battery} %` : `${name} · ${feel}`;
+      const label = lowBattery ? `${shown} · ${feel} · battery ${i.battery} %` : `${shown} · ${feel}`;
       const aria = i.erg
         ? `Trainer connected: ${name}, ERG mode${i.targetPowerW !== null ? ` at ${i.targetPowerW} watts` : ''}`
         : `Trainer connected: ${name}, hills feel ${hills} percent`;

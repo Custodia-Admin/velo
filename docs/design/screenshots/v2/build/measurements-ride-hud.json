@@ -17,76 +17,64 @@
    "camera": {
     "h": 40,
     "w": 40,
-    "x": 1288,
+    "x": 1336,
     "y": 16
    },
    "chip": {
     "h": 40,
-    "w": 193,
-    "x": 1039,
+    "w": 198,
+    "x": 1082,
     "y": 16
    },
-   "chipText": "Demo ride \u00b7 no trainer",
-   "dist": "180 m of 10.88 km",
-   "dock": null,
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "dist": "9.13 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 84,
     "x": 16,
     "y": 16
    },
-   "gesture": {
-    "h": 40,
-    "w": 40,
-    "x": 1384,
-    "y": 836
-   },
-   "more": {
-    "h": 40,
-    "w": 40,
-    "x": 1384,
-    "y": 16
-   },
+   "gesture": null,
    "renderer": "world",
    "rideState": null,
    "rider": [
-    720,
-    559
+    735,
+    567
    ],
    "route": {
-    "h": 114,
+    "h": 139,
     "w": 320,
     "x": 112,
     "y": 16
    },
-   "routeText": "Tiber river park\n\n10.7 km to go \u00b7 about 34 min",
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nPonte Felcino in 1.7 km",
    "settings": {
     "h": 40,
     "w": 40,
-    "x": 1336,
+    "x": 1384,
     "y": 16
    },
    "show": {
     "h": 40,
     "w": 40,
-    "x": 1240,
+    "x": 1288,
     "y": 16
    },
-   "speed": "Speed: 37.3 km/h",
+   "speed": "Speed: 24.6 km/h",
    "strip": {
-    "h": 78,
-    "w": 786,
-    "x": 327,
-    "y": 798
+    "h": 84,
+    "w": 878,
+    "x": 281,
+    "y": 792
    }
   },
   "riderBox": [
-   655,
-   470,
-   785,
-   686
+   670,
+   478,
+   800,
+   694
   ],
-  "secs": 38
+  "secs": 28
  },
  "ride-hud-1440.jpg": {
   "covering": [],
@@ -106,76 +94,64 @@
    "camera": {
     "h": 40,
     "w": 40,
-    "x": 1288,
+    "x": 1336,
     "y": 16
    },
    "chip": {
     "h": 40,
-    "w": 193,
-    "x": 1039,
+    "w": 198,
+    "x": 1082,
     "y": 16
    },
-   "chipText": "Demo ride \u00b7 no trainer",
-   "dist": "240 m of 10.88 km",
-   "dock": null,
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "dist": "9.13 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 84,
     "x": 16,
     "y": 16
    },
-   "gesture": {
-    "h": 40,
-    "w": 40,
-    "x": 1384,
-    "y": 836
-   },
-   "more": {
-    "h": 40,
-    "w": 40,
-    "x": 1384,
-    "y": 16
-   },
+   "gesture": null,
    "renderer": "world",
    "rideState": null,
    "rider": [
-    720,
-    560
+    734,
+    567
    ],
    "route": {
-    "h": 114,
+    "h": 139,
     "w": 320,
     "x": 112,
     "y": 16
    },
-   "routeText": "Tiber river park\n\n10.6 km to go \u00b7 about 34 min",
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nPonte Felcino in 1.7 km",
    "settings": {
     "h": 40,
     "w": 40,
-    "x": 1336,
+    "x": 1384,
     "y": 16
    },
    "show": {
     "h": 40,
     "w": 40,
-    "x": 1240,
+    "x": 1288,
     "y": 16
    },
-   "speed": "Speed: 37.3 km/h",
+   "speed": "Speed: 24.6 km/h",
    "strip": {
-    "h": 78,
-    "w": 786,
-    "x": 327,
-    "y": 798
+    "h": 84,
+    "w": 878,
+    "x": 281,
+    "y": 792
    }
   },
   "riderBox": [
-   655,
-   471,
-   785,
-   687
+   669,
+   478,
+   799,
+   694
   ],
-  "secs": 35
+  "secs": 29
  },
  "ride-hud-390-night.jpg": {
   "covering": [],
@@ -184,7 +160,7 @@
    "backdrop": 0,
    "dark": true,
    "minFont": 14,
-   "minFontEl": "10.6 km to go \u00b7 about 34 min",
+   "minFontEl": "1.7 km to go \u00b7 about 5 min",
    "minTarget": 40,
    "minTargetEl": "Exit ride and return to setup",
    "overflow": false,
@@ -194,37 +170,20 @@
   "panels": {
    "camera": null,
    "chip": null,
-   "chipText": "Demo ride \u00b7 no trainer",
-   "dist": "265 m of 10.88 km",
-   "dock": {
-    "h": 40,
-    "w": 84,
-    "x": 100,
-    "y": 654
-   },
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "dist": "9.14 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
     "x": 12,
     "y": 12
    },
-   "gesture": {
-    "h": 40,
-    "w": 40,
-    "x": 338,
-    "y": 654
-   },
-   "more": {
-    "h": 40,
-    "w": 40,
-    "x": 338,
-    "y": 12
-   },
+   "gesture": null,
    "renderer": "world",
    "rideState": null,
    "rider": [
-    195,
-    525
+    212,
+    532
    ],
    "route": {
     "h": 63,
@@ -232,29 +191,34 @@
     "x": 60,
     "y": 12
    },
-   "routeText": "Tiber river park\n\n10.6 km to go \u00b7 about 34 min",
-   "settings": null,
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min",
+   "settings": {
+    "h": 40,
+    "w": 40,
+    "x": 338,
+    "y": 12
+   },
    "show": {
     "h": 40,
     "w": 40,
     "x": 290,
     "y": 12
    },
-   "speed": "Speed: 37.3 km/h",
+   "speed": "Speed: 24.6 km/h",
    "strip": {
-    "h": 130,
+    "h": 134,
     "w": 366,
     "x": 12,
-    "y": 702
+    "y": 698
    }
   },
   "riderBox": [
-   134,
-   442,
-   256,
-   644
+   151,
+   449,
+   273,
+   651
   ],
-  "secs": 33
+  "secs": 26
  },
  "ride-hud-390.jpg": {
   "covering": [],
@@ -263,7 +227,7 @@
    "backdrop": 0,
    "dark": false,
    "minFont": 14,
-   "minFontEl": "10.6 km to go \u00b7 about 34 min",
+   "minFontEl": "1.7 km to go \u00b7 about 5 min",
    "minTarget": 40,
    "minTargetEl": "Exit ride and return to setup",
    "overflow": false,
@@ -273,37 +237,20 @@
   "panels": {
    "camera": null,
    "chip": null,
-   "chipText": "Demo ride \u00b7 no trainer",
-   "dist": "270 m of 10.88 km",
-   "dock": {
-    "h": 40,
-    "w": 84,
-    "x": 100,
-    "y": 654
-   },
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "dist": "9.14 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
     "x": 12,
     "y": 12
    },
-   "gesture": {
-    "h": 40,
-    "w": 40,
-    "x": 338,
-    "y": 654
-   },
-   "more": {
-    "h": 40,
-    "w": 40,
-    "x": 338,
-    "y": 12
-   },
+   "gesture": null,
    "renderer": "world",
    "rideState": null,
    "rider": [
-    195,
-    525
+    210,
+    532
    ],
    "route": {
     "h": 63,
@@ -311,29 +258,34 @@
     "x": 60,
     "y": 12
    },
-   "routeText": "Tiber river park\n\n10.6 km to go \u00b7 about 34 min",
-   "settings": null,
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min",
+   "settings": {
+    "h": 40,
+    "w": 40,
+    "x": 338,
+    "y": 12
+   },
    "show": {
     "h": 40,
     "w": 40,
     "x": 290,
     "y": 12
    },
-   "speed": "Speed: 37.3 km/h",
+   "speed": "Speed: 24.6 km/h",
    "strip": {
-    "h": 130,
+    "h": 134,
     "w": 366,
     "x": 12,
-    "y": 702
+    "y": 698
    }
   },
   "riderBox": [
-   134,
-   442,
-   256,
-   644
+   149,
+   449,
+   271,
+   651
   ],
-  "secs": 41
+  "secs": 28
  },
  "ride-hud-tv-night.jpg": {
   "covering": [],
@@ -353,76 +305,64 @@
    "camera": {
     "h": 70,
     "w": 70,
-    "x": 1654,
+    "x": 1738,
     "y": 28
    },
    "chip": {
     "h": 70,
-    "w": 338,
-    "x": 1218,
+    "w": 347,
+    "x": 1293,
     "y": 28
    },
-   "chipText": "Demo ride \u00b7 no trainer",
-   "dist": "265 m of 10.88 km",
-   "dock": null,
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "dist": "9.14 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 145,
     "x": 28,
     "y": 28
    },
-   "gesture": {
-    "h": 70,
-    "w": 70,
-    "x": 1822,
-    "y": 968
-   },
-   "more": {
-    "h": 70,
-    "w": 70,
-    "x": 1822,
-    "y": 28
-   },
+   "gesture": null,
    "renderer": "world",
    "rideState": null,
    "rider": [
-    960,
-    671
+    980,
+    681
    ],
    "route": {
-    "h": 199,
+    "h": 244,
     "w": 560,
     "x": 194,
     "y": 28
    },
-   "routeText": "Tiber river park\n\n10.6 km to go \u00b7 about 34 min",
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nPonte Felcino in 1.7 km",
    "settings": {
     "h": 70,
     "w": 70,
-    "x": 1738,
+    "x": 1822,
     "y": 28
    },
    "show": {
     "h": 70,
     "w": 70,
-    "x": 1570,
+    "x": 1654,
     "y": 28
    },
-   "speed": "Speed: 37.3 km/h",
+   "speed": "Speed: 24.6 km/h",
    "strip": {
-    "h": 137,
-    "w": 1373,
-    "x": 273,
-    "y": 902
+    "h": 148,
+    "w": 1532,
+    "x": 194,
+    "y": 891
    }
   },
   "riderBox": [
-   882,
-   564,
-   1038,
-   823
+   902,
+   574,
+   1058,
+   833
   ],
-  "secs": 38
+  "secs": 28
  },
  "ride-hud-tv.jpg": {
   "covering": [],
@@ -442,75 +382,63 @@
    "camera": {
     "h": 70,
     "w": 70,
-    "x": 1654,
+    "x": 1738,
     "y": 28
    },
    "chip": {
     "h": 70,
-    "w": 338,
-    "x": 1218,
+    "w": 347,
+    "x": 1293,
     "y": 28
    },
-   "chipText": "Demo ride \u00b7 no trainer",
-   "dist": "245 m of 10.88 km",
-   "dock": null,
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "dist": "9.14 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 145,
     "x": 28,
     "y": 28
    },
-   "gesture": {
-    "h": 70,
-    "w": 70,
-    "x": 1822,
-    "y": 968
-   },
-   "more": {
-    "h": 70,
-    "w": 70,
-    "x": 1822,
-    "y": 28
-   },
+   "gesture": null,
    "renderer": "world",
    "rideState": null,
    "rider": [
-    960,
-    671
+    980,
+    681
    ],
    "route": {
-    "h": 199,
+    "h": 244,
     "w": 560,
     "x": 194,
     "y": 28
    },
-   "routeText": "Tiber river park\n\n10.6 km to go \u00b7 about 34 min",
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nPonte Felcino in 1.7 km",
    "settings": {
     "h": 70,
     "w": 70,
-    "x": 1738,
+    "x": 1822,
     "y": 28
    },
    "show": {
     "h": 70,
     "w": 70,
-    "x": 1570,
+    "x": 1654,
     "y": 28
    },
-   "speed": "Speed: 37.3 km/h",
+   "speed": "Speed: 24.6 km/h",
    "strip": {
-    "h": 137,
-    "w": 1373,
-    "x": 273,
-    "y": 902
+    "h": 148,
+    "w": 1532,
+    "x": 194,
+    "y": 891
    }
   },
   "riderBox": [
-   882,
-   564,
-   1038,
-   823
+   902,
+   574,
+   1058,
+   833
   ],
-  "secs": 36
+  "secs": 29
  }
 }

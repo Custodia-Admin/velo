@@ -91,8 +91,12 @@ function RenameForm({ rider, onDone }: { rider: RosterRider; onDone: () => void 
   );
 }
 
-/** Rider pills ("Who's riding") + rename. */
-export function RiderSwitch({ className }: { className?: string }) {
+/**
+ * Rider pills ("Who's riding"). Home shows the pills only, as mocked;
+ * renaming lives in Settings > Rider (RiderRename). `renamable` adds the
+ * pencil back for the legacy combined RiderPanel.
+ */
+export function RiderSwitch({ className, renamable = false }: { className?: string; renamable?: boolean }) {
   const riders = useRiderRosterStore((s) => s.riders);
   const activeRiderId = useRiderRosterStore((s) => s.activeRiderId);
   const switchRider = useRiderRosterStore((s) => s.switchRider);
@@ -115,7 +119,7 @@ export function RiderSwitch({ className }: { className?: string }) {
           />
         ))}
       </div>
-      {renaming ? (
+      {!renamable ? null : renaming ? (
         <RenameForm rider={active} onDone={() => setRenaming(false)} />
       ) : (
         <Button
@@ -128,6 +132,25 @@ export function RiderSwitch({ className }: { className?: string }) {
           <Pencil className="h-4 w-4" />
         </Button>
       )}
+    </div>
+  );
+}
+
+/** The active rider's name with a Rename action (Settings > Rider). */
+export function RiderRename() {
+  const riders = useRiderRosterStore((s) => s.riders);
+  const activeRiderId = useRiderRosterStore((s) => s.activeRiderId);
+  const [renaming, setRenaming] = useState(false);
+  const active = riders.find((r) => r.id === activeRiderId) ?? riders[0];
+  if (!active) return null;
+  if (renaming) return <RenameForm rider={active} onDone={() => setRenaming(false)} />;
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-sm font-semibold text-foreground">{active.name}</span>
+      <Button variant="outline" onClick={() => setRenaming(true)} aria-label={`Rename ${active.name}`}>
+        <Pencil className="h-4 w-4" />
+        Rename
+      </Button>
     </div>
   );
 }
@@ -218,7 +241,7 @@ export function ComfortControls({ className }: { className?: string }) {
 export function RiderPanel() {
   return (
     <div className="flex flex-col gap-4">
-      <RiderSwitch />
+      <RiderSwitch renamable />
       <ComfortControls />
     </div>
   );

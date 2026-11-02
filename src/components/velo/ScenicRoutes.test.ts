@@ -10,7 +10,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { SCENIC_ROUTES, scenicRouteById } from '@/lib/scenicRoutes';
 import { FeaturedScenicRide, ScenicRouteGrid, ScenicRouteGridSkeleton } from './ScenicRoutes';
-import { ComfortControls, RiderSwitch } from './RiderPanel';
+import { ComfortControls, RiderRename, RiderSwitch } from './RiderPanel';
 import { HomeHeader, devicesButtonText } from './HomeHeader';
 
 const tiber = scenicRouteById('scenic-perugia-tiber-park')!;
@@ -102,11 +102,16 @@ describe('Comfort line and rider switch', () => {
     expect(out).not.toContain('type="range"');
   });
 
-  it('rider pills are a radiogroup with a rename action', () => {
+  it('rider pills are a radiogroup with no rename pencil on Home (as mocked)', () => {
     const out = html(createElement(RiderSwitch));
     expect(out).toContain('role="radiogroup"');
     expect(out).toContain('aria-label="Who&#x27;s riding"');
-    expect(out).toContain('aria-label="Rename ');
+    expect(out).not.toContain('aria-label="Rename ');
+    expect(html(createElement(RiderSwitch, { renamable: true }))).toContain('aria-label="Rename ');
+  });
+
+  it('Settings > Rider offers the rename', () => {
+    expect(html(createElement(RiderRename))).toContain('aria-label="Rename ');
   });
 });
 
@@ -115,19 +120,29 @@ describe('HomeHeader', () => {
     const out = html(createElement(HomeHeader));
     expect(out).toContain('aria-label="Devices: no trainer paired"');
     expect(out).toContain('bg-muted-foreground');
-    expect(out).toContain('Switch to');
+    expect(out).not.toContain('Switch to');
     expect(out).toContain('aria-label="Open settings"');
   });
 
-  it('names the connected trainer', () => {
+  it('names the connected trainer by model, with the dot on', () => {
     expect(devicesButtonText(true, 'KICKR CORE 78C1')).toEqual({
-      label: 'KICKR CORE 78C1',
-      ariaLabel: 'Devices: trainer connected',
+      label: 'KICKR CORE',
+      ariaLabel: 'Devices: KICKR CORE 78C1 connected',
+      on: true,
     });
     expect(devicesButtonText(true, null).label).toBe('Trainer');
+  });
+
+  it('names a trainer paired earlier, dot off, and says Devices when none is known', () => {
+    expect(devicesButtonText(false, null, 'KICKR CORE 78C1')).toEqual({
+      label: 'KICKR CORE',
+      ariaLabel: 'Devices: KICKR CORE 78C1 paired, not connected',
+      on: false,
+    });
     expect(devicesButtonText(false, 'KICKR CORE 78C1')).toEqual({
       label: 'Devices',
       ariaLabel: 'Devices: no trainer paired',
+      on: false,
     });
   });
 });

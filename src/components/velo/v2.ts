@@ -14,10 +14,12 @@ export const DISPLAY = 'font-display font-semibold';
 export const WORDMARK = 'font-display text-2xl font-bold tracking-tight';
 
 /**
- * Solid in-ride surface: paper (day) / umber (night) at 90 %, no
- * backdrop-filter. Blur over the live WebGL canvas cost 10–25 fps (PR #16).
+ * In-ride surface: translucent paper (day) / umber (night). An alpha
+ * gradient + grain tile (`.hud-surface`, index.css) so the scene shows
+ * through like frosted paper, with NO backdrop-filter: blur over the live
+ * WebGL canvas cost 10–25 fps (PR #16).
  */
-export const HUD_PANEL = 'rounded-lg bg-hud/90 text-hud-foreground shadow-md';
+export const HUD_PANEL = 'rounded-lg hud-surface text-hud-foreground';
 
 /** Page column and gutters (UI-RULES §4). */
 export const PAGE_X = 'px-4 sm:px-10';

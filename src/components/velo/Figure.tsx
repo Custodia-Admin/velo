@@ -25,7 +25,18 @@ export function Figure({ value, unit, label, size = 'major', ariaLabel, classNam
         aria-hidden={ariaLabel ? true : undefined}
       >
         {value}
-        {unit && <small className="ml-1 text-sm font-semibold tracking-normal text-muted-foreground">{unit}</small>}
+        {unit && (
+          <small
+            className={cn(
+              'ml-1 text-sm font-semibold tracking-normal text-muted-foreground',
+              // The unit keeps the value's line box (v2-kit .fig .v small), so the
+              // figure is as tall as the mockup's.
+              size === 'major' ? 'leading-8 sm:leading-9' : 'leading-8',
+            )}
+          >
+            {unit}
+          </small>
+        )}
       </span>
       <span
         className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"

@@ -56,9 +56,10 @@ def main() -> None:
             for theme in common.THEMES:
                 if themes and theme not in themes:
                     continue
-                ctx, page = common.new_page(browser, vp, theme)
-                page.goto(common.url("/app", vp), wait_until="networkidle")
-                page.wait_for_selector("[data-testid=featured-scenic-ride]", timeout=30000)
+                ctx, page = common.new_page(browser, vp, theme, fake={"granted": True})
+                # As mocked: the KICKR is paired and connected (device pill "KICKR CORE", dot on).
+                common.connect_trainer(page, vp)
+                common.go_home_in_app(page)
                 page.wait_for_selector("[data-scenic-route]", timeout=30000)
                 # Live weather (Open-Meteo) settles the tile lines.
                 try:
@@ -68,6 +69,7 @@ def main() -> None:
                     )
                 except Exception:
                     pass
+                common.fonts_ready(page)
                 n = page.evaluate(WAIT_READY)
                 page.wait_for_timeout(400)
                 path = common.save(page, SCREEN, vp, theme)
