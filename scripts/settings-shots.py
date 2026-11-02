@@ -4,6 +4,7 @@ Usage: uv run --with playwright python scripts/settings-shots.py <out-dir> [base
 """
 import pathlib, sys
 from playwright.sync_api import sync_playwright
+from scenic_home import ride_scenic_route
 
 out = pathlib.Path(sys.argv[1]); out.mkdir(parents=True, exist_ok=True)
 base = sys.argv[2] if len(sys.argv) > 2 else "http://localhost:4173"
@@ -17,8 +18,7 @@ with sync_playwright() as p:
                             "localStorage.setItem('globeride.settings.v1', JSON.stringify({state:{liveWeatherEnabled:false},version:1}));")
         pg = ctx.new_page()
         pg.goto(f"{base}/app", wait_until="domcontentloaded")
-        pg.wait_for_selector("[data-scenic-route='scenic-lugano-melide']")
-        pg.evaluate("() => document.querySelector(\"[data-scenic-route='scenic-lugano-melide']\").click()")
+        ride_scenic_route(pg, 'scenic-lugano-melide')
         pg.wait_for_url("**/ride**")
         pg.wait_for_timeout(6000)
         # The in-app "open settings" event (what NoTokenBanner uses), straight to Visual.

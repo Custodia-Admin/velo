@@ -6,6 +6,9 @@
  * 1. The rider stays in frame through sharp corners (raw route heading turns
  *    114° within ~6 m at Tiber park d≈144 m and makes a 163° U-turn on the
  *    Assisi valley route at 3,744 m; the rider used to leave the frame).
+ *    The drawn heading never turns faster than the YawFilter cap, and an
+ *    ordinary corner (Tiber) is spread by the wide chord well under the cap:
+ *    with the heading smoothing removed it turns at up to 335°/s there.
  * 2. Chase framing holds at any speed (a world-space lag used to put the
  *    camera ~10 m back at 39 km/h instead of the 7 m 'standard' framing).
  */
@@ -20,6 +23,7 @@ import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { CHASE_FRAMING, chaseFraming, type CameraDistance } from '@/lib/world/cameraFraming';
 import { loadWorld } from '@/lib/world/loadWorld';
 import type { Route } from '@/types';
+import { MAX_YAW_RATE, headingDelta } from '@/lib/ride/rideHeading';
 import { CameraRig, cameraTarget } from './chaseRig';
 import { createRideDriverMemo, driveRideFrame } from './rideDriver';
 import { createRideFrame, createSceneWorld, groundAtThree, type SceneWorld } from './worldScene';
@@ -39,6 +43,7 @@ const VIEWPORTS = [
 ] as const;
 /** Rider body height used for the on-screen size, metres. */
 const RIDER_TOP_M = 1.6;
+const DEG = 180 / Math.PI;
 
 interface Sample {
   d: number;
@@ -49,6 +54,8 @@ interface Sample {
   heightPx: number;
   /** Horizontal camera → rider distance, metres. */
   backM: number;
+  /** Drawn rider heading, radians. */
+  heading: number;
 }
 
 /** Ride `route` from `from` to `to` metres at `speed` m/s, 60 fps, chase camera. */
@@ -94,7 +101,7 @@ function ride(sw: SceneWorld, route: Route, from: number, to: number, speed: num
     const hips = screen(1);
     const top = screen(RIDER_TOP_M);
     const bottom = screen(0);
-    out.push({ d, x: hips[0], y: hips[1], heightPx: bottom[1] - top[1], backM: Math.hypot(rig.position.x - p.x, rig.position.z - p.z) });
+    out.push({ d, x: hips[0], y: hips[1], heightPx: bottom[1] - top[1], backM: Math.hypot(rig.position.x - p.x, rig.position.z - p.z), heading: frame.pose!.heading });
   }
   return out;
 }
@@ -110,9 +117,11 @@ describe('chase framing on the Perugia world', () => {
     }
   }, 60_000);
 
+  // `maxYawRate`: fastest the drawn rider may turn. Only a fold-back (U-turn)
+  // may reach the YawFilter cap; the chord alone spreads an ordinary corner.
   const CORNERS = [
-    { id: 'scenic-perugia-tiber-park', from: 80, to: 240, what: '114° vertex at d≈144 m' },
-    { id: 'scenic-assisi-valley', from: 3660, to: 3840, what: '163° U-turn at 3,744 m' },
+    { id: 'scenic-perugia-tiber-park', from: 80, to: 240, what: '114° vertex at d≈144 m', maxYawRate: 0.9 * MAX_YAW_RATE },
+    { id: 'scenic-assisi-valley', from: 3660, to: 3840, what: '163° U-turn at 3,744 m', maxYawRate: MAX_YAW_RATE },
   ];
   for (const c of CORNERS) {
     for (const vp of VIEWPORTS) {
@@ -128,6 +137,9 @@ describe('chase framing on the Perugia world', () => {
             expect(p.y, `${speed} m/s d=${p.d.toFixed(0)} y`).toBeLessThan(vp[1] * (1 - margin));
           }
           expect(worst.x).toBeGreaterThan(0);
+          let rate = 0;
+          for (let i = 1; i < s.length; i++) rate = Math.max(rate, Math.abs(headingDelta(s[i].heading, s[i - 1].heading)) * 60);
+          expect(rate * DEG, `${speed} m/s drawn yaw rate, °/s`).toBeLessThanOrEqual(c.maxYawRate * DEG + 1e-6);
         }
       });
     }
