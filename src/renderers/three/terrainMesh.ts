@@ -226,3 +226,36 @@ export function meshHeightAt(hf: Heightfield, x: number, z: number): number {
   if (tx + ty <= 1) return ha + (hb - ha) * tx + (hc - ha) * ty;
   return he + (hc - he) * (1 - tx) + (hb - he) * (1 - ty);
 }
+
+/** The sampled-node interval [a, b] holding fractional node `f` (sampledNodes layout). */
+function lodInterval(n0: number, n1: number, step: number, f: number): [number, number] {
+  const s = Math.max(1, Math.floor(step));
+  const k = Math.min(Math.max(0, Math.floor((f - n0) / s)), Math.max(0, Math.ceil((n1 - n0) / s) - 1));
+  const a = n0 + k * s;
+  return [a, Math.min(n1, a + s)];
+}
+
+/**
+ * Height of a chunk's triangulated surface at world (x, y) for any LOD
+ * `step` — exactly the triangles `buildChunkGeometry(hf, chunk, step)`
+ * draws (without river-bed depression, which only ever lowers the ground).
+ * Draping on this instead of the bilinear heightfield keeps a ribbon on the
+ * surface the GPU actually shows, at either LOD. (x, y) is clamped into
+ * the chunk.
+ */
+export function lodHeightAt(hf: Heightfield, chunk: ChunkInfo, step: number, x: number, y: number): number {
+  const { cellSize, xMin, yMax } = hf.spec;
+  const { c0, c1, r0, r1 } = chunk.range;
+  const fx = Math.min(c1, Math.max(c0, (x - xMin) / cellSize));
+  const fy = Math.min(r1, Math.max(r0, (yMax - y) / cellSize));
+  const [ca, cb] = lodInterval(c0, c1, step, fx);
+  const [ra, rb] = lodInterval(r0, r1, step, fy);
+  const tx = cb > ca ? (fx - ca) / (cb - ca) : 0;
+  const ty = rb > ra ? (fy - ra) / (rb - ra) : 0;
+  const ha = hf.nodeHeight(ca, ra);
+  const hb = hf.nodeHeight(cb, ra);
+  const hc = hf.nodeHeight(ca, rb);
+  const he = hf.nodeHeight(cb, rb);
+  if (tx + ty <= 1) return ha + (hb - ha) * tx + (hc - ha) * ty;
+  return he + (hc - he) * (1 - tx) + (hb - he) * (1 - ty);
+}

@@ -12,8 +12,7 @@ import { ridePose } from '@/lib/ride/rideSim';
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { loadWorld, type LoadedWorld } from '@/lib/world/loadWorld';
-import { buildRibbons } from './roadRibbons';
-import { ROUTE_LIFT_M, routeLine } from './Roads';
+import { ROUTE_LIFT_M, buildRouteChunks, routeLine } from './Roads';
 import { RIDER_RIG, leanAngle, legIK, legPose, modelYaw, placeRider } from './riderRig';
 import { meshHeightAt } from './terrainMesh';
 import { createSceneWorld, type SceneWorld } from './worldScene';
@@ -87,40 +86,49 @@ describe('rider placement on the Perugia world', () => {
       expect(worst).toBeLessThan(0.05);
     });
 
-    it(`${id}: the rider sits on the drawn route surface (within 5 cm) and close to the terrain mesh`, () => {
+    it(`${id}: the rider sits on the drawn route line (within 13 cm, unless the drawn terrain is above the wheels) and close to the terrain mesh`, () => {
       const route = routeFromGeometry(id, id, SCENIC_ROUTE_GEOMETRY[id]);
-      // The route ribbon as drawn: 2 m vertices, linear in between.
-      const ribbon = buildRibbons(world.heightfield, [routeLine(sw, route, [1, 1, 1])], {
-        maxSegM: 2,
-        lift: ROUTE_LIFT_M,
-        originX: 0,
-        originZ: 0,
-      });
-      const along = ribbon.uvs.filter((_, i) => i % 4 === 1);
-      const centreY = (v: number) => (ribbon.positions[v * 6 + 1] + ribbon.positions[v * 6 + 4]) / 2;
-      let worstRibbon = 0;
+      // The route line as drawn on near-LOD chunks (step 1): 2 m vertex pairs,
+      // on the higher of the drawn triangles and the bilinear ground.
+      const cx: number[] = [];
+      const cz: number[] = [];
+      const cy: number[] = [];
+      for (const piece of buildRouteChunks(sw, routeLine(sw, route, [1, 1, 1]), { near: 1, far: 4 })) {
+        const chunk = sw.chunks[piece.chunk];
+        const pos = piece.near.positions;
+        for (let v = 0; v + 1 < pos.length / 3; v += 2) {
+          cx.push((pos[v * 3] + pos[v * 3 + 3]) / 2 + chunk.centerX);
+          cy.push((pos[v * 3 + 1] + pos[v * 3 + 4]) / 2);
+          cz.push((pos[v * 3 + 2] + pos[v * 3 + 5]) / 2 + chunk.centerZ);
+        }
+      }
+      let worstAbove = 0;
+      let worstUnder = 0;
       let worstMesh = 0;
       for (let k = 0; k < SAMPLES; k++) {
         const d = (route.totalDistance * k) / (SAMPLES - 1);
         const p = placeRider(sw, ridePose(route, d));
-        // Ribbon distance runs along the projected polyline; match by nearest vertex pair.
+        // Match by nearest vertex pair (≤ 1 m away along the 2 m spacing).
         let j = 0;
         let best = Infinity;
-        for (let v = 0; v < along.length; v++) {
-          const dx = ribbon.positions[v * 6] - p.position.x;
-          const dz = ribbon.positions[v * 6 + 2] - p.position.z;
-          const dd = dx * dx + dz * dz;
+        for (let v = 0; v < cx.length; v++) {
+          const dd = (cx[v] - p.position.x) ** 2 + (cz[v] - p.position.z) ** 2;
           if (dd < best) {
             best = dd;
             j = v;
           }
         }
-        const surface = centreY(j) - ROUTE_LIFT_M;
-        // Nearest vertex is ≤ 1 m away; over 1 m the corridor rises a few cm at most.
-        worstRibbon = Math.max(worstRibbon, Math.abs(p.position.y - surface));
-        worstMesh = Math.max(worstMesh, Math.abs(p.position.y - meshHeightAt(world.heightfield, p.position.x, p.position.z)));
+        const surface = cy[j] - ROUTE_LIFT_M;
+        const mesh = meshHeightAt(world.heightfield, p.position.x, p.position.z);
+        // Wheels never float over the line …
+        worstAbove = Math.max(worstAbove, p.position.y - surface);
+        // … and the line only rises over them where the drawn terrain does.
+        worstUnder = Math.max(worstUnder, surface - Math.max(p.position.y, mesh));
+        worstMesh = Math.max(worstMesh, Math.abs(p.position.y - mesh));
       }
-      expect(worstRibbon).toBeLessThan(0.05 + 0.08);
+      // Over the ≤ 1 m to the nearest vertex the corridor rises a few cm at most.
+      expect(worstAbove).toBeLessThan(0.05 + 0.08);
+      expect(worstUnder).toBeLessThan(0.05 + 0.08);
       // Triangulated 13 m terrain vs bilinear ground on the re-graded corridor.
       expect(worstMesh).toBeLessThan(0.5);
     });

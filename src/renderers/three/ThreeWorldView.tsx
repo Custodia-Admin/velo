@@ -355,7 +355,7 @@ function WorldScene({
       <Terrain sceneWorld={sceneWorld} quality={quality} landcover={maps?.landcover ?? null} aux={maps?.aux ?? null} atmo={atmo} visibility={visibility} />
       <Water sceneWorld={sceneWorld} atmo={atmo} />
       <Roads sceneWorld={sceneWorld} visibility={visibility} quality={quality} atmo={atmo} />
-      <RouteLine sceneWorld={sceneWorld} route={route} atmo={atmo} />
+      <RouteLine sceneWorld={sceneWorld} route={route} visibility={visibility} quality={quality} atmo={atmo} />
       <Buildings sceneWorld={sceneWorld} quality={quality} atmo={atmo} />
       <StreetLights sceneWorld={sceneWorld} atmo={atmo} />
       <Vegetation sceneWorld={sceneWorld} quality={quality} atmo={atmo} stats={stats} />
