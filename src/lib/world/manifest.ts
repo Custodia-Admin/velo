@@ -98,6 +98,12 @@ export interface WorldPoi {
   h: number;
   /** OSM element, e.g. "node/123". */
   osm: string;
+  /**
+   * Label prominence: 3 = city/town, 2 = has a Wikipedia article (or a
+   * Wikidata entry, or a village of 1,000+), 1 = other. Absent in bundles
+   * baked before ranks existed.
+   */
+  rank?: number;
 }
 
 export interface WorldRouteInfo {
@@ -293,6 +299,7 @@ export function validateManifest(input: unknown): WorldManifest {
     str(o, 'osm', `pois[${i}]`);
     if (!POI_KINDS.includes(o.kind as WorldPoiKind)) fail(`pois[${i}].kind ${String(o.kind)} unknown`);
     for (const k of ['x', 'y', 'h']) num(o, k, `pois[${i}]`);
+    if (o.rank !== undefined) int(o, 'rank', `pois[${i}]`, 1);
   });
   arr(m, 'routes', 'manifest').forEach((r, i) => {
     const o = obj(r, `routes[${i}]`);

@@ -87,6 +87,8 @@ export function buildChunkGeometry(
   chunk: ChunkInfo,
   step: number,
   skirtM = step * hf.spec.cellSize * 0.6 + 1,
+  /** Optional per-node depression (metres, cols × rows), e.g. river beds. */
+  depress?: Float32Array,
 ): ChunkGeometryData {
   const { c0, c1, r0, r1 } = chunk.range;
   const cols = sampledNodes(c0, c1, step);
@@ -108,7 +110,7 @@ export function buildChunkGeometry(
       const v = (j * nc + i) * 3;
       const [x, y] = hf.nodePosition(c, r);
       positions[v] = x - chunk.centerX;
-      positions[v + 1] = hf.nodeHeight(c, r);
+      positions[v + 1] = hf.nodeHeight(c, r) - (depress ? depress[r * hf.spec.cols + c] : 0);
       positions[v + 2] = -y - chunk.centerZ;
       // Central differences over the sampling step (smooth shading per LOD).
       const dhdx = (hf.nodeHeight(c + d, r) - hf.nodeHeight(c - d, r)) / (2 * d * cs);

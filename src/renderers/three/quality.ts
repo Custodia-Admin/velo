@@ -33,6 +33,22 @@ export interface ThreeQuality {
   postFx: boolean;
   /** Most near-terrain chunk geometries built per frame (spreads the cost). */
   buildsPerFrame: number;
+  /** Half-size of the sun shadow box around the rider, metres (rider, near trees and houses cast). */
+  shadowBoxM: number;
+  /** Trees: detailed meshes out to `treeNearM`, low-poly out to `treeFarM`, at most `maxTrees` instances. */
+  treeNearM: number;
+  treeFarM: number;
+  maxTrees: number;
+  /** Trees within this distance cast sun shadows (0 = none). */
+  treeShadowM: number;
+  /** Extruded buildings out to this distance, metres (chunks beyond are not built). */
+  buildingM: number;
+  /** Rain/snow particles around the camera. */
+  rainDrops: number;
+  /** Terrain-shadow map resolution, texels per heightfield node (0 = off). */
+  occlusionScale: number;
+  /** Landmark labels shown at once. */
+  maxLabels: number;
 }
 
 export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
@@ -49,6 +65,15 @@ export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
     landcoverTexels: 1024,
     postFx: false,
     buildsPerFrame: 1,
+    shadowBoxM: 0,
+    treeNearM: 110,
+    treeFarM: 1600,
+    maxTrees: 40_000,
+    treeShadowM: 0,
+    buildingM: 3500,
+    rainDrops: 2500,
+    occlusionScale: 0.25,
+    maxLabels: 5,
   },
   medium: {
     maxDpr: 1.5,
@@ -60,9 +85,18 @@ export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
     farStep: 4,
     nearRadiusM: 1800,
     viewDistanceM: 8000,
-    landcoverTexels: 2048,
+    landcoverTexels: 3072,
     postFx: false,
     buildsPerFrame: 1,
+    shadowBoxM: 40,
+    treeNearM: 200,
+    treeFarM: 2600,
+    maxTrees: 150_000,
+    treeShadowM: 70,
+    buildingM: 8000,
+    rainDrops: 6000,
+    occlusionScale: 0.5,
+    maxLabels: 8,
   },
   high: {
     maxDpr: 2,
@@ -77,6 +111,15 @@ export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
     landcoverTexels: 4096,
     postFx: true,
     buildsPerFrame: 2,
+    shadowBoxM: 60,
+    treeNearM: 320,
+    treeFarM: 5500,
+    maxTrees: 260_000,
+    treeShadowM: 110,
+    buildingM: 11000,
+    rainDrops: 10000,
+    occlusionScale: 1,
+    maxLabels: 10,
   },
 };
 

@@ -12,6 +12,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 import type { Route } from '@/types';
+import type { WorldAtmosphere } from './materials/atmosphere';
 import { createRoadMaterial } from './materials/road';
 import type { ThreeQuality } from './quality';
 import { buildRibbons, type RibbonGeometryData, type RibbonLine } from './roadRibbons';
@@ -52,10 +53,10 @@ export interface RoadsHandle {
   material: THREE.MeshStandardMaterial;
 }
 
-export function createRoads(sw: SceneWorld): RoadsHandle {
+export function createRoads(sw: SceneWorld, atmo?: WorldAtmosphere): RoadsHandle {
   const group = new THREE.Group();
   group.name = 'roads';
-  return { group, meshes: sw.chunks.map(() => null), material: createRoadMaterial() };
+  return { group, meshes: sw.chunks.map(() => null), material: createRoadMaterial({ atmo }) };
 }
 
 /** Follow the terrain's near set; build at most `budget` buckets. Exported for tests. */
@@ -95,12 +96,14 @@ export function Roads({
   sceneWorld,
   visibility,
   quality,
+  atmo,
 }: {
   sceneWorld: SceneWorld;
   visibility: ChunkVisibility;
   quality: ThreeQuality;
+  atmo?: WorldAtmosphere;
 }) {
-  const handle = useMemo(() => createRoads(sceneWorld), [sceneWorld]);
+  const handle = useMemo(() => createRoads(sceneWorld, atmo), [sceneWorld, atmo]);
   useEffect(() => () => disposeRoads(handle), [handle]);
   useFrame(() => updateRoads(handle, sceneWorld, visibility, quality.buildsPerFrame, quality.shadows));
   return <primitive object={handle.group} />;
@@ -127,7 +130,7 @@ function primaryColor(): THREE.Color {
   return new THREE.Color().setHSL(Number(m[1]) / 360, Number(m[2]) / 100, Number(m[3]) / 100);
 }
 
-export function RouteLine({ sceneWorld, route }: { sceneWorld: SceneWorld; route: Route }) {
+export function RouteLine({ sceneWorld, route, atmo }: { sceneWorld: SceneWorld; route: Route; atmo?: WorldAtmosphere }) {
   const mesh = useMemo(() => {
     const c = primaryColor();
     const data = buildRibbons(sceneWorld.heightfield, [routeLine(sceneWorld, route, [c.r, c.g, c.b])], {
@@ -138,12 +141,12 @@ export function RouteLine({ sceneWorld, route }: { sceneWorld: SceneWorld; route
     });
     const m = new THREE.Mesh(
       ribbonGeometry(data),
-      createRoadMaterial({ bias: 0.12, biasPerM: 0.0025, opacity: 0.4, emissive: c.clone().multiplyScalar(0.12), plain: true }),
+      createRoadMaterial({ bias: 0.12, biasPerM: 0.0025, opacity: 0.4, emissive: c.clone().multiplyScalar(0.12), plain: true, atmo }),
     );
     m.name = 'route-line';
     m.renderOrder = 2;
     return m;
-  }, [sceneWorld, route]);
+  }, [sceneWorld, route, atmo]);
   useEffect(
     () => () => {
       mesh.geometry.dispose();

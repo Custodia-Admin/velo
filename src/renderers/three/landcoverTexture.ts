@@ -44,8 +44,38 @@ function hashIndex(i: number): number {
 
 export interface LandcoverCanvas {
   canvas: HTMLCanvasElement | OffscreenCanvas;
+  /**
+   * Aux map, same size: r = crop-row angle / π (rows run along each parcel's
+   * longest edge), g = row kind (0.3 furrows, 0.6 orchard/olive rows, 0.9
+   * vine rows, 0 none), b = woodland class (1 forest, 0.7 scrub).
+   */
+  aux: HTMLCanvasElement | OffscreenCanvas | null;
   width: number;
   height: number;
+}
+
+/** Row kind per landcover kind (aux green channel, 0–255). */
+export const ROW_KIND: Readonly<Record<string, number>> = { farmland: 77, orchard: 153, vineyard: 230 };
+/** Woodland class (aux blue channel, 0–255). */
+export const WOOD_CLASS: Readonly<Record<string, number>> = { forest: 255, scrub: 178 };
+
+/** Direction of a ring's longest edge, radians in [0, π). */
+export function longestEdgeAngle(ring: Float32Array | number[]): number {
+  let best = -1;
+  let ang = 0;
+  const n = ring.length / 2;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const dx = ring[2 * j] - ring[2 * i];
+    const dy = ring[2 * j + 1] - ring[2 * i + 1];
+    const l = dx * dx + dy * dy;
+    if (l > best) {
+      best = l;
+      ang = Math.atan2(dy, dx);
+    }
+  }
+  if (ang < 0) ang += Math.PI;
+  return ang >= Math.PI ? ang - Math.PI : ang;
 }
 
 function makeCanvas(width: number, height: number): HTMLCanvasElement | OffscreenCanvas | null {
@@ -126,5 +156,48 @@ export function buildLandcoverCanvas(world: LoadedWorld, texels: number): Landco
     for (let i = 2; i + 1 < p.length; i += 2) ctx.lineTo(px(p[i]), py(p[i + 1]));
     ctx.stroke();
   }
-  return { canvas, width, height };
+  return { canvas, aux: buildAux(world, width, height, byKind), width, height };
+}
+
+function buildAux(
+  world: LoadedWorld,
+  width: number,
+  height: number,
+  byKind: Map<string, { area: WorldArea; i: number }[]>,
+): HTMLCanvasElement | OffscreenCanvas | null {
+  const aux = makeCanvas(width, height);
+  const ctx = (aux?.getContext('2d') ?? null) as Ctx | null;
+  if (!aux || !ctx) return null;
+  const { xMin, xMax, yMin, yMax } = world.manifest.extent;
+  const sx = width / (xMax - xMin);
+  const sy = height / (yMax - yMin);
+  const path = (area: WorldArea) => {
+    ctx.beginPath();
+    for (const ring of area.rings) {
+      for (let i = 0; i + 1 < ring.length; i += 2) {
+        const x = (ring[i] - xMin) * sx;
+        const y = (yMax - ring[i + 1]) * sy;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    }
+  };
+  ctx.fillStyle = 'rgb(0,0,0)';
+  ctx.fillRect(0, 0, width, height);
+  for (const kind of ORDER) {
+    for (const { area } of byKind.get(kind) ?? []) {
+      // Canvas y points south, so a world angle a maps to −a on the canvas; the shader works in world xy.
+      const r = Math.round((longestEdgeAngle(area.rings[0]) / Math.PI) * 255);
+      ctx.fillStyle = `rgb(${r},${ROW_KIND[kind] ?? 0},${WOOD_CLASS[kind] ?? 0})`;
+      path(area);
+      ctx.fill('evenodd');
+    }
+  }
+  ctx.fillStyle = 'rgb(0,0,0)';
+  for (const area of world.water.areas) {
+    path(area);
+    ctx.fill('evenodd');
+  }
+  return aux;
 }

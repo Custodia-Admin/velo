@@ -10,6 +10,7 @@ import { useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
+import type { WorldAtmosphere } from './materials/atmosphere';
 import { createTerrainMaterial } from './materials/toonTerrain';
 import type { ThreeQuality } from './quality';
 import { buildChunkGeometry, chunkLod, type ChunkGeometryData, type ChunkLod } from './terrainMesh';
@@ -41,15 +42,17 @@ export function createTerrain(
   sw: SceneWorld,
   quality: Pick<ThreeQuality, 'farStep' | 'shadows'>,
   landcover: THREE.Texture | null,
+  aux: THREE.Texture | null = null,
+  atmo?: WorldAtmosphere,
 ): TerrainHandle {
-  const material = createTerrainMaterial({ landcover, extent: sw.world.manifest.extent });
+  const material = createTerrainMaterial({ landcover, aux, atmo, extent: sw.world.manifest.extent });
   const group = new THREE.Group();
   group.name = 'terrain';
   const slots = sw.chunks.map((chunk) => {
     const g = new THREE.Group();
     g.name = `chunk-${chunk.index}`;
     g.position.set(chunk.centerX, 0, chunk.centerZ);
-    const far = new THREE.Mesh(toBufferGeometry(buildChunkGeometry(sw.heightfield, chunk, quality.farStep)), material);
+    const far = new THREE.Mesh(toBufferGeometry(buildChunkGeometry(sw.heightfield, chunk, quality.farStep, undefined, sw.waterBed)), material);
     far.name = 'far';
     far.receiveShadow = quality.shadows;
     g.add(far);
@@ -84,7 +87,7 @@ export function updateTerrainLod(
     if (want === 'near' && !slot.near && budget > 0) {
       budget--;
       const near = new THREE.Mesh(
-        toBufferGeometry(buildChunkGeometry(sw.heightfield, sw.chunks[i], quality.nearStep)),
+        toBufferGeometry(buildChunkGeometry(sw.heightfield, sw.chunks[i], quality.nearStep, undefined, sw.waterBed)),
         handle.material,
       );
       near.name = 'near';
@@ -116,18 +119,22 @@ export function Terrain({
   sceneWorld,
   quality,
   landcover,
+  aux = null,
+  atmo,
   visibility,
 }: {
   sceneWorld: SceneWorld;
   quality: ThreeQuality;
   landcover: THREE.Texture | null;
+  aux?: THREE.Texture | null;
+  atmo?: WorldAtmosphere;
   visibility: ChunkVisibility;
 }) {
   const handle = useMemo(
-    () => createTerrain(sceneWorld, quality, landcover),
+    () => createTerrain(sceneWorld, quality, landcover, aux, atmo),
     // Rebuild only when what the far meshes depend on changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sceneWorld, quality.farStep, quality.shadows, landcover],
+    [sceneWorld, quality.farStep, quality.shadows, landcover, aux, atmo],
   );
   useEffect(() => () => disposeTerrain(handle), [handle]);
   useFrame(({ camera }) => {
