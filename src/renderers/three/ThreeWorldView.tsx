@@ -294,7 +294,7 @@ function WorldScene({
       <Ghosts sceneWorld={sceneWorld} route={route} />
       <Suspense fallback={null}>
         <LiveRider frame={frame} castShadow={quality.shadows} />
-        <PaceBots sceneWorld={sceneWorld} />
+        <PaceBots sceneWorld={sceneWorld} route={route} />
         <ReadySignal onReady={onReady} />
       </Suspense>
       {quality.postFx && <PostFx />}

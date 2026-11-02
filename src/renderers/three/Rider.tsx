@@ -15,17 +15,16 @@ import type { AvatarColors } from '@/lib/avatarConfig';
 import { BOT_COLORWAYS } from '@/lib/paceBots';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import type { Route } from '@/types';
+import { createBotDriverMemo, driveBotPose } from './rideDriver';
 import {
   RIDER_RIG,
-  angleDelta,
   estimatedCadence,
-  leanAngle,
   legPose,
   modelYaw,
   placeRider,
   type RiderPlacement,
 } from './riderRig';
-import { dampFactor } from './chaseRig';
 import type { RideFrame, SceneWorld } from './worldScene';
 
 export const RIDER_MODEL_URL = `${import.meta.env.BASE_URL ?? '/'}models/velo-rider.glb`;
@@ -112,8 +111,8 @@ export function RiderModel({
   castShadow = false,
 }: {
   colors: AvatarColors;
-  /** Called every frame; null hides the rider. */
-  drive: () => RiderDrive | null;
+  /** Called every frame with the frame time (s, clamped); null hides the rider. */
+  drive: (dt: number) => RiderDrive | null;
   castShadow?: boolean;
 }) {
   const gltf = useGLTF(RIDER_MODEL_URL, false, false);
@@ -127,9 +126,10 @@ export function RiderModel({
     [parts],
   );
   useFrame((_, delta) => {
-    const d = drive();
+    const dt = Math.min(0.1, Math.max(0, delta));
+    const d = drive(dt);
     parts.root.visible = d !== null;
-    if (d) poseRider(parts, d, anim, Math.min(0.1, delta));
+    if (d) poseRider(parts, d, anim, dt);
   });
   return <primitive object={parts.root} />;
 }
@@ -147,31 +147,32 @@ export function LiveRider({ frame, castShadow }: { frame: RideFrame; castShadow:
   return <RiderModel colors={colors} drive={drive} castShadow={castShadow} />;
 }
 
-function BotRider({ sceneWorld, index }: { sceneWorld: SceneWorld; index: number }) {
-  const memo = useMemo(() => ({ heading: NaN, lean: 0 }), []);
+function BotRider({ sceneWorld, route, index }: { sceneWorld: SceneWorld; route: Route; index: number }) {
+  const memo = useMemo(() => createBotDriverMemo(), []);
   const drive = useMemo(
-    () => (): RiderDrive | null => {
-      const bot = useRideStore.getState().paceBots[index];
-      if (!bot) return null;
-      const s = bot.state;
-      const placement = placeRider(sceneWorld, { lat: s.lat, lon: s.lon, heading: s.heading });
-      const dt = 1 / 60;
-      const yawRate = Number.isFinite(memo.heading) ? angleDelta(s.heading, memo.heading) / dt : 0;
-      memo.heading = s.heading;
-      memo.lean += (leanAngle(s.speed, yawRate) - memo.lean) * dampFactor(0.4, dt);
-      return { placement, speed: s.speed, cadence: estimatedCadence(s.speed), lean: memo.lean };
-    },
-    [sceneWorld, index, memo],
+    () =>
+      (dt: number): RiderDrive | null => {
+        const bot = useRideStore.getState().paceBots[index];
+        if (!bot) {
+          memo.yaw.reset();
+          return null;
+        }
+        const s = bot.state;
+        const { heading, lean } = driveBotPose(memo, route, s, dt);
+        const placement = placeRider(sceneWorld, { lat: s.lat, lon: s.lon, heading });
+        return { placement, speed: s.speed, cadence: estimatedCadence(s.speed), lean };
+      },
+    [sceneWorld, route, index, memo],
   );
   return <RiderModel colors={BOT_COLORWAYS[index % BOT_COLORWAYS.length]} drive={drive} />;
 }
 
-export function PaceBots({ sceneWorld }: { sceneWorld: SceneWorld }) {
+export function PaceBots({ sceneWorld, route }: { sceneWorld: SceneWorld; route: Route }) {
   const count = useRideStore((s) => s.paceBots.length);
   return (
     <>
       {Array.from({ length: count }, (_, i) => (
-        <BotRider key={i} sceneWorld={sceneWorld} index={i} />
+        <BotRider key={i} sceneWorld={sceneWorld} route={route} index={i} />
       ))}
     </>
   );
