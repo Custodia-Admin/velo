@@ -15,6 +15,7 @@ import sys
 import time
 
 from playwright.sync_api import sync_playwright
+from scenic_home import ride_scenic_route
 
 out = sys.argv[1] if len(sys.argv) > 1 else "."
 base = sys.argv[2] if len(sys.argv) > 2 else "http://localhost:5181"
@@ -68,9 +69,7 @@ with sync_playwright() as p:
     page.on("console", lambda m: console.append(m.text) if m.type in ("error", "warning") else None)
     page.add_init_script(INIT)
     page.goto(base + "/app")
-    card = page.locator(f'[data-scenic-route="{route_id}"]').first
-    card.wait_for(state="visible", timeout=60000)
-    card.evaluate("el => el.click()")
+    ride_scenic_route(page, route_id, timeout=60000)
     page.wait_for_url("**/ride**", timeout=60000)
     page.wait_for_selector("[data-renderer]", state="attached", timeout=60000)
     t0 = time.time()

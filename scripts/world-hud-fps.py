@@ -10,6 +10,7 @@ The long run is HUD-on (shipped) only.
 """
 import json, os, sys, time
 from playwright.sync_api import sync_playwright
+from scenic_home import ride_scenic_route
 
 out = sys.argv[1]; base = sys.argv[2]
 route_id = sys.argv[3] if len(sys.argv) > 3 else "scenic-perugia-tiber-park"
@@ -66,9 +67,7 @@ with sync_playwright() as p:
         page.on("pageerror", lambda e: errs.append(str(e)))
         page.add_init_script(init(q))
         page.goto(base + "/app")
-        card = page.locator(f'[data-scenic-route="{route_id}"]').first
-        card.wait_for(state="visible", timeout=60000)
-        card.evaluate("el => el.click()")
+        ride_scenic_route(page, route_id, timeout=60000)
         page.wait_for_url("**/ride**", timeout=60000)
         page.wait_for_function("() => typeof window.__veloRideDebug === 'function' && typeof window.__veloPerf === 'function'", timeout=90000)
         time.sleep(8)
