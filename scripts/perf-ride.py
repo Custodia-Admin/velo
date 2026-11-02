@@ -33,6 +33,7 @@ import sys
 import time
 
 from playwright.sync_api import sync_playwright
+from scenic_home import ride_scenic_route
 
 out = pathlib.Path(sys.argv[1])
 base = sys.argv[2] if len(sys.argv) > 2 else "http://localhost:4173"
@@ -191,8 +192,7 @@ with sync_playwright() as p:
         cdp = ctx.new_cdp_session(page)
         cdp.send("Performance.enable")
         page.goto(f"{base}/app", wait_until="domcontentloaded", timeout=60000)
-        page.wait_for_selector(f"[data-scenic-route='{route_id}']", timeout=30000)
-        page.evaluate(f"() => document.querySelector(\"[data-scenic-route='{route_id}']\").click()")
+        ride_scenic_route(page, route_id, timeout=30000)
         page.wait_for_url("**/ride**", timeout=20000)
         gpu = page.evaluate("""() => { const c=document.createElement('canvas'); const gl=c.getContext('webgl2');
             const e=gl&&gl.getExtension('WEBGL_debug_renderer_info'); return e?gl.getParameter(e.UNMASKED_RENDERER_WEBGL):'?'; }""")

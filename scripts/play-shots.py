@@ -24,6 +24,7 @@ import sys
 import time
 
 from playwright.sync_api import sync_playwright
+from scenic_home import ride_scenic_route, wait_scenic_route
 
 out = pathlib.Path(sys.argv[1])
 base = sys.argv[2] if len(sys.argv) > 2 else "http://localhost:5173"
@@ -101,7 +102,7 @@ with sync_playwright() as p:
         if CLOCK:
             page.clock.set_system_time(datetime.datetime.fromisoformat(CLOCK))
         page.goto(f"{base}/app", wait_until="domcontentloaded", timeout=60000)
-        page.wait_for_selector(f"[data-scenic-route='{route_id}']", timeout=20000)
+        wait_scenic_route(page, route_id, timeout=20000)
         page.wait_for_timeout(1500)
         switch = page.evaluate("""() => { const b = [...document.querySelectorAll('button[role=switch]')].find(b => /Play mode/.test(document.getElementById(b.getAttribute('aria-labelledby'))?.textContent || ''));
           if (!b) return null; const r = b.getBoundingClientRect(); const hint = document.getElementById(b.getAttribute('aria-describedby'))?.textContent;
@@ -110,7 +111,7 @@ with sync_playwright() as p:
         page.screenshot(path=str(out / f"home-play{SUFFIX}-{vp}.png"), full_page=True)
         print(vp, "seed:", page.evaluate(SEED_RIDE, [route_id, "Lugano lakefront to Melide"]))
 
-        page.click(f"[data-scenic-route='{route_id}']")
+        ride_scenic_route(page, route_id)
         page.wait_for_url("**/ride**", timeout=20000)
         panels = wait_for_note(page, lambda t: "Next one in 100 m" in t or "Next one in 50 m" in t, 120)
         page.wait_for_timeout(300)

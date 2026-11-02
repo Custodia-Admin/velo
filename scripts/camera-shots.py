@@ -12,6 +12,7 @@ Env: MODES (comma list; default chase,firstPerson,overhead,sideTracking,cinemati
 """
 import json, os, pathlib, sys
 from playwright.sync_api import sync_playwright
+from scenic_home import ride_scenic_route
 
 out = pathlib.Path(sys.argv[1]); out.mkdir(parents=True, exist_ok=True)
 base = sys.argv[2] if len(sys.argv) > 2 else "http://localhost:4173"
@@ -37,8 +38,7 @@ with sync_playwright() as p:
                 "localStorage.setItem('globeride.settings.v1', JSON.stringify({state:%s,version:1}));" % json.dumps(state))
             pg = ctx.new_page()
             pg.goto(f"{base}/app", wait_until="domcontentloaded", timeout=60000)
-            pg.wait_for_selector(f"[data-scenic-route='{route_id}']", timeout=30000)
-            pg.evaluate(f"() => document.querySelector(\"[data-scenic-route='{route_id}']\").click()")
+            ride_scenic_route(pg, route_id, timeout=30000)
             pg.wait_for_url("**/ride**", timeout=20000)
             pg.wait_for_timeout(SETTLE_MS)
             dbg = pg.evaluate("() => window.__veloRideDebug ? window.__veloRideDebug() : null")

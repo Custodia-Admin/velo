@@ -9,6 +9,7 @@ Env: VIEW=1080|1600, QUALITY, SETTLE_S (20), TRACE_S (6), HEADLESS=1 (default 1)
 """
 import collections, json, os, pathlib, sys
 from playwright.sync_api import sync_playwright
+from scenic_home import ride_scenic_route
 
 out = pathlib.Path(sys.argv[1])
 base = sys.argv[2] if len(sys.argv) > 2 else "http://localhost:4173"
@@ -39,8 +40,7 @@ with sync_playwright() as p:
     for asset in filter(None, os.environ.get("BLOCK_ASSETS", "").split(",")):
         pg.route(f"**/v1/assets/{asset}/endpoint**", lambda route: route.abort())
     pg.goto(f"{base}/app", wait_until="domcontentloaded", timeout=60000)
-    pg.wait_for_selector(f"[data-scenic-route='{route_id}']", timeout=30000)
-    pg.evaluate(f"() => document.querySelector(\"[data-scenic-route='{route_id}']\").click()")
+    ride_scenic_route(pg, route_id, timeout=30000)
     pg.wait_for_url("**/ride**", timeout=20000)
     pg.wait_for_timeout(int(SETTLE_S * 1000))
     b.start_tracing(page=pg, path=str(out), categories=CATS.split(","))

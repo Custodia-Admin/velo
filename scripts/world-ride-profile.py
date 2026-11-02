@@ -8,6 +8,7 @@ import time
 from collections import Counter
 
 from playwright.sync_api import sync_playwright
+from scenic_home import ride_scenic_route
 
 base = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:5181"
 route_id = sys.argv[2] if len(sys.argv) > 2 else "scenic-perugia-tiber-park"
@@ -22,7 +23,7 @@ with sync_playwright() as p:
     page = b.new_page(viewport={"width": 1920, "height": 1080})
     page.add_init_script(INIT)
     page.goto(base + "/app")
-    page.locator(f'[data-scenic-route="{route_id}"]').first.evaluate("el => el.click()")
+    ride_scenic_route(page, route_id, timeout=60000)
     page.wait_for_function("() => typeof window.__veloRideDebug === 'function'", timeout=90000)
     time.sleep(6)
     print(page.evaluate("""() => { const c = document.createElement('canvas'); const gl = c.getContext('webgl2');
