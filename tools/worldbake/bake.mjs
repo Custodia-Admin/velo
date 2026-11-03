@@ -21,7 +21,7 @@ import { validateManifest, WORLD_FORMAT, WORLD_FORMAT_VERSION } from '../../src/
 import { fetchDem, DEM_SOURCE } from './fetchDem.mjs';
 import { fetchOsm, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
-import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois } from './buildVectors.mjs';
+import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
 import { validateHeightfield } from './validateDem.mjs';
 import { brotliSize, ensureDir, gzip, here, sha256, stableJson, writeFileAtomic } from './util.mjs';
@@ -167,11 +167,32 @@ export async function bake(opts) {
   const roads = buildRoads(osm.elements.roads, projection, extent);
   const water = buildWater(osm.elements.water, projection, extent);
   const landcover = buildLandcover(osm.elements.landcover, projection, extent);
-  const buildings = buildBuildings(osm.elements.buildings, projection, extent);
-  const vegetation = buildVegetation({ polys: landcover.polys, ext: extent, recipe: recipe.vegetation });
+  // What the rider follows must never run through a building: every scenic
+  // route at full resolution (the app's own polyline), plus every drawn road.
+  const routeLines = routesIn.map((r) => r.points.flatMap(([lat, lon]) => projection.forward(lat, lon)));
+  const stepsClass = roads.classes.indexOf('steps');
+  const roadLines = roads.roads
+    .filter((r) => !(r.f && r.f & ROAD_FLAGS.tunnel) && r.c !== stepsClass)
+    .map((r) => r.p.map((v) => v / 10));
+  const routeClear = routeClearances(routeLines, roads);
+  const buildings = buildBuildings(osm.elements.buildings, projection, extent, landcover.polys, {
+    routeLines: routeClear.lines,
+    routeClear: routeClear.clear,
+    roadLines,
+  });
+  const vegetation = buildVegetation({
+    polys: landcover.polys,
+    ext: extent,
+    recipe: recipe.vegetation,
+    roads,
+    water,
+    footprints: buildings.footprints,
+    treeRows: buildTreeRows(osm.elements.treerows, projection, extent),
+    routeLines,
+  });
   const pois = buildPois([...osm.elements.pois, ...osm.elements.landmarks], projection, extent).map((p) => ({ ...p, h: round(height.hf.sampleHeight(p.x, p.y)) }));
   lap('vectors', t);
-  log(`vectors: ${roads.roads.length} road pieces, ${water.areas.length} water areas + ${water.lines.length} lines, ${landcover.layer.areas.length} landcover, ${buildings.count} buildings, ${vegetation.count} trees (lattice ${vegetation.lattice}), ${pois.length} POIs`);
+  log(`vectors: ${roads.roads.length} road pieces, ${water.areas.length} water areas + ${water.lines.length} lines, ${landcover.layer.areas.length} landcover, ${buildings.count} buildings ${JSON.stringify(buildings.districts)} (dropped ${buildings.dropped.route} on routes, ${buildings.dropped.road} astride roads), ${vegetation.count} trees (woodland lattice ${vegetation.lattice}, character ${vegetation.character}) ${JSON.stringify(vegetation.byKind)}, ${pois.length} POIs`);
 
   // 4. Write the bundle.
   t = Date.now();
@@ -235,7 +256,9 @@ export async function bake(opts) {
       landcoverAreas: landcover.layer.areas.length,
       buildings: buildings.count,
       buildingVertices: buildings.totalVerts,
+      ...Object.fromEntries(Object.entries(buildings.districts).map(([k, v]) => [`buildings:${k}`, v])),
       trees: vegetation.count,
+      ...Object.fromEntries(Object.entries(vegetation.byKind).map(([k, v]) => [`trees:${k}`, v])),
       pois: pois.length,
       carvedNodes: carve.carvedNodes,
     },
@@ -283,6 +306,7 @@ export async function bake(opts) {
     hashes: Object.fromEntries([...files.map((f) => [f.path, f.sha256]), ['manifest.json', sha256(manifestBytes)]]),
     routes: snapped.info,
     heightfield: { ...height.info, carvedNodes: carve.carvedNodes, maxCutM: round(carve.maxCutM) },
+    buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
     demTiles: dem.tiles,
     overpass: { url: OVERPASS_URL, osmDate: recipe.osmDate, queries: osm.queries },
     validation,

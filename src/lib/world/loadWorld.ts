@@ -19,7 +19,19 @@ export { WorldLoadError } from './manifest';
 export type { WorldErrorCode } from './manifest';
 
 export const BUILDING_KINDS = ['generic', 'house', 'apartments', 'church', 'industrial', 'shed', 'civic'] as const;
-export const VEGETATION_KINDS = ['broadleaf', 'conifer', 'scrub', 'olive', 'park'] as const;
+export const VEGETATION_KINDS = [
+  'broadleaf',
+  'conifer',
+  'scrub',
+  'olive',
+  'park',
+  'cypress',
+  'riparian',
+  'hedgerow',
+  'garden',
+] as const;
+/** Where a building stands (buildings.bin VWB2); VWB1 bundles read as all 'suburb'. */
+export const BUILDING_DISTRICTS = ['suburb', 'old-town', 'rural', 'industrial'] as const;
 
 export interface WorldLoadProgress {
   /** 'manifest' once the manifest is read, 'file' per finished file, 'done' at the end. */
@@ -84,6 +96,8 @@ export interface BuildingsLayer {
   height: Float32Array;
   /** Index into BUILDING_KINDS. */
   kind: Uint8Array;
+  /** Index into BUILDING_DISTRICTS. */
+  district: Uint8Array;
 }
 
 export interface VegetationLayer {
@@ -303,11 +317,13 @@ function magic(bytes: Uint8Array, expect: string, file: string): DataView {
 }
 
 function decodeBuildings(bytes: Uint8Array, file: string): BuildingsLayer {
-  const v = magic(bytes, 'VWB1', file);
+  const tag = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+  const v = magic(bytes, tag === 'VWB2' ? 'VWB2' : 'VWB1', file);
+  const hasDistrict = tag === 'VWB2';
   const count = v.getUint32(4, true);
   const totalVerts = v.getUint32(8, true);
   const head = 12;
-  const meta = count * 5;
+  const meta = count * (hasDistrict ? 6 : 5);
   const pad = (4 - ((head + meta) % 4)) % 4;
   const expected = head + meta + pad + count * 8 + (totalVerts - count) * 4;
   if (totalVerts < count * 3 || bytes.length !== expected) {
@@ -321,6 +337,8 @@ function decodeBuildings(bytes: Uint8Array, file: string): BuildingsLayer {
   if (start[count] !== totalVerts) throw new WorldLoadError('corrupt', `${file}: vertex counts do not add up`, file);
   for (let i = 0; i < count; i++, o += 2) height[i] = v.getUint16(o, true) / 10;
   for (let i = 0; i < count; i++, o += 1) kind[i] = bytes[o];
+  const district = new Uint8Array(count);
+  if (hasDistrict) for (let i = 0; i < count; i++, o += 1) district[i] = bytes[o];
   o += pad;
   const xy = new Float32Array(totalVerts * 2);
   let d = head + meta + pad + count * 8;
@@ -337,7 +355,7 @@ function decodeBuildings(bytes: Uint8Array, file: string): BuildingsLayer {
       xy[k++] = y / 10;
     }
   }
-  return { count, start, xy, height, kind };
+  return { count, start, xy, height, kind, district };
 }
 
 function decodeVegetation(bytes: Uint8Array, file: string, manifest: WorldManifest): VegetationLayer {
