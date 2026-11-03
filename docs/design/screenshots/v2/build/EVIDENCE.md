@@ -136,6 +136,29 @@ Run 2 is the clean measurement (≥ 58 fps target met; `backdropHud: []`). Run 1
 box with the KDE file indexer (suspended for run 2) and another agent's browser; its dips
 hit the base harder than the branch. Raw JSON in `fps/`.
 
+### Compact HUD fps (A/B vs main), Arc iGPU, medium, 1920×1080, Assisi valley, HUD on 90 s
+
+Production builds (`vite build` + `vite preview`) of this branch (18d98f2) and `main`
+(b1083ce: the same world with no P2.4 HUD), alternated on the same laptop. The laptop was
+shared with other agents' browsers and test runs (KDE file indexer suspended from run 1's
+`main` leg on), so neither build reached 60 fps steadily; the A/B separates load from code:
+
+| Run | Build | HUD-on 90 s avg | frames > 20 ms | load1 |
+|---|---|---|---|---|
+| 1 | this branch | 28.8 fps | 19.9 % | 4.9 |
+| 1 | main | 35.2 fps | 18.4 % | 5.4 |
+| 2 | this branch | 54.6 fps | 3.3 % | 3.1 |
+| 2 | main | 54.9 fps | 3.6 % | 3.7 |
+| 3 | main | 56.5 fps | 2.7 % | 2.0 |
+| 3 | this branch | **57.2 fps** | **2.0 %** | 1.5 |
+
+Run 1 hit both builds with the indexer and two other agents' pytest runs (canvas-only, no HUD at
+all, measured 24–35 fps in the same windows). Runs 2–3: the compact HUD costs nothing measurable
+against `main` (−0.3 / +0.7 fps, within noise); `backdropHud: []` on every run; rider in frame
+100 %. The ≥ 58 fps bar was not met on this contended laptop by either build; the earlier
+clean P2.4 measurement (60.0 fps, below) had the machine to itself. Raw JSON:
+`fps/compact-*.json`.
+
 ## UI-RULES §9 rubric
 
 1. **Tokens only** — pass. `uiRules.test.ts` green, allow-list unchanged;
