@@ -400,33 +400,52 @@ Ride V2 (left unit) + KICKR CORE 2. Steps 1–5 on the laptop (Chrome,
 on the tailnet), because the laptop browser has no `getDevices()` /
 `watchAdvertisements()` (see "Platforms" above). Record the result in the PR.
 
-1. **Battery %.** Home → Trainer: pair the handlebar controls and the
-   trainer. Both rows show a battery icon and a percent (76 % draws the
-   two-bar "medium" icon). Compare with the maker's app if handy (within a
-   few %).
-2. **No ride open = no writes.** Still on Home, switch the bars off (or let
-   the trainer drop by unplugging it 10 s): the row says asleep /
-   disconnected with "tap Reconnect", and nothing reconnects by itself. Tap
-   Reconnect: it comes back (the bars buzz once).
+1. **Pair + battery %.** Home → Trainer: pair the trainer and the
+   handlebar controls. The handlebar row shows a battery icon and a percent
+   (76 % draws the two-bar "medium" icon; compare with the maker's app if
+   handy, within a few %). The trainer row shows a battery only if the
+   trainer reports one: the KICKR CORE runs on mains power, so expect none.
+   Then **press a paddle**. The laptop can't tell the two "Zwift Ride"
+   entries apart, and only the left unit (EB:5D:DC:A0:DB:F4) sends presses;
+   the right one (DE:A6:AF:91:F7:0E) has none. If the row says "Connected,
+   no signal", tap "Pair the other controller" and pick the other "Zwift
+   Ride" entry.
+2. **No ride open = no writes.** Still on Home, switch the bars off (or
+   unplug the trainer for 10 s): the row says asleep / disconnected with
+   "tap Reconnect", and nothing reconnects by itself. Switch the bars back
+   on (or plug the trainer in and wait for its light), **then** tap
+   Reconnect: it comes back (the bars buzz once). On the laptop a tap makes
+   two quick attempts without waiting for the device to advertise, so a tap
+   made too early fails; tap again once it is on.
 3. **Mid-ride drop.** Start a ride, pedal. Unplug the trainer for ~3 s and
-   plug it back: "Reconnecting… attempt n of 4", then "Trainer reconnected",
-   and resistance follows the road again on the next frame.
+   plug it back: "Reconnecting to trainer · Attempt n of 4…", then "Trainer
+   reconnected", and resistance follows the road again on the next frame.
+   If the trainer is not back before the four attempts run out (about 8 s
+   after the drop), the ride switches to Demo Mode and the toast reads
+   "Couldn't reconnect after several attempts · … then tap Reconnect", with
+   a **Reconnect** button. It stays until used: once the trainer light is
+   on, tap it. Resistance returns; a tap that is too early brings the toast
+   back.
 4. **Gear buzz.** Shift up and down a few times: one short buzz per shift, a
-   fast double shift gives one buzz, nothing at gear 1 or 11. Turn "Buzz on
-   gear change" off in the Trainer panel: shifting is silent. On Home (no
-   ride) shifting never buzzes; "Test buzz" does.
+   fast double shift gives one buzz, nothing at gear 1 or 11. On Home (no
+   ride) shifting never buzzes; "Test buzz" does. The "Buzz on gear change"
+   switch lives only in Home → Trainer: to check it off, finish the ride,
+   switch it off there, start a new ride and shift: silent.
 5. **Steering feel.** Push a lever lightly: a small, slow move across the
    lane. Push fully: the bike reaches the lane edge in about a second without
    overshooting. Let go: most of the way back in about 2.5 s, exactly on the
    line after about 4 s.
-6. **Android Chrome: wake + reload.** Pair both on the phone/tablet, start a
-   ride. Leave the bars untouched until the chip says "Asleep… they reconnect
-   by themselves" (or switch the left unit off and on), press any button: the
-   chip goes back to Controls within a few seconds and the bars buzz once.
-   Stop pedalling until the trainer drops and its retries give up (Demo Mode
-   toast says "it reconnects by itself"), then pedal: it reconnects and
-   resistance returns. Reload the page and open a ride: trainer and controls
-   reconnect without the chooser.
+6. **Android Chrome: wake + reload.** First disconnect both on the laptop
+   (Home → Trainer → Disconnect) or close Velo there: connected units stop
+   advertising, so the phone's chooser won't list them. Pair both on the
+   phone/tablet, start a ride. Leave the bars untouched until the chip says
+   "Asleep… they reconnect by themselves" (or switch the left unit off and
+   on), press any button: the chip goes back to Controls within a few
+   seconds and the bars buzz once. Stop pedalling until the trainer drops
+   and its retries give up (Demo Mode toast says "it reconnects by
+   itself"), then pedal: it reconnects and resistance returns. Reload the
+   page and open a ride: trainer and controls reconnect without the
+   chooser.
 
 Show mode, if there is time: Y plays/pauses, Z skips, B toggles the auto
 camera; the hood buttons move the camera closer / further.
