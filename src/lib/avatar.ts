@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { fallbackSceneEle, sceneEle, sceneGroundHeight } from '@/lib/cesiumUtils';
+import { fallbackSceneEle, photorealGroundShown, sceneEle, sceneGroundHeight } from '@/lib/cesiumUtils';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { RiderPosition } from '@/lib/physics';
 
@@ -22,7 +22,8 @@ export type { AvatarColors } from '@/lib/avatarConfig';
  *   4. Hand positions shift by rider posture (hoods / tops / drops).
  *   5. Head yaws ±5° toward the direction of heading change.
  *   6. Climb-mode (grade > 8 %): body tilts forward 5° and hips sway at cadence.
- * All driven from `update()` once per frame; zero Cesium-primitive allocations.
+ * All driven from `update()` once per frame; geometry is built once, only
+ * the parts' model matrices change.
  *
  * raised geometry fidelity — segmented limbs, multi-style helmets,
  * glasses, water bottle, 4-cross spoke pattern, brake rotors, PBR-like materials,
@@ -139,7 +140,13 @@ export interface AvatarUpdate {
 export type AvatarHandle = ReturnType<typeof createAvatar>;
 
 export interface Avatar {
-  entities: Cesium.Entity[];
+  /**
+   * One Primitive per part: geometry built once, only the model matrix
+   * changes per frame.
+   */
+  parts: Cesium.Primitive[];
+  /** Show or hide the whole rider (e.g. a ghost that hasn't started). */
+  setShow: (show: boolean) => void;
   update: (u: AvatarUpdate) => void;
   /** Smoothed scene height the rider sits at (null before the first update). */
   groundEle: () => number | null;
@@ -1244,27 +1251,60 @@ export function effortSkinColor(baseCss: string, level01: number): Cesium.Color 
 // ---- Avatar construction --------------------------------------------------
 
 /**
- * Build the procedural cyclist into `viewer`. Call `update()` each frame from
- * the render loop; `setColors()` to restyle; `dispose()` to remove it.
- *
- * Zero Cesium-primitive allocations inside `update()` — all entities are
- * created once here and mutated in-place via CallbackProperty reads each frame.
- *
- * accepts optional AvatarOptions so callers can specify helmet
- * style, glasses, and bottle. Existing call sites passing only a viewer
- * continue to work unchanged.
+ * Every live avatar's part primitives. Ground sampling excludes them all, so
+ * no rider (or a ghost / bot parked on the same spot) is ever "ground".
  */
-/**
- * Every live avatar's entities. Ground sampling excludes them all, so no
- * rider (or a ghost / bot parked on the same spot) is ever "ground".
- */
-const liveAvatarEntities = new Set<Cesium.Entity>();
-let excludeCache: Cesium.Entity[] | null = null;
-export function groundSampleExclusions(): Cesium.Entity[] {
-  if (!excludeCache) excludeCache = [...liveAvatarEntities];
+const liveAvatarParts = new Set<Cesium.Primitive>();
+/** Each live avatar's part collection — hidden for the instant of a ground pick. */
+const liveAvatarCollections = new Set<Cesium.PrimitiveCollection>();
+let excludeCache: Cesium.Primitive[] | null = null;
+export function groundSampleExclusions(): Cesium.Primitive[] {
+  if (!excludeCache) excludeCache = [...liveAvatarParts];
   return excludeCache;
 }
 
+/** Fewer facets than Cesium's 64×64 entity default: parts are centimetres wide. */
+const ELLIPSOID_PARTITIONS = 20;
+const CYLINDER_SLICES = 16;
+
+function partGeometry(part: PartSpec): Cesium.BoxGeometry | Cesium.CylinderGeometry | Cesium.EllipsoidGeometry {
+  const vertexFormat = Cesium.PerInstanceColorAppearance.VERTEX_FORMAT;
+  if (part.kind === 'box') {
+    return Cesium.BoxGeometry.fromDimensions({
+      dimensions: new Cesium.Cartesian3(part.dims[0], part.dims[1], part.dims[2]),
+      vertexFormat,
+    });
+  }
+  if (part.kind === 'cylinder') {
+    return new Cesium.CylinderGeometry({
+      length: part.dims[1],
+      topRadius: part.dims[0],
+      bottomRadius: part.dims[2],
+      slices: CYLINDER_SLICES,
+      vertexFormat,
+    });
+  }
+  return new Cesium.EllipsoidGeometry({
+    radii: new Cesium.Cartesian3(part.dims[0], part.dims[1], part.dims[2]),
+    stackPartitions: ELLIPSOID_PARTITIONS,
+    slicePartitions: ELLIPSOID_PARTITIONS,
+    vertexFormat,
+  });
+}
+
+const scratchLocal = new Cesium.Cartesian3();
+const scratchRot = new Cesium.Matrix3();
+
+/**
+ * Build the procedural cyclist into `viewer`. Call `update()` each frame from
+ * the render loop; `setColors()` to restyle; `dispose()` to remove it.
+ *
+ * Each part is a Primitive whose geometry is built once; `update()` only
+ * rewrites the parts' model matrices in place. (Entity box / cylinder /
+ * ellipsoid graphics with a time-varying position are re-tessellated, given
+ * new vertex buffers and re-linked shaders every frame — that was most of the
+ * ride view's frame time on the laptop iGPU.)
+ */
 export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Avatar {
   const scene = viewer.scene;
 
@@ -1309,6 +1349,7 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
   let lastHeading: number | null = null;
   let smoothedHeadYaw = 0;
   let elapsedMs = 0;
+  let shown = true;
 
   /** Skin color, potentially tinted by effort level. */
   const skinColor = (): Cesium.Color =>
@@ -1319,60 +1360,55 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
   const roleColor = (role: ColorRole): Cesium.Color =>
     role === 'skin' ? skinColor() : Cesium.Color.fromCssColorString(colors[role]);
 
-  const entities: Cesium.Entity[] = PARTS.map((part, i) => {
-    const position = new Cesium.CallbackPositionProperty(() => world[i].pos, false);
-    const orientation = new Cesium.CallbackProperty(() => world[i].rot, false);
-    const alpha = part.alpha ?? 1.0;
-    const mat = alpha < 1
-      ? roleColor(part.role).withAlpha(alpha)
-      : roleColor(part.role);
-    const common = { name: `Rider · ${part.name}`, position, orientation };
-    if (part.kind === 'box') {
-      return viewer.entities.add({
-        ...common,
-        box: {
-          dimensions: new Cesium.Cartesian3(part.dims[0], part.dims[1], part.dims[2]),
-          material: new Cesium.ColorMaterialProperty(mat),
-          shadows: Cesium.ShadowMode.ENABLED,
-        },
-      });
-    }
-    if (part.kind === 'cylinder') {
-      return viewer.entities.add({
-        ...common,
-        cylinder: {
-          length: part.dims[1],
-          topRadius: part.dims[0],
-          bottomRadius: part.dims[2],
-          material: new Cesium.ColorMaterialProperty(mat),
-          shadows: Cesium.ShadowMode.ENABLED,
-          slices: 16,
-        },
-      });
-    }
-    return viewer.entities.add({
-      ...common,
-      ellipsoid: {
-        radii: new Cesium.Cartesian3(part.dims[0], part.dims[1], part.dims[2]),
-        material: new Cesium.ColorMaterialProperty(mat),
-        shadows: Cesium.ShadowMode.ENABLED,
-      },
-    });
-  });
+  // Colours are baked into each part's instance, so a recolour rebuilds the
+  // primitives (rare: Garage changes). The collection owns and destroys them.
+  const collection = scene.primitives.add(new Cesium.PrimitiveCollection()) as Cesium.PrimitiveCollection;
+  liveAvatarCollections.add(collection);
+  const groundSampler = createGroundSampler(scene);
 
-  for (const ent of entities) liveAvatarEntities.add(ent);
+  function writeModelMatrix(primitive: Cesium.Primitive, i: number): void {
+    Cesium.Matrix4.fromRotationTranslation(
+      Cesium.Matrix3.fromQuaternion(world[i].rot, scratchRot),
+      world[i].pos,
+      primitive.modelMatrix,
+    );
+  }
+
+  function buildPart(part: PartSpec, i: number): Cesium.Primitive {
+    const alpha = part.alpha ?? 1.0;
+    const color = alpha < 1 ? roleColor(part.role).withAlpha(alpha) : roleColor(part.role);
+    const primitive = new Cesium.Primitive({
+      geometryInstances: new Cesium.GeometryInstance({
+        geometry: partGeometry(part),
+        id: `rider-part-${part.name}`,
+        attributes: { color: Cesium.ColorGeometryInstanceAttribute.fromColor(color) },
+      }),
+      appearance: new Cesium.PerInstanceColorAppearance({ translucent: alpha < 1, closed: true }),
+      modelMatrix: Cesium.Matrix4.clone(Cesium.Matrix4.IDENTITY),
+      // Built on the main thread at its first render — once — so the part
+      // exists the frame the rider appears.
+      asynchronous: false,
+      shadows: Cesium.ShadowMode.ENABLED,
+    });
+    writeModelMatrix(primitive, i);
+    collection.add(primitive);
+    return primitive;
+  }
+
+  let parts: Cesium.Primitive[] = PARTS.map(buildPart);
+  for (const p of parts) liveAvatarParts.add(p);
   excludeCache = null;
 
   function recomputeParts(): void {
     for (let i = 0; i < PARTS.length; i++) {
       const part = PARTS[i];
       const local = typeof part.place === 'function' ? part.place(dyn) : part.place;
-      Cesium.Matrix4.multiplyByPoint(
-        bodyToWorld,
-        new Cesium.Cartesian3(local.pos[0], local.pos[1], local.pos[2]),
-        world[i].pos,
-      );
+      scratchLocal.x = local.pos[0];
+      scratchLocal.y = local.pos[1];
+      scratchLocal.z = local.pos[2];
+      Cesium.Matrix4.multiplyByPoint(bodyToWorld, scratchLocal, world[i].pos);
       Cesium.Quaternion.multiply(bodyQuat, local.rot, world[i].rot);
+      writeModelMatrix(parts[i], i);
     }
   }
 
@@ -1399,7 +1435,7 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     // Ground height — smoothed so streaming tile changes don't pop.
     // Whatever is rendered right now (never waits on streaming tiles); the
     // camera follows this same height via groundEle().
-    const ground = sceneGroundHeight(scene, u.lon, u.lat, groundSampleExclusions(), sceneEle(u.ele));
+    const ground = groundSampler.sample(u.lon, u.lat, u.ele, performance.now());
     const targetEle = ground ?? fallbackSceneEle(scene, u.ele);
     if (smoothedEle === null) smoothedEle = targetEle;
     else smoothedEle += (targetEle - smoothedEle) * (1 - Math.exp(-6 * dt));
@@ -1444,28 +1480,36 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
   }
 
   function setColors(next: AvatarColors): void {
+    const same = (Object.keys(next) as (keyof AvatarColors)[]).every((k) => next[k] === colors[k]);
+    if (same) return;
     colors = { ...next };
-    for (let i = 0; i < PARTS.length; i++) {
-      const ent = entities[i];
-      const alpha = PARTS[i].alpha ?? 1.0;
-      const col = alpha < 1 ? roleColor(PARTS[i].role).withAlpha(alpha) : roleColor(PARTS[i].role);
-      const prop = new Cesium.ColorMaterialProperty(col);
-      if (ent.box) ent.box.material = prop;
-      else if (ent.cylinder) ent.cylinder.material = prop;
-      else if (ent.ellipsoid) ent.ellipsoid.material = prop;
+    if (viewer.isDestroyed() || collection.isDestroyed()) return;
+    for (const p of parts) {
+      liveAvatarParts.delete(p);
+      collection.remove(p);
     }
+    parts = PARTS.map(buildPart);
+    for (const p of parts) liveAvatarParts.add(p);
+    excludeCache = null;
+    avatar.parts = parts;
+  }
+
+  function setShow(show: boolean): void {
+    if (show === shown) return;
+    shown = show;
+    if (!collection.isDestroyed()) collection.show = show;
   }
 
   function dispose(): void {
-    for (const ent of entities) {
-      liveAvatarEntities.delete(ent);
-      excludeCache = null;
-      if (!viewer.isDestroyed()) viewer.entities.remove(ent);
-    }
+    for (const p of parts) liveAvatarParts.delete(p);
+    liveAvatarCollections.delete(collection);
+    excludeCache = null;
+    if (!viewer.isDestroyed() && !collection.isDestroyed()) scene.primitives.remove(collection);
   }
 
   const avatar: Avatar = {
-    entities,
+    parts,
+    setShow,
     update,
     groundEle: () => smoothedEle,
     setColors,
@@ -1474,6 +1518,68 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
   };
 
   return avatar;
+}
+
+/** Re-sample the rendered ground at most this often (ms)… */
+export const GROUND_SAMPLE_INTERVAL_MS = 250;
+/** …or as soon as the rider has moved this far (m) since the last sample. */
+export const GROUND_SAMPLE_MOVE_M = 5;
+
+/**
+ * Throttled {@link sceneGroundHeight}.
+ *
+ * On terrain (no photoreal mesh shown) the rendered ground is the globe's
+ * loaded terrain tiles, so the CPU height lookup is exact and runs every call.
+ * Over the photoreal mesh only a GPU pick can measure the ground: a pick pass
+ * plus a synchronous readback that stalls the whole pipeline. That runs a few
+ * times a second (or after a few metres of travel), reusing the last reading
+ * in between — avatars smooth the height anyway — and with every rider hidden
+ * for the pick, so the ray doesn't hit helmets and re-render the scene once
+ * per excluded part (Cesium's drill pick).
+ */
+export function createGroundSampler(scene: Cesium.Scene) {
+  let lastMs = -Infinity;
+  let lastLon = NaN;
+  let lastLat = NaN;
+  let last: number | undefined;
+  return {
+    sample(lon: number, lat: number, ele: number, nowMs: number): number | undefined {
+      const expect = sceneEle(ele);
+      if (!photorealGroundShown(scene)) {
+        last = undefined;
+        return sceneGroundHeight(scene, lon, lat, undefined, expect, { terrainOnly: true });
+      }
+      const movedM = Number.isNaN(lastLon)
+        ? Infinity
+        : Math.hypot(
+            (lon - lastLon) * 111_320 * Math.cos((lat * Math.PI) / 180),
+            (lat - lastLat) * 110_540,
+          );
+      if (last !== undefined && nowMs - lastMs < GROUND_SAMPLE_INTERVAL_MS && movedM < GROUND_SAMPLE_MOVE_M) {
+        return last;
+      }
+      lastMs = nowMs;
+      lastLon = lon;
+      lastLat = lat;
+      last = withRidersHidden(() => sceneGroundHeight(scene, lon, lat, groundSampleExclusions(), expect));
+      return last;
+    },
+  };
+}
+
+function withRidersHidden<T>(fn: () => T): T {
+  const hidden: Cesium.PrimitiveCollection[] = [];
+  for (const c of liveAvatarCollections) {
+    if (!c.isDestroyed() && c.show) {
+      c.show = false;
+      hidden.push(c);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    for (const c of hidden) c.show = true;
+  }
 }
 
 /**

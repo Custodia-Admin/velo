@@ -10,9 +10,11 @@ export default defineConfig({
   resolve: {
     alias: { '@': resolve(__dirname, 'src') },
   },
+  // .test.tsx files (r3f test-renderer) use the automatic JSX runtime like the app.
+  esbuild: { jsx: 'automatic' },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     globals: false,
   },
 });

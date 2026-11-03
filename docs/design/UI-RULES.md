@@ -51,7 +51,7 @@ exposed through `tailwind.config.ts`. New UI uses **only** these.
 | Shadow | `shadow-sm` `shadow-md` `shadow-lg`; `shadow-glow-accent` on the single primary CTA only | `shadow-[...]` |
 | Motion | `animate-*` tokens from the config; `duration-150/200/300` | custom keyframes in components |
 | Surfaces | `Card` (glass) for top-level panels; plain `border bg-card` for items inside it | glass inside glass |
-| Layout utilities | `max-w-show-fit` (show mode video panel: caps a 16:9 panel to the viewport height) | one-off `calc()` widths in TSX |
+| Layout utilities | `max-w-show-fit` (show mode video panel: caps a 16:9 panel to the viewport height), `ride-banner-float` (no-token banner: centred above the transport bar; below `sm` it clears the mobile detail dock) | one-off `calc()` widths in TSX |
 
 Need a new semantic colour (e.g. a "scenery" tint)? Add a CSS variable to both
 themes in `src/index.css`, map it in `tailwind.config.ts`, and add it to the
@@ -87,6 +87,27 @@ Raw values are allowed **only** inside `src/components/ui/*` primitives and
 - In-ride figures at least `text-2xl`, labels at least `text-xs`.
 - Focus ring from the global `:focus-visible` style; never remove it.
 - Contrast: WCAG AA in both themes. Check `muted-foreground` on `card`.
+
+### TV addendum (10-foot layout)
+
+Velo is often watched on a TV from about three metres. The TV layout is the same
+UI scaled up, not a second design (direction: `docs/design/v2-identity.md` §4).
+
+- `data-layout="tv"` on `<html>` sets the root font size to 175 %, so
+  1 rem = 28 px. Every type, space and size token is in rem, so the whole UI
+  scales with it. Never size anything for TV in px. Use `tv:` (the
+  `[data-layout="tv"] &` variant) only for layout changes, not for type sizes.
+- When the attribute is set (auto rule and user setting) is decided in P3.3.
+  Until then, mockups switch at ≥ 1600 px wide.
+- On a 1920×1080 TV, body copy (`text-sm`) is 24.5 px, labels (`text-xs`) are
+  21 px and in-ride figures (`text-2xl`+) are ≥ 42 px. Don't use `text-2xs` on
+  TV-facing surfaces (Home, in-ride HUD, show mode, finish).
+- Nothing relies on hover. Every action is reachable and visibly focusable with a
+  keyboard or remote.
+- HUD panels stay at least spacing `4` (`top-4`, `left-4`; 28 px on TV) inside the screen edges, to allow
+  for overscan.
+- **Design gate:** TV-facing surfaces add a **1920×1080** render to the 1440 and
+  390 mockups and shots.
 
 ## 6. Copy
 

@@ -66,6 +66,42 @@ export default tseslint.config(
     },
   },
 
+  // Renderer seam (docs/architecture/VELO-V2-BLUEPRINT.md §P1.2): the ride
+  // domain and world data stay renderer-agnostic. Engines live under
+  // src/renderers/* and are reached only through lib/world/renderer.ts.
+  // src/test/architecture.test.ts checks the transitive closure too.
+  {
+    files: ['src/lib/ride/**/*.{ts,tsx}', 'src/lib/world/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['cesium', 'cesium/*'],
+              message: 'lib/ride and lib/world are renderer-agnostic: no Cesium. Put engine code in src/renderers/cesium.',
+            },
+            {
+              group: ['three', 'three/*', '@react-three/*', 'postprocessing'],
+              message: 'lib/ride and lib/world are renderer-agnostic: no three.js. Put engine code in src/renderers/three.',
+            },
+            {
+              group: ['@/renderers/*', '**/renderers/*', '@/lib/cesium*', '**/cesiumUtils', '**/cesiumHDR'],
+              message: 'lib/ride and lib/world must not depend on a renderer; renderers depend on them.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // World bake (tools/worldbake): Node ESM scripts run with plain `node`.
+  {
+    files: ['tools/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node } },
+    rules: { 'no-console': 'off' },
+  },
+
   // Ignore build output, configs, and generated files
   {
     ignores: [

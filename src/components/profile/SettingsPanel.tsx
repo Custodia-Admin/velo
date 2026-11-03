@@ -14,6 +14,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Settings, X, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -126,10 +127,15 @@ export function SettingsPanel({
   }, [open, onClose]);
 
   if (!open) return null;
+  // Rendered at the document root: inside the ride top bar this sheet is
+  // trapped in the top bar's stacking context, so later same-z HUD siblings
+  // (mobile stats stack, minimap, elevation) paint over the dialog. The
+  // portal makes the `fixed z-50` overlay truly topmost again.
+  if (typeof document === 'undefined') return null;
 
   const ActivePanel = TAB_PANEL[activeTab];
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/70 backdrop-blur-sm"
       role="dialog"
@@ -211,7 +217,8 @@ export function SettingsPanel({
           </CardContent>
         </div>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

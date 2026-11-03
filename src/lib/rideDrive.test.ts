@@ -35,6 +35,13 @@ describe('rideDrive', () => {
     expect(rideDrive({ ...base, connection: 'reconnecting' }).demo).toBe(false);
   });
 
+  it('a lost link carries the rider on physics at the last trainer power', () => {
+    const d = rideDrive({ ...base, connection: 'reconnecting', storeSpeed: 9, trainerSpeed: 9, power: 0 });
+    expect(d).toMatchObject({ speed: 0, power: 0, demo: false, held: true }); // stopped stays stopped
+    const p = rideDrive({ ...base, connection: 'reconnecting', storeSpeed: 9, trainerSpeed: 9, power: 210, gradePct: 4 });
+    expect(p.speed).toBeCloseTo(solveVelocity(210, 4, DEFAULT_RIDER), 9);
+  });
+
   it('no trainer paired: Demo Mode physics at demo power', () => {
     const d = rideDrive({ ...base, connection: 'disconnected' });
     expect(d.demo).toBe(true);

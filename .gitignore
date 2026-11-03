@@ -18,11 +18,22 @@ dist-ssr
 node_modules/.tmp/
 *.tsbuildinfo
 
+# Python bytecode (helper scripts under scripts/, tools/)
+__pycache__/
+*.py[cod]
+
 # PWA generated assets
 dev-dist
+
+# Playwright smoke output
+playwright-report/
+test-results/
 
 # Env
 .env
 .env.local
 .env.*.local
 .vercel
+
+# World bake download cache (tools/worldbake/bake.mjs)
+tools/worldbake/cache/

@@ -1,0 +1,88 @@
+<!doctype html>
+<!--
+  Velo v2 show mode — "warm atlas". Mockup only (P1.5 design gate).
+  The rider's own video plays in a panel over the live ride; the auto camera
+  (drone shot here) keeps the world moving; one ride strip; HUD fades on idle.
+  The video frame is a neutral placeholder: no third-party footage in mockups.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — Show mode (v2 mockup)</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="v2-kit.css" />
+<script src="v2-data.js"></script>
+<script src="v2-kit.js"></script>
+<style>
+  body { overflow: hidden; }
+  .video { position: fixed; left: var(--s-6); top: var(--s-6); width: 55vw; aspect-ratio: 16 / 9; max-height: calc(100vh - 10rem);
+           background: hsl(var(--scrim)); color: hsl(var(--on-scrim)); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-md);
+           display: flex; flex-direction: column; }
+  .frame { flex: 1; display: grid; place-items: center; text-align: center; gap: var(--s-2); }
+  .frame .ph { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); opacity: 0.7; }
+  .vbar { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-2) var(--s-3); background: hsl(var(--scrim) / 0.9); }
+  .vbar .title { flex: 1; min-width: 0; font-size: var(--text-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vbar .btn { color: hsl(var(--on-scrim)); }
+  .scrub { height: var(--s-1); background: hsl(var(--on-scrim) / 0.25); }
+  .scrub span { display: block; height: 100%; width: 42%; background: hsl(var(--primary)); }
+  .sizes { display: inline-flex; gap: var(--s-1); }
+  .sizes .btn[aria-checked='true'] { background: hsl(var(--on-scrim) / 0.16); }
+  .strip { position: fixed; right: var(--s-6); bottom: var(--s-6); display: flex; align-items: center; gap: var(--s-6); padding: var(--s-3) var(--s-3) var(--s-3) var(--s-5); }
+  .figs { display: flex; gap: var(--s-6); }
+  .next { display: flex; align-items: center; gap: var(--s-1-5); max-width: 14rem; }
+  .corner { position: fixed; right: var(--s-6); top: var(--s-6); display: flex; gap: var(--s-2); }
+  @media (max-width: 639px) {
+    .video { left: var(--s-3); right: var(--s-3); top: var(--s-3); width: auto; max-height: none; }
+    .sizes { display: none; }
+    .corner { display: none; }
+    .strip { left: var(--s-3); right: var(--s-3); bottom: var(--s-3); flex-direction: column; align-items: stretch; gap: var(--s-2); padding: var(--s-3); }
+    .figs { justify-content: space-between; gap: var(--s-3); }
+    .strip .row { justify-content: space-between; }
+  }
+</style>
+</head>
+<body>
+<div class="scene" aria-hidden="true">
+  <picture>
+    <source media="(max-width: 639px)" srcset="../screenshots/v2/thumbs/show-drone-portrait.jpg" />
+    <img src="../screenshots/v2/thumbs/show-drone.jpg" alt="" />
+  </picture>
+</div>
+
+<section class="video" aria-label="Your video">
+  <div class="frame">
+    <div class="ph"><i data-icon="video" class="lg"></i><span class="t-sm">Your video plays here</span></div>
+  </div>
+  <div class="scrub" aria-hidden="true"><span></span></div>
+  <div class="vbar">
+    <button class="btn icon-only" aria-label="Pause video"><i data-icon="pause" class="lg"></i></button>
+    <span class="title">Episode 4</span>
+    <span class="t-sm num">23:10 left</span>
+    <div class="sizes" role="radiogroup" aria-label="Video size">
+      <button class="btn icon-only" role="radio" aria-checked="false">S</button>
+      <button class="btn icon-only" role="radio" aria-checked="false">M</button>
+      <button class="btn icon-only" role="radio" aria-checked="true">L</button>
+    </div>
+    <button class="btn icon-only" aria-label="Next video"><i data-icon="skip-forward" class="lg"></i></button>
+  </div>
+</section>
+
+<div class="corner">
+  <button class="btn hud"><i data-icon="picture-in-picture-2"></i>Watch another tab</button>
+  <button class="btn hud icon-only" aria-label="Close show mode"><i data-icon="x" class="lg"></i></button>
+</div>
+
+<section class="hud strip" aria-label="Ride numbers">
+  <div class="figs">
+    <div class="fig"><span class="v">18:05</span><span class="l">Time</span></div>
+    <div class="fig"><span class="v">6.1<small>km</small></span><span class="l">Distance</span></div>
+    <div class="fig"><span class="v">0.4<small>%</small></span><span class="l">Grade</span></div>
+  </div>
+  <div class="row">
+    <span class="next t-sm"><i data-icon="flag"></i>Rivotorto in 900 m</span>
+    <button class="btn hud lg icon-only" aria-label="Pause ride"><i data-icon="pause" class="lg"></i></button>
+  </div>
+</section>
+</body>
+</html>

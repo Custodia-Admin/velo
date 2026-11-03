@@ -1,4 +1,4 @@
-import * as Cesium from 'cesium';
+import type * as Cesium from 'cesium';
 import type { Route } from '@/types';
 import { buildRoute } from '@/lib/gpxParser';
 import { snapToCyclingRoads, OsrmRoutingError, type LatLon } from '@/lib/routeRouter';
@@ -245,8 +245,10 @@ async function sampleElevations(
   pts: RawPoint[],
   terrain: Cesium.TerrainProvider,
 ): Promise<RawPoint[]> {
-  const cartos = pts.map((p) => Cesium.Cartographic.fromDegrees(p.lon, p.lat));
-  const sampled = await Cesium.sampleTerrainMostDetailed(terrain, cartos);
+  // Loaded on demand: route generation must not put Cesium in the app bundle.
+  const { Cartographic, sampleTerrainMostDetailed } = await import('cesium');
+  const cartos = pts.map((p) => Cartographic.fromDegrees(p.lon, p.lat));
+  const sampled = await sampleTerrainMostDetailed(terrain, cartos);
   return pts.map((p, i) => {
     const h = sampled[i]?.height;
     return { ...p, ele: Number.isFinite(h) ? h : 0 };

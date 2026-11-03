@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<title>Transport bar shrink-to-fit — mockup (390×844)</title>
+<style>
+  /* Dark theme tokens from src/index.css */
+  :root{
+    --background: 220 42% 4%;
+    --foreground: 210 28% 96%;
+    --card: 220 40% 7%;
+    --card-foreground: 210 28% 96%;
+    --muted: 215 28% 13%;
+    --muted-foreground: 215 18% 58%;
+    --border: 215 26% 17%;
+    --primary: 200 92% 56%;
+    --primary-foreground: 220 42% 4%;
+    --accent: 158 80% 42%;
+    --accent-foreground: 220 42% 4%;
+    --destructive: 4 80% 60%;
+    --destructive-foreground: 210 28% 96%;
+    --glass-from: 15 22 40; --glass-from-a: 0.84;
+    --glass-to: 2 5 20; --glass-to-a: 0.78;
+    --glass-hairline-top: 255 255 255; --glass-hairline-top-a: 0.07;
+    --glass-shadow: 0 0 0; --glass-shadow-a: 0.68;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;border-color:hsl(var(--border));}
+  body{background:#0a0d14;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:hsl(var(--foreground));padding:24px;}
+  h1{font-size:16px;margin-bottom:4px;}
+  p.sub{font-size:12px;color:hsl(var(--muted-foreground));margin-bottom:16px;max-width:980px;}
+  .frames{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;}
+  .frame-wrap{display:flex;flex-direction:column;gap:8px;}
+  .frame-label{font-size:13px;font-weight:600;color:hsl(var(--foreground));}
+  .frame-note{font-size:11px;color:hsl(var(--muted-foreground));max-width:390px;}
+  .phone{position:relative;width:390px;height:844px;overflow:hidden;border-radius:12px;
+    background:url('assets/cam-standard-chase-390-scene.png') center/cover no-repeat, hsl(var(--background));}
+
+  .glass{background:linear-gradient(155deg, rgb(var(--glass-from) / var(--glass-from-a)), rgb(var(--glass-to) / var(--glass-to-a)));
+    backdrop-filter:blur(18px) saturate(165%); -webkit-backdrop-filter:blur(18px) saturate(165%);
+    border:1px solid hsl(var(--border) / 0.80);}
+  .glass-hairline{box-shadow: inset 0 1px 0 rgb(var(--glass-hairline-top) / var(--glass-hairline-top-a)),
+    0 20px 52px -22px rgb(var(--glass-shadow) / var(--glass-shadow-a)), 0 4px 16px -6px rgb(var(--glass-shadow) / 0.10);}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* ── metrics HUD (simplified, unchanged) ── */
+  .stack{position:absolute;top:116px;left:12px;right:12px;display:flex;flex-direction:column;gap:8px;}
+  .primary{border-radius:16px;overflow:hidden;}
+  .zone-strip{height:2px;width:100%;background:#34d399;}
+  .primary .inner{padding:12px;}
+  .hero{display:flex;align-items:flex-end;gap:12px;}
+  .hero .lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:hsl(var(--muted-foreground));display:flex;gap:6px;align-items:center;margin-bottom:2px;}
+  .zone-badge{font-size:9px;font-weight:600;padding:2px 7px;border-radius:9999px;background:rgba(52,211,153,.13);color:#34d399;letter-spacing:.04em;}
+  .hero .watts{font-size:40px;font-weight:700;line-height:1;color:#34d399;flex:1;}
+  .hero .kmh{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+  .hero .kmh .v{font-size:24px;font-weight:700;line-height:1;}
+  .grade{display:flex;align-items:center;gap:8px;margin-top:12px;}
+  .grade .bar{flex:1;height:4px;border-radius:9999px;background:hsl(var(--muted) / .6);position:relative;overflow:hidden;}
+  .grade .bar i{position:absolute;left:50%;top:0;bottom:0;width:1%;background:hsl(var(--primary));}
+  .grade .v{font-size:12px;font-weight:700;color:hsl(var(--muted-foreground));min-width:52px;text-align:right;}
+  .secondary{border-radius:16px;padding:10px 12px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .secondary .m .l{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:hsl(var(--muted-foreground));margin-bottom:2px;}
+  .secondary .m .v{font-size:14px;font-weight:700;}
+
+  /* ── transport bar ── */
+  .transport{position:absolute;left:50%;transform:translateX(-50%);bottom:20px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 12px;border-radius:16px;}
+  .row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;}
+  .transport.before{width:195px;}              /* shrink-to-fit from left:50% → half of 390 */
+  .transport.after{width:max-content;max-width:366px;} /* w-max + max-w-[calc(100vw-1.5rem)] */
+  .btn{height:40px;justify-content:center;display:flex;align-items:center;gap:6px;padding:0 16px;border-radius:9999px;font-size:13px;font-weight:600;white-space:nowrap;}
+  .transport.before .btn{width:100%;}          /* stretched rows in the 195px column */
+  .btn.pause{border:1px solid hsl(var(--border));background:hsl(var(--card) / .7);}
+  .btn.finish{background:hsl(var(--destructive));color:hsl(var(--destructive-foreground));}
+  .btn.start{height:44px;min-width:128px;background:hsl(var(--accent));color:hsl(var(--accent-foreground));box-shadow:0 0 20px -4px hsl(var(--accent) / .5);}
+  .btn.resume{border:1px solid transparent;background:hsl(var(--accent));color:hsl(var(--accent-foreground));}
+  .btn.plain{border:1px solid hsl(var(--border));background:hsl(var(--card) / .7);}
+  .strava-badge{font-size:10px;padding:2px 8px;border-radius:9999px;background:hsl(var(--muted));color:hsl(var(--muted-foreground));}
+
+  /* ── detail dock (Map/Profile pills) ── */
+  .dock{position:absolute;left:12px;right:12px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .dock.before{bottom:144px;}   /* calc(safe 20 + 7.75rem) */
+  .dock.after{bottom:96px;}     /* calc(safe 20 + 4.75rem) */
+  .dock-row{display:flex;gap:8px;}
+  .toggle{height:40px;display:flex;align-items:center;gap:7px;padding:0 14px;border-radius:9999px;font-size:12px;font-weight:600;color:hsl(var(--muted-foreground));}
+  .toggle svg{width:15px;height:15px;}
+
+  /* ── no-token banner ── */
+  .banner{position:absolute;left:50%;transform:translateX(-50%);max-width:366px;display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:9999px;}
+  .banner.before{bottom:192px;}  /* safe 20 + 10.75rem */
+  .banner.after{bottom:144px;}   /* safe 20 + 7.75rem */
+  .banner p{font-size:11px;line-height:1.35;}
+  .banner .link{font-size:11px;font-weight:600;color:hsl(var(--primary));text-decoration:underline;white-space:nowrap;}
+  .banner svg{width:15px;height:15px;color:hsl(var(--accent));flex-shrink:0;}
+
+  .rider-band{position:absolute;left:0;right:0;top:360px;height:172px;outline:1px dashed rgba(255,80,80,.65);pointer-events:none;}
+  .rider-band span{position:absolute;right:6px;top:2px;font-size:9px;color:rgba(255,120,120,.9);letter-spacing:.08em;}
+  .dim{position:absolute;inset:0;background:rgba(0,0,0,.25);pointer-events:none;}
+</style>
+</head>
+<body>
+<h1>Transport bar shrink-to-fit — one row at 390 (t_19e8b32f)</h1>
+<p class="sub">The absolute left-1/2 wrapper shrink-fits to ~195 px at 390, so running-state Pause/Finish stack into a 195×110 two-story block. Fix: <code>w-max max-w-[calc(100vw-1.5rem)]</code> on the wrapper → one 62 px row; the dock drops 7.75rem→4.75rem and the banner 10.75rem→7.75rem, keeping the 14 px dock↔transport and 8 px banner↔dock gaps and returning ~48 px of scene. Red dashed band = rider (y≈360–532).</p>
+
+<div class="frames">
+
+<!-- FRAME 1: BEFORE running -->
+<div class="frame-wrap" data-frame="before-running">
+  <div class="phone">
+    <div class="rider-band"><span>RIDER 360–532</span></div>
+    <div class="stack">
+      <div class="primary glass glass-hairline"><div class="zone-strip"></div>
+        <div class="inner"><div class="hero">
+          <div style="flex:1"><div class="lbl">⚡ WATTS <span class="zone-badge">Z3</span></div><div class="watts num">190</div></div>
+          <div class="kmh"><div class="lbl">KM/H</div><div class="v num">34.8</div></div>
+        </div>
+        <div class="grade"><span style="color:hsl(var(--muted-foreground))">↗</span><div class="bar"><i></i></div><span class="v num">-0.3%</span></div></div>
+      </div>
+      <div class="secondary glass glass-hairline">
+        <div class="m"><div class="l">RPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">BPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">M ELEV</div><div class="v num">281</div></div>
+        <div class="m"><div class="l">TIME</div><div class="v num">0:07</div></div>
+      </div>
+    </div>
+    <div class="banner before glass glass-hairline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 16H3z"/><path d="M12 9v5M12 17h.01"/></svg>
+      <p>Photoreal terrain needs a token.</p><span class="link">Add a free Cesium ion token</span>
+    </div>
+    <div class="dock before">
+      <div class="dock-row">
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Map</div>
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 14H2L8 3z"/></svg>Profile</div>
+      </div>
+    </div>
+    <div class="transport before glass glass-hairline">
+      <div class="row"><div class="btn pause">❚❚ Pause</div></div>
+      <div class="row"><div class="btn finish">⚑ Finish</div></div>
+    </div>
+  </div>
+  <div class="frame-label">1 · BEFORE — running (main d4077f9)</div>
+  <div class="frame-note">Wrapper shrink-fits to 195 px: panel 195×110 (y714–824), Pause/Finish read as a 2-story block. Dock at 7.75rem, banner at 10.75rem.</div>
+</div>
+
+<!-- FRAME 2: AFTER running -->
+<div class="frame-wrap" data-frame="after-running">
+  <div class="phone">
+    <div class="rider-band"><span>RIDER 360–532</span></div>
+    <div class="stack">
+      <div class="primary glass glass-hairline"><div class="zone-strip"></div>
+        <div class="inner"><div class="hero">
+          <div style="flex:1"><div class="lbl">⚡ WATTS <span class="zone-badge">Z3</span></div><div class="watts num">190</div></div>
+          <div class="kmh"><div class="lbl">KM/H</div><div class="v num">34.8</div></div>
+        </div>
+        <div class="grade"><span style="color:hsl(var(--muted-foreground))">↗</span><div class="bar"><i></i></div><span class="v num">-0.3%</span></div></div>
+      </div>
+      <div class="secondary glass glass-hairline">
+        <div class="m"><div class="l">RPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">BPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">M ELEV</div><div class="v num">281</div></div>
+        <div class="m"><div class="l">TIME</div><div class="v num">0:07</div></div>
+      </div>
+    </div>
+    <div class="banner after glass glass-hairline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 16H3z"/><path d="M12 9v5M12 17h.01"/></svg>
+      <p>Photoreal terrain needs a token.</p><span class="link">Add a free Cesium ion token</span>
+    </div>
+    <div class="dock after">
+      <div class="dock-row">
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Map</div>
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 14H2L8 3z"/></svg>Profile</div>
+      </div>
+    </div>
+    <div class="transport after glass glass-hairline">
+      <div class="row"><div class="btn pause">❚❚ Pause</div><div class="btn finish">⚑ Finish</div></div>
+    </div>
+  </div>
+  <div class="frame-label">2 · AFTER — running</div>
+  <div class="frame-note">w-max wrapper → single ~227×62 row (y762–824). Dock 4.75rem keeps the 14 px gap; banner 7.75rem keeps the 8 px gap. ~48 px of scene returned.</div>
+</div>
+
+<!-- FRAME 3: AFTER ready -->
+<div class="frame-wrap" data-frame="after-ready">
+  <div class="phone">
+    <div class="rider-band"><span>RIDER 360–532</span></div>
+    <div class="stack">
+      <div class="primary glass glass-hairline"><div class="zone-strip"></div>
+        <div class="inner"><div class="hero">
+          <div style="flex:1"><div class="lbl">⚡ WATTS <span class="zone-badge">Z2</span></div><div class="watts num">0</div></div>
+          <div class="kmh"><div class="lbl">KM/H</div><div class="v num">0.0</div></div>
+        </div>
+        <div class="grade"><span style="color:hsl(var(--muted-foreground))">↗</span><div class="bar"><i></i></div><span class="v num">1.2%</span></div></div>
+      </div>
+    </div>
+    <div class="banner after glass glass-hairline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 9 16H3z"/><path d="M12 9v5M12 17h.01"/></svg>
+      <p>Photoreal terrain needs a token.</p><span class="link">Add a free Cesium ion token</span>
+    </div>
+    <div class="dock after">
+      <div class="dock-row">
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Map</div>
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 14H2L8 3z"/></svg>Profile</div>
+      </div>
+    </div>
+    <div class="transport after glass glass-hairline">
+      <div class="row"><div class="btn start">▶ Start ride</div></div>
+    </div>
+  </div>
+  <div class="frame-label">3 · AFTER — ready</div>
+  <div class="frame-note">Start ride (lg, 44 px) unchanged: already one row; panel ~66 px, dock gap 12 px.</div>
+</div>
+
+<!-- FRAME 4: AFTER paused -->
+<div class="frame-wrap" data-frame="after-paused">
+  <div class="phone">
+    <div class="dim"></div>
+    <div class="rider-band"><span>RIDER 360–532</span></div>
+    <div class="stack">
+      <div class="primary glass glass-hairline"><div class="zone-strip"></div>
+        <div class="inner"><div class="hero">
+          <div style="flex:1"><div class="lbl">⚡ WATTS <span class="zone-badge">Z1</span></div><div class="watts num">0</div></div>
+          <div class="kmh"><div class="lbl">KM/H</div><div class="v num">12.4</div></div>
+        </div>
+        <div class="grade"><span style="color:hsl(var(--muted-foreground))">↗</span><div class="bar"><i></i></div><span class="v num">0.4%</span></div></div>
+      </div>
+    </div>
+    <div class="dock after">
+      <div class="dock-row">
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Map</div>
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 14H2L8 3z"/></svg>Profile</div>
+      </div>
+    </div>
+    <div class="transport after glass glass-hairline" style="box-shadow:0 0 24px -6px hsl(var(--primary) / .5), inset 0 1px 0 rgb(255 255 255 / .07);">
+      <div class="row"><div class="btn resume">▶ Resume</div><div class="btn finish">■ Finish</div></div>
+    </div>
+  </div>
+  <div class="frame-label">4 · AFTER — paused</div>
+  <div class="frame-note">Resume + Finish one row (~240×62), primary glow. Dock unchanged at 4.75rem (banner hidden while paused in this sketch).</div>
+</div>
+
+<!-- FRAME 5: AFTER finished -->
+<div class="frame-wrap" data-frame="after-finished">
+  <div class="phone">
+    <div class="stack">
+      <div class="primary glass glass-hairline"><div class="zone-strip"></div>
+        <div class="inner"><div class="hero">
+          <div style="flex:1"><div class="lbl">⚡ WATTS <span class="zone-badge">—</span></div><div class="watts num">0</div></div>
+          <div class="kmh"><div class="lbl">KM/H</div><div class="v num">0.0</div></div>
+        </div></div>
+      </div>
+    </div>
+    <div class="transport after glass glass-hairline" style="box-shadow:0 0 28px -6px hsl(var(--primary) / .4), inset 0 1px 0 rgb(255 255 255 / .07);">
+      <div class="row" style="max-width:342px;">
+        <div class="btn plain">💾 Export .FIT</div>
+        <div class="btn plain">⇧ Upload to Strava</div>
+        <div class="btn plain">↺ New ride</div>
+        <div class="btn plain">⌂ Home</div>
+      </div>
+      <div class="strava-badge">Uploading .FIT to Strava…</div>
+    </div>
+  </div>
+  <div class="frame-label">5 · AFTER — finished</div>
+  <div class="frame-note">4 buttons wrap gracefully inside max-w 366: 2+2 rows (~292×110), dock hidden, badge stacks under the rows. No overflow at 390.</div>
+</div>
+
+</div>
+</body>
+</html>

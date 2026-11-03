@@ -15,11 +15,7 @@ import { getRide } from '@/lib/rideHistory';
 import type { RideRecord } from '@/lib/rideHistory';
 import { useRideStore } from '@/stores/rideStore';
 import { ReplayPlayer } from '@/components/replay/ReplayPlayer';
-
-// Cesium viewer is lazy-loaded to avoid blocking the initial paint.
-const CesiumViewer = React.lazy(
-  () => import('@/components/ride/CesiumViewer').then((m) => ({ default: m.CesiumViewer })),
-);
+import { RideView } from '@/components/ride/RideView';
 
 function LoadingScreen() {
   return (
@@ -139,11 +135,9 @@ export function Replay() {
   if (error || !record) return <ErrorScreen message={error ?? 'Unknown error'} />;
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-background">
-      {/* Cesium globe — reuses existing component, driven by useReplayLoop */}
-      <React.Suspense fallback={<LoadingScreen />}>
-        <CesiumViewer ionToken={ionToken} />
-      </React.Suspense>
+    <div className="hud-flat relative h-dvh w-full overflow-hidden bg-background">
+      {/* The ride's world renderer (lazy), driven by useReplayLoop */}
+      <RideView ionToken={ionToken} fallback={<LoadingScreen />} />
 
       {/* Replay controls overlay */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4">

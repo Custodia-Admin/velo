@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Velo stream client (spike)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; font: 14px system-ui, sans-serif; overflow: hidden; }
+  #world { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+  #sk { position: fixed; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; opacity: 0; pointer-events: none; }
+  #hud { position: fixed; left: 12px; bottom: 12px; background: rgba(0,0,0,.65); padding: 8px 12px; border-radius: 8px; white-space: pre; font: 13px ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<video id="world" autoplay muted playsinline></video>
+<iframe id="sk" src="/" title="selkies signalling"></iframe>
+<div id="hud">connecting…</div>
+<script src="measure.js"></script>
+</body>
+</html>

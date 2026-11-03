@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<title>Mobile ride HUD — detail dock mockup (390×844)</title>
+<style>
+  /* Dark theme tokens from src/index.css */
+  :root{
+    --background: 220 42% 4%;
+    --foreground: 210 28% 96%;
+    --card: 220 40% 7%;
+    --card-foreground: 210 28% 96%;
+    --muted: 215 28% 13%;
+    --muted-foreground: 215 18% 58%;
+    --border: 215 26% 17%;
+    --primary: 200 92% 56%;
+    --primary-foreground: 220 42% 4%;
+    --accent: 158 80% 42%;
+    --accent-foreground: 220 42% 4%;
+    --destructive: 4 80% 60%;
+    --destructive-foreground: 210 28% 96%;
+    --glass-from: 15 22 40; --glass-from-a: 0.84;
+    --glass-to: 2 5 20; --glass-to-a: 0.78;
+    --glass-hairline-top: 255 255 255; --glass-hairline-top-a: 0.07;
+    --glass-shadow: 0 0 0; --glass-shadow-a: 0.68;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;border-color:hsl(var(--border));}
+  body{background:#0a0d14;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:hsl(var(--foreground));padding:24px;}
+  h1{font-size:16px;margin-bottom:4px;}
+  p.sub{font-size:12px;color:hsl(var(--muted-foreground));margin-bottom:16px;max-width:900px;}
+  .frames{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;}
+  .frame-wrap{display:flex;flex-direction:column;gap:8px;}
+  .frame-label{font-size:13px;font-weight:600;color:hsl(var(--foreground));}
+  .frame-note{font-size:11px;color:hsl(var(--muted-foreground));max-width:390px;}
+  .phone{position:relative;width:390px;height:844px;overflow:hidden;border-radius:12px;
+    background:url('assets/cam-standard-chase-390-scene.png') center/cover no-repeat, hsl(var(--background));}
+
+  .glass{background:linear-gradient(155deg, rgb(var(--glass-from) / var(--glass-from-a)), rgb(var(--glass-to) / var(--glass-to-a)));
+    backdrop-filter:blur(18px) saturate(165%); -webkit-backdrop-filter:blur(18px) saturate(165%);
+    border:1px solid hsl(var(--border) / 0.80);}
+  .glass-hairline{box-shadow: inset 0 1px 0 rgb(var(--glass-hairline-top) / var(--glass-hairline-top-a)),
+    0 20px 52px -22px rgb(var(--glass-shadow) / var(--glass-shadow-a)), 0 4px 16px -6px rgb(var(--glass-shadow) / 0.10);}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* ── top bar ── */
+  .topbar{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;}
+  .navrow{display:flex;gap:6px;align-items:center;}
+  .exit{display:flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:9999px;font-size:12px;font-weight:600;}
+  .icobtn{width:32px;height:32px;border-radius:9999px;display:flex;align-items:center;justify-content:center;color:hsl(var(--muted-foreground));}
+  .icobtn svg{width:15px;height:15px;}
+  .demo-pill{position:absolute;top:60px;left:12px;display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:9999px;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;}
+  .demo-pill .dot{width:7px;height:7px;border-radius:9999px;background:hsl(var(--accent));}
+  .demo-pill .sim{text-transform:none;letter-spacing:0;color:hsl(var(--muted-foreground));font-weight:500;}
+  .chase-tag{position:absolute;top:60px;right:52px;height:30px;display:flex;align-items:center;padding:0 10px;border-radius:9999px;font-size:10px;font-weight:700;letter-spacing:.06em;color:hsl(var(--primary));}
+  .cam-btn{position:absolute;top:56px;right:12px;width:34px;height:34px;border-radius:9999px;display:flex;align-items:center;justify-content:center;color:hsl(var(--muted-foreground));}
+
+  /* ── HUD stack (unchanged) ── */
+  .stack{position:absolute;top:116px;left:12px;right:12px;display:flex;flex-direction:column;gap:8px;}
+  .primary{border-radius:16px;overflow:hidden;}
+  .zone-strip{height:2px;width:100%;background:#34d399;}
+  .primary .inner{padding:12px;}
+  .hero{display:flex;align-items:flex-end;gap:12px;}
+  .hero .lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:hsl(var(--muted-foreground));display:flex;gap:6px;align-items:center;margin-bottom:2px;}
+  .zone-badge{font-size:9px;font-weight:600;padding:2px 7px;border-radius:9999px;background:rgba(52,211,153,.13);color:#34d399;letter-spacing:.04em;}
+  .hero .watts{font-size:40px;font-weight:700;line-height:1;color:#34d399;flex:1;}
+  .hero .kmh{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+  .hero .kmh .v{font-size:24px;font-weight:700;line-height:1;}
+  .grade{display:flex;align-items:center;gap:8px;margin-top:12px;}
+  .grade .bar{flex:1;height:4px;border-radius:9999px;background:hsl(var(--muted) / .6);position:relative;overflow:hidden;}
+  .grade .bar i{position:absolute;left:50%;top:0;bottom:0;width:1%;background:hsl(var(--primary));}
+  .grade .v{font-size:12px;font-weight:700;color:hsl(var(--muted-foreground));min-width:52px;text-align:right;}
+  .secondary{border-radius:16px;padding:10px 12px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .secondary .m .l{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:hsl(var(--muted-foreground));margin-bottom:2px;}
+  .secondary .m .v{font-size:14px;font-weight:700;}
+  .route{border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+  .route .row{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .route .name{font-size:12px;font-weight:600;}
+  .route .dist{font-size:10px;color:hsl(var(--muted-foreground));}
+  .progress{height:6px;border-radius:9999px;background:hsl(var(--muted) / .5);position:relative;}
+  .progress i{position:absolute;left:0;top:0;bottom:0;width:2%;border-radius:9999px;background:linear-gradient(90deg,hsl(var(--primary)),hsl(var(--accent)));}
+  .progress b{position:absolute;left:2%;top:50%;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:9999px;background:hsl(var(--accent));border:2px solid hsl(var(--background));}
+
+  /* ── transport controls (unchanged) ── */
+  .transport{position:absolute;left:50%;transform:translateX(-50%);bottom:20px;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 12px;border-radius:16px;width:195px;}
+  .btn{height:40px;width:100%;justify-content:center;display:flex;align-items:center;gap:6px;padding:0 16px;border-radius:9999px;font-size:13px;font-weight:600;}
+  .btn.pause{border:1px solid hsl(var(--border));background:hsl(var(--card) / .7);}
+  .btn.finish{background:hsl(var(--destructive));color:hsl(var(--destructive-foreground));}
+
+  /* ── NEW: detail dock ── */
+  .dock{position:absolute;left:12px;right:12px;bottom:144px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .dock-panel{width:100%;display:flex;justify-content:center;}
+  .minimap{width:128px;height:128px;border-radius:14px;overflow:hidden;position:relative;}
+  .minimap svg{display:block;}
+  .mm-label{position:absolute;bottom:0;left:0;right:0;padding:6px 10px;display:flex;gap:6px;align-items:center;background:rgba(0,0,0,.35);backdrop-filter:blur(4px);font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(34,211,238,.8);}
+  .mm-label svg{width:10px;height:10px;}
+  .elev{width:100%;border-radius:14px;padding:12px;}
+  .elev svg{width:100%;height:112px;display:block;}
+  .dock-row{display:flex;gap:8px;}
+  .toggle{height:40px;display:flex;align-items:center;gap:7px;padding:0 14px;border-radius:9999px;font-size:12px;font-weight:600;color:hsl(var(--muted-foreground));}
+  .toggle svg{width:15px;height:15px;}
+  .toggle.on{color:hsl(var(--primary));background:linear-gradient(155deg, rgb(var(--glass-from) / var(--glass-from-a)), rgb(var(--glass-to) / var(--glass-to-a))), hsl(var(--primary) / .15);border:1px solid hsl(var(--primary) / .6);}
+
+  /* ── no-token banner (raised above dock on mobile) ── */
+  .banner{position:absolute;left:50%;transform:translateX(-50%);bottom:192px;max-width:calc(100vw - 1.5rem);display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:9999px;}
+  .banner p{font-size:11px;line-height:1.35;}
+  .banner .link{font-size:11px;font-weight:600;color:hsl(var(--primary));text-decoration:underline;white-space:nowrap;}
+  .banner svg{width:15px;height:15px;color:hsl(var(--accent));flex-shrink:0;}
+
+  .rider-band{position:absolute;left:0;right:0;top:360px;height:172px;outline:1px dashed rgba(255,80,80,.65);pointer-events:none;}
+  .rider-band span{position:absolute;right:6px;top:2px;font-size:9px;color:rgba(255,120,120,.9);letter-spacing:.08em;}
+</style>
+</head>
+<body>
+<h1>Mobile ride HUD — minimap + elevation behind a bottom detail dock (390×844)</h1>
+<p class="sub">Red dashed band = rider (y≈360–532) that must stay visible. Background is the real scene shot with UI hidden. Top stack (metrics), transport bar and camera chips are unchanged; the minimap/elevation leave the always-on stack and open on demand above the transport bar.</p>
+
+<div class="frames">
+
+<!-- shared HUD fragment -->
+<!-- FRAME 1: collapsed -->
+<div class="frame-wrap">
+  <div class="phone">
+    <div class="rider-band"><span>RIDER 360–532</span></div>
+    <div class="topbar">
+      <div class="navrow">
+        <div class="exit glass glass-hairline">‹ Exit</div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg></div>
+      </div>
+    </div>
+    <div class="demo-pill glass glass-hairline"><span class="dot"></span>DEMO MODE<span class="sim">Simulated 190 W</span></div>
+    <div class="cam-btn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 13 5.2 3a1 1 0 0 0 1.5-.9V5.9a1 1 0 0 0-1.5-.9L16 8"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg></div>
+    <div class="chase-tag glass glass-hairline">Chase</div>
+
+    <div class="stack">
+      <div class="primary glass glass-hairline">
+        <div class="zone-strip"></div>
+        <div class="inner">
+          <div class="hero">
+            <div style="flex:1">
+              <div class="lbl">⚡ WATTS <span class="zone-badge">Z3</span></div>
+              <div class="watts num">190</div>
+            </div>
+            <div class="kmh">
+              <div class="lbl">KM/H</div>
+              <div class="v num">34.8</div>
+            </div>
+          </div>
+          <div class="grade"><span style="color:hsl(var(--muted-foreground))">↗</span><div class="bar"><i></i></div><span class="v num">-0.3%</span></div>
+        </div>
+      </div>
+      <div class="secondary glass glass-hairline">
+        <div class="m"><div class="l">RPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">BPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">M ELEV</div><div class="v num">281</div></div>
+        <div class="m"><div class="l">TIME</div><div class="v num">0:07</div></div>
+      </div>
+      <div class="route glass glass-hairline">
+        <div class="row"><span class="name">📍 Lugano lakefront to Melide</span><span class="dist num">74 m / 9.69 km</span></div>
+        <div class="progress"><i></i><b></b></div>
+      </div>
+    </div>
+
+    <!-- NEW dock, collapsed -->
+    <div class="dock">
+      <div class="dock-row">
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Map</div>
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 14H2L8 3z"/></svg>Profile</div>
+      </div>
+    </div>
+
+    <div class="transport glass glass-hairline">
+      <div class="btn pause">❚❚ Pause</div>
+      <div class="btn finish">⚑ Finish</div>
+    </div>
+  </div>
+  <div class="frame-label">1 · Default (collapsed)</div>
+  <div class="frame-note">Scene clear from y≈365 (below metrics) to y≈660 (above dock row). Rider (360–532) + horizon + road ahead fully visible. Dock row 40 px, 14 px above the transport panel (which stacks 2-up at 390).</div>
+</div>
+
+<!-- FRAME 2: map open -->
+<div class="frame-wrap">
+  <div class="phone">
+    <div class="rider-band"><span>RIDER 360–532</span></div>
+    <div class="topbar">
+      <div class="navrow">
+        <div class="exit glass glass-hairline">‹ Exit</div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg></div>
+      </div>
+    </div>
+    <div class="demo-pill glass glass-hairline"><span class="dot"></span>DEMO MODE<span class="sim">Simulated 190 W</span></div>
+    <div class="cam-btn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 13 5.2 3a1 1 0 0 0 1.5-.9V5.9a1 1 0 0 0-1.5-.9L16 8"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg></div>
+    <div class="chase-tag glass glass-hairline">Chase</div>
+
+    <div class="stack">
+      <div class="primary glass glass-hairline">
+        <div class="zone-strip"></div>
+        <div class="inner">
+          <div class="hero">
+            <div style="flex:1">
+              <div class="lbl">⚡ WATTS <span class="zone-badge">Z3</span></div>
+              <div class="watts num">190</div>
+            </div>
+            <div class="kmh">
+              <div class="lbl">KM/H</div>
+              <div class="v num">34.8</div>
+            </div>
+          </div>
+          <div class="grade"><span style="color:hsl(var(--muted-foreground))">↗</span><div class="bar"><i></i></div><span class="v num">-0.3%</span></div>
+        </div>
+      </div>
+      <div class="secondary glass glass-hairline">
+        <div class="m"><div class="l">RPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">BPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">M ELEV</div><div class="v num">281</div></div>
+        <div class="m"><div class="l">TIME</div><div class="v num">0:07</div></div>
+      </div>
+      <div class="route glass glass-hairline">
+        <div class="row"><span class="name">📍 Lugano lakefront to Melide</span><span class="dist num">74 m / 9.69 km</span></div>
+        <div class="progress"><i></i><b></b></div>
+      </div>
+    </div>
+
+    <!-- NEW dock, map open -->
+    <div class="dock">
+      <div class="dock-panel">
+        <div class="minimap glass glass-hairline">
+          <svg width="128" height="128" viewBox="0 0 176 176">
+            <path d="M40 150 C 60 120, 50 96, 78 84 S 120 60, 108 34" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="2" stroke-linecap="round"/>
+            <path d="M40 150 C 52 132, 50 116, 62 102" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round" opacity=".85"/>
+            <circle cx="40" cy="150" r="4" fill="#34d399" stroke="rgba(0,0,0,.45)"/>
+            <circle cx="108" cy="34" r="5" fill="rgba(0,0,0,.55)" stroke="rgba(255,255,255,.5)"/>
+            <circle cx="62" cy="102" r="5" fill="#22d3ee" stroke="rgba(0,0,0,.55)" stroke-width="1.5"/>
+          </svg>
+          <div class="mm-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>LUGANO LAKEFRONT TO …</div>
+        </div>
+      </div>
+      <div class="dock-row">
+        <div class="toggle on glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Map</div>
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 14H2L8 3z"/></svg>Profile</div>
+      </div>
+    </div>
+
+    <div class="transport glass glass-hairline">
+      <div class="btn pause">❚❚ Pause</div>
+      <div class="btn finish">⚑ Finish</div>
+    </div>
+  </div>
+  <div class="frame-label">2 · Map open (on demand)</div>
+  <div class="frame-note">Compact 128 px minimap: panel top at y≈524 — the whole rider (360–532) and the look-ahead band stay visible while the map is open. Tap again or Esc closes. 16 px gap to the transport bar.</div>
+</div>
+
+<!-- FRAME 3: profile open -->
+<div class="frame-wrap">
+  <div class="phone">
+    <div class="rider-band"><span>RIDER 360–532</span></div>
+    <div class="topbar">
+      <div class="navrow">
+        <div class="exit glass glass-hairline">‹ Exit</div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg></div>
+      </div>
+    </div>
+    <div class="demo-pill glass glass-hairline"><span class="dot"></span>DEMO MODE<span class="sim">Simulated 190 W</span></div>
+    <div class="cam-btn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 13 5.2 3a1 1 0 0 0 1.5-.9V5.9a1 1 0 0 0-1.5-.9L16 8"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg></div>
+    <div class="chase-tag glass glass-hairline">Chase</div>
+
+    <div class="stack">
+      <div class="primary glass glass-hairline">
+        <div class="zone-strip"></div>
+        <div class="inner">
+          <div class="hero">
+            <div style="flex:1">
+              <div class="lbl">⚡ WATTS <span class="zone-badge">Z3</span></div>
+              <div class="watts num">190</div>
+            </div>
+            <div class="kmh">
+              <div class="lbl">KM/H</div>
+              <div class="v num">34.8</div>
+            </div>
+          </div>
+          <div class="grade"><span style="color:hsl(var(--muted-foreground))">↗</span><div class="bar"><i></i></div><span class="v num">-0.3%</span></div>
+        </div>
+      </div>
+      <div class="secondary glass glass-hairline">
+        <div class="m"><div class="l">RPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">BPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">M ELEV</div><div class="v num">281</div></div>
+        <div class="m"><div class="l">TIME</div><div class="v num">0:07</div></div>
+      </div>
+      <div class="route glass glass-hairline">
+        <div class="row"><span class="name">📍 Lugano lakefront to Melide</span><span class="dist num">74 m / 9.69 km</span></div>
+        <div class="progress"><i></i><b></b></div>
+      </div>
+    </div>
+
+    <!-- NEW dock, profile open -->
+    <div class="dock">
+      <div class="dock-panel">
+        <div class="elev glass glass-hairline">
+          <svg viewBox="0 0 340 112" preserveAspectRatio="none">
+            <defs><linearGradient id="ef" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="hsl(200 92% 56%)" stop-opacity=".5"/>
+              <stop offset="100%" stop-color="hsl(200 92% 56%)" stop-opacity=".03"/>
+            </linearGradient></defs>
+            <path d="M0 84 C 30 78, 50 60, 80 56 S 130 74, 160 66 S 210 30, 250 38 S 310 62, 340 52 L340 112 L0 112 Z" fill="url(#ef)"/>
+            <path d="M0 84 C 30 78, 50 60, 80 56 S 130 74, 160 66 S 210 30, 250 38 S 310 62, 340 52" fill="none" stroke="hsl(200 92% 56%)" stroke-width="1.75"/>
+            <line x1="12" y1="0" x2="12" y2="112" stroke="hsl(158 80% 42%)" stroke-width="2"/>
+            <text x="16" y="10" fill="hsl(158 80% 42%)" font-size="9">▲</text>
+            <text x="2" y="108" fill="hsl(215 18% 58%)" font-size="8">0.0km</text>
+            <text x="300" y="108" fill="hsl(215 18% 58%)" font-size="8">9.7km</text>
+            <text x="2" y="14" fill="hsl(215 18% 58%)" font-size="8">316</text>
+            <text x="2" y="96" fill="hsl(215 18% 58%)" font-size="8">270</text>
+          </svg>
+        </div>
+      </div>
+      <div class="dock-row">
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Map</div>
+        <div class="toggle on glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 14H2L8 3z"/></svg>Profile</div>
+      </div>
+    </div>
+
+    <div class="transport glass glass-hairline">
+      <div class="btn pause">❚❚ Pause</div>
+      <div class="btn finish">⚑ Finish</div>
+    </div>
+  </div>
+  <div class="frame-label">3 · Profile open (on demand)</div>
+  <div class="frame-note">Elevation panel top at y≈572 — the whole rider stays visible. Same one-at-a-time toggle behaviour as the map.</div>
+</div>
+
+<!-- FRAME 4: no-token banner raised -->
+<div class="frame-wrap">
+  <div class="phone">
+    <div class="rider-band"><span>RIDER 360–532</span></div>
+    <div class="topbar">
+      <div class="navrow">
+        <div class="exit glass glass-hairline">‹ Exit</div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></div>
+        <div class="icobtn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg></div>
+      </div>
+    </div>
+    <div class="demo-pill glass glass-hairline"><span class="dot"></span>DEMO MODE<span class="sim">Simulated 190 W</span></div>
+    <div class="cam-btn glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 13 5.2 3a1 1 0 0 0 1.5-.9V5.9a1 1 0 0 0-1.5-.9L16 8"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg></div>
+    <div class="chase-tag glass glass-hairline">Chase</div>
+
+    <div class="stack">
+      <div class="primary glass glass-hairline">
+        <div class="zone-strip"></div>
+        <div class="inner">
+          <div class="hero">
+            <div style="flex:1">
+              <div class="lbl">⚡ WATTS <span class="zone-badge">Z3</span></div>
+              <div class="watts num">190</div>
+            </div>
+            <div class="kmh">
+              <div class="lbl">KM/H</div>
+              <div class="v num">34.8</div>
+            </div>
+          </div>
+          <div class="grade"><span style="color:hsl(var(--muted-foreground))">↗</span><div class="bar"><i></i></div><span class="v num">-0.3%</span></div>
+        </div>
+      </div>
+      <div class="secondary glass glass-hairline">
+        <div class="m"><div class="l">RPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">BPM</div><div class="v num">—</div></div>
+        <div class="m"><div class="l">M ELEV</div><div class="v num">281</div></div>
+        <div class="m"><div class="l">TIME</div><div class="v num">0:07</div></div>
+      </div>
+      <div class="route glass glass-hairline">
+        <div class="row"><span class="name">📍 Lugano lakefront to Melide</span><span class="dist num">74 m / 9.69 km</span></div>
+        <div class="progress"><i></i><b></b></div>
+      </div>
+    </div>
+
+    <!-- banner raised above the dock row on mobile -->
+    <div class="banner glass glass-hairline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 1.9 5.8L20 9.3l-4.6 3.6L17 19l-5-3.6L7 19l1.6-6.1L4 9.3l6.1-.5z"/></svg>
+      <p><b>Add a free Cesium ion token</b> <span style="color:hsl(var(--muted-foreground))">for photoreal Earth</span></p>
+      <span class="link">Settings</span>
+      <span style="color:hsl(var(--muted-foreground))">✕</span>
+    </div>
+
+    <div class="dock">
+      <div class="dock-row">
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Map</div>
+        <div class="toggle glass glass-hairline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 14H2L8 3z"/></svg>Profile</div>
+      </div>
+    </div>
+
+    <div class="transport glass glass-hairline">
+      <div class="btn pause">❚❚ Pause</div>
+      <div class="btn finish">⚑ Finish</div>
+    </div>
+  </div>
+  <div class="frame-label">4 · No-token banner (mobile position raised)</div>
+  <div class="frame-note">Banner moves from bottom 92 px to bottom 192 px below sm so it stacks above the dock row instead of colliding with it. Still below the rider band (532).</div>
+</div>
+
+</div>
+</body>
+</html>

@@ -21,6 +21,20 @@ import { gradientAt } from '@/lib/gradientCalculator';
 import type { RouteSegment } from '@/lib/segmentOverlay';
 import type { ProPelotonState } from '@/lib/proCycling/proPelotonSimulator';
 import { tickProPeloton } from '@/lib/proCycling/proPelotonSimulator';
+import {
+  can,
+  driveOf,
+  nextState,
+  phaseOf,
+  sourceOf,
+  toRideState,
+  trainerEventFor,
+  trainerLinkOf,
+  transition,
+  type RideEvent,
+  type RideFsmState,
+  type SourceFields,
+} from '@/lib/ride/rideFsm';
 
 /** A camera target requested by the route-search flow. */
 export interface FlyToTarget {
@@ -369,6 +383,49 @@ export interface TickInput {
   displaySpeed?: number;
 }
 
+/**
+ * The ride FSM state the store's fields describe. The store keeps its public
+ * strings (`rideState`, `connection`, `mode`) for HUD consumers; every
+ * lifecycle change is validated by `lib/ride/rideFsm` first.
+ */
+export function selectRideFsm(
+  st: Pick<RideStoreState, 'rideState' | 'connection'> & SourceFields,
+): RideFsmState {
+  return {
+    phase: phaseOf(st.rideState),
+    source: sourceOf(st),
+    trainer: trainerLinkOf(st.connection),
+  };
+}
+
+/**
+ * Run `e` through the FSM. Returns the next FSM state, or null when the
+ * event is illegal: that throws in development (rideFsm.transition) and
+ * leaves the store untouched in production.
+ */
+function dispatchFsm(st: RideStoreState, e: RideEvent): RideFsmState | null {
+  const cur = selectRideFsm(st);
+  const next = nextState(cur, e);
+  if (next) return next;
+  transition(cur, e);
+  return null;
+}
+
+/** Validate a change to the fields that define the ride source. */
+function sourceChangeAllowed(st: RideStoreState, patch: Partial<SourceFields>): boolean {
+  const cur = selectRideFsm(st);
+  const source = sourceOf({ ...st, ...patch });
+  if (source === cur.source) return true;
+  return dispatchFsm(st, { type: 'SET_SOURCE', source }) !== null;
+}
+
+/** Leaving the session's replay (or a plain reset when none is loaded). */
+function leaveReplayEvent(st: RideStoreState, hasRoute: boolean): RideEvent {
+  return st.replayData
+    ? { type: 'CLEAR_REPLAY', source: sourceOf({ ...st, replayData: null }), hasRoute }
+    : { type: 'RESET', hasRoute };
+}
+
 let toastCounter = 0;
 function genToastId(): string {
   toastCounter += 1;
@@ -469,7 +526,10 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       workoutTargetWatts: null,
     }),
 
-  setWorkoutRunning: (running) => set({ workoutRunning: running }),
+  setWorkoutRunning: (running) => {
+    if (!sourceChangeAllowed(get(), { workoutRunning: running })) return;
+    set({ workoutRunning: running });
+  },
 
   advanceWorkoutElapsed: (dt) =>
     set((st) => ({ workoutElapsedSec: st.workoutElapsedSec + dt })),
@@ -532,7 +592,10 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   setDrawModeActive: (active) => set({ drawModeActive: active }),
 
   // ---- ADDITIVE: Outdoor GPS Mode actions ----
-  setRideMode: (mode) => set({ rideMode: mode }),
+  setRideMode: (mode) => {
+    if (!sourceChangeAllowed(get(), { rideMode: mode })) return;
+    set({ rideMode: mode });
+  },
 
   appendLivePoint: (p) =>
     set((st) => {
@@ -556,7 +619,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       route: fit.route,
       replayData: fit,
       replayIndex: 0,
-      rideState: 'ready',
+      rideState: toRideState(transition(selectRideFsm(get()), { type: 'LOAD_REPLAY' }).phase),
       distance: 0,
       elapsedMs: 0,
       samples: [],
@@ -576,7 +639,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       replayData: null,
       replayIndex: 0,
       // Keep the route loaded so the globe still shows it; reset ride state.
-      rideState: st.route ? 'ready' : 'idle',
+      rideState: toRideState(transition(selectRideFsm(st), leaveReplayEvent(st, !!st.route)).phase),
       distance: 0,
       elapsedMs: 0,
       samples: [],
@@ -592,9 +655,17 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
     })),
 
   setRoute: (route) =>
-    set({
+    set((st) => ({
       route,
-      rideState: route ? 'ready' : 'idle',
+      // Loading a route abandons any ride or replay in progress.
+      rideState: toRideState(
+        transition(
+          selectRideFsm(st),
+          st.replayData
+            ? leaveReplayEvent(st, !!route)
+            : { type: route ? 'ROUTE_LOADED' : 'ROUTE_CLEARED' },
+        ).phase,
+      ),
       distance: 0,
       elapsedMs: 0,
       samples: [],
@@ -619,12 +690,18 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       activeSegment: null,
       segmentDistanceStarted: 0,
       segmentElapsedSec: 0,
-    }),
+    })),
 
-  setMode: (mode) => set({ mode }),
+  setMode: (mode) => {
+    if (!sourceChangeAllowed(get(), { mode })) return;
+    set({ mode });
+  },
 
   setConnection: (s, info) =>
     set((st) => {
+      // Trainer events are hardware facts: every (link, event) pair is legal
+      // in the FSM, and a drop (→ lost) never changes the ride phase.
+      if (!dispatchFsm(st, trainerEventFor(s))) return st;
       const next: Partial<RideStoreState> = {
         connection: s,
         deviceName: info?.deviceName !== undefined ? info.deviceName : st.deviceName,
@@ -720,10 +797,13 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
     }),
 
   prepare: () => {
-    const { route, rideMode } = get();
-    if (!route && rideMode !== 'outdoor') return;
+    const st = get();
+    if (!st.route && st.rideMode !== 'outdoor') return;
+    const next = dispatchFsm(st, { type: 'ROUTE_LOADED' });
+    if (!next) return;
+    const { route } = st;
     set({
-      rideState: 'ready',
+      rideState: toRideState(next.phase),
       distance: 0,
       elapsedMs: 0,
       samples: [],
@@ -739,29 +819,43 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
     if (!st.route && st.rideMode !== 'outdoor') {
       return;
     }
-    if (st.rideState !== 'ready' && st.rideState !== 'idle') {
-      return;
-    }
-    const patch: Partial<RideStoreState> = { rideState: 'running', startedAt: Date.now() };
+    // Start requests while riding/paused/finished are ignored: the Start
+    // button, auto-start and the companion app can all ask.
+    const fsm = selectRideFsm(st);
+    if (!can(fsm, { type: 'START' })) return;
+    const patch: Partial<RideStoreState> = {
+      rideState: toRideState(transition(fsm, { type: 'START' }).phase),
+      startedAt: Date.now(),
+    };
     if (st.rideMode === 'outdoor') patch.livePolyline = [];
     set(patch);
   },
 
+  // Pause/resume are toggles many inputs send (keyboard, handlebars, voice,
+  // companion); a request that doesn't apply is ignored, not an error.
   pause: () => {
-    if (get().rideState !== 'running') return;
-    set({ rideState: 'paused' });
+    const fsm = selectRideFsm(get());
+    if (!can(fsm, { type: 'PAUSE' })) return;
+    set({ rideState: toRideState(transition(fsm, { type: 'PAUSE' }).phase) });
   },
 
   resume: () => {
-    if (get().rideState !== 'paused') return;
-    set({ rideState: 'running' });
+    const fsm = selectRideFsm(get());
+    if (!can(fsm, { type: 'RESUME' })) return;
+    set({ rideState: toRideState(transition(fsm, { type: 'RESUME' }).phase) });
   },
 
-  finish: () => set({ rideState: 'finished' }),
+  // Finishing a ride that never started is a caller bug: throws in dev.
+  finish: () => {
+    const next = dispatchFsm(get(), { type: 'FINISH' });
+    if (next) set({ rideState: toRideState(next.phase) });
+  },
 
   reset: () =>
     set({
-      rideState: get().route ? 'ready' : 'idle',
+      rideState: toRideState(
+        transition(selectRideFsm(get()), { type: 'RESET', hasRoute: !!get().route }).phase,
+      ),
       distance: 0,
       elapsedMs: 0,
       samples: [],
@@ -804,7 +898,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
           newDistance %= st.route.totalDistance;
         } else {
           newDistance = st.route.totalDistance;
-          newState = 'finished';
+          newState = toRideState(transition(selectRideFsm(st), { type: 'FINISH' }).phase);
         }
       }
 
@@ -859,11 +953,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         // trainer is paired — shows the loop's computed/recorded speed, which
         // is also what advances distance.
         speed:
-          st.mode === 'trainer' &&
-          st.connection === 'connected' &&
-          st.rideMode !== 'outdoor' &&
-          !st.replayData &&
-          !st.workoutRunning
+          driveOf(selectRideFsm(st)) === 'trainer'
             ? (input.displaySpeed ?? st.speed)
             : input.speedNow,
         power: input.powerNow ?? st.power,

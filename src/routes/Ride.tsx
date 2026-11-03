@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, Users } from 'lucide-react';
 
-import { CesiumViewer } from '@/components/ride/CesiumViewer';
+import { RideView } from '@/components/ride/RideView';
+import type { WorldRenderer } from '@/lib/world/renderer';
+import { worldForRoute } from '@/lib/world/catalog';
 import { NoTokenBanner } from '@/components/ride/NoTokenBanner';
 import { RideHUD } from '@/components/ride/RideHUD';
-import { EnterVRButton } from '@/components/ride/EnterVRButton';
-import { EnterARButton } from '@/components/ride/EnterARButton';
-import { VRHud } from '@/components/ride/VRHud';
 import { RideControls } from '@/components/ride/RideControls';
 import { Minimap } from '@/components/ride/Minimap';
 import { ElevationProfile } from '@/components/ride/ElevationProfile';
@@ -15,7 +14,7 @@ import { ThemeToggle } from '@/components/setup/ThemeToggle';
 import { SoundToggle } from '@/components/ride/SoundToggle';
 import { GhostToggle } from '@/components/ride/GhostToggle';
 import { PlayPanel } from '@/components/velo/PlayMode';
-import { usePlayStore } from '@/stores/playStore';
+import { MobileDetailDock } from '@/components/velo/MobileDetailDock';
 import { ConnectionStatus } from '@/components/ride/ConnectionStatus';
 import { SensorStatusPills } from '@/components/trainer/SensorConnect';
 import { ReplayBadge } from '@/components/ride/ReplayBadge';
@@ -44,6 +43,7 @@ import { useRideControllerActions } from '@/hooks/useRideControllerActions';
 import { ControllerChip } from '@/components/velo/ControllerChip';
 import { reconnectGrantedTrainer } from '@/lib/trainerReconnect';
 import { ControllerDebugOverlay, useControllerDebugVisible } from '@/components/velo/ControllerDebugOverlay';
+import { PerfOverlay } from '@/components/velo/PerfOverlay';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/ride/FinishCard';
@@ -62,8 +62,18 @@ import { refreshAccessToken, stravaCredsPresent } from '@/lib/strava';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
+// WebXR (VR/AR) drives the Cesium viewer directly, so these load only with
+// the photoreal renderer (they pull in the Cesium chunk).
+const EnterVRButton = lazy(() =>
+  import('@/components/ride/EnterVRButton').then((m) => ({ default: m.EnterVRButton })),
+);
+const EnterARButton = lazy(() =>
+  import('@/components/ride/EnterARButton').then((m) => ({ default: m.EnterARButton })),
+);
+const VRHud = lazy(() => import('@/components/ride/VRHud').then((m) => ({ default: m.VRHud })));
+
 /**
- * Active ride view. Cesium full-bleed in the background; HUD + controls
+ * Active ride view. The world renderer (RideView) full-bleed in the background; HUD + controls
  * float on top. Boots the requestAnimationFrame ride loop and a screen
  * wake lock for the duration of the run.
  *
@@ -84,8 +94,8 @@ export function Ride() {
   const rideState     = useRideStore((s) => s.rideState);
   const replayData    = useRideStore((s) => s.replayData);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
-  const playActive    = usePlayStore((s) => s.active);
   const rideMode      = useRideStore((s) => s.rideMode);
+  const preferredRenderer = useSettingsStore((s) => s.renderer);
 
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
   const controllerDebugVisible = useControllerDebugVisible();
@@ -107,10 +117,14 @@ export function Ride() {
   // Ref for the main ride canvas container — used by gesture detection.
   const rideCanvasRef = useRef<HTMLDivElement>(null);
 
-  // Viewer ref populated by CesiumViewer.onViewerReady — passed to
-  // EnterVRButton / EnterARButton so they can call enter{VR,AR}(viewer)
-  // without prop-drilling Cesium through the HUD tree.
-  const [cesiumViewer, setCesiumViewer] = useState<import('cesium').Viewer | null>(null);
+  // The live world renderer (RideView hands it over once its first frame is
+  // up). Auto-start waits for it; the XR buttons need the Cesium viewer,
+  // which only the photoreal renderer exposes (as `native`).
+  const [worldRenderer, setWorldRenderer] = useState<WorldRenderer | null>(null);
+  const cesiumViewer =
+    worldRenderer?.kind === 'photoreal'
+      ? (worldRenderer.native as import('cesium').Viewer | undefined) ?? null
+      : null;
 
   // ---- Outdoor GPS watcher ----
   // Always called (Rules of Hooks). Only does work when rideMode === 'outdoor'.
@@ -165,9 +179,9 @@ export function Ride() {
 
   // ---- Auto-start when arriving from the wizard ----
   // The wizard's "Start ride" CTA passes { state: { autoStart: true } } so the
-  // ride begins as soon as the viewer is ready instead of requiring a second
-  // tap on the in-ride Start button. We wait for cesiumViewer to be set
-  // (Cesium's first frame painted) before starting so the camera doesn't
+  // ride begins as soon as the world is ready instead of requiring a second
+  // tap on the in-ride Start button. We wait for the renderer to be set
+  // (its first frame painted) before starting so the camera doesn't
   // jump from the initial flyTo to chase pose mid-transition.
   //
   // Robust gating: fire when viewer + route are present and rideState is in a
@@ -180,7 +194,7 @@ export function Ride() {
     if (autoStartConsumedRef.current) return;
     const wantsAutoStart = (location.state as { autoStart?: boolean } | null)?.autoStart === true;
     if (!wantsAutoStart) return;
-    if (!cesiumViewer) return;
+    if (!worldRenderer) return;
     if (!route && rideMode !== 'outdoor') return;
     if (rideState === 'running' || rideState === 'paused' || rideState === 'finished') return;
     autoStartConsumedRef.current = true;
@@ -196,7 +210,7 @@ export function Ride() {
       useRideStore.getState().start();
     }, 600);
     return () => clearTimeout(t);
-  }, [cesiumViewer, route, rideMode, rideState, location.state]);
+  }, [worldRenderer, route, rideMode, rideState, location.state]);
 
   // Arriving with { show: true } (Home's "Ride and watch") starts show mode;
   // leaving the ride always ends it and releases the video files.
@@ -268,20 +282,27 @@ export function Ride() {
     return () => document.removeEventListener('click', handler, { capture: true });
   }, []);
 
+  // The renderer that draws (or, until its first frame, the one RideView will pick).
+  const worldRide = worldRenderer
+    ? worldRenderer.kind === 'world'
+    : preferredRenderer === 'world' && rideMode !== 'outdoor' && worldForRoute(route) !== null;
+
   if (!route) return null;
 
   return (
     <div
       ref={rideCanvasRef}
-      className="fixed inset-0 w-screen h-screen overflow-hidden bg-background"
+      className="hud-flat fixed inset-0 w-screen h-screen overflow-hidden bg-background"
     >
-      <CesiumViewer ionToken={token} onViewerReady={setCesiumViewer} />
+      <RideView ionToken={token} onRendererReady={setWorldRenderer} />
 
       {/* No-token banner — subtle nudge offering the photoreal upgrade.
           Invisible when a token is already installed; dismissible per-session
           so it never gets in the way of the ride. */}
       {/* Hidden in show mode: below lg it would sit on the ride strip. */}
-      {!showActive && <NoTokenBanner hasToken={token !== null && token.length > 0} />}
+      {/* Hidden on world-renderer rides too: they need no token, so the
+          photoreal pitch and the Bing watchdog don't apply there. */}
+      {!showActive && !worldRide && <NoTokenBanner hasToken={token !== null && token.length > 0} />}
 
       {/* Paused dim veil -- subtle darkening when ride is paused */}
       {rideState === 'paused' && (
@@ -343,6 +364,7 @@ export function Ride() {
           <div className="hidden sm:flex flex-col gap-2">
             <ControllerChip />
             <ControllerDebugOverlay />
+            <PerfOverlay />
           </div>
 
           {/* Minimap — below the nav row, left column, tablet+ only */}
@@ -406,6 +428,8 @@ export function Ride() {
             <ControllerDebugOverlay />
           </div>
         )}
+        {/* ?perf=1: frame rate first, so one phone screenshot carries it. */}
+        <PerfOverlay className="mb-2" />
         {/* Stats first on mobile */}
         <RideHUD />
         {/* Handlebar controls readout (renders nothing without Web Bluetooth) */}
@@ -415,20 +439,6 @@ export function Ride() {
           </div>
         )}
         <PlayPanel className="mt-2" compact />
-        {/* Minimap — compact, full-width on mobile. Gives its place to the
-            Play panel so the stack stays clear of the ride controls; the
-            elevation profile below still shows where you are. */}
-        {!playActive && (
-          <div className="mt-2 pointer-events-none flex justify-center">
-            <Minimap />
-          </div>
-        )}
-        {/* Elevation profile — collapsible width on mobile */}
-        <div className="mt-2 pointer-events-auto">
-          <div className="glass glass-hairline rounded-2xl p-3 transition-all duration-300">
-            <ElevationProfile />
-          </div>
-        </div>
         {activeWorkout && (
           <div className="mt-2">
             <WorkoutHUD />
@@ -440,12 +450,31 @@ export function Ride() {
         </div>
       </div>
 
+      {/* -- Detail dock -- minimap + elevation on demand, above transport -- */}
+      {/* Phones keep the scene band (horizon + rider) clear: the map and the
+          elevation profile open only when the rider taps for them. Hidden in
+          show mode (the ride strip owns the bottom) and after the finish. */}
+      {!showActive && rideState !== 'finished' && (
+        <div
+          className="sm:hidden absolute left-3 right-3 z-[3] pointer-events-none"
+          style={{ bottom: 'calc(max(env(safe-area-inset-bottom), 1.25rem) + 4.75rem)' }}
+        >
+          <MobileDetailDock />
+        </div>
+      )}
+
       {/* -- Transport controls -- bottom-center ----------------------------- */}
       {/* z-50 (above every other HUD layer) so the Start ride button can
           never be intercepted by a stray sibling. pointer-events-auto on
-          the wrapper means clicks always land on the button. */}
+          the wrapper means clicks always land on the button.
+          w-max: an absolutely-positioned left-1/2 wrapper shrink-fits to the
+          width available from its left edge (~195 px at 390), which made
+          RideControls' inner flex-wrap stack Pause/Finish into a 2-story
+          110 px block. Sizing the wrapper to max-content keeps the running
+          controls on one ~62 px row; max-w caps it so the 4-button finished
+          state still wraps gracefully inside the viewport. */}
       <div
-        className={cn('absolute left-1/2 -translate-x-1/2 pointer-events-auto z-50', dimClass)}
+        className={cn('absolute left-1/2 -translate-x-1/2 w-max max-w-[calc(100vw-1.5rem)] pointer-events-auto z-50', dimClass)}
         style={{ bottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
       >
         <RideControls />
@@ -488,7 +517,11 @@ export function Ride() {
           right: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
       >
-        <EnterVRButton viewer={cesiumViewer} />
+        {cesiumViewer && (
+          <Suspense fallback={null}>
+            <EnterVRButton viewer={cesiumViewer} />
+          </Suspense>
+        )}
       </div>
 
       {/* -- Enter AR button — top-right, below VR button -------- */}
@@ -500,7 +533,11 @@ export function Ride() {
           right: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
       >
-        <EnterARButton viewer={cesiumViewer} />
+        {cesiumViewer && (
+          <Suspense fallback={null}>
+            <EnterARButton viewer={cesiumViewer} />
+          </Suspense>
+        )}
       </div>
 
       {/* -- Voice control button — top-right, below AR button -- */}
@@ -520,7 +557,11 @@ export function Ride() {
       </>)}
 
       {/* -- VR HUD overlay — visible only during XR session ------ */}
-      <VRHud />
+      {cesiumViewer && (
+        <Suspense fallback={null}>
+          <VRHud />
+        </Suspense>
+      )}
 
       {/* -- Finish overlay ------------------------------------------------- */}
       {rideState === 'finished' && <FinishCard />}

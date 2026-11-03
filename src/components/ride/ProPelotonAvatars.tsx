@@ -127,7 +127,7 @@ export function ProPelotonAvatars({ viewer }: Props) {
 
         if (finished) {
           // Hide finished riders — they're done.
-          for (const ent of avatars[i].entities) ent.show = false;
+          avatars[i].setShow(false);
           labels[i].show = false;
           continue;
         }
@@ -136,7 +136,7 @@ export function ProPelotonAvatars({ viewer }: Props) {
         const heading = headingAt(route, riderState.distance);
 
         // Show and update avatar.
-        for (const ent of avatars[i].entities) ent.show = true;
+        avatars[i].setShow(true);
         avatars[i].update({
           lon: pos.lon,
           lat: pos.lat,
