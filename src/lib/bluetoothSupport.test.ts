@@ -144,7 +144,8 @@ describe('troubleshootSteps', () => {
   });
 
   it('the pairing guide copy names no other app or brand, and no experimental flag', () => {
-    for (const r of [ready, { ...ready, platform: 'windows' }]) {
+    const reports: BluetoothSupportReport[] = [ready, { ...ready, platform: 'windows' }];
+    for (const r of reports) {
       const html = text(r);
       expect(html).not.toMatch(/zwift|wahoo|trainerroad|mywhoosh|globeride/i);
       expect(html).not.toMatch(/experimental/i);

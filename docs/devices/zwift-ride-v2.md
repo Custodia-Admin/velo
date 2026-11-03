@@ -233,10 +233,10 @@ pure (`controllerActions.ts`, tested); the Ride page wires them to the stores.
 2. Expo curve, 45 % cubic: small pushes make fine lane changes, a full push
    still reaches the full 1.6 m.
 3. Lane-centring spring: critically damped, so lane changes start and stop
-   softly and never overshoot. Steering stiffness ω = 5 rad/s (about 0.9 s
-   to settle), release ω = 2 rad/s (back on the line in about 2.4 s). The
-   step is the exact solution per frame, so the feel is the same at 30, 60
-   or 144 fps.
+   softly and never overshoot. Steering stiffness ω = 5 rad/s (about 95 %
+   of the way in 0.95 s), release ω = 2 rad/s (about 95 % back at 2.4 s, on
+   the line at about 4 s). The step is the exact solution per frame, so the
+   feel is the same at 30, 60 or 144 fps.
 
 The raw lever reading (`steerFrom`) is unchanged and is what the debug log
 shows; only `activeSteer()` is shaped.
