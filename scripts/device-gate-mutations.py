@@ -119,6 +119,39 @@ M = [
     ('M29 Ride page: trainer ride-start reconnect not silent', 'src/routes/Ride.tsx',
      'reconnectGrantedTrainer({ silent: true });', 'reconnectGrantedTrainer();',
      ['src/lib/controllers/rideController.test.ts']),
+    # The second layers (the round-2 review's extra mutations X1-X12), each
+    # one alone.
+    ('M30 controls wake reconnect: confirm-buzz session check removed', 'src/lib/controllers/rideController.ts',
+     '    if (rideSessionActive()) await confirmBuzz(l);', '    await confirmBuzz(l);',
+     ['src/lib/controllers/rideController.test.ts']),
+    ('M31 controls wake reconnect: RideOn allowWrites not passed', 'src/lib/controllers/rideController.ts',
+     '    await setupSession(l, rideSessionActive);\n    if (gone(l)) return;', '    await setupSession(l);\n    if (gone(l)) return;',
+     ['src/lib/controllers/rideController.test.ts']),
+    ('M32 controls: allowWrites check after gatt.connect removed', 'src/lib/controllers/rideController.ts',
+     '  const server = gatt.connected ? gatt : await gatt.connect();\n  if (allowWrites && !allowWrites()) throw rideClosedError();\n',
+     '  const server = gatt.connected ? gatt : await gatt.connect();\n',
+     ['src/lib/controllers/rideController.test.ts']),
+    ('M33 controls: leaving the ride does not stop the wake watch', 'src/lib/controllers/rideController.ts',
+     '  if (active) void armWake(l);\n  else disarmWake(l);', '  if (active) void armWake(l);',
+     ['src/lib/controllers/rideController.test.ts']),
+    ('M34 ftms: mayWrite after gatt.connect removed', 'src/lib/ftms.ts',
+     '    );\n  }\n  mayWrite();\n\n  let service', '    );\n  }\n\n  let service',
+     ['src/lib/deviceLayer.test.ts']),
+    ('M35 trainer: leaving the ride does not stop the wake watch', 'src/lib/trainerReconnect.ts',
+     '  if (active) void armTrainerWake();\n  else disarmWake();', '  if (active) void armTrainerWake();',
+     ['src/lib/deviceLayer.test.ts']),
+    ('M36 trainer: armTrainerWake session check removed', 'src/lib/trainerReconnect.ts',
+     'export async function armTrainerWake(): Promise<boolean> {\n  if (!rideSessionActive()) return false;\n',
+     'export async function armTrainerWake(): Promise<boolean> {\n',
+     ['src/lib/deviceLayer.test.ts']),
+    ('M37 controls: armWake session check removed', 'src/lib/controllers/rideController.ts',
+     "store().status !== 'asleep' || !rideSessionActive()) return Promise.resolve(false);",
+     "store().status !== 'asleep') return Promise.resolve(false);",
+     ['src/lib/controllers/rideController.test.ts']),
+    # Not listed: the two wake-callback session checks (rideController's
+    # watchForWake callback, trainerReconnect's). Leaving the ride stops the
+    # watch synchronously first (M33, M35), so no test can reach them; they
+    # are a last layer, not mutation-verified.
 ]
 
 only = set(sys.argv[1:])

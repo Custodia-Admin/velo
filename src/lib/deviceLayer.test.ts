@@ -72,11 +72,14 @@ const route: Route = {
 
 /** While set, every startNotifications() waits for it (a slow characteristic setup). */
 const notifyHold: { p: Promise<void> | null } = { p: null };
+/** startNotifications() calls on any characteristic (each one is a descriptor write). */
+const subscriptions = { n: 0 };
 
 class FakeChar extends EventTarget {
   value: DataView | undefined;
   writes: number[][] = [];
   async startNotifications() {
+    subscriptions.n++;
     if (notifyHold.p) await notifyHold.p;
     return this;
   }
@@ -446,12 +449,14 @@ describe('no autonomous write outside the ride session', () => {
     const rideStart = reconnectGrantedTrainer({ silent: true });
     await vi.advanceTimersByTimeAsync(10); // waiting on gatt.connect()
     expect(k.state.connects).toBeGreaterThan(0);
+    const subs = subscriptions.n;
     release();
     k.state.hold = null;
     letConnect();
     expect(await rideStart).toBe(false);
     await vi.advanceTimersByTimeAsync(60_000);
     expect(k.opsSince(mark)).toEqual([]);
+    expect(subscriptions.n).toBe(subs); // not even the notification switch-on
     expect(isConnected()).toBe(false);
     expect(useRideStore.getState().connection).toBe('disconnected');
   });

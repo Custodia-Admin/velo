@@ -659,12 +659,14 @@ describe('the ride-start reconnect (silent, granted controls)', () => {
       new Promise((resolve) => {
         letConnect = () => resolve(realConnect());
       });
+    const subscribe = vi.spyOn(device.async_, 'startNotifications');
     const rideStart = reconnectGrantedController({ silent: true });
     await new Promise((r) => setTimeout(r, 0)); // side check done, waiting on gatt.connect()
     release();
     letConnect();
     expect(await rideStart).toBe(false);
     expect(device.rx.writes).toEqual([]);
+    expect(subscribe).not.toHaveBeenCalled(); // not even the notification switch-on
     expect(device.gatt.connected).toBe(false);
     expect(st().status).toBe('idle');
   });
@@ -706,10 +708,14 @@ describe('the ride-start reconnect (silent, granted controls)', () => {
 
 /** watchAdvertisements on the fake that records watches; `wake()` sends one advert. */
 function wakeable(d: FakeDevice) {
-  const probe = { watches: 0, wake: () => d.dispatchEvent(new Event('advertisementreceived')) };
-  (d as unknown as { watchAdvertisements: () => Promise<void> }).watchAdvertisements = async () => {
-    probe.watches++;
-  };
+  const probe = { watches: 0, stops: 0, wake: () => d.dispatchEvent(new Event('advertisementreceived')) };
+  (d as unknown as { watchAdvertisements: (o?: { signal?: AbortSignal }) => Promise<void> }).watchAdvertisements =
+    async (o) => {
+      probe.watches++;
+      o?.signal?.addEventListener('abort', () => {
+        probe.stops++;
+      });
+    };
   return probe;
 }
 
@@ -750,6 +756,7 @@ describe('reconnect on wake', () => {
     const release = retainRideSession();
     expect(probe.watches).toBe(1);
     release(); // leaving the ride stops it again
+    expect(probe.stops).toBe(1);
     device.failConnect = false;
     probe.wake();
     await vi.advanceTimersByTimeAsync(10);
@@ -769,6 +776,60 @@ describe('reconnect on wake', () => {
     await vi.advanceTimersByTimeAsync(10);
     expect(st().status).toBe('asleep');
     expect(probe.watches).toBe(2);
+  });
+
+  it('leaving the ride while a wake reconnect connects: no RideOn, no buzz', async () => {
+    vi.useFakeTimers();
+    const release = retainRideSession();
+    await pairRideController();
+    const probe = wakeable(device);
+    device.failConnect = true;
+    device.drop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(st().status).toBe('asleep');
+    device.failConnect = false;
+    let letConnect: () => void = () => undefined;
+    const realConnect = device.gatt.connect;
+    device.gatt.connect = () =>
+      new Promise((resolve) => {
+        letConnect = () => resolve(realConnect());
+      });
+    device.rx.writes = [];
+    probe.wake();
+    await vi.advanceTimersByTimeAsync(10); // waiting on gatt.connect()
+    release();
+    letConnect();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(device.rx.writes).toEqual([]);
+    expect(st().status).toBe('asleep');
+  });
+
+  it('leaving the ride after a wake reconnect sent RideOn: no confirm buzz', async () => {
+    vi.useFakeTimers();
+    const release = retainRideSession();
+    await pairRideController();
+    const probe = wakeable(device);
+    device.failConnect = true;
+    device.drop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    device.failConnect = false;
+    let letRead: () => void = () => undefined;
+    const hold = new Promise<void>((r) => {
+      letRead = r;
+    });
+    const realRead = device.bas.readValue.bind(device.bas);
+    device.bas.readValue = async () => {
+      await hold;
+      return realRead();
+    };
+    device.rx.writes = [];
+    probe.wake();
+    await vi.advanceTimersByTimeAsync(10); // RideOn sent, reading the battery
+    expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e']);
+    release();
+    letRead();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e']);
   });
 
   it('locked on wake: locked, no more watching', async () => {
