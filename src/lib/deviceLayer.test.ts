@@ -518,4 +518,44 @@ describe('trainer wake watch', () => {
     expect(toast?.message).toMatch(/tap Reconnect/);
     expect(toast?.message).not.toMatch(/by itself/);
   });
+
+  it('out of retries with no wake watch (the Linux laptop): the toast carries Reconnect, which brings the trainer back', async () => {
+    const k = fakeKickr(); // no watchAdvertisements, as on Linux
+    useRideStore.getState().setRoute(route);
+    await pair(k);
+    retainRideSession();
+    useRideStore.getState().start();
+    frames(1, pedal);
+    k.state.failConnects = 99;
+    k.drop();
+    await vi.advanceTimersByTimeAsync(600 + 1200 + 2400 + 4000 + 50);
+    const toast = () => useRideStore.getState().toasts.find((t) => t.id === 'trainer-connection');
+    /** As the Toaster's button does: run the action, then dismiss the toast. */
+    const tapReconnect = () => {
+      const t = toast()!;
+      t.action!.onClick();
+      useRideStore.getState().dismissToast(t.id);
+    };
+    // The only trainer Reconnect in the ride view: it stays until used.
+    expect(toast()).toMatchObject({ kind: 'error', durationMs: null, action: { label: 'Reconnect' } });
+
+    // Tapped while the trainer still sleeps: two quick attempts, then the toast is back.
+    const connects = k.state.connects;
+    tapReconnect();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(k.state.connects - connects).toBe(2);
+    expect(useRideStore.getState().connection).toBe('disconnected');
+    expect(toast()).toMatchObject({ kind: 'error', durationMs: null, action: { label: 'Reconnect' } });
+
+    // Trainer awake: the tap brings it back, with the handshake only.
+    k.state.failConnects = 0;
+    const mark = k.cp().writes.length;
+    tapReconnect();
+    await vi.advanceTimersByTimeAsync(10);
+    const st = useRideStore.getState();
+    expect(st.connection).toBe('connected');
+    expect(st.mode).toBe('trainer');
+    expect(k.opsSince(mark)).toEqual([OP_REQUEST_CONTROL, OP_START]);
+    expect(toast()).toMatchObject({ kind: 'success', title: 'Trainer reconnected' });
+  });
 });

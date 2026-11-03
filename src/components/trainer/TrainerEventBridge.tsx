@@ -8,8 +8,35 @@ import {
   onReconnect,
   onTrainerData,
 } from '@/lib/ftms';
-import { trainerLost } from '@/lib/trainerReconnect';
+import { reconnectGrantedTrainer, trainerLost } from '@/lib/trainerReconnect';
 import { LOW_BATTERY_PCT, formatBattery } from '@/lib/controllers/battery';
+
+/**
+ * The trainer is gone after the automatic retries. The toast carries the
+ * Reconnect tap (the ride view has no other trainer Reconnect control); a
+ * tap that fails brings it back so the rider can try again once the
+ * trainer is awake. Sticky (`durationMs` null) while it is the only way back.
+ */
+function pushTrainerLostToast(message: string, durationMs: number | null): void {
+  useRideStore.getState().pushToast({
+    id: 'trainer-connection',
+    kind: 'error',
+    title: "Couldn't reconnect after several attempts",
+    message,
+    action: {
+      label: 'Reconnect',
+      onClick: () => {
+        void reconnectGrantedTrainer().then((ok) => {
+          // Back by another route meanwhile (wake, chooser): nothing to offer.
+          if (!ok && useRideStore.getState().connection === 'disconnected') {
+            pushTrainerLostToast('Still no trainer. Wait for its light, then tap Reconnect again.', null);
+          }
+        });
+      },
+    },
+    durationMs,
+  });
+}
 
 /**
  * Mount once at app root. Subscribes to the FTMS module's event hooks and
@@ -113,16 +140,15 @@ export function TrainerEventBridge(): null {
           if (st.mode === 'trainer') st.setMode('demo');
           // Reconnect on its own when it wakes up (during the ride), and say
           // so only once the browser has actually agreed to watch for it.
+          // The toast carries the Reconnect tap: the ride view has no other
+          // trainer Reconnect control (and on Linux nothing watches for it).
           void trainerLost(lostName).then((wakes) => {
-            useRideStore.getState().pushToast({
-              id: 'trainer-connection',
-              kind: 'error',
-              title: "Couldn't reconnect after several attempts",
-              message: wakes
+            pushTrainerLostToast(
+              wakes
                 ? 'Switched to Demo Mode so the ride keeps going. Pedal once to wake the trainer: it reconnects by itself.'
                 : 'Switched to Demo Mode so the ride keeps going. Pedal once to wake the trainer, then tap Reconnect.',
-              durationMs: 10_000,
-            });
+              wakes ? 10_000 : null,
+            );
           });
           break;
         }

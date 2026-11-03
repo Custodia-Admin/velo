@@ -135,7 +135,8 @@ export async function reconnectGrantedTrainer(opts: { silent?: boolean; wake?: b
     const st = useRideStore.getState();
     st.setConnection('connected', { deviceName: name });
     st.setMode('trainer');
-    st.pushToast({ kind: 'success', title: 'Trainer reconnected', message: name ?? undefined, durationMs: 3_000 });
+    // Same id as the bridge's trainer toasts: replaces a "couldn't reconnect" one.
+    st.pushToast({ id: 'trainer-connection', kind: 'success', title: 'Trainer reconnected', message: name ?? undefined, durationMs: 3_000 });
     dispatch({ type: 'success' });
     return true;
   } catch {

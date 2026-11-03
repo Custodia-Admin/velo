@@ -91,6 +91,18 @@ M = [
     ('M21 Ride page: controls ride-start reconnect not silent', 'src/routes/Ride.tsx',
      'reconnectGrantedController({ silent: true });', 'reconnectGrantedController();',
      ['src/lib/controllers/rideController.test.ts']),
+    ('M22 trainer-lost toast: no Reconnect action', 'src/components/trainer/TrainerEventBridge.tsx',
+     "    action: {\n      label: 'Reconnect',", "    action: undefined && {\n      label: 'Reconnect',",
+     ['src/lib/deviceLayer.test.ts']),
+    ('M23 trainer-lost toast: a failed tap does not offer Reconnect again', 'src/components/trainer/TrainerEventBridge.tsx',
+     "            pushTrainerLostToast('Still no trainer.", "            if (Math.random() > 2) pushTrainerLostToast('Still no trainer.",
+     ['src/lib/deviceLayer.test.ts']),
+    ('M24 trainer-lost toast: not sticky without a wake watch', 'src/components/trainer/TrainerEventBridge.tsx',
+     'wakes ? 10_000 : null,', '10_000,',
+     ['src/lib/deviceLayer.test.ts']),
+    ('M25 trainer reconnected toast: does not replace the sticky one', 'src/lib/trainerReconnect.ts',
+     "st.pushToast({ id: 'trainer-connection', kind: 'success',", "st.pushToast({ kind: 'success',",
+     ['src/lib/deviceLayer.test.ts']),
 ]
 
 only = set(sys.argv[1:])
