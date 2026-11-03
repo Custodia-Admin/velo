@@ -195,3 +195,128 @@ export function statusChip(i: ChipInput): ChipView {
   }
   return { label: 'No trainer', aria: 'No trainer paired', tone: 'calm', pulse: false, alert: false };
 }
+
+// ---------------------------------------------------------------------------
+// The one in-ride status chip (compact ride HUD, owner-directed revision
+// 2 Nov 2026): trainer, handlebar controls, heart-rate strap and passing
+// notices all speak through this chip, worst problem first. Details live on
+// the devices sheet the chip opens; there is never a separate red box.
+// ---------------------------------------------------------------------------
+
+/** Handlebar controls phase (lib/controllers/controllerView ControllerPhase). */
+export type ControlsPhase =
+  | 'none'
+  | 'pairing'
+  | 'waiting'
+  | 'live'
+  | 'rightSide'
+  | 'silent'
+  | 'reconnecting'
+  | 'asleep'
+  | 'locked'
+  | 'error';
+
+export type SensorStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+
+/** A passing message (a toast) the chip shows for a few seconds. */
+export interface ChipNotice {
+  title: string;
+  kind: 'info' | 'success' | 'warning' | 'error';
+  /** The toast's own action, run when the chip is tapped. */
+  actionLabel?: string;
+}
+
+/** What tapping the chip does. */
+export type RideChipAction = 'reconnectTrainer' | 'notice' | 'devices';
+
+export interface RideChipView extends ChipView {
+  action: RideChipAction;
+}
+
+export interface RideChipInput extends ChipInput {
+  /** A trainer granted in an earlier session can come back with one tap. */
+  trainerReconnectable: boolean;
+  /** rideStore.errorCode ('reconnect-failed' after a mid-ride drop). */
+  errorCode: string | null;
+  controls: ControlsPhase;
+  heartRate: SensorStatus;
+  notice: ChipNotice | null;
+}
+
+const CONTROLS_ALERT: Partial<Record<ControlsPhase, string>> = {
+  rightSide: 'Controls: right unit paired',
+  silent: 'Controls locked',
+  locked: 'Controls locked',
+  asleep: 'Controls asleep',
+  error: 'Controls lost',
+};
+
+/**
+ * The chip, worst problem first: a lost or failing trainer, then handlebar
+ * controls that cannot deliver presses, then a dropped heart-rate strap,
+ * then a passing notice (a toast, a few seconds), else the calm status
+ * ("KICKR CORE · hills 35 %", "Demo ride · no trainer").
+ */
+export function rideChip(i: RideChipInput): RideChipView {
+  const offline = i.connection === 'disconnected' || i.connection === 'error';
+  if (!i.replay && i.mode !== 'outdoor' && offline && i.trainerReconnectable) {
+    const lost = i.errorCode === 'reconnect-failed';
+    return {
+      label: `${lost ? 'Trainer lost' : 'Trainer off'} · tap to reconnect`,
+      aria: `${lost ? 'Trainer connection lost' : 'Trainer not connected'}. Tap to reconnect it.`,
+      tone: 'warn',
+      pulse: false,
+      alert: true,
+      action: 'reconnectTrainer',
+    };
+  }
+
+  const base = statusChip(i);
+  if (base.alert) return { ...base, action: 'devices' };
+
+  const controls = CONTROLS_ALERT[i.controls];
+  if (controls) {
+    return {
+      label: controls,
+      aria: `${controls}. Tap for devices.`,
+      tone: 'warn',
+      pulse: false,
+      alert: true,
+      action: 'devices',
+    };
+  }
+
+  if (i.heartRate === 'reconnecting' || i.heartRate === 'error') {
+    const reconnecting = i.heartRate === 'reconnecting';
+    return {
+      label: reconnecting ? 'Heart rate lost · reconnecting' : 'Heart rate lost',
+      aria: `Heart-rate strap lost${reconnecting ? ', reconnecting' : ''}. Tap for devices.`,
+      tone: 'warn',
+      pulse: reconnecting,
+      alert: true,
+      action: 'devices',
+    };
+  }
+
+  if (i.notice) {
+    const warn = i.notice.kind === 'warning' || i.notice.kind === 'error';
+    return {
+      label: i.notice.actionLabel ? `${i.notice.title} · ${i.notice.actionLabel}` : i.notice.title,
+      aria: i.notice.title,
+      tone: warn ? 'warn' : i.notice.kind === 'success' ? 'ok' : 'calm',
+      pulse: false,
+      alert: true,
+      action: i.notice.actionLabel ? 'notice' : 'devices',
+    };
+  }
+
+  return { ...base, aria: `${base.aria}. Tap for devices.`, action: 'devices' };
+}
+
+/** How long a passing notice holds the chip: its own duration, at most 5 s. */
+export const NOTICE_MAX_MS = 5_000;
+
+export function noticeMs(durationMs: number | null): number {
+  if (durationMs === null || !(durationMs > 0)) return NOTICE_MAX_MS;
+  return Math.min(durationMs, NOTICE_MAX_MS);
+}

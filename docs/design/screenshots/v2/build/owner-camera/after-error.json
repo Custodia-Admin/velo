@@ -1,0 +1,40 @@
+{
+ "base": "http://127.0.0.1:5191",
+ "spot": 220.0,
+ "time": "night",
+ "weather": "overcast",
+ "size": "1280x658@2",
+ "open": false,
+ "error": true,
+ "hudArea": {
+  "viewport": [
+   1280,
+   658
+  ],
+  "sumPx": 63533,
+  "sumPct": 7.5,
+  "unionPct": 7.6,
+  "topmostY": 520,
+  "topmostPct": 79,
+  "rects": [
+   {
+    "name": "ride-strip",
+    "x": 225,
+    "y": 568,
+    "w": 829,
+    "h": 66,
+    "area": 54745
+   },
+   {
+    "name": "ride-status-chip",
+    "x": 225,
+    "y": 520,
+    "w": 220,
+    "h": 40,
+    "area": 8788
+   }
+  ]
+ },
+ "fps": 19,
+ "errors": []
+}

@@ -6,11 +6,7 @@ import type { WorldRenderer } from '@/lib/world/renderer';
 import { worldForRoute } from '@/lib/world/catalog';
 import { NoTokenBanner } from '@/components/ride/NoTokenBanner';
 import { PlayPanel } from '@/components/velo/PlayMode';
-import { MobileDetailDock } from '@/components/velo/MobileDetailDock';
 import { RideHud } from '@/components/velo/RideHud';
-import { RideStrip } from '@/components/velo/RideStrip';
-import { SensorStatusPills } from '@/components/trainer/SensorConnect';
-import { ReplayBadge } from '@/components/ride/ReplayBadge';
 import { GestureLegend } from '@/components/ride/GestureLegend';
 import { ShowCorner, ShowPanel } from '@/components/velo/ShowPanel';
 import { ShowRideStrip } from '@/components/velo/ShowRideStrip';
@@ -19,7 +15,7 @@ import { useIdle } from '@/hooks/useIdle';
 import { cn } from '@/lib/utils';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useControllerStore } from '@/stores/controllerStore';
+import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideLoop } from '@/hooks/useRideLoop';
 import { useReplayLoop } from '@/hooks/useReplayLoop';
 import { useWorkoutEngine } from '@/hooks/useWorkoutEngine';
@@ -69,11 +65,12 @@ const VRHud = lazy(() => import('@/components/ride/VRHud').then((m) => ({ defaul
  * A global click handler cancels any in-progress commentary speech so the
  * user can dismiss the commentator by tapping anywhere.
  *
- * HUD (v2 warm atlas, docs/design/mockups/v2-ride-hud.html): RideHud top row
- * (Exit + route panel | status chip, Show, Camera, Settings) and the
- * RideStrip at the bottom; show mode swaps them for the video panel and the
- * show strip (v2-show.html). Translucent HUD surfaces without blur:
- * `hud-flat` keeps every backdrop-filter off the live canvas.
+ * HUD (compact ride HUD, owner-directed revision 2 Nov 2026,
+ * docs/design/mockups/v2-ride-hud.html): RideHud is one bottom column —
+ * collapsed ride details, the status chip and the ride band. Show mode
+ * swaps it for the video panel and the show strip (v2-show.html).
+ * Translucent HUD surfaces without blur: `hud-flat` keeps every
+ * backdrop-filter off the live canvas.
  *
  * Also mounted:
  *   - Handlebar gesture detection on the main ride container (double-tap,
@@ -86,15 +83,14 @@ export function Ride() {
   const location      = useLocation();
   const route         = useRideStore((s) => s.route);
   const rideState     = useRideStore((s) => s.rideState);
-  const replayData    = useRideStore((s) => s.replayData);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
   const rideMode      = useRideStore((s) => s.rideMode);
   const preferredRenderer = useSettingsStore((s) => s.renderer);
+  // Ride details or the devices sheet open: the no-token banner steps aside.
+  const hudDetailsOpen = useRideHudStore((s) => s.expanded || s.devicesOpen);
 
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
   const controllerDebugVisible = useControllerDebugVisible();
-  // The handlebar chip shows once a unit has been paired this session.
-  const handlebarsPaired = useControllerStore((s) => s.status !== 'idle');
 
   // A trainer paired in an earlier session reconnects on its own (no chooser).
   useEffect(() => {
@@ -285,8 +281,8 @@ export function Ride() {
 
   if (!route) return null;
 
-  // The v2 HUD (top row + ride strip) shows while riding; show mode swaps
-  // it for the video panel + show strip; the finish page replaces both.
+  // The compact HUD shows while riding; show mode swaps it for the video
+  // panel + show strip; the finish page replaces both.
   const rideHudOn = !showActive && rideState !== 'finished';
 
   // VR / AR need the Cesium viewer (photoreal only); each button renders
@@ -311,7 +307,9 @@ export function Ride() {
       {/* Hidden in show mode: it would sit on the show strip. */}
       {/* Hidden on world-renderer rides too: they need no token, so the
           photoreal pitch and the Bing watchdog don't apply there. */}
-      {!showActive && !worldRide && <NoTokenBanner hasToken={token !== null && token.length > 0} />}
+      {!showActive && !worldRide && !hudDetailsOpen && (
+        <NoTokenBanner hasToken={token !== null && token.length > 0} />
+      )}
 
       {/* Paused veil: a light scrim, no blur (no backdrop-filter may sit over
           the live canvas: it cost 10–25 fps, PR #16). */}
@@ -322,7 +320,12 @@ export function Ride() {
         />
       )}
 
-      {/* -- HUD top row: Exit + route panel | tools + panels under them ---- */}
+      {/* -- Compact ride HUD: everything in one bottom column -------------- */}
+      {/* Owner-directed revision (2 Nov 2026): one band with the figures,
+          Pause / Finish and one details toggle; route card, map and ride
+          tools collapsed above it; one status chip for every device or
+          error state. Hidden in show mode (the show strip owns the bottom)
+          and after the finish. */}
       {rideHudOn && (
         <RideHud
           onExit={() => navigate('/app')}
@@ -330,14 +333,9 @@ export function Ride() {
           onShortcuts={() => setHelpOpen((o) => !o)}
           voice={{ isListening, onToggle: isListening ? stopListening : startListening }}
           xr={xrButtons}
-          side={
+          modes={
             <>
-              {replayData && <ReplayBadge />}
-              <SensorStatusPills />
-              {(handlebarsPaired || controllerDebugVisible) && <ControllerChip />}
-              <ControllerDebugOverlay />
-              <PerfOverlay />
-              <PlayPanel />
+              <PlayPanel compact />
               {activeWorkout && <WorkoutHUD />}
               {/* Strava Live Segments HUD */}
               <SegmentHUD />
@@ -346,41 +344,16 @@ export function Ride() {
         />
       )}
 
-      {/* -- Mobile HUD -- below the top row (single column stack) ---------- */}
-      {/* The same panels as the sm+ column under the tools, one column. */}
+      {/* -- Debug readouts (opt-in: ?perf=1, controller debug) -- top right -- */}
       {rideHudOn && (
-        <div className="sm:hidden absolute hud-inset-x top-ride-stack z-20 flex flex-col gap-2 pointer-events-none">
-          {/* Controller debug on: controls + raw log first, so one phone screenshot holds both. */}
+        <div className="absolute hud-inset-t hud-inset-r z-20 flex max-w-sm flex-col items-end gap-2 pointer-events-none">
           {controllerDebugVisible && (
             <>
               <ControllerChip />
               <ControllerDebugOverlay />
             </>
           )}
-          {/* ?perf=1: frame rate first, so one phone screenshot carries it. */}
           <PerfOverlay />
-          {/* Handlebar controls readout, once a unit has been paired. */}
-          {!controllerDebugVisible && handlebarsPaired && <ControllerChip />}
-          {replayData && <ReplayBadge />}
-          <PlayPanel compact />
-          {activeWorkout && <WorkoutHUD />}
-          {/* Strava Live Segments HUD — mobile */}
-          <SegmentHUD />
-        </div>
-      )}
-
-      {/* -- Transport controls -- the ride strip, bottom centre ------------ */}
-      {/* Phones: the strip spans the screen and the detail dock (map +
-          elevation on demand) sits right above it, in the same column, so
-          the two can never collide. Hidden in show mode (the show strip
-          owns the bottom) and after the finish.
-          sm+: w-max — an absolutely-positioned left-1/2 box shrink-fits to
-          the width left of its left edge, which would wrap the strip;
-          max-w-hud-strip caps it to the viewport. */}
-      {rideHudOn && (
-        <div className="absolute hud-inset-b hud-inset-x z-20 flex flex-col items-stretch gap-2 pointer-events-none sm:left-1/2 sm:right-auto sm:w-max sm:max-w-hud-strip sm:-translate-x-1/2">
-          <MobileDetailDock className="sm:hidden" />
-          <RideStrip />
         </div>
       )}
 

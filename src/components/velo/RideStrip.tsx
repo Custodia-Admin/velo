@@ -1,23 +1,29 @@
 /**
- * v2 ride strip (docs/design/mockups/v2-ride-hud.html): one solid HUD panel,
- * centred at the bottom. Speed, time and distance are the big figures; grade,
- * power and the virtual gear are minor; cadence and heart rate join only when
- * a sensor delivers them. The transport (Pause / Resume / Start + Finish)
- * sits after a hairline. Below sm the strip spans the screen: big figures in
- * a row, then a compact "1.2 % · 142 W · gear 6" line beside the buttons.
+ * The ride band (compact ride HUD, owner-directed revision 2 Nov 2026,
+ * docs/design/mockups/v2-ride-hud.html): the ONE always-on in-ride panel,
+ * centred at the bottom edge. Speed, time, distance, grade, power and the
+ * virtual gear (cadence and heart rate join only when a sensor delivers
+ * them), then a modest Pause / Finish pair and the one "ride details"
+ * toggle that opens the route card, map and ride tools above the band.
+ * Exit sits at the band's start from sm; below sm it lives in the details.
+ *
+ * Below sm the band spans the screen: the big three figures (unit as the
+ * label) beside icon-only Pause / Finish / details buttons, then one
+ * "1.2 % · 142 W · gear 6" line.
  *
  * Re-renders at display-change rate, not every frame: every store read is
- * quantised to what the strip shows (0.1 km/h, 5 m, whole seconds, 0.1 %,
+ * quantised to what the band shows (0.1 km/h, 5 m, whole seconds, 0.1 %,
  * 1 W), the same contract as the legacy RideHUD (lib/hudThrottle).
  */
 
-import { Flag, Pause, Play } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Flag, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn, formatDistance, formatDuration } from '@/lib/utils';
 import { quantizedMeters } from '@/lib/hudThrottle';
 import { trainerDrivesRide } from '@/lib/rideDrive';
 import { GEAR_COUNT, NEUTRAL_GEAR } from '@/lib/virtualGears';
 import { useControllerStore, type ControllerStatus } from '@/stores/controllerStore';
+import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { Figure } from './Figure';
@@ -44,7 +50,7 @@ export function shownGear(status: ControllerStatus, gear: number, erg: boolean):
   return status === 'connected' || status === 'reconnecting' ? gear : NEUTRAL_GEAR;
 }
 
-export function RideStrip({ className }: { className?: string }) {
+export function RideStrip({ onExit, className }: { onExit?: () => void; className?: string }) {
   const speed = useRideStore((s) => Math.round(s.speed * 36) / 36); // 0.1 km/h steps
   const power = useRideStore((s) => Math.round(s.power));
   const grade = useRideStore((s) => Math.round(s.grade * 10) / 10);
@@ -84,14 +90,26 @@ export function RideStrip({ className }: { className?: string }) {
       data-testid="ride-strip"
       className={cn(
         HUD_PANEL,
-        'pointer-events-auto flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:gap-8 sm:py-3 sm:pl-6 sm:pr-4',
+        'pointer-events-auto flex flex-wrap items-center gap-x-2 gap-y-0 p-2 sm:flex-nowrap sm:gap-3',
         className,
       )}
     >
-      <div className="flex justify-between gap-3 sm:justify-start sm:gap-8">
-        <Figure value={speedValue} unit={speedUnit} label="Speed" ariaLabel={`Speed: ${speedValue} ${speedUnit}`} />
-        <Figure value={time} label="Time" ariaLabel={`Time: ${time}`} />
-        <Figure value={distValue} unit={distUnit} label="Distance" ariaLabel={distAria} />
+      {onExit && (
+        <Button
+          variant="quiet"
+          size="icon"
+          className="hidden shrink-0 sm:inline-flex"
+          aria-label="Exit ride and return to setup"
+          title="Exit ride"
+          onClick={onExit}
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+        </Button>
+      )}
+      <div className="flex min-w-0 flex-1 justify-between gap-3 px-1 sm:flex-none sm:justify-start sm:gap-6 sm:border-l sm:border-border sm:px-4">
+        <Figure value={speedValue} unit={speedUnit} label="Speed" size="minor" unitAsLabelBelowSm ariaLabel={`Speed: ${speedValue} ${speedUnit}`} />
+        <Figure value={time} label="Time" size="minor" ariaLabel={`Time: ${time}`} />
+        <Figure value={distValue} unit={distUnit} label="Distance" size="minor" unitAsLabelBelowSm ariaLabel={distAria} />
         <Figure className="hidden sm:flex" size="minor" value={gradeText} unit="%" label="Grade" ariaLabel={`Grade: ${gradeText} %`} />
         <Figure className="hidden sm:flex" size="minor" value={String(power)} unit="W" label="Power" ariaLabel={`Power: ${power} W`} />
         {gear !== null && (
@@ -111,15 +129,40 @@ export function RideStrip({ className }: { className?: string }) {
           <Figure className="hidden sm:flex" size="minor" value={String(heartRate)} unit="bpm" label="Heart" ariaLabel={`Heart rate: ${heartRate} bpm`} />
         ) : null}
       </div>
-      <div className="flex items-center justify-between gap-3 sm:border-l sm:border-border sm:pl-6">
-        <span className="num min-w-0 text-sm text-muted-foreground sm:hidden">{compact}</span>
+      <div className="flex shrink-0 items-center gap-1 sm:border-l sm:border-border sm:pl-3">
         <Transport />
+        <DetailsToggle />
       </div>
+      {/* Phones: grade, power and gear in one line under the big three. */}
+      <span className="num min-w-0 basis-full truncate px-1 text-sm text-muted-foreground sm:hidden">{compact}</span>
     </section>
   );
 }
 
-/** Pause / Resume / Start + Finish for the current ride state. */
+/** The one tap that opens or closes the ride details above the band. */
+export function DetailsToggle() {
+  const expanded = useRideHudStore((s) => s.expanded);
+  const toggle = useRideHudStore((s) => s.toggleExpanded);
+  return (
+    <Button
+      variant="quiet"
+      size="icon"
+      aria-expanded={expanded}
+      aria-controls="ride-details"
+      aria-label={expanded ? 'Hide ride details' : 'Show ride details: route, map and ride tools'}
+      title={expanded ? 'Hide details' : 'Route, map and tools'}
+      onClick={toggle}
+      data-testid="ride-details-toggle"
+    >
+      {expanded ? <ChevronDown className="h-5 w-5" aria-hidden="true" /> : <ChevronUp className="h-5 w-5" aria-hidden="true" />}
+    </Button>
+  );
+}
+
+/**
+ * Pause / Resume / Start + Finish for the current ride state: modest h-10
+ * buttons, labelled from lg, icon-only below.
+ */
 export function Transport() {
   const rideState = useRideStore((s) => s.rideState);
   const start = useRideStore((s) => s.start);
@@ -127,34 +170,35 @@ export function Transport() {
   const resume = useRideStore((s) => s.resume);
   const finish = useRideStore((s) => s.finish);
 
+  const label = 'hidden lg:inline';
+  const btn = 'w-10 px-0 lg:w-auto lg:px-3';
+
   if (rideState === 'ready') {
     return (
-      <div className="flex shrink-0 gap-2">
-        <Button variant="primary" size="lg" aria-label="Start ride" onClick={start}>
-          <Play className="h-5 w-5" aria-hidden="true" />
-          Start ride
-        </Button>
-      </div>
+      <Button variant="primary" className="px-3" aria-label="Start ride" onClick={start}>
+        <Play className="h-5 w-5" aria-hidden="true" />
+        Start
+      </Button>
     );
   }
   if (rideState !== 'running' && rideState !== 'paused') return null;
   return (
-    <div className="flex shrink-0 gap-2">
+    <>
       {rideState === 'running' ? (
-        <Button variant="outline" size="lg" aria-label="Pause ride" onClick={pause}>
+        <Button variant="outline" className={btn} aria-label="Pause ride" title="Pause" onClick={pause}>
           <Pause className="h-5 w-5" aria-hidden="true" />
-          Pause
+          <span className={label}>Pause</span>
         </Button>
       ) : (
-        <Button variant="primary" size="lg" aria-label="Resume ride" onClick={resume}>
+        <Button variant="primary" className={btn} aria-label="Resume ride" title="Resume" onClick={resume}>
           <Play className="h-5 w-5" aria-hidden="true" />
-          Resume
+          <span className={label}>Resume</span>
         </Button>
       )}
-      <Button variant="quiet" size="lg" className="px-3" aria-label="Finish ride" onClick={finish}>
+      <Button variant="quiet" className={btn} aria-label="Finish ride" title="Finish" onClick={finish}>
         <Flag className="h-5 w-5" aria-hidden="true" />
-        Finish
+        <span className={label}>Finish</span>
       </Button>
-    </div>
+    </>
   );
 }

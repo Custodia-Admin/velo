@@ -1,26 +1,23 @@
 /**
- * v2 ride tools (top-right of the ride HUD, docs/design/mockups/v2-ride-hud.html):
- * the status chip ("KICKR CORE · hills 35 %"), Show, Camera and Settings —
- * exactly the mockup's row. Settings opens the ride options menu: rider and
- * trainer settings first, then the ride tools the mockup has no button for
- * (route map, night colours, sounds, ghosts, voice, invite, shortcuts,
- * gesture help, VR/AR), so nothing the rider had before goes missing and no
- * extra button floats on the HUD.
- *
- * Below sm the chip shows only when something is wrong, and Camera moves
- * into the Settings menu.
+ * Ride tools (compact ride HUD, owner-directed revision 2 Nov 2026,
+ * docs/design/mockups/v2-ride-hud.html): one row of HUD icon buttons at the
+ * foot of the ride details — Show (ride and watch), Camera, Ghost riders,
+ * Voice (where the browser can listen), Settings, and Exit below sm (from
+ * sm Exit sits at the start of the ride band). Settings opens the ride
+ * options menu upward: rider and trainer settings first, then night
+ * colours, sounds, invite, shortcuts, gesture help and VR / AR, so nothing
+ * the rider had before goes missing and no extra button floats on the HUD.
  */
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
+  ArrowLeft,
   Camera,
   Ghost,
   Hand,
   Keyboard,
-  Map as MapIcon,
   Mic,
   Moon,
-  Mountain,
   Settings,
   SlidersHorizontal,
   UserPlus,
@@ -33,14 +30,11 @@ import type { CameraMode } from '@/lib/cesiumCameras';
 import { isVoiceRecognitionSupported } from '@/lib/voice/voiceControl';
 import { useAudioStore } from '@/stores/audioStore';
 import { useGhostStore } from '@/stores/ghostStore';
-import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { OPEN_GESTURE_LEGEND_EVENT } from '@/components/ride/GestureLegend';
 import { ShowToggle } from './ShowToggle';
-import { toggleRideDetail } from './MobileDetailDock';
 import { HUD_PANEL } from './v2';
-import { statusChip } from './rideHudText';
 
 /** Same order as the legacy CameraSwitcher. */
 export const CAMERA_MODES: CameraMode[] = ['chase', 'firstPerson', 'overhead', 'sideTracking', 'cinematic', 'drone'];
@@ -58,9 +52,11 @@ export function nextCameraMode(mode: CameraMode): CameraMode {
   return CAMERA_MODES[(at + 1) % CAMERA_MODES.length];
 }
 
+/** Pressed HUD toggle: the ShowToggle convention (a 1px ring is invisible over glass). */
+const PRESSED = 'border-primary bg-primary/15 text-primary';
+
 export interface RideToolsProps {
-  mapOpen: boolean;
-  onToggleMap: () => void;
+  onExit: () => void;
   onInvite: () => void;
   onShortcuts: () => void;
   voice: { isListening: boolean; onToggle: () => void };
@@ -68,79 +64,57 @@ export interface RideToolsProps {
   xr?: ReactNode;
 }
 
-export function RideTools({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, xr }: RideToolsProps) {
+export function RideTools({ onExit, onInvite, onShortcuts, voice, xr, className }: RideToolsProps & { className?: string }) {
+  const ghosts = useGhostStore((s) => s.ghostsEnabled);
+  const ghostCount = useGhostStore((s) => s.ghostCount);
+  const setGhosts = useGhostStore((s) => s.setGhostsEnabled);
+  const voiceEnabled = useSettingsStore((s) => s.voiceControlEnabled);
+  const showVoice = voiceEnabled && isVoiceRecognitionSupported();
+
   return (
-    <div className="pointer-events-auto flex items-start gap-2">
-      <StatusChip />
+    <div className={cn('pointer-events-auto flex flex-wrap items-center gap-2', className)} role="group" aria-label="Ride tools">
       <ShowToggle />
-      <CameraButton className="hidden sm:inline-flex" />
-      <RideOptionsMenu
-        mapOpen={mapOpen}
-        onToggleMap={onToggleMap}
-        onInvite={onInvite}
-        onShortcuts={onShortcuts}
-        voice={voice}
-        xr={xr}
-      />
+      <CameraButton />
+      <Button
+        variant="hud"
+        size="icon"
+        aria-pressed={ghosts}
+        aria-label={ghosts ? `Ghost riders on${ghostCount > 0 ? `: ${ghostCount}` : ''}` : 'Ghost riders off'}
+        title="Ghost riders"
+        className={cn(ghosts && PRESSED)}
+        onClick={() => setGhosts(!ghosts)}
+      >
+        <Ghost className="h-5 w-5" aria-hidden="true" />
+      </Button>
+      {showVoice && (
+        <Button
+          variant="hud"
+          size="icon"
+          aria-pressed={voice.isListening}
+          aria-label={voice.isListening ? 'Voice control: listening' : 'Voice control: off'}
+          title="Voice control"
+          className={cn(voice.isListening && PRESSED)}
+          onClick={voice.onToggle}
+        >
+          <Mic className="h-5 w-5" aria-hidden="true" />
+        </Button>
+      )}
+      <RideOptionsMenu onInvite={onInvite} onShortcuts={onShortcuts} xr={xr} />
+      <Button
+        variant="hud"
+        size="icon"
+        className="sm:hidden"
+        aria-label="Exit ride and return to setup"
+        title="Exit ride"
+        onClick={onExit}
+      >
+        <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+      </Button>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-
-export function StatusChip() {
-  const connection = useRideStore((s) => s.connection);
-  const mode = useRideStore((s) => (s.rideMode === 'outdoor' ? 'outdoor' : s.mode));
-  const deviceName = useRideStore((s) => s.deviceName);
-  const erg = useRideStore((s) => s.trainerControlMode === 'erg');
-  const targetPowerW = useRideStore((s) => s.targetPowerW);
-  const battery = useRideStore((s) => s.batteryLevel);
-  const reconnectAttempt = useRideStore((s) => s.reconnectAttempt);
-  const reconnectMaxAttempts = useRideStore((s) => s.reconnectMaxAttempts);
-  const replay = useRideStore((s) => s.replayData !== null);
-  const difficulty = useSettingsStore((s) => s.trainerDifficulty);
-
-  const view = statusChip({
-    connection,
-    mode,
-    deviceName,
-    difficulty,
-    erg,
-    targetPowerW,
-    battery,
-    reconnectAttempt,
-    reconnectMaxAttempts,
-    replay,
-  });
-
-  return (
-    <span
-      role="status"
-      aria-live="polite"
-      aria-label={view.aria}
-      data-testid="ride-status-chip"
-      className={cn(
-        HUD_PANEL,
-        'h-10 max-w-xs items-center gap-2 px-3 text-sm font-semibold',
-        view.alert ? 'inline-flex' : 'hidden sm:inline-flex',
-      )}
-    >
-      <span
-        aria-hidden="true"
-        className={cn(
-          'h-2 w-2 shrink-0 rounded-full',
-          view.tone === 'ok' && 'bg-primary',
-          view.tone === 'calm' && 'bg-muted-foreground',
-          view.tone === 'warn' && 'bg-destructive',
-          view.pulse && 'animate-pulse',
-        )}
-      />
-      <span aria-hidden="true" className="truncate">
-        {view.label}
-      </span>
-    </span>
-  );
-}
 
 export function CameraButton({ className }: { className?: string }) {
   const cameraMode = useSettingsStore((s) => s.cameraMode);
@@ -196,11 +170,11 @@ function MenuItem({
 const ICON = 'h-4 w-4 shrink-0';
 
 /**
- * The Settings icon (mockup) opens this menu. Rider and trainer settings
- * (the full SettingsPanel) is the first item; the app-wide
- * 'globeride:open-settings' event still opens the panel directly.
+ * The Settings icon opens this menu, upward from the tools row. Rider and
+ * trainer settings (the full SettingsPanel) is the first item; the
+ * app-wide 'globeride:open-settings' event still opens the panel directly.
  */
-function RideOptionsMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, xr }: RideToolsProps) {
+function RideOptionsMenu({ onInvite, onShortcuts, xr }: Pick<RideToolsProps, 'onInvite' | 'onShortcuts' | 'xr'>) {
   const [open, setOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [tab, setTab] = useState<Parameters<typeof SettingsPanel>[0]['initialTab']>('rider');
@@ -210,13 +184,7 @@ function RideOptionsMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, x
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
   const sound = useAudioStore((s) => s.enabled);
   const toggleSound = useAudioStore((s) => s.toggleEnabled);
-  const ghosts = useGhostStore((s) => s.ghostsEnabled);
-  const ghostCount = useGhostStore((s) => s.ghostCount);
-  const setGhosts = useGhostStore((s) => s.setGhostsEnabled);
-  const voiceEnabled = useSettingsStore((s) => s.voiceControlEnabled);
   const gestures = useSettingsStore((s) => s.gestureControlsEnabled);
-  const cameraMode = useSettingsStore((s) => s.cameraMode);
-  const setCameraMode = useSettingsStore((s) => s.setCameraMode);
 
   useEffect(() => {
     const onOpen = (e: Event) => {
@@ -255,8 +223,6 @@ function RideOptionsMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, x
     setOpen(false);
   };
 
-  const showVoice = voiceEnabled && isVoiceRecognitionSupported();
-
   return (
     <div ref={rootRef} className="relative">
       <Button
@@ -265,6 +231,7 @@ function RideOptionsMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, x
         aria-label="Ride settings"
         aria-expanded={open}
         aria-controls="ride-options-menu"
+        className={cn(open && PRESSED)}
         onClick={() => setOpen((o) => !o)}
       >
         <Settings className="h-5 w-5" aria-hidden="true" />
@@ -274,7 +241,10 @@ function RideOptionsMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, x
           id="ride-options-menu"
           role="group"
           aria-label="Ride settings"
-          className={cn(HUD_PANEL, 'absolute right-0 top-full z-40 mt-2 flex w-64 flex-col gap-1 p-2')}
+          className={cn(
+            HUD_PANEL,
+            'absolute bottom-full left-0 z-40 mb-2 flex w-64 flex-col gap-1 p-2 sm:bottom-0 sm:left-full sm:mb-0 sm:ml-2',
+          )}
         >
           <MenuItem
             icon={<SlidersHorizontal className={ICON} aria-hidden="true" />}
@@ -283,33 +253,6 @@ function RideOptionsMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, x
               setTab('rider');
               setPanelOpen(true);
             })}
-          />
-          <MenuItem
-            className="sm:hidden"
-            icon={<Camera className={ICON} aria-hidden="true" />}
-            label="Camera"
-            state={CAMERA_LABELS[cameraMode]}
-            onClick={() => setCameraMode(nextCameraMode(cameraMode))}
-          />
-          <MenuItem
-            className="hidden sm:inline-flex"
-            icon={<MapIcon className={ICON} aria-hidden="true" />}
-            label="Route map"
-            state={mapOpen ? 'On' : 'Off'}
-            pressed={mapOpen}
-            onClick={onToggleMap}
-          />
-          <MenuItem
-            className="sm:hidden"
-            icon={<MapIcon className={ICON} aria-hidden="true" />}
-            label="Route map"
-            onClick={then(() => toggleRideDetail('map'))}
-          />
-          <MenuItem
-            className="sm:hidden"
-            icon={<Mountain className={ICON} aria-hidden="true" />}
-            label="Elevation profile"
-            onClick={then(() => toggleRideDetail('profile'))}
           />
           <MenuItem
             icon={<Moon className={ICON} aria-hidden="true" />}
@@ -325,22 +268,6 @@ function RideOptionsMenu({ mapOpen, onToggleMap, onInvite, onShortcuts, voice, x
             pressed={sound}
             onClick={toggleSound}
           />
-          <MenuItem
-            icon={<Ghost className={ICON} aria-hidden="true" />}
-            label="Ghost riders"
-            state={ghosts ? (ghostCount > 0 ? String(ghostCount) : 'On') : 'Off'}
-            pressed={ghosts}
-            onClick={() => setGhosts(!ghosts)}
-          />
-          {showVoice && (
-            <MenuItem
-              icon={<Mic className={ICON} aria-hidden="true" />}
-              label="Voice control"
-              state={voice.isListening ? 'Listening' : 'Off'}
-              pressed={voice.isListening}
-              onClick={voice.onToggle}
-            />
-          )}
           <MenuItem
             icon={<UserPlus className={ICON} aria-hidden="true" />}
             label="Invite a friend"

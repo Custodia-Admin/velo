@@ -60,7 +60,29 @@
         wrap.appendChild(m);
       }
     });
-    // map plate: <div class="mapplate" data-plate="route-id">
+    // "you are here" on a map plate (data-at = fraction of the route ridden)
+    function here(r, at, rad) {
+      if (at == null) return '';
+      const seg = [];
+      let total = 0;
+      for (let i = 1; i < r.path.length; i++) {
+        const [x0, y0] = r.path[i - 1], [x1, y1] = r.path[i];
+        const d = Math.hypot(x1 - x0, y1 - y0);
+        seg.push(d);
+        total += d;
+      }
+      let left = Number(at) * total;
+      for (let i = 1; i < r.path.length; i++) {
+        if (left <= seg[i - 1]) {
+          const f = seg[i - 1] > 0 ? left / seg[i - 1] : 0;
+          const [x0, y0] = r.path[i - 1], [x1, y1] = r.path[i];
+          return `<circle class="here" cx="${x0 + (x1 - x0) * f}" cy="${y0 + (y1 - y0) * f}" r="${rad}"/>`;
+        }
+        left -= seg[i - 1];
+      }
+      return '';
+    }
+    // map plate: <div class="mapplate" data-plate="route-id" [data-at="0.38"]>
     document.querySelectorAll('[data-plate]').forEach((el) => {
       const r = D.routes[el.dataset.plate];
       const [bw, bh] = r.box;
@@ -77,7 +99,7 @@
         <path class="grat" d="${g}"/>
         <polyline class="route" points="${pts}"/>
         <circle class="ends" cx="${a[0]}" cy="${a[1]}" r="${(bw + bh) / 120}"/>
-        <circle class="ends" cx="${b[0]}" cy="${b[1]}" r="${(bw + bh) / 120}"/>
+        <circle class="ends" cx="${b[0]}" cy="${b[1]}" r="${(bw + bh) / 120}"/>${here(r, el.dataset.at, (bw + bh) / 75)}
       </svg>`;
     });
     window.__mockReady = true;

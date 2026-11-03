@@ -2,7 +2,11 @@
  * In-ride weather chip: live conditions at the route plus where the wind
  * comes from relative to the rider right now. Falls back to the manual wind
  * setting when live weather is off or unavailable; hidden when there is
- * nothing to say.
+ * nothing to say. `inline`: one muted line with no surface of its own, for
+ * the route card in the compact ride HUD's details.
+ *
+ * Distance is read in 25 m steps: the wind arrow follows the road heading,
+ * which never needs a per-frame re-render.
  */
 
 import {
@@ -16,6 +20,8 @@ import {
   ArrowUpRight,
   type LucideIcon,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { quantizedMeters } from '@/lib/hudThrottle';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRouteWeather } from '@/hooks/useLiveWeather';
@@ -43,9 +49,9 @@ export function windArrowIndex(relDeg: number): number {
   return Math.round(travel / 45) % 8;
 }
 
-export function RideWeatherChip() {
+export function RideWeatherChip({ inline = false }: { inline?: boolean }) {
   const route = useRideStore((s) => s.route);
-  const distance = useRideStore((s) => s.distance);
+  const distance = useRideStore((s) => quantizedMeters(s.distance, 25));
   const units = useSettingsStore((s) => s.units);
   const manualWindMs = useSettingsStore((s) => s.windSpeedMs);
   const manualWindDeg = useSettingsStore((s) => s.windDirectionDeg);
@@ -75,18 +81,23 @@ export function RideWeatherChip() {
     <div
       role="status"
       aria-label={`Weather: ${label}`}
-      className="pointer-events-auto glass glass-hairline flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 text-sm text-foreground"
+      className={cn(
+        'flex items-center gap-x-3 gap-y-1 text-sm',
+        inline
+          ? 'min-w-0 flex-nowrap overflow-hidden whitespace-nowrap text-muted-foreground'
+          : 'pointer-events-auto glass glass-hairline flex-wrap rounded-lg px-3 py-2 text-foreground',
+      )}
       data-testid="ride-weather-chip"
     >
       {live && (
         <span className="flex items-center gap-2" aria-hidden>
           <WeatherIcon condition={conditionFor(live)} isDay={live.isDay} className="h-4 w-4 shrink-0 text-primary" />
-          <span className="num font-semibold">{conditionText}</span>
+          <span className={cn('num', !inline && 'font-semibold')}>{conditionText}</span>
         </span>
       )}
-      <span className="flex items-center gap-2" aria-hidden>
+      <span className={cn('flex items-center gap-2', inline && 'min-w-0')} aria-hidden>
         {showWind && <Arrow className="h-4 w-4 shrink-0 text-primary" />}
-        <span className="num">{windText}</span>
+        <span className={cn('num', inline && 'truncate')}>{windText}</span>
       </span>
     </div>
   );

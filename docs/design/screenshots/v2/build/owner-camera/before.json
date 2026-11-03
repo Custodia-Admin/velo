@@ -1,0 +1,79 @@
+{
+ "base": "http://127.0.0.1:5192",
+ "spot": 220.0,
+ "time": "night",
+ "weather": "overcast",
+ "size": "1280x658@2",
+ "open": false,
+ "hudArea": {
+  "viewport": [
+   1280,
+   658
+  ],
+  "sumPx": 133632,
+  "sumPct": 15.9,
+  "unionPct": 16,
+  "topmostY": 16,
+  "topmostPct": 2.4,
+  "rects": [
+   {
+    "name": "ride-strip",
+    "x": 209,
+    "y": 549,
+    "w": 861,
+    "h": 85,
+    "area": 73212
+   },
+   {
+    "name": "Route progress",
+    "x": 112,
+    "y": 16,
+    "w": 320,
+    "h": 139,
+    "area": 44540
+   },
+   {
+    "name": "ride-status-chip",
+    "x": 927,
+    "y": 16,
+    "w": 193,
+    "h": 40,
+    "area": 7734
+   },
+   {
+    "name": "Exit ride and return to setup",
+    "x": 16,
+    "y": 16,
+    "w": 84,
+    "h": 40,
+    "area": 3346
+   },
+   {
+    "name": "show-toggle",
+    "x": 1128,
+    "y": 16,
+    "w": 40,
+    "h": 40,
+    "area": 1600
+   },
+   {
+    "name": "Camera: chase",
+    "x": 1176,
+    "y": 16,
+    "w": 40,
+    "h": 40,
+    "area": 1600
+   },
+   {
+    "name": "Ride settings",
+    "x": 1224,
+    "y": 16,
+    "w": 40,
+    "h": 40,
+    "area": 1600
+   }
+  ]
+ },
+ "fps": 5.2,
+ "errors": []
+}

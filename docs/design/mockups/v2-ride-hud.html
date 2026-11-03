@@ -1,48 +1,114 @@
 <!doctype html>
 <!--
-  Velo v2 in-ride HUD — "warm atlas". Mockup only (P1.5 design gate).
-  Scene: offline still from the Perugia world bake (scripts/v2-world-thumbs),
-  chase camera framed with the rider prominent (~35 % of frame height).
-  HUD surfaces are solid (no backdrop-filter): blur over the live canvas cost 10–25 fps.
+  Velo v2 in-ride HUD — "warm atlas".
+  OWNER-DIRECTED REVISION, 2 Nov 2026 (compact ride HUD). Supersedes the P1.5
+  approved ride-HUD mockup (top row: Exit + route panel | status, Show,
+  Camera, Settings; strip at the bottom). The owner rode Assisi and found the
+  HUD "enormous ... all crammed to the top". Now:
+    - ONE band at the bottom edge: Exit, speed, time, distance, grade, power,
+      gear | Pause, Finish (modest h-10) | one "ride details" toggle.
+    - ONE small status chip right above the band's start; every device or
+      error state speaks through it ("Trainer lost · tap to reconnect"),
+      never a large red box. Phones show it only when something is wrong.
+    - Route card (profile, next place, weather), route map and the ride tools
+      (show, camera, ghosts, voice, settings) collapsed behind the toggle;
+      opened, they stack above the band in one column (left on sm+, clear of
+      the rider) and never overlap. The collapse state persists.
+    - All ride UI <= 15 % of the screen at 1440x900 and 390x844 (measured on
+      the build, docs/design/screenshots/v2/build/EVIDENCE.md).
+    - Phones, details open: route card + map at the top edge (above the band
+      there is no room clear of the rider's wheels), the tools above the band.
+  States: default (collapsed), ?tray=open (details open), ?state=lost
+  (trainer lost mid-ride). Scene: offline still from the Perugia world bake.
+  HUD surfaces are translucent paper without backdrop-filter (blur over the
+  live canvas cost 10–25 fps).
 -->
-<html lang="en">
+<html lang="en" data-revision="owner-directed revision, 2 Nov 2026">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Velo — Ride HUD (v2 mockup)</title>
+<title>Velo — Ride HUD (v2 mockup, owner-directed revision 2 Nov 2026)</title>
 <link rel="icon" href="data:," />
 <link rel="stylesheet" href="v2-kit.css" />
 <script src="v2-data.js"></script>
 <script src="v2-kit.js"></script>
 <style>
   body { overflow: hidden; }
-  .hud-top { position: fixed; top: var(--s-4); left: var(--s-4); right: var(--s-4); display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-3); }
-  .route { padding: var(--s-3) var(--s-4); width: 20rem; display: flex; flex-direction: column; gap: var(--s-1); }
+  .hud-col { position: fixed; left: var(--s-4); right: var(--s-4); bottom: var(--s-6); display: flex; flex-direction: column; align-items: center; }
+  /* one group as wide as the band: details, chip and band share its left edge */
+  .group { width: max-content; max-width: calc(100vw - var(--s-8)); display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); }
+  /* ride details (collapsed by default) */
+  .details { display: none; width: 20rem; flex-wrap: wrap; align-items: flex-start; gap: var(--s-2); }
+  html[data-tray='open'] .details { display: flex; }
+  .route { flex-basis: 100%; min-width: 0; padding: var(--s-3) var(--s-4); display: flex; flex-direction: column; gap: var(--s-1); }
   .route .name { font-size: var(--text-xl); line-height: var(--lh-xl); }
   .route .profile { height: var(--s-8); }
-  .route .next { display: flex; align-items: center; gap: var(--s-1-5); }
-  .left { display: flex; gap: var(--s-3); align-items: flex-start; }
-  .tools { display: flex; gap: var(--s-2); }
-  .status { display: inline-flex; align-items: center; gap: var(--s-2); height: var(--s-10); padding: 0 var(--s-3); font-size: var(--text-sm); font-weight: 600; }
-  .strip { position: fixed; left: 50%; bottom: var(--s-6); transform: translateX(-50%); width: max-content; max-width: calc(100vw - var(--s-8));
-           display: flex; align-items: center; gap: var(--s-8); padding: var(--s-3) var(--s-4) var(--s-3) var(--s-6); }
-  .figs { display: flex; gap: var(--s-8); }
-  .fig.minor .v { font-size: var(--text-2xl); line-height: var(--lh-2xl); }
-  .transport { display: flex; gap: var(--s-2); padding-left: var(--s-6); border-left: var(--hairline) solid hsl(var(--border)); }
-  .compact-only { display: none; }
+  .route .line { display: flex; align-items: center; gap: var(--s-1-5); white-space: nowrap; overflow: hidden; }
+  .route .line .num:last-child { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .route .line.muted i { color: hsl(var(--primary)); }
+  .fig .l .unit { display: none; }
+  .map { width: 11rem; height: 11rem; flex: none; }
+  /* route in the HUD ink, the rider's position in the accent */
+  .map .route { stroke-width: 2.5; stroke-opacity: 0.7; }
+  .map .ends { fill: hsl(var(--hud)); }
+  .map .here { fill: hsl(var(--primary)); }
+  .tools { display: grid; grid-template-columns: repeat(3, var(--s-10)); gap: var(--s-2); flex: 1; min-width: 0; align-self: flex-end; }
+  .details .top { display: contents; }
+  .btn.pressed { border-color: hsl(var(--primary)); background: linear-gradient(hsl(var(--primary) / 0.15), hsl(var(--primary) / 0.15)), hsl(var(--hud) / 0.9); color: hsl(var(--primary)); }
+  /* chip + band, centred on the bottom edge */
+  .band { align-self: stretch; }
+  .chip { display: inline-flex; align-items: center; gap: var(--s-2); height: var(--s-10); padding: 0 var(--s-3); font-size: var(--text-sm); font-weight: 600; border: var(--hairline) solid hsl(var(--border) / 0.6); }
+  .dot.warn { background: hsl(var(--destructive)); }
+  .chip .lost { display: none; }
+  html[data-state='lost'] .chip .ok { display: none; }
+  html[data-state='lost'] .chip .lost { display: flex; }
+  .band { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-2); }
+  .figs { display: flex; gap: var(--s-6); padding: 0 var(--s-4); border-left: var(--hairline) solid hsl(var(--border)); }
+  .fig .v { font-size: var(--text-2xl); line-height: var(--lh-2xl); }
+  .fig .v small { line-height: 1; }
+  .controls { display: flex; align-items: center; gap: var(--s-1); padding-left: var(--s-3); border-left: var(--hairline) solid hsl(var(--border)); }
+  .controls .btn.icon-only.labelled { width: auto; padding: 0 var(--s-3); }
+  .compact { display: none; }
+  .phone-only { display: none; }
+  @media (max-width: 1023px) {
+    .controls .btn.icon-only.labelled { width: var(--s-10); padding: 0; }
+    .controls .btn .label { display: none; }
+  }
   @media (max-width: 639px) {
-    .hud-top { top: var(--s-3); left: var(--s-3); right: var(--s-3); gap: var(--s-2); }
-    .left { flex: 1; min-width: 0; gap: var(--s-2); }
-    .route { width: auto; flex: 1; min-width: 0; padding: var(--s-2) var(--s-3); gap: 0; }
+    .hud-col { left: var(--s-3); right: var(--s-3); bottom: var(--s-3); align-items: stretch; }
+    .details { width: auto; }
+    /* phones: no room above the band clear of the rider: route card + map at the top edge */
+    .details .top { display: flex; align-items: flex-start; gap: var(--s-2); position: fixed; top: var(--s-3); left: var(--s-3); right: var(--s-3); }
+    .route { flex: 1; flex-basis: 0; padding: var(--s-2) var(--s-3); }
     .route .name { font-size: var(--text-base); line-height: var(--lh-base); }
-    .route .profile-wrap, .route .next, .wide-only { display: none; }
-    .compact-only { display: inline-flex; }
-    .strip { bottom: var(--s-3); width: calc(100vw - var(--s-6)); flex-direction: column; align-items: stretch; gap: var(--s-2); padding: var(--s-3); }
-    .figs { justify-content: space-between; gap: var(--s-3); }
+    .route .next { display: none; }
+    .map { width: 8rem; height: 8rem; }
+    .tools { flex-basis: 100%; display: flex; }
+    .phone-only { display: inline-flex; }
+    .wide-only { display: none; }
+    .hud-col { align-items: stretch; }
+    .group { width: auto; max-width: none; align-items: stretch; }
+    .chip { align-self: flex-start; }
+    .tools { justify-content: space-between; }
+    .chip { display: none; }
+    html[data-state='lost'] .chip { display: inline-flex; }
+    .band { flex-wrap: wrap; gap: 0 var(--s-2); }
+    .figs { flex: 1; min-width: 0; justify-content: space-between; gap: var(--s-3); padding: 0 var(--s-1); border-left: 0; }
     .fig.minor { display: none; }
-    .transport { border-left: 0; padding-left: 0; justify-content: space-between; align-items: center; }
+    .fig .v small { display: none; }
+    .fig .l .unit { display: inline; }
+    .fig .l .name { display: none; }
+    .controls { border-left: 0; padding-left: 0; }
+    .compact { display: block; flex-basis: 100%; padding: 0 var(--s-1); }
   }
 </style>
+<script>
+  (function () {
+    const q = new URLSearchParams(location.search);
+    if (q.get('tray') === 'open') document.documentElement.setAttribute('data-tray', 'open');
+    if (q.get('state') === 'lost') document.documentElement.setAttribute('data-state', 'lost');
+  })();
+</script>
 </head>
 <body>
 <div class="scene" aria-hidden="true">
@@ -52,40 +118,56 @@
   </picture>
 </div>
 
-<div class="hud-top">
-  <div class="left">
-    <button class="btn hud" aria-label="Exit ride and return to setup"><i data-icon="arrow-left"></i><span class="wide-only">Exit</span></button>
+<div class="hud-col">
+ <div class="group">
+  <div class="details" id="ride-details" role="region" aria-label="Ride details">
+    <div class="top">
     <section class="hud route" aria-label="Route progress">
       <span class="name display">Tiber river park</span>
-      <span class="t-sm num muted">6.7 km to go · about 20 min</span>
-      <div class="profile-wrap"><svg class="profile" data-profile="scenic-perugia-tiber-park" data-at="0.386" data-h="32"></svg></div>
-      <span class="next t-sm"><i data-icon="flag"></i>Ponte Valleceppi in 1.2 km</span>
+      <span class="t-sm num muted">1.8 km to go · about 5 min</span>
+      <div class="profile-wrap"><svg class="profile" data-profile="scenic-perugia-tiber-park" data-at="0.833" data-h="32"></svg></div>
+      <span class="line next t-sm"><i data-icon="flag"></i>Ponte Felcino in 1.7 km</span>
+      <span class="line t-sm muted"><i data-icon="sun"></i><span class="num">Sunny · 14°</span>&nbsp;&nbsp;<i data-icon="arrow-right"></i><span class="num">Light crosswind 9 km/h</span></span>
     </section>
-  </div>
-  <div class="tools">
-    <span class="hud status wide-only" aria-label="Trainer connected, hills feel 35 percent"><span class="dot on"></span>KICKR CORE · hills 35 %</span>
-    <button class="btn hud icon-only" aria-label="Ride and watch: open show mode"><i data-icon="clapperboard" class="lg"></i></button>
-    <button class="btn hud icon-only wide-only" aria-label="Camera: chase"><i data-icon="camera" class="lg"></i></button>
-    <button class="btn hud icon-only wide-only" aria-label="Ride settings"><i data-icon="settings" class="lg"></i></button>
-  </div>
-</div>
-
-<section class="hud strip" aria-label="Ride numbers">
-  <div class="figs">
-    <div class="fig"><span class="v">24.6<small>km/h</small></span><span class="l">Speed</span></div>
-    <div class="fig"><span class="v">12:41</span><span class="l">Time</span></div>
-    <div class="fig"><span class="v">4.2<small>km</small></span><span class="l">Distance</span></div>
-    <div class="fig minor"><span class="v">1.2<small>%</small></span><span class="l">Grade</span></div>
-    <div class="fig minor"><span class="v">142<small>W</small></span><span class="l">Power</span></div>
-    <div class="fig minor"><span class="v">6<small>/ 11</small></span><span class="l">Gear</span></div>
-  </div>
-  <div class="transport">
-    <span class="compact-only t-sm num muted">1.2 % · 142 W · gear 6</span>
-    <div class="row">
-      <button class="btn outline lg"><i data-icon="pause" class="lg"></i>Pause</button>
-      <button class="btn quiet lg"><i data-icon="flag" class="lg"></i>Finish</button>
+    <div class="hud mapplate map" data-plate="scenic-perugia-tiber-park" data-at="0.833" role="img" aria-label="Route map"></div>
+    </div>
+    <div class="tools" role="group" aria-label="Ride tools">
+      <button class="btn hud icon-only" aria-label="Watch a show while you ride"><i data-icon="clapperboard" class="lg"></i></button>
+      <button class="btn hud icon-only" aria-label="Camera: chase"><i data-icon="camera" class="lg"></i></button>
+      <button class="btn hud icon-only pressed" aria-pressed="true" aria-label="Ghost riders on"><i data-icon="ghost" class="lg"></i></button>
+      <button class="btn hud icon-only" aria-label="Voice control: off"><i data-icon="mic" class="lg"></i></button>
+      <button class="btn hud icon-only" aria-label="Ride settings"><i data-icon="settings" class="lg"></i></button>
+      <button class="btn hud icon-only phone-only" aria-label="Exit ride and return to setup"><i data-icon="arrow-left" class="lg"></i></button>
     </div>
   </div>
-</section>
+
+    <button class="hud chip" aria-label="Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.">
+      <span class="ok row"><span class="dot on"></span>KICKR CORE · hills 35 %</span>
+      <span class="lost row"><span class="dot warn"></span>Trainer lost · tap to reconnect</span>
+    </button>
+    <section class="hud band" aria-label="Ride numbers">
+      <button class="btn quiet icon-only wide-only" aria-label="Exit ride and return to setup"><i data-icon="arrow-left" class="lg"></i></button>
+      <div class="figs">
+        <div class="fig"><span class="v">24.6<small>km/h</small></span><span class="l"><span class="name">Speed</span><span class="unit">km/h</span></span></div>
+        <div class="fig"><span class="v">24:42</span><span class="l">Time</span></div>
+        <div class="fig"><span class="v">9.1<small>km</small></span><span class="l"><span class="name">Distance</span><span class="unit">km</span></span></div>
+        <div class="fig minor"><span class="v">1.2<small>%</small></span><span class="l">Grade</span></div>
+        <div class="fig minor"><span class="v">142<small>W</small></span><span class="l">Power</span></div>
+        <div class="fig minor"><span class="v">6<small>/ 11</small></span><span class="l">Gear</span></div>
+      </div>
+      <div class="controls">
+        <button class="btn outline icon-only labelled" aria-label="Pause ride"><i data-icon="pause" class="lg"></i><span class="label">Pause</span></button>
+        <button class="btn quiet icon-only labelled" aria-label="Finish ride"><i data-icon="flag" class="lg"></i><span class="label">Finish</span></button>
+        <button class="btn quiet icon-only" aria-label="Show ride details: route, map and ride tools" aria-expanded="false"><i data-icon="chevron-up" class="lg tray-closed"></i><i data-icon="chevron-down" class="lg tray-open"></i></button>
+      </div>
+      <span class="compact t-sm num muted">1.2 % · 142 W · gear 6</span>
+    </section>
+ </div>
+</div>
+<style>
+  .tray-open { display: none; }
+  html[data-tray='open'] .tray-open { display: inline; }
+  html[data-tray='open'] .tray-closed { display: none; }
+</style>
 </body>
 </html>

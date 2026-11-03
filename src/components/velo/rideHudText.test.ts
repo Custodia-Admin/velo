@@ -9,6 +9,9 @@ import {
   aboutMinutes,
   formatLeft,
   nextLandmarkText,
+  noticeMs,
+  rideChip,
+  type RideChipInput,
   remainingMinutes,
   remainingText,
   shortDeviceName,
@@ -135,5 +138,91 @@ describe('status chip', () => {
   it('outdoor and replay rides say so', () => {
     expect(statusChip({ ...base, mode: 'outdoor', connection: 'disconnected' }).label).toBe('Outdoor · GPS');
     expect(statusChip({ ...base, replay: true }).label).toBe('Replay');
+  });
+});
+
+describe('the one ride chip (compact HUD: every device or error state in one pill)', () => {
+  const ride: RideChipInput = {
+    connection: 'connected',
+    mode: 'trainer',
+    deviceName: 'KICKR CORE 78C1',
+    difficulty: 0.35,
+    erg: false,
+    targetPowerW: null,
+    battery: null,
+    reconnectAttempt: 0,
+    reconnectMaxAttempts: 0,
+    replay: false,
+    trainerReconnectable: false,
+    errorCode: null,
+    controls: 'live',
+    heartRate: 'connected',
+    notice: null,
+  };
+
+  it('calm: the trainer line, tap opens the devices sheet, quiet on phones', () => {
+    const v = rideChip(ride);
+    expect(v).toMatchObject({ label: 'KICKR CORE · hills 35 %', tone: 'ok', alert: false, action: 'devices' });
+    expect(v.aria).toContain('Tap for devices');
+  });
+
+  it('a lost trainer that can come back: one tap reconnects it', () => {
+    const lost = rideChip({ ...ride, connection: 'disconnected', mode: 'demo', trainerReconnectable: true, errorCode: 'reconnect-failed' });
+    expect(lost).toMatchObject({ label: 'Trainer lost · tap to reconnect', tone: 'warn', alert: true, action: 'reconnectTrainer' });
+    // Never connected this ride (asleep at the start): honest "off".
+    const off = rideChip({ ...ride, connection: 'disconnected', mode: 'demo', trainerReconnectable: true });
+    expect(off.label).toBe('Trainer off · tap to reconnect');
+    // A failed link in trainer mode also offers the one-tap reconnect.
+    expect(rideChip({ ...ride, connection: 'error', trainerReconnectable: true }).action).toBe('reconnectTrainer');
+  });
+
+  it('no granted trainer: the demo label, calm', () => {
+    const v = rideChip({ ...ride, connection: 'disconnected', mode: 'demo', deviceName: null });
+    expect(v).toMatchObject({ label: 'Demo ride · no trainer', tone: 'calm', alert: false, action: 'devices' });
+  });
+
+  it('trainer problems beat everything else', () => {
+    const v = rideChip({
+      ...ride,
+      connection: 'reconnecting',
+      reconnectAttempt: 1,
+      reconnectMaxAttempts: 5,
+      controls: 'locked',
+      heartRate: 'error',
+      notice: { title: 'Voice control on', kind: 'info' },
+    });
+    expect(v.label).toBe('KICKR CORE 78C1 lost · reconnecting 1 of 5');
+    expect(v.action).toBe('devices');
+  });
+
+  it('handlebar controls that cannot deliver presses: a warning that opens devices; never-paired controls say nothing', () => {
+    expect(rideChip({ ...ride, controls: 'silent' })).toMatchObject({ label: 'Controls locked', tone: 'warn', alert: true, action: 'devices' });
+    expect(rideChip({ ...ride, controls: 'rightSide' }).label).toBe('Controls: right unit paired');
+    expect(rideChip({ ...ride, controls: 'asleep' }).label).toBe('Controls asleep');
+    for (const phase of ['none', 'pairing', 'waiting', 'live', 'reconnecting'] as const) {
+      expect(rideChip({ ...ride, controls: phase }).alert, phase).toBe(false);
+    }
+  });
+
+  it('a dropped heart-rate strap comes after the controls', () => {
+    expect(rideChip({ ...ride, heartRate: 'reconnecting' })).toMatchObject({ label: 'Heart rate lost · reconnecting', pulse: true, alert: true });
+    expect(rideChip({ ...ride, heartRate: 'error', controls: 'locked' }).label).toBe('Controls locked');
+    expect(rideChip({ ...ride, heartRate: 'disconnected' }).alert).toBe(false);
+  });
+
+  it('a passing notice (a toast) holds the chip when nothing is wrong; its action runs on tap', () => {
+    const err = rideChip({ ...ride, notice: { title: 'Trainer rejected a command', kind: 'error' } });
+    expect(err).toMatchObject({ label: 'Trainer rejected a command', tone: 'warn', alert: true, action: 'devices' });
+    const ok = rideChip({ ...ride, notice: { title: 'Trainer reconnected', kind: 'success' } });
+    expect(ok.tone).toBe('ok');
+    const act = rideChip({ ...ride, notice: { title: 'FTP test suggested', kind: 'info', actionLabel: 'Start' } });
+    expect(act).toMatchObject({ label: 'FTP test suggested · Start', tone: 'calm', action: 'notice' });
+  });
+
+  it('a notice holds the chip for its own duration, at most 5 s (sticky toasts too)', () => {
+    expect(noticeMs(3000)).toBe(3000);
+    expect(noticeMs(10_000)).toBe(5000);
+    expect(noticeMs(null)).toBe(5000);
+    expect(noticeMs(0)).toBe(5000);
   });
 });

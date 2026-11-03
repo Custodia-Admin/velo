@@ -52,7 +52,7 @@ exposed through `tailwind.config.ts`. New UI uses **only** these.
 | Motion | `animate-*` tokens from the config; `duration-150/200/300` | custom keyframes in components |
 | Surfaces | Paper: plain `border bg-card rounded-lg` panels with hairline rows, `Plate` / `MapPlate` for places (`src/components/velo/`). In-ride: `hud-surface` translucent paper — a `--hud-a-top`→`--hud-a-bottom` alpha gradient of `hud` plus a fixed grain tile (`public/textures/hud-grain.png`), soft diffuse `--shadow-hud` — via `HUD_PANEL` in `velo/v2.ts` and `Button variant="hud"`; legacy `.glass` panels inside `.hud-flat` take the same surface | glass or any `backdrop-filter` over the live 3D canvas (costs 10–25 fps, PR #16); cards inside cards; text directly on a photograph |
 | Plates | `aspect-video` `aspect-3/2` `aspect-4/3` `aspect-21/9` | `aspect-[..]` |
-| Layout utilities | `max-w-show-fit` (show mode video panel: caps a 16:9 panel to the viewport height), `ride-banner-float` (no-token banner: centred above the transport bar; below `sm` it clears the mobile detail dock). v2 (P2.4): `max-h-hero-fit` (Home hero plate, 100vh − 13rem), `max-h-finish-fit` (finish plate, 100vh − 26rem), `w-hero-label` (Today's ride label, 27rem), `hud-inset-t/-x/-l/-r/-b` (safe-area-aware HUD insets: spacing 4, 3 below `sm`), `max-w-hud-strip` (ride strip ≤ viewport − 2rem), `hud-surface` (in-ride translucent paper, see Surfaces), `show-inset-t/-l/-r` (show mode, spacing 6), `w-show-s/-m/-l` + `max-h-show-fit` (show video sizes; L = 55vw, capped above the rider), `top-ride-stack` (phone HUD column under the top row), `grid-cols-devices` + `grid-rows-devices` (Devices 7fr/4fr), `grid-cols-device-row` / `-narrow` (device row: glyph, text, action) | one-off `calc()` widths in TSX |
+| Layout utilities | `max-w-show-fit` (show mode video panel: caps a 16:9 panel to the viewport height), `ride-banner-float` (no-token banner: centred above the ride band and status chip; hidden while the ride details are open). v2 (P2.4): `max-h-hero-fit` (Home hero plate, 100vh − 13rem), `max-h-finish-fit` (finish plate, 100vh − 26rem), `w-hero-label` (Today's ride label, 27rem), `hud-inset-t/-x/-l/-r/-b` (safe-area-aware HUD insets: spacing 4, 3 below `sm`), `max-w-hud-strip` (ride strip ≤ viewport − 2rem), `hud-surface` (in-ride translucent paper, see Surfaces), `show-inset-t/-l/-r` (show mode, spacing 6), `w-show-s/-m/-l` + `max-h-show-fit` (show video sizes; L = 55vw, capped above the rider), `grid-cols-devices` + `grid-rows-devices` (Devices 7fr/4fr), `grid-cols-device-row` / `-narrow` (device row: glyph, text, action) | one-off `calc()` widths in TSX |
 
 Need a new semantic colour (e.g. a "scenery" tint)? Add a CSS variable to both
 themes in `src/index.css`, map it in `tailwind.config.ts`, and add it to the
@@ -160,8 +160,13 @@ Score each line pass / fail in the PR. Any fail blocks merge.
   Side by side (mockup | build) at 1440, 390 and TV in
   `docs/design/screenshots/v2/build/compare/`. Later cards compare against
   `/app` Home, `/devices` and the ride HUD.
-- **In-ride reference:** the v2 ride HUD — corners plus one bottom strip on
-  translucent `hud-surface` panels (alpha + grain, no blur), `h-10`+ targets (`h-12` transport), figures
+- **In-ride reference:** the compact ride HUD (owner-directed revision, 2 Nov
+  2026; `v2-ride-hud.html`) — one band at the bottom edge (figures, Pause /
+  Finish, one ride-details toggle) and one status chip above it; route card,
+  map and ride tools collapsed behind the toggle. All ride UI ≤ 15 % of the
+  screen collapsed (measured: `scripts/v2-build-shots/hud_area.py`), every
+  device or error state in the one chip (never a large red box), translucent
+  `hud-surface` panels (alpha + grain, no blur), `h-10`+ targets, figures
   `text-2xl`+, nothing over the rider, and in show mode nothing that competes
   with the video while the rider is idle.
 - **Legacy:** upstream GlobeRide components use arbitrary px sizes and palette

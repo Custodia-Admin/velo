@@ -4,6 +4,56 @@ Built from the approved mockups `docs/design/mockups/v2-{home,ride-hud,devices,s
 and the token delta in `docs/design/v2-identity.md`. The mockups are ground truth; every
 deliberate deviation is listed at the end with its reason.
 
+## Compact ride HUD (owner-directed revision, 2 Nov 2026)
+
+The owner rode Assisi on 2 Nov and found the HUD "enormous ... all crammed to the top". The
+ride-HUD mockup is revised (`v2-ride-hud.html`, marked *owner-directed revision, 2 Nov*;
+Home / Devices / Show / Finish mockups stand) and the build follows it:
+
+- **One band at the bottom edge:** Exit, speed, time, distance, grade, power, gear (cadence and
+  heart rate only when a sensor delivers them) | Pause, Finish (`h-10`) | one ride-details
+  toggle. Phones: three figures (units as labels) + icon transport, then a
+  "grade · power · gear" line.
+- **One status chip** above the band's start: every trainer / controls / HR-strap / toast state
+  ("Trainer lost · tap to reconnect", "Trainer lost · demo power", "Controls locked"). Tap
+  reconnects a granted trainer or opens the in-ride devices sheet (the Devices screen's rows).
+  The Toaster draws nothing while the chip hosts notices, so there is no red box anywhere.
+  Phones show the chip only when something is wrong.
+- **Ride details, collapsed by default (persisted):** route card (name, to go, profile with
+  you-are-here dot, next place, inline weather), route map, ride tools (Show, Camera, Ghosts,
+  Voice, Settings). sm+: one 20rem column on the band's left edge, clear of the rider; phones:
+  route card + map at the top edge (no room above the band clear of the wheels), tools above
+  the band. One flow column: nothing can overlap (`panelOverlaps: []` on every shot).
+
+### Ride-UI area (`scripts/v2-build-shots/hud_area.py`)
+
+Sum of `getBoundingClientRect()` areas of every visible HUD surface over the canvas (background,
+border or shadow; outermost only; clipped to the viewport) / viewport area. Union (overlaps
+counted once) in brackets. Golden hour, trainer connected, Tiber river park at 9.06 km.
+
+| Viewport | Collapsed (default) | Trainer lost (chip) | Details open |
+|---|---|---|---|
+| 1440×900 | **4.9 %** (4.9) | 5.1 % (5.1) | 12.0 % (12.1) |
+| 390×844 | **9.7 %** (9.8) | 12.8 % (12.8) | 26.6 % (26.8) |
+| 1920×1080 TV | **9.4 %** (9.6) | 9.6 % (9.9) | 22.9 % (23.3) |
+
+Collapsed, the ride UI is well under the 15 % budget everywhere, and the topmost HUD pixel is at
+85 % (1440) / 88 % (390) of the screen height: nothing at the top. Details open is the rider's
+explicit choice (one tap back); on phones it covers 27 % because the route card and map need
+the room.
+
+Owner camera (Assisi valley, night, 1280×658 @2, rider at 220 m): PR #27 head 5954f7e
+**15.9 %** (Exit, route card, status pill, three tools at the top + strip) → compact HUD
+**7.4 %** (band + chip), 7.5 % with the trainer link failed ("Trainer lost · demo power" in
+the chip, where the owner's shot had a "Connection failed" card).
+`compare/ride-hud-owner-camera-assisi-night.jpg` (owner's own screenshot | PR #27 head |
+compact | compact + failed link), raw numbers in `owner-camera/*.json`.
+Re-shoot: `scripts/owner-camera-hud-shot.py` + `scripts/owner-camera-hud-compare.py`.
+
+States shot per viewport and theme: `ride-hud-*` (collapsed), `ride-hud-open-*`,
+`ride-hud-lost-*` (trainer lost mid-ride, store-level: the reconnect gave up, trainer still
+granted), each against the mockup's matching state (`?tray=open`, `?state=lost`).
+
 ## Side by side (mockup | build)
 
 `compare/<screen>-<viewport>[-night].jpg` for home, ride-hud, devices, finish and show
@@ -42,7 +92,7 @@ Re-shoot: `scripts/v2-build-shots/<screen>.py` against a **dev** server (the sta
 
 | Check | Result |
 |---|---|
-| `backdrop-filter` elements | 0 on all 36 shots (ride + show included) |
+| `backdrop-filter` elements | 0 on all 48 shots (ride HUD: 18 incl. open + lost states; show included) |
 | Horizontal overflow | none |
 | Smallest target | 40 px (`h-10`) desktop/phone; 70 px on TV (1rem = 28px) |
 | Smallest text | 12 px (`text-xs`, footer/kickers); 21 px on TV |
@@ -114,14 +164,9 @@ hit the base harder than the branch. Raw JSON in `fps/`.
 
 ## Deliberate deviations from the mockups
 
-- **Ride Settings opens a menu.** The mockup's Settings icon opens the ride options menu:
-  "Rider and trainer" (the full settings panel) first, then the ride tools the mockup has no
-  button for (route map, night colours, sounds, ghosts, voice, invite, shortcuts, gesture
-  help, VR/AR). No "…" button, no floating "?" chip. On phones the mockup shows no Settings
-  icon at all; the build keeps it there (the only way to camera, map, profile and settings
-  mid-ride).
-- **Phone map / profile** open from that menu (the mockup has no toggles above the strip);
-  the panel has its own close button.
+- **Ride Settings opens a menu** (in the ride details): "Rider and trainer" (the full settings
+  panel) first, then what the mockup has no button for (night colours, sounds, invite,
+  shortcuts, gesture help, VR/AR). No "…" button, no floating "?" chip.
 - **Next landmark** shows only real places: OSM POIs from the world bundle that the road
   passes within reach of (≤ 400 m for towns and villages, ≤ 150 m for churches, landmarks
   and viewpoints; never summits), or a detected climb. Routes without either show no line. Live distances differ from the

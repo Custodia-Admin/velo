@@ -70,6 +70,21 @@ export function mapPlateGeometry(route: Pick<Route, 'points'>, aspect: number, m
   };
 }
 
+/**
+ * A lat/lon point in the same plan metres as {@link mapPlateGeometry} (the
+ * route's mean point is the origin), e.g. the rider's "you are here" dot on
+ * the in-ride route map.
+ */
+export function planXY(route: Pick<Route, 'points'>, lat: number, lon: number): [number, number] | null {
+  const pts = route.points;
+  if (pts.length < 2) return null;
+  const lat0 = pts.reduce((a, p) => a + p.lat, 0) / pts.length;
+  const lon0 = pts.reduce((a, p) => a + p.lon, 0) / pts.length;
+  const kx = M_PER_DEG_LON_EQ * Math.cos((lat0 * Math.PI) / 180);
+  const r = (v: number) => Math.round(v * 10) / 10;
+  return [r((lon - lon0) * kx), r(-(lat - lat0) * M_PER_DEG_LAT)];
+}
+
 export interface ProfileGeometry {
   /** Closed area path under the line. */
   area: string;

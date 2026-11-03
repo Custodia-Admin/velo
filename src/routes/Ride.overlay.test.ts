@@ -40,11 +40,11 @@ describe('Ride overlay layers stay click-through', () => {
     expect(legendSrc).toContain('OPEN_GESTURE_LEGEND_EVENT');
   });
 
-  it('the v2 HUD row and the bottom column span the screen but stay click-through', () => {
-    // RideHud's top row is hud-inset-x wide; only its panels and buttons opt in.
-    expect(hudSrc).toContain("'pointer-events-none absolute hud-inset-t hud-inset-x");
-    expect(hudSrc.match(/pointer-events-auto/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(rideSrc).toContain('absolute hud-inset-b hud-inset-x z-20 flex flex-col items-stretch gap-2 pointer-events-none');
+  it('the compact HUD column spans the screen but stays click-through', () => {
+    // RideHud's bottom column is hud-inset-x wide; only its panels and buttons opt in.
+    expect(hudSrc).toContain("'pointer-events-none absolute hud-inset-b hud-inset-x");
+    expect(hudSrc.match(/pointer-events-auto/g)?.length).toBeGreaterThanOrEqual(1);
+    expect(rideSrc).toContain('absolute hud-inset-t hud-inset-r z-20 flex max-w-sm flex-col items-end gap-2 pointer-events-none');
   });
 });
 

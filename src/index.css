@@ -259,15 +259,14 @@
   .w-show-m { width: 42vw; }
   .w-show-l { width: min(55vw, (53vh - 2rem) * 16 / 9); }
   .max-h-show-fit { max-height: calc(100vh - 10rem); }
-  /* Ride HUD v2, phones: the panel column starts under the top row
-     (Exit + route panel, about 4rem tall below sm). */
-  .top-ride-stack { top: calc(max(env(safe-area-inset-top), 0.75rem) + 4.5rem); }
-  /* Ride HUD v2: the no-token banner floats above the centred ride strip
-     (sm+) or above the phone strip + detail dock (below sm), instead of
-     the legacy transport bar offsets in .ride-banner-float. */
-  .ride-hud-v2 .ride-banner-float { bottom: calc(max(env(safe-area-inset-bottom), 1.5rem) + 6rem); }
+  /* Compact ride HUD (owner-directed revision, 2 Nov 2026): the no-token
+     banner floats above the ride band and the status chip (band 4.125rem +
+     chip 2.5rem + gaps on sm+; two-row phone band 5.5rem + an alert chip
+     below sm), instead of the legacy transport bar offsets in
+     .ride-banner-float. It hides while the ride details are open. */
+  .ride-hud-v2 .ride-banner-float { bottom: calc(max(env(safe-area-inset-bottom), 1.5rem) + 8rem); }
   @media (max-width: 639.98px) {
-    .ride-hud-v2 .ride-banner-float { bottom: calc(max(env(safe-area-inset-bottom), 0.75rem) + 12.5rem); }
+    .ride-hud-v2 .ride-banner-float { bottom: calc(max(env(safe-area-inset-bottom), 0.75rem) + 10.75rem); }
   }
   /* v2 utilities: devices + finish (add rules below this line) */
   /* Devices page at lg: device panels | Ride + pairing tips (7fr / 4fr),
@@ -286,9 +285,9 @@
   }
 
   /* No-token / imagery-fallback banner: floats centred above the ride
-     transport bar. Below sm it rises by the mobile detail-dock row height
-     (see src/components/velo/MobileDetailDock.tsx) so the two never
-     collide. Raw calc() lives here, not in TSX (UI-RULES §2). */
+     transport bar (legacy offsets; the v2 ride root overrides them with
+     .ride-hud-v2 .ride-banner-float above). Raw calc() lives here, not in
+     TSX (UI-RULES §2). */
   .ride-banner-float {
     position: absolute;
     z-index: 3;

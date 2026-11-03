@@ -1,10 +1,11 @@
 /**
- * v2 route panel (top-left of the ride HUD, docs/design/mockups/v2-ride-hud.html):
+ * Route card in the ride details (compact ride HUD, owner-directed revision
+ * 2 Nov 2026, docs/design/mockups/v2-ride-hud.html; collapsed by default):
  * the place name in the book serif, "6.7 km to go · about 20 min", the
- * elevation profile with a "you are here" dot (sm+), and the next named
- * place on the road: a village, church or tower the route passes (the world
- * bundle's OSM points of interest) or a detected climb. Nothing is invented:
- * routes with neither show no line.
+ * elevation profile with a "you are here" dot, the next named place on the
+ * road (sm+): a village, church or tower the route passes (the world
+ * bundle's OSM points of interest) or a detected climb, and the weather
+ * line. Nothing is invented: routes with neither show no line.
  *
  * Quantised reads (10 m, 10 s) keep it at display-change rate.
  */
@@ -16,6 +17,7 @@ import { scenicRouteById } from '@/lib/scenicRoutes';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useNextLandmarkText } from '@/hooks/useRouteLandmarks';
+import { RideWeatherChip } from './RideWeatherChip';
 import { RouteProfile } from './RouteProfile';
 import { DISPLAY, HUD_PANEL } from './v2';
 import { remainingText } from './rideHudText';
@@ -40,14 +42,14 @@ export function RideRoutePanel({ className }: { className?: string }) {
       aria-label="Route progress"
       className={cn(
         HUD_PANEL,
-        'pointer-events-auto flex min-w-0 flex-col px-3 py-2 sm:w-80 sm:gap-1 sm:px-4 sm:py-3',
+        'pointer-events-auto flex min-w-0 flex-col gap-1 px-3 py-2 sm:px-4 sm:py-3',
         className,
       )}
     >
       <h1 className={cn(DISPLAY, 'truncate text-base sm:text-xl')}>{route.name}</h1>
       {left && <p className="num truncate text-sm text-muted-foreground">{left}</p>}
       {total > 0 && route.points.length > 1 && (
-        <RouteProfile route={route} at={at} className="hidden h-8 sm:block" />
+        <RouteProfile route={route} at={at} className="h-8" />
       )}
       {next && (
         <p className="hidden items-center gap-1.5 text-sm sm:flex">
@@ -55,6 +57,7 @@ export function RideRoutePanel({ className }: { className?: string }) {
           <span className="truncate">{next}</span>
         </p>
       )}
+      <RideWeatherChip inline />
     </section>
   );
 }

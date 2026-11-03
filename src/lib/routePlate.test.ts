@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapPlateGeometry, profileGeometry } from './routePlate';
+import { mapPlateGeometry, planXY, profileGeometry } from './routePlate';
 import { SCENIC_ROUTES } from '@/lib/scenicRoutes';
 
 const lugano = SCENIC_ROUTES.find((r) => r.route.id === 'scenic-lugano-melide')!.route;
@@ -56,5 +56,19 @@ describe('profileGeometry', () => {
     expect(g.here!.y).toBeLessThan(1);
     expect(g.done).toMatch(/Z$/);
     expect(profileGeometry(lugano)!.done).toBeUndefined();
+  });
+});
+
+describe('planXY', () => {
+  it('projects a point into the map plate frame: route start and end land on the plate markers', () => {
+    const g = mapPlateGeometry(lugano, 1, 1_000_000)!;
+    const a = lugano.points[0];
+    const b = lugano.points[lugano.points.length - 1];
+    expect(planXY(lugano, a.lat, a.lon)).toEqual(g.start);
+    expect(planXY(lugano, b.lat, b.lon)).toEqual(g.end);
+  });
+
+  it('is null for a route without a line', () => {
+    expect(planXY({ points: [] }, 46, 9)).toBeNull();
   });
 });
