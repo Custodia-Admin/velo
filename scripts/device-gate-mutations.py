@@ -3,9 +3,11 @@
 
 Each entry removes one guard (no autonomous BLE write outside the ride
 session, one advert watch per device, honest wake state, gear-buzz gate,
-id-only device lookup, battery band) and runs the tests that should catch it.
-Every mutation must make a test fail ("KILLED"). Sources are restored after
-each run. Usage, from the repo root:
+id-only device lookup, battery band, the ride-start reconnects of both
+devices, the trainer-lost toast's Reconnect) and runs the tests that should
+catch it. An entry may remove several guards at once (M0, M20, M28) or edit
+a second file. Every mutation must make a test fail ("KILLED"). Sources are
+restored after each run. Usage, from the repo root:
 
     python3 scripts/device-gate-mutations.py            # all
     python3 scripts/device-gate-mutations.py M1 M8      # some
@@ -103,26 +105,48 @@ M = [
     ('M25 trainer reconnected toast: does not replace the sticky one', 'src/lib/trainerReconnect.ts',
      "st.pushToast({ id: 'trainer-connection', kind: 'success',", "st.pushToast({ kind: 'success',",
      ['src/lib/deviceLayer.test.ts']),
+    ('M26 trainer ride-start reconnect: allowWrites not passed', 'src/lib/trainerReconnect.ts',
+     'opts.silent ? { allowWrites: rideSessionActive } : {}', '{}',
+     ['src/lib/deviceLayer.test.ts', 'src/lib/trainerReconnect.test.ts']),
+    ('M27 ftms reconnectGranted: post-advert ride check removed', 'src/lib/ftms.ts',
+     '      if (opts.allowWrites && !opts.allowWrites()) throw new RideClosedError();\n', '',
+     ['src/lib/deviceLayer.test.ts', 'src/lib/trainerReconnect.test.ts']),
+    ('M28 trainer ride-start reconnect: both checks removed (the round-2 T1 gap)', 'src/lib/trainerReconnect.ts',
+     [('opts.silent ? { allowWrites: rideSessionActive } : {}', '{}')],
+     None,
+     ['src/lib/deviceLayer.test.ts', 'src/lib/trainerReconnect.test.ts'],
+     ('src/lib/ftms.ts', [('      if (opts.allowWrites && !opts.allowWrites()) throw new RideClosedError();\n', '')])),
+    ('M29 Ride page: trainer ride-start reconnect not silent', 'src/routes/Ride.tsx',
+     'reconnectGrantedTrainer({ silent: true });', 'reconnectGrantedTrainer();',
+     ['src/lib/controllers/rideController.test.ts']),
 ]
 
 only = set(sys.argv[1:])
 bad = []
-for name, path, old, new, tests in M:
+for name, path, old, new, tests, *extra in M:
     if only and name.split()[0] not in only:
         continue
-    src = open(path).read()
-    pairs = old if isinstance(old, list) else [(old, new)]
-    missing = [o for o, _ in pairs if src.count(o) != 1]
+    # One entry may edit a second file too: (path, [(old, new), ...]).
+    edits = [(path, old if isinstance(old, list) else [(old, new)]), *extra]
+    plan, missing = [], None
+    for fpath, pairs in edits:
+        src = open(fpath).read()
+        missing = next((o for o, _ in pairs if src.count(o) != 1), None)
+        if missing:
+            break
+        mutated = src
+        for o, n in pairs:
+            mutated = mutated.replace(o, n)
+        plan.append((fpath, mutated))
     if missing:
-        print(f'!! {name}: pattern not unique/found: {missing[0][:60]!r}')
+        print(f'!! {name}: pattern not unique/found: {missing[:60]!r}')
         bad.append(name)
         continue
-    mutated = src
-    for o, n in pairs:
-        mutated = mutated.replace(o, n)
-    shutil.copy(path, path + '.bak')
+    for fpath, _ in plan:
+        shutil.copy(fpath, fpath + '.bak')
     try:
-        open(path, 'w').write(mutated)
+        for fpath, mutated in plan:
+            open(fpath, 'w').write(mutated)
         r = subprocess.run(['npx', 'vitest', 'run', *tests], capture_output=True, text=True)
         out = r.stdout + r.stderr
         failed = [ln.strip() for ln in out.splitlines() if ln.strip().startswith('×')]
@@ -133,7 +157,8 @@ for name, path, old, new, tests in M:
         if r.returncode == 0:
             bad.append(name)
     finally:
-        shutil.move(path + '.bak', path)
+        for fpath, _ in plan:
+            shutil.move(fpath + '.bak', fpath)
 
 print('ALL KILLED' if not bad else f'SURVIVORS: {bad}')
 sys.exit(1 if bad else 0)

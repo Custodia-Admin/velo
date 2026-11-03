@@ -432,6 +432,51 @@ describe('no autonomous write outside the ride session', () => {
     expect(useRideStore.getState().connection).toBe('disconnected');
   });
 
+  it('the ride-start reconnect: leaving the ride while it connects sends no 0x00 / 0x07', async () => {
+    const k = fakeKickr();
+    await pair(k);
+    k.drop(); // held on Home
+    await vi.advanceTimersByTimeAsync(10);
+    const release = retainRideSession();
+    let letConnect: () => void = () => undefined;
+    k.state.hold = new Promise<void>((r) => {
+      letConnect = r;
+    });
+    const mark = k.cp().writes.length;
+    const rideStart = reconnectGrantedTrainer({ silent: true });
+    await vi.advanceTimersByTimeAsync(10); // waiting on gatt.connect()
+    expect(k.state.connects).toBeGreaterThan(0);
+    release();
+    k.state.hold = null;
+    letConnect();
+    expect(await rideStart).toBe(false);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(k.opsSince(mark)).toEqual([]);
+    expect(isConnected()).toBe(false);
+    expect(useRideStore.getState().connection).toBe('disconnected');
+  });
+
+  it('the ride-start reconnect: leaving the ride during its advert wait stops it before the second try', async () => {
+    const k = fakeKickr();
+    const chrome = chromiumWatch(k);
+    await pair(k);
+    k.drop(); // held on Home
+    await vi.advanceTimersByTimeAsync(10);
+    const release = retainRideSession();
+    k.state.failConnects = 1; // the direct try fails: it waits for an advert
+    const mark = k.cp().writes.length;
+    const rideStart = reconnectGrantedTrainer({ silent: true });
+    await vi.advanceTimersByTimeAsync(10);
+    expect(chrome.w.watching).toBe(true);
+    const connects = k.state.connects;
+    release();
+    await vi.advanceTimersByTimeAsync(6_000 + 50); // the wait runs out with the ride closed
+    expect(await rideStart).toBe(false);
+    expect(k.state.connects).toBe(connects); // no second gatt.connect()
+    expect(k.opsSince(mark)).toEqual([]);
+    expect(isConnected()).toBe(false);
+  });
+
   it('a trainer lost outside the ride session is not woken by itself', async () => {
     const k = fakeKickr();
     const chrome = chromiumWatch(k);
