@@ -61,9 +61,7 @@ function ToastCard({ toast }: { toast: Toast }) {
         {toast.action && (
           <div className="mt-2">
             <Button
-              size="sm"
               variant="outline"
-              className="h-7 text-xs px-2"
               onClick={() => {
                 toast.action?.onClick();
                 dismiss(toast.id);
