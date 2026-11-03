@@ -46,6 +46,8 @@ export interface RibbonOptions {
   originZ: number;
   /** Only segments whose midpoint passes this test are emitted (bucketing). */
   keepSegment?: (mx: number, my: number) => boolean;
+  /** Ground height at world (x, y); default the bilinear heightfield. */
+  groundAt?: (x: number, y: number) => number;
 }
 
 /** Road classes that are not drawn as surfaces. */
@@ -167,10 +169,11 @@ function addLine(b: Builder, hf: Heightfield, line: RibbonLine, opts: RibbonOpti
   if (n < 2) return;
   const half = line.width / 2;
   const total = s[n - 1];
-  const hStart = hf.sampleHeight(xy[0], xy[1]);
-  const hEnd = hf.sampleHeight(xy[(n - 1) * 2], xy[(n - 1) * 2 + 1]);
+  const ground = opts.groundAt ?? ((x: number, y: number) => hf.sampleHeight(x, y));
+  const hStart = ground(xy[0], xy[1]);
+  const hEnd = ground(xy[(n - 1) * 2], xy[(n - 1) * 2 + 1]);
   const heightAt = (x: number, y: number, k: number) =>
-    (line.bridge && total > 0 ? hStart + ((hEnd - hStart) * s[k]) / total : hf.sampleHeight(x, y)) + opts.lift;
+    (line.bridge && total > 0 ? hStart + ((hEnd - hStart) * s[k]) / total : ground(x, y)) + opts.lift;
 
   // Runs of consecutive kept segments become separate strips.
   let prevVertex = -1;

@@ -198,6 +198,29 @@ Rings are counter-clockwise (walls extrude outward), open, at least 3
 vertices. Heights come from `height`, else `building:levels × 3.2 + 1` m, else
 a default per building type. Buildings under 8 m² are dropped.
 
+Nothing the rider follows runs through a building (`buildingClearance` in
+`tools/worldbake/buildVectors.mjs`):
+
+- any footprint closer to a scenic route's centreline than the road it
+  rides on is wide is dropped, for every route in the recipe, measured on
+  the app's own route polyline: per 10 m piece, the nearest drawn road
+  within 4 m sets the clearance to its half-width (OSM `width`, else the
+  class default) + 1 m, clamped to 3.5–6 m (`ROUTE_CLEAR_MIN_M` /
+  `ROUTE_CLEAR_MAX_M`; 6 m where no road is mapped). A narrow street keeps
+  its frontage; nothing stands on the carriageway the route line is drawn
+  on. The 3.5 m floor bounds the renderer's route-line depth bias
+  (`ROUTE_MAX_PULL_M`, 2.5 m), so the line can never be pulled in front of
+  a wall it is behind;
+- any footprint a drawn road's centreline passes right through (crosses its
+  outline twice or more) is dropped. Tunnels (including
+  `tunnel=building_passage`) and steps are not drawn and don't count; a
+  driveway ending inside a garage (one crossing) keeps its building.
+
+Districts are classified before the drop, so the remaining buildings keep
+their palettes. The bake logs the counts and records them in the report
+(`buildingsDropped`); Perugia drops 44 on routes and 91 astride roads of
+24,056.
+
 Districts come from the built fabric (`classifyDistricts` in
 `tools/worldbake/buildVectors.mjs`): industrial kinds or industrial landcover →
 industrial; fewer than 5 buildings within 120 m → rural; footprints covering
@@ -228,8 +251,9 @@ per recipe under `vegetation.character`): cypress rows round cemeteries
 (5 m), poplars and willows along both banks of rivers and streams (9 m),
 sparse field-edge trees on farmland boundaries (hedgerow), OSM
 `natural=tree_row` ways (7 m), garden trees in residential land, and lone oaks
-in fields (broadleaf). Every seed keeps 1.8 m clear of road edges, 1.5 m of
-building walls and out of open water. Character kinds are kept whole;
+in fields (broadleaf). Every seed keeps 1.8 m clear of road edges (scenic
+routes count as 5 m wide roads, `ROUTE_TREE_HALF_M`), 1.5 m of building walls
+and out of open water. Character kinds are kept whole;
 woodland is thinned uniformly to fit the recipe's `maxInstances` (480,000
 for Perugia). Renderers draw a subset around the camera (the three.js
 'balanced' tier caps at 150,000).

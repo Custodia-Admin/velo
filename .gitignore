@@ -18,6 +18,10 @@ dist-ssr
 node_modules/.tmp/
 *.tsbuildinfo
 
+# Python bytecode (helper scripts under scripts/, tools/)
+__pycache__/
+*.py[cod]
+
 # PWA generated assets
 dev-dist
 

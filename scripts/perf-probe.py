@@ -8,6 +8,7 @@ Env: VIEW=1080|1600, QUALITY, DURATION_S (40), PATCH_JS (extra init script)
 """
 import json, os, pathlib, sys
 from playwright.sync_api import sync_playwright
+from scenic_home import ride_scenic_route
 
 out = pathlib.Path(sys.argv[1])
 base = sys.argv[2] if len(sys.argv) > 2 else "http://localhost:4173"
@@ -65,8 +66,7 @@ with sync_playwright() as p:
     ctx.add_init_script(INIT)
     pg = ctx.new_page()
     pg.goto(f"{base}/app", wait_until="domcontentloaded", timeout=60000)
-    pg.wait_for_selector(f"[data-scenic-route='{route_id}']", timeout=30000)
-    pg.evaluate(f"() => document.querySelector(\"[data-scenic-route='{route_id}']\").click()")
+    ride_scenic_route(pg, route_id, timeout=30000)
     pg.wait_for_url("**/ride**", timeout=20000)
     pg.evaluate(SNAP)
     rows = []

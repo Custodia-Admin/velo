@@ -47,8 +47,8 @@ export interface ThreeQuality {
   rainDrops: number;
   /** Terrain-shadow map resolution, texels per heightfield node (0 = off). */
   occlusionScale: number;
-  /** Landmark labels shown at once. */
-  maxLabels: number;
+  /** Landmark pins shown at once. */
+  maxPins: number;
 }
 
 export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
@@ -73,7 +73,7 @@ export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
     buildingM: 3500,
     rainDrops: 2500,
     occlusionScale: 0.25,
-    maxLabels: 5,
+    maxPins: 5,
   },
   medium: {
     maxDpr: 1.5,
@@ -96,7 +96,7 @@ export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
     buildingM: 8000,
     rainDrops: 6000,
     occlusionScale: 0.5,
-    maxLabels: 8,
+    maxPins: 8,
   },
   high: {
     maxDpr: 2,
@@ -119,7 +119,7 @@ export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
     buildingM: 11000,
     rainDrops: 10000,
     occlusionScale: 1,
-    maxLabels: 10,
+    maxPins: 10,
   },
 };
 

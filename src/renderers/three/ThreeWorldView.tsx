@@ -355,7 +355,7 @@ function WorldScene({
       <Terrain sceneWorld={sceneWorld} quality={quality} landcover={maps?.landcover ?? null} aux={maps?.aux ?? null} atmo={atmo} visibility={visibility} />
       <Water sceneWorld={sceneWorld} atmo={atmo} />
       <Roads sceneWorld={sceneWorld} visibility={visibility} quality={quality} atmo={atmo} />
-      <RouteLine sceneWorld={sceneWorld} route={route} atmo={atmo} />
+      <RouteLine sceneWorld={sceneWorld} route={route} visibility={visibility} quality={quality} atmo={atmo} />
       <Buildings sceneWorld={sceneWorld} quality={quality} atmo={atmo} />
       <StreetLights sceneWorld={sceneWorld} atmo={atmo} />
       <Vegetation sceneWorld={sceneWorld} quality={quality} atmo={atmo} stats={stats} />
@@ -365,7 +365,7 @@ function WorldScene({
       <Ghosts sceneWorld={sceneWorld} route={route} />
       <Suspense fallback={null}>
         <LiveRider frame={frame} castShadow={quality.shadows} />
-        <PaceBots sceneWorld={sceneWorld} />
+        <PaceBots sceneWorld={sceneWorld} route={route} />
         <ReadySignal onReady={onReady} />
       </Suspense>
       {quality.postFx && <PostFx />}
