@@ -108,7 +108,7 @@ export function Ride() {
   useEffect(() => {
     const release = retainRideSession();
     void reconnectGrantedTrainer({ silent: true });
-    void reconnectGrantedController();
+    void reconnectGrantedController({ silent: true });
     return release;
   }, []);
 

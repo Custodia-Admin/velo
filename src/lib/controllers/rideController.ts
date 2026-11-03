@@ -646,24 +646,29 @@ export function findGrantedController(): Promise<BluetoothDevice | null> {
 }
 
 /**
- * Reconnect the controls paired in an earlier session, without the chooser
- * and without a tap: the Ride page calls it when a ride opens, the panel's
- * "Reconnect" button too. Resolves true when connected. Never throws; on
+ * Reconnect the controls paired in an earlier session, without the chooser.
+ * `silent`: started by the Ride page when a ride opens (nobody tapped), so
+ * it runs only inside the ride session and writes nothing (no RideOn, no
+ * confirm buzz) once the ride has closed. Without `silent` it is a tap on
+ * the panel's "Reconnect". Resolves true when connected. Never throws; on
  * failure the panel is back to "Pair handlebar controls".
  */
 let grantedInFlight: Promise<boolean> | null = null;
 
-export function reconnectGrantedController(): Promise<boolean> {
+export function reconnectGrantedController(opts: { silent?: boolean } = {}): Promise<boolean> {
   // StrictMode mounts the Ride page twice: one attempt at a time.
   if (!grantedInFlight) {
-    grantedInFlight = reconnectGranted().finally(() => {
+    grantedInFlight = reconnectGranted(opts.silent === true).finally(() => {
       grantedInFlight = null;
     });
   }
   return grantedInFlight;
 }
 
-async function reconnectGranted(): Promise<boolean> {
+async function reconnectGranted(silent: boolean): Promise<boolean> {
+  // Nobody tapped: only inside a ride the rider opened.
+  if (silent && !rideSessionActive()) return false;
+  const allowWrites = silent ? rideSessionActive : undefined;
   if (link) {
     const status = store().status;
     if (status === 'connected' || status === 'connecting' || status === 'reconnecting') return status === 'connected';
@@ -683,10 +688,10 @@ async function reconnectGranted(): Promise<boolean> {
     const side = await detectControllerSide(device);
     if (link !== l) return false;
     store().setSide(side);
-    await setupSession(l);
+    await setupSession(l, allowWrites);
     if (link !== l) return false;
     store().setStatus('connected');
-    await confirmBuzz(l);
+    if (!allowWrites || allowWrites()) await confirmBuzz(l);
     return true;
   } catch (err) {
     if (link !== l) return false;

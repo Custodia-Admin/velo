@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   __setBluetoothForTests,
   pairRideController,
@@ -618,6 +620,87 @@ describe('reconnect after a reload (granted devices)', () => {
     device.hasRideService = false;
     expect(await reconnectGrantedController()).toBe(false);
     expect(st().status).toBe('locked');
+  });
+});
+
+describe('the ride-start reconnect (silent, granted controls)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  async function grantedAndAway(): Promise<void> {
+    grantedBrowser([device]);
+    await pairRideController();
+    await disconnectRideController();
+    device.rx.writes = [];
+  }
+
+  it('inside the ride: RideOn and the confirm buzz', async () => {
+    await grantedAndAway();
+    retainRideSession();
+    expect(await reconnectGrantedController({ silent: true })).toBe(true);
+    expect(st().status).toBe('connected');
+    expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e', BUZZ]);
+  });
+
+  it('no ride open: not even a connect', async () => {
+    await grantedAndAway();
+    const connects = vi.spyOn(device.gatt, 'connect');
+    expect(await reconnectGrantedController({ silent: true })).toBe(false);
+    expect(connects).not.toHaveBeenCalled();
+    expect(device.rx.writes).toEqual([]);
+    expect(st().status).toBe('idle');
+  });
+
+  it('leaving the ride while it connects: no RideOn, no buzz', async () => {
+    await grantedAndAway();
+    const release = retainRideSession();
+    let letConnect: () => void = () => undefined;
+    const realConnect = device.gatt.connect;
+    device.gatt.connect = () =>
+      new Promise((resolve) => {
+        letConnect = () => resolve(realConnect());
+      });
+    const rideStart = reconnectGrantedController({ silent: true });
+    await new Promise((r) => setTimeout(r, 0)); // side check done, waiting on gatt.connect()
+    release();
+    letConnect();
+    expect(await rideStart).toBe(false);
+    expect(device.rx.writes).toEqual([]);
+    expect(device.gatt.connected).toBe(false);
+    expect(st().status).toBe('idle');
+  });
+
+  it('leaving the ride after RideOn, before the confirm buzz: no buzz', async () => {
+    await grantedAndAway();
+    const release = retainRideSession();
+    let letRead: () => void = () => undefined;
+    const hold = new Promise<void>((r) => {
+      letRead = r;
+    });
+    const realRead = device.bas.readValue.bind(device.bas);
+    device.bas.readValue = async () => {
+      await hold;
+      return realRead();
+    };
+    const rideStart = reconnectGrantedController({ silent: true });
+    await new Promise((r) => setTimeout(r, 0)); // RideOn sent, reading the battery
+    expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e']);
+    release();
+    letRead();
+    expect(await rideStart).toBe(true);
+    expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e']);
+  });
+
+  it('a tap on Reconnect (not silent) still works with no ride open', async () => {
+    await grantedAndAway();
+    expect(await reconnectGrantedController()).toBe(true);
+    expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e', BUZZ]);
+  });
+
+  it('the Ride page asks for the silent (ride-gated) reconnect of both devices', () => {
+    const ride = readFileSync(resolve(__dirname, '../../routes/Ride.tsx'), 'utf8');
+    expect(ride).toContain('reconnectGrantedController({ silent: true })');
+    expect(ride).toContain('reconnectGrantedTrainer({ silent: true })');
+    expect(ride).not.toMatch(/reconnectGranted(Controller|Trainer)\(\)/);
   });
 });
 
