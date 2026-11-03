@@ -12,17 +12,17 @@ P1.5). Full suites run in GitHub CI.
 
 ## Phase 0 — Land the household build
 - [x] P0.1 Merge the branch stack to main + ride-tonight residue (PR #7, 2,232 tests green)
-- [ ] P0.2 ADR-001 rendering decision + brief and roadmap update *(in review)*
+- [x] P0.2 ADR-001 rendering decision + brief and roadmap update (PR #8)
 
 ## Phase 1 — Foundations (after P0; P1.1, P1.2, P1.3, P1.5 in parallel)
-- [ ] P1.1 Ride FSM: `idle → ready → riding ⇄ paused → finished`, × source, × trainer state; regression tests for the standstill, pause, disconnect and swap bugs
-- [ ] P1.2 Renderer seam: `WorldRenderer` interface, pure `rideSim.step()`, Cesium moved behind the seam, `renderer: 'world' | 'photoreal'` (default `'world'`), Cesium chunk lazy
-- [ ] P1.3 World bake v0, Perugia: `tools/worldbake/` (terrarium DEM + OSM Overpass + p2e routes), ≤ 8 MB, deterministic, credits
-- [ ] P1.4 three.js renderer v0 (needs P1.2 + P1.3): terrain chunks, roads, stylized GLTF rider, chase cam, sky; token-free ride with no request to cesium.com
-- [ ] P1.5 Visual identity v2, warm atlas: mockups for five screens at 1440/390/TV; Federico signs off before any P2 UI packet
+- [x] P1.1 Ride FSM: `idle → ready → riding ⇄ paused → finished`, × source, × trainer state; regression tests for the standstill, pause, disconnect and swap bugs (PR #9)
+- [x] P1.2 Renderer seam: `WorldRenderer` interface, pure `rideSim.step()`, Cesium moved behind the seam, `renderer: 'world' | 'photoreal'` (default `'world'`), Cesium chunk lazy (PR #10)
+- [x] P1.3 World bake v0, Perugia: `tools/worldbake/` (terrarium DEM + OSM Overpass + p2e routes), ≤ 8 MB, deterministic, credits (PR #12; Perugia is 5.6 MB in `public/worlds/perugia/`)
+- [x] P1.4 three.js renderer v0 (needs P1.2 + P1.3): terrain chunks, roads, stylized GLTF rider, chase cam, sky; token-free ride with no request to cesium.com (PR #16: token-free Perugia ride; the CI smoke ride asserts zero cesium.com requests)
+- [x] P1.5 Visual identity v2, warm atlas: mockups for five screens at 1440/390/TV; Federico signs off before any P2 UI packet (PR #22; signed off 1 Nov: "omg they look so good!!! Let's do it")
 
 ## Phase 2 — Beautiful (after P1)
-- [ ] P2.1 World materials, light, weather, time of day: water, trees, buildings, landmarks, live Open-Meteo
+- [x] P2.1 World materials, light, weather, time of day: water, trees, buildings, landmarks, live Open-Meteo (PR #28; Federico approved it "as an MVP" on 2 Nov)
 - [ ] P2.2 Lugano world + destination system (Home generated from manifests: Home · Perugia, Hometown · Lugano, Places we want to go)
 - [ ] P2.3 Show & journey mode v2: local video overlay, Document PiP ride-over-anything, cinematic director
 - [ ] P2.4 Visual identity v2 build (tokens + `src/components/velo/`, after P1.5 sign-off)
@@ -38,6 +38,14 @@ P1.5). Full suites run in GitHub CI.
 - [ ] P4.2 Release v2.0.0: Cloudflare Pages, R2 worlds, fresh-clone check
 
 Critical path: P0.1 → P1.2/P1.3 → P1.4 → P2.1 → P4.
+
+## Also shipped in v2 (outside the packets)
+- [x] GPU render-streaming spike on cat-bed: numbers and integration sketch (PR #11, `docs/architecture/STREAMING-SPIKE.md`)
+- [x] Ride perf: no GPU ground pick, `?perf=1` overlay, adaptive quality governor, HUD render-rate quantisation (PRs #13, #17)
+- [x] Mobile ride HUD: detail dock at 390 and a one-row transport bar (PRs #18, #19)
+- [x] Corridor-aware side-tracking camera (PR #21)
+- [x] Pace-bot heading smoothing in the world renderer (PR #24)
+- [x] Route never runs through buildings; landmark labels became plain pins (PR #31)
 
 ## Already shipped in Velo (before v2)
 - [x] Comfort defaults: 35 % hills feel, ERG off, no training asks on Home

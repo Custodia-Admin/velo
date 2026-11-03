@@ -1,6 +1,7 @@
 # ADR-001 — Ride rendering: own three.js worlds by default, Cesium photoreal opt-in
 
-- **Status:** Proposed (awaiting Federico's review)
+- **Status:** Accepted. Implemented by #10 (renderer seam, P1.2), #12 (world
+  bake, P1.3) and #16 (three.js world renderer, P1.4).
 - **Date:** 2026-10-31
 - **Deciders:** Federico Brooks (owner); architect consult 1 of 3
 - **Full reasoning:** [`VELO-V2-BLUEPRINT.md`](./VELO-V2-BLUEPRINT.md) §0–1
@@ -37,9 +38,13 @@ upstream credit.
    free. Cesium also stays as the Explore globe, which already works without
    a token on OSM imagery.
 3. **Token-free is a hard requirement.** It is checked in CI, not just
-   promised: the smoke ride runs with no token and fails on any request to
-   `cesium.com` / ion. The Cesium chunk only loads (via `import()`) for
-   `renderer === 'photoreal'` or `/explore`.
+   promised: the smoke ride (`e2e/smoke-ride.spec.ts`, CI job `smoke-ride`)
+   runs with no token and fails on any request to `cesium.com` / ion. The
+   Cesium chunk only loads (via `import()`) when a ride draws on the Cesium
+   path or on `/explore`. A ride takes that path when `renderer ===
+   'photoreal'`, when no baked world covers the route, or when its world
+   fails to load (`rendererFor(preferred, canWorld)` in
+   `src/renderers/registry.ts`).
 4. **The route sim and the terrain come from the same bake.** The bake takes
    each route's render elevation from the world heightfield, so the rider
    always touches the ground. FTMS grade still uses the smoothed route
@@ -63,26 +68,37 @@ upstream credit.
 - **Visual direction:** "warm atlas" (calm, paper-day/deep-night, one accent).
 - **Rider:** stylized GLTF (not the upstream billboard avatar).
 
-These answer open questions 1–3 of the blueprint (§5). P1.5 mocks only the
-warm-atlas direction, P1.4 uses a stylized GLTF rider under `public/models/`,
-and P4.1 publishes under `Custodia-Admin/velo` instead of moving to another
-org.
+These answer open questions 1–3 of the blueprint (§5). P1.5 mocked only the
+warm-atlas direction (#22; Federico signed it off on 1 Nov). P1.4 ships the
+stylized GLTF rider as `public/models/velo-rider.glb` (#16). P4.1 will
+publish under `Custodia-Admin/velo` instead of moving to another org.
 
 ## Consequences
 
 **Good**
 - Velo rides real places with no account, token or spend. One world bundle
-  is ≤ 8 MB brotli. Home worlds are precached by the PWA, and destination
-  worlds come from Cloudflare R2 (free tier) and are cached after the first
-  ride.
+  is ≤ 8 MB (Perugia: 5.6 MB in `public/worlds/perugia/`). Planned, not
+  built yet: the PWA precaches home worlds (P2.2), and destination worlds
+  come from Cloudflare R2 (free tier) and are cached after the first ride
+  (P3.1).
 - One bake feeds terrain, roads, routes and POIs. Landmarks, postcards and
   the cinematic director all read the same manifest.
 - The art can follow warm atlas across time of day, weather and the play
   layer, instead of whatever Google's imagery happens to show.
 
 **Costs and risks**
-- A new renderer (P1.4) and a bake pipeline (P1.3) are the critical path.
-  Until P1.4 lands, token-free rides keep showing the flat-map fallback.
+- Only routes inside a baked world ride the three.js renderer. Today that
+  is `perugia`: `scenic-perugia-tiber-park` and `scenic-assisi-valley`
+  (`src/lib/world/catalog.ts` `WORLD_CATALOG`; `worldForRoute` also accepts
+  any route whose points all lie inside a world's bbox).
+- Every other route rides the Cesium path: hometown/Lugano, further,
+  travels, GPX uploads outside a baked world, outdoor GPS rides, and any
+  ride whose world fails to load (`rendererFor` in
+  `src/renderers/registry.ts`). Without a token that path is the OSM
+  flat-map fallback with the "Add a free Cesium ion token" banner
+  (`e2e/smoke-ride.spec.ts`, test "a route outside every baked world rides
+  photoreal"). This lasts until the route's world is baked: P2.2 (Lugano)
+  and P3.1 (wishlist worlds).
 - Bundles derived from OSM are ODbL share-alike. They are published under
   ODbL with credits in `docs/worlds/CREDITS.md`. The app stays MIT.
 - Two renderers have to be kept up. This is limited by freezing Cesium's
