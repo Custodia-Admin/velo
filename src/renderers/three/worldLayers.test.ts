@@ -14,7 +14,7 @@ import type { WorldPoi } from '@/lib/world/manifest';
 
 import { ASSISI_X, buildBuildingGeometry, buildingStyle, DISTRICT_INDUSTRIAL, DISTRICT_OLD, mulberry32, PLASTER, STONE_PINK } from './buildingMesh';
 import { streetLampPositions } from './Buildings';
-import { LABEL_DEDUPE_M, pickLabels } from './landmarks';
+import { PIN_DEDUPE_M, PIN_GAP_PX, declutterPins, pickPins, pinRect, pinsOverlap } from './landmarks';
 import { THREE_QUALITY } from './quality';
 import { buildTreeField, gatherShape, selectTreeRings, speciesFor, TREE_SHAPES, TREE_STRIDE, type TreeField } from './treeField';
 import { treeTriangles } from './treeShapes';
@@ -148,17 +148,17 @@ describe('world layers on the Perugia bundle', () => {
     }
   });
 
-  it('labels Perugia and Assisi from the Assisi route, nothing behind the camera', () => {
+  it('pins Perugia and Assisi from the Assisi route, nothing behind the camera', () => {
     const pois = world.manifest.pois;
     const [px, py] = world.projection.forward(43.1122, 12.3888);
     const [ax, ay] = world.projection.forward(43.0707, 12.6175);
     // Halfway, looking east at Assisi.
     const mx = (px + ax) / 2;
     const my = (py + ay) / 2;
-    const east = pickLabels(pois, mx, my, 1, 0, 8);
+    const east = pickPins(pois, mx, my, 1, 0, 8);
     expect(east.length).toBeGreaterThan(0);
     expect(east.every((l) => l.poi.x > mx)).toBe(true);
-    for (const a of east) for (const b of east) if (a !== b) expect(Math.hypot(a.poi.x - b.poi.x, a.poi.y - b.poi.y)).toBeGreaterThanOrEqual(LABEL_DEDUPE_M);
+    for (const a of east) for (const b of east) if (a !== b) expect(Math.hypot(a.poi.x - b.poi.x, a.poi.y - b.poi.y)).toBeGreaterThanOrEqual(PIN_DEDUPE_M);
   });
 });
 
@@ -219,14 +219,31 @@ describe('world layer helpers', () => {
     g.dispose();
   });
 
-  it('drops near-duplicate labels and out-of-range villages', () => {
+  it('drops near-duplicate pins and out-of-range villages', () => {
     const pois: WorldPoi[] = [
       { name: 'Assisi', kind: 'town', x: 1000, y: 0, rank: 3 } as WorldPoi,
       { name: 'Basilica di San Francesco', kind: 'church', x: 1100, y: 0, rank: 2 } as WorldPoi,
       { name: 'Far hamlet', kind: 'village', x: 5000, y: 0, rank: 1 } as WorldPoi,
       { name: 'Behind', kind: 'town', x: -2000, y: 0, rank: 3 } as WorldPoi,
     ];
-    const picks = pickLabels(pois, 0, 0, 1, 0, 8).map((p) => p.poi.name);
+    const picks = pickPins(pois, 0, 0, 1, 0, 8).map((p) => p.poi.name);
     expect(picks).toEqual(['Assisi']);
+  });
+
+  it('declutters pins on screen: the shown set never overlaps, stronger pins win', () => {
+    // Owner report: four labels stacked over Assisi. Pins at those screen spots.
+    const rects = [pinRect(600, 300, 3), pinRect(606, 296, 2), pinRect(640, 300, 2), null, pinRect(612, 312, 1)];
+    const show = declutterPins(rects);
+    expect(show).toEqual([true, false, true, false, false]);
+    expect(pinsOverlap(pinRect(0, 0, 2), pinRect(0, 0, 2))).toBe(true);
+    // Random crowds: whatever is shown is pairwise clear by PIN_GAP_PX.
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let trial = 0; trial < 50; trial++) {
+      const rs = Array.from({ length: 10 }, () => pinRect(rnd() * 200, rnd() * 120, 1 + Math.floor(rnd() * 3)));
+      const shown = rs.filter((_, i) => declutterPins(rs)[i]);
+      expect(shown.length).toBeGreaterThan(0);
+      for (const a of shown) for (const b of shown) if (a !== b) expect(pinsOverlap(a, b, PIN_GAP_PX)).toBe(false);
+    }
   });
 });

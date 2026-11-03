@@ -461,11 +461,199 @@ export function classifyDistricts(list, industrialPolys = []) {
 }
 
 /**
+ * Clear space between a scenic route's centreline and any building, m: the
+ * half-width of the road the route rides on (OSM width tag, else its class
+ * default) plus a margin, never under the minimum (the route line's depth
+ * bias needs it) and at most the maximum, which also applies where no road
+ * is mapped under the route.
+ */
+export const ROUTE_CLEAR_MIN_M = 3.5;
+export const ROUTE_CLEAR_MAX_M = 6;
+export const ROUTE_CLEAR_MARGIN_M = 1;
+/** A road counts as the one under the route within this distance of it, m. */
+export const ROUTE_ROAD_SNAP_M = 4;
+/** Route polylines are split to segments this long before clearances are assigned, m. */
+export const ROUTE_CLEAR_SEG_M = 10;
+
+function segSegIntersect(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d1 = (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx);
+  const d2 = (dx - cx) * (by - cy) - (dy - cy) * (bx - cx);
+  const d3 = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+  const d4 = (bx - ax) * (dy - ay) - (by - ay) * (dx - ax);
+  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+}
+
+function pointSegDist(x, y, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const l2 = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+  return Math.hypot(x - ax - t * dx, y - ay - t * dy);
+}
+
+/** Distance from segment ab to a closed ring (metres, open flat array); 0 when they touch or a is inside. */
+export function segmentRingDistance(ax, ay, bx, by, ring) {
+  if (pointInRing(ax, ay, ring) || pointInRing(bx, by, ring)) return 0;
+  let d = Infinity;
+  const n = ring.length / 2;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const cx = ring[2 * j], cy = ring[2 * j + 1], ex = ring[2 * i], ey = ring[2 * i + 1];
+    if (segSegIntersect(ax, ay, bx, by, cx, cy, ex, ey)) return 0;
+    d = Math.min(d, pointSegDist(ax, ay, cx, cy, ex, ey), pointSegDist(bx, by, cx, cy, ex, ey), pointSegDist(cx, cy, ax, ay, bx, by));
+  }
+  return d;
+}
+
+/** Times the polyline crosses the ring's outline. */
+function ringCrossings(p, ring) {
+  let k = 0;
+  const n = ring.length / 2;
+  for (let s = 0; s + 3 < p.length; s += 2) {
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      if (segSegIntersect(p[s], p[s + 1], p[s + 2], p[s + 3], ring[2 * j], ring[2 * j + 1], ring[2 * i], ring[2 * i + 1])) k++;
+    }
+  }
+  return k;
+}
+
+/** Segments of polylines bucketed by grid cell, for footprint queries. */
+function segmentBuckets(lines, cell) {
+  const map = new Map();
+  lines.forEach((p, li) => {
+    for (let i = 0; i + 3 < p.length; i += 2) {
+      const x0 = Math.min(p[i], p[i + 2]), x1 = Math.max(p[i], p[i + 2]);
+      const y0 = Math.min(p[i + 1], p[i + 3]), y1 = Math.max(p[i + 1], p[i + 3]);
+      for (let gy = Math.floor(y0 / cell); gy <= Math.floor(y1 / cell); gy++) {
+        for (let gx = Math.floor(x0 / cell); gx <= Math.floor(x1 / cell); gx++) {
+          const key = `${gx},${gy}`;
+          let list = map.get(key);
+          if (!list) map.set(key, (list = []));
+          list.push([li, i]);
+        }
+      }
+    }
+  });
+  /** [line index, segment offset] pairs whose cells meet the bbox grown by `r`; deduplicated, in order. */
+  return (bbox, r) => {
+    const seen = new Set();
+    const out = [];
+    for (let gy = Math.floor((bbox[1] - r) / cell); gy <= Math.floor((bbox[3] + r) / cell); gy++) {
+      for (let gx = Math.floor((bbox[0] - r) / cell); gx <= Math.floor((bbox[2] + r) / cell); gx++) {
+        for (const e of map.get(`${gx},${gy}`) ?? []) {
+          const key = e[0] * 1e7 + e[1];
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(e);
+        }
+      }
+    }
+    return out.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  };
+}
+
+/** Split a flat polyline so no segment is longer than `maxSeg`. */
+export function densifyLine(p, maxSeg) {
+  const out = [p[0], p[1]];
+  for (let i = 0; i + 3 < p.length; i += 2) {
+    const len = Math.hypot(p[i + 2] - p[i], p[i + 3] - p[i + 1]);
+    const k = Math.max(1, Math.ceil(len / maxSeg));
+    for (let j = 1; j <= k; j++) out.push(p[i] + ((p[i + 2] - p[i]) * j) / k, p[i + 1] + ((p[i + 3] - p[i + 1]) * j) / k);
+  }
+  return out;
+}
+
+/**
+ * Per-segment building clearance along each route (see ROUTE_CLEAR_*): the
+ * nearest drawn road within ROUTE_ROAD_SNAP_M of the segment's midpoint sets
+ * it. `roads` is the roads layer as built (dm). Returns the densified lines
+ * and one clearance per segment.
+ */
+export function routeClearances(routeLines, roads) {
+  const drawn = roads.roads.filter((r) => !(r.f && r.f & ROAD_FLAGS.tunnel));
+  const lines = drawn.map((r) => r.p.map((v) => v / 10));
+  const halfW = drawn.map((r) => (r.w ?? roads.widths[r.c]) / 2);
+  const q = segmentBuckets(lines, 50);
+  const outLines = [];
+  const clear = [];
+  for (const raw of routeLines) {
+    const p = densifyLine(raw, ROUTE_CLEAR_SEG_M);
+    const c = new Float64Array(p.length / 2 - 1);
+    for (let i = 0; i + 3 < p.length; i += 2) {
+      const mx = (p[i] + p[i + 2]) / 2, my = (p[i + 1] + p[i + 3]) / 2;
+      let best = Infinity, hw = -1;
+      for (const [li, k] of q([mx, my, mx, my], ROUTE_ROAD_SNAP_M)) {
+        const l = lines[li];
+        const d = pointSegDist(mx, my, l[k], l[k + 1], l[k + 2], l[k + 3]);
+        if (d < best || (d === best && halfW[li] > hw)) {
+          best = d;
+          hw = halfW[li];
+        }
+      }
+      c[i / 2] = best <= ROUTE_ROAD_SNAP_M
+        ? Math.min(ROUTE_CLEAR_MAX_M, Math.max(ROUTE_CLEAR_MIN_M, hw + ROUTE_CLEAR_MARGIN_M))
+        : ROUTE_CLEAR_MAX_M;
+    }
+    outLines.push(p);
+    clear.push(c);
+  }
+  return { lines: outLines, clear };
+}
+
+/**
+ * Which footprints (rings in metres) must go so nothing the rider follows
+ * runs through a building:
+ *
+ * - `route`: closer to a scenic route centreline than that segment's
+ *   clearance (`routeClear[line][segment]`, from `routeClearances`; a
+ *   single `routeClearM` when not given): the route line is drawn there, on
+ *   the road it rides;
+ * - `road`: a drawn road's centreline passes right through (crosses the
+ *   outline twice or more). Tunnels (incl. building passages) and steps are
+ *   not drawn and are ignored; a driveway that ends inside a garage (one
+ *   crossing) keeps its building.
+ *
+ * Returns a Uint8Array per footprint: 0 keep, 1 route, 2 road. Pure.
+ */
+export function buildingClearance(rings, { routeLines = [], routeClear = null, routeClearM = ROUTE_CLEAR_MAX_M, roadLines = [] } = {}) {
+  const out = new Uint8Array(rings.length);
+  const routeQ = segmentBuckets(routeLines, 50);
+  const roadQ = segmentBuckets(roadLines, 50);
+  const reach = routeClear ? routeClear.reduce((m, c) => c.reduce((a, v) => Math.max(a, v), m), 0) : routeClearM;
+  rings.forEach((ring, bi) => {
+    const bbox = ringBbox(ring);
+    for (const [li, i] of routeQ(bbox, reach)) {
+      const p = routeLines[li];
+      const clearM = routeClear ? routeClear[li][i / 2] : routeClearM;
+      if (segmentRingDistance(p[i], p[i + 1], p[i + 2], p[i + 3], ring) < clearM) {
+        out[bi] = 1;
+        return;
+      }
+    }
+    const crossings = new Map();
+    for (const [li, i] of roadQ(bbox, 0)) {
+      const p = roadLines[li];
+      const k = ringCrossings([p[i], p[i + 1], p[i + 2], p[i + 3]], ring);
+      if (!k) continue;
+      const total = (crossings.get(li) ?? 0) + k;
+      if (total >= 2) {
+        out[bi] = 2;
+        return;
+      }
+      crossings.set(li, total);
+    }
+  });
+  return out;
+}
+
+/**
  * Buildings → binary (see WORLD-FORMAT.md "buildings.bin"; VWB2 = VWB1 plus
  * one district byte per building). Outer rings only. Also returns the
  * footprints in metres so the vegetation pass keeps trees out of houses.
+ *
+ * `clear` drops footprints on the scenic routes and roads (see
+ * `buildingClearance`); districts are classified before the drop so the
+ * remaining buildings keep their palettes.
  */
-export function buildBuildings(elements, projection, ext, landcoverPolys = []) {
+export function buildBuildings(elements, projection, ext, landcoverPolys = [], clear = null) {
   const list = [];
   for (const el of elements) {
     const t = el.tags ?? {};
@@ -498,7 +686,23 @@ export function buildBuildings(elements, projection, ext, landcoverPolys = []) {
   const industrial = landcoverPolys
     .filter((p) => p.kind === 'industrial')
     .map((p) => ({ rings: p.rings, bbox: ringBbox(p.rings[0]) }));
-  const district = classifyDistricts(list, industrial);
+  const allDistricts = classifyDistricts(list, industrial);
+  let district = allDistricts;
+  const dropped = { route: 0, road: 0 };
+  if (clear) {
+    const why = buildingClearance(list.map((b) => b.ring.map((v) => v / 10)), clear);
+    const keep = [];
+    district = [];
+    list.forEach((b, i) => {
+      if (why[i] === 1) dropped.route++;
+      else if (why[i] === 2) dropped.road++;
+      else {
+        keep.push(b);
+        district.push(allDistricts[i]);
+      }
+    });
+    list.splice(0, list.length, ...keep);
+  }
   const count = list.length;
   const totalVerts = list.reduce((s, b) => s + b.ring.length / 2, 0);
   const headBytes = 12;
@@ -522,7 +726,7 @@ export function buildBuildings(elements, projection, ext, landcoverPolys = []) {
   }
   const districts = Object.fromEntries(BUILDING_DISTRICTS.map((name, i) => [name, district.filter((d) => d === i).length]));
   const footprints = list.map((b) => ({ cx: b.cx, cy: b.cy, ring: b.ring.map((v) => v / 10), r: Math.sqrt(b.area) }));
-  return { bytes: buf, count, totalVerts, districts, footprints };
+  return { bytes: buf, count, totalVerts, districts, footprints, dropped };
 }
 
 /** Segment index for clearance tests: every segment of every polyline, bucketed by cell. */
@@ -578,6 +782,9 @@ function alongLine(p, step, offset, jitterSeed, out) {
   }
 }
 
+/** Half-width a scenic route claims from trees, m (plus `roadClearM`). */
+export const ROUTE_TREE_HALF_M = 2.5;
+
 /** Defaults for the character kinds; a recipe's `vegetation.character` overrides them. */
 export const CHARACTER_DEFAULTS = {
   /** Cypress spacing along cemetery boundaries, m (2 m inside the wall). */
@@ -613,7 +820,7 @@ export const CHARACTER_DEFAULTS = {
  * Deterministic (integer hashes only). Single mapped trees (natural=tree) are
  * not used: Overpass attic queries for them run out of memory.
  */
-export function buildVegetation({ polys, ext, recipe, roads = null, water = null, footprints = [], treeRows = [] }) {
+export function buildVegetation({ polys, ext, recipe, roads = null, water = null, footprints = [], treeRows = [], routeLines = [] }) {
   const { seed, maxInstances, spacingM } = recipe;
   const C = { ...CHARACTER_DEFAULTS, ...(recipe.character ?? {}) };
   const seen = new Set();
@@ -628,6 +835,8 @@ export function buildVegetation({ polys, ext, recipe, roads = null, water = null
       roadGrid.addLine(r.p.map((v) => v / 10), w / 2);
     }
   }
+  // Scenic routes count as roads too (some follow paths OSM has no road for).
+  for (const p of routeLines) roadGrid.addLine(p, ROUTE_TREE_HALF_M);
   const bGrid = new PointGrid(40);
   for (const b of footprints) bGrid.add(b.cx, b.cy, b);
   const nearWall = (x, y, r) => {
@@ -646,7 +855,7 @@ export function buildVegetation({ polys, ext, recipe, roads = null, water = null
   });
   const blocked = (x, y) => {
     if (x < ext.xMin || x > ext.xMax || y < ext.yMin || y > ext.yMax) return true;
-    if (roads && roadGrid.hits(x, y, C.roadClearM)) return true;
+    if ((roads || routeLines.length) && roadGrid.hits(x, y, C.roadClearM)) return true;
     for (const b of bGrid.near(x, y, 40)) {
       if (Math.hypot(b.cx - x, b.cy - y) > b.r * 1.5 + C.buildingClearM + 2) continue;
       if (pointInRing(x, y, b.ring) || nearWall(x, y, b.ring)) return true;

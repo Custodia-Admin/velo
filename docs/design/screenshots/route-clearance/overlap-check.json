@@ -1,0 +1,126 @@
+{
+ "before": [
+  {
+   "file": "before-assisi-valley-220-night-1440x900.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 4
+  },
+  {
+   "file": "before-assisi-valley-7240-night-1440x900.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "before-assisi-valley-220-noon-1440x900.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 4
+  },
+  {
+   "file": "before-assisi-valley-7240-noon-1440x900.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "before-assisi-valley-220-night-390x844.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 5
+  },
+  {
+   "file": "before-assisi-valley-7240-night-390x844.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "before-assisi-valley-220-noon-390x844.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 5
+  },
+  {
+   "file": "before-assisi-valley-7240-noon-390x844.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "before-assisi-valley-220-night-1280x658.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 5
+  },
+  {
+   "file": "before-assisi-valley-7240-night-1280x658.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "before-assisi-valley-220-noon-1280x658.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 5
+  },
+  {
+   "file": "before-assisi-valley-7240-noon-1280x658.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  }
+ ],
+ "after": [
+  {
+   "file": "after-assisi-valley-220-night-1440x900.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "after-assisi-valley-7240-night-1440x900.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "after-assisi-valley-220-noon-1440x900.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "after-assisi-valley-7240-noon-1440x900.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "after-assisi-valley-220-night-390x844.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "after-assisi-valley-7240-night-390x844.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "after-assisi-valley-220-noon-390x844.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "after-assisi-valley-7240-noon-390x844.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "after-assisi-valley-220-night-1280x658.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "after-assisi-valley-7240-night-1280x658.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "after-assisi-valley-220-noon-1280x658.png",
+   "pins_or_labels": 6,
+   "overlapping_pairs": 0
+  },
+  {
+   "file": "after-assisi-valley-7240-noon-1280x658.png",
+   "pins_or_labels": 1,
+   "overlapping_pairs": 0
+  }
+ ]
+}

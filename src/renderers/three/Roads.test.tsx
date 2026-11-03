@@ -4,7 +4,8 @@ import type * as THREE from 'three';
 
 import type { Route } from '@/types';
 import { THREE_QUALITY } from './quality';
-import { ROAD_LIFT_M, Roads, RouteLine, routeLine } from './Roads';
+import { ROAD_LIFT_M, ROUTE_LIFT_M, Roads, RouteLine, buildRouteChunks, routeLine } from './Roads';
+import { lodHeightAt } from './terrainMesh';
 import { syntheticSceneWorld } from './syntheticWorld';
 import { ChunkVisibility } from './worldScene';
 
@@ -59,12 +60,39 @@ describe('<Roads> / <RouteLine> (r3f test renderer)', () => {
     expect(line.points[0]).toBeCloseTo(-300, 3);
     expect(line.points[5]).toBeCloseTo(-40, 3);
 
-    const r = await ReactThreeTestRenderer.create(<RouteLine sceneWorld={sw} route={route} />);
-    const mesh = r.scene.instance.getObjectByName('route-line') as THREE.Mesh;
-    expect(mesh).toBeDefined();
-    const pos = mesh.geometry.getAttribute('position');
-    expect(pos.count).toBeGreaterThan(2 * (600 / 2));
-    expect((mesh.material as THREE.Material).transparent).toBe(true);
+    const vis = new ChunkVisibility(sw.chunks.length);
+    const r = await ReactThreeTestRenderer.create(
+      <RouteLine sceneWorld={sw} route={route} visibility={vis} quality={THREE_QUALITY.medium} />,
+    );
+    const group = r.scene.instance.getObjectByName('route-line')!;
+    expect(group).toBeDefined();
+    const pieces = buildRouteChunks(sw, line, { near: THREE_QUALITY.medium.nearStep, far: THREE_QUALITY.medium.farStep });
+    expect(pieces.length).toBeGreaterThan(1);
+    let verts = 0;
+    for (const p of pieces) {
+      const near = group.getObjectByName(`route-line-${p.chunk}-near`) as THREE.Mesh;
+      expect(group.getObjectByName(`route-line-${p.chunk}-far`)).toBeDefined();
+      verts += near.geometry.getAttribute('position').count;
+      expect((near.material as THREE.Material).transparent).toBe(true);
+    }
+    expect(verts).toBeGreaterThan(2 * (600 / 2));
+    // Each piece shows the variant draped on its chunk's current LOD.
+    const i = pieces[0].chunk;
+    await r.advanceFrames(1, 1 / 60);
+    expect(group.getObjectByName(`route-line-${i}-near`)!.visible).toBe(false);
+    expect(group.getObjectByName(`route-line-${i}-far`)!.visible).toBe(true);
+    vis.set(i, true);
+    await r.advanceFrames(1, 1 / 60);
+    expect(group.getObjectByName(`route-line-${i}-near`)!.visible).toBe(true);
+    expect(group.getObjectByName(`route-line-${i}-far`)!.visible).toBe(false);
+    // Far variant lies on the far-LOD triangles, not the bilinear heightfield.
+    const chunk = sw.chunks[i];
+    const pos = pieces[0].far.positions;
+    for (let v = 0; v < pos.length / 3; v += 5) {
+      const x = pos[v * 3] + chunk.centerX;
+      const y = -(pos[v * 3 + 2] + chunk.centerZ);
+      expect(pos[v * 3 + 1]).toBeCloseTo(lodHeightAt(sw.heightfield, chunk, THREE_QUALITY.medium.farStep, x, y) + ROUTE_LIFT_M, 3);
+    }
     await r.unmount();
   });
 });

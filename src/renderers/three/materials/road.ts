@@ -15,6 +15,8 @@ export interface RoadMaterialOptions {
   bias?: number;
   /** Extra pull per metre of distance. */
   biasPerM?: number;
+  /** Most the ribbon is ever pulled, metres (keep it under the bake's building clearance). */
+  maxPull?: number;
   opacity?: number;
   /** Self-lit share (route line reads at distance). */
   emissive?: THREE.ColorRepresentation;
@@ -38,6 +40,7 @@ export function createRoadMaterial(opts: RoadMaterialOptions = {}): THREE.MeshSt
   const uniforms = {
     uBias: { value: opts.bias ?? 0.08 },
     uBiasPerM: { value: opts.biasPerM ?? 0.0016 },
+    uMaxPull: { value: opts.maxPull ?? 1e6 },
   };
   const plain = opts.plain ? 1 : 0;
   const onShader = (shader: THREE.WebGLProgramParametersWithUniforms) => {
@@ -48,6 +51,7 @@ export function createRoadMaterial(opts: RoadMaterialOptions = {}): THREE.MeshSt
         `#include <common>
 uniform float uBias;
 uniform float uBiasPerM;
+uniform float uMaxPull;
 attribute float marking;
 varying vec2 vRoadUv;
 varying float vRoadMark;`,
@@ -59,7 +63,7 @@ varying float vRoadMark;`,
   vRoadMark = marking;
   {
     float d = length(mvPosition.xyz);
-    float pull = min(d * 0.5, uBias + d * uBiasPerM);
+    float pull = min(min(d * 0.5, uBias + d * uBiasPerM), uMaxPull);
     mvPosition.xyz *= (d - pull) / max(d, 1e-4);
     gl_Position = projectionMatrix * mvPosition;
   }`,

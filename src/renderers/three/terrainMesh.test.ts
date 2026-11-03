@@ -8,6 +8,7 @@ import {
   buildChunkGeometry,
   chunkLod,
   distanceToChunk,
+  lodHeightAt,
   meshHeightAt,
   planChunks,
   sampledNodes,
@@ -103,6 +104,30 @@ describe('terrain chunking', () => {
     }
     const [nx, ny] = hf.nodePosition(12, 7);
     expect(meshHeightAt(hf, nx, -ny)).toBeCloseTo(hf.nodeHeight(12, 7), 6);
+  });
+
+  it('lodHeightAt is exactly the drawn triangles at every LOD step', () => {
+    for (const step of [1, 2, 4, 8]) {
+      for (const chunk of [chunks[0], chunks[9], chunks.at(-1)!]) {
+        const g = buildChunkGeometry(hf, chunk, step);
+        const tris = (g.cols - 1) * (g.rows - 1) * 2;
+        for (let t = 0; t < tris; t += 3) {
+          // Points inside each triangle (barycentric), height from its three vertices.
+          for (const [wa, wb, wc] of [[1 / 3, 1 / 3, 1 / 3], [0.7, 0.2, 0.1], [0.1, 0.1, 0.8]]) {
+            const [a, b, c] = [g.indices[t * 3], g.indices[t * 3 + 1], g.indices[t * 3 + 2]];
+            const at = (k: number) => g.positions[a * 3 + k] * wa + g.positions[b * 3 + k] * wb + g.positions[c * 3 + k] * wc;
+            const x = at(0) + chunk.centerX;
+            const y = -(at(2) + chunk.centerZ);
+            expect(lodHeightAt(hf, chunk, step, x, y)).toBeCloseTo(at(1), 3);
+          }
+        }
+      }
+    }
+    // Step 1 agrees with the near-mesh helper.
+    expect(lodHeightAt(hf, chunks[0], 1, chunks[0].centerX + 3.3, -chunks[0].centerZ - 2.1)).toBeCloseTo(
+      meshHeightAt(hf, chunks[0].centerX + 3.3, chunks[0].centerZ + 2.1),
+      6,
+    );
   });
 
   it('picks near within the radius, with hysteresis on the way out', () => {
