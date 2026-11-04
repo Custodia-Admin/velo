@@ -1,8 +1,8 @@
 # Velo v2 visual identity — "warm atlas"
 
-Status: **proposal, waiting for Federico's sign-off** (P1.5 design gate). Nothing
-here is applied to `src/` yet. P2.4 applies the tokens and builds the screens;
-every P2 UI packet waits for sign-off on this direction.
+Status: **signed off by Federico on 1 Nov 2026** (P1.5 design gate, PR #22:
+"omg they look so good!!! Let's do it"). Nothing here is applied to `src/`
+yet. P2.4 applies the tokens and builds the screens.
 
 Mockups: `docs/design/mockups/v2-{home,ride-hud,devices,show,finish}.html` (open
 any of them in Chrome; add `?theme=night` for the night theme; a window
