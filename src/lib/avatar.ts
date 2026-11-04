@@ -1552,6 +1552,14 @@ export function followGround(current: number | null, target: number, dt: number)
 
 /** Highest a mesh reading may sit over the bare terrain (or the route) and be the road. */
 export const MESH_OVER_TERRAIN_MAX_M = 60;
+/**
+ * Lowest a mesh reading may sit under the route's own elevation and be the
+ * road. Below that it is a coarse tile's chord: at the Lugano–Melide start the
+ * mesh read −27 979 m for ~4 s while only the root tiles were selected (the
+ * street is at 322 m); taken as the road, it hid the globe and the rider stood
+ * over nothing drawn at all.
+ */
+export const MESH_UNDER_ROUTE_MAX_M = 60;
 /** A mesh reading may rise this much over the last road reading … */
 export const OVERHANG_RISE_M = 1.5;
 /** … plus this grade times the distance since; more is something over the road. */
@@ -1578,8 +1586,9 @@ function metresBetween(lon: number, lat: number, fromLon: number, fromLat: numbe
  * - 'road': the mesh road, taken;
  * - 'overhang': mesh is there, but something stands over the road (canopy,
  *   viaduct deck); the rider keeps the road it has;
- * - 'coarse': only a coarse tile far over the ground (one sat 610 m up for
- *   ~4 s at the Cuyahoga start); not the road;
+ * - 'coarse': only a coarse tile far over or under the ground (one sat 610 m
+ *   up for ~4 s at the Cuyahoga start, the root tile's chord 28 km under the
+ *   Lugano shore); not the road;
  * - 'none': no mesh tile under the rider.
  */
 export type MeshRoadStatus = 'road' | 'overhang' | 'coarse' | 'none';
@@ -1602,8 +1611,8 @@ export function createMeshRoadFilter() {
   return {
     /**
      * The road height from one reading (undefined: no mesh road here, the
-     * globe decides). `ceiling`: highest plausible road height here;
-     * `readAt(lon, lat)` re-reads the mesh now at another spot.
+     * globe decides). `ceiling` / `floor`: highest / lowest plausible road
+     * height here; `readAt(lon, lat)` re-reads the mesh now at another spot.
      */
     next(
       reading: number | undefined,
@@ -1611,12 +1620,13 @@ export function createMeshRoadFilter() {
       lat: number,
       ceiling: number,
       readAt: (lon: number, lat: number) => number | undefined,
+      floor = -Infinity,
     ): number | undefined {
       if (reading === undefined || !Number.isFinite(reading)) {
         status = 'none';
         return undefined;
       }
-      if (reading > ceiling) {
+      if (reading > ceiling || reading < floor) {
         status = 'coarse';
         return base;
       }
@@ -1703,7 +1713,7 @@ export function createGroundSampler(scene: Cesium.Scene) {
         // tiles stop refining, and with them the terrain reading here.
         const held = road.road();
         const floor = held !== undefined ? Math.max(terrain, held) : terrain;
-        last = road.next(meshAt(lon, lat), lon, lat, floor + MESH_OVER_TERRAIN_MAX_M, meshAt);
+        last = road.next(meshAt(lon, lat), lon, lat, floor + MESH_OVER_TERRAIN_MAX_M, meshAt, expect - MESH_UNDER_ROUTE_MAX_M);
         const status = road.status();
         onMesh = status === 'road' || status === 'overhang';
         // No mesh road here: keep the road the rider is on while the globe is

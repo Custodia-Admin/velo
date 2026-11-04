@@ -269,6 +269,32 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     expect(sampler.meshGround()).toBe(false);
   });
 
+  it("the root tile's chord far under the route is not mesh ground: the globe stays (Lugano–Melide start)", async () => {
+    setIonToken('eyJ_test');
+    // Measured at the start: the mesh read −27 979 m for ~4 s (only root
+    // tiles selected), the globe a coarse 1 257 m, the street 321.6 m.
+    let reading: number | undefined = -27_979.09;
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => reading);
+    const g: GlobeOpts = { height: 1_257.6 };
+    const { s, globe } = scene(tileset, g);
+    globe.getHeight.mockImplementation(() => g.height);
+    const sampler = createGroundSampler(s);
+    sampler.sample(lon, lat(0), 322, 0);
+    expect(sampler.meshGround()).toBe(false);
+    // The finer tiles land: the street is the mesh ground.
+    reading = 321.6;
+    g.height = 355.1;
+    sampler.sample(lon, lat(0), 322, GROUND_SAMPLE_INTERVAL_MS);
+    expect(sampler.meshGround()).toBe(true);
+    // Globe hidden, a jump onto the chord again: not mesh ground (the gate
+    // brings the globe back), and the rider keeps the street meanwhile.
+    globe.show = false;
+    reading = -27_979.09;
+    expect(sampler.sample(lon, lat(4), 322, 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(321.6, 6);
+    expect(sampler.meshGround()).toBe(false);
+  });
+
   it("the filter's status names each reading", () => {
     const f = createMeshRoadFilter();
     const none = () => undefined;
@@ -279,6 +305,9 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     f.next(320, lon, lat(2), 400, () => 300);
     expect(f.status()).toBe('overhang');
     f.next(900, lon, lat(4), 400, none);
+    expect(f.status()).toBe('coarse');
+    // The root tile's chord, 28 km under the Lugano shore: coarse too, the road kept.
+    expect(f.next(-27_979, lon, lat(5), 400, none, 262)).toBe(300);
     expect(f.status()).toBe('coarse');
     f.next(undefined, lon, lat(6), 400, none);
     expect(f.status()).toBe('none');
