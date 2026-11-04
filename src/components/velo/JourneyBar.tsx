@@ -6,7 +6,10 @@
  *
  * In a window narrower than sm (the corner size) the next landmark moves to
  * its own pill at the top left (`JourneyLandmark`), so the bar stays one row.
- * Same numbers as the show strip (`useShowRideNumbers`).
+ * The window is never narrower than lib/show/pip PIP_MIN_WIDTH.corner
+ * (448 px), where the figures and Pause fit at h:mm:ss; below xs (475 px) the
+ * gaps tighten from 6 to 4 to keep a margin. Same numbers as the show strip
+ * (`useShowRideNumbers`).
  */
 
 import { Flag } from 'lucide-react';
@@ -27,7 +30,7 @@ export function JourneyBar({ numbers, className }: { numbers?: ShowRideNumbers; 
     <section
       aria-label="Ride numbers"
       data-testid="journey-bar"
-      className={cn(HUD_PANEL, 'pointer-events-auto relative flex items-center gap-6 overflow-hidden py-2 pl-4 pr-2', className)}
+      className={cn(HUD_PANEL, 'pointer-events-auto relative flex items-center gap-4 overflow-hidden py-2 pl-4 pr-2 xs:gap-6', className)}
     >
       <svg
         className="absolute inset-x-0 top-0 block h-1 w-full text-primary"
@@ -39,7 +42,7 @@ export function JourneyBar({ numbers, className }: { numbers?: ShowRideNumbers; 
         <rect width={TRACK_W} height="4" className="fill-hud-foreground/10" />
         <rect width={Math.round(n.progress * TRACK_W)} height="4" fill="currentColor" />
       </svg>
-      <div className="flex shrink-0 gap-6">
+      <div className="flex shrink-0 gap-4 xs:gap-6">
         <Figure size="large" value={n.time} label="Time" ariaLabel={`Time: ${n.time}`} />
         <Figure size="large" value={n.distanceValue} unit={n.distanceUnit} label="Distance" ariaLabel={n.distanceAria} />
         <Figure size="large" value={n.gradeText} unit="%" label="Grade" ariaLabel={`Grade: ${n.gradeText} %`} />

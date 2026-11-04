@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import type { CameraMode } from '@/lib/cesiumCameras';
 import { pickVideoFolderFiles, pickVideos } from '@/lib/show/pickVideos';
 import { canRideOverAnything } from '@/lib/show/pip';
-import { continueLastShow, planContinue } from '@/lib/show/continueShow';
+import { continueLastShow, planContinue, type ContinueFailure } from '@/lib/show/continueShow';
 import {
   canPickFolder,
   canUseFilePicker,
@@ -185,12 +185,35 @@ function continueLabel(lib: RememberedLibrary | null): string | null {
   return lib.kind === 'folder' ? `Play ${lib.dir.name}` : null;
 }
 
+/**
+ * Why "Continue" couldn't carry on, in one true sentence (UI-RULES §8); the
+ * chooser makes the matching pick button the one action next to it.
+ */
+export function continueFailureText(reason: ContinueFailure, lib: RememberedLibrary | null): string {
+  const folder = lib?.kind === 'folder' ? lib.dir.name : null;
+  switch (reason) {
+    case 'done':
+      return 'You have watched everything from last time. Choose something new.';
+    case 'denied':
+      return folder
+        ? `Chrome didn’t allow Velo to open the folder “${folder}”. Choose it again to watch.`
+        : 'Chrome didn’t allow Velo to open last time’s videos. Choose them again to watch.';
+    case 'missing':
+      return folder
+        ? `The folder “${folder}” has moved, or has no videos Chrome can play now. Choose a folder.`
+        : 'Last time’s videos have moved or been deleted. Choose them again.';
+    case 'none':
+    default:
+      return 'Velo can’t reopen last time’s videos on this device. Choose them again.';
+  }
+}
+
 function ShowChooser() {
   const endShow = useShowStore((s) => s.endShow);
   const usePip = useShowStore((s) => s.usePip);
   const { choose, chooseFolder, error } = useChoose();
   const [library, setLibrary] = useState<RememberedLibrary | null>(null);
-  const [nothingLeft, setNothingLeft] = useState(false);
+  const [failure, setFailure] = useState<ContinueFailure | null>(null);
   const [canFolder] = useState(() => canPickFolder());
   const [canFloat] = useState(() => canRideOverAnything());
   const [resume] = useState(() => latestResume());
@@ -205,12 +228,19 @@ function ShowChooser() {
   }, []);
 
   const label = continueLabel(library);
+  const canContinue = !!label && !failure;
+  // After a failed Continue the way on is to choose again: the folder, when last time was a folder.
+  const primary: 'continue' | 'files' | 'folder' = canContinue
+    ? 'continue'
+    : failure && library?.kind === 'folder' && canFolder
+      ? 'folder'
+      : 'files';
 
   const onContinue = async () => {
     // A click: Chrome may ask once to allow access again (a small prompt, not a picker).
-    const plan = await continueLastShow({ ask: true });
-    if (plan) await choose(plan.files, { startKey: plan.startKey });
-    else setNothingLeft(true);
+    const result = await continueLastShow({ ask: true });
+    if (result.ok) await choose(result.plan.files, { startKey: result.plan.startKey });
+    else setFailure(result.reason);
   };
 
   return (
@@ -225,8 +255,18 @@ function ShowChooser() {
         Pick videos saved on this device. Choose several, or a folder, to play them in order. The ride keeps
         recording underneath.
       </p>
+      {failure && (
+        <p
+          role={failure === 'done' ? 'status' : 'alert'}
+          data-testid="show-continue-failure"
+          data-reason={failure}
+          className={cn('max-w-prose text-sm', failure === 'done' ? 'text-muted-foreground' : 'font-medium text-destructive')}
+        >
+          {continueFailureText(failure, library)}
+        </p>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        {label && !nothingLeft && (
+        {canContinue && (
           <Button
             size="lg"
             variant="primary"
@@ -238,20 +278,22 @@ function ShowChooser() {
             {label}
           </Button>
         )}
-        <Button size="lg" variant={label && !nothingLeft ? 'outline' : 'primary'} onClick={() => void choose()}>
+        <Button size="lg" variant={primary === 'files' ? 'primary' : 'outline'} onClick={() => void choose()}>
           <Film className="h-5 w-5" aria-hidden="true" />
           Choose videos
         </Button>
         {canFolder && (
-          <Button size="lg" variant="outline" onClick={() => void chooseFolder()} data-testid="show-choose-folder">
+          <Button
+            size="lg"
+            variant={primary === 'folder' ? 'primary' : 'outline'}
+            onClick={() => void chooseFolder()}
+            data-testid="show-choose-folder"
+          >
             <FolderOpen className="h-5 w-5" aria-hidden="true" />
             Choose a folder
           </Button>
         )}
       </div>
-      {nothingLeft && (
-        <p className="text-sm text-muted-foreground">You have watched everything from last time. Choose something new.</p>
-      )}
       {resume && !label && (
         <p className="text-sm text-muted-foreground">
           Pick “{resume.name}” again to carry on from {formatClock(resume.positionS)}.

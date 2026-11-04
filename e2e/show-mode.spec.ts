@@ -18,8 +18,15 @@
  * the tab's event loop, so the tab hangs until it is released), forces its
  * viewport onto the PiP window, and turns off Chrome's background
  * throttling and focus handling, which is the behaviour under test.
- * Window sizes are pinned in pip.test.ts instead: under xvfb, with no
- * window manager, Chrome ignores the requested size.
+ * Under xvfb, with no window manager, Chrome ignores the requested window
+ * size, so the spec sets the window's bounds itself as a window manager would.
+ *
+ * The second test is the owner's laptop: a 1280 CSS px wide screen at device
+ * pixel ratio 2 (Chrome on a 2560x1600 panel at scale 2; CI's xvfb screen is
+ * 2560x1600). At every size Velo asks for there, the world fills the window
+ * (r3f left a canvas from another window at its buffer size: 1.5x the window
+ * at DPR 2), the rider sits above the bar, and the bar's figures and Pause fit
+ * even with the widest figures (review of PR #36 @bbe04db, D1/D2).
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
@@ -27,6 +34,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium, expect, test } from '@playwright/test';
+import { PIP_SIZES, pipWindowSize } from '../src/lib/show/pip';
 
 // velo.debug.three: the renderer's scene handle (window.__veloThree), see below.
 const INIT = `
@@ -227,10 +235,12 @@ test.afterEach(async () => {
   if (profile) rmSync(profile, { recursive: true, force: true, maxRetries: 5 });
 });
 
-test('the ride floats in a picture-in-picture window and keeps riding and recording in a hidden tab', async ({ baseURL }) => {
-  // The world loads twice (tab, then window) and back on software GL.
-  test.setTimeout(480_000);
-  // ---- A real headed Chrome on Chrome's own defaults (background throttling on) ----
+/**
+ * A real headed Chrome on Chrome's own defaults (background throttling on),
+ * driven over the DevTools protocol; its first tab, with the init script and
+ * an error log.
+ */
+async function startChrome(extraArgs: string[]) {
   profile = mkdtempSync(join(tmpdir(), 'velo-show-mode-'));
   proc = spawn(
     process.env.PW_CHROMIUM || chromium.executablePath(),
@@ -241,9 +251,9 @@ test('the ride floats in a picture-in-picture window and keeps riding and record
       '--no-default-browser-check',
       '--no-sandbox',
       '--password-store=basic',
-      '--window-size=1440,1000',
       // Two windows composited by software GL crawl; composite on the CPU (WebGL stays on GL).
       '--disable-gpu-compositing',
+      ...extraArgs,
       ...GL_ARGS,
       'about:blank',
     ],
@@ -282,30 +292,35 @@ test('the ride floats in a picture-in-picture window and keeps riding and record
       window.addEventListener('error', (e) => window.__errors.push(String(e.message)));
       window.addEventListener('unhandledrejection', (e) => window.__errors.push(String(e.reason)));`,
   });
-  await page.cdp.send('Page.navigate', { url: `${baseURL}/app` });
-  await poll(() => page.eval<string>('document.readyState'), (s) => s === 'complete', 30_000, 'Home to load');
+  return { browser, page, consoleLines };
+}
 
-  expect(await page.eval<boolean>(`'documentPictureInPicture' in window`), 'Document Picture-in-Picture (Chrome/Edge 116+)').toBe(true);
+/**
+ * Software GL (SwiftShader on a CI runner, no GPU) needs up to seconds per
+ * frame of the world. That stalls the page (a click's user activation can
+ * expire before its handler runs) and the frame pipeline whatever the tab
+ * state, which says nothing about throttling or layout. So the scene is
+ * switched off around the clicks and the measurements (window.__veloThree,
+ * the renderer's debug handle): the window, the renderer's frame loop, the
+ * camera, the ride loop and recording all still run, with an empty frame to
+ * draw. On a real GPU none of this is needed.
+ */
+const sceneOffIn = (page: Tab) => () =>
+  page.eval<boolean>(`(() => { if (window.__veloThree) window.__veloThree.scene.visible = false; return !!window.__veloThree; })()`);
 
-  // ---- Perugia (the baked world renderer, no token) ----
+/** Home → Perugia (the baked world renderer, no token) → riding, scene off. */
+async function ridePerugia(page: Tab) {
   await page.click(
     `(${visible('[data-scenic-route="scenic-perugia-tiber-park"]')}) || (${button('Ride Tiber river park')})`,
     'the Perugia route',
   );
+  // Scene off first: at DPR 2 software GL draws a 2560 px wide frame in seconds.
+  await poll(sceneOffIn(page), (v) => v, 90_000, 'the renderer handle');
   await poll(() => page.probe(), (p) => (p?.distance ?? 0) > 5, 90_000, 'the ride to move');
+}
 
-  // Software GL (SwiftShader on a CI runner, no GPU) needs up to seconds per
-  // frame of the world. That stalls the page (a click's user activation can
-  // expire before its handler runs) and the frame pipeline whatever the tab
-  // state, which says nothing about throttling. So the scene is switched off
-  // around the clicks and the measurement (window.__veloThree, the
-  // renderer's debug handle): the window, the renderer's frame loop, the ride
-  // loop and recording all still run, with an empty frame to draw. On a real
-  // GPU none of this is needed.
-  const sceneOff = () => page.eval(`(() => { if (window.__veloThree) window.__veloThree.scene.visible = false; return !!window.__veloThree; })()`);
-  await poll(sceneOff, (v) => v, 30_000, 'the renderer handle');
-
-  // ---- Show mode, then float the ride over "another tab" ----
+/** Show mode, then "Watch another tab": the ride in its floating window, its world loaded. */
+async function floatTheRide(page: Tab, consoleLines: string[]) {
   await page.click(button(/^Show ride details/), 'ride details');
   await page.click(button('Watch a show while you ride'), 'show mode');
   // A click opens the window (Chrome needs the user activation). Under xvfb
@@ -326,6 +341,21 @@ test('the ride floats in a picture-in-picture window and keeps riding and record
   } catch (err) {
     throw new Error(`${err}\npage console:\n${consoleLines.filter((l) => !l.includes('THREE.')).join('\n')}`);
   }
+}
+
+test('the ride floats in a picture-in-picture window and keeps riding and recording in a hidden tab', async ({ baseURL }) => {
+  // The world loads twice (tab, then window) and back on software GL.
+  test.setTimeout(480_000);
+  const { browser, page, consoleLines } = await startChrome(['--window-size=1440,1000']);
+  await page.cdp.send('Page.navigate', { url: `${baseURL}/app` });
+  await poll(() => page.eval<string>('document.readyState'), (s) => s === 'complete', 30_000, 'Home to load');
+
+  expect(await page.eval<boolean>(`'documentPictureInPicture' in window`), 'Document Picture-in-Picture (Chrome/Edge 116+)').toBe(true);
+
+  // ---- Perugia, then show mode and the ride floating over "another tab" ----
+  await ridePerugia(page);
+  const sceneOff = sceneOffIn(page);
+  await floatTheRide(page, consoleLines);
   // Corner size. Under xvfb (no window manager) Chrome opens the window at
   // nearly full size whatever was asked; set its bounds as a window manager would.
   const { targetInfos } = await browser.send<{ targetInfos: { targetId: string; openerId?: string }[] }>('Target.getTargets');
@@ -445,7 +475,7 @@ test('the ride floats in a picture-in-picture window and keeps riding and record
   })()`);
   await page.click(button('Close show mode'), 'Close show mode');
   await page.click(button('Finish ride'), 'Finish ride');
-  await page.click(button('Download FIT'), 'Download FIT');
+  await page.click(button('Save .FIT'), 'Save .FIT');
   const b64 = await poll(
     () =>
       page.eval<string | null>(`(async () => {
@@ -465,5 +495,124 @@ test('the ride floats in a picture-in-picture window and keeps riding and record
   const whileHidden = times.filter((t) => t >= hiddenFrom - 1000 && t <= hiddenTo + 1000);
   expect(whileHidden.length, 'FIT records while the tab was hidden').toBeGreaterThanOrEqual(hidden.samples);
 
+  expect(await page.eval<string[]>('window.__errors')).toEqual([]);
+});
+
+/** The floating window's geometry, read from the tab (the window shares its event loop). */
+const PIP_GEOMETRY = `(() => {
+  const w = documentPictureInPicture.window;
+  const d = w.document;
+  const box = (e) => { const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height, r: b.right, b: b.bottom }; };
+  const root = d.querySelector('[data-testid="pip-ride"]');
+  const canvas = root.querySelector('canvas');
+  const bar = d.querySelector('[data-testid="journey-bar"]');
+  const pause = bar.querySelector('button');
+  const shown = (e) => e.getBoundingClientRect().width > 0 && e.checkVisibility();
+  const top = [...root.querySelectorAll('[role=radiogroup], [aria-label="Back to the Velo tab"], [data-testid=journey-next]')].filter(shown);
+  const bottom = [...bar.parentElement.children].filter(shown);
+  const fits = () => ({ scrollW: bar.scrollWidth, clientW: bar.clientWidth, pause: box(pause), bar: box(bar) });
+  const out = {
+    inner: [w.innerWidth, w.innerHeight],
+    canvas: canvas ? box(canvas) : null,
+    topBottom: Math.max(0, ...top.map((e) => e.getBoundingClientRect().bottom)),
+    barTop: Math.min(...bottom.map((e) => e.getBoundingClientRect().top)),
+    figures: [...bar.querySelectorAll('.num')].map((e) => parseFloat(w.getComputedStyle(e).fontSize)),
+    now: fits(),
+  };
+  // The widest figures a ride gets to: over an hour, a two-digit km, a steep descent.
+  const nums = [...bar.querySelectorAll('.num')];
+  const was = nums.map((e) => [...e.childNodes].find((n) => n.nodeType === 3));
+  const texts = was.map((n) => n && n.nodeValue);
+  ['1:18:05', '42.2', '-12.5'].forEach((t, i) => { if (was[i]) was[i].nodeValue = t; });
+  out.widest = fits();
+  was.forEach((n, i) => { if (n) n.nodeValue = texts[i]; });
+  return out;
+})()`;
+
+test("at DPR 2 on a 1280-wide laptop screen the world fills the floating window and the bar fits at every size", async ({ baseURL }) => {
+  test.setTimeout(480_000);
+  const { browser, page, consoleLines } = await startChrome(['--force-device-scale-factor=2', '--window-size=1280,720']);
+  await page.cdp.send('Page.navigate', { url: `${baseURL}/app` });
+  await poll(() => page.eval<string>('document.readyState'), (s) => s === 'complete', 30_000, 'Home to load');
+  const [availWidth, availHeight, dpr] = await page.eval<[number, number, number]>('[screen.availWidth, screen.availHeight, devicePixelRatio]');
+  // The owner's laptop: 1280 CSS px wide at DPR 2 (needs an xvfb screen 2560 px wide).
+  expect(dpr, 'device pixel ratio').toBe(2);
+  expect(availWidth, 'screen width in CSS px (xvfb -screen 0 2560x1600x24)').toBe(1280);
+  expect(await page.eval<boolean>(`'documentPictureInPicture' in window`)).toBe(true);
+
+  await ridePerugia(page);
+  await floatTheRide(page, consoleLines);
+  await poll(
+    () => page.eval<string | null>(`documentPictureInPicture.window.document.querySelector('[data-world-status]')?.getAttribute('data-world-status') ?? null`),
+    (v) => v === 'ready',
+    90_000,
+    'the world in the window',
+  );
+  await poll(sceneOffIn(page), (v) => v, 30_000, 'the renderer handle in the window');
+
+  const { targetInfos } = await browser.send<{ targetInfos: { targetId: string; openerId?: string }[] }>('Target.getTargets');
+  const pipTarget = targetInfos.find((t) => t.openerId === page.targetId)!;
+  const { windowId } = await browser.send<{ windowId: number }>('Browser.getWindowForTarget', { targetId: pipTarget.targetId });
+  const inner = () => page.eval<[number, number]>('[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]');
+
+  for (const size of PIP_SIZES) {
+    const asked = pipWindowSize(size, { availWidth, availHeight });
+    // No window manager under xvfb: size the window as one would (outer = inner + frame).
+    await browser.send('Browser.setWindowBounds', { windowId, bounds: { left: 40, top: 40, width: asked.width, height: asked.height } });
+    await sleep(300);
+    const [iw, ih] = await inner();
+    await browser.send('Browser.setWindowBounds', {
+      windowId,
+      bounds: { width: asked.width + (asked.width - iw), height: asked.height + (asked.height - ih) },
+    });
+    // Chrome caps a picture-in-picture window's size; measure what it gave.
+    const got = await poll(inner, ([w, h]) => Math.abs(w - asked.width) <= 2 && Math.abs(h - asked.height) <= 2, 5_000, `${size} ${asked.width}x${asked.height}`).catch(inner);
+    // A few frames for r3f to resize and the camera to frame above the bar.
+    await sleep(1_500);
+    const g = await page.eval<{
+      inner: [number, number];
+      canvas: { w: number; h: number; x: number; y: number } | null;
+      topBottom: number;
+      barTop: number;
+      figures: number[];
+      now: { scrollW: number; clientW: number; pause: { x: number; y: number; r: number; b: number }; bar: { r: number } };
+      widest: { scrollW: number; clientW: number; pause: { r: number }; bar: { r: number } };
+    }>(PIP_GEOMETRY);
+    // Show mode's director films the ride. Its POV shot is from the rider's
+    // head (no rider in frame): wait for another shot (each lasts 20-40 s).
+    const rider = await poll(
+      () =>
+        page.eval<{ canvas: [number, number]; riderScreen: [number, number] | null; cameraFromRider: number } | null>(`(() => {
+          const d = window.__veloRideDebug && window.__veloRideDebug();
+          const t = window.__veloThree;
+          if (!d || !t || !d.riderXZ) return null;
+          const c = t.camera.position;
+          return { canvas: d.canvas, riderScreen: d.riderScreen, cameraFromRider: Math.hypot(c.x - d.riderXZ[0], c.z - d.riderXZ[1]) };
+        })()`),
+      (d) => !!d?.riderScreen && d.canvas[0] === g.inner[0] && d.canvas[1] === g.inner[1] && d.cameraFromRider > 3,
+      50_000,
+      `the rider on the ${size} window's canvas`,
+    );
+    const at = `${size}: asked ${asked.width}x${asked.height}, window ${got.join('x')}, ${JSON.stringify({ ...g, rider })}`;
+    // D1: the world fills the window, at its CSS size (not its 1.5x buffer size).
+    expect(g.canvas, at).not.toBeNull();
+    expect(Math.abs(g.canvas!.w - g.inner[0]), at).toBeLessThanOrEqual(1);
+    expect(Math.abs(g.canvas!.h - g.inner[1]), at).toBeLessThanOrEqual(1);
+    expect(g.canvas!.x === 0 && g.canvas!.y === 0, at).toBe(true);
+    // ...so the rider the camera frames above the bar is where it is drawn.
+    expect(rider.canvas, at).toEqual(g.inner);
+    expect(rider.riderScreen![1], at).toBeGreaterThan(g.topBottom);
+    expect(rider.riderScreen![1], at).toBeLessThan(g.barTop);
+    // A clear band for the world between the top controls and the bar.
+    expect(g.barTop - g.topBottom, at).toBeGreaterThanOrEqual(g.inner[1] * 0.45);
+    // D2: the bar fits, Pause inside it and the window, figures at least text-2xl.
+    for (const fit of [g.now, g.widest]) {
+      expect(fit.scrollW, at).toBeLessThanOrEqual(fit.clientW);
+      expect(fit.pause.r, at).toBeLessThanOrEqual(fit.bar.r);
+    }
+    expect(g.now.pause.x >= 0 && g.now.pause.y >= 0 && g.now.pause.r <= g.inner[0] && g.now.pause.b <= g.inner[1], at).toBe(true);
+    for (const px of g.figures) expect(px, at).toBeGreaterThanOrEqual(24);
+    console.info(`show-mode DPR 2: ${size} window ${got.join('x')}: canvas ${g.canvas!.w}x${g.canvas!.h}, rider y ${rider.riderScreen![1]} above bar ${Math.round(g.barTop)}, bar ${g.widest.scrollW}/${g.widest.clientW} px at the widest`);
+  }
   expect(await page.eval<string[]>('window.__errors')).toEqual([]);
 });

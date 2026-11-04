@@ -412,23 +412,49 @@ export async function libraryAllowed(
   return state === 'granted';
 }
 
+/** What re-opening a remembered library found. */
+export interface LibraryRead {
+  /** The playable videos still there, in playback order. */
+  files: File[];
+  /**
+   * Chrome refused read access to at least one of them: the rider said no at
+   * the prompt, or there was no click to ask with (Chrome throws then).
+   */
+  denied: boolean;
+}
+
+/** Permission, with Chrome's refusals (no click behind the request) counted as a no. */
+function allowed(handle: FileSystemHandle, opts: { ask: boolean }): Promise<boolean> {
+  return libraryAllowed(handle, opts).catch(() => false);
+}
+
 /**
  * Re-open a remembered library without a picker. With `ask: false` it only
- * succeeds when access is still granted (no prompt at all).
+ * succeeds when access is still granted (no prompt at all). A folder that
+ * moved, or files that were deleted, come back as no files (not denied).
  */
-export async function filesFromLibrary(lib: RememberedLibrary, { ask }: { ask: boolean }): Promise<File[]> {
+export async function readLibrary(lib: RememberedLibrary, { ask }: { ask: boolean }): Promise<LibraryRead> {
   if (lib.kind === 'folder') {
-    if (!(await libraryAllowed(lib.dir, { ask }))) return [];
-    return videosInFolder(lib.dir);
+    if (!(await allowed(lib.dir, { ask }))) return { files: [], denied: true };
+    try {
+      return { files: await videosInFolder(lib.dir), denied: false };
+    } catch {
+      // The folder moved or was deleted since last time.
+      return { files: [], denied: false };
+    }
   }
   const files: File[] = [];
+  let denied = false;
   for (const h of lib.handles) {
-    if (!(await libraryAllowed(h, { ask }))) continue;
+    if (!(await allowed(h, { ask }))) {
+      denied = true;
+      continue;
+    }
     try {
       files.push(await h.getFile());
     } catch {
       // File moved or deleted since last time: skip it.
     }
   }
-  return sortForPlayback(files.filter(isVideoFile));
+  return { files: sortForPlayback(files.filter(isVideoFile)), denied };
 }

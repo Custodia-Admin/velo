@@ -13,11 +13,25 @@
  *   BASE=http://localhost:5193 xvfb-run -a -s "-screen 0 1920x1080x24" \
  *     node scripts/v2-build-shots/pip.mjs
  *
+ * The owner's laptop (a 1280 CSS px wide screen at device pixel ratio 2, a
+ * 1280x648 tab), with Chrome's real scale factor rather than emulation (an
+ * emulated DPR hid the window's cropped canvas, review of PR #36 @bbe04db):
+ *
+ *   BASE=... LAYOUTS=laptop xvfb-run -a -s "-screen 0 2560x1600x24" \
+ *     node scripts/v2-build-shots/pip.mjs
+ *
+ * GL overrides the WebGL flags (default software GL), e.g. the Arc GPU:
+ *   GL="--use-angle=vulkan --enable-features=Vulkan --enable-gpu --ignore-gpu-blocklist"
+ *
  * Writes, in docs/design/screenshots/v2/build/ (OUT overrides):
  *   pipwin-{corner,third,half}[-night].jpg  the window itself at 480x270,
  *                                           640x360, 960x540 (a 1920 screen)
  *   pip-tab-{1440,390,tv}[-night].jpg       the Velo tab while the ride floats
  *                                           (tv: 1920x1080, html[data-layout=tv])
+ * and with LAYOUTS=laptop:
+ *   pipwin-{corner,third,half}-1280[-night].jpg  the window at 448x252, 512x288,
+ *                                           640x360 asked (Chrome caps L), DPR 2
+ *   pip-tab-1280[-night].jpg                the Velo tab at 1280x648, DPR 2
  * and the mockup's window at the same sizes in ../mockup/pipwin-*.jpg, so
  * compare.py pairs them. Software GL (no GPU in xvfb): the world is drawn,
  * slowly; the shots wait for it.
@@ -37,6 +51,9 @@ const BASE = (process.env.BASE ?? 'http://localhost:5193').replace(/\/$/, '');
 const THEMES = (process.env.THEMES ?? 'day,night').split(',');
 const CHROME = process.env.PW_CHROMIUM ?? '/usr/sbin/chromium';
 const SIZES = { corner: [480, 270], third: [640, 360], half: [960, 540] };
+// pipWindowSize on a 1280x648 screen (pinned in src/lib/show/pip.test.ts).
+const LAPTOP_SIZES = { corner: [448, 252], third: [512, 288], half: [640, 360] };
+const GL_ARGS = (process.env.GL ?? '--use-angle=swiftshader --enable-unsafe-swiftshader').split(/\s+/).filter(Boolean);
 const PINNED_MS = 1793547000000 + 86_400_000; // 2 Nov 2026 16:30 Rome: Today's ride is Assisi valley.
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -182,7 +199,7 @@ const STAGE = `(async () => {
 })()`;
 
 /** The mockup's window document at the build's sizes (served over http, as the mockup script does). */
-async function mockupWindows(browser, devtools) {
+async function mockupWindows(browser, devtools, sizes = SIZES, dpr = 1, tag = '') {
   const root = join(REPO, 'docs/design');
   const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2' };
   const srv = createServer((q, r) => {
@@ -198,14 +215,14 @@ async function mockupWindows(browser, devtools) {
   const cdp = await Cdp.open(t.webSocketDebuggerUrl);
   await cdp.send('Page.enable');
   for (const theme of THEMES) {
-    for (const [size, [w, h]] of Object.entries(SIZES)) {
-      await cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+    for (const [size, [w, h]] of Object.entries(sizes)) {
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: dpr, mobile: false });
       const q = new URLSearchParams({ size });
       if (theme === 'night') q.set('theme', 'night');
       await cdp.send('Page.navigate', { url: `http://127.0.0.1:${port}/mockups/v2-pip-window.html?${q}` });
       await poll(() => evalIn(cdp, 'window.__mockReady === true'), (v) => v, 20_000, 'mockup ready');
       await sleep(300);
-      await saveJpeg(cdp, join(MOCK_OUT, `pipwin-${size}${theme === 'night' ? '-night' : ''}.jpg`));
+      await saveJpeg(cdp, join(MOCK_OUT, `pipwin-${size}${tag}${theme === 'night' ? '-night' : ''}.jpg`));
     }
   }
   cdp.close();
@@ -214,11 +231,13 @@ async function mockupWindows(browser, devtools) {
 }
 
 async function run(theme, layout) {
+  const laptop = layout === 'laptop';
   const profile = mkdtempSync(join(tmpdir(), 'velo-pip-shots-'));
   const proc = spawn(CHROME, [
     `--user-data-dir=${profile}`, '--remote-debugging-port=0', '--no-first-run', '--no-default-browser-check',
-    '--password-store=basic', '--window-size=1920,1080', '--window-position=0,0', '--disable-gpu-compositing',
-    '--use-angle=swiftshader', '--enable-unsafe-swiftshader', 'about:blank',
+    '--password-store=basic', '--window-position=0,0', '--disable-gpu-compositing',
+    ...(laptop ? ['--force-device-scale-factor=2', '--window-size=1280,760'] : ['--window-size=1920,1080']),
+    ...GL_ARGS, 'about:blank',
   ], { stdio: 'ignore' });
   const sockets = [];
   try {
@@ -227,6 +246,7 @@ async function run(theme, layout) {
     const browser = await Cdp.open((await (await fetch(`${devtools}/json/version`)).json()).webSocketDebuggerUrl);
     sockets.push(browser);
     if (theme === THEMES[0] && layout === '1440' && process.env.MOCKUPS !== '0') await mockupWindows(browser, devtools);
+    if (theme === THEMES[0] && laptop && process.env.MOCKUPS !== '0') await mockupWindows(browser, devtools, LAPTOP_SIZES, 2, '-1280');
     const first = (await (await fetch(`${devtools}/json/list`)).json()).find((t) => t.type === 'page');
     await browser.send('Target.activateTarget', { targetId: first.id });
     const page = await Cdp.open(first.webSocketDebuggerUrl);
@@ -234,7 +254,15 @@ async function run(theme, layout) {
     await page.send('Page.enable');
     await page.send('Page.addScriptToEvaluateOnNewDocument', { source: init(theme) });
     const metrics = layout === 'tv' ? { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false } : { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false };
-    await page.send('Emulation.setDeviceMetricsOverride', metrics);
+    if (laptop) {
+      // Chrome's own scale factor (no emulation): size the window so the tab is 1280x648.
+      const { windowId: tabWindow } = await browser.send('Browser.getWindowForTarget', { targetId: first.id });
+      const vp = () => evalIn(page, '[innerWidth, innerHeight, devicePixelRatio, screen.availWidth, screen.availHeight]');
+      const [iw, ih] = await poll(vp, (v) => Array.isArray(v), 10_000, 'the tab');
+      await browser.send('Browser.setWindowBounds', { windowId: tabWindow, bounds: { left: 0, top: 0, width: 1280 + (1280 - iw), height: 760 + (648 - ih) } });
+      const got = await poll(vp, ([w, h]) => w === 1280 && h === 648, 10_000, 'a 1280x648 tab').catch(vp);
+      console.log('  laptop tab [w, h, dpr, availW, availH]', JSON.stringify(got));
+    } else await page.send('Emulation.setDeviceMetricsOverride', metrics);
     await page.send('Page.navigate', { url: `${BASE}/app${layout === 'tv' ? '?layout=tv' : ''}` });
     await poll(() => evalIn(page, 'document.readyState'), (s) => s === 'complete', 60_000, 'Home');
     await click(page, `(${visible('[data-scenic-route="scenic-assisi-valley"]')}) || (${button(/^Ride Assisi/)})`, 'the Assisi route');
@@ -265,37 +293,48 @@ async function run(theme, layout) {
     console.log('  staged', await evalIn(page, STAGE));
     await sleep(Number(process.env.FIRST_SETTLE_S ?? 25) * 1000);
 
-    if (layout === '1440') {
-      for (const [size, [w, h]] of Object.entries(SIZES)) {
+    if (layout === '1440' || laptop) {
+      const [screenW, screenH] = await evalIn(page, '[screen.width, screen.height]');
+      for (const [size, [w, h]] of Object.entries(laptop ? LAPTOP_SIZES : SIZES)) {
         // Window frame (title bar) outside the document: size the window so the document is w x h.
-        await browser.send('Browser.setWindowBounds', { windowId, bounds: { left: 1920 - w - 40, top: 1080 - h - 80, width: w, height: h } });
+        await browser.send('Browser.setWindowBounds', { windowId, bounds: { left: screenW - w - 40, top: screenH - h - 80, width: w, height: h } });
         await sleep(500);
         const [iw, ih] = await evalIn(page, '[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]');
         await browser.send('Browser.setWindowBounds', { windowId, bounds: { width: w + (w - iw), height: h + (h - ih) } });
         await click(pip, `document.querySelector('[data-pip-size=${size}]')`, `size ${size}`).catch(() => {});
         await browser.send('Browser.setWindowBounds', { windowId, bounds: { width: w + (w - iw), height: h + (h - ih) } });
         // Chrome caps a picture-in-picture window's size (half came out 923x518 on a 1920x1080 screen).
-        const got = await poll(() => evalIn(page, '[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]'), ([a, b]) => Math.abs(a - w) <= w * 0.05 && Math.abs(b - h) <= h * 0.05, 15_000, `window ${w}x${h}`);
+        const inner = () => evalIn(page, '[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]');
+        // On the laptop Chrome caps L at 573x318 (asked 640x360): shoot what it gives.
+        const got = await poll(inner, ([a, b]) => Math.abs(a - w) <= w * 0.05 && Math.abs(b - h) <= h * 0.05, 15_000, `window ${w}x${h}`).catch((e) => (laptop ? inner() : Promise.reject(e)));
         if (got[0] !== w) console.log(`  window ${size}: asked ${w}x${h}, Chrome gave ${got[0]}x${got[1]}`);
         console.log('  staged', await evalIn(page, STAGE));
         await sleep(Number(process.env.SETTLE_S ?? 12) * 1000);
-        await saveJpeg(pip, join(OUT, `pipwin-${size}${suffix}.jpg`));
-        const m = await evalIn(page, `(() => { const d = documentPictureInPicture.window.document; const r = (s) => { const e = d.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)]; };
-          return { root: getComputedStyle(d.documentElement).fontSize, bar: r('[data-testid=journey-bar]'), next: [...d.querySelectorAll('[data-testid=journey-next]')].filter((e) => e.checkVisibility()).map((e) => e.textContent),
+        await saveJpeg(pip, join(OUT, `pipwin-${size}${laptop ? '-1280' : ''}${suffix}.jpg`));
+        const m = await evalIn(page, `(() => { const w = documentPictureInPicture.window; const d = w.document; const r = (s) => { const e = d.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)]; };
+          const bar = d.querySelector('[data-testid=journey-bar]');
+          return { window: [w.innerWidth, w.innerHeight, w.devicePixelRatio], canvas: r('[data-testid=pip-ride] canvas'), barScroll: [bar.scrollWidth, bar.clientWidth], pause: r('[data-testid=journey-bar] button'),
+            root: getComputedStyle(d.documentElement).fontSize, bar: r('[data-testid=journey-bar]'), next: [...d.querySelectorAll('[data-testid=journey-next]')].filter((e) => e.checkVisibility()).map((e) => e.textContent),
             fig: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num')).fontSize, label: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num').nextElementSibling).fontSize }; })()`);
         console.log(`  pipwin-${size}${suffix}`, JSON.stringify(m));
       }
     }
     // The tab while the ride floats (1440 / tv; 390 as a phone-width tab).
     // TV: the same tab at 1920x1080 with the TV layout on (html[data-layout=tv], as ?layout=tv sets it).
-    const tabShots = [['1440', metrics], ['390', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true }], ['tv', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false }]];
+    const tabShots = laptop
+      ? [['1280', null]]
+      : [['1440', metrics], ['390', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true }], ['tv', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false }]];
     for (const [vp, mt] of tabShots) {
-      await page.send('Emulation.setDeviceMetricsOverride', mt);
+      if (mt) await page.send('Emulation.setDeviceMetricsOverride', mt);
       await evalIn(page, `(() => { if (${JSON.stringify(vp)} === 'tv') document.documentElement.dataset.layout = 'tv'; else delete document.documentElement.dataset.layout; })()`);
       await sleep(1500);
       await evalIn(page, STAGE);
       await sleep(1500);
       await saveJpeg(page, join(OUT, `pip-tab-${vp}${suffix}.jpg`));
+      const tm = await evalIn(page, `(() => { const r = (s) => [...document.querySelectorAll(s)].filter(${shown}).map((e) => { const b = e.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)]; });
+        return { viewport: [innerWidth, innerHeight, devicePixelRatio], scroll: [document.documentElement.scrollWidth, document.documentElement.clientWidth, document.documentElement.scrollHeight, document.documentElement.clientHeight],
+          notice: r('[data-testid=ride-floating-notice] h2'), action: r('[data-testid=ride-floating-notice] button'), strip: r('[data-testid=show-strip]'), close: r('[aria-label="Close show mode"]') }; })()`);
+      console.log(`  pip-tab-${vp}${suffix}`, JSON.stringify(tm));
     }
   } finally {
     for (const s of sockets) s.close();

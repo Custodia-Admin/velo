@@ -45,7 +45,12 @@ another tab (Netflix, YouTube, anything) or another app on the TV
   does. Elsewhere the panel explains Chrome's own picture-in-picture for a
   video tab instead.
 - Sizes S, M, L: a quarter, a third and half of the screen width, always
-  16:9, at least 320 px wide (`pipWindowSize`). The last size is remembered.
+  16:9 (`pipWindowSize`), and never narrower than the JourneyBar needs at
+  that size: 448 / 512 / 640 px (`PIP_MIN_WIDTH`). The bar's widest figures
+  (1:18:05, 42.2 km, −12.5 %) plus Pause measure 430 px; at the old 320 px
+  floor Pause was cut off on a 1280-wide laptop. So a 1280 screen gets
+  448 / 512 / 640 and a 1920 screen 480 / 640 / 960. The last size is
+  remembered.
   Opening and resizing need a click (Chrome's user-activation rule). Chrome
   caps a picture-in-picture window's size: L came out 923×518 instead of
   960×540 on a 1920×1080 screen (Chromium 153).
@@ -115,3 +120,21 @@ Local video reopens without a picker: on the laptop, choose a folder of
 episodes, watch part of one, finish another, close the browser, reopen Velo,
 start "ride and watch": the right episode plays at the right place without a
 file picker (at most Chrome's one-line permission prompt).
+
+Repeat with several files chosen one by one (not a folder). Velo asks
+Chrome about each file in turn, and only the first ask is sure to have the
+click's user activation. If Chrome's restore prompt doesn't cover them all,
+the later files are refused: the chooser then says "Chrome didn’t allow
+Velo to open last time’s videos" with Choose videos as its one action (or
+plays the ones it could open). Record which of the two happened.
+
+When Continue can't carry on, the chooser says why in one sentence and
+makes the matching pick its one filled button (`continueFailureText` in
+ShowPanel.tsx, reasons from `continueLastShow`):
+
+| Reason | When | Sentence starts |
+| --- | --- | --- |
+| `none` | nothing remembered, or the browser's storage can't be read | "Velo can’t reopen last time’s videos on this device." |
+| `denied` | Chrome refused access (prompt declined, or no click to ask with) | "Chrome didn’t allow Velo to open…" |
+| `missing` | the files or the folder moved, were deleted, or hold no video | "Last time’s videos have moved…" / "The folder … has moved…" |
+| `done` | every video was watched to the end | "You have watched everything from last time." |

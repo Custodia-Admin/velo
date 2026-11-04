@@ -146,15 +146,35 @@ describe('sizes', () => {
   });
 
   it('never narrower than the condensed HUD needs, never taller than 90 % of the screen', () => {
-    expect(pipWindowSize('corner', { availWidth: 1280, availHeight: 800 })).toEqual({ width: PIP_MIN_WIDTH, height: 180 });
+    expect(pipWindowSize('corner', { availWidth: 1024, availHeight: 768 })).toEqual({ width: PIP_MIN_WIDTH.corner, height: 252 });
     // A short, wide screen: the height cap wins and the width follows (16:9).
     const short = pipWindowSize('half', { availWidth: 2400, availHeight: 600 });
     expect(short.height).toBe(540);
     expect(short.width).toBe(960);
     // A screen narrower than the minimum: the window fits the screen.
     expect(pipWindowSize('corner', { availWidth: 300, availHeight: 600 }).width).toBe(300);
-    // Garbage in: sensible defaults.
-    expect(pipWindowSize('third', { availWidth: Number.NaN, availHeight: 0 })).toEqual({ width: 427, height: 240 });
+    // Garbage in: sensible defaults (a 1280 x 720 screen).
+    expect(pipWindowSize('third', { availWidth: Number.NaN, availHeight: 0 })).toEqual({ width: 512, height: 288 });
+  });
+
+  it("the owner's laptop (1280 CSS px wide at DPR 2): three distinct sizes, none too narrow for the bar", () => {
+    // A quarter / third / half of 1280 would be 320 / 427 / 640. At 320 the
+    // JourneyBar needed 355-383 px in a 304 px bar and cut Pause off
+    // (review of PR #36 @bbe04db, D2); the floating window measured the bar
+    // at 430 px with h:mm:ss, a two-digit km and a negative grade.
+    const laptop = { availWidth: 1280, availHeight: 648 };
+    expect(pipWindowSize('corner', laptop)).toEqual({ width: 448, height: 252 });
+    expect(pipWindowSize('third', laptop)).toEqual({ width: 512, height: 288 });
+    expect(pipWindowSize('half', laptop)).toEqual({ width: 640, height: 360 });
+    // The bar inside the corner window (inset 0.5 rem each side at the 16 px root) holds the widest figures.
+    const WIDEST_BAR_PX = 430;
+    for (const s of PIP_SIZES) expect(pipWindowSize(s, laptop).width - 16).toBeGreaterThanOrEqual(WIDEST_BAR_PX);
+    // Sizes only grow: S < M < L on every screen from a small laptop to a 4K TV.
+    for (const availWidth of [1024, 1280, 1366, 1440, 1920, 2560, 3840]) {
+      const [s, m, l] = PIP_SIZES.map((size) => pipWindowSize(size, { availWidth, availHeight: 2000 }).width);
+      expect(s, `at ${availWidth}`).toBeLessThan(m);
+      expect(m, `at ${availWidth}`).toBeLessThan(l);
+    }
   });
 
   it('cycles corner → third → half → corner; validates stored values', () => {

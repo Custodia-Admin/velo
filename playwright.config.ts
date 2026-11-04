@@ -11,7 +11,8 @@ import { defineConfig, devices } from '@playwright/test';
  * headed Chrome (Document Picture-in-Picture has no headless window; use
  * xvfb-run on a server) with Chrome's background throttling left on, so a
  * hidden tab behaves as it does for a rider:
- *   xvfb-run -a npx playwright test --project=show-mode
+ *   xvfb-run -a -s "-screen 0 2560x1600x24" npx playwright test --project=show-mode
+ * (2560 px wide: the second test is a 1280 CSS px screen at DPR 2)
  */
 const PORT = Number(process.env.SMOKE_PORT ?? 4199);
 const glArgs = (process.env.PW_GL_ARGS ?? '--use-angle=swiftshader --enable-unsafe-swiftshader')

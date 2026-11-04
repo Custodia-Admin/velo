@@ -103,3 +103,15 @@ describe('drone camera pose', () => {
     expect(Math.hypot(a.offsetENU.x - b.offsetENU.x, a.offsetENU.y - b.offsetENU.y)).toBeGreaterThan(20);
   });
 });
+
+describe('the photoreal renderer feeds the director the rider’s steering', () => {
+  // Review of PR #36 @bbe04db, I2 (a source pin, as the review allows):
+  // CesiumWorldView can't run in the node test env. The three renderer's
+  // feed is pinned by behaviour in renderers/three/ChaseCamera.test.tsx.
+  it('passes activeSteer() into effectiveCameraMode', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const src = readFileSync(resolve(__dirname, '../../renderers/cesium/CesiumWorldView.tsx'), 'utf8');
+    expect(src).toMatch(/effectiveCameraMode\(\s*useSettingsStore\.getState\(\)\.cameraMode,\s*useShowStore\.getState\(\),\s*\{[^}]*steer: activeSteer\(\)\s*\}/);
+  });
+});

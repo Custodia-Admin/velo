@@ -32,7 +32,6 @@ import {
   currentRidePip,
   openRidePip,
   PIP_SIZES,
-  PIP_SIZE_LABEL,
   resizeRidePip,
   subscribeRidePip,
   type PipSize,
@@ -158,10 +157,11 @@ function FloatingRide({
 }
 
 const SIZE_LETTER: Record<PipSize, string> = { corner: 'S', third: 'M', half: 'L' };
+// Approximate: a small screen gets wider windows than these shares (pip.ts PIP_MIN_WIDTH).
 const SIZE_ARIA: Record<PipSize, string> = {
-  corner: `${PIP_SIZE_LABEL.corner}: a quarter of the screen`,
-  third: `${PIP_SIZE_LABEL.third} of the screen`,
-  half: `${PIP_SIZE_LABEL.half} the screen`,
+  corner: 'Small window, in a corner',
+  third: 'Medium window, about a third of the screen',
+  half: 'Large window, about half the screen',
 };
 
 function PipSizePicker({ win }: { win: Window }) {

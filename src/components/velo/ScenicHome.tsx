@@ -54,8 +54,9 @@ export function useRideWithShow(): (info: ScenicRouteInfo) => void {
   const ride = useRideScenic();
   return (info) => {
     void (async () => {
-      const plan = await continueLastShow({ ask: true }).catch(() => null);
-      if (plan) {
+      const result = await continueLastShow({ ask: true }).catch(() => null);
+      if (result?.ok) {
+        const { plan } = result;
         useShowStore.getState().loadFiles(plan.files, { startKey: plan.startKey });
         ride(info, { show: true });
         return;

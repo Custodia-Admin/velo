@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { chaseFraming } from '@/lib/world/cameraFraming';
+import { createProjection, type ProjectionParams } from '@/lib/world/projection';
+import type { Route, RoutePoint } from '@/types';
 import type { RigInput } from './chaseRig';
 import {
   applyHudLensShift,
@@ -8,10 +10,12 @@ import {
   hudCoveredPx,
   ORBIT_SHOT,
   SIDE_DOLLY,
+  sceneLandmarks,
   shotTarget,
   type ShotContext,
   type ViewOffsetCamera,
 } from './directorCamera';
+import { syntheticSceneWorld } from './syntheticWorld';
 
 // Rider at the origin heading north (three.js: -z), the route straight on.
 const input: RigInput = {
@@ -118,5 +122,40 @@ describe('HUD lens shift (the floating window frames the rider above its bar)', 
     expect(hudCoveredPx(at('junk'))).toBe(0);
     expect(hudCoveredPx(at('-4'))).toBe(0);
     expect(hudCoveredPx({})).toBe(0);
+  });
+});
+
+describe('sceneLandmarks: what the director can orbit', () => {
+  // Review of PR #36 @bbe04db, I4: sceneLandmarks returning [] left every test green.
+  const params: ProjectionParams = { type: 'tmerc', ellipsoid: 'WGS84', lat0: 43.1107, lon0: 12.3908, k0: 1 };
+  const proj = createProjection(params);
+  const sw = syntheticSceneWorld();
+  const manifest = sw.world.manifest as unknown as Record<string, unknown>;
+  manifest.projection = params;
+  manifest.pois = [
+    { name: 'Rivotorto', kind: 'village', x: 0, y: 60, h: 0, osm: 'node/1' },
+    { name: 'Same stop, further off', kind: 'village', x: 20, y: 190, h: 0, osm: 'node/2' },
+  ];
+  // A straight route west to east along y = 0, a point every 10 m.
+  const points: RoutePoint[] = Array.from({ length: 61 }, (_, i) => {
+    const [lat, lon] = proj.inverse(-300 + i * 10, 0);
+    return { lat, lon, ele: 0, distance: i * 10 } as RoutePoint;
+  });
+  const route = { id: 'synthetic-line', name: 'Line', points, totalDistance: 600 } as Route;
+
+  it('places the manifest POIs the route passes, 10 m above the ground, in three.js coordinates', () => {
+    const lms = sceneLandmarks(route, sw);
+    expect(lms.map((l) => l.name)).toEqual(['Rivotorto']);
+    const [l] = lms;
+    expect(l.distance).toBeCloseTo(300, 0);
+    expect(l.offset).toBeCloseTo(60, 0);
+    expect(l.position.x).toBeCloseTo(0, 6);
+    expect(l.position.z).toBeCloseTo(-60, 6);
+    expect(l.position.y).toBeCloseTo(sw.heightfield.sampleHeight(0, 60) + 10, 6);
+  });
+
+  it('none for a live route or no route', () => {
+    expect(sceneLandmarks({ ...route, isLive: true }, sw)).toEqual([]);
+    expect(sceneLandmarks(null, sw)).toEqual([]);
   });
 });

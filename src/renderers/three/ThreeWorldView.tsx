@@ -31,6 +31,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import type { Route } from '@/types';
 
 import { Buildings, StreetLights } from './Buildings';
+import { fillContainer } from './canvasSize';
 import { ChaseCamera } from './ChaseCamera';
 import { sceneLandmarks } from './directorCamera';
 import { Ghosts } from './Ghosts';
@@ -288,7 +289,8 @@ function DebugHook({
   return null;
 }
 
-function WorldScene({
+/** Exported for tests (ThreeWorldView.test.tsx): what the scene hands its parts. */
+export function WorldScene({
   sceneWorld,
   route,
   quality,
@@ -553,6 +555,8 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
             shadows={quality.shadows}
             dpr={dpr}
             frameloop="always"
+            // In the floating ride window r3f leaves the canvas's CSS size at its buffer size (canvasSize.ts).
+            onCreated={({ gl }) => fillContainer(gl.domElement)}
           >
             <WorldScene
               key={tier}

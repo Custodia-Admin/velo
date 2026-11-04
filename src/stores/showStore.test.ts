@@ -64,6 +64,18 @@ describe('showStore', () => {
     expect(s.index).toBe(0);
   });
 
+  it('starts at the video Continue picked (startKey), else at the first', () => {
+    const files = [file('Ep 10.mp4', 30), file('Ep 2.mp4', 20), file('Ep 3.mp4', 25)];
+    useShowStore.getState().loadFiles(files, { startKey: 'Ep 10.mp4::30' });
+    expect(useShowStore.getState().items[useShowStore.getState().index].title).toBe('Ep 10');
+    expect(useShowStore.getState().index).toBe(2);
+    useShowStore.getState().loadFiles(files, { startKey: 'Ep 3.mp4::25' });
+    expect(useShowStore.getState().index).toBe(1);
+    // A key that is no longer in the list: from the first video.
+    useShowStore.getState().loadFiles(files, { startKey: 'Gone.mp4::1' });
+    expect(useShowStore.getState().index).toBe(0);
+  });
+
   it('ignores an empty pick', () => {
     useShowStore.getState().loadFiles([]);
     expect(useShowStore.getState().source).toBe('none');

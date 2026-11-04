@@ -6,7 +6,8 @@
  * on top of them instead.
  *
  * - The window is the size of a corner (a quarter of the screen width), a
- *   third or a half, always 16:9. Velo opens one window at a time.
+ *   third or a half, always 16:9, and never narrower than the condensed HUD
+ *   needs (PIP_MIN_WIDTH). Velo opens one window at a time.
  * - The page's stylesheets and theme are copied in, so React can render
  *   on-system UI into the window (a portal; see ShowSurface).
  * - While the window is open Chrome keeps the Velo tab running at full rate
@@ -31,16 +32,20 @@ export const PIP_FRACTION: Readonly<Record<PipSize, number>> = {
   half: 0.5,
 };
 
-/** Narrowest window Velo asks for, CSS px (the condensed HUD needs it). */
-export const PIP_MIN_WIDTH = 320;
+/**
+ * Narrowest window Velo asks for at each size, CSS px. The JourneyBar needs
+ * 448 px for its three figures at text-3xl (h:mm:ss, a two-digit km and a
+ * negative grade included) and Pause; the larger sizes stay a step apart on a
+ * small screen. A 1280-wide laptop gets 448, 512 and 640 (a quarter, a third
+ * and a half of it would be 320, 427 and 640: at 320 the bar cut Pause off).
+ */
+export const PIP_MIN_WIDTH: Readonly<Record<PipSize, number>> = {
+  corner: 448,
+  third: 512,
+  half: 640,
+};
 /** Tallest share of the screen a window may take. */
 export const PIP_MAX_HEIGHT_FRACTION = 0.9;
-
-export const PIP_SIZE_LABEL: Readonly<Record<PipSize, string>> = {
-  corner: 'Corner',
-  third: 'Third',
-  half: 'Half',
-};
 
 export function isPipSize(v: unknown): v is PipSize {
   return typeof v === 'string' && (PIP_SIZES as readonly string[]).includes(v);
@@ -96,11 +101,12 @@ export interface ScreenArea {
   availHeight: number;
 }
 
-/** Window size (CSS px) for a size choice on this screen: 16:9, at least PIP_MIN_WIDTH wide. */
+/** Window size (CSS px) for a size choice on this screen: 16:9, at least PIP_MIN_WIDTH[size] wide. */
 export function pipWindowSize(size: PipSize, screen: ScreenArea): { width: number; height: number } {
   const sw = Number.isFinite(screen.availWidth) && screen.availWidth > 0 ? screen.availWidth : 1280;
   const sh = Number.isFinite(screen.availHeight) && screen.availHeight > 0 ? screen.availHeight : 720;
-  let width = Math.max(PIP_MIN_WIDTH, Math.round(sw * (PIP_FRACTION[size] ?? PIP_FRACTION.corner)));
+  const min = PIP_MIN_WIDTH[size] ?? PIP_MIN_WIDTH.corner;
+  let width = Math.max(min, Math.round(sw * (PIP_FRACTION[size] ?? PIP_FRACTION.corner)));
   width = Math.min(width, sw);
   let height = Math.round((width * 9) / 16);
   const maxH = Math.floor(sh * PIP_MAX_HEIGHT_FRACTION);

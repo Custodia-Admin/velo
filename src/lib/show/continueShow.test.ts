@@ -1,13 +1,15 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { continueLastShow, planContinue } from '@/lib/show/continueShow';
 import {
   LAST_WATCHED_KEY,
   fileKey,
   lastWatched,
+  libraryAllowed,
   libraryFromStored,
   libraryName,
   markWatched,
   nextUp,
+  readLibrary,
   saveResume,
   type RememberedLibrary,
 } from '@/lib/show/showLibrary';
@@ -117,42 +119,158 @@ describe('planContinue', () => {
 
 describe('continueLastShow (no picker)', () => {
   const folder = { kind: 'folder', dir: { name: 'Show S01', kind: 'directory' } } as unknown as RememberedLibrary;
+  const got = (files: File[], denied = false) => async () => ({ files, denied });
 
-  it('re-opens the remembered library at the next episode', async () => {
+  it('re-opens the remembered library at the next episode, asking with the click it was given', async () => {
     watched(s01, 1500, 1500, true);
     let asked: boolean | null = null;
-    const plan = await continueLastShow(
+    const result = await continueLastShow(
       { ask: true },
       {
         recall: async () => folder,
         read: async (_lib, o) => {
           asked = o.ask;
-          return [s01, s02, s10];
+          return { files: [s01, s02, s10], denied: false };
         },
         storage: store,
       },
     );
     expect(asked).toBe(true);
-    expect(plan?.startKey).toBe(fileKey(s02));
+    expect(result.ok && result.plan.startKey).toBe(fileKey(s02));
   });
 
-  it('is null when nothing is remembered, access is refused, or the files are gone', async () => {
-    expect(await continueLastShow({ ask: false }, { recall: async () => null, storage: store })).toBeNull();
-    expect(
-      await continueLastShow(
-        { ask: false },
-        {
-          recall: async () => folder,
-          read: async () => {
-            throw new DOMException('denied', 'NotAllowedError');
-          },
-          storage: store,
+  // Review of PR #36 @bbe04db, D4: every failure used to read "You have
+  // watched everything from last time". Each one now says what happened.
+  it("none: nothing remembered, or the browser's storage can't be read", async () => {
+    expect(await continueLastShow({ ask: true }, { recall: async () => null, storage: store })).toEqual({
+      ok: false,
+      reason: 'none',
+      library: null,
+    });
+    const broken = await continueLastShow(
+      { ask: true },
+      {
+        recall: async () => {
+          throw new DOMException('IndexedDB unavailable', 'InvalidStateError');
         },
-      ),
-    ).toBeNull();
-    expect(
-      await continueLastShow({ ask: false }, { recall: async () => folder, read: async () => [], storage: store }),
-    ).toBeNull();
+        storage: store,
+      },
+    );
+    expect(broken).toMatchObject({ ok: false, reason: 'none' });
+  });
+
+  it('denied: Chrome refused access and nothing could be read', async () => {
+    const r = await continueLastShow({ ask: true }, { recall: async () => folder, read: got([], true), storage: store });
+    expect(r).toEqual({ ok: false, reason: 'denied', library: folder });
+  });
+
+  it('missing: the videos or the folder are gone (or the handles no longer read)', async () => {
+    expect(await continueLastShow({ ask: true }, { recall: async () => folder, read: got([]), storage: store })).toMatchObject({
+      ok: false,
+      reason: 'missing',
+    });
+    const thrown = await continueLastShow(
+      { ask: true },
+      {
+        recall: async () => folder,
+        read: async () => {
+          throw new DOMException('gone', 'NotFoundError');
+        },
+        storage: store,
+      },
+    );
+    expect(thrown).toMatchObject({ ok: false, reason: 'missing' });
+  });
+
+  it('done: only when every video was watched to the end', async () => {
+    watched(s10, 1500, 1500, true);
+    const r = await continueLastShow({ ask: true }, { recall: async () => folder, read: got([s01, s02, s10]), storage: store });
+    expect(r).toMatchObject({ ok: false, reason: 'done' });
+    // Some refused but some readable: carry on with what is there.
+    watched(s01, 300, 1500);
+    const partial = await continueLastShow({ ask: true }, { recall: async () => folder, read: got([s01], true), storage: store });
+    expect(partial.ok && partial.plan.startKey).toBe(fileKey(s01));
+  });
+});
+
+/** A remembered handle with Chrome's permission methods (state per call). */
+function handle(
+  name: string,
+  opts: { state?: PermissionState; onAsk?: PermissionState | Error; file?: File | Error } = {},
+) {
+  const request = vi.fn(async () => {
+    if (opts.onAsk instanceof Error) throw opts.onAsk;
+    return opts.onAsk ?? 'granted';
+  });
+  return {
+    kind: 'file' as const,
+    name,
+    queryPermission: vi.fn(async () => opts.state ?? 'granted'),
+    requestPermission: request,
+    getFile: vi.fn(async () => {
+      if (opts.file instanceof Error) throw opts.file;
+      return opts.file ?? ep(name, 100);
+    }),
+  };
+}
+
+describe('re-opening the remembered handles (Chrome permissions)', () => {
+  it('asks Chrome again only with a click (ask), and only when access is not granted already', async () => {
+    const h = handle('a.mp4', { state: 'prompt', onAsk: 'granted' });
+    expect(await libraryAllowed(h as unknown as FileSystemHandle, { ask: false })).toBe(false);
+    expect(h.requestPermission).not.toHaveBeenCalled();
+    expect(await libraryAllowed(h as unknown as FileSystemHandle, { ask: true })).toBe(true);
+    expect(h.requestPermission).toHaveBeenCalledWith({ mode: 'read' });
+    const already = handle('b.mp4', { state: 'granted' });
+    expect(await libraryAllowed(already as unknown as FileSystemHandle, { ask: true })).toBe(true);
+    expect(already.requestPermission).not.toHaveBeenCalled();
+  });
+
+  it('files: refused ones count as denied, deleted ones are skipped; the rest play in order', async () => {
+    const lib = {
+      kind: 'files',
+      handles: [
+        handle('Show S01E10.mp4', { state: 'prompt', onAsk: 'granted' }),
+        handle('Show S01E02.mp4', { state: 'prompt', onAsk: 'denied' }),
+        handle('Show S01E01.mp4', { file: new DOMException('gone', 'NotFoundError') }),
+        handle('Show S01E03.mp4'),
+      ],
+    } as unknown as RememberedLibrary;
+    const read = await readLibrary(lib, { ask: true });
+    expect(read.denied).toBe(true);
+    expect(read.files.map((f) => f.name)).toEqual(['Show S01E03.mp4', 'Show S01E10.mp4']);
+  });
+
+  it("a request Chrome rejects (no click left to ask with) is a refusal, not a crash", async () => {
+    const lib = {
+      kind: 'files',
+      handles: [handle('a.mp4', { state: 'prompt', onAsk: new DOMException('User activation is required', 'SecurityError') })],
+    } as unknown as RememberedLibrary;
+    expect(await readLibrary(lib, { ask: true })).toEqual({ files: [], denied: true });
+  });
+
+  it('folder: refused, moved, or still there', async () => {
+    const dir = (opts: { state?: PermissionState; onAsk?: PermissionState; entries?: unknown[] | Error }) => ({
+      kind: 'directory',
+      name: 'Show S01',
+      queryPermission: vi.fn(async () => opts.state ?? 'granted'),
+      requestPermission: vi.fn(async () => opts.onAsk ?? 'granted'),
+      values: async function* () {
+        if (opts.entries instanceof Error) throw opts.entries;
+        for (const e of opts.entries ?? []) yield e;
+      },
+    });
+    const refused = { kind: 'folder', dir: dir({ state: 'prompt', onAsk: 'denied' }) } as unknown as RememberedLibrary;
+    expect(await readLibrary(refused, { ask: true })).toEqual({ files: [], denied: true });
+    const moved = { kind: 'folder', dir: dir({ entries: new DOMException('gone', 'NotFoundError') }) } as unknown as RememberedLibrary;
+    expect(await readLibrary(moved, { ask: true })).toEqual({ files: [], denied: false });
+    const there = {
+      kind: 'folder',
+      dir: dir({ state: 'prompt', onAsk: 'granted', entries: [handle('Show S01E02.mp4'), handle('Show S01E01.mp4'), handle('notes.txt', { file: new File(['x'], 'notes.txt', { type: 'text/plain' }) })] }),
+    } as unknown as RememberedLibrary;
+    const read = await readLibrary(there, { ask: true });
+    expect(read.denied).toBe(false);
+    expect(read.files.map((f) => f.name)).toEqual(['Show S01E01.mp4', 'Show S01E02.mp4']);
   });
 });
 
