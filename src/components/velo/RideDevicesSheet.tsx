@@ -46,7 +46,7 @@ export function RideDevicesSheet({ className }: { className?: string }) {
     <section
       id="ride-devices-sheet"
       aria-labelledby={titleId}
-      className={cn(DEVICE_PANEL, 'pointer-events-auto animate-scaleIn text-foreground', className)}
+      className={cn(DEVICE_PANEL, 'pointer-events-auto min-h-0 overflow-y-auto animate-scaleIn text-foreground', className)}
       data-testid="ride-devices-sheet"
     >
       <div className="flex items-center justify-between gap-3 py-1 pl-4 pr-1">

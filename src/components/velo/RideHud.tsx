@@ -55,21 +55,25 @@ export function RideHudLayout({
     <div
       className={cn(
         'pointer-events-none absolute hud-inset-b hud-inset-x z-20 flex flex-col items-stretch sm:items-center',
+        // An open devices sheet can be taller than the room above the band
+        // (handlebar legend open): the column then reaches the top inset and
+        // the sheet scrolls inside it instead of running off the screen.
+        devicesOpen && 'hud-inset-t justify-end',
         className,
       )}
       data-testid="ride-hud"
     >
       {/* One group, as wide as the band and centred on the bottom edge from
           sm: details, modes and chip share the band's left edge. */}
-      <div className="flex flex-col items-stretch gap-2 sm:w-max sm:max-w-hud-strip sm:items-start">
+      <div className="flex min-h-0 flex-col items-stretch gap-2 sm:w-max sm:max-w-hud-strip sm:items-start">
         {devicesOpen ? (
           <RideDevicesSheet className="sm:w-96" />
         ) : (
           expanded && <RideDetails {...tools} />
         )}
-        {modes && <div className="flex flex-col gap-2 empty:hidden sm:w-80">{modes}</div>}
-        <RideChip className="self-start" />
-        <RideStrip onExit={tools.onExit} className="sm:self-stretch" />
+        {modes && <div className="flex shrink-0 flex-col gap-2 empty:hidden sm:w-80">{modes}</div>}
+        <RideChip className="shrink-0 self-start" />
+        <RideStrip onExit={tools.onExit} className="shrink-0 sm:self-stretch" />
       </div>
     </div>
   );

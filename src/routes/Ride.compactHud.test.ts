@@ -44,7 +44,10 @@ describe('compact ride HUD: one bottom column', () => {
   it('RideHud is anchored to the bottom edge; only a phone with the details open puts route card + map at the top', () => {
     expect(hudSrc).toContain("'pointer-events-none absolute hud-inset-b hud-inset-x z-20 flex flex-col");
     // Phones: above the band there is no room clear of the rider's wheels.
-    expect(hudSrc.match(/hud-inset-t/g)?.length).toBe(1);
+    // The only other top inset bounds the column while the devices sheet is
+    // open, so a tall sheet scrolls; its content stays bottom-anchored.
+    expect(hudSrc.match(/hud-inset-t/g)?.length).toBe(2);
+    expect(hudSrc).toContain("devicesOpen && 'hud-inset-t justify-end'");
     expect(hudSrc).toContain('fixed hud-inset-t hud-inset-x flex items-start gap-2 sm:contents');
     expect(rideSrc).not.toContain('top-ride-stack');
   });
@@ -97,6 +100,10 @@ describe('compact ride HUD: one bottom column', () => {
     expect(showHudSrc).toContain('<RideChip alertsOnly');
     expect(showHudSrc.indexOf('<RideChip')).toBeLessThan(showHudSrc.indexOf('<ShowRideStrip'));
     expect(showHudSrc).toContain('devicesOpen && <RideDevicesSheet');
+    // A tall devices sheet scrolls inside the screen, chip and strip keep their size.
+    expect(showHudSrc).toContain("devicesOpen && 'show-inset-t justify-end'");
+    expect(showHudSrc).toContain('<RideChip alertsOnly className="shrink-0');
+    expect(showHudSrc).toContain('<ShowRideStrip dimmed={dimmed} className="shrink-0" />');
   });
 });
 

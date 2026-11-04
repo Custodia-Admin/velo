@@ -23,12 +23,14 @@ export function ShowHud({ dimmed, className }: { dimmed: boolean; className?: st
       data-testid="show-hud"
       className={cn(
         'pointer-events-none absolute hud-inset-b show-inset-l show-inset-r z-20 flex flex-col gap-2 sm:left-auto sm:items-end',
+        // A tall devices sheet scrolls inside the screen (as in RideHud).
+        devicesOpen && 'show-inset-t justify-end',
         className,
       )}
     >
       {devicesOpen && <RideDevicesSheet className="sm:w-96" />}
-      <RideChip alertsOnly className="self-start sm:self-end" />
-      <ShowRideStrip dimmed={dimmed} />
+      <RideChip alertsOnly className="shrink-0 self-start sm:self-end" />
+      <ShowRideStrip dimmed={dimmed} className="shrink-0" />
     </div>
   );
 }

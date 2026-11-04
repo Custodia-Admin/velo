@@ -19,9 +19,10 @@ Home / Devices / Show / Finish mockups stand) and the build follows it:
   locked"). Tap: a notice's action runs; anything else opens the in-ride devices sheet (the
   Devices screen's rows). **"Trainer lost · tap to reconnect"** (one tap calls
   `reconnectGrantedTrainer()`) needs a trainer grant the app can use, i.e. the reconnect
-  store in phase `available`/`failed`. On this PR alone nothing puts it there after a drop,
-  so a real drop ends at "Trainer lost · tap for devices"; with #26 (`trainerLost()`) it is
-  "Trainer lost · tap to reconnect" and the tap reconnects (see *Trainer lost: a real drop*).
+  store in phase `available`/`failed`, which #26's `trainerLost()` sets after a drop. With
+  main (#26) merged in, a real drop ends at "Trainer lost · tap to reconnect" and the tap
+  reconnects (see *Merged with main*); on this PR alone it ended at "Trainer lost · tap for
+  devices" (see *Trainer lost: a real drop*).
   The Toaster draws nothing while the chip hosts notices, so there is no red box anywhere,
   show mode included. Phones show the chip only when something is wrong, and a lost trainer
   always is.
@@ -80,6 +81,29 @@ Chip label per second after the drop, on this PR (f130bca) alone and on a trial 
 | tap, with #26 (connect allowed again) | one tap: connection `connected`, mode `trainer`, chip "KICKR CORE · hills 35 %" | same |
 
 Before the rework the same drop ended in the calm "Demo ride · no trainer", which phones hide.
+
+### Merged with main (#26 device layer in), 3 Nov
+
+Main 0efea8d (PR #26 as 86de64a) merged into this branch; the same real drop on the merged tree
+(review probe, fake KICKR, private dev server): 1–8 s "KICKR CORE lost · reconnecting 2 → 4 of 4",
+from 9 s "Trainer lost · tap to reconnect" (visible at 1440 and 390), one tap → connection
+`connected`, mode `trainer`, chip "KICKR CORE · hills 35 %". Collapsed ride UI unchanged:
+**4.9 %** (1440×900), **10.9 %** (390×844).
+
+#26's UI now lives in this PR's components (P2.4 no longer mounts the Home Trainer card, so the
+Devices row is where it has to be): the handlebar row's "What the buttons do" carries the ride
+legend, "While you watch a video" (Y / Z / B) and the "Steer with the levers" + "Buzz on gear
+change" switches, on /devices and in the in-ride devices sheet (`merge-pr26/devices-legend-*.jpg`).
+The asleep row says what will happen: "… then tap Reconnect." without a wake watch, "… they
+reconnect by themselves." with one (`merge-pr26/devices-asleep-*.jpg`). Forget also drops the
+remembered unit.
+
+The in-ride devices sheet with that disclosure open was taller than the screen and ran off the
+top, header and Close included (already on 968bed2: top −329 px at 1440, −244 px at 390; with
+#26's longer legend −735 / −588). The HUD column now reaches the top inset while the sheet is
+open and the sheet scrolls inside it; chip and band keep their size: sheet 16–754 px at 1440,
+12–726 px at 390, Close and the disclosure reachable; show mode the same (24–790, 12–694).
+Closed, the sheet is where it was. Before | after: `merge-pr26/sheet-legend-{ride,show}-*.jpg`.
 
 ## Side by side (mockup | build)
 

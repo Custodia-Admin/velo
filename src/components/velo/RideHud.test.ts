@@ -67,6 +67,20 @@ describe('RideHud', () => {
     expect(html).toContain('aria-label="Close devices"');
   });
 
+  it('a tall devices sheet stays on screen: the column reaches the top inset, the sheet scrolls, the band and chip keep their size', () => {
+    const closed = renderToStaticMarkup(createElement(RideHudLayout, { ...props, expanded: true, devicesOpen: false }));
+    expect(closed).not.toContain('hud-inset-t justify-end');
+    withHud({ devicesOpen: true });
+    const html = render();
+    expect(html).toContain('hud-inset-t justify-end');
+    expect(html).toMatch(/data-testid="ride-hud"><div class="flex min-h-0 flex-col/);
+    const tag = (id: string) => html.match(new RegExp(`<[a-z]+[^>]*data-testid="${id}"[^>]*>`))?.[0] ?? '';
+    const sheet = tag('ride-devices-sheet');
+    expect(sheet).toContain('min-h-0 overflow-y-auto');
+    expect(tag('ride-status-chip')).toContain('shrink-0');
+    expect(tag('ride-strip')).toContain('shrink-0');
+  });
+
   it('nothing in the HUD asks for a backdrop blur', () => {
     withHud({ expanded: true });
     expect(render()).not.toMatch(/backdrop-/);
