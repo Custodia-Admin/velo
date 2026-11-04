@@ -68,7 +68,8 @@ export interface WorldRoad {
 
 export interface RoadsLayer {
   classes: string[];
-  flags: Record<'bridge' | 'tunnel' | 'unpaved' | 'oneway', number>;
+  /** `routeFill` (bundles baked since the route-fill pass): a surface laid under a scenic route, not an OSM way. */
+  flags: Record<'bridge' | 'tunnel' | 'unpaved' | 'oneway', number> & { routeFill?: number };
   roads: WorldRoad[];
 }
 

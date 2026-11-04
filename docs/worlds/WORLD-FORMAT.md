@@ -152,7 +152,7 @@ natively, without Node's web-stream wrapper.
 ```json
 { "version": 1, "units": "dm",
   "classes": ["motorway", "trunk", …], "widths": [12, 10, …],
-  "flags": { "bridge": 1, "tunnel": 2, "unpaved": 4, "oneway": 8 },
+  "flags": { "bridge": 1, "tunnel": 2, "unpaved": 4, "oneway": 8, "routeFill": 16 },
   "names": ["Via …", …],
   "roads": [ { "c": 2, "f": 1, "w": 6.5, "n": 0, "p": [x0, y0, x1, y1, …] } ] }
 ```
@@ -162,6 +162,16 @@ natively, without Node's web-stream wrapper.
 - `f` is a bit set of `flags` (omitted when 0); `n` indexes `names`.
 - Polylines are clipped to the extent and simplified (Douglas–Peucker 0.5 m).
   Heights come from the heightfield.
+- `routeFill` pieces are not OSM ways. The bake lays one under every stretch
+  of a scenic route whose centreline is off every drawn road (a way missing
+  from the OSM snapshot, the join where an out-and-back was cut, a path
+  mapped a metre to the side), so the route line always sits on a road or
+  path. Each piece follows the route itself, reaches 2 m into the roads either
+  side, and takes the class, surface (`unpaved`), width and name of the
+  nearest mapped way within 12 m (else an unpaved `path`). Renderers draw them
+  under the mapped roads. `tools/worldbake/routeCoverage.mjs <world>` reports
+  each route's share on mapped roads and on drawn surfaces; the bake report
+  has the same numbers under `routes[].roadCoverage`.
 
 ## water.json
 

@@ -23,6 +23,11 @@ export interface RibbonLine {
   marking: number;
   /** Straight span between the end heights instead of following the ground. */
   bridge?: boolean;
+  /**
+   * Share of the road decal's depth pull (default 1). Route-fill surfaces use
+   * less, so where one overlaps a mapped road the mapped road wins.
+   */
+  pull?: number;
 }
 
 export interface RibbonGeometryData {
@@ -32,6 +37,8 @@ export interface RibbonGeometryData {
   /** u across (0 left edge → 1 right edge), v along (metres). */
   uvs: Float32Array;
   markings: Float32Array;
+  /** Per-vertex depth-pull share (RibbonLine.pull). */
+  pulls: Float32Array;
   indices: Uint32Array;
   vertexCount: number;
 }
@@ -81,6 +88,8 @@ export const ROAD_CLASS_COLORS: Readonly<Record<string, [number, number, number]
 };
 const UNPAVED = srgb(0xa58e6e);
 const FALLBACK = srgb(0x5d5b58);
+/** Depth-pull share of route-fill surfaces (under the mapped roads they join). */
+export const ROUTE_FILL_PULL = 0.85;
 
 /** Classes that get painted lines (centre dashes + edges). */
 const MARKED = new Set(['motorway', 'trunk', 'primary', 'secondary', 'tertiary']);
@@ -91,12 +100,15 @@ export function roadLines(roads: RoadsLayer): RibbonLine[] {
     const cls = roads.classes[r.cls] ?? '';
     if (SKIP_CLASSES.has(cls) || r.flags & roads.flags.tunnel || r.points.length < 4) continue;
     const unpaved = (r.flags & roads.flags.unpaved) !== 0;
+    const fill = roads.flags.routeFill !== undefined && (r.flags & roads.flags.routeFill) !== 0;
     out.push({
       points: r.points,
       width: Math.max(1, r.width),
       color: unpaved ? UNPAVED : (ROAD_CLASS_COLORS[cls] ?? FALLBACK),
-      marking: !unpaved && MARKED.has(cls) ? 1 : 0,
+      // A route fill is a short piece along the route: no lane paint on it.
+      marking: !unpaved && !fill && MARKED.has(cls) ? 1 : 0,
       bridge: (r.flags & roads.flags.bridge) !== 0,
+      ...(fill ? { pull: ROUTE_FILL_PULL } : {}),
     });
   }
   return out;
@@ -137,6 +149,7 @@ class Builder {
   col: number[] = [];
   uv: number[] = [];
   mark: number[] = [];
+  pull: number[] = [];
   idx: number[] = [];
 
   get count() {
@@ -150,6 +163,7 @@ class Builder {
       colors: Float32Array.from(this.col),
       uvs: Float32Array.from(this.uv),
       markings: Float32Array.from(this.mark),
+      pulls: Float32Array.from(this.pull),
       indices: Uint32Array.from(this.idx),
       vertexCount: this.count,
     };
@@ -229,6 +243,7 @@ function addLine(b: Builder, hf: Heightfield, line: RibbonLine, opts: RibbonOpti
       b.col.push(line.color[0], line.color[1], line.color[2]);
       b.uv.push(u, s[k]);
       b.mark.push(line.marking);
+      b.pull.push(line.pull ?? 1);
     }
     if (prevVertex >= 0 && keepPrev) {
       const l0 = prevVertex;

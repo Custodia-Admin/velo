@@ -1,7 +1,7 @@
 /**
  * The per-frame ride step's heading smoothing, outside the camera: the lane
  * offset turns with the filtered heading (a steered rider must not jump across
- * the road at an out-and-back U-turn), and pace bots get the same wide chord
+ * the road at a sharp junction turn), and pace bots get the same wide chord
  * and YawFilter as the rider instead of the raw ±4 m route bearing.
  */
 import { describe, expect, it } from 'vitest';
@@ -20,14 +20,17 @@ const DT = 1 / 60;
 const route = (id: string) => routeFromGeometry(id, id, SCENIC_ROUTE_GEOMETRY[id]);
 // Horizontal placement only needs the projection; the synthetic world shares Perugia's.
 const sw = syntheticSceneWorld();
+// The sharpest corners on the Perugia routes (no U-turns since the generator
+// cuts them): Tiber's 123° junction turn at 9,672 m, Assisi's 82° at 4,369 m.
+// `pivotFromMs`: speed from which the raw ±4 m bearing turns faster than the cap.
 const CORNERS = [
-  { id: 'scenic-perugia-tiber-park', from: 80, to: 240, maxYawRate: 0.9 * MAX_YAW_RATE },
-  { id: 'scenic-assisi-valley', from: 3660, to: 3840, maxYawRate: MAX_YAW_RATE },
+  { id: 'scenic-perugia-tiber-park', from: 9590, to: 9760, maxYawRate: MAX_YAW_RATE, pivotFromMs: 8 },
+  { id: 'scenic-assisi-valley', from: 4290, to: 4450, maxYawRate: 0.9 * MAX_YAW_RATE, pivotFromMs: 11 },
 ];
 
 describe('driveRideFrame lane offset', () => {
-  it('keeps a fully steered rider on its side of the road through the Assisi U-turn', () => {
-    const r = route('scenic-assisi-valley');
+  it('keeps a fully steered rider on its side of the road through the Tiber 123° turn', () => {
+    const r = route('scenic-perugia-tiber-park');
     for (const speed of [4, 8, 15]) {
       const frame = createRideFrame();
       const memo = createRideDriverMemo();
@@ -35,7 +38,7 @@ describe('driveRideFrame lane offset', () => {
       memo.lane = { offsetM: MAX_LANE_OFFSET_M, velMs: 0 };
       let prev: { x: number; z: number } | null = null;
       let worstExcess = 0;
-      for (let d = 3660; d <= 3840; d += speed * DT) {
+      for (let d = 9590; d <= 9760; d += speed * DT) {
         driveRideFrame(frame, memo, sw, {
           route: r, distance: d, speed, grade: 0, cadence: 85, power: 200, rideState: 'running',
           steer: 1, override: null, lookAheadM: 12, dt: DT, timeS: 0,
@@ -74,7 +77,7 @@ describe('driveBotPose', () => {
           maxLean = Math.max(maxLean, Math.abs(lean));
         }
         // The raw route bearing (what bots used to draw) pivots on the spot here.
-        if (speed >= 8) expect(rawRate, `${speed} m/s raw bearing rate`).toBeGreaterThan(MAX_YAW_RATE);
+        if (speed >= c.pivotFromMs) expect(rawRate, `${speed} m/s raw bearing rate`).toBeGreaterThan(MAX_YAW_RATE);
         expect(rate, `${speed} m/s bot vs raw bearing rate`).toBeLessThan(rawRate / 2);
         expect(rate * DEG, `${speed} m/s bot yaw rate, °/s`).toBeLessThanOrEqual(c.maxYawRate * DEG + 1e-6);
         expect(maxLean, `${speed} m/s bot leans into the corner`).toBeGreaterThan(0);

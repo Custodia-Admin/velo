@@ -53,6 +53,7 @@ uniform float uBias;
 uniform float uBiasPerM;
 uniform float uMaxPull;
 attribute float marking;
+attribute float pull;
 varying vec2 vRoadUv;
 varying float vRoadMark;`,
       )
@@ -63,8 +64,9 @@ varying float vRoadMark;`,
   vRoadMark = marking;
   {
     float d = length(mvPosition.xyz);
-    float pull = min(min(d * 0.5, uBias + d * uBiasPerM), uMaxPull);
-    mvPosition.xyz *= (d - pull) / max(d, 1e-4);
+    // Route-fill surfaces pull less (pull < 1), so mapped roads win where they overlap.
+    float dPull = min(min(d * 0.5, uBias + d * uBiasPerM), uMaxPull) * pull;
+    mvPosition.xyz *= (d - dPull) / max(d, 1e-4);
     gl_Position = projectionMatrix * mvPosition;
   }`,
       );
@@ -110,6 +112,6 @@ ${NOISE_GLSL}`,
   roughnessFactor = mix(roughnessFactor, 0.08, gRoadWet);`,
       );
   };
-  patchWorldMaterial(mat, opts.atmo ?? createAtmosphere(), { key: `road-v2-${plain}-${transparent ? 't' : 'o'}`, onShader });
+  patchWorldMaterial(mat, opts.atmo ?? createAtmosphere(), { key: `road-v3-${plain}-${transparent ? 't' : 'o'}`, onShader });
   return mat;
 }
