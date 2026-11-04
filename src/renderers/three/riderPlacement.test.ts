@@ -188,6 +188,23 @@ describe('rider rig', () => {
     expect(placeRider(fake, { lat: 0, lon: 0, heading: Math.PI }).pitch).toBeCloseTo(-Math.atan(0.08), 6);
   });
 
+  it('with a drawn surface, both wheels and the contact point stand on it, not on the heightfield', () => {
+    const fake = {
+      projection: { forward: () => [0, 0] as [number, number] },
+      heightfield: { sampleHeight: (_x: number, y: number) => 100 + 0.08 * y },
+    } as unknown as SceneWorld;
+    // The drawn triangles: flat under the rear wheel, 0.4 m up under the front (a far-LOD facet).
+    const surface = (_x: number, y: number) => (y > 0.1 ? 100.4 : 100);
+    const p = placeRider(fake, { lat: 0, lon: 0, heading: 0 }, surface);
+    expect(p.position.y).toBe(100);
+    expect(p.pitch).toBeCloseTo(Math.atan2(0.4, 2 * RIDER_RIG.halfWheelbase), 6);
+    // Facing south the front wheel is on the low side and the rear on the 0.4 m step.
+    expect(placeRider(fake, { lat: 0, lon: 0, heading: Math.PI }, surface).pitch).toBeCloseTo(
+      -Math.atan2(0.4, 2 * RIDER_RIG.halfWheelbase),
+      6,
+    );
+  });
+
   it('two-bone leg IK keeps both segment lengths and bends the knee forward', () => {
     for (let a = 0; a < Math.PI * 2; a += 0.3) {
       for (const side of [1, -1] as const) {
