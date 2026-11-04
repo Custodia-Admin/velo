@@ -157,6 +157,12 @@ export interface Avatar {
   update: (u: AvatarUpdate) => void;
   /** Smoothed scene height the rider sits at (null before the first update). */
   groundEle: () => number | null;
+  /**
+   * The photoreal mesh is loaded under the rider at road level (the last
+   * reading was the road, or something standing over a road the rider holds).
+   * False on the globe, with no mesh tile, or with only a coarse floating tile.
+   */
+  meshGround: () => boolean;
   setColors: (c: AvatarColors) => void;
   dispose: () => void;
   /** Internal: current skin color including effort tint. Set by setAvatarEffortLevel. */
@@ -1518,6 +1524,7 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     setShow,
     update,
     groundEle: () => smoothedEle,
+    meshGround: () => groundSampler.meshGround(),
     setColors,
     dispose,
     _effortLevel: 0,
@@ -1558,6 +1565,17 @@ function metresBetween(lon: number, lat: number, fromLon: number, fromLat: numbe
 }
 
 /**
+ * What the last mesh reading under a rider was ({@link createMeshRoadFilter}):
+ * - 'road': the mesh road, taken;
+ * - 'overhang': mesh is there, but something stands over the road (canopy,
+ *   viaduct deck); the rider keeps the road it has;
+ * - 'coarse': only a coarse tile far over the ground (one sat 610 m up for
+ *   ~4 s at the Cuyahoga start); not the road;
+ * - 'none': no mesh tile under the rider.
+ */
+export type MeshRoadStatus = 'road' | 'overhang' | 'coarse' | 'none';
+
+/**
  * Which photoreal mesh readings are the road. A vertical ray reads the TOP
  * of whatever is there: a palm canopy 10 m over the Santa Monica Strand, the
  * I-80 viaduct 29 m over the Cuyahoga towpath, a coarse tile 600 m up. The
@@ -1570,6 +1588,7 @@ export function createMeshRoadFilter() {
   let base: number | undefined;
   let baseLon = NaN;
   let baseLat = NaN;
+  let status: MeshRoadStatus = 'none';
   return {
     /**
      * The road height from one reading (undefined: no mesh road here, the
@@ -1583,22 +1602,41 @@ export function createMeshRoadFilter() {
       ceiling: number,
       readAt: (lon: number, lat: number) => number | undefined,
     ): number | undefined {
-      if (reading === undefined || !Number.isFinite(reading)) return undefined;
-      if (reading > ceiling) return base;
+      if (reading === undefined || !Number.isFinite(reading)) {
+        status = 'none';
+        return undefined;
+      }
+      if (reading > ceiling) {
+        status = 'coarse';
+        return base;
+      }
       const moved = metresBetween(lon, lat, baseLon, baseLat);
       const climbs = base === undefined || moved >= OVERHANG_GIVE_UP_M || reading <= base + OVERHANG_RISE_M + OVERHANG_GRADE * moved;
       if (!climbs) {
         const atBase = readAt(baseLon, baseLat);
-        if (atBase === undefined || atBase <= (base as number) + OVERHANG_RISE_M) return base;
+        if (atBase === undefined || atBase <= (base as number) + OVERHANG_RISE_M) {
+          status = 'overhang';
+          return base;
+        }
       }
       base = reading;
       baseLon = lon;
       baseLat = lat;
+      status = 'road';
       return reading;
+    },
+    /** The last road height taken (undefined before the first). */
+    road(): number | undefined {
+      return base;
+    },
+    /** What the last reading was. */
+    status(): MeshRoadStatus {
+      return status;
     },
     reset() {
       base = undefined;
       baseLon = NaN;
+      status = 'none';
     },
   };
 }
@@ -1615,12 +1653,18 @@ export function createMeshRoadFilter() {
  * for the pick, so the ray doesn't hit helmets and re-render the scene once
  * per excluded part (Cesium's drill pick). Mesh readings pass the overhang
  * filter ({@link createMeshRoadFilter}) first.
+ *
+ * While the globe is hidden (the mesh is the only ground drawn near the
+ * rider, see renderers/cesium/globeGate) a missing reading keeps the road the
+ * rider is on: there is no other drawn surface to stand on, and the hidden
+ * globe's stale tiles are not what anyone sees.
  */
 export function createGroundSampler(scene: Cesium.Scene) {
   let lastMs = -Infinity;
   let lastLon = NaN;
   let lastLat = NaN;
   let last: number | undefined;
+  let onMesh = false;
   const road = createMeshRoadFilter();
   const meshAt = (lon: number, lat: number) =>
     withRidersHidden(() => sampleGroundHeight(scene, lon, lat, groundSampleExclusions()));
@@ -1629,6 +1673,7 @@ export function createGroundSampler(scene: Cesium.Scene) {
       const expect = sceneEle(ele);
       if (!photorealGroundShown(scene)) {
         last = undefined;
+        onMesh = false;
         road.reset();
         return sceneGroundHeight(scene, lon, lat, undefined, expect, { terrainOnly: true });
       }
@@ -1641,13 +1686,28 @@ export function createGroundSampler(scene: Cesium.Scene) {
         lastLat = lat;
         const globe = (scene.globe as Cesium.Globe | undefined)?.getHeight?.(Cesium.Cartographic.fromDegrees(lon, lat));
         const terrain = globe !== undefined && Number.isFinite(globe) ? Math.max(globe, expect) : expect;
-        last = road.next(meshAt(lon, lat), lon, lat, terrain + MESH_OVER_TERRAIN_MAX_M, meshAt);
+        // The road the rider is on also bounds the ceiling: a hidden globe's
+        // tiles stop refining, and with them the terrain reading here.
+        const held = road.road();
+        const floor = held !== undefined ? Math.max(terrain, held) : terrain;
+        last = road.next(meshAt(lon, lat), lon, lat, floor + MESH_OVER_TERRAIN_MAX_M, meshAt);
+        const status = road.status();
+        onMesh = status === 'road' || status === 'overhang';
+        if (last === undefined && globeHidden(scene)) last = road.road();
       }
       // The mesh reading is reused between samples; the globe (drawn over the
       // mesh wherever its terrain is higher) is read fresh every call.
       return drawnGroundHeight(scene, lon, lat, last, expect);
     },
+    /** The photoreal mesh is loaded at road level under the last spot sampled. */
+    meshGround(): boolean {
+      return onMesh;
+    },
   };
+}
+
+function globeHidden(scene: Cesium.Scene): boolean {
+  return (scene.globe as { show?: boolean } | undefined)?.show === false;
 }
 
 function withRidersHidden<T>(fn: () => T): T {

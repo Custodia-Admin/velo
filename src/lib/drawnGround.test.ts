@@ -183,6 +183,118 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
   });
 });
 
+describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Melide)', () => {
+  // Lugano–Melide 3 km: World Terrain as drawn 387.1 m, the photoreal mesh
+  // 361.4 m, the real street (swissALTI3D + geoid) within ~1 m of the mesh.
+  const lon = 8.95;
+  const lat = (m: number) => 45.98 + m / 110_540;
+
+  it('globe drawn: the rider rides it, 26 m over the street; globe hidden: the rider rides the mesh', async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photoreal(361.4);
+    const shown = scene(tileset, { height: 387.1 });
+    expect(createGroundSampler(shown.s).sample(lon, lat(0), 312, 0)).toBeCloseTo(387.1, 6);
+    const hidden = scene(tileset, { height: 387.1, show: false });
+    expect(createGroundSampler(hidden.s).sample(lon, lat(0), 312, 0)).toBeCloseTo(361.4, 6);
+  });
+
+  it('meshGround: the road or something over it, never a coarse floating tile, no tile, or no mesh', async () => {
+    setIonToken('eyJ_test');
+    let reading: number | undefined = 160.2;
+    let deck = false;
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
+      deck && Cesium.Math.toDegrees(c.latitude) > lat(1) ? 189.3 : reading,
+    );
+    const { s } = scene(tileset, { height: 160.4 });
+    const sampler = createGroundSampler(s);
+    expect(sampler.meshGround()).toBe(false);
+    sampler.sample(lon, lat(0), 195, 0);
+    expect(sampler.meshGround()).toBe(true);
+    // The I-80 deck 29 m over the towpath: mesh is there, the rider holds the road.
+    deck = true;
+    expect(sampler.sample(lon, lat(2), 195, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(160.4, 6);
+    expect(sampler.meshGround()).toBe(true);
+    deck = false;
+    // A coarse tile 610 m up (the Cuyahoga start): not the ground.
+    reading = 768.9;
+    sampler.sample(lon, lat(4), 195, 2 * GROUND_SAMPLE_INTERVAL_MS);
+    expect(sampler.meshGround()).toBe(false);
+    // No tile under the rider.
+    reading = undefined;
+    sampler.sample(lon, lat(6), 195, 3 * GROUND_SAMPLE_INTERVAL_MS);
+    expect(sampler.meshGround()).toBe(false);
+    // Tileset hidden (camera over 5 km): the globe is the ground.
+    reading = 160.2;
+    sampler.sample(lon, lat(8), 195, 4 * GROUND_SAMPLE_INTERVAL_MS);
+    expect(sampler.meshGround()).toBe(true);
+    (tileset as unknown as { show: boolean }).show = false;
+    sampler.sample(lon, lat(10), 195, 5 * GROUND_SAMPLE_INTERVAL_MS);
+    expect(sampler.meshGround()).toBe(false);
+  });
+
+  it("the filter's status names each reading", () => {
+    const f = createMeshRoadFilter();
+    const none = () => undefined;
+    expect(f.status()).toBe('none');
+    f.next(300, lon, lat(0), 400, none);
+    expect(f.status()).toBe('road');
+    expect(f.road()).toBe(300);
+    f.next(320, lon, lat(2), 400, () => 300);
+    expect(f.status()).toBe('overhang');
+    f.next(900, lon, lat(4), 400, none);
+    expect(f.status()).toBe('coarse');
+    f.next(undefined, lon, lat(6), 400, none);
+    expect(f.status()).toBe('none');
+    expect(f.road()).toBe(300);
+    f.reset();
+    expect(f.status()).toBe('none');
+    expect(f.road()).toBeUndefined();
+  });
+
+  it('a hole in the mesh under a hidden globe keeps the road; under a drawn globe the globe decides', async () => {
+    setIonToken('eyJ_test');
+    let reading: number | undefined = 361.4;
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => reading);
+    const g: GlobeOpts = { height: 387.1, show: false };
+    const { s, globe } = scene(tileset, g);
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(lon, lat(0), 312, 0)).toBeCloseTo(361.4, 6);
+    reading = undefined;
+    // Not the hidden globe's stale 387 m, not undefined (the route's 312 m): the road.
+    expect(sampler.sample(lon, lat(2), 312, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(361.4, 6);
+    expect(sampler.meshGround()).toBe(false);
+    globe.show = true;
+    expect(sampler.sample(lon, lat(4), 312, 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(387.1, 6);
+  });
+
+  it("a hidden globe's stale tiles don't cap the road: the road the rider is on bounds the ceiling too", async () => {
+    setIonToken('eyJ_test');
+    // Route elevation 305 m (orthometric; the ellipsoid sits ~50 m higher
+    // here), the hidden globe's last coarse tile reads 300 m: terrain-only
+    // ceiling 365 m. The street climbs past it, 1.8 m per 2 m step.
+    let reading: number | undefined;
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => reading);
+    const { s } = scene(tileset, { height: 300, show: false });
+    const sampler = createGroundSampler(s);
+    const got: number[] = [];
+    [362, 363.8, 365.6, 367.4].forEach((h, i) => {
+      reading = h;
+      got.push(sampler.sample(lon, lat(2 * i), 305, i * GROUND_SAMPLE_INTERVAL_MS) as number);
+      expect(sampler.meshGround()).toBe(true);
+    });
+    expect(got).toEqual([362, 363.8, 365.6, 367.4]);
+  });
+
+  it("groundSettled ignores a hidden globe's frozen load queue", () => {
+    setIonToken('eyJ_test');
+    expect(groundSettled(scene(null, { height: 300, tilesLoaded: false, show: false }).s)).toBe(true);
+    expect(groundSettled(scene(null, { height: 300, tilesLoaded: false }).s)).toBe(false);
+  });
+});
+
 describe('followGround: the avatar never lags under a rising surface', () => {
   it('rises at once (a tile loading 4 m higher), eases down', () => {
     expect(followGround(null, 300, 1 / 60)).toBe(300);

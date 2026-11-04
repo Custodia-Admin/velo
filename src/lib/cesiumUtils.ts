@@ -554,7 +554,9 @@ export function sceneGroundHeight(
  * buried under it. Riding the mesh there put the rider and the chase camera
  * under the globe, which Cesium then draws from below with the road on it, so
  * the rider saw two roads. Here the higher of the two wins whenever the globe
- * draws opaque. Readings more than 800 m off `expectEle` are coarse-tile
+ * draws opaque. Once the mesh is the road under the rider the globe is hidden
+ * altogether (renderers/cesium/globeGate) and the mesh alone is the ground.
+ * Readings more than 800 m off `expectEle` are coarse-tile
  * chords and are ignored.
  */
 export function drawnGroundHeight(
@@ -602,7 +604,9 @@ export function groundSettled(scene: Cesium.Scene, stable = false): boolean {
   if (isFlatGlobe(scene)) return false;
   if (stable) return true;
   const globe = scene.globe as Cesium.Globe | undefined;
-  if (globe && globe.tilesLoaded === false) return false;
+  // A hidden globe (the mesh is the ground, renderers/cesium/globeGate) stops
+  // updating, so its load queues freeze: they say nothing about the ground.
+  if (globe && globe.show !== false && globe.tilesLoaded === false) return false;
   const prims = (scene as { primitives?: Cesium.PrimitiveCollection }).primitives;
   if (prims && typeof prims.length === 'number') {
     for (let i = 0; i < prims.length; i++) {
