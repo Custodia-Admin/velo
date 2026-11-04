@@ -131,6 +131,16 @@ import { createPerfGovernor, type PerfGovernor } from '@/lib/perf/perfGovernor';
 import { shouldRenderOnDemand } from '@/lib/perf/renderMode';
 import { useMultiriderStore } from '@/stores/multiriderStore';
 
+function cesiumDebugOptedIn(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (import.meta.env.DEV) return true;
+  try {
+    return window.localStorage.getItem('velo.debug.cesium') === '1';
+  } catch {
+    return false;
+  }
+}
+
 /** Altitude threshold below which Google Photorealistic 3D Tiles are shown. */
 const PHOTOREAL_SHOW_ALTITUDE_M = 5_000;
 
@@ -385,6 +395,15 @@ export function CesiumWorldView({
       });
       viewerRef.current = viewer;
       setActiveViewer(viewer);
+      // Scene handle for render probes (scripts/ride-surface-probe.py): dev
+      // builds, or `localStorage['velo.debug.cesium'] = '1'` (as velo.debug.three).
+      if (cesiumDebugOptedIn()) {
+        (window as unknown as { __veloCesium?: unknown }).__veloCesium = {
+          viewer,
+          Cesium,
+          photoreal: () => tilesetRef.current,
+        };
+      }
       // Frame-time + tile-load stats (?perf=1 overlay, window.__veloPerf).
       detachPerfRef.current = attachScenePerf(viewer);
       // Adaptive quality governor — measures from the first rendered frame
@@ -529,6 +548,7 @@ export function CesiumWorldView({
       // yet (e.g. unmount before waitForContainerSize resolves).
       bootstrapCancelled = true;
       ro.disconnect();
+      if (typeof window !== 'undefined') delete (window as unknown as { __veloCesium?: unknown }).__veloCesium;
 
       // All mutable state below is read from refs, not the async-IIFE-local
       // `viewer` const, so cleanup is safe regardless of init completion order.
@@ -1087,6 +1107,7 @@ export function CesiumWorldView({
             cameraHeight: viewer.camera.positionCartographic.height,
             camSide,
             dist: state.distance,
+            riderLonLat: [riderLon, riderLat],
             riderScreen: px ? [Math.round(px.x), Math.round(px.y)] : null,
             riderHeightPx: head && foot ? Math.round(Math.hypot(head.x - foot.x, head.y - foot.y)) : null,
             viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight],

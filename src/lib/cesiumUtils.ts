@@ -528,6 +528,8 @@ function isWebGL2(scene: Cesium.Scene): boolean {
  * when available, else the height of the terrain tiles already loaded
  * (`globe.getHeight`: coarse World Terrain while it streams, 0 m on the flat
  * ellipsoid). Undefined only when no tile at all covers the spot yet.
+ * Over a photoreal mesh this is the higher of the mesh and the globe, see
+ * {@link drawnGroundHeight}.
  */
 export function sceneGroundHeight(
   scene: Cesium.Scene,
@@ -537,24 +539,74 @@ export function sceneGroundHeight(
   expectEle?: number,
   opts?: { terrainOnly?: boolean },
 ): number | undefined {
+  // terrainOnly: the caller knows no mesh is rendered over the terrain, so the
+  // GPU pick (a pipeline stall) would only re-measure the terrain tiles.
+  const sampled = opts?.terrainOnly ? undefined : sampleGroundHeight(scene, lon, lat, exclude);
+  return drawnGroundHeight(scene, lon, lat, sampled, expectEle);
+}
+
+/**
+ * The ground the camera sees at lon/lat, given a surface sample `sampled`
+ * (photoreal mesh or GPU pick; may be undefined). The globe stays drawn,
+ * opaque and depth-tested under the photoreal mesh, so where its terrain is
+ * higher than the mesh (by 1–5 m along Lake Trasimeno) the globe IS the
+ * visible ground and the mesh, with the road the corridor paints on it, is
+ * buried under it. Riding the mesh there put the rider and the chase camera
+ * under the globe, which Cesium then draws from below with the road on it, so
+ * the rider saw two roads. Here the higher of the two wins whenever the globe
+ * draws opaque. Readings more than 800 m off `expectEle` are coarse-tile
+ * chords and are ignored.
+ */
+export function drawnGroundHeight(
+  scene: Cesium.Scene,
+  lon: number,
+  lat: number,
+  sampled: number | undefined,
+  expectEle?: number,
+): number | undefined {
   const plausible = (h: number | undefined): h is number =>
     h !== undefined &&
     Number.isFinite(h) &&
     (expectEle === undefined || Math.abs(h - expectEle) <= MAX_COARSE_TILE_ERROR_M);
-  // terrainOnly: the caller knows no mesh is rendered over the terrain, so the
-  // GPU pick (a pipeline stall) would only re-measure the terrain tiles.
-  const sampled = opts?.terrainOnly ? undefined : sampleGroundHeight(scene, lon, lat, exclude);
-  // The rendered mesh, unless it is a coarse tile's chord far under the route.
-  if (plausible(sampled)) return sampled;
   // Flat globe (no token, or World Terrain not assigned yet): the surface is
   // exactly 0 m. Don't ask the coarse tiles: a level-0 tile's chord sits
   // kilometres under the ellipsoid (-12 km measured on a throttled phone).
-  if (isFlatGlobe(scene)) return 0;
+  if (isFlatGlobe(scene)) return plausible(sampled) ? sampled : 0;
   const globe = scene.globe as Cesium.Globe | undefined;
-  if (!globe || typeof globe.getHeight !== 'function') return undefined;
+  if (!globe || typeof globe.getHeight !== 'function') return plausible(sampled) ? sampled : undefined;
   const h = globe.getHeight(Cesium.Cartographic.fromDegrees(lon, lat));
   // Same chord error on coarse World Terrain tiles while they stream in.
-  return plausible(h) ? h : undefined;
+  const terrain = plausible(h) ? h : undefined;
+  if (!plausible(sampled)) return terrain;
+  return terrain !== undefined && globeDrawnOpaque(globe) ? Math.max(sampled, terrain) : sampled;
+}
+
+/** The globe draws its terrain as an opaque surface (not hidden, not see-through). */
+function globeDrawnOpaque(globe: Cesium.Globe): boolean {
+  if ((globe as { show?: boolean }).show === false) return false;
+  return (globe as { translucency?: { enabled?: boolean } }).translucency?.enabled !== true;
+}
+
+/**
+ * The ground under the rider has streamed in: World Terrain is the globe's
+ * terrain, every globe tile for this view is loaded and so is the shown
+ * photoreal mesh. Always true on the flat no-token globe (nothing streams).
+ * The ride start waits for this, so the rider never sets off on coarse
+ * tiles (they put the rider up to 200 m off the ground for ~15 s).
+ */
+export function groundSettled(scene: Cesium.Scene): boolean {
+  if (!onRealTerrain()) return true;
+  if (isFlatGlobe(scene)) return false;
+  const globe = scene.globe as Cesium.Globe | undefined;
+  if (globe && globe.tilesLoaded === false) return false;
+  const prims = (scene as { primitives?: Cesium.PrimitiveCollection }).primitives;
+  if (prims && typeof prims.length === 'number') {
+    for (let i = 0; i < prims.length; i++) {
+      const p = prims.get(i) as Cesium.Cesium3DTileset;
+      if (isPhotorealTileset(p) && p.show && !p.tilesLoaded) return false;
+    }
+  }
+  return true;
 }
 
 /** Larger gaps between loaded-tile height and route height are coarse-tile chord error. */
@@ -740,8 +792,10 @@ export function applyFollowCam(
 /**
  * Lift a camera position so it stays at least `minClear` metres above the
  * loaded terrain under it (CPU tile height, no GPU pick). Readings more than
- * 60 m from the rider's own ground are coarse-tile chords and are ignored, and
- * nothing is lifted while the photoreal mesh is the rendered ground.
+ * 60 m from the rider's own ground are coarse-tile chords and are ignored.
+ * Over the photoreal mesh the globe still draws (opaque, depth-tested), so a
+ * camera under its terrain sees the globe from below: lift for it unless the
+ * globe is hidden or see-through there.
  * Mutates and returns `camPos`; the second value is the lift applied (m).
  */
 export function liftAboveTerrain(
@@ -750,11 +804,9 @@ export function liftAboveTerrain(
   riderEle: number,
   minClear: number,
 ): number {
-  // Over the photoreal mesh the terrain is not what's drawn (and can sit
-  // metres off the mesh by the lake or under trees): don't lift for it.
-  if (photorealGroundShown(scene)) return 0;
   const globe = scene.globe as Cesium.Globe | undefined;
   if (!globe || typeof globe.getHeight !== 'function') return 0;
+  if (photorealGroundShown(scene) && !globeDrawnOpaque(globe)) return 0;
   liftScratch ??= new Cesium.Cartographic();
   const carto = Cesium.Cartographic.fromCartesian(camPos, undefined, liftScratch);
   if (!carto) return 0;

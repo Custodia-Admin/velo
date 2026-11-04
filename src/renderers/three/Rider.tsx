@@ -147,7 +147,9 @@ export function LiveRider({ frame, castShadow }: { frame: RideFrame; castShadow:
   return <RiderModel colors={colors} drive={drive} castShadow={castShadow} />;
 }
 
-function BotRider({ sceneWorld, route, index }: { sceneWorld: SceneWorld; route: Route; index: number }) {
+type Ground = (x: number, y: number) => number;
+
+function BotRider({ sceneWorld, route, index, ground }: { sceneWorld: SceneWorld; route: Route; index: number; ground?: Ground }) {
   const memo = useMemo(() => createBotDriverMemo(), []);
   const drive = useMemo(
     () =>
@@ -159,20 +161,21 @@ function BotRider({ sceneWorld, route, index }: { sceneWorld: SceneWorld; route:
         }
         const s = bot.state;
         const { heading, lean } = driveBotPose(memo, route, s, dt);
-        const placement = placeRider(sceneWorld, { lat: s.lat, lon: s.lon, heading });
+        const placement = placeRider(sceneWorld, { lat: s.lat, lon: s.lon, heading }, ground);
         return { placement, speed: s.speed, cadence: estimatedCadence(s.speed), lean };
       },
-    [sceneWorld, route, index, memo],
+    [sceneWorld, route, index, memo, ground],
   );
   return <RiderModel colors={BOT_COLORWAYS[index % BOT_COLORWAYS.length]} drive={drive} />;
 }
 
-export function PaceBots({ sceneWorld, route }: { sceneWorld: SceneWorld; route: Route }) {
+/** Pace bots on the drawn ground (`ground`, worldScene.drawnGround), like the rider. */
+export function PaceBots({ sceneWorld, route, ground }: { sceneWorld: SceneWorld; route: Route; ground?: Ground }) {
   const count = useRideStore((s) => s.paceBots.length);
   return (
     <>
       {Array.from({ length: count }, (_, i) => (
-        <BotRider key={i} sceneWorld={sceneWorld} route={route} index={i} />
+        <BotRider key={i} sceneWorld={sceneWorld} route={route} index={i} ground={ground} />
       ))}
     </>
   );

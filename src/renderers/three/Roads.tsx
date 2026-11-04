@@ -6,7 +6,9 @@
  * the landcover map draws the distant network instead). The route line is
  * the app route itself (what the rider follows), densified to 2 m, split by
  * chunk and draped on whichever LOD each chunk draws: a decal on the ground
- * with a capped depth bias, so it never shows through a building.
+ * with a capped depth bias, so it never shows through a building. Roads,
+ * route line and rider all stand on the drawn triangles (lodHeightAt /
+ * worldScene.drawnGround), never on the bilinear heightfield between them.
  */
 
 import { useEffect, useMemo } from 'react';
@@ -21,7 +23,7 @@ import { bucketLines, buildRibbons, type RibbonGeometryData, type RibbonLine } f
 import { lodHeightAt } from './terrainMesh';
 import { ROAD_MAX_SEG_M, type ChunkVisibility, type SceneWorld } from './worldScene';
 
-/** Road surface lift above the heightfield, metres (the rider stays within 5 cm of it). */
+/** Road surface lift above the drawn terrain, metres (the rider stays within 5 cm of it). */
 export const ROAD_LIFT_M = 0.03;
 export const ROUTE_LIFT_M = 0.045;
 export const ROUTE_WIDTH_M = 0.6;
@@ -47,15 +49,21 @@ export function ribbonGeometry(data: RibbonGeometryData): THREE.BufferGeometry {
   return g;
 }
 
-/** Ribbons of one chunk's bucket, positions relative to the chunk centre. */
-export function buildBucket(sw: SceneWorld, i: number): RibbonGeometryData {
+/**
+ * Ribbons of one chunk's bucket, positions relative to the chunk centre,
+ * draped on the chunk's near-LOD triangles (`nearStep`), the terrain they
+ * are drawn over.
+ */
+export function buildBucket(sw: SceneWorld, i: number, nearStep: number): RibbonGeometryData {
   const chunk = sw.chunks[i];
-  return buildRibbons(sw.heightfield, sw.roadBuckets[i], {
+  const hf = sw.heightfield;
+  return buildRibbons(hf, sw.roadBuckets[i], {
     maxSegM: ROAD_MAX_SEG_M,
     lift: ROAD_LIFT_M,
     originX: chunk.centerX,
     originZ: chunk.centerZ,
     keepSegment: (mx, my) => sw.locate(mx, my) === i,
+    groundAt: (x, y) => lodHeightAt(hf, chunk, nearStep, x, y),
   });
 }
 
@@ -78,6 +86,7 @@ export function updateRoads(
   visibility: ChunkVisibility,
   budget: number,
   receiveShadow: boolean,
+  nearStep: number,
 ): void {
   let left = budget;
   for (let i = 0; i < handle.meshes.length; i++) {
@@ -85,7 +94,7 @@ export function updateRoads(
     const mesh = handle.meshes[i];
     if (near && !mesh && left > 0 && sw.roadBuckets[i].length > 0) {
       left--;
-      const m = new THREE.Mesh(ribbonGeometry(buildBucket(sw, i)), handle.material);
+      const m = new THREE.Mesh(ribbonGeometry(buildBucket(sw, i, nearStep)), handle.material);
       m.name = `roads-${i}`;
       m.position.set(sw.chunks[i].centerX, 0, sw.chunks[i].centerZ);
       m.receiveShadow = receiveShadow;
@@ -117,7 +126,7 @@ export function Roads({
 }) {
   const handle = useMemo(() => createRoads(sceneWorld, atmo), [sceneWorld, atmo]);
   useEffect(() => () => disposeRoads(handle), [handle]);
-  useFrame(() => updateRoads(handle, sceneWorld, visibility, quality.buildsPerFrame, quality.shadows));
+  useFrame(() => updateRoads(handle, sceneWorld, visibility, quality.buildsPerFrame, quality.shadows, quality.nearStep));
   return <primitive object={handle.group} />;
 }
 
@@ -154,8 +163,8 @@ export interface RouteChunkPiece {
  * The route ribbon, one piece per terrain chunk it crosses, each draped on
  * the triangles that chunk draws at either LOD (`lodHeightAt`), so the line
  * hugs the visible ground instead of the bilinear heightfield that a coarse
- * LOD can bury. Near pieces also never dip under the bilinear ground the
- * rider stands on. Positions are relative to the chunk centre.
+ * LOD can bury. The rider stands on the same triangles (drawnGround).
+ * Positions are relative to the chunk centre.
  */
 export function buildRouteChunks(
   sw: SceneWorld,
@@ -179,9 +188,7 @@ export function buildRouteChunks(
     const hf = sw.heightfield;
     out.push({
       chunk: i,
-      // Near: the higher of the drawn triangles and the bilinear ground the rider
-      // stands on, so the line is never under the terrain and never under the wheels.
-      near: piece((x, y) => Math.max(hf.sampleHeight(x, y), lodHeightAt(hf, chunk, steps.near, x, y))),
+      near: piece((x, y) => lodHeightAt(hf, chunk, steps.near, x, y)),
       far: piece((x, y) => lodHeightAt(hf, chunk, steps.far, x, y)),
     });
   });

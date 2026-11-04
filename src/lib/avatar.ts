@@ -1,5 +1,12 @@
 import * as Cesium from 'cesium';
-import { fallbackSceneEle, photorealGroundShown, sceneEle, sceneGroundHeight } from '@/lib/cesiumUtils';
+import {
+  drawnGroundHeight,
+  fallbackSceneEle,
+  photorealGroundShown,
+  sampleGroundHeight,
+  sceneEle,
+  sceneGroundHeight,
+} from '@/lib/cesiumUtils';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { RiderPosition } from '@/lib/physics';
 
@@ -1432,13 +1439,12 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     const dt = Math.min(0.1, Math.max(0, u.dt));
     elapsedMs += dt * 1000;
 
-    // Ground height — smoothed so streaming tile changes don't pop.
-    // Whatever is rendered right now (never waits on streaming tiles); the
-    // camera follows this same height via groundEle().
+    // Ground height: whatever is drawn right now (never waits on streaming
+    // tiles); it rises at once and eases down (see followGround). The camera follows
+    // this same height via groundEle().
     const ground = groundSampler.sample(u.lon, u.lat, u.ele, performance.now());
     const targetEle = ground ?? fallbackSceneEle(scene, u.ele);
-    if (smoothedEle === null) smoothedEle = targetEle;
-    else smoothedEle += (targetEle - smoothedEle) * (1 - Math.exp(-6 * dt));
+    smoothedEle = followGround(smoothedEle, targetEle, dt);
 
     // Corner lean — centripetal tilt, smoothed.
     const headingDelta = lastHeading === null ? 0 : shortestAngle(lastHeading, u.heading);
@@ -1526,6 +1532,16 @@ export const GROUND_SAMPLE_INTERVAL_MS = 250;
 export const GROUND_SAMPLE_MOVE_M = 5;
 
 /**
+ * The avatar's ground height one frame on: up at once (a rider eased up onto
+ * a rising surface spends that time inside it, under the road), down eased so
+ * a tile refining a little lower doesn't drop the rider in a jump.
+ */
+export function followGround(current: number | null, target: number, dt: number): number {
+  if (current === null || target >= current) return target;
+  return current + (target - current) * (1 - Math.exp(-6 * dt));
+}
+
+/**
  * Throttled {@link sceneGroundHeight}.
  *
  * On terrain (no photoreal mesh shown) the rendered ground is the globe's
@@ -1555,14 +1571,15 @@ export function createGroundSampler(scene: Cesium.Scene) {
             (lon - lastLon) * 111_320 * Math.cos((lat * Math.PI) / 180),
             (lat - lastLat) * 110_540,
           );
-      if (last !== undefined && nowMs - lastMs < GROUND_SAMPLE_INTERVAL_MS && movedM < GROUND_SAMPLE_MOVE_M) {
-        return last;
+      if (last === undefined || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M) {
+        lastMs = nowMs;
+        lastLon = lon;
+        lastLat = lat;
+        last = withRidersHidden(() => sampleGroundHeight(scene, lon, lat, groundSampleExclusions()));
       }
-      lastMs = nowMs;
-      lastLon = lon;
-      lastLat = lat;
-      last = withRidersHidden(() => sceneGroundHeight(scene, lon, lat, groundSampleExclusions(), expect));
-      return last;
+      // The mesh reading is reused between samples; the globe (drawn over the
+      // mesh wherever its terrain is higher) is read fresh every call.
+      return drawnGroundHeight(scene, lon, lat, last, expect);
     },
   };
 }

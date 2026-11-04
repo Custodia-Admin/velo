@@ -9,7 +9,7 @@
 
 import type * as Cesium from 'cesium';
 
-import { MOODS, type MoodId } from '@/lib/cesiumUtils';
+import { groundSettled, MOODS, type MoodId } from '@/lib/cesiumUtils';
 import type { RiderPose, WorldCameraMode, WorldRenderer } from '@/lib/world/renderer';
 import { useSettingsStore } from '@/stores/settingsStore';
 
@@ -42,6 +42,9 @@ export function createCesiumWorldRenderer(
       if (!live()) return;
       // Unknown ids fall back to the route's own mood instead of a blank sky.
       hooks.setMoodOverride(isMoodId(mood) ? mood : null);
+    },
+    groundReady() {
+      return !live() || groundSettled(viewer.scene);
     },
     dispose() {
       if (disposed) return;

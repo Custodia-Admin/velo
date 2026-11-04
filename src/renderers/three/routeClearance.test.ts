@@ -194,7 +194,7 @@ describe('Perugia routes vs buildings and ground (route-line regression)', () =>
           ['far', q.farStep],
         ] as const) {
           let below = 0;
-          let worstVsGround = 0;
+          let worstVsDrawn = 0;
           let vertices = 0;
           let worstSag = 0;
           for (const p of pieces) {
@@ -214,19 +214,18 @@ describe('Perugia routes vs buildings and ground (route-line regression)', () =>
                 // the triangles, inside the line's 12 cm minimum depth pull.
                 if (surface - (h - ROUTE_LIFT_M) > 0.1) below++;
                 worstSag = Math.max(worstSag, surface - (h - ROUTE_LIFT_M));
-                worstVsGround = Math.max(worstVsGround, Math.abs(h - ROUTE_LIFT_M - hf.sampleHeight(x, y)));
+                worstVsDrawn = Math.max(worstVsDrawn, Math.abs(h - ROUTE_LIFT_M - surface));
               }
             }
           }
           expect(vertices, `${tier} ${lod}`).toBeGreaterThan(route.totalDistance / ROUTE_MAX_SEG_M);
           expect(below, `${tier} ${lod}: points under the drawn terrain (worst sag ${worstSag.toFixed(3)} m)`).toBe(0);
-          // Near the rider (near LOD) the line stays this close to the bilinear
-          // heightfield the rider stands on (it only rises above it where the
-          // drawn triangles do). Measured worst, Nov 2026 bundle: 0.06 m on the
-          // Tiber, 0.51 m at a terrain fold of the Assisi corridor (13 m
-          // triangles vs bilinear), 1.6 m at the low tier's 26 m step. Far-LOD
-          // error is the coarse terrain's own; the line follows those triangles.
-          if (lod === 'near') expect(worstVsGround, `${tier} near worst |line − heightfield|`).toBeLessThan(step === 1 ? 0.6 : 2);
+          // One height source: the line lies on the drawn triangles, which is
+          // also the ground the rider stands on (worldScene.drawnGround), give
+          // or take a 2 m chord across a fold. Before the hotfix it followed
+          // max(bilinear, triangles) while the rider rode the bilinear ground:
+          // 0.51 m apart at an Assisi fold, 1.6 m at the low tier's 26 m step.
+          expect(worstVsDrawn, `${tier} ${lod} worst |line − drawn ground|`).toBeLessThan(0.1);
         }
       }
     });

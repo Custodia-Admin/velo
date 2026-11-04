@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 import { RideView } from '@/components/ride/RideView';
 import type { WorldRenderer } from '@/lib/world/renderer';
+import { holdStart, START_HOLD_POLL_MS } from '@/lib/ride/startHold';
 import { worldForRoute } from '@/lib/world/catalog';
 import { NoTokenBanner } from '@/components/ride/NoTokenBanner';
 import { PlayPanel } from '@/components/velo/PlayMode';
@@ -188,7 +189,12 @@ export function Ride() {
   // setRoute occasionally landed before /ride's setRoute effect re-fired,
   // leaving rideState='idle' on entry — the prior `rideState !== 'ready'`
   // guard then bailed and the ride never auto-started.
+  //
+  // The start also holds until the renderer draws the ground under the rider
+  // at full detail (lib/ride/startHold): on Cesium's first coarse tiles the
+  // rider rode tens of metres off the ground, under it at times.
   const autoStartConsumedRef = useRef(false);
+  const startHeldSinceRef = useRef<number | null>(null);
   useEffect(() => {
     if (autoStartConsumedRef.current) return;
     const wantsAutoStart = (location.state as { autoStart?: boolean } | null)?.autoStart === true;
@@ -196,10 +202,17 @@ export function Ride() {
     if (!worldRenderer) return;
     if (!route && rideMode !== 'outdoor') return;
     if (rideState === 'running' || rideState === 'paused' || rideState === 'finished') return;
-    autoStartConsumedRef.current = true;
+    startHeldSinceRef.current ??= Date.now();
+    const heldSince = startHeldSinceRef.current;
     // Brief delay so the user sees the route + chase angle for a beat
     // before the workout starts ticking — feels less jarring than 0ms.
-    const t = setTimeout(() => {
+    let t: ReturnType<typeof setTimeout>;
+    const tryStart = () => {
+      if (holdStart(worldRenderer, Date.now() - heldSince)) {
+        t = setTimeout(tryStart, START_HOLD_POLL_MS);
+        return;
+      }
+      autoStartConsumedRef.current = true;
       const st = useRideStore.getState();
       // Re-set the route so rideState transitions ready (setRoute handles
       // this idempotently — same route ref still resets to 'ready').
@@ -207,7 +220,8 @@ export function Ride() {
         st.setRoute(st.route);
       }
       useRideStore.getState().start();
-    }, 600);
+    };
+    t = setTimeout(tryStart, 600);
     return () => clearTimeout(t);
   }, [worldRenderer, route, rideMode, rideState, location.state]);
 
