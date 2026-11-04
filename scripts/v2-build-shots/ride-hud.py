@@ -13,8 +13,9 @@ is pinned to golden hour, clear (window.__veloWorldLight), then it rides on
 States, one ride per viewport + theme (env STATES, default closed,open,lost):
   closed  the default HUD: band + chip          -> ride-hud-<vp>[-night].jpg
   open    the details toggle tapped             -> ride-hud-open-<vp>[-night].jpg
-  lost    trainer lost mid-ride (store-level:   -> ride-hud-lost-<vp>[-night].jpg
-          reconnect failed, granted trainer), the one chip says so
+  lost    trainer lost mid-ride: a REAL drop    -> ride-hud-lost-<vp>[-night].jpg
+          on the fake KICKR (its gatt disconnects and refuses to reconnect;
+          ftms runs its own retry loop until it gives up), the one chip says so
 
 Every shot records the HUD area (hud_area.HUD_AREA: sum and union of every
 visible surface over the canvas, % of the viewport), every HUD panel rect,
@@ -57,17 +58,34 @@ STAGE = """async ([m, s, time]) => {
   return { conn: useRideStore.getState().connection, name: useRideStore.getState().deviceName, light };
 }"""
 
-# Trainer dropped mid-ride and the automatic retries gave up (what the
-# TrainerEventBridge does on 'failed'), with the trainer still granted.
-LOST = """async () => {
-  const { useRideStore } = await import('/src/stores/rideStore.ts');
-  const { useTrainerReconnectStore } = await import('/src/lib/trainerReconnect.ts');
-  const st = useRideStore.getState();
-  st.setConnection('disconnected', { deviceName: null, error: 'Auto-reconnect failed', code: 'reconnect-failed' });
-  st.setMode('demo');
-  useTrainerReconnectStore.setState({ phase: 'failed', name: 'KICKR CORE 78C1' });
-  return document.querySelector('[data-testid=ride-status-chip]')?.textContent ?? null;
+# Trainer dropped mid-ride, for real: no store staging. The fake KICKR's GATT
+# link drops and every reconnect attempt is refused, so ftms' own retry loop
+# (4 attempts, ~9 s) runs and gives up, and TrainerEventBridge reports it.
+# What the chip then says depends on the build: with #27 alone nothing makes a
+# reconnect grant usable after a drop ("Trainer lost · tap for devices"); with
+# #26's trainerLost() merged it is "Trainer lost · tap to reconnect".
+DROP = """async () => {
+  const [k] = await navigator.bluetooth.getDevices();
+  k.gatt.connect = async () => { throw Object.assign(new Error('fake: out of range'), { name: 'NetworkError' }); };
+  k.gatt.connected = false;
+  k.dispatchEvent(new Event('gattserverdisconnected'));
+  return true;
 }"""
+CHIP = """() => { const c = document.querySelector('[data-testid=ride-status-chip]');
+  return c ? [c.textContent, getComputedStyle(c).display !== 'none'] : [null, false]; }"""
+
+
+def drop_trainer(page) -> list:
+    """Drop the fake KICKR and sample the chip every second until it reads lost (max 30 s)."""
+    page.evaluate(DROP)
+    timeline = []
+    for i in range(30):
+        page.wait_for_timeout(1000)
+        text, shown = page.evaluate(CHIP)
+        timeline.append([i + 1, text, shown])
+        if text and text.startswith("Trainer lost") and i >= 12:
+            break
+    return timeline
 ROUTE = "scenic-perugia-tiber-park"
 
 PANELS = """() => {
@@ -232,8 +250,7 @@ def main() -> None:
                     elif state == "lost":
                         if page.locator('[data-testid=ride-details]').count():
                             page.locator('[data-testid=ride-details-toggle]').evaluate("el => el.click()")
-                        print("  lost chip", page.evaluate(LOST), flush=True)
-                        page.wait_for_timeout(1500)
+                        print("  lost chip timeline", json.dumps(drop_trainer(page)), flush=True)
                     shoot(page, vp, theme, state, results)
                 print(f"  {vp}/{theme} {round(time.time() - t0)} s", flush=True)
                 ctx.close()

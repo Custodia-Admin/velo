@@ -161,7 +161,7 @@ export function statusChip(i: ChipInput): ChipView {
     case 'reconnecting': {
       const of = i.reconnectMaxAttempts > 0 ? ` ${i.reconnectAttempt} of ${i.reconnectMaxAttempts}` : '';
       return {
-        label: `${name} lost · reconnecting${of}`,
+        label: `${shown} lost · reconnecting${of}`,
         aria: `Trainer connection lost, reconnecting${of ? `, attempt${of}` : ''}. The ride keeps going on your last power.`,
         tone: 'warn',
         pulse: true,
@@ -169,18 +169,18 @@ export function statusChip(i: ChipInput): ChipView {
       };
     }
     case 'connecting':
-      return { label: `Connecting to ${name}…`, aria: `Connecting to ${name}`, tone: 'calm', pulse: true, alert: true };
+      return { label: `Connecting to ${shown}…`, aria: `Connecting to ${name}`, tone: 'calm', pulse: true, alert: true };
     case 'error':
-      if (i.mode === 'trainer') {
-        return {
-          label: 'Trainer lost · demo power',
-          aria: 'Trainer connection failed. The ride continues on simulated power.',
-          tone: 'warn',
-          pulse: true,
-          alert: true,
-        };
-      }
-      break;
+      // A pairing attempt failed (chooser closed, GATT refused): the trainer
+      // never connected, so it was not "lost". A mid-ride drop ends as
+      // 'disconnected' + errorCode 'reconnect-failed' (rideChip).
+      return {
+        label: 'Trainer not connected · tap for devices',
+        aria: 'Trainer not connected: pairing failed. The ride continues on simulated power. Tap for devices.',
+        tone: 'warn',
+        pulse: false,
+        alert: true,
+      };
     default:
       break;
   }
@@ -256,11 +256,18 @@ const CONTROLS_ALERT: Partial<Record<ControlsPhase, string>> = {
  * controls that cannot deliver presses, then a dropped heart-rate strap,
  * then a passing notice (a toast, a few seconds), else the calm status
  * ("KICKR CORE · hills 35 %", "Demo ride · no trainer").
+ *
+ * A trainer lost mid-ride (the automatic retries gave up: 'disconnected' +
+ * errorCode 'reconnect-failed') is always an alert, on every viewport, until
+ * it is back or paired again. One tap reconnects it only when the browser
+ * still holds a grant the app can use (`trainerReconnectable`); otherwise
+ * the chip says so and opens the devices sheet.
  */
 export function rideChip(i: RideChipInput): RideChipView {
+  const indoor = !i.replay && i.mode !== 'outdoor';
   const offline = i.connection === 'disconnected' || i.connection === 'error';
-  if (!i.replay && i.mode !== 'outdoor' && offline && i.trainerReconnectable) {
-    const lost = i.errorCode === 'reconnect-failed';
+  const lost = i.connection === 'disconnected' && i.errorCode === 'reconnect-failed';
+  if (indoor && offline && i.trainerReconnectable) {
     return {
       label: `${lost ? 'Trainer lost' : 'Trainer off'} · tap to reconnect`,
       aria: `${lost ? 'Trainer connection lost' : 'Trainer not connected'}. Tap to reconnect it.`,
@@ -268,6 +275,16 @@ export function rideChip(i: RideChipInput): RideChipView {
       pulse: false,
       alert: true,
       action: 'reconnectTrainer',
+    };
+  }
+  if (indoor && lost) {
+    return {
+      label: 'Trainer lost · tap for devices',
+      aria: 'Trainer connection lost after several reconnect attempts. The ride continues on simulated power. Tap for devices.',
+      tone: 'warn',
+      pulse: false,
+      alert: true,
+      action: 'devices',
     };
   }
 
@@ -311,6 +328,39 @@ export function rideChip(i: RideChipInput): RideChipView {
   }
 
   return { ...base, aria: `${base.aria}. Tap for devices.`, action: 'devices' };
+}
+
+/** The notice the chip is showing, as far as a tap needs it. */
+export interface TappableNotice {
+  id: string;
+  /** The toast's own action (its button's onClick). */
+  run?: () => void;
+}
+
+/** What a chip tap can do to the app (RideChip passes the real ones). */
+export interface ChipTapEffects {
+  reconnectTrainer: () => void;
+  dismissNotice: (id: string) => void;
+  toggleDevices: () => void;
+}
+
+/**
+ * One tap on the chip: "Trainer lost · tap to reconnect" reconnects the
+ * granted trainer; a notice with an action runs it and dismisses that
+ * toast; anything else opens or closes the devices sheet. Returns what it did.
+ */
+export function chipTap(action: RideChipAction, notice: TappableNotice | null, fx: ChipTapEffects): RideChipAction {
+  if (action === 'reconnectTrainer') {
+    fx.reconnectTrainer();
+    return 'reconnectTrainer';
+  }
+  if (action === 'notice' && notice?.run) {
+    notice.run();
+    fx.dismissNotice(notice.id);
+    return 'notice';
+  }
+  fx.toggleDevices();
+  return 'devices';
 }
 
 /** How long a passing notice holds the chip: its own duration, at most 5 s. */

@@ -8,8 +8,8 @@
  * Exit sits at the band's start from sm; below sm it lives in the details.
  *
  * Below sm the band spans the screen: the big three figures (unit as the
- * label) beside icon-only Pause / Finish / details buttons, then one
- * "1.2 % · 142 W · gear 6" line.
+ * label) beside icon-only Pause / Finish / details buttons, then one row of
+ * grade, power and gear at figure size ("1.2 %  142 W  gear 6").
  *
  * Re-renders at display-change rate, not every frame: every store read is
  * quantised to what the band shows (0.1 km/h, 5 m, whole seconds, 0.1 %,
@@ -50,6 +50,14 @@ export function shownGear(status: ControllerStatus, gear: number, erg: boolean):
   return status === 'connected' || status === 'reconnecting' ? gear : NEUTRAL_GEAR;
 }
 
+interface CompactFigure {
+  key: string;
+  value: string;
+  unit?: string;
+  /** A word before the value ("gear 6"). */
+  prefix?: string;
+}
+
 export function RideStrip({ onExit, className }: { onExit?: () => void; className?: string }) {
   const speed = useRideStore((s) => Math.round(s.speed * 36) / 36); // 0.1 km/h steps
   const power = useRideStore((s) => Math.round(s.power));
@@ -74,15 +82,15 @@ export function RideStrip({ onExit, className }: { onExit?: () => void; classNam
   const time = formatDuration(elapsedS);
   const gradeText = (Number.isFinite(grade) ? grade : 0).toFixed(1);
 
-  const compact = [
-    `${gradeText} %`,
-    `${power} W`,
-    gear !== null ? `gear ${gear}` : null,
-    cadence > 0 ? `${cadence} rpm` : null,
-    heartRate ? `${heartRate} bpm` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  // Phones: the rest of the figures in one row under the big three, at
+  // figure size (UI-RULES §5: in-ride figures at least text-2xl).
+  const compact: CompactFigure[] = [
+    { key: 'grade', value: gradeText, unit: '%' },
+    { key: 'power', value: String(power), unit: 'W' },
+    ...(gear !== null ? [{ key: 'gear', value: String(gear), prefix: 'gear' }] : []),
+    ...(cadence > 0 ? [{ key: 'cadence', value: String(cadence), unit: 'rpm' }] : []),
+    ...(heartRate ? [{ key: 'heart', value: String(heartRate), unit: 'bpm' }] : []),
+  ];
 
   return (
     <section
@@ -133,8 +141,21 @@ export function RideStrip({ onExit, className }: { onExit?: () => void; classNam
         <Transport />
         <DetailsToggle />
       </div>
-      {/* Phones: grade, power and gear in one line under the big three. */}
-      <span className="num min-w-0 basis-full truncate px-1 text-sm text-muted-foreground sm:hidden">{compact}</span>
+      {/* Phones: grade, power and gear in one row under the big three, at
+          figure size (cadence and heart rate wrap to a second row only if
+          both join). */}
+      <div
+        className="flex min-w-0 basis-full flex-wrap items-baseline justify-between gap-x-3 px-1 sm:hidden"
+        data-testid="ride-strip-compact"
+      >
+        {compact.map((f) => (
+          <span key={f.key} className="num whitespace-nowrap">
+            {f.prefix && <small className="mr-1 text-sm font-semibold text-muted-foreground">{f.prefix}</small>}
+            <span className="text-2xl font-bold">{f.value}</span>
+            {f.unit && <small className="ml-1 text-sm font-semibold text-muted-foreground">{f.unit}</small>}
+          </span>
+        ))}
+      </div>
     </section>
   );
 }

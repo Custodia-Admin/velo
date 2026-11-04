@@ -16,6 +16,17 @@ describe('RideStrip', () => {
     expect(out).toContain('aria-label="Gear 6 of 11"');
   });
 
+  it('phones: grade, power and gear under the big three at figure size (UI-RULES §5: text-2xl)', () => {
+    const out = renderToStaticMarkup(createElement(RideStrip));
+    const m = out.match(/<div class="([^"]*)" data-testid="ride-strip-compact">(.*?)<\/div>/);
+    expect(m).not.toBeNull();
+    const [, cls, row] = m!;
+    expect(cls.split(' ')).toContain('sm:hidden');
+    expect(row.match(/<span class="text-2xl font-bold">/g)?.length).toBe(3);
+    expect(row).toContain('>gear</small><span class="text-2xl font-bold">6</span>');
+    expect(row).toContain('<span class="text-2xl font-bold">0</span><small class="ml-1 text-sm font-semibold text-muted-foreground">W</small>');
+  });
+
   it('shows the gear the trainer uses: live while the controls are connected, else neutral, none in ERG', () => {
     expect(shownGear('connected', 9, false)).toBe(9);
     expect(shownGear('reconnecting', 9, false)).toBe(9);

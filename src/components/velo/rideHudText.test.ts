@@ -4,9 +4,10 @@
  * it knows: no invented minutes, no invented landmarks, and a dropped
  * trainer reads as a warning (the chip is the one place phones see it).
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   aboutMinutes,
+  chipTap,
   formatLeft,
   nextLandmarkText,
   noticeMs,
@@ -118,14 +119,18 @@ describe('status chip', () => {
 
   it('reconnecting: plain warning copy, pulsing dot, shown on phones', () => {
     const v = statusChip({ ...base, connection: 'reconnecting', reconnectAttempt: 2, reconnectMaxAttempts: 5 });
-    expect(v.label).toBe('KICKR CORE 78C1 lost · reconnecting 2 of 5');
+    // The short name, like the calm chip ("KICKR CORE · hills 35 %").
+    expect(v.label).toBe('KICKR CORE lost · reconnecting 2 of 5');
     expect(v).toMatchObject({ tone: 'warn', pulse: true, alert: true });
   });
 
-  it('a failed trainer says the ride continues on demo power', () => {
-    const v = statusChip({ ...base, connection: 'error' });
-    expect(v.label).toBe('Trainer lost · demo power');
-    expect(v.alert).toBe(true);
+  it('a failed pairing is "not connected", never "lost" (it never connected), in any mode', () => {
+    for (const mode of ['trainer', 'demo'] as const) {
+      const v = statusChip({ ...base, mode, connection: 'error', deviceName: null });
+      expect(v.label, mode).toBe('Trainer not connected · tap for devices');
+      expect(v.label).not.toContain('lost');
+      expect(v, mode).toMatchObject({ tone: 'warn', alert: true });
+    }
   });
 
   it('no trainer: an honest demo label, no hills figure (hills only shape a trainer)', () => {
@@ -176,6 +181,37 @@ describe('the one ride chip (compact HUD: every device or error state in one pil
     expect(rideChip({ ...ride, connection: 'error', trainerReconnectable: true }).action).toBe('reconnectTrainer');
   });
 
+  // What #27 alone reaches after a real drop: TrainerEventBridge 'failed'
+  // sets 'disconnected' + 'reconnect-failed' + mode demo, and nothing moves
+  // the reconnect phase off 'connected', so there is no usable grant.
+  const lostNoGrant: RideChipInput = {
+    ...ride,
+    connection: 'disconnected',
+    mode: 'demo',
+    deviceName: null,
+    errorCode: 'reconnect-failed',
+    trainerReconnectable: false,
+  };
+
+  it('a trainer lost mid-ride with no usable grant: an alert on every viewport that opens devices, never the calm demo chip', () => {
+    const v = rideChip(lostNoGrant);
+    expect(v).toMatchObject({ label: 'Trainer lost · tap for devices', tone: 'warn', alert: true, action: 'devices' });
+    expect(v.label).not.toContain('Demo ride');
+    // It holds the chip over a notice (the bridge's "Couldn't reconnect" toast) and over calm states.
+    expect(rideChip({ ...lostNoGrant, notice: { title: "Couldn't reconnect after several attempts", kind: 'error' } }).label)
+      .toBe('Trainer lost · tap for devices');
+    // ... but not on outdoor or replay rides, which have no trainer.
+    expect(rideChip({ ...lostNoGrant, mode: 'outdoor' }).label).toBe('Outdoor · GPS');
+    expect(rideChip({ ...lostNoGrant, replay: true }).label).toBe('Replay');
+    // Once the trainer is back (connected clears the error code), the calm line returns.
+    expect(rideChip({ ...ride }).alert).toBe(false);
+  });
+
+  it('a failed pairing in the ride: "not connected", an alert that opens devices', () => {
+    const v = rideChip({ ...ride, connection: 'error', errorCode: 'no-device-selected', deviceName: null });
+    expect(v).toMatchObject({ label: 'Trainer not connected · tap for devices', alert: true, action: 'devices' });
+  });
+
   it('no granted trainer: the demo label, calm', () => {
     const v = rideChip({ ...ride, connection: 'disconnected', mode: 'demo', deviceName: null });
     expect(v).toMatchObject({ label: 'Demo ride · no trainer', tone: 'calm', alert: false, action: 'devices' });
@@ -191,7 +227,7 @@ describe('the one ride chip (compact HUD: every device or error state in one pil
       heartRate: 'error',
       notice: { title: 'Voice control on', kind: 'info' },
     });
-    expect(v.label).toBe('KICKR CORE 78C1 lost · reconnecting 1 of 5');
+    expect(v.label).toBe('KICKR CORE lost · reconnecting 1 of 5');
     expect(v.action).toBe('devices');
   });
 
@@ -224,5 +260,42 @@ describe('the one ride chip (compact HUD: every device or error state in one pil
     expect(noticeMs(10_000)).toBe(5000);
     expect(noticeMs(null)).toBe(5000);
     expect(noticeMs(0)).toBe(5000);
+  });
+});
+
+describe('a chip tap (chipTap: what RideChip runs on click)', () => {
+  const effects = () => ({ reconnectTrainer: vi.fn(), dismissNotice: vi.fn(), toggleDevices: vi.fn() });
+
+  it('"Trainer lost · tap to reconnect" reconnects the trainer, and only that', () => {
+    const fx = effects();
+    const run = vi.fn();
+    expect(chipTap('reconnectTrainer', { id: 't1', run }, fx)).toBe('reconnectTrainer');
+    expect(fx.reconnectTrainer).toHaveBeenCalledTimes(1);
+    expect(fx.toggleDevices).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('a notice with an action runs it and dismisses that toast', () => {
+    const fx = effects();
+    const run = vi.fn();
+    expect(chipTap('notice', { id: 'ftp', run }, fx)).toBe('notice');
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(fx.dismissNotice).toHaveBeenCalledWith('ftp');
+    expect(fx.reconnectTrainer).not.toHaveBeenCalled();
+    expect(fx.toggleDevices).not.toHaveBeenCalled();
+  });
+
+  it('anything else opens or closes the devices sheet', () => {
+    for (const [action, notice] of [
+      ['devices', null],
+      ['notice', null],
+      ['notice', { id: 'x' }],
+    ] as const) {
+      const fx = effects();
+      expect(chipTap(action, notice, fx)).toBe('devices');
+      expect(fx.toggleDevices).toHaveBeenCalledTimes(1);
+      expect(fx.reconnectTrainer).not.toHaveBeenCalled();
+      expect(fx.dismissNotice).not.toHaveBeenCalled();
+    }
   });
 });

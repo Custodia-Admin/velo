@@ -99,7 +99,12 @@
     .fig .l .unit { display: inline; }
     .fig .l .name { display: none; }
     .controls { border-left: 0; padding-left: 0; }
-    .compact { display: block; flex-basis: 100%; padding: 0 var(--s-1); }
+    /* grade, power, gear at figure size (UI-RULES §5: in-ride figures >= text-2xl) */
+    .compact { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--s-3); flex-basis: 100%; padding: 0 var(--s-1); }
+    .compact > span { white-space: nowrap; }
+    .compact b { font-size: var(--text-2xl); line-height: var(--lh-2xl); font-weight: 700; }
+    .compact small { font-size: var(--text-sm); font-weight: 600; color: hsl(var(--muted-foreground)); margin-left: var(--s-1); }
+    .compact small.pre { margin-left: 0; margin-right: var(--s-1); }
   }
 </style>
 <script>
@@ -160,7 +165,7 @@
         <button class="btn quiet icon-only labelled" aria-label="Finish ride"><i data-icon="flag" class="lg"></i><span class="label">Finish</span></button>
         <button class="btn quiet icon-only" aria-label="Show ride details: route, map and ride tools" aria-expanded="false"><i data-icon="chevron-up" class="lg tray-closed"></i><i data-icon="chevron-down" class="lg tray-open"></i></button>
       </div>
-      <span class="compact t-sm num muted">1.2 % · 142 W · gear 6</span>
+      <span class="compact num"><span><b>1.2</b><small>%</small></span><span><b>142</b><small>W</small></span><span><small class="pre">gear</small><b>6</b></span></span>
     </section>
  </div>
 </div>

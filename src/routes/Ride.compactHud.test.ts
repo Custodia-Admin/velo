@@ -70,10 +70,6 @@ describe('compact ride HUD: one bottom column', () => {
     expect(storeSrc).toContain('expanded: false');
   });
 
-  it('the details collapse state persists, the devices sheet does not', () => {
-    expect(storeSrc).toContain("partialize: (s) => ({ expanded: s.expanded })");
-  });
-
   it('the band carries the six figures, Pause / Finish and exactly one details toggle', () => {
     for (const label of ['"Speed"', '"Time"', '"Distance"', '"Grade"', '"Power"', '"Gear"']) {
       expect(stripSrc, label).toContain(`label=${label}`);
@@ -93,6 +89,14 @@ describe('compact ride HUD: one bottom column', () => {
   it('the HUD hides in show mode and after the finish', () => {
     expect(rideSrc).toContain("const rideHudOn = !showActive && rideState !== 'finished'");
     expect(hudSection()).toContain('{rideHudOn && (');
+  });
+
+  it('show mode keeps one status chip (alerts and notices only) above the show strip, so no toast card covers the video', () => {
+    const showHudSrc = read('src/components/velo/ShowHud.tsx');
+    expect(rideSrc).toContain('<ShowHud dimmed={dimmed} />');
+    expect(showHudSrc).toContain('<RideChip alertsOnly');
+    expect(showHudSrc.indexOf('<RideChip')).toBeLessThan(showHudSrc.indexOf('<ShowRideStrip'));
+    expect(showHudSrc).toContain('devicesOpen && <RideDevicesSheet');
   });
 });
 

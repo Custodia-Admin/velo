@@ -193,6 +193,18 @@ export function trainerRow(s: TrainerRowInput): RowView<TrainerActionId> {
           extras: [{ id: 'pair', label: 'Pair trainer' }],
         };
       }
+      // Dropped mid-ride and the automatic retries gave up, with no grant
+      // the app can reconnect by itself: say so, never "Not paired".
+      if (s.errorCode === 'reconnect-failed') {
+        return {
+          name: 'Trainer',
+          tone: 'error',
+          state: trainerErrorTitle(s.errorCode),
+          help: 'It dropped mid-ride. Pedal once to wake it, then pair it again.',
+          action: { id: 'pair', label: 'Pair again', ariaLabel: 'Pair the trainer again' },
+          extras: [guide('Show me how to fix this')],
+        };
+      }
       return {
         name: 'Trainer',
         tone: 'idle',

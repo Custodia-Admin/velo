@@ -9,7 +9,7 @@ import { PlayPanel } from '@/components/velo/PlayMode';
 import { RideHud } from '@/components/velo/RideHud';
 import { GestureLegend } from '@/components/ride/GestureLegend';
 import { ShowCorner, ShowPanel } from '@/components/velo/ShowPanel';
-import { ShowRideStrip } from '@/components/velo/ShowRideStrip';
+import { ShowHud } from '@/components/velo/ShowHud';
 import { retainShowForRide, useShowStore } from '@/stores/showStore';
 import { useIdle } from '@/hooks/useIdle';
 import { cn } from '@/lib/utils';
@@ -358,14 +358,14 @@ export function Ride() {
       )}
 
       {/* -- Show mode: video panel, corner (camera + close), show strip ---- */}
+      {/* ShowHud = the show strip plus the status chip, which speaks up only
+          for a problem or a notice and hosts the toasts: no toast card over
+          the video either. */}
       {showActive && rideState !== 'finished' && (
         <>
           <ShowPanel dimmed={dimmed} />
           <ShowCorner className={dimClass} />
-          <ShowRideStrip
-            dimmed={dimmed}
-            className="absolute hud-inset-b show-inset-l show-inset-r z-20 sm:left-auto"
-          />
+          <ShowHud dimmed={dimmed} />
         </>
       )}
 

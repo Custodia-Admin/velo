@@ -5,16 +5,20 @@
  * the ride band, worst problem first (`rideChip`, rideHudText.ts). Never a
  * large red box: details live on the devices sheet the chip opens.
  *
- * Tapping it: "Trainer lost · tap to reconnect" reconnects the granted
- * trainer (the Devices row's own action); a notice with an action runs it;
- * anything else opens the devices sheet.
+ * Tapping it (`chipTap`, rideHudText.ts): "Trainer lost · tap to reconnect"
+ * reconnects the granted trainer (the Devices row's own action); a notice
+ * with an action runs it; anything else opens the devices sheet. The
+ * reconnect label needs a trainer grant the app can use
+ * (useTrainerReconnectStore phase 'available' / 'failed'); a trainer lost
+ * without one reads "Trainer lost · tap for devices".
  *
- * While the ride HUD is up, toasts are not drawn (Toaster defers to the
+ * While the chip is mounted, toasts are not drawn (Toaster defers to the
  * chip): the newest one holds the chip for at most 5 s and is then
  * dismissed, so nothing piles up for the finish page.
  *
  * Below sm the calm states hide (the band is the whole HUD there); the chip
- * shows only when something needs the rider.
+ * shows only when something needs the rider. `alertsOnly` (show mode, over
+ * the video) hides the calm states on every viewport.
  */
 
 import { useEffect, useMemo } from 'react';
@@ -26,7 +30,7 @@ import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { HUD_PANEL } from './v2';
-import { noticeMs, rideChip, type ChipNotice } from './rideHudText';
+import { chipTap, noticeMs, rideChip, type ChipNotice } from './rideHudText';
 
 /** The newest toast, shown in the chip; each one is dismissed after its turn. */
 export function useRideNotice(): (ChipNotice & { id: string; run?: () => void }) | null {
@@ -61,7 +65,7 @@ export function useRideNotice(): (ChipNotice & { id: string; run?: () => void })
   }, [latest]);
 }
 
-export function RideChip({ className }: { className?: string }) {
+export function RideChip({ className, alertsOnly = false }: { className?: string; alertsOnly?: boolean }) {
   const connection = useRideStore((s) => s.connection);
   const mode = useRideStore((s) => (s.rideMode === 'outdoor' ? 'outdoor' : s.mode));
   const deviceName = useRideStore((s) => s.deviceName);
@@ -102,17 +106,14 @@ export function RideChip({ className }: { className?: string }) {
   });
 
   const onTap = () => {
-    if (view.action === 'reconnectTrainer') {
-      void reconnectGrantedTrainer();
-      return;
-    }
-    if (view.action === 'notice' && notice?.run) {
-      notice.run();
-      useRideStore.getState().dismissToast(notice.id);
-      return;
-    }
-    setDevicesOpen(!devicesOpen);
+    chipTap(view.action, notice, {
+      reconnectTrainer: () => void reconnectGrantedTrainer(),
+      dismissNotice: (id) => useRideStore.getState().dismissToast(id),
+      toggleDevices: () => setDevicesOpen(!devicesOpen),
+    });
   };
+
+  if (alertsOnly && !view.alert) return null;
 
   return (
     <button

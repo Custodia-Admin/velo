@@ -87,6 +87,19 @@ describe('trainerRow', () => {
     expect(ids(v)).toEqual({ action: 'reconnect', extras: ['pair'] });
   });
 
+  it('lost mid-ride with no grant to reconnect: says it dropped, never "Not paired"; Pair again + guide', () => {
+    const v = trainerRow(trainer({ errorCode: 'reconnect-failed', reconnectPhase: 'connected' }));
+    expect(v.state).toBe("Couldn't auto-reconnect to the trainer");
+    expect(v.state).not.toContain('Not paired');
+    expect(v.tone).toBe('error');
+    expect(v.help).toContain('dropped mid-ride');
+    expect(v.action).toMatchObject({ id: 'pair', label: 'Pair again' });
+    expect(v.extras.map((e) => e.id)).toEqual(['guide']);
+    // With a grant the one-tap Reconnect still wins.
+    const back = trainerRow(trainer({ errorCode: 'reconnect-failed', reconnectPhase: 'available', reconnectName: 'KICKR CORE 78C1' }));
+    expect(back.action?.id).toBe('reconnect');
+  });
+
   it('connecting / reconnecting: busy, no second attempt', () => {
     for (const connection of ['connecting', 'reconnecting'] as const) {
       const v = trainerRow(trainer({ connection }));

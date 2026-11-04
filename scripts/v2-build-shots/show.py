@@ -20,7 +20,9 @@ footage:
     BASE=http://localhost:5183 VIDEO="/path/Episode 4.webm" uv run --with playwright \
         --with pillow python scripts/v2-build-shots/show.py [vp ...]
 
-Env: SETTLE_S (seconds after the video starts, default 20), THEMES=day,night.
+Env: SETTLE_S (seconds after the video starts, default 20), THEMES=day,night,
+LOST=1 (also drop the fake KICKR for real and shoot show-lost-*: the status
+chip over the show, no toast card).
 """
 from __future__ import annotations
 
@@ -82,6 +84,9 @@ STATE = """() => {
     panel: rect(document.querySelector('[data-testid=show-panel]')),
     controls: rect(document.querySelector('[data-testid=show-controls]')),
     strip: rect(document.querySelector('[data-testid=show-ride-strip]')),
+    chip: rect([...document.querySelectorAll('[data-testid=ride-status-chip]')].find(vis)),
+    chipText: [...document.querySelectorAll('[data-testid=ride-status-chip]')].find(vis)?.textContent ?? null,
+    toastCards: document.querySelectorAll('[aria-label="Notifications"] > *').length,
     corner: corner ? rect(corner) : null,
     camera: rect([...document.querySelectorAll('[data-testid=show-camera]')].find(vis)),
     video: v ? { t: +v.currentTime.toFixed(1), paused: v.paused, w: v.videoWidth } : null,
@@ -90,6 +95,18 @@ STATE = """() => {
     rider: dbg && dbg.riderScreen ? dbg.riderScreen : null,
     renderer: dbg ? dbg.renderer : null,
   };
+}"""
+
+
+# LOST=1: after the normal shot, the fake KICKR drops for real (as in
+# ride-hud.py) and show-lost-<vp>[-night].jpg records the chip over the show.
+LOST = os.environ.get("LOST", "0") == "1"
+DROP = """async () => {
+  const [k] = await navigator.bluetooth.getDevices();
+  k.gatt.connect = async () => { throw Object.assign(new Error('fake: out of range'), { name: 'NetworkError' }); };
+  k.gatt.connected = false;
+  k.dispatchEvent(new Event('gattserverdisconnected'));
+  return true;
 }"""
 
 
@@ -144,6 +161,25 @@ def main() -> None:
                 results[name] = {"measure": m, "state": info, "errors": page.errors[:5]}
                 print(name, json.dumps({"measure": m, "errors": page.errors[:3]}))
                 print("  state", json.dumps(info))
+                if LOST:
+                    page.evaluate(DROP)
+                    timeline = []
+                    for i in range(20):
+                        page.wait_for_timeout(1000)
+                        st = page.evaluate(STATE)
+                        timeline.append([i + 1, st["chipText"], st["toastCards"]])
+                        if st["chipText"] and st["chipText"].startswith("Trainer lost") and i >= 12:
+                            break
+                    print("  lost timeline", json.dumps(timeline), flush=True)
+                    page.mouse.move(w // 2, h // 2)
+                    page.wait_for_timeout(500)
+                    info = page.evaluate(STATE)
+                    m = common.measure(page)
+                    common.save(page, f"{SCREEN}-lost", vp, theme)
+                    name = common.shot_name(f"{SCREEN}-lost", vp, theme)
+                    results[name] = {"measure": m, "state": info, "timeline": timeline, "errors": page.errors[:5]}
+                    print(name, json.dumps({"measure": m, "errors": page.errors[:3]}))
+                    print("  state", json.dumps(info))
                 ctx.close()
         browser.close()
     mp = common.OUT / f"measurements-{SCREEN}.json"
