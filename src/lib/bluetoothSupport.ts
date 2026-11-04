@@ -132,7 +132,7 @@ export function detectBluetoothSupport(): BluetoothSupportReport {
         platform,
         usable: false,
         reason:
-          "Safari doesn't ship Web Bluetooth. Open GlobeRide in Chrome or Edge to pair a trainer, or stick with Demo Mode here.",
+          "Safari doesn't ship Web Bluetooth. Open Velo in Chrome or Edge to pair a trainer, or stick with Demo Mode here.",
         reasonCode: 'safari-unsupported',
       };
     }
@@ -145,7 +145,7 @@ export function detectBluetoothSupport(): BluetoothSupportReport {
         platform,
         usable: false,
         reason:
-          "Firefox doesn't ship Web Bluetooth. Open GlobeRide in Chrome or Edge to pair a trainer.",
+          "Firefox doesn't ship Web Bluetooth. Open Velo in Chrome or Edge to pair a trainer.",
         reasonCode: 'firefox-unsupported',
       };
     }

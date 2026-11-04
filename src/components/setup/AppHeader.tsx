@@ -30,7 +30,7 @@ export function AppHeader({
       <a
         href="/"
         className="flex items-center gap-2.5 group min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg p-0.5"
-        aria-label="GlobeRide home"
+        aria-label="Velo home"
       >
         {/* Brand mark */}
         <span className="relative inline-flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/25 via-primary/10 to-accent/20 ring-1 ring-inset ring-border/60 transition-all duration-300 group-hover:scale-105 group-hover:rotate-6 group-hover:ring-primary/40">
@@ -38,7 +38,7 @@ export function AppHeader({
         </span>
         <div className="min-w-0">
           <div className="text-sm sm:text-base font-bold tracking-tight text-foreground leading-tight">
-            GlobeRide
+            Velo
           </div>
           <div className="hidden sm:block text-[10px] text-muted-foreground leading-tight tracking-wide">
             Virtual cycling · open source

@@ -128,7 +128,7 @@ def open_show(page, vp):
 
 def main() -> None:
     assert VIDEO and Path(VIDEO).exists(), "set VIDEO to a local test video"
-    vps = sys.argv[1:] or ["1440", "390", "tv"]
+    vps = sys.argv[1:] or ["1440", "1280", "390", "tv"]
     themes = os.environ.get("THEMES", "day,night").split(",")
     results = {}
     with sync_playwright() as p:

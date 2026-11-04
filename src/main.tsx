@@ -1,6 +1,5 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { registerSW } from 'virtual:pwa-register';
 
 import App from '@/App';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -8,6 +7,7 @@ import { silenceKnownWarnings } from '@/lib/silenceKnownWarnings';
 import { warnIfTokenMissing } from '@/lib/cesiumTokenWarning';
 import { perfOverlayEnabled } from '@/lib/perf/perfFlag';
 import { installTvLayout } from '@/lib/tvLayout';
+import { startServiceWorker } from '@/lib/swUpdate';
 import '@/index.css';
 // Side-effect import ensures the theme is applied as early as the module
 // graph loads, in addition to the pre-paint script in index.html.
@@ -33,5 +33,7 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
-// Auto-update the service worker without bothering the user.
-registerSW({ immediate: true });
+// Offline support + updates. A new deploy waits while the rider is on /ride
+// and takes over (one reload) on the next navigation off it: a deploy never
+// reloads a ride (src/lib/swUpdate.ts). Production only: dev builds no worker.
+if (import.meta.env.PROD) startServiceWorker();

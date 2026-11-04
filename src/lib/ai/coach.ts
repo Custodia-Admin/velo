@@ -64,7 +64,7 @@ const CATALOG_SUMMARY = PRESET_WORKOUTS.map((w) => {
 // System prompt
 // ---------------------------------------------------------------------------
 
-const COACH_SYSTEM_PROMPT = `You are an expert cycling coach for GlobeRide, a virtual cycling simulator.
+const COACH_SYSTEM_PROMPT = `You are an expert cycling coach for Velo, a virtual cycling simulator.
 
 Your task: given a rider's recent training data, recommend the single best workout for TODAY by picking one id from the provided catalog.
 

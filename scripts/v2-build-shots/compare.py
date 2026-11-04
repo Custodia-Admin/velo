@@ -5,9 +5,9 @@ Usage (repo root, after the screen scripts have written docs/design/screenshots/
 
     uv run --with pillow python scripts/v2-build-shots/compare.py [--only home,finish]
 
-Writes docs/design/screenshots/v2/build/compare/<screen>-<1440|390|tv>[-night].jpg for every
-build shot that has a mockup render of the same name. 390 shots are 2x on both sides and are
-shown at 1x (CSS pixels); TV and 1440 at 1x.
+Writes docs/design/screenshots/v2/build/compare/<screen>-<1440|1280|390|tv>[-night].jpg for every
+build shot that has a mockup render of the same name. 390 and 1280 (owner's laptop) shots are 2x on
+both sides and are shown at 1x (CSS pixels); TV and 1440 at 1x.
 """
 import argparse
 from pathlib import Path
@@ -32,13 +32,13 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     n = 0
     for build in sorted((V2 / "build").glob("*.jpg")):
-        screen = build.stem.split("-1440")[0].split("-390")[0].split("-tv")[0]
+        screen = build.stem.split("-1440")[0].split("-1280")[0].split("-390")[0].split("-tv")[0]
         if only and screen not in only:
             continue
         mock = V2 / "mockup" / build.name
         if not mock.exists():
             continue
-        half = "-390" in build.stem
+        half = "-390" in build.stem or "-1280" in build.stem
         left, right = load(mock, half), load(build, half)
         h = max(left.height, right.height)
         canvas = Image.new("RGB", (left.width + right.width + GAP, h + BAR), (245, 241, 234))

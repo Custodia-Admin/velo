@@ -58,7 +58,7 @@ export function formatErrorForReport(
   const ts = new Date().toISOString();
 
   const lines: string[] = [
-    `**GlobeRide crash report** — v${version} — ${ts}`,
+    `**Velo crash report** — v${version} — ${ts}`,
     '',
     '### Error',
     '```',

@@ -88,7 +88,7 @@ export function FITUploader() {
             {busy ? 'Parsing FIT…' : 'Drop a .FIT to replay'}
           </div>
           <div className="text-xs text-muted-foreground mt-0.5">
-            Or click to browse · GlobeRide, Strava, or Garmin export
+            Or click to browse · Velo, Strava, or Garmin export
           </div>
         </div>
       </label>

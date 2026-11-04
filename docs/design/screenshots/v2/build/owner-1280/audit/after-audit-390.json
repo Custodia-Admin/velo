@@ -1,0 +1,190 @@
+{
+ "devices": {
+  "clipped": [],
+  "controls": 5,
+  "covered": [],
+  "errors": [],
+  "overflowX": false,
+  "pageScrollY": true,
+  "scrollHeight": 1203,
+  "scrollWidth": 390,
+  "scrollers": [],
+  "viewport": [
+   390,
+   844
+  ]
+ },
+ "finish": {
+  "clipped": [],
+  "controls": 4,
+  "covered": [],
+  "errors": [],
+  "overflowX": false,
+  "pageScrollY": false,
+  "scrollHeight": 844,
+  "scrollWidth": 390,
+  "scrollers": [],
+  "viewport": [
+   390,
+   844
+  ]
+ },
+ "home": {
+  "clipped": [],
+  "controls": 6,
+  "covered": [],
+  "errors": [],
+  "overflowX": false,
+  "pageScrollY": true,
+  "scrollHeight": 8231,
+  "scrollWidth": 390,
+  "scrollers": [],
+  "viewport": [
+   390,
+   844
+  ]
+ },
+ "onboarding": {
+  "clipped": [],
+  "controls": 6,
+  "covered": [],
+  "errors": [],
+  "overflowX": false,
+  "pageScrollY": true,
+  "scrollHeight": 8231,
+  "scrollWidth": 390,
+  "scrollers": [],
+  "viewport": [
+   390,
+   844
+  ]
+ },
+ "ride": {
+  "clipped": [],
+  "controls": 3,
+  "covered": [],
+  "errors": [],
+  "hudArea": {
+   "budget": "ok",
+   "sumPct": 10.9,
+   "surfaces": [
+    [
+     "ride-strip",
+     366,
+     98
+    ]
+   ],
+   "unionPct": 10.9
+  },
+  "overflowX": false,
+  "pageScrollY": false,
+  "scrollHeight": 844,
+  "scrollWidth": 390,
+  "scrollers": [],
+  "viewport": [
+   390,
+   844
+  ]
+ },
+ "ride-open": {
+  "clipped": [],
+  "controls": 9,
+  "covered": [],
+  "errors": [],
+  "hudArea": {
+   "budget": "OVER",
+   "sumPct": 27.8,
+   "surfaces": [
+    [
+     "ride-strip",
+     366,
+     98
+    ],
+    [
+     "Route progress",
+     230,
+     129
+    ],
+    [
+     "Route map",
+     128,
+     128
+    ],
+    [
+     "show-toggle",
+     40,
+     40
+    ],
+    [
+     "Camera: chase",
+     40,
+     40
+    ],
+    [
+     "Ghost riders on",
+     40,
+     40
+    ],
+    [
+     "Voice control: off",
+     40,
+     40
+    ],
+    [
+     "Ride settings",
+     40,
+     40
+    ],
+    [
+     "Exit ride and return to setup",
+     40,
+     40
+    ]
+   ],
+   "unionPct": 27.9
+  },
+  "overflowX": false,
+  "pageScrollY": false,
+  "scrollHeight": 844,
+  "scrollWidth": 390,
+  "scrollers": [],
+  "viewport": [
+   390,
+   844
+  ]
+ },
+ "settings": {
+  "clipped": [
+   {
+    "edges": [
+     "right"
+    ],
+    "name": "Multiplayer",
+    "rect": [
+     360,
+     143,
+     89,
+     35
+    ]
+   }
+  ],
+  "controls": 20,
+  "covered": [],
+  "errors": [],
+  "overflowX": false,
+  "pageScrollY": true,
+  "scrollHeight": 8231,
+  "scrollWidth": 390,
+  "scrollers": [
+   {
+    "clientH": 630,
+    "name": "tabpanel",
+    "scrollH": 794
+   }
+  ],
+  "viewport": [
+   390,
+   844
+  ]
+ }
+}
