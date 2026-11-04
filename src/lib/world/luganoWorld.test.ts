@@ -58,6 +58,19 @@ describe('Lugano world bundle', () => {
     expect(world.heightfield.spec.rows).toBeLessThanOrEqual(2048);
   });
 
+  it('records the Open-Meteo heightfield check, point and node-registered', () => {
+    // The P1.3 criterion (point RMS ≤ 6 m) is not reachable on Ticino's slopes
+    // by any 30 m DEM; docs/worlds/WORLD-FORMAT.md ("Lugano") has the evidence.
+    // These bounds catch a regression in the terrain, not the criterion.
+    const { validation } = JSON.parse(readFileSync(REPORT, 'utf8')) as {
+      validation: { samples: number; rmsM: number; registered: { rmsM: number; meanBiasM: number } };
+    };
+    expect(validation.samples).toBe(50);
+    expect(validation.registered.rmsM).toBeLessThanOrEqual(10);
+    expect(Math.abs(validation.registered.meanBiasM)).toBeLessThan(3);
+    expect(validation.rmsM).toBeLessThanOrEqual(20);
+  });
+
   it('covers Lugano and Locarno with plausible terrain and lakes', () => {
     const at = (lat: number, lon: number) => world.heightfield.sampleHeight(...world.projection.forward(lat, lon));
     expect(at(46.0047, 8.9512)).toBeGreaterThan(268); // Piazza della Riforma, Lugano

@@ -298,7 +298,15 @@ type stripping), no npm packages.
   clean-cache bake downloads the same OSM state. Terrain tiles are static.
 - **Checks** the bake runs: manifest validation, height round-trip, route gap
   and grade, bundle size, and the heightfield against 50 seeded Open-Meteo
-  (Copernicus GLO-90) samples (RMS ≤ 6 m).
+  (Copernicus GLO-90) samples (RMS ≤ 6 m). Open-Meteo answers with the
+  nearest GLO-90 node (3″, about 65 × 93 m), not an interpolation, so the
+  report also gives `validation.registered`: the heightfield read at that
+  node (the north-west corner of the sample's 3″ cell) against Open-Meteo's
+  value for it. On steep ground the point RMS mostly measures where in the
+  cell the sample fell; the registered RMS measures the terrain.
+- After writing to `public/worlds/`, it runs `syncDestinations.mjs`, which
+  copies the world's bbox, routes, moods, towns and credits into its
+  destination manifest (`docs/worlds/DESTINATIONS.md`).
 
 Perugia, 31 Oct 2026 on cat-bed (Node 26), from a clean cache:
 
@@ -326,6 +334,38 @@ Assisi valley floor, so it holds both `scenic-perugia-tiber-park` and
 Assisi route, 18 km east of the centre. `scenic-trasimeno-shore`
 (Castiglione del Lago, 30 km west) is left for its own world; stretching this
 one to 45 km would cost resolution and budget.
+
+### Lugano
+
+The world is 23 × 27 km at 15 m (`x −11500…11495`, `y −13500…13500` around
+46.0593° N 8.8386° E, 1534 × 1801 nodes). It holds `scenic-lugano-melide`
+and `scenic-locarno-brissago`, about 22 km apart across Monte Ceneri. The other
+Ticino and Lombardy routes (Magadino plain, Valle Maggia, Lake Varese, Lake
+Como) are 20–45 km further out; one world reaching them would pass 2048
+nodes a side and the 8 MB budget, so they stay map rides in the Lugano
+destination until they get worlds of their own. Baked 4 Nov 2026 on cat-bed:
+
+| Check | Result |
+| --- | --- |
+| Bake time | 516 s from an empty cache (Overpass ≈ 7 min of it) |
+| Determinism | two bakes from cache and one from an empty cache: identical bytes for all 8 files |
+| Size | 9.47 MB as shipped (gzip), 7.12 MB brotli, 19.3 MB raw |
+| Routes | max gap 0 m; grade Δ 1.127 pp (Lugano–Melide), 0.27 pp (Locarno–Brissago) |
+| Heightfield vs Open-Meteo, 50 seeded points | **fails as written**: RMS 18.17 m at the points; 9.12 m registered at the GLO-90 nodes |
+
+Lugano–Melide's grade Δ is over 1 pp because its geometry rides ~800 m up a
+street and back down it (1.9–3.5 km) with a different profile each way; one
+ground surface can't follow both. The route generator fix removes the
+retrace; re-bake Lugano from cache after it lands.
+
+The DEM check can't be passed on this terrain by any 30 m elevation model.
+Copernicus GLO-30, the source GLO-90 is made from, read from its own tiles
+at the same 50 points, scores 16.58 m at the points and 6.53 m at the nodes
+against Open-Meteo. On the 32 samples where the ground within the GLO-90
+cell is gentle (heightfield relief point-to-node < 10 m), Lugano scores
+5.72 m at the points and 5.03 m at the nodes. The rest sit on 30–40°
+slopes, where neighbouring GLO-90 nodes differ by 70 m. Against GLO-30 at
+the points, Lugano's heightfield (EU-DEM via Terrain Tiles) scores 6.26 m.
 
 ### Adding a world
 

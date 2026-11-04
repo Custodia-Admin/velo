@@ -1,0 +1,77 @@
+scenic route scenic-locarno-brissago: clicked the grid card
+{
+ "route": "scenic-locarno-brissago",
+ "quality": "medium",
+ "viewport": [
+  1440,
+  900
+ ],
+ "gl": "gpu",
+ "worldReadyS": 19.6,
+ "renderer": "world",
+ "debug": {
+  "renderer": "world",
+  "world": "lugano",
+  "quality": "medium",
+  "dpr": 1,
+  "canvas": [
+   1440,
+   900
+  ],
+  "distance": 66.12631009622,
+  "riderXZ": [
+   -3198.29,
+   -11949.72
+  ],
+  "routeEle": 200.88961444349908,
+  "groundEle": 202.96875,
+  "riderGroundGap": 0,
+  "cameraHeight": 205.56875,
+  "cameraClearance": 2.5999999999999943,
+  "riderScreen": [
+   720,
+   567
+  ],
+  "nearChunks": 2,
+  "drawCalls": 75,
+  "triangles": 6108263,
+  "trees": 8599,
+  "light": {
+   "phase": "day",
+   "at": "2026-11-04T11:48:04.951Z",
+   "timeSource": "clock",
+   "sunAltitude": 27.8,
+   "condition": "rain",
+   "weatherSource": "live",
+   "rain": 1
+  },
+  "fps": 12,
+  "avgMs": 83.6,
+  "p95Ms": 327.4,
+  "worstMs": 481.3,
+  "jankPct": 49.3,
+  "frames": 144
+ },
+ "fpsSamples": [
+  12.4,
+  12,
+  12
+ ],
+ "p95Samples": [
+  320.2,
+  320.2,
+  327.4
+ ],
+ "speed": "Speed: 33.9 km/h",
+ "visibility": "visible",
+ "cesiumComRequests": 0,
+ "cesiumChunkRequests": [
+  "http://localhost:5194/src/lib/cesiumTokenWarning.ts",
+  "http://localhost:5194/src/lib/cesiumCameras.ts",
+  "http://localhost:5194/src/components/profile/settings/CesiumIonTokenSection.tsx"
+ ],
+ "pageErrors": [],
+ "consoleErrors": [
+  "THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."
+ ]
+}

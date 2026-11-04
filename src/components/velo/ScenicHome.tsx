@@ -83,8 +83,11 @@ export function homeSectionViews(
         if (!info) continue;
         routes.push(info);
         if (s.role === 'wishlist') {
+          // "Peschiera to Lazise · Veneto, Italy"; a route named after its place
+          // ("Berkeley shoreline") would only repeat the title, so just the region.
           const d = e.destination;
-          placeById[e.routeId] = { title: d.name, line: info.name === d.name ? d.place : `${info.name} · ${d.place}` };
+          const repeats = info.name.toLowerCase().includes(d.name.toLowerCase());
+          placeById[e.routeId] = { title: d.name, line: repeats ? d.place : `${info.name} · ${d.place}` };
         }
       }
       return { id: s.id, title: s.title, detail: s.detail, routes, placeById };

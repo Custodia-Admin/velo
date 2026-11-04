@@ -1,8 +1,8 @@
 {
   "format": "velo-destination",
   "version": 1,
-  "id": "upper-engadine",
-  "name": "Upper Engadine",
+  "id": "engadin",
+  "name": "Engadin",
   "role": "wishlist",
   "order": 20,
   "place": "Graubünden, Switzerland",

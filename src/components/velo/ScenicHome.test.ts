@@ -63,7 +63,7 @@ describe('homeSectionViews', () => {
     expect(homeSectionViews('scenic-berkeley-bay-trail', homeSections([one]))).toEqual([]);
     expect(homeSectionViews(null, homeSections([one]))[0].placeById['scenic-berkeley-bay-trail']).toEqual({
       title: 'Berkeley',
-      line: 'Berkeley shoreline · California, United States',
+      line: 'California, USA',
     });
   });
 });

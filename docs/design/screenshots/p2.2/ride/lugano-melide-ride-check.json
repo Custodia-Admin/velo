@@ -1,0 +1,77 @@
+scenic route scenic-lugano-melide: clicked the grid card
+{
+ "route": "scenic-lugano-melide",
+ "quality": "medium",
+ "viewport": [
+  1440,
+  900
+ ],
+ "gl": "gpu",
+ "worldReadyS": 19.1,
+ "renderer": "world",
+ "debug": {
+  "renderer": "world",
+  "world": "lugano",
+  "quality": "medium",
+  "dpr": 1,
+  "canvas": [
+   1440,
+   900
+  ],
+  "distance": 86.41306164650065,
+  "riderXZ": [
+   8705.94,
+   6193.64
+  ],
+  "routeEle": 280.9344683086954,
+  "groundEle": 279.9025096876926,
+  "riderGroundGap": 0,
+  "cameraHeight": 282.5025096876926,
+  "cameraClearance": 2.5969899153689084,
+  "riderScreen": [
+   789,
+   561
+  ],
+  "nearChunks": 4,
+  "drawCalls": 63,
+  "triangles": 6464662,
+  "trees": 9409,
+  "light": {
+   "phase": "golden",
+   "at": "2026-11-04T15:23:21.565Z",
+   "timeSource": "mood",
+   "sunAltitude": 6,
+   "condition": "rain",
+   "weatherSource": "live",
+   "rain": 1
+  },
+  "fps": 19.3,
+  "avgMs": 51.9,
+  "p95Ms": 166,
+  "worstMs": 523.4,
+  "jankPct": 42.7,
+  "frames": 227
+ },
+ "fpsSamples": [
+  17.8,
+  19,
+  19.3
+ ],
+ "p95Samples": [
+  198.2,
+  168.9,
+  166
+ ],
+ "speed": "Speed: 37.4 km/h",
+ "visibility": "visible",
+ "cesiumComRequests": 0,
+ "cesiumChunkRequests": [
+  "http://localhost:5194/src/lib/cesiumTokenWarning.ts",
+  "http://localhost:5194/src/lib/cesiumCameras.ts",
+  "http://localhost:5194/src/components/profile/settings/CesiumIonTokenSection.tsx"
+ ],
+ "pageErrors": [],
+ "consoleErrors": [
+  "THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."
+ ]
+}
