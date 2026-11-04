@@ -7,11 +7,9 @@ import { Toaster } from '@/components/setup/Toaster';
 import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
 import { Onboarding } from '@/components/profile/Onboarding';
 import { AchievementToast } from '@/components/ride/AchievementToast';
-import { useRaceResultCardAutoToast } from '@/hooks/useRaceResultCardAutoToast';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 
 const Ride = React.lazy(() => import('@/routes/Ride').then(m => ({ default: m.Ride })));
-const Companion = React.lazy(() => import('@/routes/Companion').then(m => ({ default: m.Companion })));
 const Replay = React.lazy(() => import('@/routes/Replay').then(m => ({ default: m.Replay })));
 const Devices = React.lazy(() => import('@/routes/Devices').then(m => ({ default: m.Devices })));
 const WorkoutBuilderRoute = React.lazy(() => import('@/routes/WorkoutBuilderRoute').then(m => ({ default: m.WorkoutBuilderRoute })));
@@ -22,15 +20,6 @@ function LoadingFallback() {
       <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
     </div>
   );
-}
-
-/**
- * Thin wrapper so the race result auto-toast hook can be called inside the
- * React tree (hooks must live in a component). Renders nothing.
- */
-function RaceResultAutoToast() {
-  useRaceResultCardAutoToast();
-  return null;
 }
 
 function AppLaunchOnboarding() {
@@ -52,8 +41,6 @@ export default function App() {
           {/* Pair the trainer, handlebar controls and heart-rate strap */}
           <Route path="/devices" element={<RouteErrorBoundary routeName="Devices"><Suspense fallback={<LoadingFallback />}><Devices /></Suspense></RouteErrorBoundary>} />
           <Route path="/ride" element={<RouteErrorBoundary routeName="Ride"><Suspense fallback={<LoadingFallback />}><Ride /></Suspense></RouteErrorBoundary>} />
-          {/* Phone companion screen — same-origin BroadcastChannel peer */}
-          <Route path="/companion" element={<RouteErrorBoundary routeName="Companion"><Suspense fallback={<LoadingFallback />}><Companion /></Suspense></RouteErrorBoundary>} />
           {/* Cinematic replay */}
           <Route path="/replay/:rideId" element={<RouteErrorBoundary routeName="Replay"><Suspense fallback={<LoadingFallback />}><Replay /></Suspense></RouteErrorBoundary>} />
           {/* Custom workout builder */}
@@ -67,8 +54,6 @@ export default function App() {
       <Toaster />
       <AppLaunchOnboarding />
       <AchievementToast />
-      {/* Race result card auto-toast — surfaces "Download result card" after a race */}
-      <RaceResultAutoToast />
     </BrowserRouter>
   );
 }

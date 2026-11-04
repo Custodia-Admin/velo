@@ -35,9 +35,7 @@ import { PerfOverlay } from '@/components/velo/PerfOverlay';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/velo/FinishCard';
-import { useCompanionReceiver } from '@/hooks/useCompanionReceiver';
 import { useGeolocationWatch } from '@/hooks/useGeolocationWatch';
-import { useRaceRecorder } from '@/hooks/useRaceRecorder';
 import { cancelSpeech } from '@/lib/speechSynthesis';
 import { useVoiceControl } from '@/hooks/useVoiceControl';
 import { useMultiriderSync } from '@/hooks/useMultiriderSync';
@@ -141,10 +139,8 @@ export function Ride() {
   useReplayLoop();
   useWorkoutEngine();
   useRideHistoryRecorder();
-  useRaceRecorder();
   useMultiriderSync();
   useRideAudio();
-  useCompanionReceiver();  // phone companion -- ingests phone HR/cadence + handles remote control
   useFtpTestSuggestion();
   useWakeLock(rideState === 'running');
 
