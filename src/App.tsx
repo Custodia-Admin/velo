@@ -10,7 +10,6 @@ import { AchievementToast } from '@/components/ride/AchievementToast';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 
 const Ride = React.lazy(() => import('@/routes/Ride').then(m => ({ default: m.Ride })));
-const Replay = React.lazy(() => import('@/routes/Replay').then(m => ({ default: m.Replay })));
 const Devices = React.lazy(() => import('@/routes/Devices').then(m => ({ default: m.Devices })));
 
 function LoadingFallback() {
@@ -40,8 +39,6 @@ export default function App() {
           {/* Pair the trainer, handlebar controls and heart-rate strap */}
           <Route path="/devices" element={<RouteErrorBoundary routeName="Devices"><Suspense fallback={<LoadingFallback />}><Devices /></Suspense></RouteErrorBoundary>} />
           <Route path="/ride" element={<RouteErrorBoundary routeName="Ride"><Suspense fallback={<LoadingFallback />}><Ride /></Suspense></RouteErrorBoundary>} />
-          {/* Cinematic replay */}
-          <Route path="/replay/:rideId" element={<RouteErrorBoundary routeName="Replay"><Suspense fallback={<LoadingFallback />}><Replay /></Suspense></RouteErrorBoundary>} />
           {/* Strava OAuth callback — auto-captures ?code= after user approves */}
           <Route path="/strava-callback" element={<RouteErrorBoundary routeName="Strava Callback"><StravaCallback /></RouteErrorBoundary>} />
           <Route path="*" element={<Navigate to="/app" replace />} />

@@ -17,7 +17,6 @@ import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideLoop } from '@/hooks/useRideLoop';
-import { useReplayLoop } from '@/hooks/useReplayLoop';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useRideAudio } from '@/hooks/useRideAudio';
 import { useRideHistoryRecorder } from '@/hooks/useRideHistoryRecorder';
@@ -128,11 +127,7 @@ export function Ride() {
   const gpsSamplesRef = useRef(gpsSamples);
   gpsSamplesRef.current = gpsSamples;
 
-  // Run the replay loop when replay data is present; otherwise the live loop.
-  // Both hooks are always called (Rules of Hooks) -- each guards on its own
-  // condition internally so only one does real work at a time.
   useRideLoop(rideMode === 'outdoor' ? gpsSamplesRef : undefined);
-  useReplayLoop();
   useRideHistoryRecorder();
   useMultiriderSync();
   useRideAudio();

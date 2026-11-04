@@ -165,8 +165,8 @@ describe('renderer seam: Cesium loads lazily', () => {
     expect(engineImportsReachable([path.join(SRC, 'main.tsx')], staticValue)).toEqual([]);
   });
 
-  it('the ride and replay routes reach Cesium only through import()', () => {
-    for (const route of ['routes/Ride.tsx', 'routes/Replay.tsx']) {
+  it('the ride route reaches Cesium only through import()', () => {
+    for (const route of ['routes/Ride.tsx']) {
       expect(engineImportsReachable([path.join(SRC, route)], staticValue)).toEqual([]);
     }
   });
@@ -217,8 +217,8 @@ describe('world renderer (three.js) is token-free', () => {
     expect(bad).toEqual([]);
   });
 
-  it('three.js sits behind import(): the app shell and ride/replay routes do not bundle it', () => {
-    for (const entry of ['main.tsx', 'routes/Ride.tsx', 'routes/Replay.tsx']) {
+  it('three.js sits behind import(): the app shell and the ride route do not bundle it', () => {
+    for (const entry of ['main.tsx', 'routes/Ride.tsx']) {
       const hits = engineImportsReachable([path.join(SRC, entry)], staticValue);
       expect(hits.filter((h) => /imports '(three|@react-three|postprocessing)/.test(h))).toEqual([]);
     }
