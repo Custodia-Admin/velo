@@ -96,3 +96,18 @@ describe('driveBotPose', () => {
     expect(driveBotPose(noRoute, null, { distance: 0, speed: 8, heading: 1.25 }, DT).heading).toBe(1.25);
   });
 });
+
+describe('driveRideFrame ground (one height source)', () => {
+  it('stands the rider and the camera look-ahead on the drawn ground it is given', () => {
+    const r = route('scenic-perugia-tiber-park');
+    const frame = createRideFrame();
+    const drawn = (x: number, y: number) => 200 + x * 0.001 + y * 0.002;
+    driveRideFrame(frame, createRideDriverMemo(), sw, {
+      route: r, distance: 500, speed: 8, grade: 0, cadence: 85, power: 200, rideState: 'running',
+      steer: 0, override: null, lookAheadM: 12, dt: DT, timeS: 0, ground: drawn,
+    });
+    const p = frame.placement!;
+    expect(p.position.y).toBeCloseTo(drawn(p.worldX, p.worldY), 9);
+    expect(frame.ahead.y).toBeCloseTo(drawn(frame.ahead.x, -frame.ahead.z), 9);
+  });
+});

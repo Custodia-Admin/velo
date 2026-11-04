@@ -2,9 +2,9 @@
  * Rider placement on a baked world and the pedalling rig — pure math shared
  * by Rider.tsx, ChaseCamera.tsx and the tests.
  *
- * The ground is `Heightfield.sampleHeight` (the same function the bake used
- * to snap every route), never the route's GPX elevation: the rider's wheels
- * touch the heightfield exactly, whatever the route file says.
+ * The ground is the terrain as drawn (the renderer passes
+ * worldScene.drawnGround) or `Heightfield.sampleHeight` (the same function
+ * the bake used to snap every route), never the route's GPX elevation.
  */
 
 import type { Heightfield } from '@/lib/world/heightfield';
@@ -41,16 +41,25 @@ export interface RiderPlacement {
   pitch: number;
 }
 
-/** Where a pose sits on the world's ground. */
-export function placeRider(ground: WorldGround, pose: Pick<RiderPose, 'lat' | 'lon' | 'heading'>): RiderPlacement {
+/**
+ * Where a pose sits on the world's ground. `surface` (world x, y → height)
+ * is the ground actually drawn (worldScene.drawnGround); without it, the
+ * heightfield the bake snapped the routes to.
+ */
+export function placeRider(
+  ground: WorldGround,
+  pose: Pick<RiderPose, 'lat' | 'lon' | 'heading'>,
+  surface?: (x: number, y: number) => number,
+): RiderPlacement {
   const [x, y] = ground.projection.forward(pose.lat, pose.lon);
   const hf = ground.heightfield;
-  const h = hf.sampleHeight(x, y);
+  const at = surface ?? ((px: number, py: number) => hf.sampleHeight(px, py));
+  const h = at(x, y);
   const fx = Math.sin(pose.heading);
   const fy = Math.cos(pose.heading);
   const w = RIDER_RIG.halfWheelbase;
-  const front = hf.sampleHeight(x + fx * w, y + fy * w);
-  const back = hf.sampleHeight(x - fx * w, y - fy * w);
+  const front = at(x + fx * w, y + fy * w);
+  const back = at(x - fx * w, y - fy * w);
   return {
     position: { x, y: h, z: -y },
     worldX: x,

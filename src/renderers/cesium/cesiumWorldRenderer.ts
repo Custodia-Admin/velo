@@ -9,13 +9,15 @@
 
 import type * as Cesium from 'cesium';
 
-import { MOODS, type MoodId } from '@/lib/cesiumUtils';
+import { groundSettled, MOODS, type MoodId } from '@/lib/cesiumUtils';
 import type { RiderPose, WorldCameraMode, WorldRenderer } from '@/lib/world/renderer';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export interface CesiumRendererHooks {
   setRiderOverride: (pose: RiderPose | null) => void;
   setMoodOverride: (mood: MoodId | null) => void;
+  /** The ground under the waiting rider is at full detail (startGround.StartGroundWatch). */
+  groundStable?: () => boolean;
 }
 
 export function isMoodId(value: unknown): value is MoodId {
@@ -42,6 +44,9 @@ export function createCesiumWorldRenderer(
       if (!live()) return;
       // Unknown ids fall back to the route's own mood instead of a blank sky.
       hooks.setMoodOverride(isMoodId(mood) ? mood : null);
+    },
+    groundReady() {
+      return !live() || groundSettled(viewer.scene, hooks.groundStable?.() === true);
     },
     dispose() {
       if (disposed) return;
