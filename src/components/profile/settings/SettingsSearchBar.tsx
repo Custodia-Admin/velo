@@ -60,8 +60,6 @@ export const ALL_SETTINGS: SettingEntry[] = [
   // Multiplayer (placeholder — no settings in store yet)
   { id: 'multiplayer-coming-soon', tab: 'multiplayer', tabLabel: 'Multiplayer', label: 'Multiplayer settings', description: 'Room caps and peer-color preferences (coming soon)' },
   // Data
-  { id: 'autoUploadStrava', tab: 'data', tabLabel: 'Data', label: 'Auto-upload to Strava', description: 'Upload finished rides automatically to Strava' },
-  { id: 'strava-connect',   tab: 'data', tabLabel: 'Data', label: 'Strava connection',     description: 'Connect or disconnect your Strava account' },
   { id: 'clear-data',       tab: 'data', tabLabel: 'Data', label: 'Clear local data',       description: 'Reset all settings, routes, and rides to factory defaults' },
 ];
 

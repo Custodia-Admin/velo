@@ -36,10 +36,6 @@ import { cancelSpeech } from '@/lib/speechSynthesis';
 import { useVoiceControl } from '@/hooks/useVoiceControl';
 import { useMultiriderSync } from '@/hooks/useMultiriderSync';
 import { MultiRiderInvite } from '@/components/ride/MultiRiderInvite';
-import { SegmentHUD } from '@/components/ride/SegmentHUD';
-import { fetchSegmentsNearRoute } from '@/lib/strava/segments';
-import { mapSegmentsToRoute } from '@/lib/segmentOverlay';
-import { refreshAccessToken, stravaCredsPresent } from '@/lib/strava';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
@@ -208,32 +204,6 @@ export function Ride() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---- Strava segment fetch ----
-  // Fire once per route load, in the background. Ride continues on failure.
-  useEffect(() => {
-    if (!route || !stravaCredsPresent()) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const token = await refreshAccessToken();
-        if (cancelled) return;
-
-        const stravaSegs = await fetchSegmentsNearRoute(route, token);
-        if (cancelled || stravaSegs.length === 0) return;
-
-        const routeSegments = mapSegmentsToRoute(stravaSegs, route);
-        if (cancelled) return;
-
-        useRideStore.getState().setLoadedSegments(routeSegments);
-      } catch {
-        // Strava unavailable — segment overlay is optional; ride continues.
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [route]);
-
   // Surface GPS errors as toasts in outdoor mode.
   useEffect(() => {
     if (rideMode !== 'outdoor' || !gpsError) return;
@@ -328,8 +298,6 @@ export function Ride() {
           modes={
             <>
               <PlayPanel compact />
-              {/* Strava Live Segments HUD */}
-              <SegmentHUD />
             </>
           }
         />

@@ -2,7 +2,6 @@ import React, { Suspense } from 'react';
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 
 import { Home } from '@/routes/Home';
-import { StravaCallback } from '@/routes/StravaCallback';
 import { Toaster } from '@/components/setup/Toaster';
 import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
 import { Onboarding } from '@/components/profile/Onboarding';
@@ -39,8 +38,6 @@ export default function App() {
           {/* Pair the trainer, handlebar controls and heart-rate strap */}
           <Route path="/devices" element={<RouteErrorBoundary routeName="Devices"><Suspense fallback={<LoadingFallback />}><Devices /></Suspense></RouteErrorBoundary>} />
           <Route path="/ride" element={<RouteErrorBoundary routeName="Ride"><Suspense fallback={<LoadingFallback />}><Ride /></Suspense></RouteErrorBoundary>} />
-          {/* Strava OAuth callback — auto-captures ?code= after user approves */}
-          <Route path="/strava-callback" element={<RouteErrorBoundary routeName="Strava Callback"><StravaCallback /></RouteErrorBoundary>} />
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
       </Suspense>

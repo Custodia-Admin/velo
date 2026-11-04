@@ -53,8 +53,6 @@ export interface RiderSettings {
    * {@link graphicsQuality} from the detected GPU (balanced on integrated GPUs).
    */
   graphicsQualityAuto: boolean;
-  /** Automatically upload the .FIT to Strava when a ride finishes (requires Strava connected). */
-  autoUploadStrava: boolean;
   /** Currently equipped helmet id -- defaults to the level-0 starter. */
   helmetId: string;
   /** Currently equipped bike gear id -- defaults to the first bike in the catalog. */
@@ -144,7 +142,6 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   avatar: DEFAULT_AVATAR_COLORS,
   graphicsQuality: 'medium' as GraphicsQuality,
   graphicsQualityAuto: true,
-  autoUploadStrava: true,
   helmetId: 'helmet-starter',
   bikeId: 'midnight-road',
   kitId: 'starter-kit',
@@ -335,7 +332,6 @@ export const useSettingsStore = create<SettingsStoreState>()(
           avatar: s.avatar,
           graphicsQuality: s.graphicsQuality,
           graphicsQualityAuto: s.graphicsQualityAuto,
-          autoUploadStrava: s.autoUploadStrava,
           helmetId: s.helmetId,
           bikeId: s.bikeId,
           kitId: s.kitId,

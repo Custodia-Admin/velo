@@ -11,7 +11,7 @@
  *     | map at the top edge (the only room clear of the rider), the tools
  *     above the band.
  *   - the devices sheet, in the details' place while the chip has it open.
- *   - opt-in ride modes that are on (workout, Strava segments, play).
+ *   - opt-in ride modes that are on (play).
  *   - the status chip, right above the band's start.
  *   - the ride band: Exit (sm+), the six figures, Pause / Finish and the
  *     one details toggle.

@@ -4,15 +4,12 @@
  * (map plate for routes without a baked world), the place name, four plain
  * figures, the full profile, and Back to Home as the only filled button.
  * No scores, PRs or training load (v2-identity §5).
- *
- * This page owns the Strava auto-upload for a finished ride (useRideExport
- * autoUpload); nothing else that is mounted then may opt in.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Download, Image, Loader2, Upload } from 'lucide-react';
+import { Download, Image } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Figure } from '@/components/velo/Figure';
@@ -20,10 +17,9 @@ import { MapPlate } from '@/components/velo/MapPlate';
 import { Plate } from '@/components/velo/Plate';
 import { RouteProfile } from '@/components/velo/RouteProfile';
 import { COLUMN, DISPLAY, KICKER, PAGE_X, WORDMARK } from '@/components/velo/v2';
-import { useRideExport, type RideExport } from '@/hooks/useRideExport';
+import { useRideExport } from '@/hooks/useRideExport';
 import { computeAscentM, listRides } from '@/lib/rideHistory';
 import { SCENIC_ROUTES, todaysScenicRoute, type ScenicRouteInfo } from '@/lib/scenicRoutes';
-import type { StravaErrorKind } from '@/lib/strava';
 import { cn, formatDuration } from '@/lib/utils';
 import { postersFor } from '@/lib/world/posters';
 import { usePlayStore } from '@/stores/playStore';
@@ -71,21 +67,6 @@ export function nextScenicRoute(currentId: string | undefined, now: Date): Sceni
   return pick.route.id === currentId ? pool[(pool.indexOf(pick) + 1) % pool.length] : pick;
 }
 
-/** A plain sentence for each upload failure. */
-export function stravaErrorSentence(kind: StravaErrorKind | undefined): string {
-  switch (kind) {
-    case 'creds_missing':      return "Strava isn't connected on this device yet. Connect it in Settings → Data.";
-    case 'refresh_failed':     return 'Strava turned down the saved sign-in. Sign in again in Settings → Data.';
-    case 'insufficient_scope': return 'Strava needs permission to add rides.';
-    case 'duplicate_activity': return 'Strava already has this ride.';
-    case 'processing_error':   return "Strava couldn't read the ride file.";
-    case 'network_error':      return "Couldn't reach Strava. Check the connection.";
-    case 'rate_limited':       return 'Strava is busy. Wait a few minutes.';
-    case 'timeout':            return 'Strava is taking a long time to process the ride.';
-    default:                   return "The ride didn't reach Strava.";
-  }
-}
-
 /** Polls ride history (the recorder saves asynchronously) for this ride. */
 function useSavedOnDevice(startedAt: number | null): boolean {
   const [saved, setSaved] = useState(false);
@@ -124,7 +105,7 @@ export function FinishCard() {
   const postcardsTotal = usePlayStore((s) => s.total);
   const postcardsFound = usePlayStore((s) => s.collected);
 
-  const exp = useRideExport({ autoUpload: true });
+  const exp = useRideExport();
   const saved = useSavedOnDevice(startedAt);
 
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -232,14 +213,11 @@ export function FinishCard() {
                   <Download className="h-5 w-5" aria-hidden="true" />
                   Download FIT
                 </Button>
-                <StravaButton exp={exp} />
                 <Button variant="primary" size="lg" className="w-full text-base sm:w-auto" onClick={() => navigate('/app')}>
                   Back to Home
                 </Button>
               </div>
             </div>
-
-            <StravaStatus exp={exp} />
 
             {route && (
               <div className="mt-2">
@@ -268,9 +246,7 @@ export function FinishCard() {
             </div>
           </section>
 
-          <footer className="pb-10 pt-6 text-xs leading-6 text-muted-foreground">
-            Velo is a fork of GlobeRide (MIT) by Mason Wyatt.
-          </footer>
+          <div className="pb-10" />
         </div>
       </main>
     </div>
@@ -279,88 +255,4 @@ export function FinishCard() {
   // Portal to body: a fixed z-50 page inside the ride tree can paint under
   // later same-z HUD siblings.
   return typeof document === 'undefined' ? page : createPortal(page, document.body);
-}
-
-/**
- * Send to Strava. Upload/processing show a spinner; success becomes a link
- * to the activity. Without Strava set up the button still answers honestly:
- * pressing it reports "Strava isn't connected on this device yet" (the
- * upload fails before any network call) instead of a dead disabled button.
- */
-function StravaButton({ exp }: { exp: RideExport }) {
-  const { uploadState, isUploading } = exp;
-  if (uploadState.phase === 'success' && uploadState.activityId) {
-    return (
-      <Button variant="outline" size="lg" className="w-full text-base sm:w-auto" asChild>
-        <a
-          href={`https://www.strava.com/activities/${uploadState.activityId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="View on Strava (opens in a new tab)"
-        >
-          <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-          View on Strava
-        </a>
-      </Button>
-    );
-  }
-  return (
-    <Button
-      variant="outline"
-      size="lg"
-      className="w-full text-base sm:w-auto"
-      onClick={() => void exp.uploadToStrava()}
-      disabled={!exp.canExport || isUploading}
-      aria-busy={isUploading || undefined}
-    >
-      {isUploading ? (
-        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-      ) : (
-        <Upload className="h-5 w-5" aria-hidden="true" />
-      )}
-      {uploadState.phase === 'uploading'
-        ? 'Sending to Strava…'
-        : uploadState.phase === 'polling'
-          ? 'Strava is processing…'
-          : 'Send to Strava'}
-    </Button>
-  );
-}
-
-/**
- * Live status line: a plain sentence and the one action that fixes it.
- * Settings errors carry actionUrl '#settings-strava', which nothing in the
- * app handles yet, so the sentence names the place instead of a dead link.
- */
-function StravaStatus({ exp }: { exp: RideExport }) {
-  const { uploadState } = exp;
-  let body: React.ReactNode = null;
-  if (uploadState.phase === 'success') {
-    body = 'Sent to Strava.';
-  } else if (uploadState.phase === 'error') {
-    const kind = uploadState.errorKind;
-    body = (
-      <>
-        <span>{stravaErrorSentence(kind)}</span>
-        {kind === 'insufficient_scope' ? (
-          <Button variant="textlink" className="px-2" onClick={exp.reauthorizeStrava}>
-            Give Strava permission
-          </Button>
-        ) : uploadState.actionUrl || kind === 'duplicate_activity' ? null : (
-          <Button variant="textlink" className="px-2" onClick={() => void exp.uploadToStrava()}>
-            Try again
-          </Button>
-        )}
-      </>
-    );
-  }
-  return (
-    <p
-      role="status"
-      aria-live="polite"
-      className={cn('flex flex-wrap items-center gap-2 text-sm', body ? 'lg:justify-end' : 'sr-only')}
-    >
-      {body}
-    </p>
-  );
 }
