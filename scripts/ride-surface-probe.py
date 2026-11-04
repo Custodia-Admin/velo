@@ -14,6 +14,9 @@ surfaces the renderer really draws:
                     surfaces above the camera within 40 m whose visible face points down, the owner's road
                     ceiling), and the finest World Terrain at the rider (sampleTerrainMostDetailed) as the bare
                     earth reference. The app's own readings (globe tiles, mesh CPU ray) are reported as `model`.
+                    The rider is checked against the main view's depth at its wheels (the frame as drawn; the
+                    overhead pick camera can select another level of detail), or against the overhead pick's
+                    top where a canopy or deck hides the wheels from the chase camera.
 
 Held spots fail outside +-TOL; ridden start samples fail only when under a drawn surface (rider or camera) and
 report the rest (float, pop) as soft counts. A sample is ok when |rider - top drawn ground| <= TOL, nothing drawn sits more than TOL above the wheels and
@@ -27,12 +30,13 @@ rider within 2 m over the bare terrain (the road under a viaduct deck is invisib
 route-line hits in the rider's column form ONE level (hits within TOL of each other). On photoreal the road
 is a ground classification painted on whichever surface is in front, so exactly one copy shows when the
 camera is above every drawn surface; a camera under the globe sees its underside, road and all, as a
-ceiling over the road it rides (the owner's two roads): photoreal samples fail on any underside pixel. Exits 1
+ceiling over the road it rides (the owner's two roads): photoreal samples fail on more than UNDERSIDE_MAX
+underside pixels. Exits 1
 on any failure. Needs a build with the scene handles (localStorage velo.debug.three / velo.debug.cesium).
 
 usage: uv run --with playwright python scripts/ride-surface-probe.py <out> <base> [route-id,...]
 env: SPOTS=1000,3000,5000 (held, metres; reached by rolling in over the last 60 m)  START_M=100 (ridden from the start, then shot)  SIZE=1280x648@2
-     TOL=0.3  QUALITY=medium  SHOTS=1  SETTLE=8 (s per held spot; photoreal tiles stream)  SAMPLES=6
+     TOL=0.3  UNDERSIDE_MAX=10  QUALITY=medium  SHOTS=1  SETTLE=8 (s per held spot; photoreal tiles stream)  SAMPLES=6
      GLARGS (Chromium GPU flags; cat-bed: "--use-gl=angle --use-angle=gl-egl --enable-gpu --ignore-gpu-blocklist")
      PW_CHROMIUM (browser binary; empty = Playwright's own)
 """
@@ -56,6 +60,9 @@ SPOTS = [float(s) for s in os.environ.get("SPOTS", "1000,3000,5000").split(",") 
 START_M = float(os.environ.get("START_M", "100"))
 SIZE = os.environ.get("SIZE", "1280x648@2")
 TOL = float(os.environ.get("TOL", "0.3"))
+# Underside pixels (of the 110-point grid) tolerated: eaves, balconies and tree crowns over a street show a few;
+# the owner's road ceiling (the globe seen from below) filled most of the top of the frame.
+UNDERSIDE_MAX = int(os.environ.get("UNDERSIDE_MAX", "10"))
 POP_M = 0.5
 QUALITY = os.environ.get("QUALITY", "medium")
 SHOTS = os.environ.get("SHOTS", "1") == "1"
@@ -76,7 +83,7 @@ localStorage.setItem('globeride.settings.v1', JSON.stringify(cur));
 """ % QUALITY
 
 # One sample of the drawn surfaces under the rider (and the camera). Returns null until a scene is up.
-SAMPLE = r"""async (tol) => {
+SAMPLE = r"""async ([tol, undersideMax]) => {
   const d = window.__veloRideDebug && window.__veloRideDebug();
   if (!d) return null;
   if (d.renderer === 'world') {
@@ -234,9 +241,16 @@ SAMPLE = r"""async (tol) => {
     const up = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormal(p, new Cesium.Cartesian3());
     if (Cesium.Cartesian3.dot(nrm, up) < -0.5) under++;
   }
-  const ok = top !== null && Math.abs(d.groundEle - top) <= tol && above === 0 &&
-    (camTop === null || cam.height > camTop) && under === 0;
+  // The rider against the ground: the main view's depth at the wheels when it shows ground there (the
+  // frame as the rider sees it; the overhead pick camera can select another level of detail), else the
+  // overhead pick's top (a canopy or deck hides the wheels from the chase camera).
+  const viewErr = viewTop === null ? null : d.groundEle - viewTop;
+  const viewGround = viewErr !== null && viewErr > -OVERHANG;
+  const riderErr = viewGround ? viewErr : (top === null ? null : d.groundEle - top);
+  const ok = riderErr !== null && Math.abs(riderErr) <= tol && (viewGround || above === 0) &&
+    (camTop === null || cam.height > camTop) && under <= undersideMax;
   return { renderer: 'photoreal', dist: d.dist, rider: d.groundEle, top, riderVsTop: top === null ? null : d.groundEle - top,
+    riderVsGround: riderErr, viewGround,
     above, overhang, onStructure, underOverhang, camVsTop: camTop === null ? null : cam.height - camTop,
     riderVsView: viewTop === null ? null : d.groundEle - viewTop, viewAlong,
     surfaces: atRider, camSurfaces: atCam, model: model(rc), bare: bareH, grid: n, skyPx: sky, ceilPx: ceil, undersidePx: under,
@@ -255,8 +269,10 @@ failed = 0
 
 def under(s):
     """Rider below a drawn ground surface, camera at/under one, or a surface seen from below: the owner's bug."""
-    return (s["riderVsTop"] is not None and s["riderVsTop"] < -TOL) or s["above"] > 0 or \
-        (s["camVsTop"] is not None and s["camVsTop"] <= 0) or (s.get("undersidePx") or 0) > 0
+    g = s.get("riderVsGround", s["riderVsTop"])
+    above = s["above"] > 0 and not s.get("viewGround")
+    return (g is not None and g < -TOL) or above or \
+        (s["camVsTop"] is not None and s["camVsTop"] <= 0) or (s.get("undersidePx") or 0) > UNDERSIDE_MAX
 
 
 def fmt(s):
@@ -268,7 +284,8 @@ def fmt(s):
     oh = f" overhang={s['overhang']}" if s.get("overhang") else ""
     view = f" view={f(s.get('riderVsView'))} sky={s['skyPx']}/{s['grid']} underside={s['undersidePx']} globe={'on' if s['globeShown'] else 'off'}" \
         if s["renderer"] == "photoreal" else ""
-    return f"rider-top={f(s['riderVsTop'])} above={s['above']} cam-top={f(s['camVsTop'])}{extra}{oh}{view} {'ok' if s['ok'] else 'FAIL'}"
+    gr = f" ground={f(s.get('riderVsGround'))}" if s["renderer"] == "photoreal" else ""
+    return f"rider-top={f(s['riderVsTop'])}{gr} above={s['above']} cam-top={f(s['camVsTop'])}{extra}{oh}{view} {'ok' if s['ok'] else 'FAIL'}"
 
 
 with sync_playwright() as p:
@@ -289,7 +306,7 @@ with sync_playwright() as p:
         # The start, ridden: every sample from the first frame until START_M.
         t0 = time.time()
         while time.time() - t0 < 240:
-            s = page.evaluate(SAMPLE, TOL)
+            s = page.evaluate(SAMPLE, [TOL, UNDERSIDE_MAX])
             if s:
                 s["t"] = round(time.time() - t0, 2)
                 r["start"].append(s)
@@ -312,7 +329,8 @@ with sync_playwright() as p:
         r["startSoft"] = len(soft)
         r["startPops"] = sum(1 for s in moving if "pop" in s)
         r["startFailures"] = len(bad)
-        r["startWorst"] = max((abs(s["riderVsTop"]) for s in moving if s["riderVsTop"] is not None), default=None)
+        r["startWorst"] = max((abs(s.get("riderVsGround", s["riderVsTop"])) for s in moving
+                               if s.get("riderVsGround", s["riderVsTop"]) is not None), default=None)
         first_move = next((s["t"] for s in r["start"] if (s["dist"] or 0) > 0), None)
         print(f"{route} [{r['start'][-1]['renderer'] if r['start'] else '?'}] start (moved at t={first_move}s): "
               f"{len(moving)} ridden samples, {len(bad)} under a drawn surface, {len(soft)} off by >{TOL} m "
@@ -334,13 +352,13 @@ with sync_playwright() as p:
                 page.evaluate(PLACE, x)
                 time.sleep(0.1)
                 if int(x) % 6 == 0:
-                    rs = page.evaluate(SAMPLE, TOL)
+                    rs = page.evaluate(SAMPLE, [TOL, UNDERSIDE_MAX])
                     if rs:
                         roll.append({k: rs.get(k) for k in ("dist", "rider", "top", "surfaces", "ok")})
             time.sleep(2)
             samples = []
             for _ in range(SAMPLES):
-                s = page.evaluate(SAMPLE, TOL)
+                s = page.evaluate(SAMPLE, [TOL, UNDERSIDE_MAX])
                 if s:
                     samples.append(s)
                 time.sleep(0.5)
