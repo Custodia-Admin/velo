@@ -16,7 +16,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 export interface CesiumRendererHooks {
   setRiderOverride: (pose: RiderPose | null) => void;
   setMoodOverride: (mood: MoodId | null) => void;
-  /** The rider's ground has held still a while (World Terrain refining has settled under it). */
+  /** The ground under the waiting rider is at full detail (startGround.StartGroundWatch). */
   groundStable?: () => boolean;
 }
 

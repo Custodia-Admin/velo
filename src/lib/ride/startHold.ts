@@ -9,7 +9,7 @@
 import type { WorldRenderer } from '@/lib/world/renderer';
 
 /** Longest a start waits for the ground (ms); after that it starts anyway (offline, stalled tiles). */
-export const START_HOLD_MAX_MS = 12_000;
+export const START_HOLD_MAX_MS = 20_000;
 /** How often a held start checks the ground again (ms). */
 export const START_HOLD_POLL_MS = 200;
 

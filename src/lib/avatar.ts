@@ -1531,13 +1531,21 @@ export const GROUND_SAMPLE_INTERVAL_MS = 250;
 /** …or as soon as the rider has moved this far (m) since the last sample. */
 export const GROUND_SAMPLE_MOVE_M = 5;
 
+/** A rise up to this per frame is taken at once (climbs, kerbs); a bigger step eases. */
+export const FOLLOW_STEP_M = 0.5;
+
 /**
- * The avatar's ground height one frame on: up at once (a rider eased up onto
- * a rising surface spends that time inside it, under the road), down eased so
- * a tile refining a little lower doesn't drop the rider in a jump.
+ * The avatar's ground height one frame on. Up at once (a rider eased up onto
+ * a climbing road spends that time inside it, under the road), except a step
+ * over FOLLOW_STEP_M (an edge of the photoreal mesh, a canopy that passed the
+ * overhang check) which eases up in ~0.2 s instead of teleporting. Down
+ * eased, so a tile refining a little lower doesn't drop the rider in a jump.
  */
 export function followGround(current: number | null, target: number, dt: number): number {
-  if (current === null || target >= current) return target;
+  if (current === null) return target;
+  if (target >= current) {
+    return target - current <= FOLLOW_STEP_M ? target : current + (target - current) * (1 - Math.exp(-12 * dt));
+  }
   return current + (target - current) * (1 - Math.exp(-6 * dt));
 }
 
@@ -1553,29 +1561,75 @@ export function followGround(current: number | null, target: number, dt: number)
  * for the pick, so the ray doesn't hit helmets and re-render the scene once
  * per excluded part (Cesium's drill pick).
  */
+/** A mesh reading may rise this much over the last accepted one … */
+export const OVERHANG_RISE_M = 1.5;
+/** … plus this grade times the distance since; more is something over the road. */
+export const OVERHANG_GRADE = 0.25;
+/**
+ * Past this much travel, or this long of rejected readings, a higher reading
+ * is accepted: it is the road after all (a tile refined higher, a ramp).
+ */
+export const OVERHANG_GIVE_UP_M = 40;
+export const OVERHANG_GIVE_UP_MS = 1_500;
+
+/**
+ * The photoreal mesh height a vertical ray reads is the TOP of whatever is
+ * there: a palm canopy over the Santa Monica Strand reads 10 m above the
+ * path. The road is continuous, so a reading that rises faster than a road
+ * can climb since the last accepted one is an overhang (tree, lamp, bridge
+ * over the road), not the road, and the rider keeps the road it has
+ * (falls are always taken: the rider eases down onto them). `rejectedMs`:
+ * how long readings have been rejected in a row.
+ */
+export function acceptMeshReading(
+  accepted: number | undefined,
+  reading: number,
+  movedM: number,
+  rejectedMs = 0,
+): boolean {
+  return (
+    accepted === undefined ||
+    movedM >= OVERHANG_GIVE_UP_M ||
+    rejectedMs >= OVERHANG_GIVE_UP_MS ||
+    reading <= accepted + OVERHANG_RISE_M + OVERHANG_GRADE * movedM
+  );
+}
+
 export function createGroundSampler(scene: Cesium.Scene) {
   let lastMs = -Infinity;
   let lastLon = NaN;
   let lastLat = NaN;
   let last: number | undefined;
+  let accLon = NaN;
+  let accLat = NaN;
+  let rejectedSince: number | null = null;
+  const metres = (lon: number, lat: number, fromLon: number, fromLat: number) =>
+    Number.isNaN(fromLon)
+      ? Infinity
+      : Math.hypot((lon - fromLon) * 111_320 * Math.cos((lat * Math.PI) / 180), (lat - fromLat) * 110_540);
   return {
     sample(lon: number, lat: number, ele: number, nowMs: number): number | undefined {
       const expect = sceneEle(ele);
       if (!photorealGroundShown(scene)) {
         last = undefined;
+        accLon = NaN;
         return sceneGroundHeight(scene, lon, lat, undefined, expect, { terrainOnly: true });
       }
-      const movedM = Number.isNaN(lastLon)
-        ? Infinity
-        : Math.hypot(
-            (lon - lastLon) * 111_320 * Math.cos((lat * Math.PI) / 180),
-            (lat - lastLat) * 110_540,
-          );
+      const movedM = metres(lon, lat, lastLon, lastLat);
       if (last === undefined || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M) {
         lastMs = nowMs;
         lastLon = lon;
         lastLat = lat;
-        last = withRidersHidden(() => sampleGroundHeight(scene, lon, lat, groundSampleExclusions()));
+        const reading = withRidersHidden(() => sampleGroundHeight(scene, lon, lat, groundSampleExclusions()));
+        const rejectedMs = rejectedSince === null ? 0 : nowMs - rejectedSince;
+        if (reading === undefined || acceptMeshReading(last, reading, metres(lon, lat, accLon, accLat), rejectedMs)) {
+          last = reading;
+          accLon = lon;
+          accLat = lat;
+          rejectedSince = null;
+        } else {
+          rejectedSince ??= nowMs;
+        }
       }
       // The mesh reading is reused between samples; the globe (drawn over the
       // mesh wherever its terrain is higher) is read fresh every call.

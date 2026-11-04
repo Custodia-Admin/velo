@@ -10,8 +10,12 @@ surfaces the renderer really draws:
   photoreal (Cesium) the globe's terrain where the globe draws opaque, and the Google photoreal mesh where it
                     shows (both depth-tested: the higher one is what you see), at the rider and at the camera.
 
-A sample passes when |rider - top drawn ground| <= TOL, nothing drawn sits more than TOL above the wheels and
-the camera is above every drawn surface under it. Road surfaces: on the world renderer the road-ribbon and
+Held spots fail outside +-TOL; ridden start samples fail only when under a drawn surface (rider or camera) and
+report the rest (float, pop) as soft counts. A sample is ok when |rider - top drawn ground| <= TOL, nothing drawn sits more than TOL above the wheels and
+the camera is above every drawn surface under it. A photoreal mesh reading 2.5 m or more over the wheels is an
+overhang (tree, lamp, bridge: the mesh height is the top of whatever is there) and is counted, not failed; the
+globe is bare terrain and never exempt. Ridden samples also fail on a pop: the rider's height jumping more than
+0.5 m + 30 % of the distance between two samples. Road surfaces: on the world renderer the road-ribbon and
 route-line hits in the rider's column form ONE level (hits within TOL of each other). On photoreal the road
 is a ground classification painted on whichever surface is in front, so exactly one copy shows when the
 camera is above every drawn surface; a camera under the globe sees its underside, road and all, as a
@@ -42,6 +46,7 @@ SPOTS = [float(s) for s in os.environ.get("SPOTS", "1000,3000,5000").split(",") 
 START_M = float(os.environ.get("START_M", "100"))
 SIZE = os.environ.get("SIZE", "1280x648@2")
 TOL = float(os.environ.get("TOL", "0.3"))
+POP_M = 0.5
 QUALITY = os.environ.get("QUALITY", "medium")
 SHOTS = os.environ.get("SHOTS", "1") == "1"
 SETTLE = float(os.environ.get("SETTLE", "8"))
@@ -127,12 +132,20 @@ SAMPLE = r"""(tol) => {
   const atRider = surfaces(Cesium.Cartographic.fromDegrees(d.riderLonLat[0], d.riderLonLat[1]));
   const cam = viewer.camera.positionCartographic;
   const atCam = surfaces(cam);
-  const top = atRider.length ? Math.max(...atRider.map((s) => s[1])) : null;
-  const camTop = atCam.length ? Math.max(...atCam.map((s) => s[1])) : null;
-  const above = atRider.filter((s) => s[1] > d.groundEle + tol).length;
+  // The mesh reads the top of whatever is there: >= OVERHANG over the wheels is a tree, lamp or bridge
+  // the rider passes under, not ground. The globe is bare terrain: anything of it over the wheels is
+  // the owner's bug (riding under the terrain).
+  const OVERHANG = 2.5;
+  const ground = (list, h) => list.filter((s) => !(s[0] === 'mesh' && s[1] - h >= OVERHANG));
+  const g = ground(atRider, d.groundEle);
+  const overhang = atRider.length - g.length;
+  const top = g.length ? Math.max(...g.map((s) => s[1])) : null;
+  const camGround = ground(atCam, d.groundEle);
+  const camTop = camGround.length ? Math.max(...camGround.map((s) => s[1])) : null;
+  const above = g.filter((s) => s[1] > d.groundEle + tol).length;
   const ok = top !== null && Math.abs(d.groundEle - top) <= tol && above === 0 && (camTop === null || cam.height > camTop);
   return { renderer: 'photoreal', dist: d.dist, rider: d.groundEle, top, riderVsTop: top === null ? null : d.groundEle - top,
-    above, camVsTop: camTop === null ? null : cam.height - camTop, surfaces: atRider, camSurfaces: atCam,
+    above, overhang, camVsTop: camTop === null ? null : cam.height - camTop, surfaces: atRider, camSurfaces: atCam,
     meshShown, meshLoaded: meshShown ? ts.tilesLoaded : null, globeLoaded: globe.tilesLoaded, ok };
 }"""
 
@@ -151,7 +164,8 @@ def fmt(s):
     f = lambda v: "-" if v is None else f"{v:+.2f}"  # noqa: E731
     extra = f" roadLevels={s['roadLevels']}" if s["renderer"] == "world" else \
         " " + " ".join(f"{k}={v:.2f}" for k, v in s["surfaces"])
-    return f"rider-top={f(s['riderVsTop'])} above={s['above']} cam-top={f(s['camVsTop'])}{extra} {'ok' if s['ok'] else 'FAIL'}"
+    oh = f" overhang={s['overhang']}" if s.get("overhang") else ""
+    return f"rider-top={f(s['riderVsTop'])} above={s['above']} cam-top={f(s['camVsTop'])}{extra}{oh} {'ok' if s['ok'] else 'FAIL'}"
 
 
 with sync_playwright() as p:
@@ -180,11 +194,27 @@ with sync_playwright() as p:
                     break
             time.sleep(0.3)
         moving = [s for s in r["start"] if (s["dist"] or 0) > 0]
-        bad = [s for s in moving if not s["ok"]]
+        # A pop: the rider's height jumps more between samples than any road climbs.
+        for a, c in zip(moving, moving[1:]):
+            dd = abs((c["dist"] or 0) - (a["dist"] or 0))
+            if abs(c["rider"] - a["rider"]) > POP_M + 0.3 * dd:
+                c["ok"] = False
+                c["pop"] = round(c["rider"] - a["rider"], 2)
+        # Hard: under a drawn surface (rider or camera), the owner's bug. Soft: floating or popping
+        # while ridden (the avatar easing across a step of the photoreal mesh), reported, not fatal.
+        for s in moving:
+            s["under"] = (s["riderVsTop"] is not None and s["riderVsTop"] < -TOL) or s["above"] > 0 or \
+                (s["camVsTop"] is not None and s["camVsTop"] <= 0)
+        bad = [s for s in moving if s["under"]]
+        soft = [s for s in moving if not s["ok"] and not s["under"]]
+        r["startSoft"] = len(soft)
+        r["startPops"] = sum(1 for s in moving if "pop" in s)
         r["startFailures"] = len(bad)
         r["startWorst"] = max((abs(s["riderVsTop"]) for s in moving if s["riderVsTop"] is not None), default=None)
-        print(f"{route} [{r['start'][-1]['renderer'] if r['start'] else '?'}] start: {len(moving)} moving samples, "
-              f"{len(bad)} failing, worst |rider-top| {r['startWorst']}", flush=True)
+        first_move = next((s["t"] for s in r["start"] if (s["dist"] or 0) > 0), None)
+        print(f"{route} [{r['start'][-1]['renderer'] if r['start'] else '?'}] start (moved at t={first_move}s): "
+              f"{len(moving)} ridden samples, {len(bad)} under a drawn surface, {len(soft)} off by >{TOL} m "
+              f"({r['startPops']} pops), worst |rider-top| {r['startWorst'] and round(r['startWorst'], 2)}", flush=True)
         if SHOTS:
             page.mouse.move(5, 5)
             page.screenshot(path=str(out / f"{short}-{int(START_M)}-{W}x{H}.png"))

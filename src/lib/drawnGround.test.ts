@@ -11,7 +11,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Cesium from 'cesium';
 
-import { createGroundSampler, followGround, GROUND_SAMPLE_INTERVAL_MS } from '@/lib/avatar';
+import {
+  acceptMeshReading,
+  createGroundSampler,
+  followGround,
+  GROUND_SAMPLE_INTERVAL_MS,
+  OVERHANG_GIVE_UP_MS,
+} from '@/lib/avatar';
 import { drawnGroundHeight, getPhotorealTileset, groundSettled, sceneGroundHeight, setIonToken } from '@/lib/cesiumUtils';
 
 async function photoreal(height: number | undefined, opts: { show?: boolean; tilesLoaded?: boolean } = {}) {
@@ -113,10 +119,61 @@ describe('the rider stands on the drawn ground over the photoreal mesh', () => {
   });
 });
 
+describe('overhangs: a palm canopy over the path is not the road', () => {
+  it('rejects a reading that rises faster than a road climbs, takes falls and real climbs', () => {
+    expect(acceptMeshReading(undefined, -18, 0)).toBe(true);
+    expect(acceptMeshReading(-28.2, -18.0, 5)).toBe(false); // Santa Monica Strand, 10 m palm canopy
+    expect(acceptMeshReading(-28.2, -40, 5)).toBe(true); // falls always
+    expect(acceptMeshReading(300, 301.2, 1)).toBe(true); // a 1.2 m kerb/ramp step
+    expect(acceptMeshReading(300, 302.4, 5)).toBe(true); // 20 % over 5 m + slack
+    expect(acceptMeshReading(300, 312, 40)).toBe(true); // 40 m on it is the road
+    // A tile that refines 4 m higher under a stopped rider is taken after a moment.
+    expect(acceptMeshReading(-33, -28.1, 0, OVERHANG_GIVE_UP_MS - 1)).toBe(false);
+    expect(acceptMeshReading(-33, -28.1, 0, OVERHANG_GIVE_UP_MS)).toBe(true);
+  });
+
+  it('the sampler keeps the road under a canopy and the rider stays on it', async () => {
+    setIonToken('eyJ_test');
+    const readings = [-28.2, -18.0, -28.3];
+    let i = 0;
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => readings[Math.min(i++, 2)]);
+    const { s } = scene(tileset, { height: -32.5 });
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(-118.5, 34.0, -30, 0)).toBeCloseTo(-28.2, 6);
+    expect(sampler.sample(-118.5, 34.00005, -30, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-28.2, 6);
+    expect(sampler.sample(-118.5, 34.0001, -30, 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-28.3, 6);
+  });
+
+  it('a higher surface that stays (a refined tile) is taken after OVERHANG_GIVE_UP_MS of rejections', async () => {
+    setIonToken('eyJ_test');
+    const readings = [-33.0, -28.1];
+    let i = 0;
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => readings[Math.min(i++, 1)]);
+    const sampler = createGroundSampler(scene(tileset, { height: -40 }).s);
+    expect(sampler.sample(-118.5, 34.0, -30, 0)).toBeCloseTo(-33, 6);
+    let t = 0;
+    for (; t < OVERHANG_GIVE_UP_MS; t += GROUND_SAMPLE_INTERVAL_MS) {
+      expect(sampler.sample(-118.5, 34.0, -30, t + GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-33, 6);
+    }
+    expect(sampler.sample(-118.5, 34.0, -30, t + 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-28.1, 6);
+  });
+});
+
 describe('followGround: the avatar never lags under a rising surface', () => {
-  it('rises at once, eases down', () => {
+  it('rises at once on a climb, eases up a big step in ~0.2 s, eases down', () => {
     expect(followGround(null, 300, 1 / 60)).toBe(300);
-    expect(followGround(300, 303.7, 1 / 60)).toBe(303.7);
+    expect(followGround(300, 300.4, 1 / 60)).toBe(300.4);
+    let h = 300;
+    let frames = 0;
+    while (h < 304 && frames < 60) {
+      h = followGround(h, 304, 1 / 60);
+      frames++;
+    }
+    expect(h).toBe(304);
+    expect(frames).toBeGreaterThan(5);
+    expect(frames).toBeLessThanOrEqual(12);
     const down = followGround(303.7, 300, 1 / 60);
     expect(down).toBeLessThan(303.7);
     expect(down).toBeGreaterThan(300);

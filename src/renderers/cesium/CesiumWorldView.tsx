@@ -57,6 +57,7 @@ import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { ridePose } from '@/lib/ride/rideSim';
 import type { RiderPose, WorldViewProps } from '@/lib/world/renderer';
 import { createCesiumWorldRenderer } from '@/renderers/cesium/cesiumWorldRenderer';
+import { StartGroundWatch } from '@/renderers/cesium/startGround';
 import {
   applyGraphicsQuality,
   recommendedGraphicsQuality,
@@ -140,13 +141,6 @@ function cesiumDebugOptedIn(): boolean {
     return false;
   }
 }
-
-/**
- * The ground under a waiting rider counts as streamed in once it has held
- * within GROUND_STABLE_M for GROUND_STABLE_MS (or every tile in view loaded).
- */
-const GROUND_STABLE_M = 0.3;
-const GROUND_STABLE_MS = 2_000;
 
 /** Altitude threshold below which Google Photorealistic 3D Tiles are shown. */
 const PHOTOREAL_SHOW_ALTITUDE_M = 5_000;
@@ -302,8 +296,8 @@ export function CesiumWorldView({
   const laneRef = useRef(createLaneState());
   // WorldRenderer.setRider: an outside driver's pose; null = the live ride.
   const riderOverrideRef = useRef<RiderPose | null>(null);
-  /** How long the rider's ground has held still (the start waits for it, lib/ride/startHold). */
-  const groundWatchRef = useRef<{ ele: number | null; since: number; stableMs: number }>({ ele: null, since: 0, stableMs: 0 });
+  /** Is the ground under the waiting rider at full detail (the start waits for it, lib/ride/startHold)? */
+  const startGroundRef = useRef<StartGroundWatch | null>(null);
   // WorldRenderer.setMood: a pinned mood; null = route mood + live weather.
   const [moodOverride, setMoodOverride] = useState<MoodId | null>(null);
 
@@ -433,7 +427,7 @@ export function CesiumWorldView({
             riderOverrideRef.current = pose;
           },
           setMoodOverride,
-          groundStable: () => groundWatchRef.current.stableMs >= GROUND_STABLE_MS,
+          groundStable: () => startGroundRef.current?.ready === true,
         }),
       );
 
@@ -1093,15 +1087,16 @@ export function CesiumWorldView({
       // is still streaming (a slow phone otherwise hangs the camera ~300 m
       // over a black, empty globe with the rider out of sight).
       const groundEle = avatarRef.current.groundEle() ?? sampled.ele;
-      // Before the start: how long a real terrain tile under the rider has held still.
-      const watch = groundWatchRef.current;
+      // Before the start: is the ground under the rider streamed in at full detail?
       if (state.rideState === 'idle' || state.rideState === 'ready') {
-        const tile = viewer.scene.globe.getHeight(Cesium.Cartographic.fromDegrees(sampled.lon, sampled.lat));
-        if (tile === undefined || watch.ele === null || Math.abs(groundEle - watch.ele) > GROUND_STABLE_M) {
-          watch.ele = tile === undefined ? null : groundEle;
-          watch.since = nowMs;
-        }
-        watch.stableMs = nowMs - watch.since;
+        startGroundRef.current ??= new StartGroundWatch(async (lon, lat) => {
+          const [c] = await Cesium.sampleTerrainMostDetailed(viewer.terrainProvider, [
+            Cesium.Cartographic.fromDegrees(lon, lat),
+          ]);
+          return c.height;
+        });
+        const drawn = viewer.scene.globe.getHeight(Cesium.Cartographic.fromDegrees(sampled.lon, sampled.lat));
+        startGroundRef.current.update(sampled.lon, sampled.lat, drawn, groundEle, nowMs);
       }
       const aheadAtGround = { ...ahead, ele: groundEle + (ahead.ele - sampled.ele) };
       if (typeof window !== 'undefined') {
