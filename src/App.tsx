@@ -1,9 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 
-import { Landing } from '@/routes/Landing';
 import { Home } from '@/routes/Home';
-import { DrawRoute } from '@/routes/DrawRoute';
 import { StravaCallback } from '@/routes/StravaCallback';
 import { Toaster } from '@/components/setup/Toaster';
 import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
@@ -13,7 +11,6 @@ import { useRaceResultCardAutoToast } from '@/hooks/useRaceResultCardAutoToast';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 
 const Ride = React.lazy(() => import('@/routes/Ride').then(m => ({ default: m.Ride })));
-const Explore = React.lazy(() => import('@/routes/Explore').then(m => ({ default: m.Explore })));
 const Companion = React.lazy(() => import('@/routes/Companion').then(m => ({ default: m.Companion })));
 const Replay = React.lazy(() => import('@/routes/Replay').then(m => ({ default: m.Replay })));
 const Devices = React.lazy(() => import('@/routes/Devices').then(m => ({ default: m.Devices })));
@@ -48,18 +45,15 @@ export default function App() {
       <TrainerEventBridge />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
-          {/* Marketing landing page — public entry point */}
-          <Route path="/" element={<RouteErrorBoundary routeName="Landing"><Landing /></RouteErrorBoundary>} />
+          {/* Home is the app: "/" (and any unknown URL, below) goes there */}
+          <Route path="/" element={<Navigate to="/app" replace />} />
           {/* Ride-setup app */}
           <Route path="/app" element={<RouteErrorBoundary routeName="Home"><Home /></RouteErrorBoundary>} />
           {/* Pair the trainer, handlebar controls and heart-rate strap */}
           <Route path="/devices" element={<RouteErrorBoundary routeName="Devices"><Suspense fallback={<LoadingFallback />}><Devices /></Suspense></RouteErrorBoundary>} />
-          <Route path="/explore" element={<RouteErrorBoundary routeName="Explore"><Suspense fallback={<LoadingFallback />}><Explore /></Suspense></RouteErrorBoundary>} />
           <Route path="/ride" element={<RouteErrorBoundary routeName="Ride"><Suspense fallback={<LoadingFallback />}><Ride /></Suspense></RouteErrorBoundary>} />
           {/* Phone companion screen — same-origin BroadcastChannel peer */}
           <Route path="/companion" element={<RouteErrorBoundary routeName="Companion"><Suspense fallback={<LoadingFallback />}><Companion /></Suspense></RouteErrorBoundary>} />
-          {/* Draw a route on the globe — redirects to /explore with draw mode ready */}
-          <Route path="/draw" element={<RouteErrorBoundary routeName="Draw"><DrawRoute /></RouteErrorBoundary>} />
           {/* Cinematic replay */}
           <Route path="/replay/:rideId" element={<RouteErrorBoundary routeName="Replay"><Suspense fallback={<LoadingFallback />}><Replay /></Suspense></RouteErrorBoundary>} />
           {/* Custom workout builder */}

@@ -26,7 +26,6 @@ const stripSrc = read('src/components/velo/RideStrip.tsx');
 const chipSrc = read('src/components/velo/RideChip.tsx');
 const toasterSrc = read('src/components/setup/Toaster.tsx');
 const storeSrc = read('src/stores/rideHudStore.ts');
-const minimapSrc = read('src/components/ride/Minimap.tsx');
 const bannerSrc = read('src/components/ride/NoTokenBanner.tsx');
 const cssSrc = read('src/index.css');
 const settingsSrc = read('src/components/profile/SettingsPanel.tsx');
@@ -123,19 +122,6 @@ describe('device and error states: one small chip, never a red box', () => {
     expect(chipSrc).toContain('<button');
     expect(chipSrc).toContain('h-10');
     expect(chipSrc).toContain('data-testid="ride-status-chip"');
-  });
-});
-
-describe('Minimap sizes from classes so the details can render it compact', () => {
-  it('root size is the w-44/h-44 default (176 px), no inline px style', () => {
-    expect(minimapSrc).toContain('h-44 w-44');
-    expect(minimapSrc).not.toContain('style={{ width: SIZE');
-  });
-
-  it('the svg scales with its container (viewBox preserved)', () => {
-    expect(minimapSrc).toContain('width="100%"');
-    expect(minimapSrc).toContain('height="100%"');
-    expect(minimapSrc).toContain('viewBox={`0 0 ${SIZE} ${SIZE}`}');
   });
 });
 

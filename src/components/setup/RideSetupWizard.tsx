@@ -1,33 +1,26 @@
 /**
- * RideSetupWizard — 2-step streamlined setup for GlobeRide.
+ * RideSetupWizard — "Build your own ride" on Home.
  *
- * Step 1: Pick workout (Free ride default, or structured from library)
- * Step 2: Pick route  (iconic preset, city search → generate, GPX upload, draw)
- * Step 3: Pair trainer (collapsed by default — optional)
+ * Step 1: Pick route    (city search → generate, a scenic pick, GPX upload)
+ * Step 2: Pair trainer  (optional; the Devices screen does the same)
+ * Step 3: Pace partners (optional AI riders alongside)
  * CTA: Start ride (always enabled; defaults fill in if nothing picked)
  */
 
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Check,
   ChevronDown,
-  Clock,
-  Globe2,
   Loader2,
   MapPin,
-  PenLine,
-  Plus,
   Route as RouteIcon,
   Search,
-  Sparkles,
   Upload,
   X,
-  Zap,
   Repeat,
   Compass,
-  Bike,
   Wifi,
   WifiOff,
   Mountain,
@@ -35,7 +28,6 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { formatDurMin } from '@/lib/format';
 import { geocode, type GeocodeResult } from '@/lib/geocoder';
 import {
   generateRoute,
@@ -44,10 +36,6 @@ import {
   type GenerationPhase,
 } from '@/lib/routeGenerator';
 import { useRideStore } from '@/stores/rideStore';
-import { useSettingsStore } from '@/stores/settingsStore';
-import { listWorkouts, seedPresetWorkoutsIfMissing } from '@/lib/workoutLibrary';
-import { totalDurationSec, estimateTSS } from '@/lib/workout';
-import type { Workout } from '@/lib/workout';
 import type { Route } from '@/types';
 // Lazy: the scenic route catalog (@/lib/scenicRoutes) is fetched on first
 // mount of the route step + on demand inside handleStartRide. Keeps the
@@ -59,10 +47,7 @@ interface FeaturedRoute {
 }
 import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { GPXUploader } from '@/components/setup/GPXUploader';
-// Lazy-load the chart preview — Recharts (~390 kB) stays off the critical path.
-const WorkoutPowerProfile = lazy(() =>
-  import('@/components/workouts/WorkoutPowerProfile').then(m => ({ default: m.WorkoutPowerProfile })),
-);
+import { PaceBotsPanel } from '@/components/ride/PaceBotsPanel';
 import { RoutePreview } from '@/components/setup/RoutePreview';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -123,27 +108,6 @@ function savePersistedRouteStep(snapshot: RouteStepPersisted): void {
     // Quota exceeded / disabled — silently no-op.
   }
 }
-
-// ─── Category colour helpers (minimal subset) ─────────────────────────────────
-
-const CAT_COLOR: Record<string, string> = {
-  endurance: 'text-sky-600 dark:text-sky-400',
-  tempo: 'text-amber-600 dark:text-amber-400',
-  sweetspot: 'text-violet-600 dark:text-violet-400',
-  threshold: 'text-rose-600 dark:text-rose-400',
-  intervals: 'text-orange-600 dark:text-orange-400',
-  test: 'text-emerald-600 dark:text-emerald-400',
-  custom: 'text-muted-foreground',
-};
-const CAT_LABEL: Record<string, string> = {
-  endurance: 'Endurance',
-  tempo: 'Tempo',
-  sweetspot: 'Sweet Spot',
-  threshold: 'Threshold',
-  intervals: 'Intervals',
-  test: 'FTP Test',
-  custom: 'Custom',
-};
 
 // ─── Step badge ───────────────────────────────────────────────────────────────
 
@@ -215,141 +179,7 @@ function StepHeader({
   );
 }
 
-// ─── Step 1: Workout picker ───────────────────────────────────────────────────
-
-interface WorkoutStepProps {
-  selected: Workout | null;
-  onFreeRide: () => void;
-  onSelect: (w: Workout) => void;
-}
-
-function WorkoutStep({ selected, onFreeRide, onSelect }: WorkoutStepProps) {
-  const navigate = useNavigate();
-  const ftpW = useSettingsStore((s) => s.ftpW);
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showAll, setShowAll] = useState(false);
-  const isFreeRide = selected === null;
-
-  useEffect(() => {
-    seedPresetWorkoutsIfMissing()
-      .catch(() => undefined)
-      .then(() => listWorkouts())
-      .then((ws) => setWorkouts(ws.slice(0, showAll ? 999 : 12)))
-      .catch(() => setWorkouts([]))
-      .finally(() => setLoading(false));
-  }, [showAll]);
-
-  return (
-    <div className="flex flex-col gap-3">
-      {/* Free ride option */}
-      <button
-        type="button"
-        onClick={onFreeRide}
-        className={cn(
-          'flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all',
-          isFreeRide
-            ? 'border-primary/50 bg-primary/8 ring-1 ring-primary/25'
-            : 'border-border/60 bg-card/40 hover:border-border hover:bg-card/60',
-        )}
-      >
-        <span
-          className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-            isFreeRide ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
-          )}
-        >
-          <Bike className="h-4 w-4" />
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-foreground">Free ride</div>
-          <div className="text-xs text-muted-foreground">Just pedal, no targets</div>
-        </div>
-        {isFreeRide && <Check className="h-4 w-4 text-primary shrink-0" />}
-      </button>
-
-      {/* Structured workout list */}
-      {loading ? (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Loading workouts…
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {workouts.map((w) => {
-            const dur = totalDurationSec(w);
-            const tss = estimateTSS(w, ftpW);
-            const cat = w.category ?? 'custom';
-            const isActive = selected?.id === w.id;
-            return (
-              <button
-                key={w.id}
-                type="button"
-                onClick={() => onSelect(w)}
-                className={cn(
-                  'flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-all',
-                  isActive
-                    ? 'border-accent/50 bg-accent/8 ring-1 ring-accent/25'
-                    : 'border-border/50 bg-card/30 hover:border-border/80 hover:bg-card/50',
-                )}
-              >
-                {/* Thumbnail */}
-                <div className="hidden sm:block shrink-0 w-14" aria-hidden>
-                  <Suspense fallback={<div className="h-8 w-full rounded bg-muted/30 animate-pulse" />}>
-                    <WorkoutPowerProfile workout={w} ftpW={ftpW} variant="thumbnail" heightClass="h-8" />
-                  </Suspense>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-sm font-semibold text-foreground truncate">{w.name}</span>
-                    <span className={cn('text-[10px] font-medium', CAT_COLOR[cat])}>
-                      {CAT_LABEL[cat] ?? cat}
-                    </span>
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-0.5 num">
-                      <Clock className="h-3 w-3" /> {formatDurMin(dur)}
-                    </span>
-                    {tss > 0 && (
-                      <span className="flex items-center gap-0.5 num">
-                        <Zap className="h-3 w-3" /> {tss} TSS
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {isActive && <Check className="h-4 w-4 text-accent shrink-0" />}
-              </button>
-            );
-          })}
-
-          {!showAll && workouts.length >= 12 && (
-            <button
-              type="button"
-              onClick={() => setShowAll(true)}
-              className="text-xs text-muted-foreground hover:text-foreground py-1 text-center transition-colors"
-            >
-              See all workouts
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Build custom */}
-      <button
-        type="button"
-        onClick={() => navigate('/workouts/new')}
-        className="flex items-center gap-2.5 rounded-xl border border-dashed border-border/60 bg-muted/10 px-3.5 py-2.5 text-sm text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-colors"
-      >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/60">
-          <Plus className="h-3.5 w-3.5" />
-        </span>
-        Build custom workout
-      </button>
-    </div>
-  );
-}
-
-// ─── Step 2: Route picker ─────────────────────────────────────────────────────
+// ─── Step 1: Route picker ─────────────────────────────────────────────────────
 
 interface RouteStepProps {
   onRouteSelected: () => void;
@@ -364,7 +194,6 @@ const PHASE_LABEL: Record<GenerationPhase, string> = {
 };
 
 function RouteStep({ onRouteSelected }: RouteStepProps) {
-  const navigate = useNavigate();
   const setRoute = useRideStore((s) => s.setRoute);
   const requestFlyTo = useRideStore((s) => s.requestFlyTo);
   const currentRoute = useRideStore((s) => s.route);
@@ -775,35 +604,8 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
             })}
       </div>
 
-      {/* Browse all routes link */}
+      {/* Own route */}
       <div className="flex flex-wrap items-center gap-3 pt-1">
-        <button
-          type="button"
-          onClick={() => navigate('/?tab=routes')}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          Browse all iconic routes
-        </button>
-
-        <button
-          type="button"
-          onClick={() => navigate('/draw')}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-        >
-          <PenLine className="h-3.5 w-3.5" />
-          Draw a route
-        </button>
-
-        <button
-          type="button"
-          onClick={() => navigate('/explore')}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-        >
-          <Globe2 className="h-3.5 w-3.5" />
-          Explore globe
-        </button>
-
         <button
           type="button"
           onClick={() => setShowGpx((v) => !v)}
@@ -854,7 +656,7 @@ function ShapeButton({
   );
 }
 
-// ─── Step 3: Trainer ──────────────────────────────────────────────────────────
+// ─── Step 2: Trainer ──────────────────────────────────────────────────────────
 
 function TrainerStep() {
   return (
@@ -868,6 +670,19 @@ function TrainerStep() {
   );
 }
 
+// ─── Step 3: Pace partners ────────────────────────────────────────────────────
+
+function PaceStep() {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        AI riders who ride beside you at their own pace. You can draft behind them.
+      </p>
+      <PaceBotsPanel />
+    </div>
+  );
+}
+
 // ─── Main wizard ──────────────────────────────────────────────────────────────
 
 export function RideSetupWizard() {
@@ -875,42 +690,23 @@ export function RideSetupWizard() {
 
   const route = useRideStore((s) => s.route);
   const connection = useRideStore((s) => s.connection);
-  const loadWorkout = useRideStore((s) => s.loadWorkout);
-  const clearWorkout = useRideStore((s) => s.clearWorkout);
-
-  // null = free ride selected; Workout = structured selected
-  const [pickedWorkout, setPickedWorkout] = useState<Workout | null>(null);
+  const paceBotCount = useRideStore((s) => s.paceBots.length);
 
   // Which step is expanded
   const [openStep, setOpenStep] = useState<WizardStep>(1);
 
   // Step completion flags
-  const step1Done = true; // workout always satisfied (free ride is valid)
-  const step2Done = route !== null;
-  const step3Done = connection === 'connected';
+  const step1Done = route !== null;
+  const step2Done = connection === 'connected';
+  const step3Done = paceBotCount > 0;
 
   // Subtitle text for collapsed steps
-  const step1Subtitle = pickedWorkout ? `${pickedWorkout.name} · ${formatDurMin(totalDurationSec(pickedWorkout))}` : 'Free ride';
-  const step2Subtitle = route ? route.name : undefined;
-  const step3Subtitle = step3Done ? 'Trainer connected' : 'Demo mode (no trainer)';
-
-  const handleSelectWorkout = useCallback(
-    (w: Workout) => {
-      setPickedWorkout(w);
-      loadWorkout(w);
-      setOpenStep(2);
-    },
-    [loadWorkout],
-  );
-
-  const handleFreeRide = useCallback(() => {
-    setPickedWorkout(null);
-    clearWorkout();
-    setOpenStep(2);
-  }, [clearWorkout]);
+  const step1Subtitle = route ? route.name : undefined;
+  const step2Subtitle = step2Done ? 'Trainer connected' : 'Demo mode (no trainer)';
+  const step3Subtitle = step3Done ? `${paceBotCount} riding with you` : 'Riding alone';
 
   const handleRouteSelected = useCallback(() => {
-    setOpenStep(3);
+    setOpenStep(2);
   }, []);
 
   const handleStartRide = useCallback(async () => {
@@ -935,7 +731,7 @@ export function RideSetupWizard() {
   return (
     <div className="flex flex-col gap-3">
 
-      {/* ── Step 1: Workout ── */}
+      {/* ── Step 1: Route ── */}
       <div
         className={cn(
           'rounded-2xl border transition-all duration-200',
@@ -947,7 +743,7 @@ export function RideSetupWizard() {
         <div className="px-4 py-3.5">
           <StepHeader
             n={1}
-            title="Choose your workout"
+            title="Choose your route"
             subtitle={openStep !== 1 ? step1Subtitle : undefined}
             done={step1Done}
             active={openStep === 1}
@@ -957,16 +753,12 @@ export function RideSetupWizard() {
 
         {openStep === 1 && (
           <div className="px-4 pb-4">
-            <WorkoutStep
-              selected={pickedWorkout}
-              onFreeRide={handleFreeRide}
-              onSelect={handleSelectWorkout}
-            />
+            <RouteStep onRouteSelected={handleRouteSelected} />
           </div>
         )}
       </div>
 
-      {/* ── Step 2: Route ── */}
+      {/* ── Step 2: Trainer (collapsible) ── */}
       <div
         className={cn(
           'rounded-2xl border transition-all duration-200',
@@ -978,7 +770,11 @@ export function RideSetupWizard() {
         <div className="px-4 py-3.5">
           <StepHeader
             n={2}
-            title="Choose your route"
+            title={
+              step2Done
+                ? 'Trainer connected'
+                : 'Pair trainer'
+            }
             subtitle={openStep !== 2 ? step2Subtitle : undefined}
             done={step2Done}
             active={openStep === 2}
@@ -988,12 +784,12 @@ export function RideSetupWizard() {
 
         {openStep === 2 && (
           <div className="px-4 pb-4">
-            <RouteStep onRouteSelected={handleRouteSelected} />
+            <TrainerStep />
           </div>
         )}
       </div>
 
-      {/* ── Step 3: Trainer (collapsible) ── */}
+      {/* ── Step 3: Pace partners (collapsible) ── */}
       <div
         className={cn(
           'rounded-2xl border transition-all duration-200',
@@ -1005,11 +801,7 @@ export function RideSetupWizard() {
         <div className="px-4 py-3.5">
           <StepHeader
             n={3}
-            title={
-              step3Done
-                ? 'Trainer connected'
-                : 'Pair trainer'
-            }
+            title="Pace partners"
             subtitle={openStep !== 3 ? step3Subtitle : undefined}
             done={step3Done}
             active={openStep === 3}
@@ -1019,7 +811,7 @@ export function RideSetupWizard() {
 
         {openStep === 3 && (
           <div className="px-4 pb-4">
-            <TrainerStep />
+            <PaceStep />
           </div>
         )}
       </div>
@@ -1032,18 +824,18 @@ export function RideSetupWizard() {
           onClick={handleStartRide}
           className="rounded-pill active:scale-[0.97] transition-transform w-full sm:w-auto"
         >
-          {step2Done ? 'Start ride' : 'Auto-pick a route & start'}
+          {step1Done ? 'Start ride' : 'Auto-pick a route & start'}
           <ArrowRight className="h-5 w-5" />
         </Button>
 
         {/* Connection status chip */}
         <div className={cn(
           'flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border',
-          step3Done
+          step2Done
             ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/8'
             : 'text-muted-foreground border-border/50 bg-muted/20',
         )}>
-          {step3Done
+          {step2Done
             ? <><Wifi className="h-3 w-3" /> Trainer connected</>
             : <><WifiOff className="h-3 w-3" /> Demo mode</>}
         </div>

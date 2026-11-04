@@ -228,12 +228,8 @@ describe('world renderer (three.js) is token-free', () => {
 describe('renderer seam: ride features go through RideView / WorldRenderer', () => {
   const appFiles = filesUnder(SRC).filter((f) => !isTest(f));
 
-  it('only the renderer registry (and the legacy shim) import a renderer module', () => {
-    const allowed = new Set(
-      ['src/renderers/registry.ts', 'src/components/ride/CesiumViewer.tsx'].map((f) =>
-        path.join(ROOT, f),
-      ),
-    );
+  it('only the renderer registry imports a renderer module', () => {
+    const allowed = new Set(['src/renderers/registry.ts'].map((f) => path.join(ROOT, f)));
     const offenders = appFiles
       .filter((f) => !f.startsWith(path.join(SRC, 'renderers') + path.sep) && !allowed.has(f))
       .flatMap((f) =>
@@ -251,12 +247,6 @@ describe('renderer seam: ride features go through RideView / WorldRenderer', () 
         .map(() => rel(f)),
     );
     expect(offenders).toEqual([]);
-  });
-
-  it('the old path still re-exports the moved view (back-compat shim)', async () => {
-    const shim = fs.readFileSync(path.join(SRC, 'components/ride/CesiumViewer.tsx'), 'utf8');
-    expect(shim).toMatch(/CesiumWorldView as CesiumViewer/);
-    expect(shim).toContain("'@/renderers/cesium/CesiumWorldView'");
   });
 
   it('renderer camera modes match the persisted camera setting', () => {

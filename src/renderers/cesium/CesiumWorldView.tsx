@@ -99,7 +99,7 @@ import {
 } from '@/lib/spectatorSystem';
 import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
 import { ProPelotonAvatars } from '@/components/ride/ProPelotonAvatars';
-import { waitForContainerSize } from '@/lib/landing/waitForContainerSize';
+import { waitForContainerSize } from '@/lib/waitForContainerSize';
 import {
   CHASE_FRAMING,
   chasePitchRad,
