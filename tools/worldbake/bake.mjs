@@ -31,6 +31,7 @@ import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
 import { routeRoadCoverage, routeSurfaceFill, sampleAppRoute } from './routeCoverage.mjs';
 import { validateHeightfield } from './validateDem.mjs';
+import { syncDestinations } from './syncDestinations.mjs';
 import { brotliSize, ensureDir, gzip, here, sha256, stableJson, writeFileAtomic } from './util.mjs';
 
 const TOOL_VERSION = 1;
@@ -327,7 +328,7 @@ export async function bake(opts) {
     const mask = (x, y) => snapped.routes.some((r) => r.x.some((rx, i) => Math.hypot(rx - x, r.y[i] - y) < core));
     validation = await validateHeightfield({ hf: height.hf, projection, extent, recipe, cacheDir, routeMask: mask });
     lap('validate', t);
-    log(`validate: RMS ${validation.rmsM} m vs Open-Meteo over ${validation.samples} points (bias ${validation.meanBiasM} m, max ${validation.maxAbsM} m) → ${validation.pass ? 'PASS' : 'FAIL'}`);
+    log(`validate: RMS ${validation.rmsM} m vs Open-Meteo over ${validation.samples} points (bias ${validation.meanBiasM} m, max ${validation.maxAbsM} m) → ${validation.pass ? 'PASS' : 'FAIL'}; at the GLO-90 nodes ${validation.registered.rmsM} m (bias ${validation.registered.meanBiasM} m)`);
   }
   timings.total = round((Date.now() - t0) / 1000, 1);
 
@@ -351,6 +352,9 @@ export async function bake(opts) {
   ensureDir(reportDir);
   writeFileSync(join(reportDir, `${recipe.id}.json`), `${JSON.stringify(report, null, 2)}\n`);
   if (opts.docs) writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 });
+  // The destination that links this world mirrors its bbox, routes, moods,
+  // towns and credits (src/lib/world/destinations/*.json).
+  if (!opts.out) syncDestinations({ log });
   log(`done in ${timings.total} s → ${outDir}`);
   return report;
 }

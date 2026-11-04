@@ -77,4 +77,17 @@ describe('three WorldRenderer handle', () => {
     expect(calls).toEqual(['mood:golden-hour', 'mood:null', 'rider', 'rider:null', 'mood:null']);
     useSettingsStore.getState().setCameraMode('chase');
   });
+
+  it('groundReady reports the view\'s near-LOD check (the ride start holds on it); disposed never holds', () => {
+    let ready = false;
+    const r = createThreeWorldRenderer({ setRiderOverride: () => undefined, setMoodOverride: () => undefined, groundReady: () => ready });
+    expect(r.groundReady?.()).toBe(false);
+    ready = true;
+    expect(r.groundReady?.()).toBe(true);
+    ready = false;
+    r.dispose();
+    expect(r.groundReady?.()).toBe(true);
+    // A view that never wired the hook streams nothing.
+    expect(createThreeWorldRenderer({ setRiderOverride: () => undefined, setMoodOverride: () => undefined }).groundReady?.()).toBe(true);
+  });
 });

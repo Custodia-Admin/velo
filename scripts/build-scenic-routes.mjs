@@ -63,7 +63,10 @@ const ROUTES = [
   },
   {
     id: 'scenic-locarno-brissago',
-    waypoints: [[46.1670, 8.7980], [46.1550, 8.7710], [46.14306, 8.74249], [46.1190, 8.7120]],
+    // Through Ascona on Via Collinetta (the Via Moscia stretch at the tunnel
+    // is bicycle=no), then the shore road. A waypoint off the shore snaps to
+    // the "Ascona - Ronco" boat line and the route crosses the lake.
+    waypoints: [[46.1670, 8.7980], [46.15036, 8.74413], [46.1190, 8.7120]],
   },
   {
     id: 'scenic-magadino-plain',
@@ -148,6 +151,8 @@ const STEP_M = 50;
 const SMOOTH_M = 1200;
 /** Elevation is fetched every N resampled points and linearly interpolated. */
 const ELE_EVERY = 2;
+/** Longest step the bike router may route on foot, metres. */
+const MAX_PUSH_M = 500;
 /**
  * Douglas–Peucker tolerance for the shipped polyline, metres. The line is the
  * routed OSM geometry itself, so it must stay on the road it follows: the
@@ -239,6 +244,11 @@ async function routeGeometry(waypoints) {
   for (const leg of j.routes[0].legs) {
     for (const st of leg.steps) {
       if (st.mode === 'ferry') throw new Error(`ferry leg near ${st.maneuver.location} — move a waypoint onto the shore road`);
+      // Boat lines can also come back as a long walk ("Ascona - Ronco", 2.1 km
+      // of "pushing bike" straight over Lago Maggiore).
+      if (st.mode === 'pushing bike' && st.distance > MAX_PUSH_M) {
+        throw new Error(`${Math.round(st.distance)} m on foot ("${st.name}") near ${st.maneuver.location} — a boat line or a footpath; move a waypoint onto a road`);
+      }
     }
   }
   return { geometry: j.routes[0].geometry.coordinates.map(([lon, lat]) => [lat, lon]), legs: j.routes[0].legs };

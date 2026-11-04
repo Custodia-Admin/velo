@@ -65,16 +65,18 @@ function pack({ id, xs, ys, hs, ds, distanceM, ascentM }) {
 const routes = {};
 
 // baked world routes (local metres, 10 m steps)
-const world = gz('public/worlds/perugia/routes.json.gz');
-for (const r of world.routes ?? world) {
-  let asc = 0;
-  for (let i = 1; i < r.h.length; i++) asc += Math.max(0, r.h[i] - r.h[i - 1]);
-  routes[r.id] = pack({ id: r.id, xs: r.x, ys: r.y, hs: r.h, ds: r.s, distanceM: r.lengthM, ascentM: asc });
+for (const worldId of ['perugia', 'lugano']) {
+  const world = gz(`public/worlds/${worldId}/routes.json.gz`);
+  for (const r of world.routes ?? world) {
+    let asc = 0;
+    for (let i = 1; i < r.h.length; i++) asc += Math.max(0, r.h[i] - r.h[i - 1]);
+    routes[r.id] = pack({ id: r.id, xs: r.x, ys: r.y, hs: r.h, ds: r.s, distanceM: r.lengthM, ascentM: asc });
+  }
 }
 
-// generated scenic table ([lat, lon, ele]); parse the literal out of the TS file
+// every other route from the generated scenic table ([lat, lon, ele]); parse the literal out of the TS file
 const ts = readFileSync(resolve(REPO, 'src/lib/scenicRouteData.ts'), 'utf8');
-const WANT = ['scenic-trasimeno-shore', 'scenic-lugano-melide', 'scenic-locarno-brissago', 'scenic-valle-maggia'];
+const WANT = [...ts.matchAll(/^  '(scenic-[a-z0-9-]+)': \{$/gm)].map((m) => m[1]).filter((id) => !routes[id]);
 for (const id of WANT) {
   const re = new RegExp(`'${id}': \\{\\s*distanceM: (\\d+),\\s*ascentM: (\\d+),[\\s\\S]*?points: (\\[\\[[\\s\\S]*?\\]\\]),`);
   const m = ts.match(re);

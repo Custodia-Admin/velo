@@ -21,10 +21,13 @@ import type { Heightfield } from '@/lib/world/heightfield';
 export function ChaseCamera({
   frame,
   heightfield,
+  ground,
   rig: rigProp,
 }: {
   frame: RideFrame;
   heightfield: Heightfield;
+  /** The drawn ground at world (x, y) (worldScene.drawnGround); the heightfield when absent. */
+  ground?: (x: number, y: number) => number;
   /** Tests pass their own rig to inspect it. */
   rig?: CameraRig;
 }) {
@@ -46,7 +49,8 @@ export function ChaseCamera({
       chaseFraming(settings.cameraDistance),
       settings.cameraDistance,
     );
-    rig.update(mode, target, frame.dt, (x, z) => groundAtThree(heightfield, x, z), frame.placement.position);
+    const groundAt = ground ? (x: number, z: number) => ground(x, -z) : (x: number, z: number) => groundAtThree(heightfield, x, z);
+    rig.update(mode, target, frame.dt, groundAt, frame.placement.position);
     camera.position.set(rig.position.x, rig.position.y, rig.position.z);
     camera.lookAt(rig.look.x, rig.look.y, rig.look.z);
   });

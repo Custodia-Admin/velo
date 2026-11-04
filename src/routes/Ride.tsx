@@ -17,6 +17,7 @@ import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideLoop } from '@/hooks/useRideLoop';
+import { useRideAutoStart } from '@/hooks/useRideAutoStart';
 import { useReplayLoop } from '@/hooks/useReplayLoop';
 import { useWorkoutEngine } from '@/hooks/useWorkoutEngine';
 import { useWakeLock } from '@/hooks/useWakeLock';
@@ -177,39 +178,19 @@ export function Ride() {
   }, [route, rideMode, navigate]);
 
   // ---- Auto-start when arriving from the wizard ----
-  // The wizard's "Start ride" CTA passes { state: { autoStart: true } } so the
-  // ride begins as soon as the world is ready instead of requiring a second
-  // tap on the in-ride Start button. We wait for the renderer to be set
-  // (its first frame painted) before starting so the camera doesn't
-  // jump from the initial flyTo to chase pose mid-transition.
-  //
-  // Robust gating: fire when viewer + route are present and rideState is in a
-  // pre-ride state ('idle' OR 'ready'). Browser-verify showed the wizard's
-  // setRoute occasionally landed before /ride's setRoute effect re-fired,
-  // leaving rideState='idle' on entry — the prior `rideState !== 'ready'`
-  // guard then bailed and the ride never auto-started.
-  const autoStartConsumedRef = useRef(false);
-  useEffect(() => {
-    if (autoStartConsumedRef.current) return;
-    const wantsAutoStart = (location.state as { autoStart?: boolean } | null)?.autoStart === true;
-    if (!wantsAutoStart) return;
-    if (!worldRenderer) return;
-    if (!route && rideMode !== 'outdoor') return;
-    if (rideState === 'running' || rideState === 'paused' || rideState === 'finished') return;
-    autoStartConsumedRef.current = true;
-    // Brief delay so the user sees the route + chase angle for a beat
-    // before the workout starts ticking — feels less jarring than 0ms.
-    const t = setTimeout(() => {
-      const st = useRideStore.getState();
-      // Re-set the route so rideState transitions ready (setRoute handles
-      // this idempotently — same route ref still resets to 'ready').
-      if (st.route && st.rideState !== 'ready' && st.rideState !== 'running') {
-        st.setRoute(st.route);
-      }
-      useRideStore.getState().start();
-    }, 600);
-    return () => clearTimeout(t);
-  }, [worldRenderer, route, rideMode, rideState, location.state]);
+  // The wizard's "Start ride" CTA (and Home's Ride buttons) pass
+  // { state: { autoStart: true } } so the ride begins as soon as the world is
+  // ready instead of requiring a second tap on the in-ride Start button.
+  // useRideAutoStart waits for the renderer's first frame, a short beat and
+  // the start hold (lib/ride/startHold: the ground under the rider is no
+  // coarse chord, or a short cap ran out).
+  useRideAutoStart({
+    wantsAutoStart: (location.state as { autoStart?: boolean } | null)?.autoStart === true,
+    worldRenderer,
+    route,
+    rideMode,
+    rideState,
+  });
 
   // Arriving with { show: true } (Home's "Ride and watch") starts show mode;
   // leaving the ride always ends it and releases the video files.

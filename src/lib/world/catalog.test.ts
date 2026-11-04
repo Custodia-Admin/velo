@@ -41,13 +41,21 @@ describe('world catalog', () => {
     expect(worldForRoute(scenic('scenic-assisi-valley'))?.id).toBe('perugia');
   });
 
+  it('draws Lugano–Melide and Locarno–Brissago in the Lugano world, not the routes beyond it', () => {
+    expect(worldForRoute(scenic('scenic-lugano-melide'))?.id).toBe('lugano');
+    expect(worldForRoute(scenic('scenic-locarno-brissago'))?.id).toBe('lugano');
+    expect(worldForRoute(scenic('scenic-magadino-plain'))).toBeNull();
+    expect(worldForRoute(scenic('scenic-lake-como-menaggio'))).toBeNull();
+    expect(worldForRoute(line('gpx-lugano', [[46.0, 8.95], [46.01, 8.96]]))?.id).toBe('lugano');
+  });
+
   it('takes any route that lies inside a world, e.g. a GPX upload around Perugia', () => {
     expect(worldForRoute(line('gpx-1', [[43.11, 12.39], [43.12, 12.41], [43.1, 12.45]]))?.id).toBe('perugia');
   });
 
   it('declines routes that leave the world, live GPS routes and empty routes', () => {
     expect(worldForRoute(line('trasimeno', [[43.11, 12.39], [43.13, 12.1]]))).toBeNull();
-    expect(worldForRoute(line('lugano', [[46.0, 8.95], [46.01, 8.96]]))).toBeNull();
+    expect(worldForRoute(line('zurich', [[47.37, 8.54], [47.38, 8.55]]))).toBeNull();
     expect(worldForRoute({ ...line('gps', [[43.11, 12.39], [43.12, 12.4]]), isLive: true })).toBeNull();
     expect(worldForRoute(line('one', [[43.11, 12.39]]))).toBeNull();
     expect(worldForRoute(null)).toBeNull();

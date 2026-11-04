@@ -1,0 +1,446 @@
+{
+ "build-1440": {
+  "overflow": false,
+  "scrollWidth": 1440,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   2,
+   3,
+   3
+  ],
+  "minFont": 12,
+  "minFontEl": "Map view",
+  "minTarget": 308,
+  "minTargetEl": "Ride Peschiera to Lazise in Lake Garda, 10.1 km \u00b7 ",
+  "tv": false,
+  "dark": false,
+  "errors": [],
+  "kicker": "TODAY\u2019S RIDE \u00b7 PERUGIA"
+ },
+ "mockup-1440": {
+  "overflow": false,
+  "scrollWidth": 1440,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   2,
+   3,
+   3
+  ],
+  "minFont": 12,
+  "minFontEl": "Map view",
+  "minTarget": 308,
+  "minTargetEl": "Ride Peschiera to Lazise in Lake Garda, 10.2 km, f",
+  "tv": false,
+  "dark": false
+ },
+ "build-1440-night": {
+  "overflow": false,
+  "scrollWidth": 1440,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   2,
+   3,
+   3
+  ],
+  "minFont": 12,
+  "minFontEl": "Map view",
+  "minTarget": 308,
+  "minTargetEl": "Ride Peschiera to Lazise in Lake Garda, 10.1 km \u00b7 ",
+  "tv": false,
+  "dark": true,
+  "errors": [],
+  "kicker": "TODAY\u2019S RIDE \u00b7 PERUGIA"
+ },
+ "mockup-1440-night": {
+  "overflow": false,
+  "scrollWidth": 1440,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   2,
+   3,
+   3
+  ],
+  "minFont": 12,
+  "minFontEl": "Map view",
+  "minTarget": 308,
+  "minTargetEl": "Ride Peschiera to Lazise in Lake Garda, 10.2 km, f",
+  "tv": false,
+  "dark": true
+ },
+ "build-390": {
+  "overflow": false,
+  "scrollWidth": 390,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   1,
+   1,
+   1
+  ],
+  "minFont": 12,
+  "minFontEl": "Map view",
+  "minTarget": 330,
+  "minTargetEl": "Ride Peschiera to Lazise in Lake Garda, 10.1 km \u00b7 ",
+  "tv": false,
+  "dark": false,
+  "errors": [],
+  "kicker": "TODAY\u2019S RIDE \u00b7 PERUGIA"
+ },
+ "mockup-390": {
+  "overflow": false,
+  "scrollWidth": 390,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   1,
+   1,
+   1
+  ],
+  "minFont": 12,
+  "minFontEl": "Map view",
+  "minTarget": 330,
+  "minTargetEl": "Ride Assisi valley floor, 12.7 km, flat, about 40 ",
+  "tv": false,
+  "dark": false
+ },
+ "build-390-night": {
+  "overflow": false,
+  "scrollWidth": 390,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   1,
+   1,
+   1
+  ],
+  "minFont": 12,
+  "minFontEl": "Map view",
+  "minTarget": 330,
+  "minTargetEl": "Ride Peschiera to Lazise in Lake Garda, 10.1 km \u00b7 ",
+  "tv": false,
+  "dark": true,
+  "errors": [],
+  "kicker": "TODAY\u2019S RIDE \u00b7 PERUGIA"
+ },
+ "mockup-390-night": {
+  "overflow": false,
+  "scrollWidth": 390,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   1,
+   1,
+   1
+  ],
+  "minFont": 12,
+  "minFontEl": "Map view",
+  "minTarget": 330,
+  "minTargetEl": "Ride Assisi valley floor, 12.7 km, flat, about 40 ",
+  "tv": false,
+  "dark": true
+ },
+ "build-tv": {
+  "overflow": false,
+  "scrollWidth": 1920,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   2,
+   3,
+   3
+  ],
+  "minFont": 21,
+  "minFontEl": "Map view",
+  "minTarget": 536,
+  "minTargetEl": "Ride Peschiera to Lazise in Lake Garda, 10.1 km \u00b7 ",
+  "tv": true,
+  "dark": false,
+  "errors": [],
+  "kicker": "TODAY\u2019S RIDE \u00b7 PERUGIA"
+ },
+ "mockup-tv": {
+  "overflow": false,
+  "scrollWidth": 1920,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   2,
+   3,
+   3
+  ],
+  "minFont": 21,
+  "minFontEl": "Map view",
+  "minTarget": 536,
+  "minTargetEl": "Ride Peschiera to Lazise in Lake Garda, 10.2 km, f",
+  "tv": true,
+  "dark": false
+ },
+ "build-tv-night": {
+  "overflow": false,
+  "scrollWidth": 1920,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   2,
+   3,
+   3
+  ],
+  "minFont": 21,
+  "minFontEl": "Map view",
+  "minTarget": 536,
+  "minTargetEl": "Ride Peschiera to Lazise in Lake Garda, 10.1 km \u00b7 ",
+  "tv": true,
+  "dark": true,
+  "errors": [],
+  "kicker": "TODAY\u2019S RIDE \u00b7 PERUGIA"
+ },
+ "mockup-tv-night": {
+  "overflow": false,
+  "scrollWidth": 1920,
+  "sections": 3,
+  "titles": [
+   "Home \u00b7 Perugia",
+   "Hometown \u00b7 Lugano",
+   "Places we want to go"
+  ],
+  "details": [
+   "The Tiber valley, Assisi and Lake Trasimeno",
+   "Ticino and the Lombardy lakes",
+   "3D worlds coming; these ride on the map today"
+  ],
+  "tiles": [
+   2,
+   6,
+   12
+  ],
+  "mapBadges": [
+   1,
+   4,
+   0
+  ],
+  "columns": [
+   2,
+   3,
+   3
+  ],
+  "minFont": 21,
+  "minFontEl": "Map view",
+  "minTarget": 536,
+  "minTargetEl": "Ride Peschiera to Lazise in Lake Garda, 10.2 km, f",
+  "tv": true,
+  "dark": true
+ }
+}

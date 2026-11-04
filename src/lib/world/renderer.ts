@@ -100,6 +100,19 @@ export interface WorldRenderer {
    * returns to the route's own mood and live weather.
    */
   setMood(mood: string | null): void;
+  /**
+   * Whether the ground under the rider is drawn well enough to set off on
+   * (no coarse level of detail tens of metres off the real ground). The ride
+   * start holds on it for a short while (lib/ride/startHold). Renderers with
+   * nothing to stream may omit it.
+   */
+  groundReady?(): boolean;
+  /**
+   * Whether nothing real is drawn under the rider yet (Cesium: World Terrain
+   * is not assigned and the globe is still the flat 0 m ellipsoid). The start
+   * waits longer for this than for a coarse ground.
+   */
+  groundPending?(): boolean;
   /** Release everything the renderer holds. Safe to call more than once. */
   dispose(): void;
 }

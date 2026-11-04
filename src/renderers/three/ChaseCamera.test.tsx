@@ -7,7 +7,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useShowStore } from '@/stores/showStore';
 import { chaseFraming } from '@/lib/world/cameraFraming';
 import { ChaseCamera } from './ChaseCamera';
-import { CameraRig } from './chaseRig';
+import { CameraRig, MIN_CLEARANCE_M } from './chaseRig';
 import { syntheticSceneWorld } from './syntheticWorld';
 import { createRideFrame, type RideFrame } from './worldScene';
 
@@ -112,5 +112,33 @@ describe('<ChaseCamera> (r3f test renderer)', () => {
     await r.advanceFrames(3, 1 / 60);
     expect(camera!.position.equals(before)).toBe(true);
     await r.unmount();
+  });
+
+  it('keeps clear of the drawn ground it is given (world y north = three.js −z), not of the heightfield', async () => {
+    const frame = frameAt(0, 0);
+    const riderY = frame.placement!.position.y;
+    // A drawn bank behind the rider only (south: world y < 0, three.js z > 0), 40 m over the rider.
+    const ground = (_x: number, y: number) => (y < -1 ? riderY + 40 : riderY);
+    const r = await ReactThreeTestRenderer.create(
+      <>
+        <GrabCamera />
+        <ChaseCamera frame={frame} heightfield={sw.heightfield} ground={ground} />
+      </>,
+    );
+    await r.advanceFrames(1, 1 / 60);
+    expect(camera!.position.z).toBeGreaterThan(1);
+    expect(camera!.position.y).toBeGreaterThanOrEqual(riderY + 40 + MIN_CLEARANCE_M - 1e-6);
+    await r.unmount();
+    // The same bank ahead of the rider (north) leaves the camera at its usual height behind.
+    const ahead = (_x: number, y: number) => (y > 1 ? riderY + 40 : riderY);
+    const r2 = await ReactThreeTestRenderer.create(
+      <>
+        <GrabCamera />
+        <ChaseCamera frame={frameAt(0, 0)} heightfield={sw.heightfield} ground={ahead} />
+      </>,
+    );
+    await r2.advanceFrames(1, 1 / 60);
+    expect(camera!.position.y).toBeLessThan(riderY + 10);
+    await r2.unmount();
   });
 });
