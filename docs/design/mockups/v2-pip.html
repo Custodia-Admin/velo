@@ -1,0 +1,111 @@
+<!doctype html>
+<!--
+  Velo v2 journey mode — "ride over anything" (P2.3 design gate). Mockup only.
+  Default: another tab's show fills the screen (a neutral placeholder: no third-party
+  footage) and the ride floats over it in a Document Picture-in-Picture window
+  (v2-pip-window.html, framed here at its real size: corner = 1/4, third = 1/3,
+  half = 1/2 of the screen width, 16:9). ?size=corner|third|half.
+  ?state=tab: the Velo tab itself while the ride floats (what the rider sees on
+  coming back to it). ?theme=night.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — Ride over anything (v2 mockup)</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="v2-kit.css" />
+<script src="v2-data.js"></script>
+<script src="v2-kit.js"></script>
+<script>
+  // Shots wait for this page AND the framed window to be ready.
+  (function () {
+    let kit = false;
+    window.__pipReady = true;
+    Object.defineProperty(window, '__mockReady', { get: () => kit && window.__pipReady, set: (v) => { kit = v; } });
+  })();
+</script>
+<style>
+  body { overflow: hidden; }
+  .elsewhere { position: fixed; inset: 0; background: hsl(var(--scrim)); color: hsl(var(--on-scrim) / 0.55);
+               display: grid; place-items: start center; padding-top: 30vh; text-align: center; }
+  .elsewhere .ph { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); }
+  .pip { position: fixed; right: var(--s-6); bottom: var(--s-6); border: 0; border-radius: var(--radius); box-shadow: var(--shadow-md);
+         outline: var(--hairline) solid hsl(var(--on-scrim) / 0.18); background: hsl(var(--scrim)); }
+  /* the Velo tab while the ride floats */
+  .tab { position: fixed; inset: 0; display: grid; place-items: center; padding: var(--s-6); }
+  .tab .msg { display: flex; flex-direction: column; align-items: center; gap: var(--s-4); max-width: 32rem; text-align: center; }
+  .tab .msg .glyph { width: var(--s-12); height: var(--s-12); border-radius: 9999px; display: grid; place-items: center;
+                     background: hsl(var(--primary) / 0.12); color: hsl(var(--primary)); }
+  .corner { position: fixed; right: var(--s-6); top: var(--s-6); display: flex; gap: var(--s-2); }
+  .strip { position: fixed; right: var(--s-6); bottom: var(--s-6); display: flex; align-items: center; gap: var(--s-6); padding: var(--s-3) var(--s-3) var(--s-3) var(--s-5); }
+  .figs { display: flex; gap: var(--s-6); }
+  .next { display: flex; align-items: center; gap: var(--s-1-5); max-width: 14rem; }
+  @media (max-width: 639px) {
+    .corner { right: var(--s-3); top: var(--s-3); }
+    .strip { left: var(--s-3); right: var(--s-3); bottom: var(--s-3); flex-direction: column; align-items: stretch; gap: var(--s-2); padding: var(--s-3); }
+    .figs { justify-content: space-between; gap: var(--s-3); }
+    .strip .row { justify-content: space-between; }
+  }
+</style>
+</head>
+<body>
+<div id="float">
+  <div class="elsewhere" aria-hidden="true">
+    <div class="ph"><i data-icon="tv" class="lg"></i><span class="t-sm">Your show, playing in another tab</span></div>
+  </div>
+  <iframe class="pip" title="Velo ride (floating window)"></iframe>
+</div>
+
+<div id="tab" hidden>
+  <main class="tab">
+    <div class="msg">
+      <span class="glyph"><i data-icon="picture-in-picture-2" class="lg"></i></span>
+      <h1 class="t-2xl semi">Your ride is in the floating window</h1>
+      <p class="t-base muted">It keeps recording while you watch something else.</p>
+      <button class="btn primary lg"><i data-icon="maximize-2" class="lg"></i>Bring the ride back</button>
+    </div>
+  </main>
+  <div class="corner">
+    <button class="btn hud icon-only" aria-label="Close show mode"><i data-icon="x" class="lg"></i></button>
+  </div>
+  <section class="hud strip" aria-label="Ride numbers">
+    <div class="figs">
+      <div class="fig"><span class="v">18:05</span><span class="l">Time</span></div>
+      <div class="fig"><span class="v">6.1<small>km</small></span><span class="l">Distance</span></div>
+      <div class="fig"><span class="v">0.4<small>%</small></span><span class="l">Grade</span></div>
+    </div>
+    <div class="row">
+      <span class="next t-sm"><i data-icon="flag"></i>Rivotorto in 900 m</span>
+      <button class="btn hud lg icon-only" aria-label="Pause ride"><i data-icon="pause" class="lg"></i></button>
+    </div>
+  </section>
+</div>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get('state') === 'tab') {
+    document.getElementById('float').hidden = true;
+    document.getElementById('tab').hidden = false;
+  } else {
+    // Same rule as src/lib/show/pip.ts pipWindowSize: share of the screen width, >= 320 px, 16:9.
+    const size = q.get('size') || 'corner';
+    const frac = { corner: 0.25, third: 1 / 3, half: 0.5 }[size];
+    const w = Math.max(320, Math.round(innerWidth * frac));
+    const h = Math.round((w * 9) / 16);
+    const f = document.querySelector('.pip');
+    f.style.width = w + 'px';
+    f.style.height = h + 'px';
+    const pass = new URLSearchParams({ size });
+    if (q.get('theme')) pass.set('theme', q.get('theme'));
+    if (q.get('landmark')) pass.set('landmark', q.get('landmark'));
+    window.__pipReady = false;
+    f.addEventListener('load', () => {
+      const check = () => (f.contentWindow.__mockReady === true ? (window.__pipReady = true) : setTimeout(check, 50));
+      check();
+    });
+    f.src = 'v2-pip-window.html?' + pass.toString();
+  }
+</script>
+</body>
+</html>

@@ -32,6 +32,7 @@ import type { Route } from '@/types';
 
 import { Buildings, StreetLights } from './Buildings';
 import { ChaseCamera } from './ChaseCamera';
+import { sceneLandmarks } from './directorCamera';
 import { Ghosts } from './Ghosts';
 import { Landmarks } from './Landmarks';
 import { buildLandcoverCanvas } from './landcoverTexture';
@@ -347,6 +348,8 @@ function WorldScene({
     },
     [maps],
   );
+  // Named places the route passes (manifest POIs), for the show director's landmark orbits.
+  const directorLandmarks = useMemo(() => sceneLandmarks(route, sceneWorld), [route, sceneWorld]);
   return (
     <>
       <DprController quality={quality} onDpr={onDpr} />
@@ -361,7 +364,7 @@ function WorldScene({
       <Vegetation sceneWorld={sceneWorld} quality={quality} atmo={atmo} stats={stats} />
       <Weather quality={quality} atmo={atmo} lightState={lightState} />
       <Landmarks sceneWorld={sceneWorld} quality={quality} />
-      <ChaseCamera frame={frame} heightfield={sceneWorld.heightfield} />
+      <ChaseCamera frame={frame} heightfield={sceneWorld.heightfield} landmarks={directorLandmarks} />
       <Ghosts sceneWorld={sceneWorld} route={route} />
       <Suspense fallback={null}>
         <LiveRider frame={frame} castShadow={quality.shadows} />

@@ -1,0 +1,102 @@
+# Show & journey mode
+
+The household's second use case: set a journey and watch your shows while you
+ride. Blueprint §P2.3. Streaming services can't be embedded in a web app
+(DRM, frame blocking), so Velo offers two modes.
+
+## 1. Your own videos (local overlay)
+
+Show mode plays videos saved on the device in a panel over the ride
+(`ShowPanel`, mockup `docs/design/mockups/v2-show.html`). The ride HUD
+condenses to the show strip (time, distance, grade, next landmark, Pause).
+
+- **Choose videos** or **Choose a folder** (Chrome / Edge desktop: File System
+  Access). Several files or a folder play in episode order (`sortForPlayback`:
+  S01E02 before S01E10).
+- **Next episode without a picker.** What was picked is remembered as File
+  System Access handles in IndexedDB (`showLibrary.rememberHandles` /
+  `rememberFolder`), and the video being watched in localStorage
+  (`markWatched`, with the resume position from `saveResume`). Next time,
+  **Continue …** (or Home's "ride and watch") re-opens it with no picker:
+  `continueShow.continueLastShow` reads the handles and `nextUp` picks the
+  video part-way through, or the one after a finished one (within the last
+  20 s counts as finished). A folder also picks up episodes added since.
+- Chrome keeps read access for the session. After a browser restart it asks
+  once with a small permission prompt (not a file picker); choosing "Allow on
+  every visit" removes even that. That is why Continue is a button: the
+  prompt needs a click.
+- Other browsers (Safari, Firefox, phones) use a plain file input; nothing is
+  remembered, and the resume position still applies when the same file is
+  picked again.
+- Handlebar buttons (Zwift Ride, `lib/controllers/controllerActions.ts`, the
+  P2.5 map): Y play/pause, Z next video, B auto camera on/off.
+
+## 2. Ride over anything (journey mode)
+
+The ride view floats in a **Document Picture-in-Picture** window over
+another tab (Netflix, YouTube, anything) or another app on the TV
+(`ShowSurface`, `lib/show/pip.ts`; mockups `v2-pip.html` and
+`v2-pip-window.html`).
+
+- Chrome / Edge 116+ on desktop only. Capability first: the
+  **Watch another tab** button only exists where `documentPictureInPicture`
+  does. Elsewhere the panel explains Chrome's own picture-in-picture for a
+  video tab instead.
+- Sizes S, M, L: a quarter, a third and half of the screen width, always
+  16:9, at least 320 px wide (`pipWindowSize`). The last size is remembered.
+  Opening and resizing need a click (Chrome's user-activation rule).
+- In the window: the world (same renderer and director), the JourneyBar
+  (route progress, time, distance, grade at text-3xl, next landmark, Pause),
+  the size picker and "Back to the Velo tab". The window scales its own type
+  with its width (`html[data-surface='pip']` in `index.css`: 16 px at a 480 px
+  corner, 22 px at half). Problems (trainer lost, …) show as one chip.
+- The Velo tab shows "Your ride is in the floating window" and one action,
+  **Bring the ride back**, plus the show strip. Only one world view exists at
+  a time (one WebGL context).
+- The window closes with show mode, at the finish, and when the ride view
+  goes. Closing it brings the ride back to the tab.
+
+### Why the ride keeps going in a hidden tab
+
+The ride loop, recording and FIT export run on `requestAnimationFrame` in the
+Velo tab. A hidden tab normally stops getting frames. While a picture-in-picture
+window is open, Chrome keeps the opener tab running at full rate even when it
+is hidden (measured on Chromium 153: 60 Hz rAF and unthrottled timers with the
+window open; frames stop without it). No keep-alive hack is needed.
+`e2e/show-mode.spec.ts` (CI job `show-mode`, headed Chrome under xvfb, real
+background throttling) pins it: frame rate, ride clock, samples and the FIT
+records while hidden, plus a control showing the loop stops with no window.
+
+## Cinematic director
+
+`lib/world/director.ts` picks the camera while show mode's auto camera is
+on (`lib/show/showDirector.ts` drives it from the ride; both renderers call
+it every frame).
+
+- Shots: chase, side dolly, drone orbit at a landmark, front, POV
+  (`renderers/three/directorCamera.ts` places them in the world renderer; the
+  photoreal renderer films them with its calm modes, `CESIUM_SHOT_MODE`).
+- A cut every 20–40 s (`SHOT_MIN_S`–`SHOT_MAX_S`), never two within 15 s
+  (`MIN_CUT_GAP_S`, the opening shot included), with an eased blend
+  (`BLEND_S`, `easeInOutCubic`).
+- Held while the rider steers or brakes and for `INPUT_SETTLE_S` after: no
+  cut. Steering wins over leaving an orbit.
+- Orbits only within 300 m of a manifest POI the route passes
+  (`ORBIT_RADIUS_M`, landmarks from `routeLandmarks`), and only when there is
+  road enough to reach the next legal cut before leaving that radius, even
+  accelerating at 0.5 m/s² (`orbitRoadNeeded`). It leaves the orbit
+  `ORBIT_EXIT_LEAD_S` before the edge.
+- Deterministic: seeded from the route id (`seedFromString`, `seededRandom`).
+  Same route, same inputs, same edit.
+- Choosing a camera (button or handlebar) turns the auto camera off.
+
+Tests: `director.test.ts` rides a synthetic winding 24 km road with
+landmarks at 15–30 fps with jitter, steering and braking bursts, and checks
+every rule frame by frame.
+
+## Manual check (recorded in the PR)
+
+Local video reopens without a picker: on the laptop, choose a folder of
+episodes, watch part of one, finish another, close the browser, reopen Velo,
+start "ride and watch": the right episode plays at the right place without a
+file picker (at most Chrome's one-line permission prompt).

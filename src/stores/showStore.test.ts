@@ -120,11 +120,13 @@ describe('showStore', () => {
     expect(showIsPlaying()).toBe(true);
   });
 
-  it('persists only the panel size', () => {
+  it('persists only the panel and floating-window sizes', () => {
     useShowStore.getState().setSize('l');
+    useShowStore.getState().setPipSize('half');
+    useShowStore.getState().setPipOpen(true);
     useShowStore.getState().startShow(1);
     const saved = JSON.parse(mem.get('globeride.velo.show.v1') ?? '{}') as { state: object };
-    expect(saved.state).toEqual({ size: 'l' });
+    expect(saved.state).toEqual({ size: 'l', pipSize: 'half' });
   });
 
   it('survives a StrictMode remount of the ride view but ends when the ride view goes', () => {

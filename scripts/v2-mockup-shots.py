@@ -38,9 +38,12 @@ from playwright.sync_api import sync_playwright
 REPO = Path(__file__).resolve().parents[1]
 DESIGN = REPO / "docs/design"
 OUT = DESIGN / "screenshots/v2/mockup"
-SCREENS = ["home", "ride-hud", "ride-hud-open", "ride-hud-lost", "devices", "show", "finish"]
+SCREENS = ["home", "ride-hud", "ride-hud-open", "ride-hud-lost", "devices", "show", "finish",
+           "pip", "pip-third", "pip-half", "pip-tab"]
 # Screens that are a state of another mockup: name -> (page, query).
-VARIANTS = {"ride-hud-open": ("ride-hud", "tray=open"), "ride-hud-lost": ("ride-hud", "state=lost")}
+VARIANTS = {"ride-hud-open": ("ride-hud", "tray=open"), "ride-hud-lost": ("ride-hud", "state=lost"),
+            # P2.3 ride over anything: the floating window over another tab, and the Velo tab meanwhile.
+            "pip-third": ("pip", "size=third"), "pip-half": ("pip", "size=half"), "pip-tab": ("pip", "state=tab")}
 VIEWPORTS = {"1440": (1440, 900, 1), "390": (390, 844, 2), "tv": (1920, 1080, 1)}
 
 MEASURE = """() => {

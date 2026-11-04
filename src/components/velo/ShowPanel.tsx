@@ -4,30 +4,38 @@
  *
  * The player is a scrim panel at the top-left: the video, a thin progress
  * bar (tap to seek), and one control bar (play/pause, title, time left,
- * S/M/L size, next). The corner holds the camera choice and Close. Other
- * states: choose (nothing picked yet), a show running in picture-in-picture
- * from another tab, and errors. The 3D world keeps rendering around it and
- * ride recording is untouched. On-system per docs/design/UI-RULES.md.
+ * S/M/L size, next). The corner holds "Watch another tab" (the ride floats
+ * over other tabs in a picture-in-picture window, ShowSurface; Chrome and
+ * Edge desktop only), the camera choice and Close. Other states: choose
+ * (nothing picked yet: continue last time's videos without a picker, pick
+ * videos or a folder), a show running in picture-in-picture from another
+ * tab, and errors. The 3D world keeps rendering around it and ride
+ * recording is untouched. On-system per docs/design/UI-RULES.md.
  */
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { Camera, ChevronDown, Film, Pause, PictureInPicture2, Play, SkipForward, X } from 'lucide-react';
+import { Camera, ChevronDown, Film, FolderOpen, Pause, PictureInPicture2, Play, SkipForward, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { CameraMode } from '@/lib/cesiumCameras';
-import { pickVideos } from '@/lib/show/pickVideos';
+import { pickVideoFolderFiles, pickVideos } from '@/lib/show/pickVideos';
+import { canRideOverAnything } from '@/lib/show/pip';
+import { continueLastShow, planContinue } from '@/lib/show/continueShow';
 import {
+  canPickFolder,
   canUseFilePicker,
-  filesFromHandles,
   formatClock,
+  lastWatched,
   latestResume,
-  recallHandles,
+  markWatched,
+  recallLibrary,
   resumePosition,
   saveResume,
-  type ResumeEntry,
+  type RememberedLibrary,
 } from '@/lib/show/showLibrary';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { onShowPlayerCommand, useShowStore, type ShowSize } from '@/stores/showStore';
+import { openRideWindow, useRidePipWindow } from './ShowSurface';
 import { ShowToggle } from './ShowToggle';
 import { HUD_PANEL } from './v2';
 
@@ -91,15 +99,31 @@ export function ShowPanel({ dimmed }: { dimmed: boolean }) {
   );
 }
 
-/** Top-right corner in show mode (sm+): the camera choice and Close. */
+/**
+ * Top-right corner in show mode (sm+): "Watch another tab" (where the
+ * browser can float the ride), the camera choice and Close. While the ride
+ * floats, only Close stays: the tab's notice brings the ride back.
+ */
 export function ShowCorner({ className }: { className?: string }) {
   const active = useShowStore((s) => s.active);
+  const floating = useRidePipWindow() !== null;
+  const [canFloat] = useState(() => canRideOverAnything());
   if (!active) return null;
   return (
     <div className={cn('absolute show-inset-t show-inset-r z-20 hidden items-start gap-2 sm:flex', className)}>
-      <CameraButton />
+      {canFloat && !floating && <WatchAnotherTabButton />}
+      {!floating && <CameraButton />}
       <ShowToggle />
     </div>
+  );
+}
+
+function WatchAnotherTabButton({ variant = 'hud' }: { variant?: 'hud' | 'outline' }) {
+  return (
+    <Button variant={variant} onClick={() => void openRideWindow()} data-testid="watch-another-tab">
+      <PictureInPicture2 className="h-4 w-4" aria-hidden="true" />
+      Watch another tab
+    </Button>
   );
 }
 
@@ -107,47 +131,82 @@ export function ShowCorner({ className }: { className?: string }) {
 // Choose: local files, continue last time, or picture-in-picture guidance
 // ---------------------------------------------------------------------------
 
-function useChoose(): { choose: (files?: File[]) => Promise<void>; error: string | null } {
+function useChoose(): {
+  choose: (files?: File[], opts?: { startKey?: string }) => Promise<void>;
+  chooseFolder: () => Promise<void>;
+  error: string | null;
+} {
   const loadFiles = useShowStore((s) => s.loadFiles);
   const [error, setError] = useState<string | null>(null);
-  const choose = async (preset?: File[]) => {
+  const choose = async (preset?: File[], opts?: { startKey?: string }) => {
     setError(null);
     try {
       const files = preset ?? (await pickVideos());
-      if (files.length > 0) loadFiles(files);
+      if (files.length > 0) loadFiles(files, opts);
       else if (preset) setError('Those videos are no longer on this device. Choose them again.');
     } catch {
       setError(NOT_PLAYABLE);
     }
   };
-  return { choose, error };
+  const chooseFolder = async () => {
+    setError(null);
+    try {
+      const picked = await pickVideoFolderFiles();
+      if (picked === null) return;
+      if (picked.length === 0) {
+        setError('That folder has no videos Chrome can play. Try MP4 or WebM.');
+        return;
+      }
+      // A folder picked again carries on where the rider stopped in it.
+      const plan = planContinue(picked);
+      loadFiles(picked, plan ? { startKey: plan.startKey } : undefined);
+    } catch {
+      setError(NOT_PLAYABLE);
+    }
+  };
+  return { choose, chooseFolder, error };
+}
+
+/** What "Continue" will play, for its label: carry on, or the next one. */
+function continueLabel(lib: RememberedLibrary | null): string | null {
+  if (!lib) return null;
+  const last = lastWatched();
+  if (last && !last.finished) {
+    const at = resumePosition(last.key);
+    return at > 0 ? `Continue ${last.name} · ${formatClock(at)}` : `Continue ${last.name}`;
+  }
+  if (last && last.finished) return 'Play the next episode';
+  const resume = latestResume();
+  if (resume) return `Continue ${resume.name} · ${formatClock(resume.positionS)}`;
+  return lib.kind === 'folder' ? `Play ${lib.dir.name}` : null;
 }
 
 function ShowChooser() {
   const endShow = useShowStore((s) => s.endShow);
   const usePip = useShowStore((s) => s.usePip);
-  const setIndex = useShowStore((s) => s.setIndex);
-  const { choose, error } = useChoose();
-  const [resume] = useState<ResumeEntry | null>(() => latestResume());
-  const [handles, setHandles] = useState<FileSystemFileHandle[]>([]);
+  const { choose, chooseFolder, error } = useChoose();
+  const [library, setLibrary] = useState<RememberedLibrary | null>(null);
+  const [nothingLeft, setNothingLeft] = useState(false);
+  const [canFolder] = useState(() => canPickFolder());
+  const [canFloat] = useState(() => canRideOverAnything());
+  const [resume] = useState(() => latestResume());
 
   useEffect(() => {
-    if (!resume || !canUseFilePicker()) return;
+    if (!canUseFilePicker()) return;
     let live = true;
-    void recallHandles().then((h) => live && setHandles(h));
+    void recallLibrary().then((l) => live && setLibrary(l));
     return () => {
       live = false;
     };
-  }, [resume]);
+  }, []);
 
-  const canContinue = resume !== null && handles.length > 0;
+  const label = continueLabel(library);
 
   const onContinue = async () => {
-    const files = await filesFromHandles(handles);
-    await choose(files);
-    const { items } = useShowStore.getState();
-    const at = items.findIndex((it) => it.key === resume?.key);
-    if (at > 0) setIndex(at);
+    // A click: Chrome may ask once to allow access again (a small prompt, not a picker).
+    const plan = await continueLastShow({ ask: true });
+    if (plan) await choose(plan.files, { startKey: plan.startKey });
+    else setNothingLeft(true);
   };
 
   return (
@@ -159,27 +218,37 @@ function ShowChooser() {
         </Button>
       </div>
       <p className="max-w-prose text-sm text-muted-foreground">
-        Pick videos saved on this device. Choose several to play them in order. The ride keeps
+        Pick videos saved on this device. Choose several, or a folder, to play them in order. The ride keeps
         recording underneath.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        {canContinue && resume && (
+        {label && !nothingLeft && (
           <Button
             size="lg"
             variant="primary"
             className="h-auto min-h-12 whitespace-normal py-2 text-left"
             onClick={() => void onContinue()}
+            data-testid="show-continue"
           >
             <Play className="h-5 w-5" aria-hidden="true" />
-            Continue {resume.name} · {formatClock(resume.positionS)}
+            {label}
           </Button>
         )}
-        <Button size="lg" variant={canContinue ? 'outline' : 'primary'} onClick={() => void choose()}>
+        <Button size="lg" variant={label && !nothingLeft ? 'outline' : 'primary'} onClick={() => void choose()}>
           <Film className="h-5 w-5" aria-hidden="true" />
           Choose videos
         </Button>
+        {canFolder && (
+          <Button size="lg" variant="outline" onClick={() => void chooseFolder()} data-testid="show-choose-folder">
+            <FolderOpen className="h-5 w-5" aria-hidden="true" />
+            Choose a folder
+          </Button>
+        )}
       </div>
-      {resume && !canContinue && (
+      {nothingLeft && (
+        <p className="text-sm text-muted-foreground">You have watched everything from last time. Choose something new.</p>
+      )}
+      {resume && !label && (
         <p className="text-sm text-muted-foreground">
           Pick “{resume.name}” again to carry on from {formatClock(resume.positionS)}.
         </p>
@@ -197,17 +266,31 @@ function ShowChooser() {
             aria-hidden
           />
         </summary>
-        <ol className="flex list-decimal flex-col gap-1 pl-5 text-sm text-muted-foreground">
-          <li>Start the show in another Chrome tab.</li>
-          <li>Open Chrome’s media controls in the toolbar and press picture-in-picture.</li>
-          <li>Come back to Velo. The show floats on top while you ride.</li>
-        </ol>
-        <div>
-          <Button variant="outline" onClick={usePip} className="mt-3">
-            <PictureInPicture2 className="h-4 w-4" aria-hidden="true" />
-            Use picture-in-picture
-          </Button>
-        </div>
+        {canFloat ? (
+          <>
+            <p className="max-w-prose text-sm text-muted-foreground">
+              Start your show in another tab, then float the ride over it in a small window. It keeps recording
+              while you watch.
+            </p>
+            <div>
+              <WatchAnotherTabButton variant="outline" />
+            </div>
+          </>
+        ) : (
+          <>
+            <ol className="flex list-decimal flex-col gap-1 pl-5 text-sm text-muted-foreground">
+              <li>Start the show in another Chrome tab.</li>
+              <li>Open Chrome’s media controls in the toolbar and press picture-in-picture.</li>
+              <li>Come back to Velo. The show floats on top while you ride.</li>
+            </ol>
+            <div>
+              <Button variant="outline" onClick={usePip} className="mt-3">
+                <PictureInPicture2 className="h-4 w-4" aria-hidden="true" />
+                Use picture-in-picture
+              </Button>
+            </div>
+          </>
+        )}
       </details>
     </div>
   );
@@ -273,28 +356,34 @@ function ShowPlayer({ dimmed }: { dimmed: boolean }) {
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  const save = () => {
+  // Where we are in this video, and that it is the one being watched (so
+  // "Continue" / the next episode pick up from here next time).
+  const save = (ended = false) => {
     const v = videoRef.current;
     if (!v || !item) return;
-    saveResume({
+    const entry = {
       key: item.key,
       name: item.title,
       positionS: v.currentTime,
       durationS: Number.isFinite(v.duration) ? v.duration : 0,
-    });
+    };
+    saveResume(entry);
+    markWatched({ ...entry, ended });
   };
 
   // Remember where we stopped when the panel closes or the ride ends.
   useEffect(() => {
     const v = videoRef.current;
     return () => {
-      if (v && item) {
-        saveResume({
+      if (v && item && v.currentTime > 0) {
+        const entry = {
           key: item.key,
           name: item.title,
           positionS: v.currentTime,
           durationS: Number.isFinite(v.duration) ? v.duration : 0,
-        });
+        };
+        saveResume(entry);
+        markWatched({ ...entry, ended: v.ended });
       }
       setPlaying(false);
     };
@@ -378,7 +467,7 @@ function ShowPlayer({ dimmed }: { dimmed: boolean }) {
           }}
           onTimeUpdate={onTimeUpdate}
           onEnded={() => {
-            save();
+            save(true);
             if (!next()) setPlaying(false);
           }}
           onClick={() => {

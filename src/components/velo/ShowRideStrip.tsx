@@ -4,10 +4,12 @@
  * Replaces the full HUD while a video plays. Bottom-right from sm; full width
  * (two rows) on phones.
  *
- * Quantised reads (whole seconds, 5 m, 0.1 %) keep re-renders at display rate.
+ * The numbers come from `useShowRideNumbers`, shared with the floating ride
+ * window's JourneyBar. Quantised reads (whole seconds, 5 m, 0.1 %) keep
+ * re-renders at display rate.
  */
 
-import { Flag, Pause, Play } from 'lucide-react';
+import { Flag, Pause, Play, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn, formatDistance, formatDuration } from '@/lib/utils';
 import { useNextLandmarkText } from '@/hooks/useRouteLandmarks';
@@ -19,7 +21,20 @@ import { HUD_PANEL } from './v2';
 
 const M_PER_MI = 1609.344;
 
-export function ShowRideStrip({ dimmed, className }: { dimmed: boolean; className?: string }) {
+export interface ShowRideNumbers {
+  time: string;
+  distanceValue: string;
+  distanceUnit: string;
+  distanceAria: string;
+  gradeText: string;
+  /** "Rivotorto in 900 m", or null when nothing named is ahead. */
+  next: string | null;
+  /** Share of the route ridden, 0..1 (0 on live/outdoor routes). */
+  progress: number;
+  action: { label: string; icon: LucideIcon; run: () => void } | null;
+}
+
+export function useShowRideNumbers(): ShowRideNumbers {
   const elapsedS = useRideStore((s) => Math.floor(s.elapsedMs / 1000));
   const distance = useRideStore((s) => quantizedMeters(s.distance, 5));
   const grade = useRideStore((s) => Math.round(s.grade * 10) / 10);
@@ -36,7 +51,6 @@ export function ShowRideStrip({ dimmed, className }: { dimmed: boolean; classNam
   const total = route && !route.isLive ? route.totalDistance : 0;
   const fmt = (m: number) => (imperial ? `${(m / M_PER_MI).toFixed(2)} mi` : formatDistance(m));
   const time = formatDuration(elapsedS);
-  const gradeText = (Number.isFinite(grade) ? grade : 0).toFixed(1);
 
   const action =
     rideState === 'running'
@@ -46,6 +60,22 @@ export function ShowRideStrip({ dimmed, className }: { dimmed: boolean; classNam
         : rideState === 'ready'
           ? { label: 'Start ride', icon: Play, run: start }
           : null;
+
+  return {
+    time,
+    distanceValue: (distance / (imperial ? M_PER_MI : 1000)).toFixed(1),
+    distanceUnit: imperial ? 'mi' : 'km',
+    distanceAria: total > 0 ? `${fmt(distance)} of ${fmt(total)}` : `Distance: ${fmt(distance)}`,
+    gradeText: (Number.isFinite(grade) ? grade : 0).toFixed(1),
+    next,
+    progress: total > 0 ? Math.min(1, Math.max(0, distance / total)) : 0,
+    action,
+  };
+}
+
+export function ShowRideStrip({ dimmed, className }: { dimmed: boolean; className?: string }) {
+  const n = useShowRideNumbers();
+  const { next, action } = n;
 
   return (
     <section
@@ -59,14 +89,9 @@ export function ShowRideStrip({ dimmed, className }: { dimmed: boolean; classNam
       )}
     >
       <div className="flex justify-between gap-3 sm:justify-start sm:gap-6">
-        <Figure value={time} label="Time" ariaLabel={`Time: ${time}`} />
-        <Figure
-          value={(distance / (imperial ? M_PER_MI : 1000)).toFixed(1)}
-          unit={imperial ? 'mi' : 'km'}
-          label="Distance"
-          ariaLabel={total > 0 ? `${fmt(distance)} of ${fmt(total)}` : `Distance: ${fmt(distance)}`}
-        />
-        <Figure value={gradeText} unit="%" label="Grade" ariaLabel={`Grade: ${gradeText} %`} />
+        <Figure value={n.time} label="Time" ariaLabel={`Time: ${n.time}`} />
+        <Figure value={n.distanceValue} unit={n.distanceUnit} label="Distance" ariaLabel={n.distanceAria} />
+        <Figure value={n.gradeText} unit="%" label="Grade" ariaLabel={`Grade: ${n.gradeText} %`} />
       </div>
       {(next || action) && (
         <div className="flex items-center justify-between gap-3">

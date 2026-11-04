@@ -9,8 +9,11 @@
 import {
   canUseFilePicker,
   isVideoFile,
+  pickVideoFolder,
   pickVideoHandles,
+  rememberFolder,
   rememberHandles,
+  videosInFolder,
 } from '@/lib/show/showLibrary';
 
 function pickWithInput(): Promise<File[]> {
@@ -43,4 +46,16 @@ export async function pickVideos(): Promise<File[]> {
     files = await pickWithInput();
   }
   return files.filter(isVideoFile);
+}
+
+/**
+ * Ask for a folder of episodes (Chrome / Edge desktop). The folder is
+ * remembered, so the next episode in it opens next time without a picker.
+ * Null when the rider cancels; [] when it holds no playable videos.
+ */
+export async function pickVideoFolderFiles(): Promise<File[] | null> {
+  const dir = await pickVideoFolder();
+  if (!dir) return null;
+  void rememberFolder(dir);
+  return videosInFolder(dir);
 }

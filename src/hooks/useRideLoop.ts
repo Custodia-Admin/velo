@@ -474,9 +474,25 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
     lastDistanceRef.current = 0;
 
     raf = requestAnimationFrame(frame);
+    // Read-only probe for the browser tests (e2e/show-mode.spec.ts): is the
+    // loop ticking and recording, e.g. while the tab is in the background.
+    const w = typeof window !== 'undefined' ? (window as unknown as { __veloRideState?: () => object }) : null;
+    if (w) {
+      w.__veloRideState = () => {
+        const s = store.getState();
+        return {
+          rideState: s.rideState,
+          elapsedMs: s.elapsedMs,
+          distance: s.distance,
+          samples: s.samples.length,
+          visibility: document.visibilityState,
+        };
+      };
+    }
     return () => {
       cancelAnimationFrame(raf);
       cancelSpeech();
+      if (w) delete w.__veloRideState;
     };
     // outdoorSamplesRef is a RefObject — its identity is stable across renders,
     // and reads happen inside the rAF callback so we don't need to re-run the
