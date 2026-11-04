@@ -1,0 +1,15 @@
+SUMMARY
+W1 4-way split (c82fa81): KILLED  → expected 5063906 to be less than or equal to 400000 | → expected 69946 to be less than or equal to 29427.2
+W2 longest-edge bisection: KILLED  → expected 933605 to be less than or equal to 400000 | → expected 32573 to be less than or equal to 29427.2
+W3 streams back to 8 m steps: KILLED  → expected 442979 to be less than or equal to 400000 | → expected 36992 to be less than or equal to 29427.2
+W4 lattice twice the edge: KILLED  → expected 90 to be less than or equal to 45.000000001 | → expected 90.00000000000007 to be less than or equal to 45.000000001
+W5 no shore merge: KILLED  → expected 43674 to be less than or equal to 29427.2 | AssertionError: expected 43674 to be less than or equal to 29427.2
+W6 shore pieces dropped: KILLED  → expected +0 to be close to 7500, received difference is 7500, but expected 5e-7 | → expected 886496.0792664018 to be close to 960000, received difference is 73503.92073359818, but expected 0.0005
+W7 full cells never detected: SURVIVED
+W8 full cell emitted per piece (doubled): KILLED  → expected 1159921.9644636582 to be close to 960000, received difference is 199921.96446365817, but expected 0.0005 | → expected 1.55885391771223 to be less than 1.005
+W9 merged cells keep collinear points: KILLED  → expected 39322 to be less than or equal to 29427.2 | AssertionError: expected 39322 to be less than or equal to 29427.2
+R1 water ignored: KILLED  → expected 0 to be greater than 1900 | AssertionError: expected 0 to be greater than 1900
+R2 tunnels count as off road: KILLED  → expected [ { fromM: 1020, toM: 2000, …(1) } ] to deeply equal [] | AssertionError: expected [ { fromM: 1020, toM: 2000, …(1) } ] to deeply equal []
+R3 steps count as drawn: KILLED  → expected 0 to be greater than 900 | AssertionError: expected 0 to be greater than 900
+R4 off-road check uses 30 m: KILLED  → expected +0 to be 2010 // Object.is equality | AssertionError: expected +0 to be 2010 // Object.is equality
+R5 bridges ignored (water counted on roads): KILLED  → expected 1000 to be greater than 1000 | → expected [ { fromM: 1000, toM: 2990, …(1) } ] to deeply equal []

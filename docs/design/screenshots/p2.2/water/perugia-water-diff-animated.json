@@ -1,0 +1,50 @@
+{
+ "1500": {
+  "waterShare": {
+   "before": 0.0221,
+   "after": 0.023
+  },
+  "waterMaskIoU": 0.7297,
+  "diffPixels>24": {
+   "before↔after": 0.0008,
+   "after↔after (0.7 s later)": 0.0105,
+   "before↔before (0.7 s later)": 0.0127
+  }
+ },
+ "3000": {
+  "waterShare": {
+   "before": 0.0142,
+   "after": 0.0162
+  },
+  "waterMaskIoU": 0.5768,
+  "diffPixels>24": {
+   "before↔after": 0.0095,
+   "after↔after (0.7 s later)": 0.0078,
+   "before↔before (0.7 s later)": 0.0085
+  }
+ },
+ "5000": {
+  "waterShare": {
+   "before": 0.0098,
+   "after": 0.0098
+  },
+  "waterMaskIoU": 0.7358,
+  "diffPixels>24": {
+   "before↔after": 0.0025,
+   "after↔after (0.7 s later)": 0.0026,
+   "before↔before (0.7 s later)": 0.0039
+  }
+ },
+ "8000": {
+  "waterShare": {
+   "before": 0.0043,
+   "after": 0.0052
+  },
+  "waterMaskIoU": 0.7618,
+  "diffPixels>24": {
+   "before↔after": 0.0008,
+   "after↔after (0.7 s later)": 0.0012,
+   "before↔before (0.7 s later)": 0.0005
+  }
+ }
+}

@@ -1,4 +1,3 @@
-scenic route scenic-lugano-melide: clicked the grid card
 {
  "route": "scenic-lugano-melide",
  "quality": "medium",
@@ -7,7 +6,7 @@ scenic route scenic-lugano-melide: clicked the grid card
   900
  ],
  "gl": "gpu",
- "worldReadyS": 19.1,
+ "worldReadyS": 6.5,
  "renderer": "world",
  "debug": {
   "renderer": "world",
@@ -18,24 +17,24 @@ scenic route scenic-lugano-melide: clicked the grid card
    1440,
    900
   ],
-  "distance": 86.41306164650065,
+  "distance": 108.11463030213069,
   "riderXZ": [
-   8705.94,
-   6193.64
+   8707.76,
+   6198.56
   ],
-  "routeEle": 280.9344683086954,
-  "groundEle": 279.9025096876926,
+  "routeEle": 280.51074045246617,
+  "groundEle": 280.7922634279176,
   "riderGroundGap": 0,
-  "cameraHeight": 282.5025096876926,
-  "cameraClearance": 2.5969899153689084,
+  "cameraHeight": 283.3922634279176,
+  "cameraClearance": 2.488962381405827,
   "riderScreen": [
-   789,
-   561
+   719,
+   558
   ],
   "nearChunks": 4,
-  "drawCalls": 63,
-  "triangles": 6464662,
-  "trees": 9409,
+  "drawCalls": 64,
+  "triangles": 1600472,
+  "trees": 9406,
   "light": {
    "phase": "golden",
    "at": "2026-11-04T15:23:21.565Z",
@@ -45,31 +44,33 @@ scenic route scenic-lugano-melide: clicked the grid card
    "weatherSource": "live",
    "rain": 1
   },
-  "fps": 19.3,
-  "avgMs": 51.9,
-  "p95Ms": 166,
-  "worstMs": 523.4,
-  "jankPct": 42.7,
-  "frames": 227
+  "fps": 22.1,
+  "avgMs": 45.2,
+  "p95Ms": 198.7,
+  "worstMs": 353.4,
+  "jankPct": 29.6,
+  "frames": 240
  },
  "fpsSamples": [
-  17.8,
-  19,
-  19.3
+  29.9,
+  31.1,
+  37.4,
+  30.1,
+  25.1,
+  22.1
  ],
  "p95Samples": [
-  198.2,
-  168.9,
-  166
+  110.4,
+  93.6,
+  71.5,
+  138,
+  190.2,
+  198.7
  ],
- "speed": "Speed: 37.4 km/h",
+ "speed": "Speed: 45.2 km/h",
  "visibility": "visible",
  "cesiumComRequests": 0,
- "cesiumChunkRequests": [
-  "http://localhost:5194/src/lib/cesiumTokenWarning.ts",
-  "http://localhost:5194/src/lib/cesiumCameras.ts",
-  "http://localhost:5194/src/components/profile/settings/CesiumIonTokenSection.tsx"
- ],
+ "cesiumChunkRequests": [],
  "pageErrors": [],
  "consoleErrors": [
   "THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."
