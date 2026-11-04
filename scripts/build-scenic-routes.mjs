@@ -106,6 +106,13 @@ const ROUTES = [
   {
     id: 'scenic-lake-garda-lazise',
     // Points on the Peschiera–Lazise lakeside cycle path; past Lazise it turns inland.
+    // Inland start, deliberately: since OSM changeset 191376414 (2 Nov 2026, a
+    // survey edit) the 190 m of Passeggiata Giuseppe Garibaldi north of the
+    // beach (way 1158666741) is a footway with bicycle=no, so the shore path
+    // has no bike-legal link there. The router turns back at the beach (point 2;
+    // the 1.6 km out-and-back is cut) and rides Via Marzan and Via Campanello,
+    // rejoining the shore path 2.35 km in. Point 2 stays on the promenade so the
+    // route returns to the shore by itself if bikes are allowed there again.
     waypoints: [[45.4390, 10.6920], [45.4470, 10.6957], [45.4563, 10.7007], [45.4645, 10.7114], [45.4734, 10.7158], [45.4821, 10.7216], [45.5017, 10.7321], [45.5052, 10.7330]],
   },
   // ── Travels: places on the wishlist ──
