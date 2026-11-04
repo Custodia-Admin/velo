@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SCENIC_ROUTE_GEOMETRY, type ScenicRouteGeometry } from '@/lib/scenicRouteData';
+import { hairpins, HAIRPIN_TURN_DEG, retracedStubs } from '@/lib/routeReversals';
 import { haversine } from '@/lib/utils';
 
 /** Same measure as scripts/build-scenic-routes.mjs: steepest ~200 m window. */
@@ -59,5 +60,16 @@ describe('scenic route geometry', () => {
       // has a 2.8 km one); a hop past 5 km would mean a broken route.
       expect(haversine(la0, lo0, la1, lo1)).toBeLessThan(5000);
     }
+  });
+
+  // OSRM visits a waypoint that sits off the through road by riding to it and
+  // straight back, which on screen is a U-turn for no reason. The generator
+  // cuts those (src/lib/routeReversals.ts); this keeps them out.
+  it.each(entries)(`%s never turns back on itself (no turn over ${HAIRPIN_TURN_DEG}°)`, (_id, g) => {
+    expect(hairpins(g.points).map((h) => `${Math.round(h.distanceM)} m (${Math.round(h.turnDeg)}°)`)).toEqual([]);
+  });
+
+  it.each(entries)('%s never rides out and back over the same road', (_id, g) => {
+    expect(retracedStubs(g.points).map((x) => `${Math.round(x.tipM)} m`)).toEqual([]);
   });
 });

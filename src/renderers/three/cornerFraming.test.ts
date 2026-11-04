@@ -3,12 +3,13 @@
  * and the same per-frame code the renderer runs (driveRideFrame → cameraTarget
  * → CameraRig, anchored on the rider):
  *
- * 1. The rider stays in frame through sharp corners (raw route heading turns
- *    114° within ~6 m at Tiber park d≈144 m and makes a 163° U-turn on the
- *    Assisi valley route at 3,744 m; the rider used to leave the frame).
- *    The drawn heading never turns faster than the YawFilter cap, and an
- *    ordinary corner (Tiber) is spread by the wide chord well under the cap:
- *    with the heading smoothing removed it turns at up to 335°/s there.
+ * 1. The rider stays in frame through the sharpest corners left on the
+ *    Perugia routes once their U-turns were cut (raw route heading turns 123°
+ *    within ~6 m where Tiber park leaves the Percorso Verde track for Strada
+ *    Rivolta at 9,672 m, and 82° at Assisi 4,369 m; at the old corners the
+ *    rider used to leave the frame). The drawn heading never turns faster
+ *    than the YawFilter cap, and an ordinary corner (Assisi) is spread by the
+ *    wide chord well under the cap.
  * 2. Chase framing holds at any speed (a world-space lag used to put the
  *    camera ~10 m back at 39 km/h instead of the 7 m 'standard' framing).
  */
@@ -117,11 +118,12 @@ describe('chase framing on the Perugia world', () => {
     }
   }, 60_000);
 
-  // `maxYawRate`: fastest the drawn rider may turn. Only a fold-back (U-turn)
-  // may reach the YawFilter cap; the chord alone spreads an ordinary corner.
+  // `maxYawRate`: fastest the drawn rider may turn. Only a near fold-back
+  // junction (Tiber's 123°) may reach the YawFilter cap; the chord alone
+  // spreads an ordinary corner.
   const CORNERS = [
-    { id: 'scenic-perugia-tiber-park', from: 80, to: 240, what: '114° vertex at d≈144 m', maxYawRate: 0.9 * MAX_YAW_RATE },
-    { id: 'scenic-assisi-valley', from: 3660, to: 3840, what: '163° U-turn at 3,744 m', maxYawRate: MAX_YAW_RATE },
+    { id: 'scenic-perugia-tiber-park', from: 9590, to: 9760, what: '123° junction turn at 9,672 m', maxYawRate: MAX_YAW_RATE },
+    { id: 'scenic-assisi-valley', from: 4290, to: 4450, what: '82° corner at 4,369 m', maxYawRate: 0.9 * MAX_YAW_RATE },
   ];
   for (const c of CORNERS) {
     for (const vp of VIEWPORTS) {
