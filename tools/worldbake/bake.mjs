@@ -7,6 +7,10 @@
 //   --cache <dir>      download cache (default tools/worldbake/cache, env WORLDBAKE_CACHE)
 //   --no-docs          don't rewrite this world's block in docs/worlds/CREDITS.md
 //
+// The heightfield comes from the recipe's `dem.source`: AWS Terrain Tiles by
+// default (`dem.zoom`), or Copernicus GLO-30 COGs with "copernicus-glo30"
+// (demSource.mjs, fetchGlo30.mjs).
+//
 // Same recipe + same cached inputs → byte-identical bundle (sha256 per file in
 // manifest.json). OSM queries are pinned to the recipe's osmDate, so a clean
 // cache re-downloads the same data. Runs on the bake host (cat-bed), not the
@@ -19,6 +23,8 @@ import { createProjection } from '../../src/lib/world/projection.ts';
 import { decodeHeightDeltas } from '../../src/lib/world/heightfield.ts';
 import { validateManifest, WORLD_FORMAT, WORLD_FORMAT_VERSION } from '../../src/lib/world/manifest.ts';
 import { fetchDem, DEM_SOURCE } from './fetchDem.mjs';
+import { fetchGlo30, GLO30_CREDIT, GLO30_URL_TEMPLATE } from './fetchGlo30.mjs';
+import { demSourceOf, GLO30_DEM_SOURCE } from './demSource.mjs';
 import { fetchOsm, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
@@ -29,6 +35,8 @@ import { brotliSize, ensureDir, gzip, here, sha256, stableJson, writeFileAtomic 
 
 const TOOL_VERSION = 1;
 const ROOT = resolve(here(import.meta.url), '../..');
+/** Bundle budget (blueprint P1.3): all files, brotli quality 11. */
+export const MAX_BUNDLE_BROTLI_BYTES = 8e6;
 
 function parseArgs(argv) {
   const args = { world: null, clean: false, validate: true, docs: true, out: null, cache: process.env.WORLDBAKE_CACHE ?? null };
@@ -81,6 +89,16 @@ export const CREDITS = [
   },
 ];
 
+/**
+ * Credits for a bundle baked from `demSource`. The default source keeps the
+ * list above exactly (same bytes in the manifest); GLO-30 swaps the Terrain
+ * Tiles entry for the Copernicus DEM GLO-30 one.
+ */
+export function creditsFor(demSource) {
+  if (demSource !== GLO30_DEM_SOURCE) return CREDITS;
+  return CREDITS.map((c) => (c.id === 'terrain-tiles' ? GLO30_CREDIT : c));
+}
+
 /** Lat/lon bbox of the extent (edges walked every 100 m), rounded outward to 1e-5°. */
 function extentBbox(projection, ext) {
   let south = Infinity, west = Infinity, north = -Infinity, east = -Infinity;
@@ -115,6 +133,8 @@ export async function bake(opts) {
   const recipePath = join(ROOT, 'tools/worldbake/worlds', `${opts.world}.json`);
   const recipeBytes = readFileSync(recipePath);
   const recipe = JSON.parse(recipeBytes.toString('utf8'));
+  const demSource = demSourceOf(recipe);
+  const glo30 = demSource === GLO30_DEM_SOURCE;
   const outDir = resolve(opts.out ?? join(ROOT, 'public/worlds', recipe.id));
   const cacheDir = resolve(opts.cache ?? join(ROOT, 'tools/worldbake/cache'), recipe.id);
   if (opts.clean && existsSync(cacheDir)) {
@@ -139,7 +159,9 @@ export async function bake(opts) {
   let t = Date.now();
   const m = 0.005;
   const demBbox = { south: bbox.south - m, west: bbox.west - m, north: bbox.north + m, east: bbox.east + m };
-  const dem = await fetchDem({ bbox: demBbox, zoom: recipe.dem.zoom, cacheDir, log });
+  const dem = glo30
+    ? await fetchGlo30({ bbox: demBbox, cacheDir, log })
+    : await fetchDem({ bbox: demBbox, zoom: recipe.dem.zoom, cacheDir, log });
   const heights = sampleGrid({ grid: g, projection, dem });
   lap('dem', t);
 
@@ -274,14 +296,13 @@ export async function bake(opts) {
       pois: pois.length,
       carvedNodes: carve.carvedNodes,
     },
-    credits: CREDITS,
+    credits: creditsFor(demSource),
     generator: {
       tool: 'velo-worldbake',
       version: TOOL_VERSION,
       recipeSha256: sha256(recipeBytes),
       osmDate: recipe.osmDate,
-      demSource: DEM_SOURCE,
-      demZoom: recipe.dem.zoom,
+      ...(glo30 ? { demSource: dem.source } : { demSource: DEM_SOURCE, demZoom: recipe.dem.zoom }),
       demTiles: dem.tiles.length,
     },
   };
@@ -296,6 +317,7 @@ export async function bake(opts) {
     { stored: 0, content: 0, brotli: 0 },
   );
   log(`bundle: ${(totals.stored / 1e6).toFixed(2)} MB gzip as shipped, ${(totals.brotli / 1e6).toFixed(2)} MB brotli, ${(totals.content / 1e6).toFixed(2)} MB raw`);
+  if (totals.brotli > MAX_BUNDLE_BROTLI_BYTES) throw new Error(`bundle is ${(totals.brotli / 1e6).toFixed(2)} MB brotli, over the ${MAX_BUNDLE_BROTLI_BYTES / 1e6} MB budget`);
 
   // 5. Validation against an independent DEM (not part of the bundle).
   let validation = null;
@@ -319,20 +341,22 @@ export async function bake(opts) {
     routes: snapped.info.map((r) => ({ ...r, roadCoverage: roadCoverage[r.id] })),
     heightfield: { ...height.info, carvedNodes: carve.carvedNodes, maxCutM: round(carve.maxCutM) },
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
+    ...(glo30 ? { demSource: dem.source } : {}),
     demTiles: dem.tiles,
+    ...(glo30 ? { demMissingTiles: dem.missing } : {}),
     overpass: { url: OVERPASS_URL, osmDate: recipe.osmDate, queries: osm.queries },
     validation,
   };
   const reportDir = join(ROOT, 'tools/worldbake/reports');
   ensureDir(reportDir);
   writeFileSync(join(reportDir, `${recipe.id}.json`), `${JSON.stringify(report, null, 2)}\n`);
-  if (opts.docs) writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest });
+  if (opts.docs) writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 });
   log(`done in ${timings.total} s → ${outDir}`);
   return report;
 }
 
 /** Rewrite this world's generated block in docs/worlds/CREDITS.md. */
-function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest }) {
+function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 }) {
   const path = join(ROOT, 'docs/worlds/CREDITS.md');
   const start = `<!-- world:${recipe.id}:start (generated by tools/worldbake/bake.mjs) -->`;
   const end = `<!-- world:${recipe.id}:end -->`;
@@ -343,7 +367,9 @@ function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest }) {
     '',
     `- Bounding box (WGS84): south ${bbox.south}, west ${bbox.west}, north ${bbox.north}, east ${bbox.east}.`,
     `- World extent: x ${extent.xMin}…${extent.xMax} m, y ${extent.yMin}…${extent.yMax} m, local transverse Mercator at ${recipe.origin.lat}, ${recipe.origin.lon}.`,
-    `- Elevation: ${dem.tiles.length} Terrain Tiles (terrarium) at zoom ${dem.zoom}, \`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png\`: ${tiles}.`,
+    glo30
+      ? `- Elevation: ${dem.tiles.length} Copernicus DEM GLO-30 tiles (1″ COG), \`${GLO30_URL_TEMPLATE}\`: ${tiles}${dem.missing.length ? ` (${dem.missing.map((id) => `\`${id}\``).join(', ')} absent from the bucket: open ocean, read as 0 m)` : ''}.`
+      : `- Elevation: ${dem.tiles.length} Terrain Tiles (terrarium) at zoom ${dem.zoom}, \`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png\`: ${tiles}.`,
     `- OpenStreetMap: Overpass API (\`${OVERPASS_URL}\`), data as of ${recipe.osmDate} (attic query), layers ${Object.keys(osm.queries).join(', ')} over the bounding box above. Queries are recorded in \`tools/worldbake/reports/${recipe.id}.json\`.`,
     `- Routes: ${manifest.routes.map((r) => `\`${r.id}\``).join(', ')} from \`src/lib/scenicRouteData.ts\` (OSRM bike geometry + Copernicus GLO-90 profile via Open-Meteo).`,
     `- Validation: ${recipe.validation.samples} seeded Open-Meteo elevation samples (Copernicus GLO-90), not shipped.`,

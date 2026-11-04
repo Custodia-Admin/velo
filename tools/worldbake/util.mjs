@@ -44,7 +44,7 @@ export async function cachedFetch(cacheDir, key, url, init = {}, { retries = 6, 
       if (res.status === 429 || res.status >= 500) {
         lastErr = new Error(`${label}: HTTP ${res.status}`);
       } else if (!res.ok) {
-        throw Object.assign(new Error(`${label}: HTTP ${res.status}`), { fatal: true });
+        throw Object.assign(new Error(`${label}: HTTP ${res.status}`), { fatal: true, status: res.status });
       } else {
         const body = Buffer.from(await res.arrayBuffer());
         writeFileAtomic(file, body);

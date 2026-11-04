@@ -150,7 +150,8 @@ export interface WorldManifest {
     recipeSha256: string;
     osmDate: string;
     demSource: string;
-    demZoom: number;
+    /** Slippy-map zoom of the terrain tiles; absent for sources without one (Copernicus GLO-30). */
+    demZoom?: number;
     demTiles: number;
   };
 }
@@ -321,7 +322,7 @@ export function validateManifest(input: unknown): WorldManifest {
   if (!HEX64.test(str(gen, 'recipeSha256', 'generator'))) fail('generator.recipeSha256 must be 64 hex chars');
   str(gen, 'osmDate', 'generator');
   str(gen, 'demSource', 'generator');
-  int(gen, 'demZoom', 'generator');
+  if (gen.demZoom !== undefined) int(gen, 'demZoom', 'generator');
   int(gen, 'demTiles', 'generator', 1);
 
   return m as unknown as WorldManifest;
