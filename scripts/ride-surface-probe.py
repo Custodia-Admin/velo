@@ -16,7 +16,8 @@ surfaces the renderer really draws:
                     earth reference. The app's own readings (globe tiles, mesh CPU ray) are reported as `model`.
                     The rider is checked against the main view's depth at its wheels (the frame as drawn; the
                     overhead pick camera can select another level of detail), or against the overhead pick's
-                    top where a canopy or deck hides the wheels from the chase camera.
+                    top where a canopy or deck hides the wheels from the chase camera. A camera ray through the
+                    wheels that hits nothing within 50 m beyond them is a void under the rider (fails).
 
 Held spots fail outside +-TOL; ridden start samples fail only when under a drawn surface (rider or camera) and
 report the rest (float, pop) as soft counts. A sample is ok when |rider - top drawn ground| <= TOL, nothing drawn sits more than TOL above the wheels and
@@ -197,6 +198,7 @@ SAMPLE = r"""async ([tol, undersideMax]) => {
   // the rider passes under, not ground. The globe is bare terrain: anything of it over the wheels is
   // the owner's bug (riding under the terrain).
   const OVERHANG = 2.5;
+  const VOID_M = 50;
   const ground = (list, h) => list.filter((s) => !(s[0] === 'mesh' && s[1] - h >= OVERHANG));
   const g = ground(atRider, d.groundEle);
   const overhang = atRider.length - g.length;
@@ -244,13 +246,16 @@ SAMPLE = r"""async ([tol, undersideMax]) => {
   // The rider against the ground: the main view's depth at the wheels when it shows ground there (the
   // frame as the rider sees it; the overhead pick camera can select another level of detail), else the
   // overhead pick's top (a canopy or deck hides the wheels from the chase camera).
-  const viewErr = viewTop === null ? null : d.groundEle - viewTop;
+  // Nothing drawn under the rider: the camera ray through the wheels hits nothing, or only something far
+  // beyond them (the Lugano start's root-tile chord 28 km down). The rider stands over a void.
+  const voidUnder = viewTop === null || viewAlong === null || viewAlong > VOID_M;
+  const viewErr = voidUnder ? null : d.groundEle - viewTop;
   const viewGround = viewErr !== null && viewErr > -OVERHANG;
   const riderErr = viewGround ? viewErr : (top === null ? null : d.groundEle - top);
-  const ok = riderErr !== null && Math.abs(riderErr) <= tol && (viewGround || above === 0) &&
+  const ok = !voidUnder && riderErr !== null && Math.abs(riderErr) <= tol && (viewGround || above === 0) &&
     (camTop === null || cam.height > camTop) && under <= undersideMax;
   return { renderer: 'photoreal', dist: d.dist, rider: d.groundEle, top, riderVsTop: top === null ? null : d.groundEle - top,
-    riderVsGround: riderErr, viewGround,
+    riderVsGround: riderErr, viewGround, voidUnder,
     above, overhang, onStructure, underOverhang, camVsTop: camTop === null ? null : cam.height - camTop,
     riderVsView: viewTop === null ? null : d.groundEle - viewTop, viewAlong,
     surfaces: atRider, camSurfaces: atCam, model: model(rc), bare: bareH, grid: n, skyPx: sky, ceilPx: ceil, undersidePx: under,
@@ -268,10 +273,11 @@ failed = 0
 
 
 def under(s):
-    """Rider below a drawn ground surface, camera at/under one, or a surface seen from below: the owner's bug."""
+    """Rider below a drawn ground surface, camera at/under one, a surface seen from below (the owner's bug), or
+    nothing drawn under the rider at all."""
     g = s.get("riderVsGround", s["riderVsTop"])
     above = s["above"] > 0 and not s.get("viewGround")
-    return (g is not None and g < -TOL) or above or \
+    return (g is not None and g < -TOL) or above or s.get("voidUnder") or \
         (s["camVsTop"] is not None and s["camVsTop"] <= 0) or (s.get("undersidePx") or 0) > UNDERSIDE_MAX
 
 
@@ -282,7 +288,7 @@ def fmt(s):
     extra = f" roadLevels={s['roadLevels']}" if s["renderer"] == "world" else \
         " " + " ".join(f"{k}={v:.2f}" for k, v in s["surfaces"])
     oh = f" overhang={s['overhang']}" if s.get("overhang") else ""
-    view = f" view={f(s.get('riderVsView'))} sky={s['skyPx']}/{s['grid']} underside={s['undersidePx']} globe={'on' if s['globeShown'] else 'off'}" \
+    view = f" view={f(s.get('riderVsView'))}{' VOID' if s.get('voidUnder') else ''} sky={s['skyPx']}/{s['grid']} underside={s['undersidePx']} globe={'on' if s['globeShown'] else 'off'}" \
         if s["renderer"] == "photoreal" else ""
     gr = f" ground={f(s.get('riderVsGround'))}" if s["renderer"] == "photoreal" else ""
     return f"rider-top={f(s['riderVsTop'])}{gr} above={s['above']} cam-top={f(s['camVsTop'])}{extra}{oh}{view} {'ok' if s['ok'] else 'FAIL'}"
