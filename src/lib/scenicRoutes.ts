@@ -96,7 +96,7 @@ const SCENIC_META: ScenicMeta[] = [
     name: 'Assisi valley floor',
     place: 'Umbria · Valle Umbra',
     description:
-      'Santa Maria degli Angeli to Rivotorto and Bastia, below Assisi.',
+      'A loop on the valley floor below Assisi: Santa Maria degli Angeli, Rivotorto and Bastia, out and home on different roads.',
     area: 'near-home',
     scenery: 'valley',
     mood: 'clear-noon',
