@@ -2,19 +2,19 @@
   "world": "lugano",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 0.6,
+    "dem": 0.8,
     "heightfield+routes": 0.1,
-    "osm": 0.6,
-    "vectors": 41.6,
-    "write": 23.1,
+    "osm": 0.7,
+    "vectors": 50,
+    "write": 27.4,
     "validate": 0,
-    "total": 66.1
+    "total": 78.9
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 2925468,
+      "stored": 2924321,
       "content": 5525468,
-      "brotli": 2248892
+      "brotli": 2246806
     },
     "roads.json.gz": {
       "stored": 1943443,
@@ -32,40 +32,40 @@
       "brotli": 367015
     },
     "buildings.bin.gz": {
-      "stored": 2005638,
-      "content": 3618376,
-      "brotli": 1638967
+      "stored": 2004497,
+      "content": 3616372,
+      "brotli": 1636726
     },
     "vegetation.bin.gz": {
-      "stored": 1473638,
+      "stored": 1473642,
       "content": 2640016,
-      "brotli": 1400741
+      "brotli": 1399631
     },
     "routes.json.gz": {
-      "stored": 29393,
-      "content": 72648,
-      "brotli": 18913
+      "stored": 30413,
+      "content": 74823,
+      "brotli": 19732
     },
     "manifest.json": {
-      "stored": 135909,
-      "content": 135909,
-      "brotli": 19072
+      "stored": 135911,
+      "content": 135911,
+      "brotli": 19130
     }
   },
   "totals": {
-    "stored": 9466492,
-    "content": 19264135,
-    "brotli": 7118298
+    "stored": 9465230,
+    "content": 19264308,
+    "brotli": 7113738
   },
   "hashes": {
-    "height.bin.gz": "f2f968f9274eb979fa2bdbeb21d2d180186d6f4823166ca80db055c5beae938b",
+    "height.bin.gz": "6bfeb87387e892428897baa9335324395052c376252aa56539cefe94ae8c0c63",
     "roads.json.gz": "c46a8d42e14b8c8af8f3a012ff4daa4c27164b106247008c60bfedd378660be8",
     "water.json.gz": "10108ff003ff77d8fc3d2311bd3e815e88fb20841d85a862f86bf9c444ce79fd",
     "landcover.json.gz": "70f13956230e1b1d15f5fa186cf24967c20c1d0edb0b1f6dc170a8613af27919",
-    "buildings.bin.gz": "9b75f45a54ec24695d2c3b9f3341b76ed205bbffe6113fe8d6f95c8cb7178077",
-    "vegetation.bin.gz": "8b54ea3f58172adc41d302f229254922ab805c59edeaf0c5c2a1227c87a99b41",
-    "routes.json.gz": "50be2a03e0bfcf17b6b42743e8bc39984368d38e78113b15e8486bb2034b20fa",
-    "manifest.json": "557799c32a24285eeec9c7508b37b3a43f4bc6eaaf82b202a8ba435b1b296567"
+    "buildings.bin.gz": "606865da918ecaf4485e7b9aedfd12a473005e34190772014d0d6ba5b3237b52",
+    "vegetation.bin.gz": "3424dbfcc514e40b41b54a6a9c6ee88a63d5cb25564d5cf2eba2a667e5ab7504",
+    "routes.json.gz": "6257188cce6eee03e7a6df6b502592439967911e075dcef20ec8a21f74769fbf",
+    "manifest.json": "f6f95858d9600946bece866d45f688c7b8585f4f0ec8a9de13359687cf30b3e1"
   },
   "routes": [
     {
@@ -84,14 +84,14 @@
     {
       "id": "scenic-locarno-brissago",
       "name": "Locarno to Brissago",
-      "lengthM": 9567.16,
+      "lengthM": 9512.72,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.27,
+      "gradeMeanAbsDiffPct": 0.74,
       "report": {
-        "samples": 958,
-        "gradeMaxAbsDiffPct": 1.047,
-        "rawDemGradeMeanAbsDiffPct": 1.808,
-        "maxRenderMinusProfileM": 4.56
+        "samples": 953,
+        "gradeMaxAbsDiffPct": 3.025,
+        "rawDemGradeMeanAbsDiffPct": 4.24,
+        "maxRenderMinusProfileM": 10.8
       }
     }
   ],
@@ -104,12 +104,12 @@
     "heightScale": 0.03125,
     "minHeight": 180.875,
     "maxHeight": 1907.84375,
-    "carvedNodes": 10121,
+    "carvedNodes": 10097,
     "maxCutM": 76.23
   },
   "buildingsDropped": {
-    "route": 66,
-    "road": 526,
+    "route": 115,
+    "road": 528,
     "routeClearMinM": 3.5,
     "routeClearMaxM": 6
   },

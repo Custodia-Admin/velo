@@ -48,11 +48,11 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 2925468,
-      "sha256": "f2f968f9274eb979fa2bdbeb21d2d180186d6f4823166ca80db055c5beae938b",
+      "bytes": 2924321,
+      "sha256": "6bfeb87387e892428897baa9335324395052c376252aa56539cefe94ae8c0c63",
       "compression": "gzip",
       "contentBytes": 5525468,
-      "contentSha256": "8ec0fc407abb41b41f116b0ecd775b3ca6b578d5089f3133d499355cbdd277e3"
+      "contentSha256": "9d59c8bcd4bd85c92c0529865d5846fe5b60ef2e696e735083449ca3d10eb30c"
     },
     {
       "path": "roads.json.gz",
@@ -80,27 +80,27 @@
     },
     {
       "path": "buildings.bin.gz",
-      "bytes": 2005638,
-      "sha256": "9b75f45a54ec24695d2c3b9f3341b76ed205bbffe6113fe8d6f95c8cb7178077",
+      "bytes": 2004497,
+      "sha256": "606865da918ecaf4485e7b9aedfd12a473005e34190772014d0d6ba5b3237b52",
       "compression": "gzip",
-      "contentBytes": 3618376,
-      "contentSha256": "432df839e6b0cb6f7f3c29dfe48a49afbcb0412801034505cf36608c719cb9a2"
+      "contentBytes": 3616372,
+      "contentSha256": "5d2c25836b36513e97509f1fb44fda51792b552833b177d69c3db0690aeec630"
     },
     {
       "path": "vegetation.bin.gz",
-      "bytes": 1473638,
-      "sha256": "8b54ea3f58172adc41d302f229254922ab805c59edeaf0c5c2a1227c87a99b41",
+      "bytes": 1473642,
+      "sha256": "3424dbfcc514e40b41b54a6a9c6ee88a63d5cb25564d5cf2eba2a667e5ab7504",
       "compression": "gzip",
       "contentBytes": 2640016,
-      "contentSha256": "e9e928b8710daa134c1d19ab775c000266232059da46e570758ab2d691f634d5"
+      "contentSha256": "d683db0fac0a5a2fad4f54ff498cbdd0fe8346739b07418aea061474c58542f0"
     },
     {
       "path": "routes.json.gz",
-      "bytes": 29393,
-      "sha256": "50be2a03e0bfcf17b6b42743e8bc39984368d38e78113b15e8486bb2034b20fa",
+      "bytes": 30413,
+      "sha256": "6257188cce6eee03e7a6df6b502592439967911e075dcef20ec8a21f74769fbf",
       "compression": "gzip",
-      "contentBytes": 72648,
-      "contentSha256": "502eccbc1d60fef29eb219a838a385b9e539cdaa74ef2c8e3ff37286248786dd"
+      "contentBytes": 74823,
+      "contentSha256": "377e2ab78e25d057f591517ff2a87bb1b877403a6cc88459c83051251cd70ecd"
     }
   ],
   "moods": [
@@ -236,7 +236,7 @@
       "x": -5238.3,
       "y": 10686.5,
       "osm": "node/59999946",
-      "h": 208.2
+      "h": 208.61
     },
     {
       "name": "Brissago",
@@ -245,7 +245,7 @@
       "x": -9774.4,
       "y": 6762.1,
       "osm": "node/60159149",
-      "h": 213.4
+      "h": 213.53
     },
     {
       "name": "Ronco sopra Ascona",
@@ -2594,7 +2594,7 @@
       "x": -9218.7,
       "y": 8224.9,
       "osm": "node/2597988196",
-      "h": 221.38
+      "h": 216.66
     },
     {
       "name": "Arbizzo",
@@ -3206,7 +3206,7 @@
       "x": -5214.7,
       "y": 10669.7,
       "osm": "node/3515270797",
-      "h": 204.26
+      "h": 209.06
     },
     {
       "name": "Prümé",
@@ -6766,9 +6766,9 @@
     {
       "id": "scenic-locarno-brissago",
       "name": "Locarno to Brissago",
-      "lengthM": 9567.16,
+      "lengthM": 9512.72,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.27
+      "gradeMeanAbsDiffPct": 0.74
     }
   ],
   "stats": {
@@ -6776,24 +6776,24 @@
     "waterAreas": 232,
     "waterLines": 2516,
     "landcoverAreas": 4535,
-    "buildings": 102091,
-    "buildingVertices": 649363,
-    "buildings:suburb": 92731,
-    "buildings:old-town": 3792,
+    "buildings": 102040,
+    "buildingVertices": 648990,
+    "buildings:suburb": 92678,
+    "buildings:old-town": 3794,
     "buildings:rural": 3086,
     "buildings:industrial": 2482,
     "trees": 440000,
-    "trees:broadleaf": 306784,
+    "trees:broadleaf": 306791,
     "trees:conifer": 0,
     "trees:scrub": 3531,
     "trees:olive": 263,
     "trees:park": 249,
-    "trees:cypress": 3356,
-    "trees:riparian": 63288,
+    "trees:cypress": 3353,
+    "trees:riparian": 63284,
     "trees:hedgerow": 12127,
     "trees:garden": 50402,
     "pois": 738,
-    "carvedNodes": 10121
+    "carvedNodes": 10097
   },
   "credits": [
     {
