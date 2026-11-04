@@ -109,21 +109,3 @@ export function ScenicHomeSections({ afterFeatured }: { afterFeatured?: ReactNod
     </>
   );
 }
-
-/** Routes-tab / wizard variant: every scenic route, picking just loads it. */
-export function ScenicRoutesPanel({ onPicked }: { onPicked?: () => void }) {
-  const activeRouteId = useRideStore((s) => s.route?.id ?? null);
-  const setRoute = useRideStore((s) => s.setRoute);
-  const weatherById = useRoutesWeather(ALL_ROUTES);
-  return (
-    <ScenicRouteGrid
-      routes={SCENIC_ROUTES}
-      activeRouteId={activeRouteId}
-      weatherById={weatherById}
-      onRide={(info) => {
-        setRoute(info.route);
-        onPicked?.();
-      }}
-    />
-  );
-}

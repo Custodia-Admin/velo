@@ -37,7 +37,6 @@ import {
   onSceneSurface,
   sceneEle,
   setIonToken,
-  setActiveViewer,
   setupBaseImagery,
   type MoodId,
 } from '@/lib/cesiumUtils';
@@ -376,7 +375,6 @@ export function CesiumWorldView({
         contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
       });
       viewerRef.current = viewer;
-      setActiveViewer(viewer);
       // Frame-time + tile-load stats (?perf=1 overlay, window.__veloPerf).
       detachPerfRef.current = attachScenePerf(viewer);
       // Adaptive quality governor — measures from the first rendered frame
@@ -590,7 +588,6 @@ export function CesiumWorldView({
       kmMarkersRef.current = null;
       climbArchesRef.current?.destroy();
       climbArchesRef.current = null;
-      setActiveViewer(null);
       if (viewer && !viewer.isDestroyed()) destroyCinematicEffects(viewer);
       if (viewer && !viewer.isDestroyed()) viewer.destroy();
       viewerRef.current = null;

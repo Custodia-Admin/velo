@@ -42,7 +42,7 @@ export interface Achievement {
 // Catalog
 // ---------------------------------------------------------------------------
 
-export const ACHIEVEMENTS: Achievement[] = [
+const ACHIEVEMENTS: Achievement[] = [
   // ── Distance milestones ──────────────────────────────────────────────────
   {
     id: 'dist_10km',
