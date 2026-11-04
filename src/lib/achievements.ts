@@ -232,7 +232,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: 'level_50',
-    name: 'GlobeRide Master',
+    name: 'Velo Master',
     description: 'Reach the pinnacle — Level 50.',
     icon: '👑',
     tier: 'platinum',

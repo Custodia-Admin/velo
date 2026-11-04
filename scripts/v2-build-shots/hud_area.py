@@ -11,7 +11,21 @@ the viewport.
   unionPct  = the same rects rasterised on a 2 px grid (overlaps counted once)
 
 Each surface is listed with its accessible name / test id so the PR can name what covers the screen.
+
+Gate viewports (scripts/v2-build-shots/common.py VIEWPORTS): 1440x900, 1280x648 @2 (the OWNER'S LAPTOP,
+Chrome on a 2560x1600 panel at scale 2), 390x844 @2 and the 1920x1080 TV layout. The collapsed ride UI
+must stay within BUDGET_PCT at every one of them; 1280x648 is the shortest landscape gate, so a band
+that only just passes at 1440x900 fails there first.
 """
+
+GATE_VIEWPORTS = ("1440", "1280", "390", "tv")
+BUDGET_PCT = 15.0
+
+
+def budget(area: dict) -> str:
+    """'ok' when the collapsed ride UI (sumPct) is within the owner's 15 % budget, else 'OVER'."""
+    return "ok" if area["sumPct"] <= BUDGET_PCT else "OVER"
+
 
 HUD_AREA = r"""() => {
   const vw = innerWidth, vh = innerHeight, va = vw * vh;

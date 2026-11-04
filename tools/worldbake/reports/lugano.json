@@ -2,24 +2,24 @@
   "world": "lugano",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 0.8,
+    "dem": 0.7,
     "heightfield+routes": 0.1,
     "osm": 0.7,
-    "vectors": 50,
+    "vectors": 52.2,
     "write": 27.4,
     "validate": 0,
-    "total": 78.9
+    "total": 81.2
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 2924321,
+      "stored": 2924255,
       "content": 5525468,
-      "brotli": 2246806
+      "brotli": 2246877
     },
     "roads.json.gz": {
-      "stored": 1943443,
-      "content": 4995771,
-      "brotli": 1243965
+      "stored": 1943513,
+      "content": 4995986,
+      "brotli": 1244209
     },
     "water.json.gz": {
       "stored": 285596,
@@ -32,66 +32,78 @@
       "brotli": 367015
     },
     "buildings.bin.gz": {
-      "stored": 2004497,
-      "content": 3616372,
-      "brotli": 1636726
+      "stored": 2005950,
+      "content": 3618828,
+      "brotli": 1640603
     },
     "vegetation.bin.gz": {
-      "stored": 1473642,
+      "stored": 1473641,
       "content": 2640016,
-      "brotli": 1399631
+      "brotli": 1400455
     },
     "routes.json.gz": {
-      "stored": 30413,
-      "content": 74823,
-      "brotli": 19732
+      "stored": 25847,
+      "content": 67680,
+      "brotli": 18819
     },
     "manifest.json": {
-      "stored": 135911,
-      "content": 135911,
-      "brotli": 19130
+      "stored": 135910,
+      "content": 135910,
+      "brotli": 19022
     }
   },
   "totals": {
-    "stored": 9465230,
-    "content": 19264308,
-    "brotli": 7113738
+    "stored": 9462119,
+    "content": 19259835,
+    "brotli": 7117733
   },
   "hashes": {
-    "height.bin.gz": "6bfeb87387e892428897baa9335324395052c376252aa56539cefe94ae8c0c63",
-    "roads.json.gz": "c46a8d42e14b8c8af8f3a012ff4daa4c27164b106247008c60bfedd378660be8",
+    "height.bin.gz": "03f447ed72c46b859d6858a5e6b9ab342ba4201f0c9be7326744a2b406380d74",
+    "roads.json.gz": "bfecf54c0ce525bc57321474de43aff9c678058029572f15a25f968288c75e31",
     "water.json.gz": "10108ff003ff77d8fc3d2311bd3e815e88fb20841d85a862f86bf9c444ce79fd",
     "landcover.json.gz": "70f13956230e1b1d15f5fa186cf24967c20c1d0edb0b1f6dc170a8613af27919",
-    "buildings.bin.gz": "606865da918ecaf4485e7b9aedfd12a473005e34190772014d0d6ba5b3237b52",
-    "vegetation.bin.gz": "3424dbfcc514e40b41b54a6a9c6ee88a63d5cb25564d5cf2eba2a667e5ab7504",
-    "routes.json.gz": "6257188cce6eee03e7a6df6b502592439967911e075dcef20ec8a21f74769fbf",
-    "manifest.json": "f6f95858d9600946bece866d45f688c7b8585f4f0ec8a9de13359687cf30b3e1"
+    "buildings.bin.gz": "472f56394d46f8801ad9eb607d8dc4508a364a6f8ce0ac6b396d403f71adc59a",
+    "vegetation.bin.gz": "4560365d3b98777974ec171f8c84def53746e6f7113419f2fb3f68b879a427c0",
+    "routes.json.gz": "085d359a7d4f44e484f61b8a4f32e65525d52851e1277dd24c13edabfa25017b",
+    "manifest.json": "e168556b76fd0601e7d590a4775b56b489b3274a5fc6431687345a49adc3b8af"
   },
   "routes": [
     {
       "id": "scenic-lugano-melide",
       "name": "Lugano lakefront to Melide",
-      "lengthM": 9689.85,
+      "lengthM": 7799.67,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 1.127,
+      "gradeMeanAbsDiffPct": 0.61,
       "report": {
-        "samples": 970,
-        "gradeMaxAbsDiffPct": 8.04,
-        "rawDemGradeMeanAbsDiffPct": 4.066,
-        "maxRenderMinusProfileM": 26.45
+        "samples": 781,
+        "gradeMaxAbsDiffPct": 1.952,
+        "rawDemGradeMeanAbsDiffPct": 4.113,
+        "maxRenderMinusProfileM": 14.94
+      },
+      "roadCoverage": {
+        "mappedPct": 100,
+        "drawnPct": 100,
+        "filledM": 0,
+        "tunnelM": 0
       }
     },
     {
       "id": "scenic-locarno-brissago",
       "name": "Locarno to Brissago",
-      "lengthM": 9512.72,
+      "lengthM": 9691.39,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.74,
+      "gradeMeanAbsDiffPct": 0.61,
       "report": {
-        "samples": 953,
-        "gradeMaxAbsDiffPct": 3.025,
-        "rawDemGradeMeanAbsDiffPct": 4.24,
-        "maxRenderMinusProfileM": 10.8
+        "samples": 971,
+        "gradeMaxAbsDiffPct": 2.596,
+        "rawDemGradeMeanAbsDiffPct": 4.209,
+        "maxRenderMinusProfileM": 9.82
+      },
+      "roadCoverage": {
+        "mappedPct": 99.98,
+        "drawnPct": 100,
+        "filledM": 115.7,
+        "tunnelM": 0
       }
     }
   ],
@@ -104,11 +116,11 @@
     "heightScale": 0.03125,
     "minHeight": 180.875,
     "maxHeight": 1907.84375,
-    "carvedNodes": 10097,
-    "maxCutM": 76.23
+    "carvedNodes": 9695,
+    "maxCutM": 76.76
   },
   "buildingsDropped": {
-    "route": 115,
+    "route": 58,
     "road": 528,
     "routeClearMinM": 3.5,
     "routeClearMaxM": 6

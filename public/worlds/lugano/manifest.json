@@ -48,19 +48,19 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 2924321,
-      "sha256": "6bfeb87387e892428897baa9335324395052c376252aa56539cefe94ae8c0c63",
+      "bytes": 2924255,
+      "sha256": "03f447ed72c46b859d6858a5e6b9ab342ba4201f0c9be7326744a2b406380d74",
       "compression": "gzip",
       "contentBytes": 5525468,
-      "contentSha256": "9d59c8bcd4bd85c92c0529865d5846fe5b60ef2e696e735083449ca3d10eb30c"
+      "contentSha256": "66b9975df208f4f2597d1f1e944e29dc422a5c63df15bdfd1403acbd0740344f"
     },
     {
       "path": "roads.json.gz",
-      "bytes": 1943443,
-      "sha256": "c46a8d42e14b8c8af8f3a012ff4daa4c27164b106247008c60bfedd378660be8",
+      "bytes": 1943513,
+      "sha256": "bfecf54c0ce525bc57321474de43aff9c678058029572f15a25f968288c75e31",
       "compression": "gzip",
-      "contentBytes": 4995771,
-      "contentSha256": "d3b215617e54f887d8ec7b99b4b2b6c4a4797c90a5e65d76c223a72bc60f0446"
+      "contentBytes": 4995986,
+      "contentSha256": "e58844dd518f4495440fa8f3267c89cdb64c1cda1871015b2c3806765df25f9c"
     },
     {
       "path": "water.json.gz",
@@ -80,27 +80,27 @@
     },
     {
       "path": "buildings.bin.gz",
-      "bytes": 2004497,
-      "sha256": "606865da918ecaf4485e7b9aedfd12a473005e34190772014d0d6ba5b3237b52",
+      "bytes": 2005950,
+      "sha256": "472f56394d46f8801ad9eb607d8dc4508a364a6f8ce0ac6b396d403f71adc59a",
       "compression": "gzip",
-      "contentBytes": 3616372,
-      "contentSha256": "5d2c25836b36513e97509f1fb44fda51792b552833b177d69c3db0690aeec630"
+      "contentBytes": 3618828,
+      "contentSha256": "c6bfbd450ee4551ffc9bd2da11eacbdc43f671cc5e30149840f263851574b9ab"
     },
     {
       "path": "vegetation.bin.gz",
-      "bytes": 1473642,
-      "sha256": "3424dbfcc514e40b41b54a6a9c6ee88a63d5cb25564d5cf2eba2a667e5ab7504",
+      "bytes": 1473641,
+      "sha256": "4560365d3b98777974ec171f8c84def53746e6f7113419f2fb3f68b879a427c0",
       "compression": "gzip",
       "contentBytes": 2640016,
-      "contentSha256": "d683db0fac0a5a2fad4f54ff498cbdd0fe8346739b07418aea061474c58542f0"
+      "contentSha256": "b6646ed0ce639d182c6284ce52656f80332e5db54839e92949e39bb984986ce0"
     },
     {
       "path": "routes.json.gz",
-      "bytes": 30413,
-      "sha256": "6257188cce6eee03e7a6df6b502592439967911e075dcef20ec8a21f74769fbf",
+      "bytes": 25847,
+      "sha256": "085d359a7d4f44e484f61b8a4f32e65525d52851e1277dd24c13edabfa25017b",
       "compression": "gzip",
-      "contentBytes": 74823,
-      "contentSha256": "377e2ab78e25d057f591517ff2a87bb1b877403a6cc88459c83051251cd70ecd"
+      "contentBytes": 67680,
+      "contentSha256": "e9402bf962bd1b3bbe489f8ba7cbb41f5a5f0e341fb4e34f8ec86993e9b14406"
     }
   ],
   "moods": [
@@ -245,7 +245,7 @@
       "x": -9774.4,
       "y": 6762.1,
       "osm": "node/60159149",
-      "h": 213.53
+      "h": 211.67
     },
     {
       "name": "Ronco sopra Ascona",
@@ -929,7 +929,7 @@
       "x": 8731.8,
       "y": -6210.9,
       "osm": "node/375693079",
-      "h": 279.57
+      "h": 280.51
     },
     {
       "name": "Comano",
@@ -1901,7 +1901,7 @@
       "x": 8723.9,
       "y": -6162.7,
       "osm": "node/1376769426",
-      "h": 279.64
+      "h": 280.57
     },
     {
       "name": "Devoggio",
@@ -2594,7 +2594,7 @@
       "x": -9218.7,
       "y": 8224.9,
       "osm": "node/2597988196",
-      "h": 216.66
+      "h": 215.92
     },
     {
       "name": "Arbizzo",
@@ -5402,7 +5402,7 @@
       "x": 8552.7,
       "y": -6585.9,
       "osm": "way/205835473",
-      "h": 287.12
+      "h": 287.88
     },
     {
       "name": "Chiesa di San Zenone",
@@ -5447,7 +5447,7 @@
       "x": 8564.8,
       "y": -11625.4,
       "osm": "way/217496314",
-      "h": 275.8
+      "h": 275.85
     },
     {
       "name": "Chiesa di San Giorgio",
@@ -6759,41 +6759,41 @@
     {
       "id": "scenic-lugano-melide",
       "name": "Lugano lakefront to Melide",
-      "lengthM": 9689.85,
+      "lengthM": 7799.67,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 1.127
+      "gradeMeanAbsDiffPct": 0.61
     },
     {
       "id": "scenic-locarno-brissago",
       "name": "Locarno to Brissago",
-      "lengthM": 9512.72,
+      "lengthM": 9691.39,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.74
+      "gradeMeanAbsDiffPct": 0.61
     }
   ],
   "stats": {
-    "roads": 40729,
+    "roads": 40733,
     "waterAreas": 232,
     "waterLines": 2516,
     "landcoverAreas": 4535,
-    "buildings": 102040,
-    "buildingVertices": 648990,
-    "buildings:suburb": 92678,
-    "buildings:old-town": 3794,
+    "buildings": 102097,
+    "buildingVertices": 649461,
+    "buildings:suburb": 92735,
+    "buildings:old-town": 3793,
     "buildings:rural": 3086,
-    "buildings:industrial": 2482,
+    "buildings:industrial": 2483,
     "trees": 440000,
-    "trees:broadleaf": 306791,
+    "trees:broadleaf": 306792,
     "trees:conifer": 0,
     "trees:scrub": 3531,
     "trees:olive": 263,
     "trees:park": 249,
-    "trees:cypress": 3353,
-    "trees:riparian": 63284,
+    "trees:cypress": 3354,
+    "trees:riparian": 63288,
     "trees:hedgerow": 12127,
-    "trees:garden": 50402,
+    "trees:garden": 50396,
     "pois": 738,
-    "carvedNodes": 10097
+    "carvedNodes": 9695
   },
   "credits": [
     {

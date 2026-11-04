@@ -152,7 +152,7 @@ natively, without Node's web-stream wrapper.
 ```json
 { "version": 1, "units": "dm",
   "classes": ["motorway", "trunk", …], "widths": [12, 10, …],
-  "flags": { "bridge": 1, "tunnel": 2, "unpaved": 4, "oneway": 8 },
+  "flags": { "bridge": 1, "tunnel": 2, "unpaved": 4, "oneway": 8, "routeFill": 16 },
   "names": ["Via …", …],
   "roads": [ { "c": 2, "f": 1, "w": 6.5, "n": 0, "p": [x0, y0, x1, y1, …] } ] }
 ```
@@ -162,6 +162,16 @@ natively, without Node's web-stream wrapper.
 - `f` is a bit set of `flags` (omitted when 0); `n` indexes `names`.
 - Polylines are clipped to the extent and simplified (Douglas–Peucker 0.5 m).
   Heights come from the heightfield.
+- `routeFill` pieces are not OSM ways. The bake lays one under every stretch
+  of a scenic route whose centreline is off every drawn road (a way missing
+  from the OSM snapshot, the join where an out-and-back was cut, a path
+  mapped a metre to the side), so the route line always sits on a road or
+  path. Each piece follows the route itself, reaches 2 m into the roads either
+  side, and takes the class, surface (`unpaved`), width and name of the
+  nearest mapped way within 12 m (else an unpaved `path`). Renderers draw them
+  under the mapped roads. `tools/worldbake/routeCoverage.mjs <world>` reports
+  each route's share on mapped roads and on drawn surfaces; the bake report
+  has the same numbers under `routes[].roadCoverage`.
 
 ## water.json
 
@@ -348,15 +358,17 @@ destination until they get worlds of their own. Baked 4 Nov 2026 on cat-bed:
 | Check | Result |
 | --- | --- |
 | Bake time | 516 s from an empty cache (Overpass ≈ 7 min of it) |
-| Determinism | two bakes from cache and one from an empty cache: identical bytes for all 8 files |
-| Size | 9.47 MB as shipped (gzip), 7.12 MB brotli, 19.3 MB raw |
-| Routes | max gap 0 m; grade Δ 1.127 pp (Lugano–Melide), 0.27 pp (Locarno–Brissago) |
+| Determinism | two bakes from cache and one from an empty cache: identical bytes for all 8 files (re-bake after the route fixes: two bakes from cache, identical) |
+| Size | 9.46 MB as shipped (gzip), 7.12 MB brotli, 19.3 MB raw |
+| Routes | max gap 0 m; grade Δ 0.61 pp (Lugano–Melide), 0.61 pp (Locarno–Brissago); 100 % on drawn surfaces (Locarno–Brissago: 99.98 % on mapped roads, 116 m route fill) |
 | Heightfield vs Open-Meteo, 50 seeded points | **fails as written**: RMS 18.17 m at the points; 9.12 m registered at the GLO-90 nodes |
 
-Lugano–Melide's grade Δ is over 1 pp because its geometry rides ~800 m up a
-street and back down it (1.9–3.5 km) with a different profile each way; one
-ground surface can't follow both. The route generator fix removes the
-retrace; re-bake Lugano from cache after it lands.
+Lugano–Melide's grade Δ was 1.127 pp at the first bake: its geometry rode
+~800 m up a street and back down it with a different profile each way. The
+route generator now cuts that stub (#33), and the re-bake brings it to 0.61 pp.
+Locarno–Brissago first crossed Lago Maggiore for 3.6 km on the "Ascona -
+Ronco" boat line; it now takes the shore road, and `routeSurface.test.ts`
+fails any shipped route that runs over water or off its drawn roads.
 
 The DEM check can't be passed on this terrain by any 30 m elevation model.
 Copernicus GLO-30, the source GLO-90 is made from, read from its own tiles

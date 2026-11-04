@@ -14,6 +14,7 @@ import {
   Database,
   Download,
   ExternalLink,
+  Info,
   Loader2,
   Trash2,
   Upload,
@@ -58,6 +59,7 @@ export function DataSettings() {
       <StravaSection />
       <DataInventorySection />
       <ClearDataSection />
+      <AboutSection />
     </div>
   );
 }
@@ -547,7 +549,7 @@ function ClearDataSection() {
     <Section icon={<Trash2 className="h-4 w-4" />} title="Local data">
       <div className="space-y-3">
         <p className="text-[11px] text-muted-foreground leading-relaxed">
-          GlobeRide stores all your data locally — routes, rides, gear, and settings. Clearing resets
+          Velo stores all your data locally — routes, rides, gear, and settings. Clearing resets
           everything to factory defaults and removes all saved routes from IndexedDB.
         </p>
         {!confirming ? (
@@ -571,6 +573,17 @@ function ClearDataSection() {
           </div>
         )}
       </div>
+    </Section>
+  );
+}
+
+/** Open-source credit (MIT): the one place in the app that names the upstream project. */
+function AboutSection() {
+  return (
+    <Section icon={<Info className="h-4 w-4" />} title="About">
+      <p className="text-sm text-muted-foreground">
+        Velo is open source (MIT). It started as a fork of GlobeRide by Mason Wyatt.
+      </p>
     </Section>
   );
 }

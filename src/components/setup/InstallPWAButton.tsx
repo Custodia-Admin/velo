@@ -52,7 +52,7 @@ export function InstallPWAButton({ className }: { className?: string }) {
           onClick={() => setShowIOSHelp((s) => !s)}
           aria-expanded={showIOSHelp}
           aria-haspopup="dialog"
-          title="Add GlobeRide to your Home Screen"
+          title="Add Velo to your Home Screen"
         >
           <Smartphone className="h-3.5 w-3.5" />
           Install
@@ -76,7 +76,7 @@ export function InstallPWAButton({ className }: { className?: string }) {
                     <span className="font-semibold text-foreground">Add to Home Screen</span>
                   </li>
                   <li>
-                    Tap <span className="font-semibold text-foreground">Add</span> — GlobeRide
+                    Tap <span className="font-semibold text-foreground">Add</span> — Velo
                     launches full-screen next to your trainer
                   </li>
                 </ol>
@@ -108,7 +108,7 @@ export function InstallPWAButton({ className }: { className?: string }) {
       onClick={() => {
         void install();
       }}
-      title="Install GlobeRide as an app"
+      title="Install Velo as an app"
     >
       <Download className="h-3.5 w-3.5" />
       Install

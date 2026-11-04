@@ -21,7 +21,7 @@ export function warnIfTokenMissing(): void {
 
   console.warn(
     [
-      '%c GlobeRide — Cesium ion token missing ',
+      '%c Velo — Cesium ion token missing ',
       'background:#1e3a5f;color:#7dd3fc;font-weight:bold;border-radius:4px;padding:2px 6px',
       '\n\nThe photoreal 3D globe needs a free Cesium ion token.',
       '\n  1. Visit https://ion.cesium.com/tokens',

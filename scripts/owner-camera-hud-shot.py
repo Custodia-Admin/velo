@@ -5,7 +5,7 @@ The owner rode Assisi valley at night (1280x658 @2, the rider held ~220 m in) an
 (scripts/v2-build-shots/hud_area.py: sum of the visible HUD surfaces' rects / viewport).
 
 usage: uv run --with playwright python scripts/owner-camera-hud-shot.py <out.png> <base>
-env: SPOT=220, TIME=night, WEATHER=overcast, SIZE=1280x658@2, OPEN=0 (1: tap the details toggle first),
+env: SPOT=220, TIME=night, WEATHER=overcast, SIZE=1280x648@2 (the owner's laptop gate; his 2 Nov shot was 1280x658), OPEN=0 (1: tap the details toggle first),
      ERROR=0 (1: the trainer link fails as in the owner's shot, "Connection failed"; needs a dev server)
 
 Writes <out.png> and <out>.json ({hudArea, fps, errors}). Compose the before/after with
@@ -21,7 +21,7 @@ from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent / "v2-build-shots"))
-from hud_area import HUD_AREA  # noqa: E402
+from hud_area import HUD_AREA, budget  # noqa: E402
 from scenic_home import ride_scenic_route  # noqa: E402
 
 out = sys.argv[1]
@@ -29,7 +29,7 @@ base = sys.argv[2]
 SPOT = float(os.environ.get("SPOT", "220"))
 TIME = os.environ.get("TIME", "night")
 WEATHER = os.environ.get("WEATHER", "overcast")
-SIZE = os.environ.get("SIZE", "1280x658@2")
+SIZE = os.environ.get("SIZE", "1280x648@2")
 OPEN = os.environ.get("OPEN", "0") == "1"
 ERROR = os.environ.get("ERROR", "0") == "1"
 
@@ -84,6 +84,6 @@ with sync_playwright() as p:
 meta = {"base": base, "spot": SPOT, "time": TIME, "weather": WEATHER, "size": SIZE, "open": OPEN, "error": ERROR,
         "hudArea": area, "fps": fps, "errors": errs[:5]}
 pathlib.Path(out).with_suffix(".json").write_text(json.dumps(meta, indent=1) + "\n")
-print(out, "sumPct", area["sumPct"], "unionPct", area["unionPct"], "topmostPct", area["topmostPct"], "fps", fps,
+print(out, "sumPct", area["sumPct"], "budget", budget(area) if not OPEN else "-", "unionPct", area["unionPct"], "topmostPct", area["topmostPct"], "fps", fps,
       "errors", errs[:2], flush=True)
 print("  surfaces", [(r["name"][:32], r["w"], r["h"]) for r in area["rects"]], flush=True)

@@ -7,8 +7,10 @@
  *
  * Measured per route sample (`WorldRoute.s`, every `stepM` metres) against
  * the bundle's own layers:
- * - on a road: within `roadM` of a drawn road's centreline (renderers skip
- *   tunnels and steps, so those don't count as drawn);
+ * - on a road: within `roadM` of a mapped road the renderer draws. Tunnels
+ *   and steps aren't drawn; a route fill (`routeFill`, a surface the bake
+ *   lays under a route where no mapped road is) is drawn but isn't a road,
+ *   and would otherwise pave a lake crossing;
  * - in a tunnel: off every drawn road but within `roadM` of a tunnel;
  * - off road: neither;
  * - on water: off road and inside a water area polygon (lake, river, pond).
@@ -28,7 +30,7 @@ export interface RouteRun {
 
 export interface RouteSurface {
   id: string;
-  /** Runs more than `roadM` from every drawn road, tunnels excluded. */
+  /** Runs more than `roadM` from every mapped, drawn road, tunnels excluded. */
   offRoad: RouteRun[];
   /** Off-road runs inside a water area polygon. */
   onWater: RouteRun[];
@@ -165,7 +167,10 @@ export function routeSurfaces(
   roadM = ROUTE_ON_ROAD_M,
 ): RouteSurface[] {
   const steps = roads.classes.indexOf('steps');
-  const drawn = segmentGrid(roads.roads.filter((r) => !(r.flags & roads.flags.tunnel) && r.cls !== steps).map((r) => r.points));
+  const fill = roads.flags.routeFill ?? 0;
+  const drawn = segmentGrid(
+    roads.roads.filter((r) => !(r.flags & roads.flags.tunnel) && !(r.flags & fill) && r.cls !== steps).map((r) => r.points),
+  );
   const tunnels = segmentGrid(roads.roads.filter((r) => r.flags & roads.flags.tunnel).map((r) => r.points));
   const lakes = waterIndex(water);
   return routes.map((route) => {

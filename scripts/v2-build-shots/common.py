@@ -4,10 +4,13 @@ Every screen script renders the BUILT app at the three design-gate viewports
 and both themes, with the same conventions as scripts/v2-mockup-shots.py:
 
   1440  = 1440x900  @1x
+  1280  = 1280x648  @2x (the OWNER'S LAPTOP: Chrome on a 2560x1600 panel at
+          scale 2 -> 1280x648 CSS px. Short and wide: the tightest landscape
+          gate, everything above the fold must fit here without page scroll)
   390   = 390x844   @2x (phone; mobile + touch)
   tv    = 1920x1080 @1x with ?layout=tv (html[data-layout="tv"], 1rem = 28 px)
 
-Output: docs/design/screenshots/v2/build/<screen>-<1440|390|tv>[-night].jpg
+Output: docs/design/screenshots/v2/build/<screen>-<1440|1280|390|tv>[-night].jpg
 (override the directory with OUT=<dir> while iterating). Then
 `uv run --with pillow python scripts/v2-build-shots/compare.py` pairs each
 build shot with docs/design/screenshots/v2/mockup/<same name>.jpg.
@@ -28,7 +31,8 @@ from PIL import Image
 REPO = Path(__file__).resolve().parents[2]
 OUT = Path(os.environ.get("OUT", REPO / "docs/design/screenshots/v2/build"))
 BASE = os.environ.get("BASE", "http://localhost:5173").rstrip("/")
-VIEWPORTS = {"1440": (1440, 900, 1), "390": (390, 844, 2), "tv": (1920, 1080, 1)}
+# "1280" is the owner's laptop (see the module docstring): a first-class gate viewport.
+VIEWPORTS = {"1440": (1440, 900, 1), "1280": (1280, 648, 2), "390": (390, 844, 2), "tv": (1920, 1080, 1)}
 THEMES = {"day": "light", "night": "dark"}
 GPU_ARGS = ["--use-angle=vulkan", "--enable-features=Vulkan", "--enable-gpu", "--ignore-gpu-blocklist"]
 

@@ -1,0 +1,23 @@
+{
+ "finish": {
+  "clipped": [],
+  "controls": 4,
+  "covered": [],
+  "errors": [],
+  "overflowX": false,
+  "pageScrollY": false,
+  "scrollHeight": 1080,
+  "scrollWidth": 1920,
+  "scrollers": [
+   {
+    "clientH": 1080,
+    "name": "dialog",
+    "scrollH": 1151
+   }
+  ],
+  "viewport": [
+   1920,
+   1080
+  ]
+ }
+}

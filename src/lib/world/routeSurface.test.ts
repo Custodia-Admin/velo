@@ -21,7 +21,7 @@ const MAX_OFF_ROAD_M = 200;
 const WORLDS = fileURLToPath(new URL('../../../public/worlds', import.meta.url));
 const SHIPPED = readdirSync(WORLDS).filter((d) => existsSync(join(WORLDS, d, 'manifest.json')));
 
-const FLAGS = { bridge: 1, tunnel: 2, unpaved: 4, oneway: 8 };
+const FLAGS = { bridge: 1, tunnel: 2, unpaved: 4, oneway: 8, routeFill: 16 };
 
 function roadsOf(...roads: { points: number[]; flags?: number; cls?: number }[]): RoadsLayer {
   return {
@@ -69,6 +69,14 @@ describe('routeSurfaces', () => {
     const [r] = routeSurfaces([routeAlongX(0, 4000)], roads, lake(1000, 3000));
     expect(r.onWater).toEqual([]);
     expect(r.offRoad).toEqual([]);
+  });
+
+  it('does not let a route fill pave a lake crossing', () => {
+    // The bake lays a fill under any stretch with no mapped road: across the lake too.
+    const roads = roadsOf({ points: [0, 0, 1000, 0] }, { points: [1000, 0, 3000, 0], flags: FLAGS.routeFill | FLAGS.unpaved }, { points: [3000, 0, 4000, 0] });
+    const [r] = routeSurfaces([routeAlongX(0, 4000)], roads, lake(1000, 3000));
+    expect(longestRun(r.onWater)).toBeGreaterThan(1900);
+    expect(longestRun(r.offRoad)).toBeGreaterThan(1900);
   });
 
   it('counts a tunnel as on the road but not steps', () => {

@@ -16,15 +16,6 @@ import { sampleRouteAtDistance } from '@/lib/gpxParser';
 const DIR = fileURLToPath(new URL('../../../public/worlds/lugano', import.meta.url));
 const REPORT = fileURLToPath(new URL('../../../tools/worldbake/reports/lugano.json', import.meta.url));
 
-/**
- * Routes whose geometry still has a retraced out-and-back stub (the same road
- * ridden twice with two different profiles), so the corridor cannot follow
- * both passes: Lugano–Melide rides ~1.6 km up and back down the same street
- * at 1.9–3.5 km. The route generator fix (card t_9dd599d7) removes it; after
- * that lands, re-bake Lugano and drop the entry.
- */
-const RETRACED_STUB_GRADE_PCT: Record<string, number> = { 'scenic-lugano-melide': 1.2 };
-
 const diskFetch = async (url: string) => {
   try {
     return new Response(readFileSync(join(DIR, url.replace(/^.*\//, ''))), { status: 200 });
@@ -121,7 +112,7 @@ describe('Lugano world bundle', () => {
       let sum = 0;
       for (let i = 0; i < r.s.length; i++) sum += Math.abs(grade(r.s, r.h, i, half) - grade(r.s, profile, i, half));
       const meanAbs = sum / r.s.length;
-      expect(meanAbs, r.id).toBeLessThanOrEqual(RETRACED_STUB_GRADE_PCT[r.id] ?? 1);
+      expect(meanAbs, r.id).toBeLessThanOrEqual(1);
       expect(Math.abs(meanAbs - (world.manifest.routes.find((m) => m.id === r.id)?.gradeMeanAbsDiffPct ?? NaN))).toBeLessThan(0.01);
     }
   });

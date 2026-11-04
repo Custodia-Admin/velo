@@ -8,7 +8,7 @@ Today's ride (Tiber river park on the pinned 1 Nov 2026) -> the token-free
 world renderer. Once riding, the ride is staged at the mockup's point in the
 ride (9.06 km, 24:42; set on the dev server's rideStore module) and the world
 is pinned to golden hour, clear (window.__veloWorldLight), then it rides on
-~RIDE_S s before the shots, at 1440 / 390 / tv, day and night.
+~RIDE_S s before the shots, at 1440 / 1280 (owner's laptop, 1280x648 @2) / 390 / tv, day and night.
 
 States, one ride per viewport + theme (env STATES, default closed,open,lost):
   closed  the default HUD: band + chip          -> ride-hud-<vp>[-night].jpg
@@ -38,7 +38,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common  # noqa: E402
-from hud_area import HUD_AREA  # noqa: E402
+from hud_area import HUD_AREA, budget  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
 SCREEN = "ride-hud"
@@ -218,7 +218,8 @@ def shoot(page, vp, theme, state, results):
     pairs = panel_overlaps(info)
     results[name] = {"measure": m, "hudArea": area, "panels": info, "riderBox": box, "covering": covering,
                      "panelOverlaps": pairs, "errors": page.errors[:5]}
-    print(name, json.dumps({"sumPct": area["sumPct"], "unionPct": area["unionPct"], "topmostPct": area["topmostPct"],
+    print(name, json.dumps({"sumPct": area["sumPct"], "budget": budget(area) if state == "closed" else "-",
+                            "unionPct": area["unionPct"], "topmostPct": area["topmostPct"],
                             "covering": covering, "panelOverlaps": pairs, "chip": info["chipText"],
                             "speed": info["speed"], "dist": info["dist"], "toasts": info["toasts"],
                             "minTarget": m["minTarget"], "minFont": m["minFont"], "backdrop": m["backdrop"],
@@ -227,7 +228,7 @@ def shoot(page, vp, theme, state, results):
 
 
 def main() -> None:
-    vps = sys.argv[1:] or ["1440", "390", "tv"]
+    vps = sys.argv[1:] or ["1440", "1280", "390", "tv"]
     themes = os.environ.get("THEMES", "day,night").split(",")
     results = {}
     with sync_playwright() as p:
