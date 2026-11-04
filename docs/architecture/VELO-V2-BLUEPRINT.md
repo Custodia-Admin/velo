@@ -324,7 +324,14 @@ on P1.5 sign-off, which Federico should do early.
 
 ## 5. Open questions for Federico (answer before P1.5 / P4.1)
 
+Answers 1–3 are owner decisions, recorded in
+[ADR-001](./ADR-001-rendering.md) (2026-10-31).
+
 1. Publish namespace: `Custodia-Admin/velo` or a personal org?
+   **Answered:** publication stays at Custodia-Admin/velo (MIT, upstream credit kept).
 2. Visual direction preference between "warm atlas" and "night-first cinema" (P1.5 will mock both; a one-word steer saves a round).
+   **Answered:** "warm atlas" (calm, paper-day/deep-night, one accent). P1.5 mocks this direction only.
 3. Is a stylized rider GLTF acceptable, or do you want the upstream avatar look preserved?
+   **Answered:** stylized GLTF (not the upstream billboard avatar).
 4. Laptop GPU model (sets the P1.4 frame budget; if it's an iGPU older than Iris Xe, "balanced" targets 1080p/45 fps instead of 60).
+   **Observed (lspci, 2026-10-31):** Intel Arc Graphics (Meteor Lake-P), newer than Iris Xe, so the 1080p/60 fps "balanced" target stands.

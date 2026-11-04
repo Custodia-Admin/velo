@@ -8,7 +8,7 @@ The page gets a fake navigator.bluetooth whose getDevices() returns a
 was the trainer paired last. Writes, at 1440 and 390:
   trainer-reconnect-<vp>.png         Home → Trainer offers "Reconnect KICKR CORE 78C1"
   trainer-reconnect-failed-<vp>.png  trainer out of reach: sentence + chooser fallback
-  trainer-reconnected-<vp>.png       after the tap: connected, LIVE
+  trainer-reconnected-<vp>.png       after the tap: connected, LIVE, battery 88 %
 and prints the connection pill text after opening a ride with the grant
 (silent reconnect on Ride start: no DEMO MODE). Uses /usr/sbin/chromium.
 """
@@ -103,7 +103,7 @@ with sync_playwright() as p:
         page.wait_for_selector("text=Reconnect KICKR CORE 78C1", timeout=5000)
         shot_trainer(page, f"trainer-reconnect-{vp}")
         js_click(page, "^Reconnect KICKR")
-        page.wait_for_selector("text=Streaming", timeout=8000)
+        page.wait_for_selector("text=the road sets the resistance", timeout=8000)
         shot_trainer(page, f"trainer-reconnected-{vp}")
         print(vp, "after tap:", page.locator(TRAINER).inner_text().split("\n")[:4])
         ctx.close()

@@ -7,28 +7,32 @@
  * calls, and render nothing in browsers without Web Bluetooth.
  */
 
-import { useId, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { AlertCircle, Bluetooth, Loader2 } from 'lucide-react';
 import { DeviceRow } from '@/components/velo/DeviceRow';
-import { ASLEEP_TEXT, WAITING_TEXT, handlebarRow, type HandlebarActionId } from '@/components/velo/devicesView';
+import { WAITING_TEXT, handlebarRow, type HandlebarActionId } from '@/components/velo/devicesView';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/velo/Switch';
 import { UnlockSteps } from '@/components/velo/UnlockSteps';
+import { BatteryReading } from '@/components/velo/BatteryReading';
 import { cn } from '@/lib/utils';
 import {
   buzzRideController,
   disconnectRideController,
+  findGrantedController,
   isRideControllerSupported,
   pairRideController,
+  reconnectGrantedController,
   reconnectRideController,
 } from '@/lib/controllers/rideController';
-import { ACTION_LEGEND } from '@/lib/controllers/controllerActions';
+import { ACTION_LEGEND, SHOW_LEGEND, type LegendRow } from '@/lib/controllers/controllerActions';
 import {
   LOCKED_INTRO,
   MAYBE_RIGHT_TEXT,
   PAIR_OTHER_LABEL,
   RIGHT_SIDE_TEXT,
   UNLOCK_INTRO,
+  asleepText,
   controllerPhase,
   panelStatusLine,
 } from '@/lib/controllers/controllerView';
@@ -36,6 +40,48 @@ import { useControllerStore } from '@/stores/controllerStore';
 
 
 const noopSubscribe = () => () => undefined;
+
+function Legend({ rows }: { rows: ReadonlyArray<LegendRow> }) {
+  return (
+    <dl className="grid grid-cols-1 gap-x-6 gap-y-2 pt-2 sm:grid-cols-2">
+      {rows.map((row) => (
+        <div key={row.controls} className="flex flex-col gap-1">
+          <dt className="font-semibold text-foreground">{row.controls}</dt>
+          <dd className="text-muted-foreground">{row.action}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** One labelled on/off row (label, one-line hint, switch). */
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  const labelId = useId();
+  const hintId = useId();
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-1">
+        <span id={labelId} className="text-sm font-semibold text-foreground">
+          {label}
+        </span>
+        <span id={hintId} className="text-sm text-muted-foreground">
+          {hint}
+        </span>
+      </div>
+      <Switch checked={checked} onChange={onChange} labelledBy={labelId} describedBy={hintId} />
+    </div>
+  );
+}
 
 function Note({ children }: { children: ReactNode }) {
   return (
@@ -55,18 +101,33 @@ export function ControllerPanel() {
   const buzz = useControllerStore((s) => s.buzz);
   const inputSeen = useControllerStore((s) => s.inputSeen);
   const errorMessage = useControllerStore((s) => s.errorMessage);
+  const wakeArmed = useControllerStore((s) => s.wakeArmed);
   const titleId = useId();
   const statusId = useId();
   // After a pairing attempt that didn't connect (chooser empty or closed),
   // offer the unfiltered chooser too.
   const [tried, setTried] = useState(false);
+  // Controls paired in an earlier session: one tap, no chooser. Reading the
+  // grant list (getDevices) sends nothing to any device.
+  const [granted, setGranted] = useState<string | null>(null);
+  useEffect(() => {
+    if (!supported || status !== 'idle') return undefined;
+    let cancelled = false;
+    void findGrantedController().then((dev) => {
+      if (!cancelled) setGranted(dev ? (dev.name ?? 'Handlebar controls') : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [supported, status]);
 
   if (!supported) return null;
 
   const phase = controllerPhase({ status, silent, side, inputSeen });
   const busy = status === 'connecting' || status === 'reconnecting';
   const live = status === 'connected' || status === 'reconnecting';
-  const statusLine = panelStatusLine(phase, side, buzz, battery);
+  const statusLine = panelStatusLine(phase, side, buzz);
+  const connected = phase === 'waiting' || phase === 'live' || phase === 'rightSide' || phase === 'silent';
   const pairOther = (
     <Button variant="outline" onClick={() => void pairRideController()}>
       {PAIR_OTHER_LABEL}
@@ -82,6 +143,11 @@ export function ControllerPanel() {
   if (status === 'idle' || status === 'error') {
     actions = (
       <>
+        {granted && status === 'idle' && !tried && (
+          <Button variant="outline" onClick={() => void reconnectGrantedController()}>
+            Reconnect {granted}
+          </Button>
+        )}
         <Button
           variant="outline"
           onClick={() => {
@@ -111,7 +177,7 @@ export function ControllerPanel() {
         <Button variant="outline" onClick={() => void reconnectRideController()}>
           {status === 'locked' ? 'Try again' : 'Reconnect'}
         </Button>
-        <Button variant="ghost" onClick={() => void disconnectRideController()}>
+        <Button variant="ghost" onClick={() => void disconnectRideController({ forget: true })}>
           Forget
         </Button>
       </>
@@ -136,7 +202,7 @@ export function ControllerPanel() {
   } else {
     actions = (
       <>
-        <Button variant="outline" disabled={status !== 'connected'} onClick={buzzRideController}>
+        <Button variant="outline" disabled={status !== 'connected'} onClick={() => void buzzRideController('test')}>
           Test buzz
         </Button>
         <Button variant="outline" onClick={() => void disconnectRideController()}>
@@ -155,10 +221,12 @@ export function ControllerPanel() {
           </h3>
           {status === 'idle' ? (
             <span id={statusId} className="text-sm text-muted-foreground">
-              Shift gears, set how hard the hills feel and steer from the bars.
+              {granted
+                ? 'Paired before. Velo reconnects them by itself when you start a ride.'
+                : 'Shift gears, set how hard the hills feel and steer from the bars.'}
             </span>
           ) : (
-            <span id={statusId} className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <span id={statusId} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
               {live && (
                 <span
                   aria-hidden
@@ -171,6 +239,7 @@ export function ControllerPanel() {
                 />
               )}
               {statusLine}
+              {connected && battery !== null && <BatteryReading pct={battery} />}
             </span>
           )}
         </div>
@@ -190,13 +259,16 @@ export function ControllerPanel() {
         </>
       )}
       {status === 'locked' && <UnlockSteps intro={LOCKED_INTRO} />}
-      {status === 'asleep' && <Note>{ASLEEP_TEXT}</Note>}
+      {status === 'asleep' && <Note>{asleepText(wakeArmed)}</Note>}
       {status === 'error' && errorMessage && <Note>{errorMessage}</Note>}
 
       {live && (
         <>
           <SteeringSwitch />
-          <ButtonLegend />
+          <GearBuzzSwitch />
+          <ButtonLegend>
+            <ShowLegend />
+          </ButtonLegend>
         </>
       )}
 
@@ -235,16 +307,33 @@ export function ButtonLegend({ children, className }: { children?: ReactNode; cl
       <summary className="flex h-10 cursor-pointer items-center font-semibold text-foreground">
         What the buttons do
       </summary>
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-2 pt-2 sm:grid-cols-2">
-        {ACTION_LEGEND.map((row) => (
-          <div key={row.controls} className="flex flex-col gap-1">
-            <dt className="font-semibold text-foreground">{row.controls}</dt>
-            <dd className="text-muted-foreground">{row.action}</dd>
-          </div>
-        ))}
-      </dl>
+      <Legend rows={ACTION_LEGEND} />
       {children}
     </details>
+  );
+}
+
+/** The buttons' second map, used while a show video plays. */
+export function ShowLegend() {
+  return (
+    <>
+      <p className="pt-4 font-semibold text-foreground">While you watch a video</p>
+      <Legend rows={SHOW_LEGEND} />
+    </>
+  );
+}
+
+/** "Buzz on gear change" on/off (persisted in the controller store). */
+export function GearBuzzSwitch() {
+  const gearBuzz = useControllerStore((s) => s.gearBuzz);
+  const setGearBuzz = useControllerStore((s) => s.setGearBuzz);
+  return (
+    <SwitchRow
+      label="Buzz on gear change"
+      hint={gearBuzz ? 'A short buzz on the bars at every shift.' : 'Off: shifting is silent.'}
+      checked={gearBuzz}
+      onChange={setGearBuzz}
+    />
   );
 }
 
@@ -285,13 +374,14 @@ export function HandlebarRow() {
   const inputSeen = useControllerStore((s) => s.inputSeen);
   const deviceName = useControllerStore((s) => s.deviceName);
   const errorMessage = useControllerStore((s) => s.errorMessage);
+  const wakeArmed = useControllerStore((s) => s.wakeArmed);
   // After a pairing attempt that didn't connect (chooser empty or closed),
   // offer the unfiltered chooser too.
   const [tried, setTried] = useState(false);
 
   if (!supported) return null;
 
-  const view = handlebarRow({ status, silent, side, inputSeen, buzz, deviceName, errorMessage, tried });
+  const view = handlebarRow({ status, silent, side, inputSeen, buzz, deviceName, errorMessage, tried, wakeArmed });
 
   const onAction = (id: HandlebarActionId) => {
     switch (id) {
@@ -312,8 +402,11 @@ export function HandlebarRow() {
         buzzRideController();
         return;
       case 'disconnect':
-      case 'forget':
         void disconnectRideController();
+        return;
+      case 'forget':
+        // Also drops the remembered device, so the next ride doesn't reconnect it.
+        void disconnectRideController({ forget: true });
         return;
     }
   };
@@ -328,8 +421,10 @@ export function HandlebarRow() {
       extrasLead={
         view.settings && (
           <ButtonLegend className="open:basis-full">
-            <div className="pt-4">
+            <ShowLegend />
+            <div className="flex flex-col gap-4 pt-4">
               <SteeringSwitch />
+              <GearBuzzSwitch />
             </div>
           </ButtonLegend>
         )

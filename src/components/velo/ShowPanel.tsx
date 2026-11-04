@@ -27,7 +27,7 @@ import {
   type ResumeEntry,
 } from '@/lib/show/showLibrary';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useShowStore, type ShowSize } from '@/stores/showStore';
+import { onShowPlayerCommand, useShowStore, type ShowSize } from '@/stores/showStore';
 import { ShowToggle } from './ShowToggle';
 import { HUD_PANEL } from './v2';
 
@@ -299,6 +299,22 @@ function ShowPlayer({ dimmed }: { dimmed: boolean }) {
       setPlaying(false);
     };
   }, [item, setPlaying]);
+
+  // Handlebar buttons (Y play/pause, Z next) reach the player through the store.
+  useEffect(
+    () =>
+      onShowPlayerCommand((cmd) => {
+        const v = videoRef.current;
+        if (cmd === 'togglePlay') {
+          if (!v) return;
+          if (v.paused) v.play().catch(() => setPlaying(false));
+          else v.pause();
+        } else {
+          next();
+        }
+      }),
+    [next, setPlaying],
+  );
 
   if (!item) return null;
 

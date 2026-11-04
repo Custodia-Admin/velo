@@ -309,8 +309,7 @@ export function describeMessage(dir: 'in' | 'out', msg: Uint8Array): string {
   }
   switch (msg[0]) {
     case MSG_KEYPAD: {
-      const status = decodeKeypad(msg);
-      if (!status) return 'keys ?';
+      const status = decodeKeypad(msg)!; // non-null: msg[0] is the keypad id
       const keys = [...pressedButtons(status)];
       const levers = status.levers
         .filter((l) => Math.abs(l.value) >= LEVER_DEADZONE)

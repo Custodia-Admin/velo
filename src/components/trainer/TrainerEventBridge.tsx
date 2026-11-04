@@ -8,6 +8,35 @@ import {
   onReconnect,
   onTrainerData,
 } from '@/lib/ftms';
+import { reconnectGrantedTrainer, trainerLost } from '@/lib/trainerReconnect';
+import { LOW_BATTERY_PCT, formatBattery } from '@/lib/controllers/battery';
+
+/**
+ * The trainer is gone after the automatic retries. The toast carries the
+ * Reconnect tap (the ride view has no other trainer Reconnect control); a
+ * tap that fails brings it back so the rider can try again once the
+ * trainer is awake. Sticky (`durationMs` null) while it is the only way back.
+ */
+function pushTrainerLostToast(message: string, durationMs: number | null): void {
+  useRideStore.getState().pushToast({
+    id: 'trainer-connection',
+    kind: 'error',
+    title: "Couldn't reconnect after several attempts",
+    message,
+    action: {
+      label: 'Reconnect',
+      onClick: () => {
+        void reconnectGrantedTrainer().then((ok) => {
+          // Back by another route meanwhile (wake, chooser): nothing to offer.
+          if (!ok && useRideStore.getState().connection === 'disconnected') {
+            pushTrainerLostToast('Still no trainer. Wait for its light, then tap Reconnect again.', null);
+          }
+        });
+      },
+    },
+    durationMs,
+  });
+}
 
 /**
  * Mount once at app root. Subscribes to the FTMS module's event hooks and
@@ -17,9 +46,11 @@ import {
  * Effects:
  *   - trainer data       → store.ingestTrainerData
  *   - battery level      → store.setBatteryLevel + low-battery toast
- *   - unexpected drop    → store.setConnection('reconnecting' | 'disconnected')
- *                          + toast
- *   - reconnect phases   → store.setReconnect + toasts (success / failure)
+ *   - unexpected drop    → store.setConnection('reconnecting') + toast
+ *                          (only inside a ride: outside one ftms holds the
+ *                          trainer for a tap and reports phase 'held')
+ *   - reconnect phases   → store.setReconnect + toasts (success / failure /
+ *                          held for a tap)
  *   - control-point errs → toasts so the user knows resistance is misbehaving
  */
 export function TrainerEventBridge(): null {
@@ -34,11 +65,11 @@ export function TrainerEventBridge(): null {
       const setBatteryLevel = useRideStore.getState().setBatteryLevel;
       const pushToast = useRideStore.getState().pushToast;
       setBatteryLevel(level);
-      if (level <= 15) {
+      if (level <= LOW_BATTERY_PCT) {
         pushToast({
           id: 'trainer-battery-low',
           kind: 'warning',
-          title: `Trainer battery low (${level}%)`,
+          title: `Trainer battery low (${formatBattery(level)})`,
           message:
             "If it dies mid-ride you'll lose resistance control. Plug in if you can.",
           durationMs: 8_000,
@@ -97,7 +128,8 @@ export function TrainerEventBridge(): null {
             durationMs: 4_000,
           });
           break;
-        case 'failed':
+        case 'failed': {
+          const lostName = st.deviceName;
           st.setConnection('disconnected', {
             deviceName: null,
             error: 'Auto-reconnect failed',
@@ -106,15 +138,36 @@ export function TrainerEventBridge(): null {
           st.setReconnect(0, 0);
           // Fall back to demo so the ride doesn't freeze with zero speed.
           if (st.mode === 'trainer') st.setMode('demo');
-          st.pushToast({
-            id: 'trainer-connection',
-            kind: 'error',
-            title: "Couldn't reconnect after several attempts",
-            message:
-              'Switched to Demo Mode so the ride keeps going. Re-pair the trainer when you can.',
-            durationMs: 10_000,
+          // Reconnect on its own when it wakes up (during the ride), and say
+          // so only once the browser has actually agreed to watch for it.
+          // The toast carries the Reconnect tap: the ride view has no other
+          // trainer Reconnect control (and on Linux nothing watches for it).
+          void trainerLost(lostName).then((wakes) => {
+            pushTrainerLostToast(
+              wakes
+                ? 'Switched to Demo Mode so the ride keeps going. Pedal once to wake the trainer: it reconnects by itself.'
+                : 'Switched to Demo Mode so the ride keeps going. Pedal once to wake the trainer, then tap Reconnect.',
+              wakes ? 10_000 : null,
+            );
           });
           break;
+        }
+        case 'held': {
+          // No ride open: nothing reconnects on its own. One tap brings it back.
+          const lostName = st.deviceName;
+          st.setConnection('disconnected', { deviceName: null });
+          st.setReconnect(0, 0);
+          if (st.mode === 'trainer') st.setMode('demo');
+          void trainerLost(lostName);
+          st.pushToast({
+            id: 'trainer-connection',
+            kind: 'warning',
+            title: 'Trainer disconnected',
+            message: 'Pedal once to wake it, then tap Reconnect.',
+            durationMs: 8_000,
+          });
+          break;
+        }
       }
     });
   }, []);

@@ -85,6 +85,15 @@
  */
 
 import { detectBluetoothSupport } from './bluetoothSupport';
+import { watchBattery, type BatteryWatch } from '@/lib/controllers/battery';
+import {
+  TRAINER_RETRY_DELAYS_MS,
+  findGrantedDevice,
+  rememberDevice,
+  retryWithBackoff,
+  watchAdverts,
+} from '@/lib/controllers/reconnect';
+import { rideSessionActive } from '@/lib/controllers/rideSession';
 import type { TrainerData } from '@/types';
 
 // --- UUIDs ---------------------------------------------------------------
@@ -96,8 +105,9 @@ const FTMS_FEATURE_UUID             = '00002acc-0000-1000-8000-00805f9b34fb';
 const FTMS_TRAINING_STATUS_UUID     = '00002ad3-0000-1000-8000-00805f9b34fb';
 const FITNESS_MACHINE_STATUS_UUID   = '00002ada-0000-1000-8000-00805f9b34fb';
 
+/** Standard Battery Service, listed so the chooser grants it (read in battery.ts). */
 const BATTERY_SERVICE_UUID = '0000180f-0000-1000-8000-00805f9b34fb';
-const BATTERY_LEVEL_UUID   = '00002a19-0000-1000-8000-00805f9b34fb';
+
 
 // --- Control point op codes ---------------------------------------------
 
@@ -124,9 +134,8 @@ const SIM_MAX_GRADE_PCT = 25;
 
 // --- Reconnect tuning ---------------------------------------------------
 
-const RECONNECT_MAX_ATTEMPTS  = 4;
-const RECONNECT_BASE_DELAY_MS = 600;
-const RECONNECT_MAX_DELAY_MS  = 4_000;
+/** Attempts after an unexpected drop (0.6, 1.2, 2.4, 4 s apart). */
+export const RECONNECT_MAX_ATTEMPTS = TRAINER_RETRY_DELAYS_MS.length;
 
 // --- Public types --------------------------------------------------------
 
@@ -143,7 +152,13 @@ export type ReconnectEvent =
   | { phase: 'start';   attempt: number; maxAttempts: number }
   | { phase: 'attempt'; attempt: number; maxAttempts: number }
   | { phase: 'success'; attempt: number }
-  | { phase: 'failed';  attempts: number };
+  | { phase: 'failed';  attempts: number }
+  /**
+   * Dropped (or the ride closed mid-retry) outside a ride session: nothing
+   * is retried, because no Bluetooth write happens outside a ride the rider
+   * opened. The device handle is kept for a tap on Reconnect.
+   */
+  | { phase: 'held' };
 
 export interface ControlPointError {
   opcode: number;
@@ -214,7 +229,7 @@ let device:       BluetoothDevice | null = null;
 let server:       BluetoothRemoteGATTServer | null = null;
 let controlPoint: BluetoothRemoteGATTCharacteristic | null = null;
 let indoorBikeData: BluetoothRemoteGATTCharacteristic | null = null;
-let batteryLevel: BluetoothRemoteGATTCharacteristic | null = null;
+let batteryWatch: BatteryWatch | null = null;
 // Optional status characteristics (best-effort; many trainers omit them)
 let trainingStatus:       BluetoothRemoteGATTCharacteristic | null = null;
 let fitnessMachineStatus: BluetoothRemoteGATTCharacteristic | null = null;
@@ -234,6 +249,8 @@ let trainerControlMode: TrainerControlMode = 'sim';
 let userInitiatedDisconnect = false;
 let reconnectInFlight = false;
 let lastBatteryLevel: number | null = null;
+/** The trainer whose reconnect loop gave up: kept so it can come back on wake. */
+let retainedDevice: BluetoothDevice | null = null;
 
 // --- Subscriptions -------------------------------------------------------
 
@@ -316,6 +333,7 @@ export async function connect(opts: FtmsConnectOptions = {}): Promise<void> {
 
   userInitiatedDisconnect = false;
   lastBatteryLevel = null;
+  retainedDevice = null;
 
   // 1. Device chooser
   try {
@@ -343,53 +361,29 @@ export async function connect(opts: FtmsConnectOptions = {}): Promise<void> {
 
 // --- Reconnect a trainer granted earlier (no chooser) --------------------
 
-const LAST_TRAINER_KEY = 'velo.lastTrainer';
-
-interface RememberedTrainer {
-  id: string;
-  name: string | null;
-}
+export const LAST_TRAINER_KEY = 'velo.lastTrainer';
 
 function rememberTrainer(dev: BluetoothDevice): void {
-  try {
-    const value: RememberedTrainer = { id: dev.id, name: dev.name ?? null };
-    globalThis.localStorage?.setItem(LAST_TRAINER_KEY, JSON.stringify(value));
-  } catch {
-    /* storage unavailable: reconnect just won't be offered */
-  }
+  rememberDevice(LAST_TRAINER_KEY, dev);
 }
-
-function rememberedTrainer(): RememberedTrainer | null {
-  try {
-    const raw = globalThis.localStorage?.getItem(LAST_TRAINER_KEY);
-    if (!raw) return null;
-    const v = JSON.parse(raw) as Partial<RememberedTrainer>;
-    return typeof v.id === 'string' ? { id: v.id, name: typeof v.name === 'string' ? v.name : null } : null;
-  } catch {
-    return null;
-  }
-}
-
-type BluetoothWithGetDevices = Bluetooth & { getDevices?: () => Promise<BluetoothDevice[]> };
 
 /**
  * The trainer this browser already has permission for, if any: the one
- * paired last (by id, then by name) among navigator.bluetooth.getDevices().
+ * paired last (matched by id) among navigator.bluetooth.getDevices().
  * Null when getDevices is missing (some Chrome builds keep it behind a
  * flag), nothing was paired before, or the grant was revoked. Never throws.
  */
-export async function findGrantedTrainer(): Promise<BluetoothDevice | null> {
-  const bt = (typeof navigator !== 'undefined' ? navigator.bluetooth : undefined) as BluetoothWithGetDevices | undefined;
-  if (!bt || typeof bt.getDevices !== 'function') return null;
-  const last = rememberedTrainer();
-  if (!last) return null;
-  let devices: BluetoothDevice[];
-  try {
-    devices = await bt.getDevices();
-  } catch {
-    return null;
-  }
-  return devices.find((d) => d.id === last.id) ?? (last.name ? devices.find((d) => d.name === last.name) : undefined) ?? null;
+export function findGrantedTrainer(): Promise<BluetoothDevice | null> {
+  return findGrantedDevice(LAST_TRAINER_KEY);
+}
+
+/**
+ * The trainer whose automatic reconnect gave up (it went to sleep or out of
+ * range), or null. The same BluetoothDevice reconnects without the chooser
+ * once it wakes; see src/lib/trainerReconnect.ts.
+ */
+export function retainedTrainer(): BluetoothDevice | null {
+  return retainedDevice;
 }
 
 /** How long to listen for the trainer's advert before giving up on a reconnect. */
@@ -397,37 +391,46 @@ export const RECONNECT_ADVERT_WAIT_MS = 6000;
 /** Cap per GATT attempt during a chooser-free reconnect. */
 export const RECONNECT_ATTEMPT_TIMEOUT_MS = 12000;
 
-type WatchableDevice = BluetoothDevice & {
-  watchAdvertisements?: (options?: { signal?: AbortSignal }) => Promise<void>;
-};
-
-/** Resolve once the device advertises (it is in range and awake), or after `ms`. */
+/**
+ * Resolve once the device advertises (it is in range and awake), or after
+ * `ms`. Shares the device's one advert watch with the wake watch
+ * (watchAdverts): a second browser watch would kill the first.
+ */
 function waitForAdvert(dev: BluetoothDevice, ms: number): Promise<void> {
-  const d = dev as WatchableDevice;
-  if (typeof d.watchAdvertisements !== 'function') return Promise.resolve();
-  const abort = typeof AbortController === 'function' ? new AbortController() : null;
   return new Promise<void>((resolve) => {
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      dev.removeEventListener('advertisementreceived', finish);
-      try {
-        abort?.abort();
-      } catch {
-        /* already stopped */
-      }
-      resolve();
-    };
+    let watch: ReturnType<typeof watchAdverts> = null;
     const timer = setTimeout(finish, ms);
-    dev.addEventListener('advertisementreceived', finish);
-    try {
-      void d.watchAdvertisements!(abort ? { signal: abort.signal } : undefined).catch(finish);
-    } catch {
-      finish();
+    function finish(): void {
+      clearTimeout(timer);
+      watch?.stop();
+      resolve();
     }
+    watch = watchAdverts(dev, finish);
+    if (!watch) {
+      finish();
+      return;
+    }
+    void watch.started.then((ok) => {
+      if (!ok) finish();
+    });
   });
+}
+
+/** An autonomous reconnect found the ride closed: it stops before writing. */
+class RideClosedError extends Error {
+  constructor() {
+    super('The ride closed: no Bluetooth write outside a ride.');
+    this.name = 'RideClosedError';
+  }
+}
+
+export interface ReconnectGrantedOptions {
+  /**
+   * Checked right before any control-point write. A silent reconnect (ride
+   * start, wake) passes rideSessionActive, so closing the ride mid-connect
+   * sends nothing. A tap on Reconnect leaves it unset.
+   */
+  allowWrites?: () => boolean;
 }
 
 /**
@@ -436,10 +439,11 @@ function waitForAdvert(dev: BluetoothDevice, ms: number): Promise<void> {
  * trainer to advertise and try once more. Throws FtmsError on failure,
  * leaving nothing half-open, so the caller can fall back to connect().
  */
-export async function reconnectGranted(dev: BluetoothDevice): Promise<void> {
+export async function reconnectGranted(dev: BluetoothDevice, opts: ReconnectGrantedOptions = {}): Promise<void> {
   if (!dev.gatt) throw new FtmsError('gatt-connect-failed', 'The saved trainer has no GATT server.');
   userInitiatedDisconnect = false;
   lastBatteryLevel = null;
+  retainedDevice = null;
   device = dev;
   dev.removeEventListener('gattserverdisconnected', handleGattDisconnect);
   dev.addEventListener('gattserverdisconnected', handleGattDisconnect);
@@ -450,7 +454,7 @@ export async function reconnectGranted(dev: BluetoothDevice): Promise<void> {
         () => reject(new FtmsError('gatt-connect-failed', 'The trainer did not answer.')),
         RECONNECT_ATTEMPT_TIMEOUT_MS,
       );
-      setupGattSession(dev).then(
+      setupGattSession(dev, opts.allowWrites).then(
         () => {
           clearTimeout(t);
           resolve();
@@ -466,6 +470,7 @@ export async function reconnectGranted(dev: BluetoothDevice): Promise<void> {
       await attempt();
     } catch {
       await waitForAdvert(dev, RECONNECT_ADVERT_WAIT_MS);
+      if (opts.allowWrites && !opts.allowWrites()) throw new RideClosedError();
       await attempt();
     }
   } catch (err) {
@@ -475,6 +480,8 @@ export async function reconnectGranted(dev: BluetoothDevice): Promise<void> {
     } catch {
       /* not connected */
     }
+    // Still the trainer we may reconnect without the chooser once it wakes.
+    retainedDevice = dev;
     throw err instanceof FtmsError
       ? err
       : new FtmsError('gatt-connect-failed', 'Could not reach the trainer. Pedal once to wake it, then pair again.', err);
@@ -482,19 +489,41 @@ export async function reconnectGranted(dev: BluetoothDevice): Promise<void> {
   rememberTrainer(dev);
 }
 
-/** Internal: GATT connect + characteristic wiring + start/resume handshake. */
-async function setupGattSession(dev: BluetoothDevice): Promise<void> {
+/** Forget a half-built session without writing anything to the trainer. */
+function dropSessionState(): void {
+  controlPoint = null;
+  indoorBikeData = null;
+  batteryWatch?.stop();
+  batteryWatch = null;
+  trainingStatus = null;
+  fitnessMachineStatus = null;
+}
+
+/**
+ * Internal: GATT connect + characteristic wiring + start/resume handshake.
+ * `allowWrites` (autonomous reconnects): checked after the GATT connect and
+ * right before the Request Control / Start handshake; false throws
+ * RideClosedError with nothing written to the control point.
+ */
+async function setupGattSession(dev: BluetoothDevice, allowWrites?: () => boolean): Promise<void> {
   if (!dev.gatt) throw new FtmsError('gatt-connect-failed', 'Device has no GATT.');
+  const mayWrite = () => {
+    if (allowWrites && !allowWrites()) {
+      dropSessionState();
+      throw new RideClosedError();
+    }
+  };
 
   try {
     server = await dev.gatt.connect();
   } catch (err) {
     throw new FtmsError(
       'gatt-connect-failed',
-      'Could not open a GATT connection. Wake the trainer (one pedal stroke) and try again.',
+      'Could not reach the trainer. Pedal once to wake it, then try again.',
       err,
     );
   }
+  mayWrite();
 
   let service: BluetoothRemoteGATTService;
   try {
@@ -502,7 +531,7 @@ async function setupGattSession(dev: BluetoothDevice): Promise<void> {
   } catch (err) {
     throw new FtmsError(
       'service-not-found',
-      "The trainer didn't advertise the FTMS service. It may already be paired with another app -- quit Zwift / Wahoo / TrainerRoad and try again.",
+      'The trainer did not offer its control service. Another app may be holding it: close other cycling apps on this computer, phones and tablets, then pair again.',
       err,
     );
   }
@@ -518,7 +547,7 @@ async function setupGattSession(dev: BluetoothDevice): Promise<void> {
   } catch (err) {
     throw new FtmsError(
       'service-not-found',
-      'FTMS characteristics could not be subscribed. This trainer may use a non-standard FTMS profile.',
+      'The trainer connected but would not stream its data. Pedal once, then pair again.',
       err,
     );
   }
@@ -551,34 +580,23 @@ async function setupGattSession(dev: BluetoothDevice): Promise<void> {
     fitnessMachineStatus = null;
   }
 
-  // Optional -- Battery Service. Many smart trainers expose it; we surface
-  // the value as a status badge so the user can see when it's getting low.
-  try {
-    const batterySvc = await server.getPrimaryService(BATTERY_SERVICE_UUID);
-    batteryLevel = await batterySvc.getCharacteristic(BATTERY_LEVEL_UUID);
-    const initial = await batteryLevel.readValue();
-    handleBatteryRead(initial);
-    try {
-      await batteryLevel.startNotifications();
-      batteryLevel.addEventListener('characteristicvaluechanged', handleBatteryNotify);
-    } catch {
-      /* notifications optional */
-    }
-  } catch {
-    batteryLevel = null;
-  }
+  // Optional -- standard Battery Service (0x180F): read + notifications,
+  // shown next to the trainer's name so a low battery is seen before a ride.
+  batteryWatch?.stop();
+  batteryWatch = await watchBattery(server, handleBatteryLevel);
 
   // Handshake -- Request Control then Start/Resume.
   // The Kickr Core requires this exact sequence before accepting any
   // control-point write. If another app holds control we will get
   // RESULT_CONTROL_NOT_PERMITTED back, which writeControl will surface.
+  mayWrite();
   try {
     await writeControl(new Uint8Array([OP_REQUEST_CONTROL]));
     await writeControl(new Uint8Array([OP_START_RESUME]));
   } catch (err) {
     throw new FtmsError(
       'control-point-failed',
-      'The trainer refused the control handshake. It may be claimed by another Bluetooth client.',
+      'The trainer would not hand over control. Close other cycling apps, then pair again.',
       err,
     );
   }
@@ -595,9 +613,7 @@ export async function disconnect(): Promise<void> {
     if (indoorBikeData) {
       indoorBikeData.removeEventListener('characteristicvaluechanged', handleIndoorBikeData);
     }
-    if (batteryLevel) {
-      batteryLevel.removeEventListener('characteristicvaluechanged', handleBatteryNotify);
-    }
+    batteryWatch?.stop();
     if (trainingStatus) {
       trainingStatus.removeEventListener('characteristicvaluechanged', handleTrainingStatus);
     }
@@ -611,11 +627,12 @@ export async function disconnect(): Promise<void> {
   } finally {
     controlPoint = null;
     indoorBikeData = null;
-    batteryLevel = null;
+    batteryWatch = null;
     trainingStatus = null;
     fitnessMachineStatus = null;
     server = null;
     device = null;
+    retainedDevice = null;
     lastBatteryLevel = null;
   }
 }
@@ -757,7 +774,7 @@ function friendlyControlError(opcode: number, resultCode: number): string {
     case RESULT_INVALID_PARAMETER:
       return `Trainer rejected ${opLabel} as out of range.`;
     case RESULT_CONTROL_NOT_PERMITTED:
-      return `Trainer refused ${opLabel} -- another app may be controlling it. Quit Zwift / Wahoo / TrainerRoad and reconnect.`;
+      return `Trainer refused ${opLabel}. Another app may be controlling it: close other cycling apps, then reconnect.`;
     case RESULT_OP_FAILED:
     default:
       return `Trainer reported ${opLabel} failed (${resultCodeText(resultCode)}).`;
@@ -808,7 +825,7 @@ function handleFitnessMachineStatus(event: Event): void {
       resultCode: RESULT_CONTROL_NOT_PERMITTED,
       resultText: 'control-not-permitted',
       message:
-        'Another app took control of the trainer. Reconnect GlobeRide to regain control.',
+        'Another app took control of the trainer. Close it, then reconnect the trainer in Velo.',
     });
   } else if (opCode === MACHINE_STOPPED_BY_USER || opCode === MACHINE_STOPPED_SAFE_KEY) {
     controlErrorListener?.({
@@ -823,15 +840,7 @@ function handleFitnessMachineStatus(event: Event): void {
   }
 }
 
-function handleBatteryNotify(event: Event): void {
-  const target = event.target as BluetoothRemoteGATTCharacteristic;
-  if (!target.value) return;
-  handleBatteryRead(target.value);
-}
-
-function handleBatteryRead(v: DataView): void {
-  if (v.byteLength < 1) return;
-  const pct = v.getUint8(0);
+function handleBatteryLevel(pct: number): void {
   lastBatteryLevel = pct;
   batteryListener?.(pct);
 }
@@ -839,7 +848,8 @@ function handleBatteryRead(v: DataView): void {
 function handleGattDisconnect(): void {
   controlPoint = null;
   indoorBikeData = null;
-  batteryLevel = null;
+  batteryWatch?.stop();
+  batteryWatch = null;
   trainingStatus = null;
   fitnessMachineStatus = null;
   // Don't null out `server` / `device` -- we need the BluetoothDevice handle
@@ -853,49 +863,83 @@ function handleGattDisconnect(): void {
     return;
   }
 
-  disconnectListener?.({ unexpected: true });
-
   if (!device) return;
   if (reconnectInFlight) return;
+  // No ride open: nothing reconnects (and so nothing is written) on its own.
+  if (!rideSessionActive()) {
+    holdForTap(device);
+    return;
+  }
+  disconnectListener?.({ unexpected: true });
   void runReconnectLoop(device);
 }
 
+/**
+ * Stop here and keep the device for a tap on Reconnect (or a ride opening):
+ * outside a ride session the trainer gets no autonomous write.
+ */
+function holdForTap(dev: BluetoothDevice): void {
+  dev.removeEventListener('gattserverdisconnected', handleGattDisconnect);
+  dropSessionState();
+  try {
+    if (dev.gatt?.connected) dev.gatt.disconnect();
+  } catch {
+    /* already gone */
+  }
+  server = null;
+  device = null;
+  retainedDevice = dev;
+  reconnectListener?.({ phase: 'held' });
+}
+
+/**
+ * Same BluetoothDevice, gatt.connect() again with backoff. Every attempt
+ * runs the full session setup, so FTMS control is requested again (Request
+ * Control + Start). Resistance itself comes back from the ride loop: its
+ * gate re-sends the current SIM grade on the first frame after the link
+ * returns, and only while a ride is riding (src/lib/ride/rideFsm.ts).
+ * Only inside the ride session: if the rider leaves the ride mid-retry, the
+ * loop stops before its next write and holds the device for a tap.
+ */
 async function runReconnectLoop(dev: BluetoothDevice): Promise<void> {
   reconnectInFlight = true;
   reconnectListener?.({ phase: 'start', attempt: 1, maxAttempts: RECONNECT_MAX_ATTEMPTS });
 
   try {
-    for (let attempt = 1; attempt <= RECONNECT_MAX_ATTEMPTS; attempt++) {
-      reconnectListener?.({ phase: 'attempt', attempt, maxAttempts: RECONNECT_MAX_ATTEMPTS });
-
-      const delay = Math.min(
-        RECONNECT_MAX_DELAY_MS,
-        RECONNECT_BASE_DELAY_MS * 2 ** (attempt - 1),
-      );
-      await sleep(delay);
-
-      // If the user explicitly disconnected mid-loop, abort.
-      if (userInitiatedDisconnect) return;
-
-      try {
-        await setupGattSession(dev);
-        reconnectListener?.({ phase: 'success', attempt });
-        return;
-      } catch (err) {
-        console.warn(`[FTMS] reconnect attempt ${attempt} failed`, err);
-      }
+    const result = await retryWithBackoff({
+      delays: TRAINER_RETRY_DELAYS_MS,
+      cancelled: () => userInitiatedDisconnect,
+      // Announced before the wait, as the HUD has always shown it.
+      onWait: (attempt, maxAttempts) => reconnectListener?.({ phase: 'attempt', attempt, maxAttempts }),
+      fatal: (err) => err instanceof RideClosedError,
+      attempt: async (n) => {
+        if (!rideSessionActive()) throw new RideClosedError();
+        try {
+          await setupGattSession(dev, rideSessionActive);
+        } catch (err) {
+          if (!(err instanceof RideClosedError)) console.warn(`[FTMS] reconnect attempt ${n} failed`, err);
+          throw err;
+        }
+      },
+    });
+    if (result.ok) {
+      reconnectListener?.({ phase: 'success', attempt: result.attempts });
+      return;
     }
-    reconnectListener?.({ phase: 'failed', attempts: RECONNECT_MAX_ATTEMPTS });
-    // Give up -- clean state for next manual pair.
+    if (result.cancelled) return;
+    if (result.error instanceof RideClosedError) {
+      holdForTap(dev);
+      return;
+    }
+    // Give up -- clean state for the next pair; keep the handle for a wake
+    // (set before 'failed' so its listener can arm the wake watch).
     server = null;
     device = null;
+    retainedDevice = dev;
+    reconnectListener?.({ phase: 'failed', attempts: RECONNECT_MAX_ATTEMPTS });
   } finally {
     reconnectInFlight = false;
   }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((res) => setTimeout(res, ms));
 }
 
 // --- Error classification ------------------------------------------------

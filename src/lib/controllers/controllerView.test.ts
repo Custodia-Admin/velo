@@ -70,11 +70,11 @@ describe('chipView', () => {
 });
 
 describe('panelStatusLine', () => {
-  it('names the side, the buzz and the battery once connected', () => {
-    expect(panelStatusLine('live', 'left', 'ok', 85)).toBe('Left controller · connected · buzzed · battery 85 %');
-    expect(panelStatusLine('waiting', 'unsupported', 'ok', null)).toBe('Connected · buzzed');
-    expect(panelStatusLine('rightSide', 'right', 'failed', 40)).toBe('Right controller · connected · battery 40 %');
-    expect(panelStatusLine('locked', 'left', null, null)).toBe('Locked');
+  it('names the side and the buzz once connected (battery is its own reading)', () => {
+    expect(panelStatusLine('live', 'left', 'ok')).toBe('Left controller · connected · buzzed');
+    expect(panelStatusLine('waiting', 'unsupported', 'ok')).toBe('Connected · buzzed');
+    expect(panelStatusLine('rightSide', 'right', 'failed')).toBe('Right controller · connected');
+    expect(panelStatusLine('locked', 'left', null)).toBe('Locked');
   });
 });
 

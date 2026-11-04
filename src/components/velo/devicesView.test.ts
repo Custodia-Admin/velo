@@ -17,6 +17,7 @@ import {
   type TrainerRowInput,
 } from './devicesView';
 import {
+  ASLEEP_TEXT_ARMED,
   LOCKED_INTRO,
   MAYBE_RIGHT_TEXT,
   PAIR_OTHER_LABEL,
@@ -249,6 +250,12 @@ describe('handlebarRow (every ControllerPanel state keeps its actions)', () => {
   it('asleep: sentence, Reconnect + Forget', () => {
     const v = handlebarRow(bars({ status: 'asleep' }));
     expect(v.help).toBe(ASLEEP_TEXT);
+    expect(ids(v)).toEqual({ action: 'reconnect', extras: ['forget'] });
+  });
+
+  it('asleep with a wake watch armed: they reconnect by themselves', () => {
+    const v = handlebarRow(bars({ status: 'asleep', wakeArmed: true }));
+    expect(v.help).toBe(ASLEEP_TEXT_ARMED);
     expect(ids(v)).toEqual({ action: 'reconnect', extras: ['forget'] });
   });
 });

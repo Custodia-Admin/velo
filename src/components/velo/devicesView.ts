@@ -18,10 +18,13 @@ import {
   PAIR_OTHER_LABEL,
   RIGHT_SIDE_TEXT,
   UNLOCK_INTRO,
+  asleepText,
   controllerPhase,
   panelStatusLine,
   type ControllerPhase,
 } from '@/lib/controllers/controllerView';
+
+export { ASLEEP_TEXT } from '@/lib/controllers/controllerView';
 
 /** ok: connected (primary dot); busy: in flight (pulsing dot); warn: linked but not working; error: failed; idle: nothing yet. */
 export type RowTone = 'ok' | 'busy' | 'warn' | 'error' | 'idle';
@@ -232,19 +235,20 @@ export interface HandlebarRowInput {
   errorMessage: string | null;
   /** A pairing attempt from this page didn't connect (chooser empty or closed). */
   tried: boolean;
+  /** The browser watches for the sleeping controls to wake (P2.5). */
+  wakeArmed?: boolean;
 }
 
 export interface HandlebarRowView extends RowView<HandlebarActionId> {
   phase: ControllerPhase;
   /** Intro for the unlock recipe, or null when the recipe isn't needed. */
   unlockIntro: string | null;
-  /** Live link: show the steering switch and "What the buttons do". */
+  /** Live link: show "What the buttons do" with the steering and gear-buzz switches. */
   settings: boolean;
   /** Show the battery reading when the store has one. */
   showBattery: boolean;
 }
 
-export const ASLEEP_TEXT = 'The controls went to sleep. Press any button on the bars, then reconnect.';
 export const WAITING_TEXT = 'Press a shift paddle: the gear in the ride view should change.';
 export const HANDLEBAR_IDLE_HELP = 'Shift gears, set how hard the hills feel and steer from the bars.';
 
@@ -272,7 +276,7 @@ export function handlebarRow(s: HandlebarRowInput): HandlebarRowView {
   const forget: RowAction<HandlebarActionId> = { id: 'forget', label: 'Forget' };
   const pairOther: RowAction<HandlebarActionId> = { id: 'pairOther', label: PAIR_OTHER_LABEL };
   const buzz: RowAction<HandlebarActionId> = { id: 'buzz', label: 'Test buzz', disabled: s.status !== 'connected' };
-  const status = (p: ControllerPhase) => panelStatusLine(p, null, s.buzz, null);
+  const status = (p: ControllerPhase) => panelStatusLine(p, null, s.buzz);
 
   switch (phase) {
     case 'none':
@@ -335,7 +339,7 @@ export function handlebarRow(s: HandlebarRowInput): HandlebarRowView {
         ...base,
         tone: 'error',
         state: 'Asleep',
-        help: ASLEEP_TEXT,
+        help: asleepText(s.wakeArmed ?? false),
         action: { id: 'reconnect', label: 'Reconnect' },
         extras: [forget],
       };
