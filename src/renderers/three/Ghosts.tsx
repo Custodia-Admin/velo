@@ -18,7 +18,16 @@ import type { SceneWorld } from './worldScene';
 export const GHOST_RADIUS_M = 0.32;
 export const GHOST_HEIGHT_M = 1.75;
 
-export function Ghosts({ sceneWorld, route }: { sceneWorld: SceneWorld; route: Route }) {
+export function Ghosts({
+  sceneWorld,
+  route,
+  ground,
+}: {
+  sceneWorld: SceneWorld;
+  route: Route;
+  /** The drawn ground (worldScene.drawnGround). */
+  ground?: (x: number, y: number) => number;
+}) {
   const enabled = useGhostStore((s) => s.ghostsEnabled);
   const [ghosts, setGhosts] = useState<GhostRide[]>([]);
 
@@ -80,7 +89,7 @@ export function Ghosts({ sceneWorld, route }: { sceneWorld: SceneWorld; route: R
         return;
       }
       const pose = ridePose(route, Math.max(0, Math.min(route.totalDistance, d)));
-      const p = placeRider(sceneWorld, pose).position;
+      const p = placeRider(sceneWorld, pose, ground).position;
       mesh.position.set(p.x, p.y + GHOST_HEIGHT_M / 2, p.z);
       mesh.visible = true;
     });

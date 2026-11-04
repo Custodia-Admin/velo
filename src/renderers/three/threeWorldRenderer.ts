@@ -11,6 +11,8 @@ import { isWorldMood } from './skyModel';
 export interface ThreeRendererHooks {
   setRiderOverride: (pose: RiderPose | null) => void;
   setMoodOverride: (mood: string | null) => void;
+  /** The chunk under the rider draws its near (full-detail) terrain. */
+  groundReady?: () => boolean;
 }
 
 export function createThreeWorldRenderer(hooks: ThreeRendererHooks): WorldRenderer {
@@ -27,6 +29,9 @@ export function createThreeWorldRenderer(hooks: ThreeRendererHooks): WorldRender
       if (disposed) return;
       // Unknown ids fall back to the route's own mood instead of a blank sky.
       hooks.setMoodOverride(isWorldMood(mood) ? mood : null);
+    },
+    groundReady() {
+      return disposed || (hooks.groundReady?.() ?? true);
     },
     dispose() {
       if (disposed) return;

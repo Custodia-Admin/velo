@@ -12,7 +12,7 @@ import type { RideState } from '@/types';
 import type { Vec3 } from './chaseRig';
 import { bucketLines, chunkLocator, roadLines, type RibbonLine } from './roadRibbons';
 import type { RiderPlacement, WorldGround } from './riderRig';
-import { planChunks, type ChunkInfo } from './terrainMesh';
+import { lodHeightAt, planChunks, type ChunkInfo } from './terrainMesh';
 import { waterDepression } from './waterMesh';
 
 /** Road ribbons are densified to this spacing (≈ half a heightfield cell). */
@@ -94,4 +94,26 @@ export function createRideFrame(): RideFrame {
 /** Ground height under a three.js (x, z) point. */
 export function groundAtThree(hf: Heightfield, x: number, z: number): number {
   return hf.sampleHeight(x, -z);
+}
+
+/**
+ * Height of the terrain the GPU draws at world (x east, y north): the
+ * triangles of the chunk there, at the LOD that chunk shows right now
+ * (`lodHeightAt`). The rider, the camera, the road ribbons and the route line
+ * all stand on this one surface, so none of them can end up under the ground
+ * you see (the bilinear heightfield is up to 0.7 m off the near triangles on
+ * the Assisi corridor, and 2.4 m off the far ones). Off the grid it is the
+ * heightfield.
+ */
+export function drawnGround(
+  sw: Pick<SceneWorld, 'heightfield' | 'chunks' | 'locate'>,
+  visibility: Pick<ChunkVisibility, 'near'>,
+  steps: { near: number; far: number },
+): (x: number, y: number) => number {
+  const hf = sw.heightfield;
+  return (x, y) => {
+    const i = sw.locate(x, y);
+    if (i < 0) return hf.sampleHeight(x, y);
+    return lodHeightAt(hf, sw.chunks[i], visibility.near[i] === 1 ? steps.near : steps.far, x, y);
+  };
 }

@@ -14,8 +14,8 @@ import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { loadWorld, type LoadedWorld } from '@/lib/world/loadWorld';
 import { ROUTE_LIFT_M, buildRouteChunks, routeLine } from './Roads';
 import { RIDER_RIG, leanAngle, legIK, legPose, modelYaw, placeRider } from './riderRig';
-import { meshHeightAt } from './terrainMesh';
-import { createSceneWorld, type SceneWorld } from './worldScene';
+import { lodHeightAt } from './terrainMesh';
+import { createSceneWorld, drawnGround, type SceneWorld } from './worldScene';
 
 const DIR = fileURLToPath(new URL('../../../public/worlds/perugia', import.meta.url));
 const diskFetch = async (url: string) => {
@@ -86,51 +86,53 @@ describe('rider placement on the Perugia world', () => {
       expect(worst).toBeLessThan(0.05);
     });
 
-    it(`${id}: the rider sits on the drawn route line (within 13 cm, unless the drawn terrain is above the wheels) and close to the terrain mesh`, () => {
+    it(`${id}: one height source — the rider stands on the drawn terrain triangles and on the drawn route line, at every LOD`, () => {
       const route = routeFromGeometry(id, id, SCENIC_ROUTE_GEOMETRY[id]);
-      // The route line as drawn on near-LOD chunks (step 1): 2 m vertex pairs,
-      // on the higher of the drawn triangles and the bilinear ground.
-      const cx: number[] = [];
-      const cz: number[] = [];
-      const cy: number[] = [];
-      for (const piece of buildRouteChunks(sw, routeLine(sw, route, [1, 1, 1]), { near: 1, far: 4 })) {
-        const chunk = sw.chunks[piece.chunk];
-        const pos = piece.near.positions;
-        for (let v = 0; v + 1 < pos.length / 3; v += 2) {
-          cx.push((pos[v * 3] + pos[v * 3 + 3]) / 2 + chunk.centerX);
-          cy.push((pos[v * 3 + 1] + pos[v * 3 + 4]) / 2);
-          cz.push((pos[v * 3 + 2] + pos[v * 3 + 5]) / 2 + chunk.centerZ);
-        }
-      }
-      let worstAbove = 0;
-      let worstUnder = 0;
-      let worstMesh = 0;
-      for (let k = 0; k < SAMPLES; k++) {
-        const d = (route.totalDistance * k) / (SAMPLES - 1);
-        const p = placeRider(sw, ridePose(route, d));
-        // Match by nearest vertex pair (≤ 1 m away along the 2 m spacing).
-        let j = 0;
-        let best = Infinity;
-        for (let v = 0; v < cx.length; v++) {
-          const dd = (cx[v] - p.position.x) ** 2 + (cz[v] - p.position.z) ** 2;
-          if (dd < best) {
-            best = dd;
-            j = v;
+      const hf = world.heightfield;
+      for (const [lod, step] of [
+        ['near', 1],
+        ['far', 4],
+      ] as const) {
+        // Every chunk showing `lod`, as the terrain draws it.
+        const vis = { near: new Uint8Array(sw.chunks.length).fill(lod === 'near' ? 1 : 0) };
+        const ground = drawnGround(sw, vis, { near: 1, far: 4 });
+        // The route line as drawn at that LOD: 2 m vertex pairs on the same triangles.
+        const cx: number[] = [];
+        const cz: number[] = [];
+        const cy: number[] = [];
+        for (const piece of buildRouteChunks(sw, routeLine(sw, route, [1, 1, 1]), { near: 1, far: 4 })) {
+          const chunk = sw.chunks[piece.chunk];
+          const pos = piece[lod].positions;
+          for (let v = 0; v + 1 < pos.length / 3; v += 2) {
+            cx.push((pos[v * 3] + pos[v * 3 + 3]) / 2 + chunk.centerX);
+            cy.push((pos[v * 3 + 1] + pos[v * 3 + 4]) / 2);
+            cz.push((pos[v * 3 + 2] + pos[v * 3 + 5]) / 2 + chunk.centerZ);
           }
         }
-        const surface = cy[j] - ROUTE_LIFT_M;
-        const mesh = meshHeightAt(world.heightfield, p.position.x, p.position.z);
-        // Wheels never float over the line …
-        worstAbove = Math.max(worstAbove, p.position.y - surface);
-        // … and the line only rises over them where the drawn terrain does.
-        worstUnder = Math.max(worstUnder, surface - Math.max(p.position.y, mesh));
-        worstMesh = Math.max(worstMesh, Math.abs(p.position.y - mesh));
+        let worstLine = 0;
+        let worstTerrain = 0;
+        for (let k = 0; k < SAMPLES; k++) {
+          const d = (route.totalDistance * k) / (SAMPLES - 1);
+          const p = placeRider(sw, ridePose(route, d), ground);
+          // Match by nearest vertex pair (≤ 1 m away along the 2 m spacing).
+          let j = 0;
+          let best = Infinity;
+          for (let v = 0; v < cx.length; v++) {
+            const dd = (cx[v] - p.position.x) ** 2 + (cz[v] - p.position.z) ** 2;
+            if (dd < best) {
+              best = dd;
+              j = v;
+            }
+          }
+          worstLine = Math.max(worstLine, Math.abs(cy[j] - ROUTE_LIFT_M - p.position.y));
+          const chunk = sw.chunks[sw.locate(p.worldX, p.worldY)];
+          worstTerrain = Math.max(worstTerrain, Math.abs(lodHeightAt(hf, chunk, step, p.worldX, p.worldY) - p.position.y));
+        }
+        // The wheels touch the drawn triangles exactly …
+        expect(worstTerrain, `${lod}: |rider − drawn terrain|`).toBeLessThan(1e-6);
+        // … and the line, ≤ 1 m away along a slope, rises or falls a few cm.
+        expect(worstLine, `${lod}: |rider − drawn route line|`).toBeLessThan(lod === 'near' ? 0.08 : 0.15);
       }
-      // Over the ≤ 1 m to the nearest vertex the corridor rises a few cm at most.
-      expect(worstAbove).toBeLessThan(0.05 + 0.08);
-      expect(worstUnder).toBeLessThan(0.05 + 0.08);
-      // Triangulated 13 m terrain vs bilinear ground on the re-graded corridor.
-      expect(worstMesh).toBeLessThan(0.5);
     });
   }
 });

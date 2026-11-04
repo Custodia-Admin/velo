@@ -46,12 +46,15 @@ export function ChaseCamera({
   frame,
   heightfield,
   landmarks = [],
+  ground,
   rig: rigProp,
 }: {
   frame: RideFrame;
   heightfield: Heightfield;
   /** Named places along the route, for the director's landmark orbits. */
   landmarks?: readonly SceneLandmark[];
+  /** The drawn ground at world (x, y) (worldScene.drawnGround); the heightfield when absent. */
+  ground?: (x: number, y: number) => number;
   /** Tests pass their own rig to inspect it. */
   rig?: CameraRig;
 }) {
@@ -73,7 +76,8 @@ export function ChaseCamera({
       timeS: frame.timeS,
     };
     const framing = chaseFraming(settings.cameraDistance);
-    const ground = (x: number, z: number) => groundAtThree(heightfield, x, z);
+    // Both the director's shots and the rider's own camera keep above the drawn ground.
+    const groundAt = ground ? (x: number, z: number) => ground(x, -z) : (x: number, z: number) => groundAtThree(heightfield, x, z);
     const anchor = frame.placement.position;
 
     const directed = showDirectorFrame(
@@ -118,13 +122,13 @@ export function ChaseCamera({
         const out = shotTarget(from.shot, input, { ...from.ctx, framing, shotT: from.ctx.shotT + directed.shotT });
         target = blendTargets(out, target, directed.blend);
       }
-      rig.update(SHOT_RIG_MODE[state.shot], target, frame.dt, ground, anchor, { blended: true });
+      rig.update(SHOT_RIG_MODE[state.shot], target, frame.dt, groundAt, anchor, { blended: true });
     } else {
       shotRef.current = null;
       fromRef.current = null;
       const mode = settings.cameraMode as WorldCameraMode;
       const target = cameraTarget(mode, input, framing, settings.cameraDistance);
-      rig.update(mode, target, frame.dt, ground, anchor);
+      rig.update(mode, target, frame.dt, groundAt, anchor);
     }
     camera.position.set(rig.position.x, rig.position.y, rig.position.z);
     camera.lookAt(rig.look.x, rig.look.y, rig.look.z);

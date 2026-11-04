@@ -50,7 +50,7 @@ import { createThreeWorldRenderer } from './threeWorldRenderer';
 import { Vegetation } from './Vegetation';
 import { Water } from './Water';
 import { Weather } from './Weather';
-import { ChunkVisibility, createRideFrame, createSceneWorld, type RideFrame, type SceneWorld } from './worldScene';
+import { ChunkVisibility, createRideFrame, createSceneWorld, drawnGround, type RideFrame, type SceneWorld } from './worldScene';
 
 preloadRider();
 
@@ -76,10 +76,12 @@ function RideDriver({
   sceneWorld,
   frame,
   override,
+  ground,
 }: {
   sceneWorld: SceneWorld;
   frame: RideFrame;
   override: { current: RiderPose | null };
+  ground: (x: number, y: number) => number;
 }) {
   const memo = useMemo(() => createRideDriverMemo(), []);
   useFrame((state, delta) => {
@@ -97,6 +99,7 @@ function RideDriver({
       lookAheadM: chaseFraming(useSettingsStore.getState().cameraDistance).lookAheadM,
       dt: Math.min(0.1, Math.max(0, delta)),
       timeS: state.clock.elapsedTime,
+      ground,
     });
   }, -1);
   return null;
@@ -297,6 +300,7 @@ export function WorldScene({
   tier,
   lightInput,
   override,
+  groundReady,
   onReady,
   onDpr,
 }: {
@@ -306,12 +310,31 @@ export function WorldScene({
   tier: string;
   lightInput: Omit<WorldLightInput, 'date'>;
   override: { current: RiderPose | null };
+  groundReady: { current: () => boolean };
   onReady: () => void;
   onDpr: (dpr: number) => void;
 }) {
   const frame = useMemo(() => createRideFrame(), []);
   const meter = useMemo(() => new FrameStats(), []);
   const visibility = useMemo(() => new ChunkVisibility(sceneWorld.chunks.length), [sceneWorld]);
+  // One height source: the terrain triangles as drawn, for rider, camera,
+  // bots, ghosts, roads and the route line.
+  const ground = useMemo(
+    () => drawnGround(sceneWorld, visibility, { near: quality.nearStep, far: quality.farStep }),
+    [sceneWorld, visibility, quality.nearStep, quality.farStep],
+  );
+  // The ride start holds until the chunk under the rider draws full detail.
+  useEffect(() => {
+    groundReady.current = () => {
+      const p = frame.placement;
+      if (!frame.valid || !p) return false;
+      const i = sceneWorld.locate(p.worldX, p.worldY);
+      return i < 0 || visibility.near[i] === 1;
+    };
+    return () => {
+      groundReady.current = () => true;
+    };
+  }, [groundReady, frame, sceneWorld, visibility]);
   const atmo = useMemo(() => createAtmosphere(), []);
   const lightState = useMemo(() => createLightState(), []);
   const stats = useMemo(() => ({ trees: 0 }), []);
@@ -355,7 +378,7 @@ export function WorldScene({
   return (
     <>
       <DprController quality={quality} onDpr={onDpr} />
-      <RideDriver sceneWorld={sceneWorld} frame={frame} override={override} />
+      <RideDriver sceneWorld={sceneWorld} frame={frame} override={override} ground={ground} />
       <Sky frame={frame} lightInput={lightInput} quality={quality} atmo={atmo} occlusion={occlusion} lightState={lightState} />
       <Terrain sceneWorld={sceneWorld} quality={quality} landcover={maps?.landcover ?? null} aux={maps?.aux ?? null} atmo={atmo} visibility={visibility} />
       <Water sceneWorld={sceneWorld} atmo={atmo} />
@@ -366,11 +389,11 @@ export function WorldScene({
       <Vegetation sceneWorld={sceneWorld} quality={quality} atmo={atmo} stats={stats} />
       <Weather quality={quality} atmo={atmo} lightState={lightState} />
       <Landmarks sceneWorld={sceneWorld} quality={quality} />
-      <ChaseCamera frame={frame} heightfield={sceneWorld.heightfield} landmarks={directorLandmarks} />
-      <Ghosts sceneWorld={sceneWorld} route={route} />
+      <ChaseCamera frame={frame} heightfield={sceneWorld.heightfield} landmarks={directorLandmarks} ground={ground} />
+      <Ghosts sceneWorld={sceneWorld} route={route} ground={ground} />
       <Suspense fallback={null}>
         <LiveRider frame={frame} castShadow={quality.shadows} />
-        <PaceBots sceneWorld={sceneWorld} route={route} />
+        <PaceBots sceneWorld={sceneWorld} route={route} ground={ground} />
         <ReadySignal onReady={onReady} />
       </Suspense>
       {quality.postFx && <PostFx />}
@@ -438,6 +461,7 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
   );
   const [failed, setFailed] = useState(false);
   const override = useRef<RiderPose | null>(null);
+  const groundReady = useRef<() => boolean>(() => true);
   const [moodOverride, setMoodOverride] = useState<string | null>(null);
   const [pins, setPins] = useState<{ time: TimePreset | null; weather: WeatherCondition | null }>({ time: null, weather: null });
   const onReadyRef = useRef(onReady);
@@ -522,6 +546,7 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
           override.current = pose;
         },
         setMoodOverride,
+        groundReady: () => groundReady.current(),
       }),
     [],
   );
@@ -566,6 +591,7 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
               tier={tier}
               lightInput={lightInput}
               override={override}
+              groundReady={groundReady}
               onReady={handleReady}
               onDpr={setDpr}
             />

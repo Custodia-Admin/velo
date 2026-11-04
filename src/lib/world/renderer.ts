@@ -100,6 +100,13 @@ export interface WorldRenderer {
    * returns to the route's own mood and live weather.
    */
   setMood(mood: string | null): void;
+  /**
+   * Whether the ground under the rider is drawn at full detail yet. The ride
+   * start holds until it is (lib/ride/startHold), so the rider never sets off
+   * on a coarse level of detail that isn't the ground it will ride on.
+   * Renderers with nothing to stream may omit it.
+   */
+  groundReady?(): boolean;
   /** Release everything the renderer holds. Safe to call more than once. */
   dispose(): void;
 }
