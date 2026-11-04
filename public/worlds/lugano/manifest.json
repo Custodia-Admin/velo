@@ -56,11 +56,11 @@
     },
     {
       "path": "roads.json.gz",
-      "bytes": 1943513,
-      "sha256": "bfecf54c0ce525bc57321474de43aff9c678058029572f15a25f968288c75e31",
+      "bytes": 1943654,
+      "sha256": "592071b81da598141d2b25efd01ee5e0f7b5ad6fa0050d57d2e6f4bd4517951f",
       "compression": "gzip",
-      "contentBytes": 4995986,
-      "contentSha256": "e58844dd518f4495440fa8f3267c89cdb64c1cda1871015b2c3806765df25f9c"
+      "contentBytes": 4996297,
+      "contentSha256": "cf8143b29b512abacb96dcbb9dd352bd1ed6bfa2f622a807f3d88887c4659cb2"
     },
     {
       "path": "water.json.gz",
@@ -6772,7 +6772,7 @@
     }
   ],
   "stats": {
-    "roads": 40733,
+    "roads": 40730,
     "waterAreas": 232,
     "waterLines": 2516,
     "landcoverAreas": 4535,

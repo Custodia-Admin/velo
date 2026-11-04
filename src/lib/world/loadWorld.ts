@@ -68,7 +68,7 @@ export interface WorldRoad {
 
 export interface RoadsLayer {
   classes: string[];
-  /** `routeFill` (bundles baked since the route-fill pass): a surface laid under a scenic route, not an OSM way. */
+  /** `routeFill`: a way the OSM snapshot lacks under a scenic route, added by the bake to join the drawn roads either side. */
   flags: Record<'bridge' | 'tunnel' | 'unpaved' | 'oneway', number> & { routeFill?: number };
   roads: WorldRoad[];
 }

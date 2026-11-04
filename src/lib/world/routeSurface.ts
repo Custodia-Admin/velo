@@ -8,9 +8,9 @@
  * Measured per route sample (`WorldRoute.s`, every `stepM` metres) against
  * the bundle's own layers:
  * - on a road: within `roadM` of a mapped road the renderer draws. Tunnels
- *   and steps aren't drawn; a route fill (`routeFill`, a surface the bake
- *   lays under a route where no mapped road is) is drawn but isn't a road,
- *   and would otherwise pave a lake crossing;
+ *   and steps aren't drawn; a route fill (`routeFill`, a way the OSM
+ *   snapshot lacks that the bake adds under a route) is drawn but isn't a
+ *   road, and would otherwise pave a lake crossing;
  * - in a tunnel: off every drawn road but within `roadM` of a tunnel;
  * - off road: neither;
  * - on water: off road and inside a water area polygon (lake, river, pond).

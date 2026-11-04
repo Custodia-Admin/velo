@@ -162,16 +162,26 @@ natively, without Node's web-stream wrapper.
 - `f` is a bit set of `flags` (omitted when 0); `n` indexes `names`.
 - Polylines are clipped to the extent and simplified (Douglas–Peucker 0.5 m).
   Heights come from the heightfield.
-- `routeFill` pieces are not OSM ways. The bake lays one under every stretch
-  of a scenic route whose centreline is off every drawn road (a way missing
-  from the OSM snapshot, the join where an out-and-back was cut, a path
-  mapped a metre to the side), so the route line always sits on a road or
-  path. Each piece follows the route itself, reaches 2 m into the roads either
-  side, and takes the class, surface (`unpaved`), width and name of the
-  nearest mapped way within 12 m (else an unpaved `path`). Renderers draw them
-  under the mapped roads. `tools/worldbake/routeCoverage.mjs <world>` reports
-  each route's share on mapped roads and on drawn surfaces; the bake report
-  has the same numbers under `routes[].roadCoverage`.
+- `routeFill` pieces are not OSM ways: each is a way the OSM snapshot lacks
+  under a scenic route. The bake fits the drawn roads to every route so its
+  painted guide (centre line ± 0.25 m) lies on ONE drawn surface:
+  - where the paint leaves the road the route runs along (a path mapped a
+    metre to the side, a corner the route cuts), the bake bends that road
+    toward the route just far enough, easing back to its mapped line over
+    8 m either side. The road keeps its class, width and surface, and nothing
+    is laid beside it;
+  - where no road runs along the route within 2.5 m (a way newer than
+    `osmDate`, the join where an out-and-back was cut), it adds a `routeFill`
+    piece along the route, reaching a metre into the drawn roads at either end
+    like any mapped junction and never running alongside one. It takes the
+    class and surface of the road it leaves (else an unpaved `path`).
+    Renderers draw these under the mapped roads.
+
+  Road ends count as drawn up to their last point (flat ends, as the renderer
+  draws them), not as round caps. `tools/worldbake/routeCoverage.mjs <world>`
+  reports each route's share near mapped roads, with its centreline on drawn
+  roads, and with its whole guide on them; the bake report has the
+  numbers under `routes[].roadCoverage` (`easedM` bent, `joinedM` added).
 
 ## water.json
 
@@ -360,7 +370,7 @@ destination until they get worlds of their own. Baked 4 Nov 2026 on cat-bed:
 | Bake time | 516 s from an empty cache (Overpass ≈ 7 min of it) |
 | Determinism | two bakes from cache and one from an empty cache: identical bytes for all 8 files (re-bake after the route fixes: two bakes from cache, identical) |
 | Size | 9.46 MB as shipped (gzip), 7.12 MB brotli, 19.3 MB raw |
-| Routes | max gap 0 m; grade Δ 0.61 pp (Lugano–Melide), 0.61 pp (Locarno–Brissago); 100 % on drawn surfaces (Locarno–Brissago: 99.98 % on mapped roads, 116 m route fill) |
+| Routes | max gap 0 m; grade Δ 0.61 pp (Lugano–Melide), 0.61 pp (Locarno–Brissago); painted guide 100 % on drawn roads (Locarno–Brissago: 99.98 % within 1 m of mapped roads; the route fit bends 11 paths by up to 2.35 m over 310 m of route and adds one 2.9 m join, where a 116 m route fill used to lie beside the paths) |
 | Heightfield vs Open-Meteo, 50 seeded points | **fails as written**: RMS 18.17 m at the points; 9.12 m registered at the GLO-90 nodes |
 
 Lugano–Melide's grade Δ was 1.127 pp at the first bake: its geometry rode

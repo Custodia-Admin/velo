@@ -23,7 +23,7 @@ import { fetchOsm, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
-import { routeRoadCoverage, routeSurfaceFill, sampleAppRoute } from './routeCoverage.mjs';
+import { easeRoadsOntoRoutes, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { validateHeightfield } from './validateDem.mjs';
 import { syncDestinations } from './syncDestinations.mjs';
 import { brotliSize, ensureDir, gzip, here, sha256, stableJson, writeFileAtomic } from './util.mjs';
@@ -167,17 +167,32 @@ export async function bake(opts) {
   lap('osm', t);
   t = Date.now();
   const roads = buildRoads(osm.elements.roads, projection, extent);
-  // The route line must sit on a drawn road or path, never on grass: lay a
-  // surface under any stretch no mapped road covers (routeCoverage.mjs).
+  // The route's painted guide must sit on ONE drawn road, never on grass and
+  // never on a second surface laid beside the road: bend the road the route
+  // runs along where the paint leaves it, add the way the snapshot lacks
+  // where no road runs along it (routeCoverage.mjs).
   const routeSamples = routesIn.map((r) => ({ id: r.id, ...sampleAppRoute(r.points, projection) }));
   const mappedCoverage = routeRoadCoverage(routeSamples, roads);
-  const fill = routeSurfaceFill(routeSamples, roads);
-  roads.roads.push(...fill.pieces);
-  const drawnCoverage = routeRoadCoverage(routeSamples, roads);
+  const paintBefore = routePaintCoverage(routeSamples, roads);
+  const fit = easeRoadsOntoRoutes(routeSamples, roads);
+  const paintAfter = routePaintCoverage(routeSamples, roads);
   const roadCoverage = Object.fromEntries(
-    routeSamples.map((r, i) => [r.id, { mappedPct: mappedCoverage[i].pct, drawnPct: drawnCoverage[i].pct, filledM: fill.filledM[r.id], tunnelM: drawnCoverage[i].tunnelM }]),
+    routeSamples.map((r, i) => [
+      r.id,
+      {
+        mappedPct: mappedCoverage[i].pct,
+        paintPctBefore: paintBefore[i].pct,
+        paintPct: paintAfter[i].pct,
+        easedM: fit.easedM[r.id],
+        joinedM: fit.joinedM[r.id],
+        tunnelM: paintAfter[i].tunnelM,
+      },
+    ]),
   );
-  for (const [id, c] of Object.entries(roadCoverage)) log(`route ${id}: ${c.mappedPct}% on mapped roads, ${c.drawnPct}% on drawn surfaces (${c.filledM} m filled${c.tunnelM ? `, ${c.tunnelM} m in tunnels` : ''})`);
+  for (const [id, c] of Object.entries(roadCoverage)) {
+    log(`route ${id}: ${c.mappedPct}% within 1 m of mapped roads; guide on drawn roads ${c.paintPctBefore}% → ${c.paintPct}% (${c.easedM} m eased, ${c.joinedM} m joined${c.tunnelM ? `, ${c.tunnelM} m in tunnels` : ''})`);
+  }
+  log(`route fit: ${fit.roadsEased} roads bent (up to ${fit.maxShiftM} m), ${fit.joins} join pieces`);
   const water = buildWater(osm.elements.water, projection, extent);
   const landcover = buildLandcover(osm.elements.landcover, projection, extent);
   // What the rider follows must never run through a building: every scenic

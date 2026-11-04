@@ -25,7 +25,7 @@ export const ROAD_CLASSES = [
   ['steps', 2],
 ];
 const ROAD_INDEX = new Map(ROAD_CLASSES.map(([c], i) => [c, i]));
-/** `routeFill`: a surface the bake laid under a scenic route where no mapped road is drawn (routeCoverage.mjs). */
+/** `routeFill`: a way the OSM snapshot lacks under a scenic route, added by the bake (routeCoverage.mjs easeRoadsOntoRoutes). */
 export const ROAD_FLAGS = { bridge: 1, tunnel: 2, unpaved: 4, oneway: 8, routeFill: 16 };
 const UNPAVED = /^(unpaved|gravel|fine_gravel|dirt|earth|ground|grass|sand|mud|compacted|pebblestone|woodchips)$/;
 
