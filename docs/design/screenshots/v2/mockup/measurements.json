@@ -457,6 +457,30 @@
  },
  {
   "overflow": false,
+  "scrollWidth": 1280,
+  "minFont": 12,
+  "minFontEl": "Time",
+  "minTarget": 40,
+  "minTargetEl": "Close show mode",
+  "layout": "default",
+  "rootPx": 16,
+  "shot": "pip-tab-1280-night.jpg",
+  "errors": []
+ },
+ {
+  "overflow": false,
+  "scrollWidth": 1280,
+  "minFont": 12,
+  "minFontEl": "Time",
+  "minTarget": 40,
+  "minTargetEl": "Close show mode",
+  "layout": "default",
+  "rootPx": 16,
+  "shot": "pip-tab-1280.jpg",
+  "errors": []
+ },
+ {
+  "overflow": false,
   "scrollWidth": 1440,
   "minFont": 1000000000,
   "minFontEl": "",

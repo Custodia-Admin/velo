@@ -1,0 +1,2530 @@
+{
+ "show-continue-denied-1280-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open the folder \u201cEpisodes\u201d. Choose it again to watch."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1280,
+   "tv": false
+  }
+ },
+ "show-continue-denied-1280.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open the folder \u201cEpisodes\u201d. Choose it again to watch."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1280,
+   "tv": false
+  }
+ },
+ "show-continue-denied-1440-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open the folder \u201cEpisodes\u201d. Choose it again to watch."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  }
+ },
+ "show-continue-denied-1440.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open the folder \u201cEpisodes\u201d. Choose it again to watch."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  }
+ },
+ "show-continue-denied-390-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      325,
+      28,
+      37,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      28,
+      240,
+      334,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      28,
+      300,
+      334,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     28,
+     181,
+     334,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open the folder \u201cEpisodes\u201d. Choose it again to watch."
+   },
+   "panel": [
+    12,
+    12,
+    366,
+    437
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    437,
+    437
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  }
+ },
+ "show-continue-denied-390.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      325,
+      28,
+      37,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      28,
+      240,
+      334,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      28,
+      300,
+      334,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     28,
+     181,
+     334,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open the folder \u201cEpisodes\u201d. Choose it again to watch."
+   },
+   "panel": [
+    12,
+    12,
+    366,
+    437
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    437,
+    437
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  }
+ },
+ "show-continue-denied-tv-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      826,
+      84,
+      70,
+      70
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      84,
+      389,
+      331,
+      84
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      436,
+      389,
+      348,
+      84
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "24.5px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     84,
+     286,
+     812,
+     76
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open the folder \u201cEpisodes\u201d. Choose it again to watch."
+   },
+   "panel": [
+    42,
+    42,
+    896,
+    621
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    621,
+    621
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 70,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  }
+ },
+ "show-continue-denied-tv.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      826,
+      84,
+      70,
+      70
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      84,
+      389,
+      331,
+      84
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      436,
+      389,
+      348,
+      84
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "24.5px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     84,
+     286,
+     812,
+     76
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open the folder \u201cEpisodes\u201d. Choose it again to watch."
+   },
+   "panel": [
+    42,
+    42,
+    896,
+    621
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    621,
+    621
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 70,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  }
+ },
+ "show-continue-done-1280-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      201,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      201,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(174, 165, 152)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "done",
+    "rect": [
+     48,
+     163,
+     464,
+     22
+    ],
+    "role": "status",
+    "text": "You have watched everything from last time. Choose something new."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    334
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    334,
+    334
+   ]
+  },
+  "continueLabel": "Play the next episode",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1280,
+   "tv": false
+  }
+ },
+ "show-continue-done-1280.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      201,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      201,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(103, 92, 81)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "done",
+    "rect": [
+     48,
+     163,
+     464,
+     22
+    ],
+    "role": "status",
+    "text": "You have watched everything from last time. Choose something new."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    334
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    334,
+    334
+   ]
+  },
+  "continueLabel": "Play the next episode",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1280,
+   "tv": false
+  }
+ },
+ "show-continue-done-1440-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      201,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      201,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(174, 165, 152)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "done",
+    "rect": [
+     48,
+     163,
+     464,
+     22
+    ],
+    "role": "status",
+    "text": "You have watched everything from last time. Choose something new."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    334
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    334,
+    334
+   ]
+  },
+  "continueLabel": "Play the next episode",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  }
+ },
+ "show-continue-done-1440.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      201,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      201,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(103, 92, 81)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "done",
+    "rect": [
+     48,
+     163,
+     464,
+     22
+    ],
+    "role": "status",
+    "text": "You have watched everything from last time. Choose something new."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    334
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    334,
+    334
+   ]
+  },
+  "continueLabel": "Play the next episode",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  }
+ },
+ "show-continue-done-390-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      325,
+      28,
+      37,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      28,
+      240,
+      334,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      28,
+      300,
+      334,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(174, 165, 152)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "done",
+    "rect": [
+     28,
+     181,
+     334,
+     43
+    ],
+    "role": "status",
+    "text": "You have watched everything from last time. Choose something new."
+   },
+   "panel": [
+    12,
+    12,
+    366,
+    437
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    437,
+    437
+   ]
+  },
+  "continueLabel": "Play the next episode",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  }
+ },
+ "show-continue-done-390.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      325,
+      28,
+      37,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      28,
+      240,
+      334,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      28,
+      300,
+      334,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(103, 92, 81)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "done",
+    "rect": [
+     28,
+     181,
+     334,
+     43
+    ],
+    "role": "status",
+    "text": "You have watched everything from last time. Choose something new."
+   },
+   "panel": [
+    12,
+    12,
+    366,
+    437
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    437,
+    437
+   ]
+  },
+  "continueLabel": "Play the next episode",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  }
+ },
+ "show-continue-done-tv-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      826,
+      84,
+      70,
+      70
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      84,
+      351,
+      331,
+      84
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      436,
+      351,
+      348,
+      84
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(174, 165, 152)",
+    "font": "24.5px",
+    "overflow": false,
+    "reason": "done",
+    "rect": [
+     84,
+     286,
+     812,
+     38
+    ],
+    "role": "status",
+    "text": "You have watched everything from last time. Choose something new."
+   },
+   "panel": [
+    42,
+    42,
+    896,
+    583
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    583,
+    583
+   ]
+  },
+  "continueLabel": "Play the next episode",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 70,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  }
+ },
+ "show-continue-done-tv.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      826,
+      84,
+      70,
+      70
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      84,
+      351,
+      331,
+      84
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      436,
+      351,
+      348,
+      84
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(103, 92, 81)",
+    "font": "24.5px",
+    "overflow": false,
+    "reason": "done",
+    "rect": [
+     84,
+     286,
+     812,
+     38
+    ],
+    "role": "status",
+    "text": "You have watched everything from last time. Choose something new."
+   },
+   "panel": [
+    42,
+    42,
+    896,
+    583
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    583,
+    583
+   ]
+  },
+  "continueLabel": "Play the next episode",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 70,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  }
+ },
+ "show-continue-files-denied-1280-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": true,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": false,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose videos"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open last time\u2019s videos. Choose them again to watch."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1280,
+   "tv": false
+  }
+ },
+ "show-continue-files-denied-1280.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": true,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": false,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose videos"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open last time\u2019s videos. Choose them again to watch."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1280,
+   "tv": false
+  }
+ },
+ "show-continue-files-denied-1440-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": true,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": false,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose videos"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open last time\u2019s videos. Choose them again to watch."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  }
+ },
+ "show-continue-files-denied-1440.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": true,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": false,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose videos"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open last time\u2019s videos. Choose them again to watch."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  }
+ },
+ "show-continue-files-denied-390-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      325,
+      28,
+      37,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": true,
+     "rect": [
+      28,
+      240,
+      334,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": false,
+     "rect": [
+      28,
+      300,
+      334,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose videos"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     28,
+     181,
+     334,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open last time\u2019s videos. Choose them again to watch."
+   },
+   "panel": [
+    12,
+    12,
+    366,
+    437
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    437,
+    437
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  }
+ },
+ "show-continue-files-denied-390.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      325,
+      28,
+      37,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": true,
+     "rect": [
+      28,
+      240,
+      334,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": false,
+     "rect": [
+      28,
+      300,
+      334,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose videos"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     28,
+     181,
+     334,
+     43
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open last time\u2019s videos. Choose them again to watch."
+   },
+   "panel": [
+    12,
+    12,
+    366,
+    437
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    437,
+    437
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  }
+ },
+ "show-continue-files-denied-tv-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      826,
+      84,
+      70,
+      70
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": true,
+     "rect": [
+      84,
+      389,
+      331,
+      84
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": false,
+     "rect": [
+      436,
+      389,
+      348,
+      84
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose videos"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "24.5px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     84,
+     286,
+     812,
+     76
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open last time\u2019s videos. Choose them again to watch."
+   },
+   "panel": [
+    42,
+    42,
+    896,
+    621
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    621,
+    621
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 70,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  }
+ },
+ "show-continue-files-denied-tv.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      826,
+      84,
+      70,
+      70
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": true,
+     "rect": [
+      84,
+      389,
+      331,
+      84
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": false,
+     "rect": [
+      436,
+      389,
+      348,
+      84
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose videos"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "24.5px",
+    "overflow": false,
+    "reason": "denied",
+    "rect": [
+     84,
+     286,
+     812,
+     76
+    ],
+    "role": "alert",
+    "text": "Chrome didn\u2019t allow Velo to open last time\u2019s videos. Choose them again to watch."
+   },
+   "panel": [
+    42,
+    42,
+    896,
+    621
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    621,
+    621
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 70,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  }
+ },
+ "show-continue-missing-1280-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "missing",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "The folder \u201cEpisodes\u201d has moved, or has no videos Chrome can play now. Choose a folder."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1280,
+   "tv": false
+  }
+ },
+ "show-continue-missing-1280.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "missing",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "The folder \u201cEpisodes\u201d has moved, or has no videos Chrome can play now. Choose a folder."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1280,
+   "tv": false
+  }
+ },
+ "show-continue-missing-1440-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "missing",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "The folder \u201cEpisodes\u201d has moved, or has no videos Chrome can play now. Choose a folder."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  }
+ },
+ "show-continue-missing-1440.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      472,
+      48,
+      40,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      48,
+      222,
+      190,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      250,
+      222,
+      200,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "missing",
+    "rect": [
+     48,
+     163,
+     464,
+     43
+    ],
+    "role": "alert",
+    "text": "The folder \u201cEpisodes\u201d has moved, or has no videos Chrome can play now. Choose a folder."
+   },
+   "panel": [
+    24,
+    24,
+    512,
+    355
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    355,
+    355
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  }
+ },
+ "show-continue-missing-390-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      325,
+      28,
+      37,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      28,
+      240,
+      334,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      28,
+      300,
+      334,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "missing",
+    "rect": [
+     28,
+     181,
+     334,
+     43
+    ],
+    "role": "alert",
+    "text": "The folder \u201cEpisodes\u201d has moved, or has no videos Chrome can play now. Choose a folder."
+   },
+   "panel": [
+    12,
+    12,
+    366,
+    437
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    437,
+    437
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  }
+ },
+ "show-continue-missing-390.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      325,
+      28,
+      37,
+      40
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      28,
+      240,
+      334,
+      48
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      28,
+      300,
+      334,
+      48
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "14px",
+    "overflow": false,
+    "reason": "missing",
+    "rect": [
+     28,
+     181,
+     334,
+     43
+    ],
+    "role": "alert",
+    "text": "The folder \u201cEpisodes\u201d has moved, or has no videos Chrome can play now. Choose a folder."
+   },
+   "panel": [
+    12,
+    12,
+    366,
+    437
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    437,
+    437
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 40,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  }
+ },
+ "show-continue-missing-tv-night.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      826,
+      84,
+      70,
+      70
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      84,
+      389,
+      331,
+      84
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      436,
+      389,
+      348,
+      84
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(227, 99, 108)",
+    "font": "24.5px",
+    "overflow": false,
+    "reason": "missing",
+    "rect": [
+     84,
+     286,
+     812,
+     76
+    ],
+    "role": "alert",
+    "text": "The folder \u201cEpisodes\u201d has moved, or has no videos Chrome can play now. Choose a folder."
+   },
+   "panel": [
+    42,
+    42,
+    896,
+    621
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    621,
+    621
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 70,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  }
+ },
+ "show-continue-missing-tv.jpg": {
+  "chooser": {
+   "buttons": [
+    {
+     "filled": false,
+     "rect": [
+      826,
+      84,
+      70,
+      70
+     ],
+     "text": "Close show"
+    },
+    {
+     "filled": false,
+     "rect": [
+      84,
+      389,
+      331,
+      84
+     ],
+     "text": "Choose videos"
+    },
+    {
+     "filled": true,
+     "rect": [
+      436,
+      389,
+      348,
+      84
+     ],
+     "text": "Choose a folder"
+    }
+   ],
+   "canFloat": true,
+   "continueShown": false,
+   "filled": [
+    "Choose a folder"
+   ],
+   "message": {
+    "color": "rgb(163, 41, 49)",
+    "font": "24.5px",
+    "overflow": false,
+    "reason": "missing",
+    "rect": [
+     84,
+     286,
+     812,
+     76
+    ],
+    "role": "alert",
+    "text": "The folder \u201cEpisodes\u201d has moved, or has no videos Chrome can play now. Choose a folder."
+   },
+   "panel": [
+    42,
+    42,
+    896,
+    621
+   ],
+   "panelInView": true,
+   "panelScroll": [
+    621,
+    621
+   ]
+  },
+  "continueLabel": "Continue Episode 2 \u00b7 12:34",
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Pick videos saved on this device. Choose",
+   "minTarget": 70,
+   "minTargetEl": "Close show",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  }
+ }
+}

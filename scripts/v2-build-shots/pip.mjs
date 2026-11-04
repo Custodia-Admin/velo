@@ -133,6 +133,14 @@ async function click(cdp, find, what) {
   }
 }
 
+/**
+ * el.click() for clicks that need no user activation: a busy page can shift between reading a
+ * rect and the mouse event, and a pointer click then lands on another route card or on Finish.
+ */
+async function jsClick(cdp, find, what) {
+  await poll(() => evalIn(cdp, `(() => { const el = (${find}); if (!el) return false; el.click(); return true; })()`), (v) => v, 60_000, what);
+}
+
 /** Click until `done` (a JS expression) holds: software GL can leave the page too busy for a first click. */
 async function clickUntil(cdp, find, done, what, timeout = 90_000) {
   await poll(async () => {
@@ -140,7 +148,10 @@ async function clickUntil(cdp, find, done, what, timeout = 90_000) {
     await click(cdp, find, what);
     await sleep(2500);
     return evalIn(cdp, `!!(${done})`);
-  }, (v) => v, timeout, what);
+  }, (v) => v, timeout, what).catch(async (e) => {
+    const btns = await evalIn(cdp, `[...document.querySelectorAll('button')].filter(${shown}).map((b) => b.getAttribute('aria-label') || b.textContent.trim()).join(' | ')`).catch(() => '?');
+    throw new Error(`${e.message}; visible buttons: ${btns}`);
+  });
 }
 
 async function saveJpeg(cdp, path, clip) {
@@ -151,6 +162,50 @@ async function saveJpeg(cdp, path, clip) {
     `from PIL import Image; Image.open(${JSON.stringify(png)}).convert('RGB').save(${JSON.stringify(path)}, 'JPEG', quality=84, optimize=True, progressive=True)`]);
   rmSync(png, { force: true });
   console.log('  wrote', path.replace(REPO + '/', ''));
+}
+
+/**
+ * Wait until the chase camera has caught up with the staged jump: the rider's screen point holds
+ * still (within 1 % of the window height over 3 s). Software GL on a loaded machine draws a few
+ * frames a second, and a fixed wait shot the camera mid-way (a side view, or close behind with
+ * the bike under the bar).
+ */
+async function settleCamera(page, height) {
+  const at = () => evalIn(page, `window.__veloRideDebug?.()?.riderScreen ?? null`);
+  let last = await at();
+  const until = Date.now() + 120_000;
+  while (Date.now() < until) {
+    await sleep(3000);
+    const now = await at();
+    if (last && now && Math.hypot(now[0] - last[0], now[1] - last[1]) <= height * 0.01) return now;
+    last = now;
+  }
+  console.log('  camera still moving after 120 s, shooting anyway', JSON.stringify(last));
+  return last;
+}
+
+/** Distinct colours in the middle 40 % of a shot's height (the clear band): a world has thousands. */
+function bandColours(path) {
+  return Number(execFileSync('uv', ['run', '--quiet', '--with', 'pillow', 'python', '-c',
+    `from PIL import Image; im = Image.open(${JSON.stringify(path)}).convert('RGB'); w, h = im.size; print(len(im.crop((0, int(h * 0.3), w, int(h * 0.7))).getcolors(1 << 24)))`]).toString().trim());
+}
+
+/**
+ * The window's world as drawn, checked by its pixels rather than the DOM. Software GL in a loaded
+ * xvfb once lost the window's WebGL context (white window, a broken-image glyph at its corner;
+ * `--disable-gpu-watchdog` below is the fix); a lost context never comes back, so say so and stop.
+ * A capture taken mid-frame is retried.
+ */
+async function savePipJpeg(cdp, path, page) {
+  for (let attempt = 1; ; attempt++) {
+    await saveJpeg(cdp, path);
+    const uniq = bandColours(path);
+    if (uniq >= 2000) return;
+    const lost = await evalIn(page, `window.__veloThree ? window.__veloThree.gl.getContext().isContextLost() : null`);
+    if (lost || attempt >= 4) throw new Error(`${path}: the world is not drawn in the window (${uniq} colours, WebGL context lost: ${lost})`);
+    console.log(`  ${path.replace(REPO + '/', '')}: world not drawn in the capture (${uniq} colours), again`);
+    await sleep(4000);
+  }
 }
 
 function init(theme) {
@@ -235,7 +290,13 @@ async function run(theme, layout) {
   const profile = mkdtempSync(join(tmpdir(), 'velo-pip-shots-'));
   const proc = spawn(CHROME, [
     `--user-data-dir=${profile}`, '--remote-debugging-port=0', '--no-first-run', '--no-default-browser-check',
-    '--password-store=basic', '--window-position=0,0', '--disable-gpu-compositing',
+    '--password-store=basic', '--window-position=0,0',
+    '--disable-gpu-compositing',
+    // xvfb has no window manager to keep the picture-in-picture window on top.
+    '--disable-backgrounding-occluded-windows',
+    // Software GL on a loaded machine can take longer per frame than the GPU watchdog allows; the
+    // watchdog then kills the GPU process and the window's WebGL context is lost for good.
+    '--disable-gpu-watchdog',
     ...(laptop ? ['--force-device-scale-factor=2', '--window-size=1280,760'] : ['--window-size=1920,1080']),
     ...GL_ARGS, 'about:blank',
   ], { stdio: 'ignore' });
@@ -265,13 +326,18 @@ async function run(theme, layout) {
     } else await page.send('Emulation.setDeviceMetricsOverride', metrics);
     await page.send('Page.navigate', { url: `${BASE}/app${layout === 'tv' ? '?layout=tv' : ''}` });
     await poll(() => evalIn(page, 'document.readyState'), (s) => s === 'complete', 60_000, 'Home');
-    await click(page, `(${visible('[data-scenic-route="scenic-assisi-valley"]')}) || (${button(/^Ride Assisi/)})`, 'the Assisi route');
+    await jsClick(page, `(${visible('[data-scenic-route="scenic-assisi-valley"]')}) || (${button(/^Ride Assisi/)})`, 'the Assisi route');
     await poll(() => evalIn(page, `!!document.querySelector('[data-world-status=ready]')`), (v) => v, 180_000, 'the world');
     // The tab's own world is not shot (it goes when the ride floats). Off, so
     // software GL leaves the page responsive and the click keeps its user activation.
     await poll(() => evalIn(page, `(() => { if (window.__veloThree) window.__veloThree.scene.visible = false; return !!window.__veloThree; })()`), (v) => v, 60_000, 'the renderer handle');
-    await clickUntil(page, button(/^Show ride details/), button('Watch a show while you ride'), 'ride details');
-    await clickUntil(page, button('Watch a show while you ride'), visible('[data-testid="watch-another-tab"]'), 'show mode');
+    await poll(async () => {
+      if (!(await evalIn(page, `!!(${button('Watch a show while you ride')})`))) await jsClick(page, button(/^Show ride details/), 'ride details');
+      await sleep(1500);
+      return evalIn(page, `!!(${button('Watch a show while you ride')})`);
+    }, (v) => v, 90_000, 'the ride tools');
+    await jsClick(page, button('Watch a show while you ride'), 'show mode');
+    await poll(() => evalIn(page, `!!(${visible('[data-testid="watch-another-tab"]')})`), (v) => v, 60_000, 'Watch another tab');
     // The click must reach the page while it is responsive (user activation): retry.
     await poll(async () => {
       if (await evalIn(page, '!!(documentPictureInPicture.window)')) return true;
@@ -295,7 +361,7 @@ async function run(theme, layout) {
 
     if (layout === '1440' || laptop) {
       const [screenW, screenH] = await evalIn(page, '[screen.width, screen.height]');
-      for (const [size, [w, h]] of Object.entries(laptop ? LAPTOP_SIZES : SIZES)) {
+      for (const [size, [w, h]] of Object.entries(laptop ? LAPTOP_SIZES : SIZES).filter(([k]) => !process.env.ONLY_SIZES || process.env.ONLY_SIZES.split(',').includes(k))) {
         // Window frame (title bar) outside the document: size the window so the document is w x h.
         await browser.send('Browser.setWindowBounds', { windowId, bounds: { left: screenW - w - 40, top: screenH - h - 80, width: w, height: h } });
         await sleep(500);
@@ -310,12 +376,16 @@ async function run(theme, layout) {
         if (got[0] !== w) console.log(`  window ${size}: asked ${w}x${h}, Chrome gave ${got[0]}x${got[1]}`);
         console.log('  staged', await evalIn(page, STAGE));
         await sleep(Number(process.env.SETTLE_S ?? 12) * 1000);
-        await saveJpeg(pip, join(OUT, `pipwin-${size}${laptop ? '-1280' : ''}${suffix}.jpg`));
+        await settleCamera(page, h);
+        await savePipJpeg(pip, join(OUT, `pipwin-${size}${laptop ? '-1280' : ''}${suffix}.jpg`), page);
         const m = await evalIn(page, `(() => { const w = documentPictureInPicture.window; const d = w.document; const r = (s) => { const e = d.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)]; };
           const bar = d.querySelector('[data-testid=journey-bar]');
           return { window: [w.innerWidth, w.innerHeight, w.devicePixelRatio], canvas: r('[data-testid=pip-ride] canvas'), barScroll: [bar.scrollWidth, bar.clientWidth], pause: r('[data-testid=journey-bar] button'),
             root: getComputedStyle(d.documentElement).fontSize, bar: r('[data-testid=journey-bar]'), next: [...d.querySelectorAll('[data-testid=journey-next]')].filter((e) => e.checkVisibility()).map((e) => e.textContent),
-            fig: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num')).fontSize, label: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num').nextElementSibling).fontSize }; })()`);
+            fig: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num')).fontSize, label: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num').nextElementSibling).fontSize,
+            world: d.querySelector('[data-world-status]')?.getAttribute('data-world-status') ?? null, renderer: d.querySelector('[data-renderer]')?.getAttribute('data-renderer') ?? null,
+            rider: window.__veloRideDebug?.()?.riderScreen ?? null,
+          }; })()`);
         console.log(`  pipwin-${size}${suffix}`, JSON.stringify(m));
       }
     }
