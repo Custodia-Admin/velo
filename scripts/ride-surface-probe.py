@@ -14,7 +14,9 @@ Held spots fail outside +-TOL; ridden start samples fail only when under a drawn
 report the rest (float, pop) as soft counts. A sample is ok when |rider - top drawn ground| <= TOL, nothing drawn sits more than TOL above the wheels and
 the camera is above every drawn surface under it. A photoreal mesh reading 2.5 m or more over the wheels is an
 overhang (tree, lamp, bridge: the mesh height is the top of whatever is there) and is counted, not failed; the
-globe is bare terrain and never exempt. Ridden samples also fail on a pop: the rider's height jumping more than
+globe is bare terrain and never exempt. A rider more than 6 m over the opaque bare terrain is "on a structure"
+(canopy, viaduct deck: one top-of-mesh ray cannot see the ground below it); held samples there are counted
+apart unless something drawn is over the wheels or the camera. Ridden samples also fail on a pop: the rider's height jumping more than
 0.5 m + 30 % of the distance between two samples. Road surfaces: on the world renderer the road-ribbon and
 route-line hits in the rider's column form ONE level (hits within TOL of each other). On photoreal the road
 is a ground classification painted on whichever surface is in front, so exactly one copy shows when the
@@ -143,9 +145,13 @@ SAMPLE = r"""(tol) => {
   const camGround = ground(atCam, d.groundEle);
   const camTop = camGround.length ? Math.max(...camGround.map((s) => s[1])) : null;
   const above = g.filter((s) => s[1] > d.groundEle + tol).length;
+  // On a structure: > 6 m over the opaque bare terrain (tree canopy, viaduct deck). The mesh height under
+  // the wheels is then unknowable from one top-of-mesh ray; reported on its own, not as ground error.
+  const bare = atRider.find((s) => s[0] === 'globe');
+  const onStructure = !!bare && d.groundEle - bare[1] > 6;
   const ok = top !== null && Math.abs(d.groundEle - top) <= tol && above === 0 && (camTop === null || cam.height > camTop);
   return { renderer: 'photoreal', dist: d.dist, rider: d.groundEle, top, riderVsTop: top === null ? null : d.groundEle - top,
-    above, overhang, camVsTop: camTop === null ? null : cam.height - camTop, surfaces: atRider, camSurfaces: atCam,
+    above, overhang, onStructure, camVsTop: camTop === null ? null : cam.height - camTop, surfaces: atRider, camSurfaces: atCam,
     meshShown, meshLoaded: meshShown ? ts.tilesLoaded : null, globeLoaded: globe.tilesLoaded, ok };
 }"""
 
@@ -156,6 +162,12 @@ dims, _, dpr = SIZE.partition("@")
 W, H = (int(v) for v in dims.split("x"))
 report = {"base": base, "size": SIZE, "quality": QUALITY, "tol": TOL, "routes": []}
 failed = 0
+
+
+def under(s):
+    """Rider below a drawn ground surface, or camera at/under one: the owner's bug."""
+    return (s["riderVsTop"] is not None and s["riderVsTop"] < -TOL) or s["above"] > 0 or \
+        (s["camVsTop"] is not None and s["camVsTop"] <= 0)
 
 
 def fmt(s):
@@ -203,8 +215,7 @@ with sync_playwright() as p:
         # Hard: under a drawn surface (rider or camera), the owner's bug. Soft: floating or popping
         # while ridden (the avatar easing across a step of the photoreal mesh), reported, not fatal.
         for s in moving:
-            s["under"] = (s["riderVsTop"] is not None and s["riderVsTop"] < -TOL) or s["above"] > 0 or \
-                (s["camVsTop"] is not None and s["camVsTop"] <= 0)
+            s["under"] = under(s)
         bad = [s for s in moving if s["under"]]
         soft = [s for s in moving if not s["ok"] and not s["under"]]
         r["startSoft"] = len(soft)
@@ -226,10 +237,15 @@ with sync_playwright() as p:
             page.evaluate(PLACE, max(0.0, m - 60))
             time.sleep(SETTLE)
             x = max(0.0, m - 60)
+            roll = []
             while x < m:
                 x = min(m, x + 2)
                 page.evaluate(PLACE, x)
                 time.sleep(0.1)
+                if int(x) % 6 == 0:
+                    rs = page.evaluate(SAMPLE, TOL)
+                    if rs:
+                        roll.append({k: rs.get(k) for k in ("dist", "rider", "top", "surfaces", "ok")})
             time.sleep(2)
             samples = []
             for _ in range(SAMPLES):
@@ -240,9 +256,12 @@ with sync_playwright() as p:
             if SHOTS:
                 page.mouse.move(5, 5)
                 page.screenshot(path=str(out / f"{short}-{int(m)}-{W}x{H}.png"))
-            n_bad = sum(1 for s in samples if not s["ok"])
-            r["spots"].append({"m": m, "samples": samples, "failures": n_bad})
-            print(f"  {int(m):>5} m: {fmt(samples[-1] if samples else None)} ({n_bad}/{len(samples)} failing)", flush=True)
+            # Held: +-TOL, except a sample on a structure that is not under anything (counted apart).
+            n_struct = sum(1 for s in samples if s.get("onStructure") and not under(s))
+            n_bad = sum(1 for s in samples if not s["ok"] and not (s.get("onStructure") and not under(s)))
+            r["spots"].append({"m": m, "samples": samples, "failures": n_bad, "onStructure": n_struct, "roll": roll})
+            st = f", {n_struct} on a structure" if n_struct else ""
+            print(f"  {int(m):>5} m: {fmt(samples[-1] if samples else None)} ({n_bad}/{len(samples)} failing{st})", flush=True)
         route_failed = r["startFailures"] > 0 or any(sp.get("failures") for sp in r["spots"]) or \
             any(not sp["samples"] for sp in r["spots"])
         r["ok"] = not route_failed
