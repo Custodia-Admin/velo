@@ -331,6 +331,10 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
         store.getState().pause();
       }
 
+      // Advance pace bots in the same frame (cheap — no allocations per bot).
+      // Skip for outdoor mode — pace bots are an indoor-only feature.
+      if (s.rideMode !== 'outdoor' && s.paceBots.length > 0) s.tickBots(dt);
+
       // ---- Climb auto-segmentation ----------------------------------------
       // Run every frame so the state machine accumulates consecutive samples.
       // Announcements only fire when climbAnnouncementsEnabled and volume > 0.

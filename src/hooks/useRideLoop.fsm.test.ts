@@ -36,6 +36,7 @@ vi.mock('@/lib/ftms', async (orig) => ({
 import { useRideLoop } from './useRideLoop';
 import { selectRideFsm, useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { BOT_PRESETS, createPaceBot } from '@/lib/paceBots';
 
 // 10 km at a steady 3 %.
 const route: Route = {
@@ -269,5 +270,45 @@ describe('useRideLoop × rideFsm — 30 Oct regressions', () => {
     frames(2);
     expect(h.sim).not.toHaveBeenCalled();
     expect(useRideStore.getState().power).toBe(190);
+  });
+});
+
+describe('useRideLoop × pace bots', () => {
+  it('a pace partner rides away from the start line during a demo ride', () => {
+    useRideStore.getState().setRoute(route);
+    useRideStore.getState().setPaceBots([createPaceBot('b1', BOT_PRESETS[0])]);
+    useRideStore.getState().start();
+    frames(10);
+    const st = useRideStore.getState();
+    expect(st.rideState).toBe('running');
+    expect(st.distance).toBeGreaterThan(5);
+    const bot = st.paceBots[0].state;
+    // ~80 % of a 260 W FTP on 3 %: the bot keeps roughly with the 190 W rider.
+    expect(bot.distance).toBeGreaterThan(5);
+    expect(Math.abs(bot.distance - st.distance)).toBeLessThan(30);
+    // The tick placed it on the route, not at the 0/0 default.
+    expect(bot.lat).toBeGreaterThan(0);
+  });
+
+  it('an outdoor ride leaves pace partners at the start (indoor-only feature)', () => {
+    useRideStore.getState().setRoute(route);
+    useRideStore.getState().setPaceBots([createPaceBot('b1', BOT_PRESETS[0])]);
+    useRideStore.getState().setRideMode('outdoor');
+    useRideStore.getState().start();
+    frames(5);
+    expect(useRideStore.getState().rideState).toBe('running');
+    expect(useRideStore.getState().paceBots[0].state.distance).toBe(0);
+  });
+
+  it('a paused ride holds the pace partner where it is', () => {
+    useRideStore.getState().setRoute(route);
+    useRideStore.getState().setPaceBots([createPaceBot('b1', BOT_PRESETS[0])]);
+    useRideStore.getState().start();
+    frames(5);
+    useRideStore.getState().pause();
+    const held = useRideStore.getState().paceBots[0].state.distance;
+    expect(held).toBeGreaterThan(0);
+    frames(5);
+    expect(useRideStore.getState().paceBots[0].state.distance).toBe(held);
   });
 });
