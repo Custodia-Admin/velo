@@ -17,7 +17,8 @@ surfaces the renderer really draws:
                     The rider is checked against the main view's depth at its wheels (the frame as drawn; the
                     overhead pick camera can select another level of detail), or against the overhead pick's
                     top where a canopy or deck hides the wheels from the chase camera. A camera ray through the
-                    wheels that hits nothing within 50 m beyond them is a void under the rider (fails).
+                    wheels that hits nothing within 50 m beyond them is a void under the rider: with the globe
+                    hidden nothing is drawn there (fails); with it drawn the rider floats (soft).
 
 Held spots fail outside +-TOL; ridden start samples fail only when under a drawn surface (rider or camera) and
 report the rest (float, pop) as soft counts. A sample is ok when |rider - top drawn ground| <= TOL, nothing drawn sits more than TOL above the wheels and
@@ -277,7 +278,7 @@ def under(s):
     nothing drawn under the rider at all."""
     g = s.get("riderVsGround", s["riderVsTop"])
     above = s["above"] > 0 and not s.get("viewGround")
-    return (g is not None and g < -TOL) or above or s.get("voidUnder") or \
+    return (g is not None and g < -TOL) or above or (s.get("voidUnder") and not s.get("globeShown")) or \
         (s["camVsTop"] is not None and s["camVsTop"] <= 0) or (s.get("undersidePx") or 0) > UNDERSIDE_MAX
 
 
