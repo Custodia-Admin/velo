@@ -5,7 +5,8 @@
  * a stub runtime) and the elements it returns are read, not rendered.
  *
  * Review of PR #36 @bbe04db, I5: dropping ChaseCamera's `landmarks` prop left
- * every test green.
+ * every test green. The merge with #34 adds the drawn ground on the same
+ * elements.
  */
 import { describe, expect, it, vi } from 'vitest';
 import type { ReactElement } from 'react';
@@ -27,6 +28,8 @@ vi.mock('./landcoverTexture', () => ({ buildLandcoverCanvas: () => null }));
 const { isValidElement } = await import('react');
 const { WorldScene } = await import('./ThreeWorldView');
 const { ChaseCamera } = await import('./ChaseCamera');
+const { Ghosts } = await import('./Ghosts');
+const { PaceBots } = await import('./Rider');
 const { sceneLandmarks } = await import('./directorCamera');
 const { THREE_QUALITY } = await import('./quality');
 const { syntheticSceneWorld } = await import('./syntheticWorld');
@@ -72,5 +75,15 @@ describe('WorldScene', () => {
     const expected = sceneLandmarks(route, sw);
     expect(expected.map((l) => l.name)).toEqual(['Rivotorto']);
     expect(cams[0].props.landmarks).toEqual(expected);
+
+    // ...and the drawn ground (PR #34): the camera, the ghosts and the pace bots stand on the same surface.
+    const ground = cams[0].props.ground;
+    expect(typeof ground).toBe('function');
+    const ghosts = elements(tree).filter((e) => e.type === Ghosts);
+    const bots = elements(tree).filter((e) => e.type === PaceBots);
+    expect(ghosts).toHaveLength(1);
+    expect(bots).toHaveLength(1);
+    expect(ghosts[0].props.ground).toBe(ground);
+    expect(bots[0].props.ground).toBe(ground);
   });
 });

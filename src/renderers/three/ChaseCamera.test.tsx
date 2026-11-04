@@ -177,3 +177,43 @@ describe('<ChaseCamera> feeds the show director the ride it films', () => {
     await r.unmount();
   });
 });
+
+describe('<ChaseCamera> keeps above the drawn ground (PR #34) with and without the director', () => {
+  // A drawn surface 30 m above the heightfield under the camera (a viaduct, a
+  // photoreal-style mesh): the camera must clear it in the rider's own camera
+  // AND in every director shot. Merging #34 into #36 touched both branches.
+  const RAISE_M = 30;
+  const ground = (x: number, y: number) => sw.heightfield.sampleHeight(x, y) + RAISE_M;
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetShowDirector();
+    useShowStore.setState({ active: false, autoCamera: true, startedAtMs: null });
+    camera = null;
+  });
+
+  for (const directed of [false, true]) {
+    it(directed ? "the director's shots clear the drawn ground" : "the rider's own camera clears the drawn ground", async () => {
+      let now = 10_000;
+      vi.spyOn(performance, 'now').mockImplementation(() => now);
+      if (directed) useShowStore.setState({ active: true, autoCamera: true, startedAtMs: now });
+      const frame = frameAt(0, 0);
+      const r = await ReactThreeTestRenderer.create(
+        <>
+          <GrabCamera />
+          <ChaseCamera frame={frame} heightfield={sw.heightfield} ground={ground} />
+        </>,
+      );
+      for (let i = 0; i < 120; i++) {
+        now += 50;
+        frame.pose!.distance += 0.4;
+        await r.advanceFrames(1, 0.05);
+      }
+      if (directed) expect(vi.mocked(showDirectorFrame).mock.results.at(-1)?.value).not.toBeNull();
+      const p = camera!.position;
+      // three.js z is world -y: the drawn ground is sampled at (x, -z).
+      expect(p.y).toBeGreaterThanOrEqual(ground(p.x, -p.z));
+      await r.unmount();
+    });
+  }
+});
