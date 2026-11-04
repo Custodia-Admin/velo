@@ -589,11 +589,13 @@ function globeDrawnOpaque(globe: Cesium.Globe): boolean {
 
 /**
  * The ground under the rider has streamed in: World Terrain is the globe's
- * terrain, and either the ground under the rider is at full detail
- * (`stable`, from the view's renderers/cesium/startGround watch) or every
- * globe tile for this view is loaded and so is the shown photoreal mesh. Always true on the flat no-token globe (nothing
- * streams). The ride start waits for this, so the rider never sets off on
- * coarse tiles (they put the rider up to 200 m off the ground for ~15 s).
+ * terrain, and either the ground under the rider is plausible (`stable`,
+ * from the view's renderers/cesium/startGround watch: no coarse chord, held
+ * still) or every globe tile for this view is loaded and so is the shown
+ * photoreal mesh. Always true on the flat no-token globe (nothing streams).
+ * The ride start waits for this for a short while (lib/ride/startHold), so
+ * the rider doesn't set off on a coarse tile hundreds of metres off the
+ * ground.
  */
 export function groundSettled(scene: Cesium.Scene, stable = false): boolean {
   if (!onRealTerrain()) return true;
@@ -609,6 +611,16 @@ export function groundSettled(scene: Cesium.Scene, stable = false): boolean {
     }
   }
   return true;
+}
+
+/**
+ * World Terrain is coming (a token, ion hasn't refused it) but the globe is
+ * still the flat 0 m ellipsoid it starts on: nothing real is drawn under the
+ * rider yet, and a ride that set off now would jump hundreds of metres when
+ * the terrain lands.
+ */
+export function worldTerrainPending(scene: Cesium.Scene): boolean {
+  return onRealTerrain() && isFlatGlobe(scene);
 }
 
 /** Larger gaps between loaded-tile height and route height are coarse-tile chord error. */
