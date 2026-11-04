@@ -1706,7 +1706,12 @@ export function createGroundSampler(scene: Cesium.Scene) {
         last = road.next(meshAt(lon, lat), lon, lat, floor + MESH_OVER_TERRAIN_MAX_M, meshAt);
         const status = road.status();
         onMesh = status === 'road' || status === 'overhang';
-        if (last === undefined && globeHidden(scene)) last = road.road();
+        // No mesh road here: keep the road the rider is on while the globe is
+        // hidden (nothing else is drawn to stand on) or still streaming back
+        // in. A globe hidden for kilometres comes back with coarse tiles: at
+        // Chengdu 5 km one read 780 m under the road, and the rider sank
+        // towards it. The drawn globe still wins where it is higher.
+        if (last === undefined && (globeHidden(scene) || globeStreaming(scene))) last = road.road();
       }
       // The mesh reading is reused between samples; the globe (drawn over the
       // mesh wherever its terrain is higher) is read fresh every call.
@@ -1721,6 +1726,10 @@ export function createGroundSampler(scene: Cesium.Scene) {
 
 function globeHidden(scene: Cesium.Scene): boolean {
   return (scene.globe as { show?: boolean } | undefined)?.show === false;
+}
+
+function globeStreaming(scene: Cesium.Scene): boolean {
+  return (scene.globe as { tilesLoaded?: boolean } | undefined)?.tilesLoaded === false;
 }
 
 function withRidersHidden<T>(fn: () => T): T {

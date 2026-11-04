@@ -305,6 +305,24 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     expect(sampler.sample(lon, lat(4), 312, 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(387.1, 6);
   });
 
+  it('a globe back from hiding with a stale chord far below holds the road until it has streamed in (Chengdu 5 km)', async () => {
+    setIonToken('eyJ_test');
+    let reading: number | undefined = 446.6;
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => reading);
+    const g: GlobeOpts = { height: -349.9, show: false, tilesLoaded: false };
+    const { s, globe } = scene(tileset, g);
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(lon, lat(0), 434, 0)).toBeCloseTo(446.6, 6);
+    reading = undefined; // a jump onto ground the mesh hasn't streamed yet
+    globe.show = true; // the gate brings the globe back, its tiles 2 km stale
+    expect(sampler.sample(lon, lat(2), 434, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(446.6, 6);
+    // Streamed in: the globe's real terrain decides again.
+    globe.tilesLoaded = true;
+    globe.getHeight.mockReturnValue(439.8);
+    expect(sampler.sample(lon, lat(4), 434, 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(439.8, 6);
+  });
+
   it("a hidden globe's stale tiles don't cap the road: the road the rider is on bounds the ceiling too", async () => {
     setIonToken('eyJ_test');
     // Route elevation 305 m (orthometric; the ellipsoid sits ~50 m higher
