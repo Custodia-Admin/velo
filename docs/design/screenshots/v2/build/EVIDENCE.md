@@ -15,14 +15,13 @@ Home / Devices / Show / Finish mockups stand) and the build follows it:
   toggle. Phones: three figures (units as labels) + icon transport, then grade, power and gear
   in one row at figure size (`text-2xl` values, small units; UI-RULES §5).
 - **One status chip** above the band's start: every trainer / controls / HR-strap / toast state
-  ("Trainer lost · tap for devices", "Trainer not connected · tap for devices", "Controls
-  locked"). Tap: a notice's action runs; anything else opens the in-ride devices sheet (the
-  Devices screen's rows). **"Trainer lost · tap to reconnect"** (one tap calls
-  `reconnectGrantedTrainer()`) needs a trainer grant the app can use, i.e. the reconnect
-  store in phase `available`/`failed`, which #26's `trainerLost()` sets after a drop. With
-  main (#26) merged in, a real drop ends at "Trainer lost · tap to reconnect" and the tap
-  reconnects (see *Merged with main*); on this PR alone it ended at "Trainer lost · tap for
-  devices" (see *Trainer lost: a real drop*).
+  ("Trainer lost · tap to reconnect", "Trainer not connected · tap for devices", "Controls
+  locked"). Tap: "Trainer lost · tap to reconnect" reconnects the granted trainer in one tap
+  (`reconnectGrantedTrainer()`; #26's `trainerLost()` leaves the reconnect store in phase
+  `available` after a drop, `failed` after a tap that didn't reach it); a notice's action runs;
+  anything else opens the in-ride devices sheet (the Devices screen's rows). A trainer lost with
+  no usable grant reads "Trainer lost · tap for devices". A real drop on this branch ends at
+  the mockup's "Trainer lost · tap to reconnect" (see *Trainer lost: a real drop*).
   The Toaster draws nothing while the chip hosts notices, so there is no red box anywhere,
   show mode included. Phones show the chip only when something is wrong, and a lost trainer
   always is.
@@ -40,70 +39,80 @@ counted once) in brackets. Golden hour, trainer connected, Tiber river park at 9
 
 | Viewport | Collapsed (default) | Trainer lost (chip) | Details open |
 |---|---|---|---|
-| 1440×900 | **4.9 %** (4.9) | 5.0 % (5.0) | 12.0 % (12.1) |
-| 390×844 | **10.9 %** (10.9) | 13.8 % (13.8) | 27.8 % (27.9) |
-| 1920×1080 TV | **9.4 %** (9.6) | 9.6 % (9.8) | 22.9 % (23.3) |
+| 1440×900 | **4.9 %** (4.9) | 5.1 % (5.1) | 12.0 % (12.1) |
+| 390×844 | **10.9 %** (10.9) | 13.9 % (13.9) | 27.8 % (27.9) |
+| 1920×1080 TV | **9.4 %** (9.6) | 9.6 % (9.9) | 22.9 % (23.3) |
 
 Collapsed, the ride UI is well under the 15 % budget everywhere, and the topmost HUD pixel is at
 85 % (1440) / 87 % (390) of the screen height: nothing at the top. Phones went from 9.7 % to
 10.9 % in the rework because grade, power and gear are now figure-sized (the band is 98 px
 tall instead of 88). Details open is the rider's explicit choice (one tap back); on phones it
-covers 28 % because the route card and map need the room.
+covers 28 % because the route card and map need the room. Collapsed and lost re-measured on
+4 Nov (rework of the @e675d78 review); details open from 3 Nov (nothing in it changed).
 
 Owner camera (Assisi valley, night, 1280×658 @2, rider at 220 m): PR #27 head 5954f7e
 **15.9 %** (Exit, route card, status pill, three tools at the top + strip) → compact HUD
 **7.4 %** (band + chip), 8.0 % with the trainer link failed ("Trainer not connected · tap for
 devices" in the chip, where the owner's shot had a "Connection failed" card: a failed pairing,
-so the chip no longer calls it "lost").
-`compare/ride-hud-owner-camera-assisi-night.jpg` (owner's own screenshot | PR #27 head |
-compact | compact + failed link), raw numbers in `owner-camera/*.json`.
+so the chip no longer calls it "lost"). Re-shot on 4 Nov with #26 merged in: same chip labels
+(read from the DOM: "Demo ride · no trainer" / "Trainer not connected · tap for devices"),
+same areas. `compare/ride-hud-owner-camera-assisi-night.jpg` (owner's own screenshot | PR #27
+head | compact | compact + failed link), raw numbers and chip text in `owner-camera/*.json`.
 Re-shoot: `scripts/owner-camera-hud-shot.py` + `scripts/owner-camera-hud-compare.py`.
 
 States shot per viewport and theme: `ride-hud-*` (collapsed), `ride-hud-open-*`,
 `ride-hud-lost-*`, each against the mockup's matching state (`?tray=open`, `?state=lost`).
-`ride-hud-lost-*` is **not staged**: the fake KICKR's GATT link drops and refuses every
-reconnect, ftms' own retry loop runs ("KICKR CORE lost · reconnecting 2 … 4 of 4") and gives up
-at ~9 s, and the shot is taken at 13 s. Built from this PR alone, so the chip reads "Trainer
-lost · tap for devices"; the mockup's lost state draws the one-tap "Trainer lost · tap to
-reconnect" that the build shows once #26 is in.
+`ride-hud-lost-*` and `show-lost-*` are **not staged**: the fake KICKR's GATT link drops and
+refuses every reconnect, ftms' own retry loop runs ("KICKR CORE lost · reconnecting 2 … 4 of
+4") and gives up at ~8–9 s, and the shot is taken at ~13 s. The chip then reads the mockup's
+"Trainer lost · tap to reconnect" (re-shot 4 Nov on the branch with #26 merged in; the 3 Nov
+set was from the PR alone and read "tap for devices").
 
 ### Trainer lost: a real drop (review probe `review_hud.py`, fake KICKR, no hardware)
 
-Chip label per second after the drop, on this PR (f130bca) alone and on a trial merge with #26
-(2ae6727; not pushed, conflicts resolved as listed in the PR body):
+Chip label per second after the drop, on this branch (main with #26 merged in; rework of the
+@e675d78 review):
 
 | | 1440×900 | 390×844 |
 |---|---|---|
 | 1–8 s | "KICKR CORE lost · reconnecting 2 → 4 of 4" | same, visible |
-| ≥ 9 s, this PR alone | "Trainer lost · tap for devices", visible to 32 s | same, visible to 32 s (24 s after the failure) |
-| tap, this PR alone | devices sheet opens; trainer row "Couldn't auto-reconnect to the trainer · Pair again" | same |
-| ≥ 8–9 s, with #26 | "Trainer lost · tap to reconnect", visible to 32 s | same, visible to 32 s |
-| tap, with #26 (connect allowed again) | one tap: connection `connected`, mode `trainer`, chip "KICKR CORE · hills 35 %" | same |
+| 9–32 s | "Trainer lost · tap to reconnect" (reconnect phase `available`), visible to the end of the probe | same, visible |
+| one tap (connect allowed again) | connection `connected`, mode `trainer`, chip "KICKR CORE · hills 35 %" | same |
 
-Before the rework the same drop ended in the calm "Demo ride · no trainer", which phones hide.
+No toast card is drawn during the drop: the chip hosts the notices. A trainer lost without a
+usable grant reads "Trainer lost · tap for devices" and the tap opens the devices sheet (trainer
+row "Couldn't auto-reconnect to the trainer · Pair again"). Before the 968bed2 rework the same
+drop ended in the calm "Demo ride · no trainer", which phones hide.
 
-### Merged with main (#26 device layer in), 3 Nov
+### #26 device layer (merged from main, 3 Nov; port completed 4 Nov)
 
-Main 0efea8d (PR #26 as 86de64a) merged into this branch; the same real drop on the merged tree
-(review probe, fake KICKR, private dev server): 1–8 s "KICKR CORE lost · reconnecting 2 → 4 of 4",
-from 9 s "Trainer lost · tap to reconnect" (visible at 1440 and 390), one tap → connection
-`connected`, mode `trainer`, chip "KICKR CORE · hills 35 %". Collapsed ride UI unchanged:
-**4.9 %** (1440×900), **10.9 %** (390×844).
+#26's UI lives in this PR's components (P2.4 no longer mounts the Home Trainer card, so the
+Devices row is where it has to be), on /devices and in the in-ride devices sheet:
+- the handlebar row's "What the buttons do" carries the ride legend, "While you watch a video"
+  (Y / Z / B) and the "Steer with the levers" + "Buzz on gear change" switches
+  (`merge-pr26/devices-legend-*.jpg`);
+- controls paired in an earlier session: the row reads "Paired before · not connected · Velo
+  reconnects them by itself when you start a ride." with one-tap **Reconnect** (no chooser) and
+  a "Pair handlebar controls" link, gone once a pairing was tried. Probe (fake granted Zwift
+  Ride): the tap goes connected / left in 0.5 s with no chooser opened;
+- the asleep row says what will happen: "… then tap Reconnect." without a wake watch, "… they
+  reconnect by themselves." with one (`merge-pr26/devices-asleep-*.jpg`). Forget also drops the
+  remembered unit.
 
-#26's UI now lives in this PR's components (P2.4 no longer mounts the Home Trainer card, so the
-Devices row is where it has to be): the handlebar row's "What the buttons do" carries the ride
-legend, "While you watch a video" (Y / Z / B) and the "Steer with the levers" + "Buzz on gear
-change" switches, on /devices and in the in-ride devices sheet (`merge-pr26/devices-legend-*.jpg`).
-The asleep row says what will happen: "… then tap Reconnect." without a wake watch, "… they
-reconnect by themselves." with one (`merge-pr26/devices-asleep-*.jpg`). Forget also drops the
-remembered unit.
+Device rows keep the glyph and the action level with the name + state lines (they were centred
+on the whole row, so with the legend open they floated 318 px below the title at 1440 and 443 /
+923 px at 390, 591 px in the in-ride sheet). Measured with the review's `geom.py`, legend closed
+and open, /devices and the sheet, 1440 and 390: glyph centre 24 px below the title top on every
+row, the action (sm+) 24 px. Two-line rows look as before. The state line wraps beside its dot
+(hanging indent), so the dot is never alone on a line (it was, in the 24rem sheet at 1440 and on
+the trainer row at 390).
 
 The in-ride devices sheet with that disclosure open was taller than the screen and ran off the
 top, header and Close included (already on 968bed2: top −329 px at 1440, −244 px at 390; with
 #26's longer legend −735 / −588). The HUD column now reaches the top inset while the sheet is
 open and the sheet scrolls inside it; chip and band keep their size: sheet 16–754 px at 1440,
 12–726 px at 390, Close and the disclosure reachable; show mode the same (24–790, 12–694).
-Closed, the sheet is where it was. Before | after: `merge-pr26/sheet-legend-{ride,show}-*.jpg`.
+Closed, the sheet is where it was. Before (e675d78) | after: `merge-pr26/sheet-legend-{ride,show}-*.jpg`.
 
 ## Side by side (mockup | build)
 
@@ -131,6 +140,18 @@ or not an alert, the alert chip hidden below sm, the notice not run / not dismis
 devices tap not toggling, persistence dropped or not partialized, `alertsOnly` ignored, a
 failed pairing labelled "lost", the full device name back, the lost devices row back to "Not
 paired", the phone row back to `text-sm`.
+
+### Tests for the #26 port (review @e675d78, R1/R2/R4)
+
+`HandlebarRow.test.ts` runs the real row (real controller store and `handlebarRow()`, React's
+hooks on a small in-test runtime, every rideController call a spy) and calls its own `onAction`:
+the granted lookup and one-tap Reconnect (no chooser, not silent), the lookup only while idle
+and dropped when the controls left idle, the Pair link and Try again afterwards, Forget with
+`{ forget: true }`, the show legend + steering + gear-buzz switches inside the live row's
+disclosure, and the wake watch reaching the asleep copy. `RideChip.test.ts` adds the `failed`
+grant phase (still "tap to reconnect") and older toasts dismissed; `DeviceRow.test.ts` the
+row alignment. 28 mutations, all killed, including the review's X1–X12 (script:
+`~/.hermes/handoffs/velo/pr27-rework-t_72c0ad16/rework2-mutations.py`).
 
 ### Staging (rework round 2)
 
@@ -274,9 +295,6 @@ clean P2.4 measurement (60.0 fps, below) had the machine to itself. Raw JSON:
   so the show shots match the mockup. It hosts the toasts, so no toast card (red or not) is
   drawn over the video, and its devices tap opens the in-ride devices sheet above it.
   `show-lost-*`: a real fake-KICKR drop during the show.
-- **Lost-trainer chip label** differs from the ride-HUD mockup's lost state until #26 is in:
-  "Trainer lost · tap for devices" (opens the sheet) instead of "Trainer lost · tap to
-  reconnect". This PR alone has no reconnect grant after a drop to offer one tap with.
 - **Finish:** "N of M postcards found" appears only when the ride had postcards; the world
   renderer has no postcards yet (play layer packet), so the Tiber ride shows none.
 - **Home tiles:** the "Map view" badge appears only in areas that mix 3D worlds and map
@@ -285,6 +303,9 @@ clean P2.4 measurement (60.0 fps, below) had the machine to itself. Raw JSON:
 - **Devices** reflect only what the stores model: one handlebar row (no right-side
   controller to fake), "Test buzz" + "What the buttons do" / "Disconnect" from P2.5, the
   heart-rate row and the ERG option. Nothing is faked as connected outside the shot fakes.
+  Every row keeps its glyph and action level with the name + state lines (the mockup centres
+  them on the row; its rows are all two lines tall, where both read the same), and a wrapped
+  state line hangs beside its dot.
 - **Day/night** moved from Home's top bar (the mockup has two controls there) into
   Settings > Visual > Colours and the ride Settings menu.
 - **Rider rename** moved from Home's pills (the mockup has no pencil) to Settings > Rider.

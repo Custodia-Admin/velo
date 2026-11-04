@@ -51,6 +51,8 @@ describe('DeviceRow layout', () => {
     expect(cls).not.toContain('flex-wrap');
     const [dot, sentence] = kids(status);
     expect(dot.type).toBe(StateDot);
+    // mt-1.5 centres the h-2 dot on the first text-sm line (top-aligned flex).
+    expect((dot.props as { className?: string }).className).toContain('mt-1.5');
     expect(sentence.props.className).toContain('min-w-0');
     expect(textOf(sentence)).toContain(view.state);
   });

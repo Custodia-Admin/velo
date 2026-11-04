@@ -1,5 +1,5 @@
 {
- "base": "http://localhost:5214",
+ "base": "dev server of the PR #27 rework (card t_72c0ad16)",
  "spot": 220.0,
  "time": "night",
  "weather": "overcast",
@@ -35,6 +35,12 @@
    }
   ]
  },
- "fps": 58.3,
- "errors": []
+ "fps": 55.7,
+ "errors": [],
+ "chip": {
+  "text": "Demo ride \u00b7 no trainer",
+  "aria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+  "visible": true
+ },
+ "alerts": 0
 }

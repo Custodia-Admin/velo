@@ -99,8 +99,8 @@
    },
    "renderer": "world",
    "rider": [
-    694,
-    525
+    704,
+    526
    ],
    "strip": {
     "h": 78,
@@ -113,7 +113,7 @@
    "toastCards": 0,
    "video": {
     "paused": false,
-    "t": 19.2,
+    "t": 20.6,
     "w": 1280
    }
   }
@@ -198,7 +198,7 @@
    },
    "renderer": "world",
    "rider": [
-    169,
+    168,
     492
    ],
    "strip": {
@@ -212,7 +212,7 @@
    "toastCards": 0,
    "video": {
     "paused": false,
-    "t": 19,
+    "t": 18.8,
     "w": 1280
    }
   }
@@ -239,11 +239,11 @@
    },
    "chip": {
     "h": 40,
-    "w": 235,
-    "x": 1181,
+    "w": 248,
+    "x": 1168,
     "y": 750
    },
-   "chipText": "Trainer lost \u00b7 tap for devices",
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
    "controls": {
     "h": 56,
     "w": 791,
@@ -264,8 +264,8 @@
    },
    "renderer": "world",
    "rider": [
-    766,
-    521
+    761,
+    523
    ],
    "strip": {
     "h": 78,
@@ -278,7 +278,7 @@
    "toastCards": 0,
    "video": {
     "paused": false,
-    "t": 34.5,
+    "t": 35.8,
     "w": 1280
    }
   },
@@ -300,7 +300,7 @@
    ],
    [
     4,
-    "KICKR CORE lost \u00b7 reconnecting 3 of 4",
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
     0
    ],
    [
@@ -320,32 +320,32 @@
    ],
    [
     8,
-    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     9,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     10,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     11,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     12,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     13,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ]
   ]
@@ -367,11 +367,11 @@
    "camera": null,
    "chip": {
     "h": 40,
-    "w": 235,
+    "w": 248,
     "x": 12,
     "y": 654
    },
-   "chipText": "Trainer lost \u00b7 tap for devices",
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
    "controls": {
     "h": 56,
     "w": 366,
@@ -387,7 +387,7 @@
    },
    "renderer": "world",
    "rider": [
-    239,
+    240,
     489
    ],
    "strip": {
@@ -401,7 +401,7 @@
    "toastCards": 0,
    "video": {
     "paused": false,
-    "t": 34.4,
+    "t": 33.7,
     "w": 1280
    }
   },
@@ -443,32 +443,32 @@
    ],
    [
     8,
-    "Trainer lost \u00b7 tap for devices",
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
     0
    ],
    [
     9,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     10,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     11,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     12,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     13,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ]
   ]
@@ -495,11 +495,11 @@
    },
    "chip": {
     "h": 70,
-    "w": 410,
-    "x": 1468,
+    "w": 433,
+    "x": 1445,
     "y": 818
    },
-   "chipText": "Trainer lost \u00b7 tap for devices",
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
    "controls": {
     "h": 98,
     "w": 918,
@@ -520,8 +520,8 @@
    },
    "renderer": "world",
    "rider": [
-    1010,
-    627
+    1014,
+    626
    ],
    "strip": {
     "h": 137,
@@ -529,12 +529,12 @@
     "x": 838,
     "y": 902
    },
-   "stripText": "18:32 TIME 3.2km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 530 m",
+   "stripText": "18:30 TIME 3.2km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 540 m",
    "title": "Episode 4",
    "toastCards": 0,
    "video": {
     "paused": false,
-    "t": 36.2,
+    "t": 35.4,
     "w": 1280
    }
   },
@@ -581,27 +581,27 @@
    ],
    [
     9,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     10,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     11,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     12,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ],
    [
     13,
-    "Trainer lost \u00b7 tap for devices",
+    "Trainer lost \u00b7 tap to reconnect",
     0
    ]
   ]
@@ -715,12 +715,12 @@
     "x": 838,
     "y": 902
    },
-   "stripText": "18:16 TIME 3.1km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 670 m",
+   "stripText": "18:15 TIME 3.1km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 670 m",
    "title": "Episode 4",
    "toastCards": 0,
    "video": {
     "paused": false,
-    "t": 19.6,
+    "t": 19.5,
     "w": 1280
    }
   }

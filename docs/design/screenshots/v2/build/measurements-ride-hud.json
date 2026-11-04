@@ -52,7 +52,7 @@
    },
    "chipText": "KICKR CORE \u00b7 hills 35 %",
    "details": null,
-   "dist": "9.14 km of 10.88 km",
+   "dist": "9.13 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
@@ -177,7 +177,7 @@
    },
    "renderer": "world",
    "rider": [
-    739,
+    737,
     567
    ],
    "route": null,
@@ -199,9 +199,9 @@
    "tools": null
   },
   "riderBox": [
-   674,
+   672,
    478,
-   804,
+   802,
    694
   ]
  },
@@ -262,7 +262,7 @@
    },
    "renderer": "world",
    "rider": [
-    205,
+    208,
     532
    ],
    "route": null,
@@ -284,9 +284,9 @@
    "tools": null
   },
   "riderBox": [
-   144,
+   147,
    449,
-   266,
+   269,
    651
   ]
  },
@@ -347,7 +347,7 @@
    },
    "renderer": "world",
    "rider": [
-    206,
+    209,
     532
    ],
    "route": null,
@@ -369,9 +369,9 @@
    "tools": null
   },
   "riderBox": [
-   145,
+   148,
    449,
-   267,
+   270,
    651
   ]
  },
@@ -389,19 +389,19 @@
      "y": 810
     },
     {
-     "area": 9411,
+     "area": 9924,
      "h": 40,
      "name": "ride-status-chip",
-     "w": 235,
+     "w": 248,
      "x": 299,
      "y": 762
     }
    ],
-   "sumPct": 5,
-   "sumPx": 65030,
+   "sumPct": 5.1,
+   "sumPx": 65543,
    "topmostPct": 84.7,
    "topmostY": 762,
-   "unionPct": 5,
+   "unionPct": 5.1,
    "viewport": [
     1440,
     900
@@ -413,7 +413,7 @@
    "minFont": 14,
    "minFontEl": "Pause",
    "minTarget": 40,
-   "minTargetEl": "Trainer connection lost after several re",
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
    "overflow": false,
    "scrollWidth": 1440,
    "tv": false
@@ -422,13 +422,13 @@
   "panels": {
    "chip": {
     "h": 40,
-    "w": 235,
+    "w": 248,
     "x": 299,
     "y": 762
    },
-   "chipText": "Trainer lost \u00b7 tap for devices",
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
    "details": null,
-   "dist": "9.29 km of 10.88 km",
+   "dist": "9.25 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
@@ -455,7 +455,7 @@
    ],
    "route": null,
    "routeText": null,
-   "speed": "Speed: 33.4 km/h",
+   "speed": "Speed: 33.3 km/h",
    "strip": {
     "h": 66,
     "w": 843,
@@ -492,19 +492,19 @@
      "y": 810
     },
     {
-     "area": 9411,
+     "area": 9924,
      "h": 40,
      "name": "ride-status-chip",
-     "w": 235,
+     "w": 248,
      "x": 299,
      "y": 762
     }
    ],
-   "sumPct": 5,
-   "sumPx": 65030,
+   "sumPct": 5.1,
+   "sumPx": 65543,
    "topmostPct": 84.7,
    "topmostY": 762,
-   "unionPct": 5,
+   "unionPct": 5.1,
    "viewport": [
     1440,
     900
@@ -516,7 +516,7 @@
    "minFont": 14,
    "minFontEl": "Pause",
    "minTarget": 40,
-   "minTargetEl": "Trainer connection lost after several re",
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
    "overflow": false,
    "scrollWidth": 1440,
    "tv": false
@@ -525,13 +525,13 @@
   "panels": {
    "chip": {
     "h": 40,
-    "w": 235,
+    "w": 248,
     "x": 299,
     "y": 762
    },
-   "chipText": "Trainer lost \u00b7 tap for devices",
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
    "details": null,
-   "dist": "9.29 km of 10.88 km",
+   "dist": "9.24 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
@@ -558,7 +558,7 @@
    ],
    "route": null,
    "routeText": null,
-   "speed": "Speed: 24.6 km/h",
+   "speed": "Speed: 33.4 km/h",
    "strip": {
     "h": 66,
     "w": 843,
@@ -595,19 +595,19 @@
      "y": 734
     },
     {
-     "area": 9411,
+     "area": 9924,
      "h": 40,
      "name": "ride-status-chip",
-     "w": 235,
+     "w": 248,
      "x": 12,
      "y": 686
     }
    ],
-   "sumPct": 13.8,
-   "sumPx": 45279,
+   "sumPct": 13.9,
+   "sumPx": 45792,
    "topmostPct": 81.3,
    "topmostY": 686,
-   "unionPct": 13.8,
+   "unionPct": 13.9,
    "viewport": [
     390,
     844
@@ -619,7 +619,7 @@
    "minFont": 14,
    "minFontEl": "%",
    "minTarget": 40,
-   "minTargetEl": "Trainer connection lost after several re",
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
    "overflow": false,
    "scrollWidth": 390,
    "tv": false
@@ -628,13 +628,13 @@
   "panels": {
    "chip": {
     "h": 40,
-    "w": 235,
+    "w": 248,
     "x": 12,
     "y": 686
    },
-   "chipText": "Trainer lost \u00b7 tap for devices",
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
    "details": null,
-   "dist": "9.29 km of 10.88 km",
+   "dist": "9.26 km of 10.88 km",
    "exit": null,
    "finish": {
     "h": 40,
@@ -656,7 +656,7 @@
    ],
    "route": null,
    "routeText": null,
-   "speed": "Speed: 33.4 km/h",
+   "speed": "Speed: 33.3 km/h",
    "strip": {
     "h": 98,
     "w": 366,
@@ -693,19 +693,19 @@
      "y": 734
     },
     {
-     "area": 9411,
+     "area": 9924,
      "h": 40,
      "name": "ride-status-chip",
-     "w": 235,
+     "w": 248,
      "x": 12,
      "y": 686
     }
    ],
-   "sumPct": 13.8,
-   "sumPx": 45279,
+   "sumPct": 13.9,
+   "sumPx": 45792,
    "topmostPct": 81.3,
    "topmostY": 686,
-   "unionPct": 13.8,
+   "unionPct": 13.9,
    "viewport": [
     390,
     844
@@ -717,7 +717,7 @@
    "minFont": 14,
    "minFontEl": "%",
    "minTarget": 40,
-   "minTargetEl": "Trainer connection lost after several re",
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
    "overflow": false,
    "scrollWidth": 390,
    "tv": false
@@ -726,13 +726,13 @@
   "panels": {
    "chip": {
     "h": 40,
-    "w": 235,
+    "w": 248,
     "x": 12,
     "y": 686
    },
-   "chipText": "Trainer lost \u00b7 tap for devices",
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
    "details": null,
-   "dist": "9.29 km of 10.88 km",
+   "dist": "9.26 km of 10.88 km",
    "exit": null,
    "finish": {
     "h": 40,
@@ -754,7 +754,7 @@
    ],
    "route": null,
    "routeText": null,
-   "speed": "Speed: 33.4 km/h",
+   "speed": "Speed: 33.3 km/h",
    "strip": {
     "h": 98,
     "w": 366,
@@ -791,19 +791,19 @@
      "y": 923
     },
     {
-     "area": 28714,
+     "area": 30288,
      "h": 70,
      "name": "ride-status-chip",
-     "w": 410,
+     "w": 433,
      "x": 225,
      "y": 839
     }
    ],
    "sumPct": 9.6,
-   "sumPx": 198521,
+   "sumPx": 200095,
    "topmostPct": 77.7,
    "topmostY": 839,
-   "unionPct": 9.8,
+   "unionPct": 9.9,
    "viewport": [
     1920,
     1080
@@ -815,7 +815,7 @@
    "minFont": 24.5,
    "minFontEl": "Pause",
    "minTarget": 70,
-   "minTargetEl": "Trainer connection lost after several re",
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
    "overflow": false,
    "scrollWidth": 1920,
    "tv": true
@@ -824,13 +824,13 @@
   "panels": {
    "chip": {
     "h": 70,
-    "w": 410,
+    "w": 433,
     "x": 225,
     "y": 839
    },
-   "chipText": "Trainer lost \u00b7 tap for devices",
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
    "details": null,
-   "dist": "9.30 km of 10.88 km",
+   "dist": "9.25 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 70,
@@ -894,19 +894,19 @@
      "y": 923
     },
     {
-     "area": 28714,
+     "area": 30288,
      "h": 70,
      "name": "ride-status-chip",
-     "w": 410,
+     "w": 433,
      "x": 225,
      "y": 839
     }
    ],
    "sumPct": 9.6,
-   "sumPx": 198521,
+   "sumPx": 200095,
    "topmostPct": 77.7,
    "topmostY": 839,
-   "unionPct": 9.8,
+   "unionPct": 9.9,
    "viewport": [
     1920,
     1080
@@ -918,7 +918,7 @@
    "minFont": 24.5,
    "minFontEl": "Pause",
    "minTarget": 70,
-   "minTargetEl": "Trainer connection lost after several re",
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
    "overflow": false,
    "scrollWidth": 1920,
    "tv": true
@@ -927,13 +927,13 @@
   "panels": {
    "chip": {
     "h": 70,
-    "w": 410,
+    "w": 433,
     "x": 225,
     "y": 839
    },
-   "chipText": "Trainer lost \u00b7 tap for devices",
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
    "details": null,
-   "dist": "9.29 km of 10.88 km",
+   "dist": "9.25 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 70,
@@ -2100,7 +2100,7 @@
    },
    "chipText": "KICKR CORE \u00b7 hills 35 %",
    "details": null,
-   "dist": "9.14 km of 10.88 km",
+   "dist": "9.13 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 70,
@@ -2122,7 +2122,7 @@
    },
    "renderer": "world",
    "rider": [
-    976,
+    972,
     681
    ],
    "route": null,
@@ -2144,9 +2144,9 @@
    "tools": null
   },
   "riderBox": [
-   898,
+   894,
    574,
-   1054,
+   1050,
    833
   ]
  },
@@ -2203,7 +2203,7 @@
    },
    "chipText": "KICKR CORE \u00b7 hills 35 %",
    "details": null,
-   "dist": "9.14 km of 10.88 km",
+   "dist": "9.13 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 70,
