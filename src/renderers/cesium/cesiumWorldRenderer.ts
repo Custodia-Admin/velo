@@ -9,14 +9,14 @@
 
 import type * as Cesium from 'cesium';
 
-import { groundSettled, MOODS, type MoodId } from '@/lib/cesiumUtils';
+import { groundSettled, MOODS, worldTerrainPending, type MoodId } from '@/lib/cesiumUtils';
 import type { RiderPose, WorldCameraMode, WorldRenderer } from '@/lib/world/renderer';
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export interface CesiumRendererHooks {
   setRiderOverride: (pose: RiderPose | null) => void;
   setMoodOverride: (mood: MoodId | null) => void;
-  /** The ground under the waiting rider is at full detail (startGround.StartGroundWatch). */
+  /** The ground under the waiting rider is plausible (startGround.StartGroundWatch). */
   groundStable?: () => boolean;
 }
 
@@ -47,6 +47,9 @@ export function createCesiumWorldRenderer(
     },
     groundReady() {
       return !live() || groundSettled(viewer.scene, hooks.groundStable?.() === true);
+    },
+    groundPending() {
+      return live() && worldTerrainPending(viewer.scene);
     },
     dispose() {
       if (disposed) return;

@@ -1,6 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
-import type * as Cesium from 'cesium';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as Cesium from 'cesium';
+
+import { setIonToken } from '@/lib/cesiumUtils';
 import type { RiderPose } from '@/lib/world/renderer';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { createCesiumWorldRenderer, isMoodId } from './cesiumWorldRenderer';
@@ -77,5 +81,68 @@ describe('Cesium WorldRenderer adapter', () => {
     destroy();
     r.setRider(pose);
     expect(setRiderOverride).not.toHaveBeenCalled();
+  });
+});
+
+describe('Cesium WorldRenderer groundReady (the ride start holds on it)', () => {
+  /** A viewer whose globe keeps streaming (tilesLoaded never turns true while the horizon loads). */
+  function streamingViewer(terrain: object = { worldTerrain: true }) {
+    let destroyed = false;
+    const scene = { terrainProvider: terrain, globe: { tilesLoaded: false }, primitives: { length: 0, get: () => undefined } };
+    return {
+      viewer: { isDestroyed: () => destroyed, scene } as unknown as Cesium.Viewer,
+      destroy: () => {
+        destroyed = true;
+      },
+    };
+  }
+
+  afterEach(() => setIonToken(null));
+
+  it('follows the start-ground watch while World Terrain streams', () => {
+    setIonToken('eyJ_test');
+    const { viewer } = streamingViewer();
+    let stable = false;
+    const r = createCesiumWorldRenderer(viewer, { setRiderOverride: vi.fn(), setMoodOverride: vi.fn(), groundStable: () => stable });
+    expect(r.groundReady?.()).toBe(false);
+    stable = true;
+    expect(r.groundReady?.()).toBe(true);
+  });
+
+  it('never ready on the flat globe before World Terrain is assigned, even when the watch says still', () => {
+    setIonToken('eyJ_test');
+    const { viewer } = streamingViewer(new Cesium.EllipsoidTerrainProvider());
+    const r = createCesiumWorldRenderer(viewer, { setRiderOverride: vi.fn(), setMoodOverride: vi.fn(), groundStable: () => true });
+    expect(r.groundReady?.()).toBe(false);
+    // Nothing real is drawn there yet: the start waits longer for that.
+    expect(r.groundPending?.()).toBe(true);
+    (viewer.scene as unknown as { terrainProvider: object }).terrainProvider = { worldTerrain: true };
+    expect(r.groundPending?.()).toBe(false);
+    expect(r.groundReady?.()).toBe(true);
+  });
+
+  it('nothing to wait for without a token, or once the viewer is gone', () => {
+    const { viewer, destroy } = streamingViewer(new Cesium.EllipsoidTerrainProvider());
+    const r = createCesiumWorldRenderer(viewer, { setRiderOverride: vi.fn(), setMoodOverride: vi.fn(), groundStable: () => false });
+    expect(r.groundReady?.()).toBe(true);
+    expect(r.groundPending?.()).toBe(false);
+    setIonToken('eyJ_test');
+    expect(r.groundReady?.()).toBe(false);
+    expect(r.groundPending?.()).toBe(true);
+    destroy();
+    expect(r.groundReady?.()).toBe(true);
+    expect(r.groundPending?.()).toBe(false);
+  });
+
+  it('the view asks for World Terrain before it builds the Viewer, and never in an idle callback', () => {
+    // The start waits for World Terrain (groundPending); on the owner's laptop
+    // the Viewer constructor and the idle wait each cost seconds before it.
+    const src = readFileSync(join(__dirname, 'CesiumWorldView.tsx'), 'utf8');
+    const ask = src.indexOf('const worldTerrain = getTerrainProvider();');
+    expect(ask).toBeGreaterThan(src.indexOf('setIonToken(ionToken);'));
+    expect(ask).toBeLessThan(src.indexOf('await waitForContainerSize(container);'));
+    expect(src.indexOf('await waitForContainerSize(container);')).toBeLessThan(src.indexOf('new Cesium.Viewer('));
+    expect(src.match(/getTerrainProvider\(\)/g)).toHaveLength(1);
+    expect(src).toMatch(/worldTerrain\s*\.then\(\(terrain\) => \{\s*if \(viewer\.isDestroyed\(\)\) return;\s*viewer\.scene\.terrainProvider = terrain;/);
   });
 });
