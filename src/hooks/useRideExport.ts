@@ -77,7 +77,7 @@ export function rideKey(startedAt: number): string {
 
 /** `<route>_<ISO time>.fit`, filesystem-safe. */
 export function fitFileName(routeName: string | undefined, startedAt: number): string {
-  const safe = (routeName ?? 'globeride').replace(/[^a-z0-9-_]+/gi, '_');
+  const safe = (routeName ?? 'velo').replace(/[^a-z0-9-_]+/gi, '_');
   const stamp = new Date(startedAt).toISOString().replace(/[:.]/g, '-').slice(0, 19);
   return `${safe}_${stamp}.fit`;
 }

@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 import { Landing } from '@/routes/Landing';
 import { Home } from '@/routes/Home';
@@ -7,8 +7,7 @@ import { DrawRoute } from '@/routes/DrawRoute';
 import { StravaCallback } from '@/routes/StravaCallback';
 import { Toaster } from '@/components/setup/Toaster';
 import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
-import { Onboarding } from '@/components/profile/Onboarding';
-import { AchievementToast } from '@/components/ride/AchievementToast';
+import { ServiceWorkerUpdates } from '@/components/ServiceWorkerUpdates';
 import { useRaceResultCardAutoToast } from '@/hooks/useRaceResultCardAutoToast';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 
@@ -36,16 +35,11 @@ function RaceResultAutoToast() {
   return null;
 }
 
-function AppLaunchOnboarding() {
-  const location = useLocation();
-  if (location.pathname === '/') return null;
-  return <Onboarding />;
-}
-
 export default function App() {
   return (
     <BrowserRouter>
       <TrainerEventBridge />
+      <ServiceWorkerUpdates />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           {/* Marketing landing page — public entry point */}
@@ -71,8 +65,6 @@ export default function App() {
         </Routes>
       </Suspense>
       <Toaster />
-      <AppLaunchOnboarding />
-      <AchievementToast />
       {/* Race result card auto-toast — surfaces "Download result card" after a race */}
       <RaceResultAutoToast />
     </BrowserRouter>
