@@ -1,0 +1,313 @@
+#!/usr/bin/env node
+/**
+ * P2.3 build shots: journey mode, the ride floating in a Document
+ * Picture-in-Picture window (docs/design/mockups/v2-pip.html,
+ * v2-pip-window.html).
+ *
+ * Headed Chrome under xvfb, driven over the raw DevTools protocol (Playwright
+ * pauses the PiP window's target and forces its viewport onto it; see
+ * e2e/show-mode.spec.ts). Staged as mocked: Assisi valley at 6.1 km, 18:05,
+ * golden light, day and night themes. Needs a DEV server (staging imports the
+ * stores):
+ *
+ *   BASE=http://localhost:5193 xvfb-run -a -s "-screen 0 1920x1080x24" \
+ *     node scripts/v2-build-shots/pip.mjs
+ *
+ * Writes, in docs/design/screenshots/v2/build/ (OUT overrides):
+ *   pipwin-{corner,third,half}[-night].jpg  the window itself at 480x270,
+ *                                           640x360, 960x540 (a 1920 screen)
+ *   pip-tab-{1440,390,tv}[-night].jpg       the Velo tab while the ride floats
+ *                                           (tv: 1920x1080, html[data-layout=tv])
+ * and the mockup's window at the same sizes in ../mockup/pipwin-*.jpg, so
+ * compare.py pairs them. Software GL (no GPU in xvfb): the world is drawn,
+ * slowly; the shots wait for it.
+ */
+import { spawn, execFileSync } from 'node:child_process';
+import { once } from 'node:events';
+import { createServer } from 'node:http';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve, extname, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const OUT = process.env.OUT ?? join(REPO, 'docs/design/screenshots/v2/build');
+const MOCK_OUT = join(REPO, 'docs/design/screenshots/v2/mockup');
+const BASE = (process.env.BASE ?? 'http://localhost:5193').replace(/\/$/, '');
+const THEMES = (process.env.THEMES ?? 'day,night').split(',');
+const CHROME = process.env.PW_CHROMIUM ?? '/usr/sbin/chromium';
+const SIZES = { corner: [480, 270], third: [640, 360], half: [960, 540] };
+const PINNED_MS = 1793547000000 + 86_400_000; // 2 Nov 2026 16:30 Rome: Today's ride is Assisi valley.
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+class Cdp {
+  static async open(url) {
+    const c = new Cdp();
+    c.ws = new WebSocket(url);
+    c.id = 0;
+    c.pending = new Map();
+    c.ws.onmessage = (m) => {
+      const d = JSON.parse(String(m.data));
+      if (d.id === undefined) return;
+      const p = c.pending.get(d.id);
+      c.pending.delete(d.id);
+      if (d.error) p?.fail(new Error(d.error.message));
+      else p?.ok(d.result);
+    };
+    await new Promise((ok, fail) => {
+      c.ws.onopen = ok;
+      c.ws.onerror = () => fail(new Error(`cannot open ${url}`));
+    });
+    return c;
+  }
+  send(method, params = {}) {
+    const id = ++this.id;
+    this.ws.send(JSON.stringify({ id, method, params }));
+    return new Promise((ok, fail) => this.pending.set(id, { ok, fail }));
+  }
+  close() {
+    this.ws.close();
+  }
+}
+
+async function poll(read, ok, timeout, what) {
+  const end = Date.now() + timeout;
+  let last;
+  for (;;) {
+    try {
+      last = await read();
+      if (ok(last)) return last;
+    } catch {
+      /* not there yet */
+    }
+    if (Date.now() > end) throw new Error(`timed out waiting for ${what} (last: ${JSON.stringify(last)})`);
+    await sleep(300);
+  }
+}
+
+const evalIn = async (cdp, expression) => {
+  const r = await cdp.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+  if (r.exceptionDetails) throw new Error(`${r.exceptionDetails.text}: ${r.exceptionDetails.exception?.description ?? ''}`);
+  return r.result.value;
+};
+
+const shown = `((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && e.checkVisibility({ visibilityProperty: true }); })`;
+const button = (name) => `[...document.querySelectorAll('button, [role=button], a')].find((b) => {
+  const n = b.getAttribute('aria-label') || b.textContent.trim();
+  return ${shown}(b) && ${typeof name === 'string' ? `n === ${JSON.stringify(name)}` : `${name}.test(n)`};
+})`;
+const visible = (css) => `[...document.querySelectorAll(${JSON.stringify(css)})].find(${shown})`;
+
+async function click(cdp, find, what) {
+  const at = await poll(
+    () =>
+      evalIn(
+        cdp,
+        `(() => { const el = (${find}); if (!el) return null; el.scrollIntoView({ block: 'center' }); const b = el.getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; })()`,
+      ),
+    (v) => v !== null,
+    60_000,
+    what,
+  );
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: at[0], y: at[1] });
+  for (const type of ['mousePressed', 'mouseReleased']) {
+    await cdp.send('Input.dispatchMouseEvent', { type, x: at[0], y: at[1], button: 'left', clickCount: 1 });
+  }
+}
+
+/** Click until `done` (a JS expression) holds: software GL can leave the page too busy for a first click. */
+async function clickUntil(cdp, find, done, what, timeout = 90_000) {
+  await poll(async () => {
+    if (await evalIn(cdp, `!!(${done})`)) return true;
+    await click(cdp, find, what);
+    await sleep(2500);
+    return evalIn(cdp, `!!(${done})`);
+  }, (v) => v, timeout, what);
+}
+
+async function saveJpeg(cdp, path, clip) {
+  const { data } = await cdp.send('Page.captureScreenshot', { format: 'png', ...(clip ? { clip: { ...clip, scale: 1 } } : {}) });
+  const png = join(tmpdir(), `velo-shot-${process.pid}.png`);
+  writeFileSync(png, Buffer.from(data, 'base64'));
+  execFileSync('uv', ['run', '--quiet', '--with', 'pillow', 'python', '-c',
+    `from PIL import Image; Image.open(${JSON.stringify(png)}).convert('RGB').save(${JSON.stringify(path)}, 'JPEG', quality=84, optimize=True, progressive=True)`]);
+  rmSync(png, { force: true });
+  console.log('  wrote', path.replace(REPO + '/', ''));
+}
+
+function init(theme) {
+  return `
+(() => {
+  const shift = ${PINNED_MS} - Date.now();
+  const RealDate = Date;
+  class PinnedDate extends RealDate {
+    constructor(...a) { if (a.length === 0) super(RealDate.now() + shift); else super(...a); }
+    static now() { return RealDate.now() + shift; }
+  }
+  globalThis.Date = PinnedDate;
+})();
+localStorage.setItem('velo.debug.three', '1');
+localStorage.setItem('globeride.onboarding.v2', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 2 }));
+localStorage.setItem('globeride.theme', ${JSON.stringify(theme === 'night' ? 'dark' : 'light')});
+localStorage.removeItem('globeride.cesiumIonToken');
+localStorage.setItem('globeride.velo.riders.v1', JSON.stringify({ state: { activeRiderId: 'rider-1', riders: [
+  { id: 'rider-1', name: 'Federico', settings: null, profile: null }, { id: 'rider-2', name: 'Rider 2', settings: null, profile: null }] }, version: 1 }));
+// Shared dev server: no HMR reloads mid-shot.
+(() => {
+  const RealWS = window.WebSocket;
+  const isHmr = (p) => p === 'vite-hmr' || (Array.isArray(p) && p.includes('vite-hmr'));
+  const Fake = function (url, protocols) {
+    if (!isHmr(protocols)) return new RealWS(url, protocols);
+    return { readyState: 0, url: String(url), protocol: 'vite-hmr', send() {}, close() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return false; } };
+  };
+  Fake.prototype = RealWS.prototype;
+  Object.assign(Fake, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 });
+  window.WebSocket = Fake;
+})();
+`;
+}
+
+// The mockup's still: 18:05 and 6.1 km in, golden light.
+// Chase camera as in the still (the director's edit is pinned by its tests).
+const STAGE = `(async () => {
+  const { useRideStore } = await import('/src/stores/rideStore.ts');
+  const { useSettingsStore } = await import('/src/stores/settingsStore.ts');
+  const { useShowStore } = await import('/src/stores/showStore.ts');
+  useShowStore.getState().setAutoCamera(false);
+  useSettingsStore.getState().setCameraMode('chase');
+  useRideStore.setState({ distance: 6100, elapsedMs: 1085 * 1000 });
+  window.__veloWorldLight?.set({ time: 'golden', weather: 'clear' });
+  return useRideStore.getState().route?.id ?? null;
+})()`;
+
+/** The mockup's window document at the build's sizes (served over http, as the mockup script does). */
+async function mockupWindows(browser, devtools) {
+  const root = join(REPO, 'docs/design');
+  const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2' };
+  const srv = createServer((q, r) => {
+    const p = join(root, decodeURIComponent(new URL(q.url, 'http://x').pathname));
+    if (!p.startsWith(root) || !existsSync(p)) return r.writeHead(404).end();
+    r.writeHead(200, { 'content-type': types[extname(p)] ?? 'application/octet-stream' });
+    r.end(readFileSync(p));
+  }).listen(0);
+  await once(srv, 'listening');
+  const port = srv.address().port;
+  const { targetId } = await browser.send('Target.createTarget', { url: 'about:blank', newWindow: false });
+  const t = (await (await fetch(`${devtools}/json/list`)).json()).find((x) => x.id === targetId);
+  const cdp = await Cdp.open(t.webSocketDebuggerUrl);
+  await cdp.send('Page.enable');
+  for (const theme of THEMES) {
+    for (const [size, [w, h]] of Object.entries(SIZES)) {
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+      const q = new URLSearchParams({ size });
+      if (theme === 'night') q.set('theme', 'night');
+      await cdp.send('Page.navigate', { url: `http://127.0.0.1:${port}/mockups/v2-pip-window.html?${q}` });
+      await poll(() => evalIn(cdp, 'window.__mockReady === true'), (v) => v, 20_000, 'mockup ready');
+      await sleep(300);
+      await saveJpeg(cdp, join(MOCK_OUT, `pipwin-${size}${theme === 'night' ? '-night' : ''}.jpg`));
+    }
+  }
+  cdp.close();
+  await browser.send('Target.closeTarget', { targetId });
+  srv.close();
+}
+
+async function run(theme, layout) {
+  const profile = mkdtempSync(join(tmpdir(), 'velo-pip-shots-'));
+  const proc = spawn(CHROME, [
+    `--user-data-dir=${profile}`, '--remote-debugging-port=0', '--no-first-run', '--no-default-browser-check',
+    '--password-store=basic', '--window-size=1920,1080', '--window-position=0,0', '--disable-gpu-compositing',
+    '--use-angle=swiftshader', '--enable-unsafe-swiftshader', 'about:blank',
+  ], { stdio: 'ignore' });
+  const sockets = [];
+  try {
+    const port = await poll(async () => readFileSync(join(profile, 'DevToolsActivePort'), 'utf8').split('\n')[0], (p) => !!p, 20_000, 'Chrome');
+    const devtools = `http://127.0.0.1:${port}`;
+    const browser = await Cdp.open((await (await fetch(`${devtools}/json/version`)).json()).webSocketDebuggerUrl);
+    sockets.push(browser);
+    if (theme === THEMES[0] && layout === '1440' && process.env.MOCKUPS !== '0') await mockupWindows(browser, devtools);
+    const first = (await (await fetch(`${devtools}/json/list`)).json()).find((t) => t.type === 'page');
+    await browser.send('Target.activateTarget', { targetId: first.id });
+    const page = await Cdp.open(first.webSocketDebuggerUrl);
+    sockets.push(page);
+    await page.send('Page.enable');
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: init(theme) });
+    const metrics = layout === 'tv' ? { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false } : { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false };
+    await page.send('Emulation.setDeviceMetricsOverride', metrics);
+    await page.send('Page.navigate', { url: `${BASE}/app${layout === 'tv' ? '?layout=tv' : ''}` });
+    await poll(() => evalIn(page, 'document.readyState'), (s) => s === 'complete', 60_000, 'Home');
+    await click(page, `(${visible('[data-scenic-route="scenic-assisi-valley"]')}) || (${button(/^Ride Assisi/)})`, 'the Assisi route');
+    await poll(() => evalIn(page, `!!document.querySelector('[data-world-status=ready]')`), (v) => v, 180_000, 'the world');
+    // The tab's own world is not shot (it goes when the ride floats). Off, so
+    // software GL leaves the page responsive and the click keeps its user activation.
+    await poll(() => evalIn(page, `(() => { if (window.__veloThree) window.__veloThree.scene.visible = false; return !!window.__veloThree; })()`), (v) => v, 60_000, 'the renderer handle');
+    await clickUntil(page, button(/^Show ride details/), button('Watch a show while you ride'), 'ride details');
+    await clickUntil(page, button('Watch a show while you ride'), visible('[data-testid="watch-another-tab"]'), 'show mode');
+    // The click must reach the page while it is responsive (user activation): retry.
+    await poll(async () => {
+      if (await evalIn(page, '!!(documentPictureInPicture.window)')) return true;
+      await click(page, visible('[data-testid="watch-another-tab"]'), 'Watch another tab');
+      await sleep(3000);
+      return evalIn(page, '!!(documentPictureInPicture.window)');
+    }, (v) => v, 90_000, 'the floating window').catch(async (e) => {
+      const btns = await evalIn(page, `[...document.querySelectorAll('button')].filter(${shown}).map((b) => b.getAttribute('aria-label') || b.textContent.trim()).join(' | ')`);
+      throw new Error(`${e.message}; visible buttons: ${btns}; visibility ${await evalIn(page, 'document.visibilityState')}`);
+    });
+    const pipT = (await browser.send('Target.getTargets')).targetInfos.find((t) => t.openerId === first.id);
+    const { windowId } = await browser.send('Browser.getWindowForTarget', { targetId: pipT.targetId });
+    const pipWs = (await (await fetch(`${devtools}/json/list`)).json()).find((t) => t.id === pipT.targetId).webSocketDebuggerUrl;
+    const pip = await Cdp.open(pipWs);
+    sockets.push(pip);
+    await poll(() => evalIn(page, `documentPictureInPicture.window.document.querySelector('[data-world-status]')?.getAttribute('data-world-status')`), (v) => v === 'ready', 180_000, 'the world in the window');
+    const suffix = theme === 'night' ? '-night' : '';
+    // Stage once and let the camera settle at the still's spot (software GL: few frames a second).
+    console.log('  staged', await evalIn(page, STAGE));
+    await sleep(Number(process.env.FIRST_SETTLE_S ?? 25) * 1000);
+
+    if (layout === '1440') {
+      for (const [size, [w, h]] of Object.entries(SIZES)) {
+        // Window frame (title bar) outside the document: size the window so the document is w x h.
+        await browser.send('Browser.setWindowBounds', { windowId, bounds: { left: 1920 - w - 40, top: 1080 - h - 80, width: w, height: h } });
+        await sleep(500);
+        const [iw, ih] = await evalIn(page, '[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]');
+        await browser.send('Browser.setWindowBounds', { windowId, bounds: { width: w + (w - iw), height: h + (h - ih) } });
+        await click(pip, `document.querySelector('[data-pip-size=${size}]')`, `size ${size}`).catch(() => {});
+        await browser.send('Browser.setWindowBounds', { windowId, bounds: { width: w + (w - iw), height: h + (h - ih) } });
+        // Chrome caps a picture-in-picture window's size (half came out 923x518 on a 1920x1080 screen).
+        const got = await poll(() => evalIn(page, '[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]'), ([a, b]) => Math.abs(a - w) <= w * 0.05 && Math.abs(b - h) <= h * 0.05, 15_000, `window ${w}x${h}`);
+        if (got[0] !== w) console.log(`  window ${size}: asked ${w}x${h}, Chrome gave ${got[0]}x${got[1]}`);
+        console.log('  staged', await evalIn(page, STAGE));
+        await sleep(Number(process.env.SETTLE_S ?? 12) * 1000);
+        await saveJpeg(pip, join(OUT, `pipwin-${size}${suffix}.jpg`));
+        const m = await evalIn(page, `(() => { const d = documentPictureInPicture.window.document; const r = (s) => { const e = d.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)]; };
+          return { root: getComputedStyle(d.documentElement).fontSize, bar: r('[data-testid=journey-bar]'), next: [...d.querySelectorAll('[data-testid=journey-next]')].filter((e) => e.checkVisibility()).map((e) => e.textContent),
+            fig: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num')).fontSize, label: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num').nextElementSibling).fontSize }; })()`);
+        console.log(`  pipwin-${size}${suffix}`, JSON.stringify(m));
+      }
+    }
+    // The tab while the ride floats (1440 / tv; 390 as a phone-width tab).
+    // TV: the same tab at 1920x1080 with the TV layout on (html[data-layout=tv], as ?layout=tv sets it).
+    const tabShots = [['1440', metrics], ['390', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true }], ['tv', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false }]];
+    for (const [vp, mt] of tabShots) {
+      await page.send('Emulation.setDeviceMetricsOverride', mt);
+      await evalIn(page, `(() => { if (${JSON.stringify(vp)} === 'tv') document.documentElement.dataset.layout = 'tv'; else delete document.documentElement.dataset.layout; })()`);
+      await sleep(1500);
+      await evalIn(page, STAGE);
+      await sleep(1500);
+      await saveJpeg(page, join(OUT, `pip-tab-${vp}${suffix}.jpg`));
+    }
+  } finally {
+    for (const s of sockets) s.close();
+    proc.kill();
+    await once(proc, 'exit').catch(() => {});
+    rmSync(profile, { recursive: true, force: true, maxRetries: 5 });
+  }
+}
+
+for (const layout of (process.env.LAYOUTS ?? '1440').split(',')) {
+  for (const theme of THEMES) {
+    console.log(`== ${layout} ${theme}`);
+    await run(theme, layout);
+  }
+}

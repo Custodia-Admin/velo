@@ -124,3 +124,37 @@ export function blendTargets(a: CameraTarget, b: CameraTarget, k: number): Camer
   const mix = (p: Vec3, q: Vec3): Vec3 => ({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t, z: p.z + (q.z - p.z) * t });
   return { position: mix(a.position, b.position), look: mix(a.look, b.look) };
 }
+
+/** The lens-shift part of a three.js PerspectiveCamera this needs (structural, so tests need no three). */
+export interface ViewOffsetCamera {
+  view: { enabled: boolean; fullWidth: number; fullHeight: number; offsetX: number; offsetY: number; width: number; height: number } | null;
+  setViewOffset(fullWidth: number, fullHeight: number, x: number, y: number, width: number, height: number): void;
+  clearViewOffset(): void;
+}
+
+/**
+ * Frame the picture for the part of the view a HUD leaves clear: with the
+ * bottom `coveredPx` (CSS px) under a bar, shift the lens by half of it so the
+ * rider and horizon sit in the middle of what is still visible. A lens shift
+ * (asymmetric frustum), not a camera move: the framing, smoothing and ground
+ * clearance are untouched. No-op (and cleared) at 0.
+ */
+export function applyHudLensShift(camera: ViewOffsetCamera, width: number, height: number, coveredPx: number): void {
+  const shift = Math.round(Math.min(Math.max(coveredPx, 0), height * 0.5) / 2);
+  if (shift <= 0 || width <= 0 || height <= 0) {
+    if (camera.view?.enabled) camera.clearViewOffset();
+    return;
+  }
+  const v = camera.view;
+  if (v?.enabled && v.offsetY === shift && v.fullWidth === width && v.fullHeight === height && v.width === width && v.height === height) return;
+  camera.setViewOffset(width, height, 0, shift, width, height);
+}
+
+/** CSS px a HUD covers at the bottom of the view hosting `canvas` (an ancestor's data-hud-bottom), else 0. */
+export function hudCoveredPx(canvas: { closest?: (sel: string) => Element | null }): number {
+  // (The r3f test renderer's canvas is not a DOM element.)
+  if (typeof canvas.closest !== 'function') return 0;
+  const host = canvas.closest('[data-hud-bottom]') as { dataset?: Record<string, string | undefined> } | null;
+  const n = Number(host?.dataset?.hudBottom);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}

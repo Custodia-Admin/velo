@@ -228,6 +228,8 @@ test.afterEach(async () => {
 });
 
 test('the ride floats in a picture-in-picture window and keeps riding and recording in a hidden tab', async ({ baseURL }) => {
+  // The world loads twice (tab, then window) and back on software GL.
+  test.setTimeout(480_000);
   // ---- A real headed Chrome on Chrome's own defaults (background throttling on) ----
   profile = mkdtempSync(join(tmpdir(), 'velo-show-mode-'));
   proc = spawn(
@@ -425,6 +427,7 @@ test('the ride floats in a picture-in-picture window and keeps riding and record
     60_000,
     'the world back in the tab',
   );
+  await poll(sceneOff, (v) => v, 30_000, 'the renderer handle back in the tab');
 
   // ---- Control: hidden again with no window, the loop stops ----
   const other2 = await background();

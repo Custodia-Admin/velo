@@ -6,7 +6,9 @@
  * blend, held while the rider steers or brakes. Framing from the
  * camera-distance setting (default 'standard': close and low, road 10–20 m
  * ahead). Motion is smoothed frame-rate independently (chaseRig) and never
- * dips under the ground.
+ * dips under the ground. Where a HUD covers the bottom of the view
+ * (data-hud-bottom on an ancestor: the floating ride window), a lens shift
+ * centres the picture in the part left clear.
  */
 
 import { useMemo, useRef } from 'react';
@@ -22,8 +24,10 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useShowStore } from '@/stores/showStore';
 import { CameraRig, cameraTarget, type RigInput } from './chaseRig';
 import {
+  applyHudLensShift,
   bearingXZ,
   blendTargets,
+  hudCoveredPx,
   SHOT_RIG_MODE,
   shotTarget,
   type SceneLandmark,
@@ -55,8 +59,10 @@ export function ChaseCamera({
   // The director's current shot and the one it is blending away from.
   const shotRef = useRef<ShotState | null>(null);
   const fromRef = useRef<ShotState | null>(null);
-  useFrame(({ camera }) => {
+  useFrame(({ camera, gl, size }) => {
     if (!frame.valid || !frame.placement || !frame.pose) return;
+    // A HUD over the bottom of the view (the floating ride window's bar): frame above it.
+    if ('setViewOffset' in camera) applyHudLensShift(camera as never, size.width, size.height, hudCoveredPx(gl.domElement));
     const settings = useSettingsStore.getState();
     const input: RigInput = {
       rider: frame.placement.position,

@@ -10,6 +10,8 @@ Show mode plays videos saved on the device in a panel over the ride
 (`ShowPanel`, mockup `docs/design/mockups/v2-show.html`). The ride HUD
 condenses to the show strip (time, distance, grade, next landmark, Pause).
 
+- The corner holds **Watch another tab** and Close (the approved mockup);
+  where the browser cannot float the ride, the camera choice takes that slot.
 - **Choose videos** or **Choose a folder** (Chrome / Edge desktop: File System
   Access). Several files or a folder play in episode order (`sortForPlayback`:
   S01E02 before S01E10).
@@ -44,12 +46,18 @@ another tab (Netflix, YouTube, anything) or another app on the TV
   video tab instead.
 - Sizes S, M, L: a quarter, a third and half of the screen width, always
   16:9, at least 320 px wide (`pipWindowSize`). The last size is remembered.
-  Opening and resizing need a click (Chrome's user-activation rule).
+  Opening and resizing need a click (Chrome's user-activation rule). Chrome
+  caps a picture-in-picture window's size: L came out 923×518 instead of
+  960×540 on a 1920×1080 screen (Chromium 153).
 - In the window: the world (same renderer and director), the JourneyBar
   (route progress, time, distance, grade at text-3xl, next landmark, Pause),
   the size picker and "Back to the Velo tab". The window scales its own type
   with its width (`html[data-surface='pip']` in `index.css`: 16 px at a 480 px
   corner, 22 px at half). Problems (trainer lost, …) show as one chip.
+- The bar covers a quarter of a small window, so the window tells the world
+  view how much it covers (`data-hud-bottom`) and the camera shifts its lens
+  by half of that (`applyHudLensShift`): the rider sits in the clear part
+  above the bar. A lens shift, not a camera move.
 - The Velo tab shows "Your ride is in the floating window" and one action,
   **Bring the ride back**, plus the show strip. Only one world view exists at
   a time (one WebGL context).
@@ -66,6 +74,13 @@ window open; frames stop without it). No keep-alive hack is needed.
 `e2e/show-mode.spec.ts` (CI job `show-mode`, headed Chrome under xvfb, real
 background throttling) pins it: frame rate, ride clock, samples and the FIT
 records while hidden, plus a control showing the loop stops with no window.
+It drives Chrome over the raw DevTools protocol (Playwright pauses the PiP
+window's target, which hangs the tab sharing its event loop, and turns off
+the throttling under test). Software GL on a CI runner draws the world at a
+frame every few seconds and stalls the frame pipeline whatever the tab
+state, so the spec switches the scene off (`window.__veloThree`, opt-in
+`velo.debug.three`) around the clicks and the measurement; everything else
+runs for real.
 
 ## Cinematic director
 

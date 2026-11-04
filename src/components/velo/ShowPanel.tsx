@@ -6,7 +6,7 @@
  * bar (tap to seek), and one control bar (play/pause, title, time left,
  * S/M/L size, next). The corner holds "Watch another tab" (the ride floats
  * over other tabs in a picture-in-picture window, ShowSurface; Chrome and
- * Edge desktop only), the camera choice and Close. Other states: choose
+ * Edge desktop only; elsewhere the camera choice) and Close. Other states: choose
  * (nothing picked yet: continue last time's videos without a picker, pick
  * videos or a folder), a show running in picture-in-picture from another
  * tab, and errors. The 3D world keeps rendering around it and ride
@@ -71,12 +71,15 @@ export function ShowPanel({ dimmed }: { dimmed: boolean }) {
   const source = useShowStore((s) => s.source);
   const item = useShowStore((s) => s.items[s.index]);
   const size = useShowStore((s) => s.size);
+  const floating = useRidePipWindow() !== null;
 
   if (!active) return null;
   if (source === 'pip') return <PipBar dimmed={dimmed} />;
   if (!panelOpen) return null;
 
   if (!item) {
+    // The ride floats over another tab: the show is there, no chooser here.
+    if (floating) return null;
     return (
       <section aria-label="Show" data-testid="show-panel" className={cn(PANEL_PLACE, HUD_PANEL, 'sm:w-full sm:max-w-lg')}>
         <ShowChooser />
@@ -100,9 +103,11 @@ export function ShowPanel({ dimmed }: { dimmed: boolean }) {
 }
 
 /**
- * Top-right corner in show mode (sm+): "Watch another tab" (where the
- * browser can float the ride), the camera choice and Close. While the ride
- * floats, only Close stays: the tab's notice brings the ride back.
+ * Top-right corner in show mode (sm+), as in the approved mockup: "Watch
+ * another tab" and Close. Where the browser cannot float the ride (no
+ * Document Picture-in-Picture) the first slot is the camera choice instead;
+ * the camera is also in the ride details. While the ride floats, only Close
+ * stays: the tab's notice brings the ride back.
  */
 export function ShowCorner({ className }: { className?: string }) {
   const active = useShowStore((s) => s.active);
@@ -111,8 +116,7 @@ export function ShowCorner({ className }: { className?: string }) {
   if (!active) return null;
   return (
     <div className={cn('absolute show-inset-t show-inset-r z-20 hidden items-start gap-2 sm:flex', className)}>
-      {canFloat && !floating && <WatchAnotherTabButton />}
-      {!floating && <CameraButton />}
+      {!floating && (canFloat ? <WatchAnotherTabButton /> : <CameraButton />)}
       <ShowToggle />
     </div>
   );

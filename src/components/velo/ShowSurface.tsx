@@ -20,7 +20,7 @@
  * index.css). Translucent HUD surfaces, no blur (`hud-flat`).
  */
 
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Maximize2, PictureInPicture2 } from 'lucide-react';
 import { RideView } from '@/components/ride/RideView';
@@ -96,8 +96,42 @@ function FloatingRide({
   onRendererReady?: (renderer: WorldRenderer | null) => void;
 }) {
   useThemeSync(win);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  // The bottom bar takes a quarter of a small window: tell the world view how
+  // much of the frame it covers (data-hud-bottom, CSS px), so the camera
+  // frames the rider in the clear part above it (renderers/three/ChaseCamera).
+  useEffect(() => {
+    const root = rootRef.current;
+    const bottom = bottomRef.current;
+    if (!root || !bottom) return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const covered = Math.max(0, root.getBoundingClientRect().bottom - bottom.getBoundingClientRect().top);
+      root.dataset.hudBottom = String(Math.round(covered));
+    };
+    // Observe with the window's own ResizeObserver (the elements live in its
+    // document) and measure on its next frame, outside the observer callback.
+    const schedule = () => {
+      if (!frame) frame = win.requestAnimationFrame(measure);
+    };
+    measure();
+    const Observer = (win as Window & typeof globalThis).ResizeObserver ?? ResizeObserver;
+    const ro = new Observer(schedule);
+    ro.observe(root);
+    ro.observe(bottom);
+    return () => {
+      ro.disconnect();
+      if (frame) win.cancelAnimationFrame(frame);
+    };
+  }, [win]);
   return (
-    <div className="hud-flat fixed inset-0 overflow-hidden bg-background text-foreground" data-testid="pip-ride">
+    <div
+      ref={rootRef}
+      className="hud-flat fixed inset-0 overflow-hidden bg-background text-foreground"
+      data-testid="pip-ride"
+    >
       <RideView ionToken={ionToken} onRendererReady={onRendererReady} />
       <div className="pointer-events-none absolute inset-x-2 top-2 z-20 flex items-start gap-2">
         <JourneyLandmark />
@@ -115,7 +149,7 @@ function FloatingRide({
           </Button>
         </div>
       </div>
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-20 flex flex-col items-start gap-2">
+      <div ref={bottomRef} className="pointer-events-none absolute inset-x-2 bottom-2 z-20 flex flex-col items-start gap-2">
         <RideChip alertsOnly className="shrink-0" />
         <JourneyBar className="w-full" />
       </div>
@@ -170,8 +204,8 @@ export function RideFloatingNotice({ className }: { className?: string }) {
         <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
           <PictureInPicture2 className="h-5 w-5" aria-hidden="true" />
         </span>
-        <h2 className="text-2xl font-semibold">Your ride is in the floating window</h2>
-        <p className="text-base text-muted-foreground">It keeps recording while you watch something else.</p>
+        <h2 className="text-balance text-2xl font-semibold">Your ride is in the floating window</h2>
+        <p className="text-balance text-base text-muted-foreground">It keeps recording while you watch something else.</p>
         <Button variant="primary" size="lg" onClick={closeRidePip}>
           <Maximize2 className="h-5 w-5" aria-hidden="true" />
           Bring the ride back

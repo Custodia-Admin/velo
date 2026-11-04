@@ -321,6 +321,7 @@ export function Ride() {
     >
       {!floating && <RideView ionToken={token} onRendererReady={setWorldRenderer} />}
       <ShowSurface ionToken={token} onRendererReady={setWorldRenderer} />
+      {/* With a video of the rider's own playing, the tab keeps the video panel. */}
       {floating && showSource !== 'files' && <RideFloatingNotice />}
 
       {/* No-token banner — subtle nudge offering the photoreal upgrade.

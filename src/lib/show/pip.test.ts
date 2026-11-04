@@ -243,7 +243,10 @@ describe('the ride window', () => {
   it('resolves null without the API, or when Chrome refuses (no click)', async () => {
     expect(await openRidePip('corner', { host: host({ api: false }).win })).toBeNull();
     const refused = host({ reject: true });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     expect(await openRidePip('corner', { host: refused.win })).toBeNull();
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
     expect(currentRidePip()).toBeNull();
   });
 
