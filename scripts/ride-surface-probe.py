@@ -156,7 +156,7 @@ SAMPLE = r"""async ([tol, undersideMax]) => {
   const hidden = []; const prims = scene.primitives;
   for (let i = 0; i < prims.length; i++) { const p = prims.get(i); if (p && !('_selectedTiles' in p) && p.show) { hidden.push(p); p.show = false; } }
   const gp = scene.groundPrimitives; const gpShow = gp.show; gp.show = false;
-  let gpuR, gpuC, viewTop = null, viewAlong = null;
+  let gpuR, gpuC, viewTop = null, viewAlong = null, wheelsOnScreen = false;
   try {
     try { gpuR = scene.sampleHeight(rc); } catch { gpuR = undefined; }
     try { gpuC = scene.sampleHeight(cam); } catch { gpuC = undefined; }
@@ -168,7 +168,9 @@ SAMPLE = r"""async ([tol, undersideMax]) => {
       scene.render();
       const P = Cesium.Cartesian3.fromDegrees(d.riderLonLat[0], d.riderLonLat[1], d.groundEle);
       const wp = Cesium.SceneTransforms.worldToWindowCoordinates(scene, P);
-      const Q = wp ? scene.pickPosition(wp) : undefined;
+      const cv = scene.canvas;
+      wheelsOnScreen = !!wp && wp.x >= 0 && wp.y >= 0 && wp.x < cv.clientWidth && wp.y < cv.clientHeight;
+      const Q = wheelsOnScreen ? scene.pickPosition(wp) : undefined;
       if (Q) {
         const C = viewer.camera.positionWC;
         viewTop = Cesium.Cartographic.fromCartesian(Q).height;
@@ -249,14 +251,14 @@ SAMPLE = r"""async ([tol, undersideMax]) => {
   // overhead pick's top (a canopy or deck hides the wheels from the chase camera).
   // Nothing drawn under the rider: the camera ray through the wheels hits nothing, or only something far
   // beyond them (the Lugano start's root-tile chord 28 km down). The rider stands over a void.
-  const voidUnder = viewTop === null || viewAlong === null || viewAlong > VOID_M;
+  const voidUnder = wheelsOnScreen && (viewTop === null || viewAlong === null || viewAlong > VOID_M);
   const viewErr = voidUnder ? null : d.groundEle - viewTop;
   const viewGround = viewErr !== null && viewErr > -OVERHANG;
   const riderErr = viewGround ? viewErr : (top === null ? null : d.groundEle - top);
   const ok = !voidUnder && riderErr !== null && Math.abs(riderErr) <= tol && (viewGround || above === 0) &&
     (camTop === null || cam.height > camTop) && under <= undersideMax;
   return { renderer: 'photoreal', dist: d.dist, rider: d.groundEle, top, riderVsTop: top === null ? null : d.groundEle - top,
-    riderVsGround: riderErr, viewGround, voidUnder,
+    riderVsGround: riderErr, viewGround, voidUnder, wheelsOnScreen,
     above, overhang, onStructure, underOverhang, camVsTop: camTop === null ? null : cam.height - camTop,
     riderVsView: viewTop === null ? null : d.groundEle - viewTop, viewAlong,
     surfaces: atRider, camSurfaces: atCam, model: model(rc), bare: bareH, grid: n, skyPx: sky, ceilPx: ceil, undersidePx: under,
