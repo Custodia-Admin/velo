@@ -10,11 +10,10 @@ import {
 import { DEFAULT_SETTINGS } from '@/stores/settingsStore';
 
 describe('trainerComfort', () => {
-  it('defaults to an easy 30–40 % with ERG off', () => {
+  it('defaults to an easy 30–40 %', () => {
     expect(DEFAULT_TRAINER_DIFFICULTY).toBeGreaterThanOrEqual(0.3);
     expect(DEFAULT_TRAINER_DIFFICULTY).toBeLessThanOrEqual(0.4);
     expect(DEFAULT_SETTINGS.trainerDifficulty).toBe(DEFAULT_TRAINER_DIFFICULTY);
-    expect(DEFAULT_SETTINGS.ergEnabled).toBe(false);
   });
 
   it('scales climbs and descents by the difficulty', () => {

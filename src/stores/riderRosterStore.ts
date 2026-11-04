@@ -31,11 +31,8 @@ export const PER_RIDER_KEYS = [
   'glassesId',
   'shoesId',
   'bottleId',
-  'coachGoal',
-  'coachPlan',
   'cameraMode',
   'trainerDifficulty',
-  'ergEnabled',
   'windFeel',
   'playMode',
 ] as const satisfies readonly (keyof RiderSettings)[];

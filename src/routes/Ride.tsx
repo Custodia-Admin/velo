@@ -18,11 +18,9 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideLoop } from '@/hooks/useRideLoop';
 import { useReplayLoop } from '@/hooks/useReplayLoop';
-import { useWorkoutEngine } from '@/hooks/useWorkoutEngine';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useRideAudio } from '@/hooks/useRideAudio';
 import { useRideHistoryRecorder } from '@/hooks/useRideHistoryRecorder';
-import { useFtpTestSuggestion } from '@/hooks/useFtpTestSuggestion';
 import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
 import { useHandlebarGestures } from '@/hooks/useHandlebarGestures';
 import { useRideControllerActions } from '@/hooks/useRideControllerActions';
@@ -32,7 +30,6 @@ import { retainRideSession } from '@/lib/controllers/rideSession';
 import { reconnectGrantedController } from '@/lib/controllers/rideController';
 import { ControllerDebugOverlay, useControllerDebugVisible } from '@/components/velo/ControllerDebugOverlay';
 import { PerfOverlay } from '@/components/velo/PerfOverlay';
-import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/velo/FinishCard';
 import { useGeolocationWatch } from '@/hooks/useGeolocationWatch';
@@ -83,7 +80,6 @@ export function Ride() {
   const location      = useLocation();
   const route         = useRideStore((s) => s.route);
   const rideState     = useRideStore((s) => s.rideState);
-  const activeWorkout = useRideStore((s) => s.activeWorkout);
   const rideMode      = useRideStore((s) => s.rideMode);
   const preferredRenderer = useSettingsStore((s) => s.renderer);
   // Ride details or the devices sheet open: the no-token banner steps aside.
@@ -137,11 +133,9 @@ export function Ride() {
   // condition internally so only one does real work at a time.
   useRideLoop(rideMode === 'outdoor' ? gpsSamplesRef : undefined);
   useReplayLoop();
-  useWorkoutEngine();
   useRideHistoryRecorder();
   useMultiriderSync();
   useRideAudio();
-  useFtpTestSuggestion();
   useWakeLock(rideState === 'running');
 
   // ---- Handlebar gestures ----
@@ -339,7 +333,6 @@ export function Ride() {
           modes={
             <>
               <PlayPanel compact />
-              {activeWorkout && <WorkoutHUD />}
               {/* Strava Live Segments HUD */}
               <SegmentHUD />
             </>

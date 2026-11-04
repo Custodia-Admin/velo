@@ -12,7 +12,6 @@ import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 const Ride = React.lazy(() => import('@/routes/Ride').then(m => ({ default: m.Ride })));
 const Replay = React.lazy(() => import('@/routes/Replay').then(m => ({ default: m.Replay })));
 const Devices = React.lazy(() => import('@/routes/Devices').then(m => ({ default: m.Devices })));
-const WorkoutBuilderRoute = React.lazy(() => import('@/routes/WorkoutBuilderRoute').then(m => ({ default: m.WorkoutBuilderRoute })));
 
 function LoadingFallback() {
   return (
@@ -43,9 +42,6 @@ export default function App() {
           <Route path="/ride" element={<RouteErrorBoundary routeName="Ride"><Suspense fallback={<LoadingFallback />}><Ride /></Suspense></RouteErrorBoundary>} />
           {/* Cinematic replay */}
           <Route path="/replay/:rideId" element={<RouteErrorBoundary routeName="Replay"><Suspense fallback={<LoadingFallback />}><Replay /></Suspense></RouteErrorBoundary>} />
-          {/* Custom workout builder */}
-          <Route path="/workouts/new" element={<RouteErrorBoundary routeName="Workout Builder"><Suspense fallback={<LoadingFallback />}><WorkoutBuilderRoute /></Suspense></RouteErrorBoundary>} />
-          <Route path="/workouts/:id/edit" element={<RouteErrorBoundary routeName="Workout Builder"><Suspense fallback={<LoadingFallback />}><WorkoutBuilderRoute /></Suspense></RouteErrorBoundary>} />
           {/* Strava OAuth callback — auto-captures ?code= after user approves */}
           <Route path="/strava-callback" element={<RouteErrorBoundary routeName="Strava Callback"><StravaCallback /></RouteErrorBoundary>} />
           <Route path="*" element={<Navigate to="/app" replace />} />
