@@ -154,8 +154,8 @@ describe('runStravaUpload', () => {
     await runStravaUpload(ride, (s) => states.push(s), d);
     expect(d.build).toHaveBeenCalledWith({ startTime: ride.startedAt, samples });
     expect(d.upload.mock.calls[0][1]).toEqual({
-      name: 'Tiber river park — GlobeRide',
-      description: 'Uploaded via GlobeRide',
+      name: 'Tiber river park — Velo',
+      description: 'Uploaded via Velo',
       trainer: true,
     });
     expect(states.map((s) => s.phase)).toEqual(['uploading', 'polling', 'success']);
@@ -193,6 +193,6 @@ describe('names', () => {
   });
 
   it('falls back to a dated activity name without a route', () => {
-    expect(stravaActivityName(undefined, Date.UTC(2026, 10, 1))).toMatch(/^GlobeRide — /);
+    expect(stravaActivityName(undefined, Date.UTC(2026, 10, 1))).toMatch(/^Velo — /);
   });
 });

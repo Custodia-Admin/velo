@@ -811,11 +811,8 @@ export function Home() {
       </main>
 
       <footer className="px-4 sm:px-6 lg:px-10 py-4 border-t border-border/50 text-xs text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
-        <span>
-          Velo · built on{' '}
-          <a className="underline underline-offset-4 hover:text-foreground" href="https://github.com/masonwyatt23/globeride">GlobeRide</a>
-          {' '}by Mason Wyatt (MIT)
-        </span>
+        {/* The upstream credit lives in Settings → Data → About (UI-RULES §6). */}
+        <span>Velo · open source (MIT)</span>
         <span className="num opacity-60">v0.2.0</span>
       </footer>
     </div>

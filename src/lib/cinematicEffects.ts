@@ -311,7 +311,7 @@ function _createStage(viewer: Cesium.Viewer): CinematicState | undefined {
     // Graceful degradation: if PostProcessStage creation fails for any reason
     // (unsupported WebGL extension, older driver, strict CSP) the ride works
     // fine — just without the filmic polish.
-    console.warn('[GlobeRide] cinematicEffects: could not create post-process stage', err);
+    console.warn('[Velo] cinematicEffects: could not create post-process stage', err);
     return undefined;
   }
 }

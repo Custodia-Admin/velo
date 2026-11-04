@@ -85,8 +85,8 @@ export function fitFileName(routeName: string | undefined, startedAt: number): s
 /** Strava activity title. */
 export function stravaActivityName(routeName: string | undefined, startedAt: number): string {
   return routeName
-    ? `${routeName} — GlobeRide`
-    : `GlobeRide — ${new Date(startedAt).toLocaleDateString()}`;
+    ? `${routeName} — Velo`
+    : `Velo — ${new Date(startedAt).toLocaleDateString()}`;
 }
 
 /** Map anything thrown by the upload to the error state the UI renders. */
@@ -154,7 +154,7 @@ export async function runStravaUpload(
   try {
     const result = await deps.upload(
       blob,
-      { name: stravaActivityName(ride.routeName, ride.startedAt), description: 'Uploaded via GlobeRide', trainer: true },
+      { name: stravaActivityName(ride.routeName, ride.startedAt), description: 'Uploaded via Velo', trainer: true },
       onState,
     );
     // Persist the uploaded key so remounts don't re-trigger auto-upload.

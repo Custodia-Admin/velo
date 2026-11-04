@@ -270,7 +270,8 @@ export function FinishCard() {
                   <Figure value="–" label="Avg power" ariaLabel="Average power: none recorded" />
                 )}
               </div>
-              <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm" data-testid="finish-secondary">
+              {/* Phones: a deliberate two-column grid (no lone item wrapping onto a line of its own). */}
+              <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:flex sm:flex-wrap" data-testid="finish-secondary">
                 {secondary.map((s) => (
                   <div key={s.label} className="flex items-baseline gap-1.5">
                     <dt className="text-muted-foreground">{s.label}</dt>
