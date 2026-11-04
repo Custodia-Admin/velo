@@ -16,6 +16,7 @@ import * as THREE from 'three';
 import type { Route } from '@/types';
 import type { WorldAtmosphere } from './materials/atmosphere';
 import { createRoadMaterial } from './materials/road';
+import { createRouteGuideMaterial, routePaintColor } from './materials/routeGuide';
 import type { ThreeQuality } from './quality';
 import { bucketLines, buildRibbons, type RibbonGeometryData, type RibbonLine } from './roadRibbons';
 import { lodHeightAt } from './terrainMesh';
@@ -24,9 +25,18 @@ import { ROAD_MAX_SEG_M, type ChunkVisibility, type SceneWorld } from './worldSc
 /** Road surface lift above the heightfield, metres (the rider stays within 5 cm of it). */
 export const ROAD_LIFT_M = 0.03;
 export const ROUTE_LIFT_M = 0.045;
+/**
+ * Width of the ribbon the route guide is painted on, metres. The paint itself
+ * (materials/routeGuide.ts) is a thin centre line with chevrons inside it;
+ * the rest of the ribbon is transparent.
+ */
 export const ROUTE_WIDTH_M = 0.6;
-/** Route ribbon vertex spacing, metres. */
-export const ROUTE_MAX_SEG_M = 2;
+/**
+ * Route ribbon vertex spacing, metres. At 2 m a mitred corner across a carve
+ * fold left a triangle 10 cm under the drawn terrain (Assisi start); 1.5 m
+ * keeps every drawn point within 6 cm of it.
+ */
+export const ROUTE_MAX_SEG_M = 1.5;
 /**
  * Most the route line's depth bias ever pulls it toward the camera, metres.
  * The bake keeps every building at least ROUTE_CLEAR_MIN_M (3.5 m) from the
@@ -42,6 +52,7 @@ export function ribbonGeometry(data: RibbonGeometryData): THREE.BufferGeometry {
   g.setAttribute('color', new THREE.BufferAttribute(data.colors, 3));
   g.setAttribute('uv', new THREE.BufferAttribute(data.uvs, 2));
   g.setAttribute('marking', new THREE.BufferAttribute(data.markings, 1));
+  g.setAttribute('pull', new THREE.BufferAttribute(data.pulls, 1));
   g.setIndex(new THREE.BufferAttribute(data.indices, 1));
   g.computeBoundingSphere();
   return g;
@@ -132,16 +143,6 @@ export function routeLine(sw: SceneWorld, route: Route, color: readonly [number,
   return { points: pts, width: ROUTE_WIDTH_M, color, marking: 0 };
 }
 
-/** Theme primary colour (the `--primary` HSL token), linear rgb. */
-function primaryColor(): THREE.Color {
-  const fallback = new THREE.Color().setHSL(200 / 360, 0.92, 0.56);
-  if (typeof document === 'undefined') return fallback;
-  const raw = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-  const m = raw.match(/^([\d.]+)\s+([\d.]+)%\s+([\d.]+)%$/);
-  if (!m) return fallback;
-  return new THREE.Color().setHSL(Number(m[1]) / 360, Number(m[2]) / 100, Number(m[3]) / 100);
-}
-
 export interface RouteChunkPiece {
   chunk: number;
   /** Draped on the chunk's near-LOD triangles. */
@@ -202,14 +203,13 @@ export function RouteLine({
   atmo?: WorldAtmosphere;
 }) {
   const handle = useMemo(() => {
-    const c = primaryColor();
-    const material = createRoadMaterial({
+    const c = routePaintColor();
+    const material = createRouteGuideMaterial({
+      color: c,
+      widthM: ROUTE_WIDTH_M,
       bias: 0.12,
       biasPerM: 0.0025,
       maxPull: ROUTE_MAX_PULL_M,
-      opacity: 0.4,
-      emissive: c.clone().multiplyScalar(0.12),
-      plain: true,
       atmo,
     });
     const group = new THREE.Group();
