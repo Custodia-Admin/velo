@@ -23,7 +23,7 @@ ceiling over the road it rides (the owner's two roads). Exits 1 on any failure. 
 scene handles (localStorage velo.debug.three / velo.debug.cesium).
 
 usage: uv run --with playwright python scripts/ride-surface-probe.py <out> <base> [route-id,...]
-env: SPOTS=1000,3000,5000 (held, metres)  START_M=100 (ridden from the start, then shot)  SIZE=1280x648@2
+env: SPOTS=1000,3000,5000 (held, metres; reached by rolling in over the last 60 m)  START_M=100 (ridden from the start, then shot)  SIZE=1280x648@2
      TOL=0.3  QUALITY=medium  SHOTS=1  SETTLE=8 (s per held spot; photoreal tiles stream)  SAMPLES=6
 """
 import json
@@ -221,8 +221,16 @@ with sync_playwright() as p:
         spot = {"m": START_M, "ridden": True, "samples": r["start"][-3:]}
         r["spots"].append(spot)
         for m in SPOTS:
-            page.evaluate(PLACE, m)
+            # Arrive like a ride: settle 60 m short, then roll in at 2 m steps (the photoreal overhang
+            # filter follows the road from where it was; a bare teleport has no road to follow).
+            page.evaluate(PLACE, max(0.0, m - 60))
             time.sleep(SETTLE)
+            x = max(0.0, m - 60)
+            while x < m:
+                x = min(m, x + 2)
+                page.evaluate(PLACE, x)
+                time.sleep(0.1)
+            time.sleep(2)
             samples = []
             for _ in range(SAMPLES):
                 s = page.evaluate(SAMPLE, TOL)

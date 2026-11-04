@@ -11,13 +11,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Cesium from 'cesium';
 
-import {
-  acceptMeshReading,
-  createGroundSampler,
-  followGround,
-  GROUND_SAMPLE_INTERVAL_MS,
-  OVERHANG_GIVE_UP_MS,
-} from '@/lib/avatar';
+import { createGroundSampler, createMeshRoadFilter, followGround, GROUND_SAMPLE_INTERVAL_MS } from '@/lib/avatar';
 import { drawnGroundHeight, getPhotorealTileset, groundSettled, sceneGroundHeight, setIonToken } from '@/lib/cesiumUtils';
 
 async function photoreal(height: number | undefined, opts: { show?: boolean; tilesLoaded?: boolean } = {}) {
@@ -119,61 +113,81 @@ describe('the rider stands on the drawn ground over the photoreal mesh', () => {
   });
 });
 
-describe('overhangs: a palm canopy over the path is not the road', () => {
-  it('rejects a reading that rises faster than a road climbs, takes falls and real climbs', () => {
-    expect(acceptMeshReading(undefined, -18, 0)).toBe(true);
-    expect(acceptMeshReading(-28.2, -18.0, 5)).toBe(false); // Santa Monica Strand, 10 m palm canopy
-    expect(acceptMeshReading(-28.2, -40, 5)).toBe(true); // falls always
-    expect(acceptMeshReading(300, 301.2, 1)).toBe(true); // a 1.2 m kerb/ramp step
-    expect(acceptMeshReading(300, 302.4, 5)).toBe(true); // 20 % over 5 m + slack
-    expect(acceptMeshReading(300, 312, 40)).toBe(true); // 40 m on it is the road
-    // A tile that refines 4 m higher under a stopped rider is taken after a moment.
-    expect(acceptMeshReading(-33, -28.1, 0, OVERHANG_GIVE_UP_MS - 1)).toBe(false);
-    expect(acceptMeshReading(-33, -28.1, 0, OVERHANG_GIVE_UP_MS)).toBe(true);
+describe('overhangs: only the road is ground, not what stands over it', () => {
+  // Spots 2 m apart along a path heading north from (lon0, lat0).
+  const lon0 = -118.5;
+  const at = (m: number) => 34 + m / 110_540;
+  const HIGH = 1e9;
+
+  it('a palm canopy over the path (10 m up, the path before it still low) is not the road', () => {
+    const f = createMeshRoadFilter();
+    const mesh = (lat: number) => (lat > at(3) && lat < at(15) ? -18.0 : -28.2);
+    const readAt = (_lon: number, lat: number) => mesh(lat);
+    const got = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18].map((m) => f.next(mesh(at(m)), lon0, at(m), HIGH, readAt));
+    expect(got).toEqual([-28.2, -28.2, -28.2, -28.2, -28.2, -28.2, -28.2, -28.2, -28.2, -28.2]);
+  });
+
+  it('a viaduct 29 m over the towpath is not the road, however long the rider is under it', () => {
+    const f = createMeshRoadFilter();
+    const mesh = (lat: number) => (lat > at(10) && lat < at(70) ? 189.3 : 160.2);
+    const readAt = (_lon: number, lat: number) => mesh(lat);
+    for (let m = 0; m <= 80; m += 2) expect(f.next(mesh(at(m)), lon0, at(m), HIGH, readAt)).toBe(160.2);
+  });
+
+  it('a tile refining higher under the rider is taken at once (the last road spot rose too)', () => {
+    const f = createMeshRoadFilter();
+    let refined = false;
+    const mesh = () => (refined ? -28.1 : -33.0);
+    const readAt = () => mesh();
+    expect(f.next(mesh(), lon0, at(0), HIGH, readAt)).toBe(-33.0);
+    refined = true;
+    expect(f.next(mesh(), lon0, at(2), HIGH, readAt)).toBe(-28.1);
+    // Stopped: the same spot.
+    const g = createMeshRoadFilter();
+    refined = false;
+    g.next(mesh(), lon0, at(0), HIGH, readAt);
+    refined = true;
+    expect(g.next(mesh(), lon0, at(0), HIGH, readAt)).toBe(-28.1);
+  });
+
+  it('climbs, falls and holes: climbs and falls taken, a hole leaves the globe to decide but keeps the road', () => {
+    const f = createMeshRoadFilter();
+    const none = () => undefined;
+    expect(f.next(300, lon0, at(0), HIGH, none)).toBe(300);
+    expect(f.next(301.9, lon0, at(2), HIGH, none)).toBe(301.9); // 20 % + slack
+    expect(f.next(290, lon0, at(4), HIGH, none)).toBe(290); // falls always
+    expect(f.next(undefined, lon0, at(6), HIGH, none)).toBeUndefined();
+    expect(f.next(299.5, lon0, at(8), HIGH, none)).toBe(290); // after the hole, still measured from the road
+  });
+
+  it('a coarse tile 600 m up is never the road (over the terrain ceiling)', () => {
+    const f = createMeshRoadFilter();
+    expect(f.next(768.9, lon0, at(0), 160 + 60, () => 768.9)).toBeUndefined();
+    expect(f.next(158.4, lon0, at(2), 220, () => 158.4)).toBe(158.4);
+    expect(f.next(768.9, lon0, at(4), 220, () => 768.9)).toBe(158.4);
   });
 
   it('the sampler keeps the road under a canopy and the rider stays on it', async () => {
     setIonToken('eyJ_test');
-    const readings = [-28.2, -18.0, -28.3];
-    let i = 0;
     const { tileset } = await photoreal(undefined);
-    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => readings[Math.min(i++, 2)]);
+    let canopy = false;
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
+      canopy && Cesium.Math.toDegrees(c.latitude) > at(1) ? -18.0 : -28.2,
+    );
     const { s } = scene(tileset, { height: -32.5 });
     const sampler = createGroundSampler(s);
-    expect(sampler.sample(-118.5, 34.0, -30, 0)).toBeCloseTo(-28.2, 6);
-    expect(sampler.sample(-118.5, 34.00005, -30, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-28.2, 6);
-    expect(sampler.sample(-118.5, 34.0001, -30, 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-28.3, 6);
-  });
-
-  it('a higher surface that stays (a refined tile) is taken after OVERHANG_GIVE_UP_MS of rejections', async () => {
-    setIonToken('eyJ_test');
-    const readings = [-33.0, -28.1];
-    let i = 0;
-    const { tileset } = await photoreal(undefined);
-    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => readings[Math.min(i++, 1)]);
-    const sampler = createGroundSampler(scene(tileset, { height: -40 }).s);
-    expect(sampler.sample(-118.5, 34.0, -30, 0)).toBeCloseTo(-33, 6);
-    let t = 0;
-    for (; t < OVERHANG_GIVE_UP_MS; t += GROUND_SAMPLE_INTERVAL_MS) {
-      expect(sampler.sample(-118.5, 34.0, -30, t + GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-33, 6);
-    }
-    expect(sampler.sample(-118.5, 34.0, -30, t + 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-28.1, 6);
+    expect(sampler.sample(lon0, at(0), -30, 0)).toBeCloseTo(-28.2, 6);
+    canopy = true;
+    expect(sampler.sample(lon0, at(2), -30, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-28.2, 6);
+    expect(sampler.sample(lon0, at(4), -30, 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-28.2, 6);
   });
 });
 
 describe('followGround: the avatar never lags under a rising surface', () => {
-  it('rises at once on a climb, eases up a big step in ~0.2 s, eases down', () => {
+  it('rises at once (a tile loading 4 m higher), eases down', () => {
     expect(followGround(null, 300, 1 / 60)).toBe(300);
     expect(followGround(300, 300.4, 1 / 60)).toBe(300.4);
-    let h = 300;
-    let frames = 0;
-    while (h < 304 && frames < 60) {
-      h = followGround(h, 304, 1 / 60);
-      frames++;
-    }
-    expect(h).toBe(304);
-    expect(frames).toBeGreaterThan(5);
-    expect(frames).toBeLessThanOrEqual(12);
+    expect(followGround(-32.4, -28.2, 1 / 60)).toBe(-28.2);
     const down = followGround(303.7, 300, 1 / 60);
     expect(down).toBeLessThan(303.7);
     expect(down).toBeGreaterThan(300);
