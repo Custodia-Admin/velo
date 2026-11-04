@@ -1,0 +1,42 @@
+{
+  "format": "velo-destination",
+  "version": 1,
+  "id": "cleveland-lakefront",
+  "name": "Cleveland",
+  "role": "wishlist",
+  "order": 80,
+  "place": "Ohio, USA",
+  "detail": "The Lake Erie lakefront",
+  "world": null,
+  "routes": [
+    "scenic-cleveland-lakefront"
+  ],
+  "moods": [
+    "dusk-cool"
+  ],
+  "defaultMood": "dusk-cool",
+  "pois": [],
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ]
+}
