@@ -3,7 +3,8 @@
 # requires-python = ">=3.10"
 # dependencies = ["playwright", "pillow"]
 # ///
-"""Velo v2 identity mockups: render every screen at 1440x900, 390x844 and 1920x1080 (TV).
+"""Velo v2 identity mockups: render every screen at 1440x900, 1280x648 @2 (the owner's laptop),
+390x844 and 1920x1080 (TV).
 
 Usage (from the repo root):
 
@@ -12,7 +13,7 @@ Usage (from the repo root):
 Serves docs/design/ over a local http.server (no network), opens
 docs/design/mockups/v2-<screen>.html in headless Chromium (/usr/sbin/chromium,
 override with CHROMIUM) and writes viewport-sized JPGs to
-docs/design/screenshots/v2/mockup/<screen>-<1440|390|tv>[-night].jpg.
+docs/design/screenshots/v2/mockup/<screen>-<1440|1280|390|tv>[-night].jpg.
 390 renders at device scale 2 (like a phone). TV is 1920x1080 at scale 1;
 the mockup kit sets data-layout="tv" at >= 1600 px (1rem = 28 px).
 
@@ -41,7 +42,7 @@ OUT = DESIGN / "screenshots/v2/mockup"
 SCREENS = ["home", "ride-hud", "ride-hud-open", "ride-hud-lost", "devices", "show", "finish"]
 # Screens that are a state of another mockup: name -> (page, query).
 VARIANTS = {"ride-hud-open": ("ride-hud", "tray=open"), "ride-hud-lost": ("ride-hud", "state=lost")}
-VIEWPORTS = {"1440": (1440, 900, 1), "390": (390, 844, 2), "tv": (1920, 1080, 1)}
+VIEWPORTS = {"1440": (1440, 900, 1), "1280": (1280, 648, 2), "390": (390, 844, 2), "tv": (1920, 1080, 1)}
 
 MEASURE = """() => {
   const vis = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el);
@@ -80,7 +81,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="")
     ap.add_argument("--themes", default="day,night")
-    ap.add_argument("--viewports", default="1440,390,tv")
+    ap.add_argument("--viewports", default="1440,1280,390,tv")
     args = ap.parse_args()
     screens = [s for s in SCREENS if not args.only or s in args.only.split(",")]
     OUT.mkdir(parents=True, exist_ok=True)

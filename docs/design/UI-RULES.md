@@ -12,17 +12,34 @@ Product context lives in [`docs/VELO-BRIEF.md`](../VELO-BRIEF.md). Read it first
 
 1. **Load the rules.** This file and `docs/VELO-BRIEF.md`.
 2. **Mockup.** Static HTML or a throwaway branch render using the tokens in §2,
-   at **1440×900** and **390×844**. Keep it in the PR description or under
-   `docs/design/mockups/` if it is worth keeping.
+   at the **gate viewports**: **1440×900**, **1280×648 @2** and **390×844**
+   (plus 1920×1080 for TV-facing surfaces, §5). Keep it in the PR description
+   or under `docs/design/mockups/` if it is worth keeping.
 3. **Vision review.** Look at the mockup renders against the §9 rubric. Fix
    what fails before writing component code.
 4. **Build.** Only tokens and the shared primitives in §3.
-5. **Compare.** Render the built UI at 1440 and 390, put it side by side with
-   the mockup and with the pre-change screenshots of the same page. Use
-   `scripts/ui-shots.py` (see the script header for usage).
-6. **Ship.** The PR carries before/after shots at both widths and the §9
-   rubric result. `src/test/uiRules.test.ts` must pass and its checked set
-   must not shrink.
+5. **Compare.** Render the built UI at every gate viewport (1440, 1280, 390,
+   and TV where it applies), put it side by side with the mockup and with the
+   pre-change screenshots of the same page. Use `scripts/v2-build-shots/`
+   (`common.py` VIEWPORTS holds the gate sizes) or `scripts/ui-shots.py`.
+6. **Ship.** The PR carries before/after shots at every gate viewport and the
+   §9 rubric result. `src/test/uiRules.test.ts` and
+   `e2e/viewport-1280.spec.ts` must pass, and the uiRules checked set must not
+   shrink.
+
+### Gate viewports
+
+| Name | CSS size | Scale | What it is |
+| --- | --- | --- | --- |
+| `1440` | 1440×900 | 1 | Desktop / large laptop |
+| `1280` | **1280×648** | **2** | **The owner's laptop**: Chrome on a 2560×1600 panel at scale 2 (browser chrome takes the rest of the 800 CSS px). Short and wide, the tightest landscape gate. Added 4 Nov 2026 after the owner could not read the Finish screen there. |
+| `390` | 390×844 | 2 | Phone (mobile + touch) |
+| `tv` | 1920×1080 | 1 | TV, `data-layout="tv"` (1 rem = 28 px, §5) |
+
+At **1280×648** every screen fits its viewport: no horizontal scroll, no page
+scroll on full-screen views (ride, finish, sheets), nothing clipped at an edge
+and nothing overlapping. Home and Devices may scroll vertically as pages, but
+their primary action is visible without scrolling.
 
 No screenshots looked at = not done.
 
@@ -80,6 +97,9 @@ Raw values are allowed **only** inside `src/components/ui/*` primitives and
   primary action visible without hunting.
 - 1440: nothing stretches past the content column; cards keep a readable
   measure (`max-w-prose` for paragraphs).
+- 1280×648 (owner's laptop): full-screen views fit with no page scroll; size
+  them from the viewport height (flex column + a plate that takes the slack),
+  never from a fixed stack of heights that only fits at 900 px.
 
 ## 5. Touch and distance
 
@@ -117,7 +137,10 @@ UI scaled up, not a second design (direction: `docs/design/v2-identity.md` §4).
 - No jargon on Home. "Effort" or "How hard the hills feel" instead of
   "trainer difficulty" in headings; the setting name can appear as a label.
 - Distances in the rider's unit; durations as "about 30 min".
-- Credit upstream: GlobeRide (MIT) stays credited in the footer.
+- The product is **Velo**. No user-visible "GlobeRide" or globeride.vercel.app
+  in the app (titles, manifest, copy, file names, spoken lines). The upstream
+  credit (GlobeRide, MIT, Mason Wyatt) lives in `README.md`, `LICENSE` and the
+  Settings → About line only.
 - No Zwift names, logos or assets.
 
 ## 7. Anti-slop (from the `impeccable` vocabulary)
@@ -146,6 +169,9 @@ Score each line pass / fail in the PR. Any fail blocks merge.
 2. One clear primary action; hierarchy readable at a glance.
 3. 1440: legible from two metres, nothing stretched.
 4. 390: single column, no overflow, no overlaps, primary action reachable.
+4a. 1280×648 @2 (owner's laptop): no horizontal overflow, no page scroll on
+   full-screen views, nothing clipped or overlapped, key actions in the
+   viewport (`e2e/viewport-1280.spec.ts`).
 5. Targets ≥ `h-10`, primary `h-12`.
 6. Copy follows §6, no training nagging on Home (§1).
 7. States from §8 covered.
@@ -164,7 +190,8 @@ Score each line pass / fail in the PR. Any fail blocks merge.
   2026; `v2-ride-hud.html`) — one band at the bottom edge (figures, Pause /
   Finish, one ride-details toggle) and one status chip above it; route card,
   map and ride tools collapsed behind the toggle. All ride UI ≤ 15 % of the
-  screen collapsed (measured: `scripts/v2-build-shots/hud_area.py`), every
+  screen collapsed at every gate viewport, 1280×648 included (measured:
+  `scripts/v2-build-shots/hud_area.py`, `budget()`), every
   device or error state in the one chip (never a large red box), translucent
   `hud-surface` panels (alpha + grain, no blur), `h-10`+ targets, figures
   `text-2xl`+, nothing over the rider, and in show mode nothing that competes
