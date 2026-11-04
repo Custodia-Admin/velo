@@ -12,6 +12,7 @@ import {
 } from './trainerReconnect';
 import { disconnect as ftmsDisconnect, isConnected } from './ftms';
 import { useRideStore } from '@/stores/rideStore';
+import { __resetRideSessionForTests, retainRideSession } from '@/lib/controllers/rideSession';
 
 // ---- pure state machine ----------------------------------------------------
 
@@ -135,6 +136,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  __resetRideSessionForTests();
   await ftmsDisconnect().catch(() => undefined);
   vi.unstubAllGlobals();
   vi.useRealTimers();
@@ -164,6 +166,13 @@ describe('reconnectGrantedTrainer', () => {
     await checkGrantedTrainer();
     expect(useTrainerReconnectStore.getState()).toMatchObject({ phase: 'available', name: 'KICKR CORE 78C1' });
 
+    // Silent means nobody tapped: never outside a ride, not even a GATT connect.
+    const connects = vi.spyOn(dev.gatt as { connect: () => Promise<unknown> }, 'connect');
+    expect(await reconnectGrantedTrainer({ silent: true })).toBe(false);
+    expect(connects).not.toHaveBeenCalled();
+    expect(phase()).toBe('available');
+
+    retainRideSession();
     expect(await reconnectGrantedTrainer({ silent: true })).toBe(true);
     expect(phase()).toBe('connected');
     expect(isConnected()).toBe(true);
@@ -196,6 +205,7 @@ describe('reconnectGrantedTrainer', () => {
     expect(useRideStore.getState().connection).toBe('disconnected');
     expect(isConnected()).toBe(false);
     // A silent ride-start attempt does not hammer it again; the rider can tap.
+    retainRideSession();
     expect(await reconnectGrantedTrainer({ silent: true })).toBe(false);
   });
 

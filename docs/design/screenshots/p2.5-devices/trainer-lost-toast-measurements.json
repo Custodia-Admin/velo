@@ -1,0 +1,42 @@
+{
+  "1440": {
+    "branch": "grid",
+    "button": {
+      "x": 1113,
+      "y": 123.5,
+      "w": 106.125,
+      "h": 40
+    },
+    "card": {
+      "x": 1064,
+      "y": 16,
+      "w": 360,
+      "h": 160.5
+    },
+    "hitIsButton": true,
+    "overflow": 0,
+    "text": "Couldn't reconnect after several attempts\nSwitched to Demo Mode so the ride keeps going. Pedal once to wake the trainer, then tap Reconnect.\nReconnect",
+    "earlyTapConnects": 2,
+    "earlyTapToastBack": true
+  },
+  "390": {
+    "branch": "grid",
+    "button": {
+      "x": 63,
+      "y": 123.5,
+      "w": 106.125,
+      "h": 40
+    },
+    "card": {
+      "x": 14,
+      "y": 16,
+      "w": 360,
+      "h": 160.5
+    },
+    "hitIsButton": true,
+    "overflow": 0,
+    "text": "Couldn't reconnect after several attempts\nSwitched to Demo Mode so the ride keeps going. Pedal once to wake the trainer, then tap Reconnect.\nReconnect",
+    "earlyTapConnects": 2,
+    "earlyTapToastBack": true
+  }
+}

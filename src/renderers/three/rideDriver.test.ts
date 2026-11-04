@@ -32,7 +32,7 @@ describe('driveRideFrame lane offset', () => {
       const frame = createRideFrame();
       const memo = createRideDriverMemo();
       // Settle into the full right-hand lane before the corner.
-      memo.lane = MAX_LANE_OFFSET_M;
+      memo.lane = { offsetM: MAX_LANE_OFFSET_M, velMs: 0 };
       let prev: { x: number; z: number } | null = null;
       let worstExcess = 0;
       for (let d = 3660; d <= 3840; d += speed * DT) {

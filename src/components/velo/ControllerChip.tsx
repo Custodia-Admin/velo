@@ -54,13 +54,14 @@ export function ControllerChip() {
   const inputSeen = useControllerStore((s) => s.inputSeen);
   const gear = useControllerStore((s) => s.gear);
   const battery = useControllerStore((s) => s.battery);
+  const wakeArmed = useControllerStore((s) => s.wakeArmed);
   const difficulty = useSettingsStore((s) => s.trainerDifficulty);
   const erg = useRideStore((s) => s.trainerControlMode === 'erg');
 
   if (!supported) return null;
 
   const phase = controllerPhase({ status, silent, side, inputSeen });
-  const view = chipView(phase, battery);
+  const view = chipView(phase, battery, wakeArmed);
   const gearLive = status === 'connected' || status === 'reconnecting';
 
   const act = () => {

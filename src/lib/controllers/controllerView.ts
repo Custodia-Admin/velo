@@ -7,6 +7,7 @@
  */
 
 import type { BuzzResult, ControllerSideCheck, ControllerStatus } from '@/stores/controllerStore';
+import { LOW_BATTERY_PCT, formatBattery } from '@/lib/controllers/battery';
 
 export type ControllerPhase =
   | 'none' // nothing paired this session
@@ -71,6 +72,26 @@ export const LOCKED_INTRO = 'The controls are locked. Unlock lasts 24 h.';
 /** Extra line when we could not tell which side is paired. */
 export const MAYBE_RIGHT_TEXT = 'Two entries with the same name? Only the left one sends presses: pair the other.';
 
+/**
+ * Asleep controls wake on a button press. They reconnect on their own only
+ * when the browser is really watching for it (during a ride, where
+ * watchAdvertisements exists and was accepted); otherwise the copy asks for
+ * a tap, never promising what cannot happen.
+ */
+export const ASLEEP_NOTE_ARMED = 'Press a button on the bars: they reconnect by themselves.';
+export const ASLEEP_NOTE = 'Press a button on the bars, then tap Reconnect.';
+export const ASLEEP_TEXT_ARMED =
+  'The controls went to sleep. Press any button on the bars: they reconnect by themselves.';
+export const ASLEEP_TEXT = 'The controls went to sleep. Press any button on the bars, then tap Reconnect.';
+
+export function asleepNote(wakeArmed: boolean): string {
+  return wakeArmed ? ASLEEP_NOTE_ARMED : ASLEEP_NOTE;
+}
+
+export function asleepText(wakeArmed: boolean): string {
+  return wakeArmed ? ASLEEP_TEXT_ARMED : ASLEEP_TEXT;
+}
+
 export type ChipTone = 'ok' | 'busy' | 'warn' | 'off';
 export type ChipAction = 'pair' | 'pairOther' | 'reconnect' | null;
 
@@ -96,10 +117,10 @@ const ACTION_LABEL: Record<Exclude<ChipAction, null>, string> = {
 };
 
 function withBattery(label: string, battery: number | null): string {
-  return battery === null ? label : `${label} · ${battery} %`;
+  return battery === null ? label : `${label} · ${formatBattery(battery)}`;
 }
 
-export function chipView(phase: ControllerPhase, battery: number | null): ChipView {
+export function chipView(phase: ControllerPhase, battery: number | null, wakeArmed = false): ChipView {
   const v = (
     label: string,
     tone: ChipTone,
@@ -126,7 +147,7 @@ export function chipView(phase: ControllerPhase, battery: number | null): ChipVi
       return v(withBattery('Controls on', battery), 'busy', true, null, { note: 'Press a paddle to check.' });
     case 'live':
       return v(withBattery('Controls', battery), 'ok', true, null, {
-        note: battery !== null && battery <= 20 ? 'Battery low: charge after this ride.' : null,
+        note: battery !== null && battery <= LOW_BATTERY_PCT ? 'Battery low: charge after this ride.' : null,
       });
     case 'rightSide':
       // No gear figures while presses cannot arrive: a frozen gear only confuses.
@@ -138,16 +159,18 @@ export function chipView(phase: ControllerPhase, battery: number | null): ChipVi
     case 'reconnecting':
       return v('Reconnecting controls…', 'busy', true);
     case 'asleep':
-      return v('Asleep', 'warn', false, 'reconnect', { note: 'Press a button on the bars, then reconnect.' });
+      return v('Asleep', 'warn', false, 'reconnect', { note: asleepNote(wakeArmed) });
   }
 }
 
-/** Status line in the Trainer panel, e.g. "Left controller · connected · buzzed · battery 85 %". */
+/**
+ * Status line in the Trainer panel, e.g. "Left controller · connected · buzzed".
+ * The battery follows it as its own reading (BatteryReading).
+ */
 export function panelStatusLine(
   phase: ControllerPhase,
   side: ControllerSideCheck | null,
   buzz: BuzzResult | null,
-  battery: number | null,
 ): string {
   const base: Record<ControllerPhase, string> = {
     none: 'Not paired',
@@ -167,6 +190,5 @@ export function panelStatusLine(
   if (connected && side === 'right') parts.push('Right controller');
   parts.push(parts.length ? base[phase].toLowerCase() : base[phase]);
   if (connected && buzz === 'ok') parts.push('buzzed');
-  if (connected && battery !== null) parts.push(`battery ${battery} %`);
   return parts.join(' · ');
 }
