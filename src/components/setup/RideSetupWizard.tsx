@@ -699,7 +699,7 @@ export function RideSetupWizard() {
   const step3Done = partnerNames !== '';
 
   // Subtitle text for collapsed steps
-  const step1Subtitle = route ? route.name : undefined;
+  const step1Subtitle = route ? route.name : 'None yet: Start picks an easy scenic ride';
   const step2Subtitle = step2Done ? 'Trainer connected' : 'Demo mode (no trainer)';
   const step3Subtitle = step3Done ? `With ${partnerNames}` : 'Riding alone';
 
@@ -803,27 +803,17 @@ export function RideSetupWizard() {
       </div>
 
       {/* ── Start CTA ── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-1">
-        <Button
-          size="lg"
-          variant="accent"
-          onClick={handleStartRide}
-          className="rounded-pill active:scale-[0.97] transition-transform w-full sm:w-auto"
-        >
+      <div className="flex flex-col items-start gap-3 pt-1 sm:flex-row sm:items-center">
+        <Button size="lg" variant="primary" onClick={handleStartRide} className="w-full text-base sm:w-auto">
           {step1Done ? 'Start ride' : 'Auto-pick a route & start'}
           <ArrowRight className="h-5 w-5" />
         </Button>
 
-        {/* Connection status chip */}
-        <div className={cn(
-          'flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border',
-          step2Done
-            ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/8'
-            : 'text-muted-foreground border-border/50 bg-muted/20',
-        )}>
+        {/* Connection status: what drives the ride */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {step2Done
-            ? <><Wifi className="h-3 w-3" /> Trainer connected</>
-            : <><WifiOff className="h-3 w-3" /> Demo mode</>}
+            ? <><Wifi className="h-4 w-4 text-primary" aria-hidden /> Trainer connected</>
+            : <><WifiOff className="h-4 w-4" aria-hidden /> Demo mode</>}
         </div>
       </div>
     </div>

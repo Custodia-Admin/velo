@@ -8,7 +8,7 @@ import { BOT_PRESETS, createPaceBot, type PaceBot, type Personality } from '@/li
 /** How many partners can ride along at once. */
 export const MAX_PARTNERS = 3;
 
-export interface Partner {
+interface Partner {
   /** Stable roster id (`pace-<personality>`); also the bot's id in the store. */
   id: string;
   name: string;
