@@ -1,0 +1,10 @@
+Route-fill mutation (merge head 7ee187b, Lugano baked with main's #33 Locarno entry: 3,612 m route fill over the lake):
+   × shipped world lugano: routes ride its roads, never the lake > has no route on open water or off its drawn roads 1443ms
+     → scenic-locarno-brissago on water at 3150–6720 m: expected 3580 to be less than or equal to 150
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 6 passed (7)
+--- with route fill counted as a road:
+   × routeSurfaces > does not let a route fill pave a lake crossing 9ms
+     → expected 0 to be greater than 1900
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 6 passed (7)

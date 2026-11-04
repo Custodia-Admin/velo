@@ -117,7 +117,7 @@ const SCENIC_META: ScenicMeta[] = [
     name: 'Locarno to Brissago',
     place: 'Ticino · Lago Maggiore',
     description:
-      "From Locarno past Ascona's lakefront and along the shore toward Brissago, with the Brissago Islands just offshore.",
+      "From Locarno over Ascona's Collinetta and along the shore road toward Brissago, with the Brissago Islands just offshore.",
     area: 'hometown',
     scenery: 'lake',
     mood: 'clear-afternoon',

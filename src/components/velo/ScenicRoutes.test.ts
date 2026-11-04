@@ -23,7 +23,7 @@ function html(el: Parameters<typeof renderToStaticMarkup>[0]): string {
 }
 
 describe('FeaturedScenicRide (Today’s ride)', () => {
-  const out = html(createElement(FeaturedScenicRide, { info: tiber, onRide: noop, onRideWithShow: noop }));
+  const out = html(createElement(FeaturedScenicRide, { info: tiber, onRide: noop, onRideWithShow: noop, place: 'Perugia' }));
 
   it('keeps the hooks the smoke spec clicks', () => {
     expect(out).toContain('data-testid="featured-scenic-ride"');
@@ -31,11 +31,12 @@ describe('FeaturedScenicRide (Today’s ride)', () => {
     expect(out).toContain('data-testid="ride-and-watch"');
   });
 
-  it('leads with the world still (day + night plates) and names the area', () => {
+  it('leads with the world still (day + night plates) and names the place', () => {
     expect(out).toContain('posters/');
     expect(out).toContain('home-hero-tiber.jpg');
     expect(out).toContain('home-hero-tiber-night.jpg');
-    expect(out).toContain('Today’s ride · Near home');
+    expect(out).toContain('Today’s ride · Perugia');
+    expect(html(createElement(FeaturedScenicRide, { info: tiber, onRide: noop }))).toContain('Today’s ride</span>');
     expect(out).toMatch(/11\.\d km · flat · about \d+ min/);
   });
 
@@ -72,13 +73,28 @@ describe('ScenicRouteGrid (area tiles)', () => {
   });
 
   it('does not repeat the Map view badge in an area where every route is a map ride', () => {
-    const hometown = SCENIC_ROUTES.filter((r) => r.area === 'hometown');
-    const all = html(createElement(ScenicRouteGrid, { routes: hometown, onRide: noop }));
-    expect(all.match(/data-scenic-route="/g)).toHaveLength(hometown.length);
+    const travels = SCENIC_ROUTES.filter((r) => r.area === 'travels');
+    const all = html(createElement(ScenicRouteGrid, { routes: travels, onRide: noop }));
+    expect(all.match(/data-scenic-route="/g)).toHaveLength(travels.length);
     expect(all).not.toContain('Map view');
     expect(all).not.toContain('3D world coming');
     // Screen readers still hear it on every map tile.
-    expect(all.match(/, map view"/g)).toHaveLength(hometown.length);
+    expect(all.match(/, map view"/g)).toHaveLength(travels.length);
+  });
+
+  it('leads a tile with its place when given one (the wishlist), keeping the route in the label', () => {
+    const west = scenicRouteById('scenic-hangzhou-west-lake')!;
+    const out2 = html(
+      createElement(ScenicRouteGrid, {
+        routes: [west],
+        onRide: noop,
+        placeById: { [west.route.id]: { title: 'Hangzhou', line: 'West Lake loop · Zhejiang, China' } },
+      }),
+    );
+    expect(out2).toMatch(/<h4[^>]*>Hangzhou<\/h4>/);
+    expect(out2).toContain('West Lake loop · Zhejiang, China');
+    expect(out2).toMatch(/aria-label="Ride West Lake loop in Hangzhou, [^"]*, map view"/);
+    expect(out2).toContain('data-scenic-route="scenic-hangzhou-west-lake"');
   });
 
   it('uses two columns at lg for two or four routes, else three', () => {

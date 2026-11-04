@@ -8,7 +8,7 @@ import { Clapperboard, Map as MapIcon, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettingsStore, type UnitSystem } from '@/stores/settingsStore';
-import { SCENIC_AREAS, type ScenicRouteInfo } from '@/lib/scenicRoutes';
+import type { ScenicRouteInfo } from '@/lib/scenicRoutes';
 import { WeatherLine } from '@/components/velo/WeatherLine';
 import type { WeatherEntry } from '@/stores/liveWeatherStore';
 import { cardWeatherText } from '@/lib/meteo/weatherText';
@@ -36,10 +36,6 @@ function figures(info: ScenicRouteInfo, units: UnitSystem): string {
   return `${distanceText(info.route.totalDistance, units)} · ${characterText(info)} · about ${info.estMinutes} min`;
 }
 
-function areaTitle(info: ScenicRouteInfo): string | undefined {
-  return SCENIC_AREAS.find((a) => a.id === info.area)?.title;
-}
-
 export interface ScenicPickProps {
   /** Route currently loaded in the ride store, to mark it as selected. */
   activeRouteId?: string | null;
@@ -59,6 +55,7 @@ export function FeaturedScenicRide({
   onRideWithShow,
   weather,
   onRetryWeather,
+  place,
   className,
 }: {
   info: ScenicRouteInfo;
@@ -67,11 +64,12 @@ export function FeaturedScenicRide({
   onRideWithShow?: (info: ScenicRouteInfo) => void;
   weather?: WeatherEntry;
   onRetryWeather?: () => void;
+  /** Where the route is (its destination's name), for the kicker. */
+  place?: string | null;
   className?: string;
 }) {
   const units = useSettingsStore((s) => s.units);
   const posters = postersFor(info.route.id);
-  const area = areaTitle(info);
   const plateClass = 'aspect-4/3 w-full sm:aspect-video sm:max-h-hero-fit';
   return (
     <figure
@@ -85,7 +83,7 @@ export function FeaturedScenicRide({
         <MapPlate route={info.route} aspect={16 / 9} className={plateClass} />
       )}
       <figcaption className="flex flex-col gap-2 pt-4 sm:absolute sm:bottom-6 sm:left-6 sm:w-hero-label sm:rounded-lg sm:bg-background sm:p-6 sm:shadow-md">
-        <span className={KICKER}>Today’s ride{area ? ` · ${area}` : ''}</span>
+        <span className={KICKER}>Today’s ride{place ? ` · ${place}` : ''}</span>
         <h2 id="todays-ride-title" className={cn(DISPLAY, 'text-3xl text-foreground sm:text-4xl')}>
           {info.name}
         </h2>
@@ -132,6 +130,7 @@ function ScenicRouteTile({
   onRide,
   weather,
   flagMapView,
+  place,
 }: {
   info: ScenicRouteInfo;
   isActive: boolean;
@@ -139,6 +138,8 @@ function ScenicRouteTile({
   weather?: WeatherEntry;
   /** Say "Map view" on this tile: only where an area mixes 3D worlds and map rides. */
   flagMapView: boolean;
+  /** Lead with the place instead of the route (the wishlist): its name, then route · region. */
+  place?: TilePlace;
 }) {
   const units = useSettingsStore((s) => s.units);
   const text = figures(info, units);
@@ -152,7 +153,7 @@ function ScenicRouteTile({
     <button
       type="button"
       onClick={() => onRide(info)}
-      aria-label={`Ride ${info.name}, ${text}${weatherText}${hasWorld ? '' : ', map view'}`}
+      aria-label={`Ride ${info.name}${place && place.title !== info.name ? ` in ${place.title}` : ''}, ${text}${weatherText}${hasWorld ? '' : ', map view'}`}
       aria-pressed={isActive}
       data-scenic-route={info.route.id}
       className="group flex flex-col gap-1 rounded-lg text-left"
@@ -168,7 +169,7 @@ function ScenicRouteTile({
           'text-xl text-foreground decoration-muted-foreground underline-offset-4 group-hover:underline',
         )}
       >
-        {info.name}
+        {place?.title ?? info.name}
       </h4>
       <span className="flex flex-wrap items-center gap-2 text-sm">
         <span className="num font-semibold text-foreground">{text}</span>
@@ -183,6 +184,7 @@ function ScenicRouteTile({
         ? // Offline is said once, on Today's ride; tiles just omit the line.
           weather?.status !== 'unavailable' && <WeatherLine entry={weather} prefix="Now" />
         : flagMapView && <span className="text-sm text-muted-foreground">3D world coming; rides on the map today</span>}
+      {place && <span className="text-sm text-muted-foreground">{place.line}</span>}
     </button>
   );
 }
@@ -192,14 +194,26 @@ function gridCols(count: number): string {
   return cn('grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2', count !== 2 && count !== 4 && 'lg:grid-cols-3');
 }
 
+/** A tile that leads with its place: the destination's name, then "route · region". */
+export interface TilePlace {
+  title: string;
+  line: string;
+}
+
 /** Grid of scenic route tiles. */
 export function ScenicRouteGrid({
   routes,
   activeRouteId,
   onRide,
   weatherById,
+  placeById,
   className,
-}: ScenicPickProps & { routes: ScenicRouteInfo[]; className?: string }) {
+}: ScenicPickProps & {
+  routes: ScenicRouteInfo[];
+  /** Per route id: lead the tile with this place (the wishlist). */
+  placeById?: Record<string, TilePlace | undefined>;
+  className?: string;
+}) {
   // A badge must carry information (UI-RULES §7): "Map view" only where the
   // area mixes 3D worlds and map rides. In an all-map area it would repeat.
   const withWorld = routes.map((r) => worldForRoute(r.route) !== null);
@@ -214,6 +228,7 @@ export function ScenicRouteGrid({
           onRide={onRide}
           weather={weatherById?.[info.route.id]}
           flagMapView={mixed && !withWorld[i]}
+          place={placeById?.[info.route.id]}
         />
       ))}
     </div>

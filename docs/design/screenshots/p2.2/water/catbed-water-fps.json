@@ -1,0 +1,314 @@
+[
+ {
+  "run": 1,
+  "build": "before",
+  "world": "perugia",
+  "route": "scenic-assisi-valley",
+  "click": "grid",
+  "readyS": 1.5,
+  "waterTris": 80186,
+  "waterBufferMB": 6.4,
+  "heapMB": 140,
+  "frameTris": 1081990,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   95.5,
+   62.6
+  ],
+  "fpsWaterOff": [
+   66.4,
+   68.7
+  ],
+  "load": [
+   "7.46",
+   "6.59",
+   "6.69"
+  ]
+ },
+ {
+  "run": 1,
+  "build": "before",
+  "world": "lugano",
+  "route": "scenic-lugano-melide",
+  "click": "grid",
+  "readyS": 3.2,
+  "waterTris": 5186560,
+  "waterBufferMB": 415.5,
+  "heapMB": 676,
+  "frameTris": 7026800,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   22.6,
+   32.7
+  ],
+  "fpsWaterOff": [
+   15.6,
+   18
+  ],
+  "load": [
+   "8.54",
+   "7.02",
+   "6.84"
+  ]
+ },
+ {
+  "run": 1,
+  "build": "after",
+  "world": "perugia",
+  "route": "scenic-assisi-valley",
+  "click": "grid",
+  "readyS": 1.5,
+  "waterTris": 26752,
+  "waterBufferMB": 2.1,
+  "heapMB": 139,
+  "frameTris": 1008691,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   81.3,
+   69.2
+  ],
+  "fpsWaterOff": [
+   87.2,
+   65.3
+  ],
+  "load": [
+   "9.28",
+   "7.35",
+   "6.96"
+  ]
+ },
+ {
+  "run": 1,
+  "build": "after",
+  "world": "lugano",
+  "route": "scenic-lugano-melide",
+  "click": "grid",
+  "readyS": 1.9,
+  "waterTris": 320325,
+  "waterBufferMB": 25.7,
+  "heapMB": 288,
+  "frameTris": 2161651,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   44.8,
+   53.9
+  ],
+  "fpsWaterOff": [
+   47.2,
+   52.1
+  ],
+  "load": [
+   "11.08",
+   "8.05",
+   "7.21"
+  ]
+ },
+ {
+  "run": 2,
+  "build": "before",
+  "world": "perugia",
+  "route": "scenic-assisi-valley",
+  "click": "grid",
+  "readyS": 1.9,
+  "waterTris": 80186,
+  "waterBufferMB": 6.4,
+  "heapMB": 140,
+  "frameTris": 1081990,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   84.1,
+   70.7
+  ],
+  "fpsWaterOff": [
+   66.9,
+   82.4
+  ],
+  "load": [
+   "11.29",
+   "8.38",
+   "7.35"
+  ]
+ },
+ {
+  "run": 2,
+  "build": "before",
+  "world": "lugano",
+  "route": "scenic-lugano-melide",
+  "click": "grid",
+  "readyS": 3.4,
+  "waterTris": 5186560,
+  "waterBufferMB": 415.5,
+  "heapMB": 676,
+  "frameTris": 7026800,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   20.1,
+   35.6
+  ],
+  "fpsWaterOff": [
+   21.5,
+   17.8
+  ],
+  "load": [
+   "11.07",
+   "8.77",
+   "7.53"
+  ]
+ },
+ {
+  "run": 2,
+  "build": "after",
+  "world": "perugia",
+  "route": "scenic-assisi-valley",
+  "click": "grid",
+  "readyS": 1.6,
+  "waterTris": 26752,
+  "waterBufferMB": 2.1,
+  "heapMB": 130,
+  "frameTris": 1006792,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   86.7,
+   61.9
+  ],
+  "fpsWaterOff": [
+   84.3,
+   71
+  ],
+  "load": [
+   "11.31",
+   "9.10",
+   "7.69"
+  ]
+ },
+ {
+  "run": 2,
+  "build": "after",
+  "world": "lugano",
+  "route": "scenic-lugano-melide",
+  "click": "grid",
+  "readyS": 2.0,
+  "waterTris": 320325,
+  "waterBufferMB": 25.7,
+  "heapMB": 288,
+  "frameTris": 2161651,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   49,
+   54.2
+  ],
+  "fpsWaterOff": [
+   63.7,
+   50.5
+  ],
+  "load": [
+   "11.27",
+   "9.36",
+   "7.83"
+  ]
+ },
+ {
+  "run": 3,
+  "build": "before",
+  "world": "perugia",
+  "route": "scenic-assisi-valley",
+  "click": "grid",
+  "readyS": 1.5,
+  "waterTris": 80186,
+  "waterBufferMB": 6.4,
+  "heapMB": 140,
+  "frameTris": 1081990,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   77.9,
+   77.3
+  ],
+  "fpsWaterOff": [
+   72.9,
+   78.7
+  ],
+  "load": [
+   "11.23",
+   "9.53",
+   "7.94"
+  ]
+ },
+ {
+  "run": 3,
+  "build": "before",
+  "world": "lugano",
+  "route": "scenic-lugano-melide",
+  "click": "grid",
+  "readyS": 3.6,
+  "waterTris": 5186560,
+  "waterBufferMB": 415.5,
+  "heapMB": 676,
+  "frameTris": 7026800,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   27.8,
+   29.4
+  ],
+  "fpsWaterOff": [
+   23.7,
+   17.1
+  ],
+  "load": [
+   "11.28",
+   "9.78",
+   "8.11"
+  ]
+ },
+ {
+  "run": 3,
+  "build": "after",
+  "world": "perugia",
+  "route": "scenic-assisi-valley",
+  "click": "grid",
+  "readyS": 1.6,
+  "waterTris": 26752,
+  "waterBufferMB": 2.1,
+  "heapMB": 130,
+  "frameTris": 1006792,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   81.3,
+   56.5
+  ],
+  "fpsWaterOff": [
+   75.6,
+   55.3
+  ],
+  "load": [
+   "11.83",
+   "10.12",
+   "8.29"
+  ]
+ },
+ {
+  "run": 3,
+  "build": "after",
+  "world": "lugano",
+  "route": "scenic-lugano-melide",
+  "click": "grid",
+  "readyS": 1.9,
+  "waterTris": 320325,
+  "waterBufferMB": 25.7,
+  "heapMB": 288,
+  "frameTris": 2161651,
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "fpsWaterOn": [
+   47.8,
+   48
+  ],
+  "fpsWaterOff": [
+   58.3,
+   46.7
+  ],
+  "load": [
+   "11.76",
+   "10.28",
+   "8.41"
+  ]
+ }
+]
