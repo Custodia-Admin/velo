@@ -1558,6 +1558,15 @@ export const OVERHANG_RISE_M = 1.5;
 export const OVERHANG_GRADE = 0.25;
 /** Past this much travel from the last road spot a higher reading is taken anyway. */
 export const OVERHANG_GIVE_UP_M = 100;
+/**
+ * Nothing lower than this over the road is ridden under: the chase camera
+ * sits 2.5 m over the road, so it would be inside it. A rise up to this much
+ * is ridden over, whatever its grade (Lugano–Melide at 5 km: the route comes
+ * off the lakeside path onto the road edge 3.6 m up for a few metres; held
+ * under it, the rider and the camera were inside the mesh, the frame 60 %
+ * dark wall).
+ */
+export const OVERHANG_MIN_M = 4;
 
 function metresBetween(lon: number, lat: number, fromLon: number, fromLat: number): number {
   if (Number.isNaN(fromLon)) return Infinity;
@@ -1579,10 +1588,11 @@ export type MeshRoadStatus = 'road' | 'overhang' | 'coarse' | 'none';
  * Which photoreal mesh readings are the road. A vertical ray reads the TOP
  * of whatever is there: a palm canopy 10 m over the Santa Monica Strand, the
  * I-80 viaduct 29 m over the Cuyahoga towpath, a coarse tile 600 m up. The
- * road is continuous, so a reading that rises faster than a road climbs from
- * the last road spot is the road only if the mesh at that last road spot rose
- * too (a tile refined under the rider); otherwise it is over the road and the
- * rider keeps the road it has. Falls are always taken (the rider eases down).
+ * road is continuous, so a reading more than {@link OVERHANG_MIN_M} over the
+ * last road spot, and rising faster than a road climbs, is the road only if
+ * the mesh at that last road spot rose too (a tile refined under the rider);
+ * otherwise it is over the road and the rider keeps the road it has. Lower
+ * rises are ridden over. Falls are always taken (the rider eases down).
  */
 export function createMeshRoadFilter() {
   let base: number | undefined;
@@ -1611,7 +1621,10 @@ export function createMeshRoadFilter() {
         return base;
       }
       const moved = metresBetween(lon, lat, baseLon, baseLat);
-      const climbs = base === undefined || moved >= OVERHANG_GIVE_UP_M || reading <= base + OVERHANG_RISE_M + OVERHANG_GRADE * moved;
+      const climbs =
+        base === undefined ||
+        moved >= OVERHANG_GIVE_UP_M ||
+        reading <= base + Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + OVERHANG_GRADE * moved);
       if (!climbs) {
         const atBase = readAt(baseLon, baseLat);
         if (atBase === undefined || atBase <= (base as number) + OVERHANG_RISE_M) {

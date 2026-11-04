@@ -11,7 +11,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Cesium from 'cesium';
 
-import { createGroundSampler, createMeshRoadFilter, followGround, GROUND_SAMPLE_INTERVAL_MS } from '@/lib/avatar';
+import { createGroundSampler, createMeshRoadFilter, followGround, GROUND_SAMPLE_INTERVAL_MS, OVERHANG_MIN_M } from '@/lib/avatar';
 import { drawnGroundHeight, getPhotorealTileset, groundSettled, sceneGroundHeight, setIonToken } from '@/lib/cesiumUtils';
 
 async function photoreal(height: number | undefined, opts: { show?: boolean; tilesLoaded?: boolean } = {}) {
@@ -165,6 +165,42 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     expect(f.next(768.9, lon0, at(0), 160 + 60, () => 768.9)).toBeUndefined();
     expect(f.next(158.4, lon0, at(2), 220, () => 158.4)).toBe(158.4);
     expect(f.next(768.9, lon0, at(4), 220, () => 768.9)).toBe(158.4);
+  });
+
+  // Lugano–Melide at 5 km, as measured on the mesh along the route: the
+  // lakeside path at 326.0 m, then 4 m where the route clips the road edge,
+  // 3.6 m up, then back down. Held under it, the rider sat inside the mesh
+  // and the chase camera (2.5 m up) looked at a dark wall.
+  const lugano5k = (lat: number) => (lat >= at(4) && lat < at(8) ? 331.2 : lat >= at(2) && lat < at(4) ? 327.6 : 326.0);
+
+  it('anything lower than the chase camera could pass under is ridden over (Lugano–Melide 5 km), moving or stopped', () => {
+    const f = createMeshRoadFilter();
+    const readAt = (_lon: number, lat: number) => lugano5k(lat);
+    expect([0, 2, 4, 4, 4].map((m) => f.next(lugano5k(at(m)), lon0, at(m), HIGH, readAt))).toEqual([326.0, 327.6, 331.2, 331.2, 331.2]);
+    expect(f.status()).toBe('road');
+    expect(f.next(lugano5k(at(10)), lon0, at(10), HIGH, readAt)).toBe(326.0); // and down again
+    // From the path, 3.9 m up in one step is ridden over; 4.1 m (a low road bridge's deck) is over the road.
+    const g = createMeshRoadFilter();
+    g.next(100, lon0, at(0), HIGH, () => 100);
+    expect(g.next(103.9, lon0, at(2), HIGH, () => 100)).toBe(103.9);
+    const h = createMeshRoadFilter();
+    h.next(100, lon0, at(0), HIGH, () => 100);
+    expect(h.next(104.1, lon0, at(2), HIGH, () => 100)).toBe(100);
+    expect(h.status()).toBe('overhang');
+    expect(OVERHANG_MIN_M).toBe(4);
+  });
+
+  it('the sampler lifts a stopped rider onto the road edge, not under it', async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
+      lugano5k(Cesium.Math.toDegrees(c.latitude)),
+    );
+    const { s } = scene(tileset, { height: 300 });
+    const sampler = createGroundSampler(s);
+    sampler.sample(lon0, at(0), 330, 0);
+    sampler.sample(lon0, at(2), 330, GROUND_SAMPLE_INTERVAL_MS);
+    for (let i = 2; i < 6; i++) expect(sampler.sample(lon0, at(4), 330, i * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(331.2, 6);
   });
 
   it('the sampler keeps the road under a canopy and the rider stays on it', async () => {
