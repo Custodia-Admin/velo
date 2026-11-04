@@ -12,8 +12,8 @@
  *     through; atmosphere + skyBox are hidden (they'd obscure the real world).
  *   - Resolution scale is lowered to 0.6 (vs 0.85 for VR) — AR has a tighter
  *     latency budget because passthrough adds its own compositor latency.
- *   - Spectator crowds + clouds (ProPelotonAvatars) are hidden via a CSS class
- *     on the document root — they're visual noise over the real environment.
+ *   - Spectator crowds + clouds are hidden via a CSS class on the document
+ *     root — they're visual noise over the real environment.
  *
  * AR vs VR coexistence:
  *   - AR and VR use separate module-level handles (_activeARHandle vs

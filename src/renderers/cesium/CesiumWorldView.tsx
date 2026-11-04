@@ -98,7 +98,6 @@ import {
   type SpectatorCollection,
 } from '@/lib/spectatorSystem';
 import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
-import { ProPelotonAvatars } from '@/components/ride/ProPelotonAvatars';
 import { waitForContainerSize } from '@/lib/waitForContainerSize';
 import {
   CHASE_FRAMING,
@@ -1465,10 +1464,6 @@ export function CesiumWorldView({
       {/* Multi-rider peer avatars — rendered into the Cesium viewer once it is ready. */}
       {viewerReady && viewerRef.current && !viewerRef.current.isDestroyed() && (
         <MultiRiderPeers viewer={viewerRef.current} />
-      )}
-      {/* ---- Pro peloton ghosts ---- */}
-      {viewerReady && viewerRef.current && !viewerRef.current.isDestroyed() && (
-        <ProPelotonAvatars viewer={viewerRef.current} />
       )}
     </>
   );

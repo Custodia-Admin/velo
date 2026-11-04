@@ -18,8 +18,6 @@ import { computeDraftState, type DraftState } from '@/lib/drafting';
 import type { PaceBot } from '@/lib/paceBots';
 import { createPaceBot, tickPaceBot } from '@/lib/paceBots';
 import { gradientAt } from '@/lib/gradientCalculator';
-import type { ProPelotonState } from '@/lib/proCycling/proPelotonSimulator';
-import { tickProPeloton } from '@/lib/proCycling/proPelotonSimulator';
 import {
   can,
   driveOf,
@@ -255,19 +253,6 @@ interface RideStoreState {
   /** Remove all bots (called on route clear or explicit disable). */
   clearPaceBots: () => void;
 
-  // ---- ADDITIVE: Pro Peloton Ghosts ----
-  /**
-   * Active pro peloton simulation state. Non-null when the user has opted into
-   * the pro peloton overlay for the current World Tour stage.
-   * Null during normal rides or when no stage results are available.
-   */
-  proPeloton: ProPelotonState | null;
-  /** Activate the pro peloton for the current stage. */
-  setProPeloton: (state: ProPelotonState) => void;
-  /** Deactivate and clear the pro peloton. */
-  clearProPeloton: () => void;
-
-
   // ---- Actions ----
   setRoute: (route: Route | null) => void;
   bumpLibrary: () => void;
@@ -478,10 +463,6 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   workoutElapsedSec: 0,
   workoutTargetWatts: null,
 
-  // ---- ADDITIVE: Pro Peloton initial state ----
-  proPeloton: null,
-
-
   // ---- ADDITIVE: Workout actions ----
   loadWorkout: (workout) =>
     set({
@@ -512,14 +493,9 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   // ---- ADDITIVE: Multi-rider actions ----
   setMultiriderId: (id) => set({ multiriderId: id ?? undefined }),
 
-  // ---- ADDITIVE: Pro Peloton actions ----
-  setProPeloton: (state) => set({ proPeloton: state }),
-  clearProPeloton: () => set({ proPeloton: null }),
-
   // ---- ADDITIVE: Pace Bot actions ----
   setPaceBots: (bots) => set({ paceBots: bots }),
   clearPaceBots: () => set({ paceBots: [] }),
-
 
   tickBots: (dt) =>
     set((st) => {
@@ -527,21 +503,12 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       const route = st.route;
       const riderDistance = st.distance;
 
-      // ---- Pace bots ----
-      const nextBots = st.paceBots.length > 0
-        ? st.paceBots.map((bot) => {
-            const grade = gradientAt(route, bot.state.distance);
-            const newState = tickPaceBot(bot, route, dt, riderDistance, grade);
-            return { ...bot, state: newState };
-          })
-        : st.paceBots;
-
-      // ---- Pro peloton ghosts ----
-      const nextProPeloton = st.proPeloton
-        ? tickProPeloton(st.proPeloton, dt, route.totalDistance)
-        : st.proPeloton;
-
-      return { paceBots: nextBots, proPeloton: nextProPeloton };
+      if (st.paceBots.length === 0) return st;
+      const paceBots = st.paceBots.map((bot) => {
+        const grade = gradientAt(route, bot.state.distance);
+        return { ...bot, state: tickPaceBot(bot, route, dt, riderDistance, grade) };
+      });
+      return { paceBots };
     }),
 
   bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
@@ -640,8 +607,6 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       replayIndex: 0,
       // The rider's pace partners stay picked and go back to the start line.
       paceBots: reseatPaceBots(st.paceBots),
-      // Clear pro peloton — results are route-specific.
-      proPeloton: null,
     })),
 
   setMode: (mode) => {
@@ -827,8 +792,6 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       workoutTargetWatts: null,
       // Pace partners back to the start line for the re-ride.
       paceBots: reseatPaceBots(get().paceBots),
-      // Reset pro peloton to start so re-rides begin from distance 0.
-      proPeloton: null,
     }),
 
   tick: (input) =>
@@ -884,7 +847,6 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         others: input.otherRiders ?? [],
         routeTotalDistance: st.route?.totalDistance ?? Number.POSITIVE_INFINITY,
       });
-
 
       return {
         ...st,

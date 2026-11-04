@@ -24,12 +24,6 @@ import { useRiderRosterStore } from '@/stores/riderRosterStore';
 import { computeRideMetrics } from '@/lib/metrics';
 import { totalDurationSec } from '@/lib/workout';
 import type { RideState } from '@/types';
-// ADDITIVE: segment leaderboard recording
-import { detectSegments, computeSegmentTimes } from '@/lib/segments';
-import { useSegmentStore } from '@/stores/segmentStore';
-// ADDITIVE: achievement evaluation
-import { useAchievementStore } from '@/stores/achievementStore';
-import { enqueueAchievementToast } from '@/components/ride/AchievementToast';
 // ADDITIVE: World Tour stage detection (static import — no async needed)
 import { WORLD_TOUR_STAGES } from '@/lib/worldTourStages';
 
@@ -161,35 +155,6 @@ export function useRideHistoryRecorder(): void {
         };
 
         useProfileStore.getState().recordRide(rideInput);
-
-        // ADDITIVE: evaluate achievements against the post-ride profile snapshot.
-        try {
-          const updatedProfile = useProfileStore.getState().profile;
-          if (updatedProfile) {
-            const newAchievements = useAchievementStore.getState().evaluateRide(updatedProfile, rideInput);
-            if (newAchievements.length > 0) {
-              enqueueAchievementToast(newAchievements);
-            }
-          }
-        } catch (err) {
-          console.warn('[achievements] Failed to evaluate achievements:', err);
-        }
-
-        // ADDITIVE: record segment times for the completed ride.
-        // Only applies to real route rides (not replays / pure workouts with
-        // no route, though those do have a route set so we still track them).
-        if (route && samples.length >= 2) {
-          try {
-            const segments = detectSegments(route);
-            const times = computeSegmentTimes(segments, samples);
-            const now = Date.now();
-            times.forEach((timeSec, segmentId) => {
-              useSegmentStore.getState().recordAttempt(segmentId, timeSec, now);
-            });
-          } catch (err) {
-            console.warn('[segments] Failed to record segment times:', err);
-          }
-        }
       },
     );
 
