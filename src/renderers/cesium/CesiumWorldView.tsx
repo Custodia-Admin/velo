@@ -141,6 +141,13 @@ function cesiumDebugOptedIn(): boolean {
   }
 }
 
+/**
+ * The ground under a waiting rider counts as streamed in once it has held
+ * within GROUND_STABLE_M for GROUND_STABLE_MS (or every tile in view loaded).
+ */
+const GROUND_STABLE_M = 0.3;
+const GROUND_STABLE_MS = 2_000;
+
 /** Altitude threshold below which Google Photorealistic 3D Tiles are shown. */
 const PHOTOREAL_SHOW_ALTITUDE_M = 5_000;
 
@@ -295,6 +302,8 @@ export function CesiumWorldView({
   const laneRef = useRef(createLaneState());
   // WorldRenderer.setRider: an outside driver's pose; null = the live ride.
   const riderOverrideRef = useRef<RiderPose | null>(null);
+  /** How long the rider's ground has held still (the start waits for it, lib/ride/startHold). */
+  const groundWatchRef = useRef<{ ele: number | null; since: number; stableMs: number }>({ ele: null, since: 0, stableMs: 0 });
   // WorldRenderer.setMood: a pinned mood; null = route mood + live weather.
   const [moodOverride, setMoodOverride] = useState<MoodId | null>(null);
 
@@ -397,11 +406,16 @@ export function CesiumWorldView({
       setActiveViewer(viewer);
       // Scene handle for render probes (scripts/ride-surface-probe.py): dev
       // builds, or `localStorage['velo.debug.cesium'] = '1'` (as velo.debug.three).
+      // `place(m)` holds the rider at a route distance (null releases it).
       if (cesiumDebugOptedIn()) {
         (window as unknown as { __veloCesium?: unknown }).__veloCesium = {
           viewer,
           Cesium,
           photoreal: () => tilesetRef.current,
+          place: (distanceM: number | null) => {
+            const r = useRideStore.getState().route;
+            riderOverrideRef.current = distanceM === null || !r ? null : ridePose(r, distanceM);
+          },
         };
       }
       // Frame-time + tile-load stats (?perf=1 overlay, window.__veloPerf).
@@ -419,6 +433,7 @@ export function CesiumWorldView({
             riderOverrideRef.current = pose;
           },
           setMoodOverride,
+          groundStable: () => groundWatchRef.current.stableMs >= GROUND_STABLE_MS,
         }),
       );
 
@@ -1078,6 +1093,16 @@ export function CesiumWorldView({
       // is still streaming (a slow phone otherwise hangs the camera ~300 m
       // over a black, empty globe with the rider out of sight).
       const groundEle = avatarRef.current.groundEle() ?? sampled.ele;
+      // Before the start: how long a real terrain tile under the rider has held still.
+      const watch = groundWatchRef.current;
+      if (state.rideState === 'idle' || state.rideState === 'ready') {
+        const tile = viewer.scene.globe.getHeight(Cesium.Cartographic.fromDegrees(sampled.lon, sampled.lat));
+        if (tile === undefined || watch.ele === null || Math.abs(groundEle - watch.ele) > GROUND_STABLE_M) {
+          watch.ele = tile === undefined ? null : groundEle;
+          watch.since = nowMs;
+        }
+        watch.stableMs = nowMs - watch.since;
+      }
       const aheadAtGround = { ...ahead, ele: groundEle + (ahead.ele - sampled.ele) };
       if (typeof window !== 'undefined') {
         // Read-only numbers for the slow-network regression check (no viewer handle).

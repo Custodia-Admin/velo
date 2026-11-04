@@ -589,14 +589,16 @@ function globeDrawnOpaque(globe: Cesium.Globe): boolean {
 
 /**
  * The ground under the rider has streamed in: World Terrain is the globe's
- * terrain, every globe tile for this view is loaded and so is the shown
- * photoreal mesh. Always true on the flat no-token globe (nothing streams).
- * The ride start waits for this, so the rider never sets off on coarse
- * tiles (they put the rider up to 200 m off the ground for ~15 s).
+ * terrain, and either the rider's ground has held still a while (`stable`,
+ * tracked by the view) or every globe tile for this view is loaded and so is
+ * the shown photoreal mesh. Always true on the flat no-token globe (nothing
+ * streams). The ride start waits for this, so the rider never sets off on
+ * coarse tiles (they put the rider up to 200 m off the ground for ~15 s).
  */
-export function groundSettled(scene: Cesium.Scene): boolean {
+export function groundSettled(scene: Cesium.Scene, stable = false): boolean {
   if (!onRealTerrain()) return true;
   if (isFlatGlobe(scene)) return false;
+  if (stable) return true;
   const globe = scene.globe as Cesium.Globe | undefined;
   if (globe && globe.tilesLoaded === false) return false;
   const prims = (scene as { primitives?: Cesium.PrimitiveCollection }).primitives;

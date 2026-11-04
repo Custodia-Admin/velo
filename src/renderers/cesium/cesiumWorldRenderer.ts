@@ -16,6 +16,8 @@ import { useSettingsStore } from '@/stores/settingsStore';
 export interface CesiumRendererHooks {
   setRiderOverride: (pose: RiderPose | null) => void;
   setMoodOverride: (mood: MoodId | null) => void;
+  /** The rider's ground has held still a while (World Terrain refining has settled under it). */
+  groundStable?: () => boolean;
 }
 
 export function isMoodId(value: unknown): value is MoodId {
@@ -44,7 +46,7 @@ export function createCesiumWorldRenderer(
       hooks.setMoodOverride(isMoodId(mood) ? mood : null);
     },
     groundReady() {
-      return !live() || groundSettled(viewer.scene);
+      return !live() || groundSettled(viewer.scene, hooks.groundStable?.() === true);
     },
     dispose() {
       if (disposed) return;

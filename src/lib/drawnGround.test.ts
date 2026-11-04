@@ -139,4 +139,10 @@ describe('groundSettled: the ride start waits for the ground under the rider', (
     (tileset as unknown as { show: boolean }).show = false;
     expect(groundSettled(scene(tileset, { height: 300 }).s)).toBe(true);
   });
+
+  it('a ground that has held still counts as settled, but never the flat pre-terrain globe', () => {
+    setIonToken('eyJ_test');
+    expect(groundSettled(scene(null, { height: 300, tilesLoaded: false }).s, true)).toBe(true);
+    expect(groundSettled(scene(null, { height: 0 }, new Cesium.EllipsoidTerrainProvider()).s, true)).toBe(false);
+  });
 });
