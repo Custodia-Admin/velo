@@ -166,19 +166,22 @@ async function saveJpeg(cdp, path, clip) {
 }
 
 /**
- * Wait until the chase camera has caught up with the staged jump: the rider's screen point holds
- * still (within 1 % of the window height over 3 s). Software GL on a loaded machine draws a few
- * frames a second, and a fixed wait shot the camera mid-way (a side view, or close behind with
- * the bike under the bar).
+ * Wait until the chase camera stands behind the rider with the rider in frame, holding still
+ * (within 2 % of the window height over 3 s). Software GL on a loaded machine draws a few frames a
+ * second, and a fixed wait shot the camera mid-way (a side view, or close behind with the bike
+ * under the bar).
  */
 async function settleCamera(page, height) {
-  const at = () => evalIn(page, `window.__veloRideDebug?.()?.riderScreen ?? null`);
+  const at = async () => {
+    const st = await evalIn(page, CAMERA_STATE);
+    return st.mode === 'chase' && st.fromRider > 3 && st.rider && st.rider[1] > 0 && st.rider[1] < height ? st.rider : null;
+  };
   let last = await at();
   const until = Date.now() + 120_000;
   while (Date.now() < until) {
     await sleep(3000);
     const now = await at();
-    if (last && now && Math.hypot(now[0] - last[0], now[1] - last[1]) <= height * 0.01) return now;
+    if (last && now && Math.hypot(now[0] - last[0], now[1] - last[1]) <= height * 0.02) return now;
     last = now;
   }
   console.log('  camera still moving after 120 s, shooting anyway', JSON.stringify(last));
@@ -250,19 +253,39 @@ const STAGE = `(async () => {
   useShowStore.getState().setAutoCamera(false);
   useSettingsStore.getState().setCameraMode('chase');
   useRideStore.setState({ distance: 6100, elapsedMs: 1085 * 1000 });
-  // Paused at the still's spot so the chase camera settles there (software GL draws a few frames a
-  // second: a moving rider on a winding road keeps the camera swinging). FIGURES resumes it.
-  if (useRideStore.getState().rideState === 'running') useRideStore.getState().pause();
   window.__veloWorldLight?.set({ time: 'golden', weather: 'clear' });
   return useRideStore.getState().route?.id ?? null;
 })()`;
 
-/** Right before a shot: riding again (the bar shows Pause), at the still's numbers (18:05, 6.1 km). */
+/** The still's numbers (18:05, 6.1 km) for the tab shots (the world is in the window, not the tab). */
 const FIGURES = `(async () => {
   const { useRideStore } = await import('/src/stores/rideStore.ts');
-  if (useRideStore.getState().rideState === 'paused') useRideStore.getState().resume();
   useRideStore.setState({ distance: 6100, elapsedMs: 1085 * 1000 });
   return useRideStore.getState().rideState;
+})()`;
+
+/**
+ * Between window sizes: the chase camera and the light again, but no jump along the route (a jump
+ * sends the chase camera swinging round for minutes at software GL's few frames a second). The
+ * ride runs on from the staged spot, so the window shots' numbers run on past 18:05 / 6.1 km.
+ */
+const CAMERA = `(async () => {
+  const { useSettingsStore } = await import('/src/stores/settingsStore.ts');
+  const { useShowStore } = await import('/src/stores/showStore.ts');
+  useShowStore.getState().setAutoCamera(false);
+  useSettingsStore.getState().setCameraMode('chase');
+  window.__veloWorldLight?.set({ time: 'golden', weather: 'clear' });
+  return useSettingsStore.getState().cameraMode;
+})()`;
+
+/** Where the camera stands: its mode, its distance from the rider, the rider's screen point. */
+const CAMERA_STATE = `(async () => {
+  const { useSettingsStore } = await import('/src/stores/settingsStore.ts');
+  const d = window.__veloRideDebug && window.__veloRideDebug();
+  const t = window.__veloThree;
+  const c = t && t.camera.position;
+  return { mode: useSettingsStore.getState().cameraMode, rider: d ? d.riderScreen : null,
+    fromRider: c && d && d.riderXZ ? Math.round(Math.hypot(c.x - d.riderXZ[0], c.z - d.riderXZ[1]) * 10) / 10 : null };
 })()`;
 
 /** The mockup's window document at the build's sizes (served over http, as the mockup script does). */
@@ -378,7 +401,8 @@ async function run(theme, layout) {
         // size the window so the document is w x h: the frame (title bar) is outside the document,
         // and a busy Chrome applies resizes late, so re-size from the current outer bounds until
         // the document holds still at w x h (or Chrome's cap stops it).
-        await click(pip, `document.querySelector('[data-pip-size=${size}]')`, `size ${size}`).catch(() => {});
+        // el.click(): a pointer click read from a rect lands on the world if the window moves first.
+        await jsClick(pip, `document.querySelector('[data-pip-size=${size}]')`, `size ${size}`).catch(() => {});
         await sleep(2500);
         await browser.send('Browser.setWindowBounds', { windowId, bounds: { left: screenW - w - 40, top: screenH - h - 80 } });
         const inner = () => evalIn(page, '[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]');
@@ -397,11 +421,10 @@ async function run(theme, layout) {
         }
         const got = await poll(inner, close, 15_000, `window ${w}x${h}`).catch((e) => (laptop ? inner() : Promise.reject(e)));
         if (got[0] !== w) console.log(`  window ${size}: asked ${w}x${h}, Chrome gave ${got[0]}x${got[1]}`);
-        console.log('  staged', await evalIn(page, STAGE));
+        await evalIn(page, CAMERA);
         await sleep(Number(process.env.SETTLE_S ?? 12) * 1000);
         await settleCamera(page, h);
-        await evalIn(page, FIGURES);
-        await sleep(1500);
+        const riderAtShot = await evalIn(page, CAMERA_STATE);
         await savePipJpeg(pip, join(OUT, `pipwin-${size}${laptop ? '-1280' : ''}${suffix}.jpg`), page);
         const m = await evalIn(page, `(() => { const w = documentPictureInPicture.window; const d = w.document; const r = (s) => { const e = d.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)]; };
           const bar = d.querySelector('[data-testid=journey-bar]');
@@ -412,8 +435,8 @@ async function run(theme, layout) {
             root: getComputedStyle(d.documentElement).fontSize, bar: r('[data-testid=journey-bar]'), next: [...d.querySelectorAll('[data-testid=journey-next]')].filter((e) => e.checkVisibility()).map((e) => e.textContent),
             fig: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num')).fontSize, label: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num').nextElementSibling).fontSize,
             world: d.querySelector('[data-world-status]')?.getAttribute('data-world-status') ?? null, renderer: d.querySelector('[data-renderer]')?.getAttribute('data-renderer') ?? null,
-            rider: window.__veloRideDebug?.()?.riderScreen ?? null,
           }; })()`);
+        m.rider = riderAtShot;
         console.log(`  pipwin-${size}${suffix}`, JSON.stringify(m));
       }
     }

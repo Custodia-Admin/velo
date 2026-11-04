@@ -27,13 +27,22 @@ between the top controls and the bar at every size (lens shift by half the bar's
 Chrome's own scale factor (`--force-device-scale-factor=2` on a 2560×1600 xvfb screen, i.e. a
 1280×800 CSS screen and a 1280×648 tab), not DevTools emulation: an emulated DPR hid the cropped
 canvas. `LAYOUTS=laptop node scripts/v2-build-shots/pip.mjs`; composites (mockup | build)
-`compare/pipwin-{corner,third,half}-1280[-night].jpg`, `compare/pip-tab-1280[-night].jpg`.
+`compare/pipwin-{corner,third,half}-1280[-night].jpg`, `compare/pip-tab-1280[-night].jpg`. The ride
+runs on between sizes (a jump along the route sends the chase camera swinging round for minutes
+under software GL), so the window shots read past 18:05 / 6.1 km; each shot waits for the chase
+camera to stand behind the rider with the rider in frame (rider point and camera distance in the
+run log).
 
-| Size | Asked → window (CSS px) | Canvas rect (buffer) | Bar scroll / client | Pause rect | Figures / labels | Clear band (top controls end → bar top) |
+| Size | Asked → window (CSS px) | Canvas rect (buffer) | Bar row needs, widest figures (Noto Sans · DejaVu Sans) / bar width | Pause rect | Figures / labels | Clear band (top controls end → bar top) |
 |---|---|---|---|---|---|---|
-| S | 448×252 → 448×252 | 0,0 448×252 (672×378) | 432 / 432 | 392,189 40×40 | 30 / 12 px | 48 → 174: 126 px (50 %) |
-| M | 512×288 → 512×288 | 0,0 512×288 (768×432) | 496 / 496 | 455,223 41×41 | 30.75 / 12.3 px | 49 → 208: 159 px (55 %) |
-| L | 640×360 → 637×358 (Chrome's cap) | 0,0 637×358 (955×537) | 619 / 619 | 574,287 45×45 | 33.7 / 13.5 px | 54 → 270: 216 px (60 %) |
+| S | 448×252 → 448×252 | 0,0 448×252 (672×378) | 394 · 423 / 432 | 392,189 40×40 | 30 / 12 px | 48 → 174: 126 px (50 %) |
+| M | 512×288 → 512×288 | 0,0 512×288 (768×432) | 441 · 470 / 496 | 455,223 41×41 | 30.75 / 12.3 px | 49 → 208: 159 px (55 %) |
+| L | 640×360 → 637×358 (Chrome's cap) | 0,0 637×358 (955×537) | 483 · 500 of 579 in CI's 596 px window / 619 | 574,287 45×45 | 33.7 / 13.5 px | 54 → 270: 216 px (60 %) |
+
+"Needs" is the row's own width (padding + shown children + gaps) with 1:18:05, 42.2 km and
+−12.5 % staged, logged by the e2e: Noto Sans locally (what `system-ui` resolves to on the owner's
+laptop), DejaVu Sans in CI (the GitHub runner's, one of the widest common system fonts; Chrome
+gave CI an L window of 596×329). Gap 3 in S, the mockup's 6 in M and L.
 
 Before (@bbe04db) the same screen got 320×180 / 427×240 / 573×318 windows; the canvas kept its
 buffer size as its CSS size (480×270 in the 320×180 window) and the bar needed 355 px (383 px at
@@ -43,18 +52,21 @@ buffer size as its CSS size (480×270 in the 320×180 window) and the bar needed
   opener's window; the window's canvas is another window's element. `ThreeWorldView` now sizes it
   from its container (`renderers/three/canvasSize.ts`). The canvas rect equals the window at every
   size above.
-- **D2, the widths:** `PIP_MIN_WIDTH` is per size (448 / 512 / 640). With the widest figures
-  (1:18:05, 42.2 km, −12.5 %) the bar measures 432 / 432 at S, Pause inside it; below `xs`
-  (475 px) the bar's gaps step from 6 to 4. A 1920 screen still gets 480 / 640 / 960.
-  Chrome caps L at 637 px here, under the mockup's 640 px rule, so at every laptop size the next
-  landmark is the pill at the top left (as `v2-pip-window.html` draws below 640 px); the mockup
-  render at exactly 640 px keeps it in the bar, which is the one difference in the L composite.
+- **D2, the widths:** `PIP_MIN_WIDTH` is per size (448 / 512 / 640), and below `xs` (475 px:
+  only the laptop's corner window) the bar's gaps are 3 instead of the mockup's 6. With gap 4 the
+  corner bar fit in Noto Sans but CI's DejaVu Sans needed 435 of 432 px; with gap 3 the widest row
+  needs 423, Pause inside. A 1920 screen still gets 480 / 640 / 960, with the mockup's gaps.
+  Chrome mostly caps L at 637 px here (the e2e, the night shot), under the mockup's 640 px rule,
+  so the next landmark is the pill at the top left, as `v2-pip-window.html` draws below 640 px;
+  the day shot got the full 640×360 and the landmark sits in the bar, as in the mockup's L.
 - **Pinned** by the second test in `e2e/show-mode.spec.ts` (CI job `show-mode`, xvfb 2560×1600,
   `--force-device-scale-factor=2`): at every size the canvas rect is the window's
   `innerWidth`×`innerHeight`, the rider (`__veloRideDebug().riderScreen`) is above the bar, the bar's
   `scrollWidth ≤ clientWidth` with the widest figures staged, Pause is inside the window, the clear
-  band is ≥ 45 % of the height and the figures are ≥ text-2xl (24 px; measured 30–34 px). Local run: S rider y 115 above bar 174, M 129 / 208, L 132 / 270; with the
-  canvas fix removed the test fails (canvas 672 px wide in a 448 px window).
+  band is ≥ 45 % of the height and the figures are ≥ text-2xl (24 px; measured 30–34 px). It
+  logs the row's needed width. Local run: S rider y 128 above bar 174, M 133 / 208, L 135 / 270
+  (CI: 129 / 174, 133 / 208, 125 / 244); with the canvas fix removed the test fails (canvas 672 px
+  wide in a 448 px window).
 - Software GL (SwiftShader) on this loaded machine (load ~25) sometimes lost the window's WebGL
   context: a white window that never recovers (`isContextLost()` true, 0 frames). Chrome's GPU
   watchdog kills a GPU process whose frames take too long; `pip.mjs` now passes
