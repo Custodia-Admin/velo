@@ -16,7 +16,8 @@ the camera is above every drawn surface under it. A photoreal mesh reading 2.5 m
 overhang (tree, lamp, bridge: the mesh height is the top of whatever is there) and is counted, not failed; the
 globe is bare terrain and never exempt. A rider more than 6 m over the opaque bare terrain is "on a structure"
 (canopy, viaduct deck: one top-of-mesh ray cannot see the ground below it); held samples there are counted
-apart unless something drawn is over the wheels or the camera. Ridden samples also fail on a pop: the rider's height jumping more than
+apart unless something drawn is over the wheels or the camera; so are held samples under an overhang with the
+rider within 2 m over the bare terrain (the road under a viaduct deck is invisible to the probe). Ridden samples also fail on a pop: the rider's height jumping more than
 0.5 m + 30 % of the distance between two samples. Road surfaces: on the world renderer the road-ribbon and
 route-line hits in the rider's column form ONE level (hits within TOL of each other). On photoreal the road
 is a ground classification painted on whichever surface is in front, so exactly one copy shows when the
@@ -149,9 +150,12 @@ SAMPLE = r"""(tol) => {
   // the wheels is then unknowable from one top-of-mesh ray; reported on its own, not as ground error.
   const bare = atRider.find((s) => s[0] === 'globe');
   const onStructure = !!bare && d.groundEle - bare[1] > 6;
+  // Under an overhang (deck, canopy) within 2 m over the bare terrain: the road under it is invisible to
+  // a top-of-mesh ray, so |rider - ground| can't be checked; counted apart.
+  const underOverhang = overhang > 0 && !!bare && d.groundEle - bare[1] >= -tol && d.groundEle - bare[1] <= 2;
   const ok = top !== null && Math.abs(d.groundEle - top) <= tol && above === 0 && (camTop === null || cam.height > camTop);
   return { renderer: 'photoreal', dist: d.dist, rider: d.groundEle, top, riderVsTop: top === null ? null : d.groundEle - top,
-    above, overhang, onStructure, camVsTop: camTop === null ? null : cam.height - camTop, surfaces: atRider, camSurfaces: atCam,
+    above, overhang, onStructure, underOverhang, camVsTop: camTop === null ? null : cam.height - camTop, surfaces: atRider, camSurfaces: atCam,
     meshShown, meshLoaded: meshShown ? ts.tilesLoaded : null, globeLoaded: globe.tilesLoaded, ok };
 }"""
 
@@ -256,11 +260,13 @@ with sync_playwright() as p:
             if SHOTS:
                 page.mouse.move(5, 5)
                 page.screenshot(path=str(out / f"{short}-{int(m)}-{W}x{H}.png"))
-            # Held: +-TOL, except a sample on a structure that is not under anything (counted apart).
-            n_struct = sum(1 for s in samples if s.get("onStructure") and not under(s))
-            n_bad = sum(1 for s in samples if not s["ok"] and not (s.get("onStructure") and not under(s)))
+            # Held: +-TOL, except samples on a structure or under an overhang that are not under anything
+            # drawn (the road height there is not visible to the probe; counted apart).
+            apart = lambda s: (s.get("onStructure") or s.get("underOverhang")) and not under(s)  # noqa: E731
+            n_struct = sum(1 for s in samples if apart(s))
+            n_bad = sum(1 for s in samples if not s["ok"] and not apart(s))
             r["spots"].append({"m": m, "samples": samples, "failures": n_bad, "onStructure": n_struct, "roll": roll})
-            st = f", {n_struct} on a structure" if n_struct else ""
+            st = f", {n_struct} on a structure / under an overhang" if n_struct else ""
             print(f"  {int(m):>5} m: {fmt(samples[-1] if samples else None)} ({n_bad}/{len(samples)} failing{st})", flush=True)
         route_failed = r["startFailures"] > 0 or any(sp.get("failures") for sp in r["spots"]) or \
             any(not sp["samples"] for sp in r["spots"])

@@ -1621,7 +1621,6 @@ export function createGroundSampler(scene: Cesium.Scene) {
   let lastLon = NaN;
   let lastLat = NaN;
   let last: number | undefined;
-  let sampled = false;
   const road = createMeshRoadFilter();
   const meshAt = (lon: number, lat: number) =>
     withRidersHidden(() => sampleGroundHeight(scene, lon, lat, groundSampleExclusions()));
@@ -1630,13 +1629,13 @@ export function createGroundSampler(scene: Cesium.Scene) {
       const expect = sceneEle(ele);
       if (!photorealGroundShown(scene)) {
         last = undefined;
-        sampled = false;
         road.reset();
         return sceneGroundHeight(scene, lon, lat, undefined, expect, { terrainOnly: true });
       }
       const movedM = metresBetween(lon, lat, lastLon, lastLat);
-      if (!sampled || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M) {
-        sampled = true;
+      // No mesh road under the rider yet: look again every frame, so a tile
+      // that loads over the globe is stood on at once (as before).
+      if (last === undefined || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M) {
         lastMs = nowMs;
         lastLon = lon;
         lastLat = lat;
