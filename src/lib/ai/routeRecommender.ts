@@ -32,7 +32,7 @@ function resolveProviderName(): 'xai' | 'ollama' {
 // System prompt
 // ---------------------------------------------------------------------------
 
-const ROUTE_SYSTEM_PROMPT = `You are an expert cycling route designer for GlobeRide, a virtual cycling simulator.
+const ROUTE_SYSTEM_PROMPT = `You are an expert cycling route designer for Velo, a virtual cycling simulator.
 
 Your task: given a natural-language description of a desired cycling route, generate a JSON object describing a real, scenic cycling location that matches the request.
 

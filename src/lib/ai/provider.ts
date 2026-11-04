@@ -61,7 +61,7 @@ export function getProviderInfo(): AIProviderInfo {
 // ---------------------------------------------------------------------------
 
 function buildSystemPrompt(ftpW: number): string {
-  return `You are an expert cycling coach and workout designer for GlobeRide, a virtual cycling simulator.
+  return `You are an expert cycling coach and workout designer for Velo, a virtual cycling simulator.
 
 The rider's FTP (Functional Threshold Power) is ${ftpW} W.
 

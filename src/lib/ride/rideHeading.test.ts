@@ -25,17 +25,19 @@ function ride(id: string, speed: number, fps = 60) {
 describe('smoothHeadingAt', () => {
   it('matches the route bearing on a straight line and spreads a sharp vertex over the chord', () => {
     const r = route('scenic-perugia-tiber-park');
-    // The raw ±4 m heading turns ≥90° within 10 m near d≈144 m (review finding: 114°/6 m)…
+    // The raw ±4 m heading turns ≥90° within 10 m at the 123° junction turn near
+    // d≈9,672 m (the 114° vertex at d≈144 m of the review finding went with the
+    // 1 m route simplification; this is now the sharpest corner)…
     let rawTurn = 0;
     let rawMax = 0;
-    for (let d = 120; d < 170; d += 1) {
+    for (let d = 9645; d < 9695; d += 1) {
       rawTurn = Math.max(rawTurn, Math.abs(headingDelta(headingAt(r, d + 10), headingAt(r, d))));
       rawMax = Math.max(rawMax, Math.abs(headingDelta(headingAt(r, d + 1), headingAt(r, d))));
     }
     expect(rawTurn * DEG).toBeGreaterThanOrEqual(90);
     // …the wide chord never turns more than the bend allows per metre of a 2·W chord.
     let chordMax = 0;
-    for (let d = 120; d < 170; d += 1) {
+    for (let d = 9645; d < 9695; d += 1) {
       chordMax = Math.max(chordMax, Math.abs(headingDelta(smoothHeadingAt(r, d + 1), smoothHeadingAt(r, d))));
     }
     expect(chordMax).toBeLessThan(rawMax);

@@ -239,8 +239,7 @@ export function Home() {
             </nav>
 
             <footer className="pb-10 pt-6 text-xs text-muted-foreground">
-              Velo is a fork of GlobeRide (MIT) by Mason Wyatt. World stills rendered from the Perugia world bake; map
-              data © OpenStreetMap contributors.
+              World stills rendered from the Perugia world bake; map data © OpenStreetMap contributors.
             </footer>
           </div>
         </main>
@@ -482,7 +481,7 @@ export function Home() {
               <details className="group">
                 <summary className="cursor-pointer flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors list-none select-none">
                   <Info className="h-3.5 w-3.5 shrink-0" />
-                  <span>About GlobeRide &amp; browser support</span>
+                  <span>About Velo &amp; browser support</span>
                   <span className="ml-auto group-open:rotate-180 transition-transform inline-block">▾</span>
                 </summary>
                 <div className="mt-3 space-y-4">
@@ -503,7 +502,7 @@ export function Home() {
                         Strava or Garmin Connect.
                       </Feature>
                       <Feature icon="🚀" title="Demo Mode">
-                        No trainer? GlobeRide solves the cycling-power equation and rides for you so you
+                        No trainer? Velo solves the cycling-power equation and rides for you so you
                         can experience the full product immediately.
                       </Feature>
                       <Feature icon="📱" title="Installable PWA">
@@ -684,7 +683,7 @@ export function Home() {
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Find your Functional Threshold Power. Choose a protocol, ride it,
-                    and GlobeRide will suggest a new FTP when you finish.
+                    and Velo will suggest a new FTP when you finish.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -812,11 +811,8 @@ export function Home() {
       </main>
 
       <footer className="px-4 sm:px-6 lg:px-10 py-4 border-t border-border/50 text-xs text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
-        <span>
-          Velo · built on{' '}
-          <a className="underline underline-offset-4 hover:text-foreground" href="https://github.com/masonwyatt23/globeride">GlobeRide</a>
-          {' '}by Mason Wyatt (MIT)
-        </span>
+        {/* The upstream credit lives in Settings → Data → About (UI-RULES §6). */}
+        <span>Velo · open source (MIT)</span>
         <span className="num opacity-60">v0.2.0</span>
       </footer>
     </div>

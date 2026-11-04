@@ -261,7 +261,7 @@ function resolveProviderName(): 'xai' | 'ollama' {
   return import.meta.env.VITE_XAI_API_KEY ? 'xai' : 'ollama';
 }
 
-const COMMENTATOR_SYSTEM_PROMPT = `You are a live cycling-broadcast commentator for GlobeRide, a virtual cycling simulator. Your style: energetic, precise, authoritative — like a seasoned Tour de France TV commentator (think Carlton Kirby or Phil Liggett).
+const COMMENTATOR_SYSTEM_PROMPT = `You are a live cycling-broadcast commentator for Velo, a virtual cycling simulator. Your style: energetic, precise, authoritative — like a seasoned Tour de France TV commentator (think Carlton Kirby or Phil Liggett).
 
 CRITICAL RULES:
 1. Output ONLY a single JSON object — no markdown fences, no explanation.

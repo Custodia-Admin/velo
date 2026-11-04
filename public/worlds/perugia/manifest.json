@@ -48,19 +48,19 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 2395387,
-      "sha256": "6fe9fb14a0efc52b6230f538b3ca02715b839ff4be8cfc889a0ad62e805751a1",
+      "bytes": 2395967,
+      "sha256": "61c641b85e6d1b7010b88642450a5def020ff313259a634fd8d87e56f4b1f550",
       "compression": "gzip",
       "contentBytes": 4314156,
-      "contentSha256": "d0674785045e4cd357491e22ab19a5eeef53efe1fdf90156c73940bb32d1e913"
+      "contentSha256": "c9f0d730ef48bef59e89993c9907dee1769adeaeefc9b70cd21d753865093cb2"
     },
     {
       "path": "roads.json.gz",
-      "bytes": 772422,
-      "sha256": "f97b3e011d001e02b3a5ea1114ceeb5ff108d3233651773e7e887c58d4dea15d",
+      "bytes": 772798,
+      "sha256": "2f30efcd2e1bc2416bc5f81a2532f1b3b75f88f9760e547712629d35ce049a28",
       "compression": "gzip",
-      "contentBytes": 2069049,
-      "contentSha256": "9c8b9b20a90fd09f7ce5504967e06c6344f9d015c27aa757c1cabc941c2cb2c3"
+      "contentBytes": 2070341,
+      "contentSha256": "c7b819fe1867434485c13f2d6cf590c9a19a67ddbcd8da15372c55f69eb37fd5"
     },
     {
       "path": "water.json.gz",
@@ -80,27 +80,27 @@
     },
     {
       "path": "buildings.bin.gz",
-      "bytes": 449867,
-      "sha256": "75bb3ff0cb0f6aa971b1b7ac3865896fd084f790c2c0bfe2d36565d49bd6657a",
+      "bytes": 450202,
+      "sha256": "63536fb5bdde92f0630d1780ab143970e951d266e53fe5e9a28aea430595cc7e",
       "compression": "gzip",
-      "contentBytes": 780688,
-      "contentSha256": "517997e9b25992ad9104c8acb94a1860ef132c9c3cfffc933ddac7e67507fd66"
+      "contentBytes": 781308,
+      "contentSha256": "bf0b0259dc3020829fc8607a694c2390291197e1629654c8a6815dd507641ccf"
     },
     {
       "path": "vegetation.bin.gz",
-      "bytes": 1593838,
-      "sha256": "b9a9ffbc5dc2177f0ece575ccbdf8fbf033a94d5dda2f3a3f693ea882909ab17",
+      "bytes": 1593824,
+      "sha256": "b226f342c23b7a7a28195c50200b32335631e2bebc686e21a70a9918e0a45ed1",
       "compression": "gzip",
       "contentBytes": 2880016,
-      "contentSha256": "9b7ad24834db9d6ca00fce77b89cc4decbc0bc3f2471dae05bd8d39fa2711b5c"
+      "contentSha256": "6acefa218dac7a8f58848a98cb39f92e45e7092dc749b0aff6b157a8acf9108c"
     },
     {
       "path": "routes.json.gz",
-      "bytes": 38901,
-      "sha256": "3aecc65957257b34340c254663f17c6369b904e4d081138e61bd82ca09ab64e4",
+      "bytes": 42541,
+      "sha256": "327c5eef82e0e0d33ef2d7e45a92cf1ad8fb7de19950169b4f92450f203caa34",
       "compression": "gzip",
-      "contentBytes": 94529,
-      "contentSha256": "e8f0e980fb1b4e62c92687e9e83eba2ad220e7e7c5560e1402f96bf25a7fa488"
+      "contentBytes": 104922,
+      "contentSha256": "eb9867f4f29a96c8021b1cc667cacf759de23cb0bf2193f100691b2dab3e8821"
     }
   ],
   "moods": [
@@ -128,7 +128,7 @@
       "x": 12933,
       "y": -4758.7,
       "osm": "node/68507516",
-      "h": 204.95
+      "h": 204.45
     },
     {
       "name": "Valfabbrica",
@@ -317,7 +317,7 @@
       "x": 15224.8,
       "y": -5838.8,
       "osm": "node/317001088",
-      "h": 217.08
+      "h": 216.88
     },
     {
       "name": "Santa Maria della Spina",
@@ -407,7 +407,7 @@
       "x": 4173.9,
       "y": 2540.7,
       "osm": "node/748805395",
-      "h": 200.93
+      "h": 200.26
     },
     {
       "name": "Ponte Valleceppi",
@@ -1100,7 +1100,7 @@
       "x": 4845.9,
       "y": -2221.9,
       "osm": "node/4550109289",
-      "h": 186.31
+      "h": 186.18
     },
     {
       "name": "Col Caprile",
@@ -1190,7 +1190,7 @@
       "x": 3932.8,
       "y": -2218.4,
       "osm": "node/8677786740",
-      "h": 200.93
+      "h": 201.31
     },
     {
       "name": "Porta Sole",
@@ -1505,7 +1505,7 @@
       "x": 18032.6,
       "y": -7208.1,
       "osm": "way/43051908",
-      "h": 211.59
+      "h": 211.61
     },
     {
       "name": "Basilica di San Domenico",
@@ -1766,7 +1766,7 @@
       "x": 18563.1,
       "y": -6743.8,
       "osm": "way/264460629",
-      "h": 224.68
+      "h": 221.54
     },
     {
       "name": "Rocca Minore",
@@ -2061,41 +2061,41 @@
     {
       "id": "scenic-perugia-tiber-park",
       "name": "Tiber river park",
-      "lengthM": 10879.18,
+      "lengthM": 11025.66,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.109
+      "gradeMeanAbsDiffPct": 0.11
     },
     {
       "id": "scenic-assisi-valley",
       "name": "Assisi valley floor",
-      "lengthM": 12721.75,
+      "lengthM": 15257.06,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.101
+      "gradeMeanAbsDiffPct": 0.153
     }
   ],
   "stats": {
-    "roads": 21577,
+    "roads": 21601,
     "waterAreas": 126,
     "waterLines": 63,
     "landcoverAreas": 5879,
-    "buildings": 23921,
-    "buildingVertices": 135366,
-    "buildings:suburb": 17012,
-    "buildings:old-town": 2148,
-    "buildings:rural": 3065,
-    "buildings:industrial": 1696,
+    "buildings": 23938,
+    "buildingVertices": 135479,
+    "buildings:suburb": 17024,
+    "buildings:old-town": 2155,
+    "buildings:rural": 3064,
+    "buildings:industrial": 1695,
     "trees": 480000,
-    "trees:broadleaf": 216322,
+    "trees:broadleaf": 216328,
     "trees:conifer": 35,
     "trees:scrub": 10207,
-    "trees:olive": 157599,
-    "trees:park": 3242,
+    "trees:olive": 157600,
+    "trees:park": 3244,
     "trees:cypress": 2511,
-    "trees:riparian": 17528,
-    "trees:hedgerow": 37564,
-    "trees:garden": 34992,
+    "trees:riparian": 17524,
+    "trees:hedgerow": 37558,
+    "trees:garden": 34993,
     "pois": 216,
-    "carvedNodes": 13108
+    "carvedNodes": 18384
   },
   "credits": [
     {

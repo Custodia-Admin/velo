@@ -1,6 +1,30 @@
 [
  {
   "overflow": false,
+  "scrollWidth": 1280,
+  "minFont": 14,
+  "minFontEl": "Home",
+  "minTarget": 40,
+  "minTargetEl": "Home",
+  "layout": "default",
+  "rootPx": 16,
+  "shot": "devices-1280-night.jpg",
+  "errors": []
+ },
+ {
+  "overflow": false,
+  "scrollWidth": 1280,
+  "minFont": 14,
+  "minFontEl": "Home",
+  "minTarget": 40,
+  "minTargetEl": "Home",
+  "layout": "default",
+  "rootPx": 16,
+  "shot": "devices-1280.jpg",
+  "errors": []
+ },
+ {
+  "overflow": false,
   "scrollWidth": 1440,
   "minFont": 14,
   "minFontEl": "Home",
@@ -69,6 +93,30 @@
   "layout": "tv",
   "rootPx": 28,
   "shot": "devices-tv.jpg",
+  "errors": []
+ },
+ {
+  "overflow": false,
+  "scrollWidth": 1280,
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 40,
+  "minTargetEl": "Assisi valley floor \u00b7 12.7 km \u00b7 flat",
+  "layout": "default",
+  "rootPx": 16,
+  "shot": "finish-1280-night.jpg",
+  "errors": []
+ },
+ {
+  "overflow": false,
+  "scrollWidth": 1280,
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 40,
+  "minTargetEl": "Assisi valley floor \u00b7 12.7 km \u00b7 flat",
+  "layout": "default",
+  "rootPx": 16,
+  "shot": "finish-1280.jpg",
   "errors": []
  },
  {
@@ -145,6 +193,30 @@
  },
  {
   "overflow": false,
+  "scrollWidth": 1280,
+  "minFont": 12,
+  "minFontEl": "F",
+  "minTarget": 40,
+  "minTargetEl": "Devices: trainer connected",
+  "layout": "default",
+  "rootPx": 16,
+  "shot": "home-1280-night.jpg",
+  "errors": []
+ },
+ {
+  "overflow": false,
+  "scrollWidth": 1280,
+  "minFont": 12,
+  "minFontEl": "F",
+  "minTarget": 40,
+  "minTargetEl": "Devices: trainer connected",
+  "layout": "default",
+  "rootPx": 16,
+  "shot": "home-1280.jpg",
+  "errors": []
+ },
+ {
+  "overflow": false,
   "scrollWidth": 1440,
   "minFont": 12,
   "minFontEl": "F",
@@ -213,6 +285,30 @@
   "layout": "tv",
   "rootPx": 28,
   "shot": "home-tv.jpg",
+  "errors": []
+ },
+ {
+  "overflow": false,
+  "scrollWidth": 1280,
+  "minFont": 12,
+  "minFontEl": "Speed",
+  "minTarget": 40,
+  "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+  "layout": "default",
+  "rootPx": 16,
+  "shot": "ride-hud-1280-night.jpg",
+  "errors": []
+ },
+ {
+  "overflow": false,
+  "scrollWidth": 1280,
+  "minFont": 12,
+  "minFontEl": "Speed",
+  "minTarget": 40,
+  "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+  "layout": "default",
+  "rootPx": 16,
+  "shot": "ride-hud-1280.jpg",
   "errors": []
  },
  {

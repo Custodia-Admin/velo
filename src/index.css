@@ -201,10 +201,6 @@
   .max-h-hero-fit {
     max-height: calc(100vh - 13rem);
   }
-  /* Finish plate: leaves room for the summary and the primary action. */
-  .max-h-finish-fit {
-    max-height: calc(100vh - 26rem);
-  }
   /* In-ride HUD insets: spacing 4 (28 px on TV) inside the screen edge,
      or the safe-area inset when that is larger. */
   .hud-inset-t { top: max(env(safe-area-inset-top), 1rem); }
