@@ -69,8 +69,8 @@ export function loadCatalogWorld(entry: WorldCatalogEntry): Promise<LoadedWorld>
 // In-canvas pieces
 // ---------------------------------------------------------------------------
 
-/** Computes the rider's frame (pose, ground placement, look-ahead, lean) before anything draws. */
-function RideDriver({
+/** Computes the rider's frame (pose, ground placement, look-ahead, lean) before anything draws. Exported for tests. */
+export function RideDriver({
   sceneWorld,
   frame,
   override,
@@ -290,7 +290,8 @@ function DebugHook({
   return null;
 }
 
-function WorldScene({
+/** Everything inside the canvas for one world. Exported for tests (the ground and start-hold wiring). */
+export function WorldScene({
   sceneWorld,
   route,
   quality,

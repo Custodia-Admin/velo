@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { START_FETCH_RETRY_MS, START_STABLE_MS, StartGroundWatch } from './startGround';
+import { START_FETCH_RETRY_MS, START_PLAUSIBLE_M, START_STABLE_M, START_STABLE_MS, StartGroundWatch } from './startGround';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-describe('StartGroundWatch: the ride starts on the finest ground, not on a coarse chord', () => {
+describe('StartGroundWatch: the ride starts on a plausible ground, not on a coarse chord', () => {
   it('waits while the drawn globe is a coarse tile (948 m over a 329 m shore)', async () => {
     const w = new StartGroundWatch(async () => 329.2);
     w.update(8.95, 45.97, undefined, 281, 0); // no tile: route-elevation fallback
@@ -13,39 +13,63 @@ describe('StartGroundWatch: the ride starts on the finest ground, not on a coars
     expect(w.ready).toBe(false);
   });
 
-  it('starts once the drawn globe matches the finest terrain and the rider has settled on it', async () => {
+  it('waits on a chord just outside the window (Lugano 355 m over 329 m, measured)', async () => {
+    const over = 329.2 + START_PLAUSIBLE_M + 0.5;
     const w = new StartGroundWatch(async () => 329.2);
-    w.update(8.95, 45.97, 948.4, 948.4, 0);
+    w.update(8.95, 45.97, over, over, 0);
     await flush();
-    w.update(8.95, 45.97, 329.3, 520, 100); // refined, rider still easing down
-    w.update(8.95, 45.97, 329.3, 329.4, 400);
+    for (let t = 0; t <= 5000; t += 100) w.update(8.95, 45.97, over, over, t);
     expect(w.ready).toBe(false);
-    w.update(8.95, 45.97, 329.3, 329.4, 400 + START_STABLE_MS - 1);
+    // The same below the finest height.
+    const under = 329.2 - START_PLAUSIBLE_M - 0.5;
+    for (let t = 5000; t <= 10_000; t += 100) w.update(8.95, 45.97, under, under, t);
     expect(w.ready).toBe(false);
-    w.update(8.95, 45.97, 329.3, 329.4, 400 + START_STABLE_MS);
+  });
+
+  it('starts once the drawn globe is within the window of the finest terrain and the rider has settled on it', async () => {
+    const w = new StartGroundWatch(async () => 307.2);
+    w.update(12.1, 43.2, 518.8, 518.8, 0);
+    await flush();
+    // Trasimeno on the laptop: the globe sat 3.8 m under the finest for seconds. Close enough.
+    w.update(12.1, 43.2, 303.4, 345, 100); // drawn globe in, rider still easing down onto it
+    w.update(12.1, 43.2, 303.4, 303.4, 400);
+    expect(w.ready).toBe(false);
+    w.update(12.1, 43.2, 303.4, 303.4, 400 + START_STABLE_MS - 1);
+    expect(w.ready).toBe(false);
+    w.update(12.1, 43.2, 303.4, 303.4, 400 + START_STABLE_MS);
     expect(w.ready).toBe(true);
   });
 
-  it('waits while the photoreal mesh shows but has no tile under the rider (it lands 4 m over the globe)', async () => {
+  it("the rider's own ground counts too: a drawn globe in the window doesn't start a rider still far up", async () => {
+    const w = new StartGroundWatch(async () => 307.2);
+    w.update(12.1, 43.2, 307.2, 355, 0);
+    await flush();
+    for (let t = 0; t <= 5000; t += 100) w.update(12.1, 43.2, 307.2, 355, t);
+    expect(w.ready).toBe(false);
+  });
+
+  it("doesn't wait for the photoreal tile under the rider (it lands later; the rider rises onto it)", async () => {
     const w = new StartGroundWatch(async () => -32.37);
-    w.update(-118.5, 34, -32.37, -32.37, 0, true);
+    w.update(-118.5, 34, -32.37, -32.37, 0);
     await flush();
-    for (let t = 0; t <= 5000; t += 100) w.update(-118.5, 34, -32.37, -32.37, t, true);
-    expect(w.ready).toBe(false);
-    w.update(-118.5, 34, -32.37, -28.1, 5100, false);
-    w.update(-118.5, 34, -32.37, -28.1, 5100 + START_STABLE_MS);
+    w.update(-118.5, 34, -32.37, -32.37, 100);
+    w.update(-118.5, 34, -32.37, -32.37, 100 + START_STABLE_MS);
     expect(w.ready).toBe(true);
   });
 
-  it('a refining photoreal mesh moving the ground restarts the wait', async () => {
+  it('a ground still moving (a tile refining under the rider) restarts the wait', async () => {
     const w = new StartGroundWatch(async () => 303);
     w.update(12.1, 43.2, 303, 306, 0);
     await flush();
     w.update(12.1, 43.2, 303, 306, 100);
-    w.update(12.1, 43.2, 303, 308.5, 1000); // mesh tile refined 2.5 m higher
-    w.update(12.1, 43.2, 303, 308.5, 1000 + START_STABLE_MS - 1);
+    const moved = 306 + START_STABLE_M + 0.1;
+    w.update(12.1, 43.2, 303, moved, 400); // mesh tile refined higher
+    w.update(12.1, 43.2, 303, moved, 400 + START_STABLE_MS - 1);
     expect(w.ready).toBe(false);
-    w.update(12.1, 43.2, 303, 308.5, 1000 + START_STABLE_MS);
+    w.update(12.1, 43.2, 303, moved, 400 + START_STABLE_MS);
+    expect(w.ready).toBe(true);
+    // A wobble inside the band keeps it ready.
+    w.update(12.1, 43.2, 303, moved - START_STABLE_M + 0.05, 400 + START_STABLE_MS + 100);
     expect(w.ready).toBe(true);
   });
 

@@ -35,7 +35,6 @@ import {
   seedFollowCam,
   routeToCartesians,
   onSceneSurface,
-  photorealGroundShown,
   sceneEle,
   setIonToken,
   setActiveViewer,
@@ -399,6 +398,16 @@ export function CesiumWorldView({
       });
       viewerRef.current = viewer;
       setActiveViewer(viewer);
+      // Cesium World Terrain (ion asset 1): asked for now, not when the browser
+      // goes idle. Assigning it is cheap (its tiles stream over the next
+      // frames), and the ride start waits for it (lib/ride/startHold); on a
+      // busy laptop the idle callback alone sat out its 2 s timeout.
+      getTerrainProvider()
+        .then((terrain) => {
+          if (viewer.isDestroyed()) return;
+          viewer.scene.terrainProvider = terrain;
+        })
+        .catch(() => undefined);
       // Scene handle for render probes (scripts/ride-surface-probe.py): dev
       // builds, or `localStorage['velo.debug.cesium'] = '1'` (as velo.debug.three).
       // `place(m)` holds the rider at a route distance (null releases it).
@@ -493,14 +502,6 @@ export function CesiumWorldView({
       if (initialQuality !== 'low') {
         tryEnableHDR(viewer);
       }
-
-      // Cesium World Terrain (ion asset 1).
-      getTerrainProvider()
-        .then((terrain) => {
-          if (viewer.isDestroyed()) return;
-          viewer.scene.terrainProvider = terrain;
-        })
-        .catch(() => undefined);
     });
 
     // OSM buildings + Google Photoreal 3D Tiles are the heaviest single
@@ -1088,7 +1089,7 @@ export function CesiumWorldView({
       // is still streaming (a slow phone otherwise hangs the camera ~300 m
       // over a black, empty globe with the rider out of sight).
       const groundEle = avatarRef.current.groundEle() ?? sampled.ele;
-      // Before the start: is the ground under the rider streamed in at full detail?
+      // Before the start: is the ground under the rider plausible (no coarse chord)?
       // (Only once World Terrain is the globe's terrain; the flat globe has no finest level.)
       if (
         (state.rideState === 'idle' || state.rideState === 'ready') &&
@@ -1102,12 +1103,7 @@ export function CesiumWorldView({
         });
         const carto = Cesium.Cartographic.fromDegrees(sampled.lon, sampled.lat);
         const drawn = viewer.scene.globe.getHeight(carto);
-        // The photoreal mesh shows but has nothing under the rider yet: it will
-        // land metres over the globe the rider stands on, so keep waiting.
-        const ts = tilesetRef.current;
-        const meshPending =
-          photorealGroundShown(viewer.scene) && !!ts && !ts.isDestroyed() && ts.getHeight(carto, viewer.scene) === undefined;
-        startGroundRef.current.update(sampled.lon, sampled.lat, drawn, groundEle, nowMs, meshPending);
+        startGroundRef.current.update(sampled.lon, sampled.lat, drawn, groundEle, nowMs);
       }
       const aheadAtGround = { ...ahead, ele: groundEle + (ahead.ele - sampled.ele) };
       if (typeof window !== 'undefined') {
