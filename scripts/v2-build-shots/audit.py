@@ -69,8 +69,11 @@ FIT = r"""() => {
                        scrollH: el.scrollHeight, clientH: el.clientHeight });
   }
   const clipped = [], covered = [], controls = [];
+  // With a modal open, only its own controls count (the page behind is meant to be covered).
+  const modal = [...document.querySelectorAll('[aria-modal="true"]')].filter(vis).pop() || null;
   for (const el of document.querySelectorAll('button, a[href], input, select, [role=switch], [role=radio], [role=tab], h1, h2')) {
     if (!vis(el) || el.closest('[aria-hidden="true"]')) continue;
+    if (modal && !modal.contains(el)) continue;
     const c = clipBox(el); if (c.empty) continue;  // scrolled out of an inner box
     const r = el.getBoundingClientRect();
     const out = [];
@@ -170,11 +173,9 @@ def main() -> None:
                 continue  # shot in the same ride as "ride"
             extra = NO_HMR
             if screen == "onboarding":
+                # common.init_script marks the upstream onboarding as seen; this screen asks for a first run.
                 extra += "localStorage.removeItem('globeride.onboarding.v2');\n"
             ctx, page = common.new_page(browser, VP, THEME, extra)
-            if screen == "onboarding":
-                # init_script marks onboarding as seen before `extra` runs; undo it on the first load only.
-                pass
             try:
                 if screen in ("home", "onboarding"):
                     page.goto(common.url("/app", VP), wait_until="domcontentloaded", timeout=60000)
