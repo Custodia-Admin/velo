@@ -1,16 +1,17 @@
 /**
  * The per-frame ride step's heading smoothing, outside the camera: the lane
  * offset turns with the filtered heading (a steered rider must not jump across
- * the road at a sharp junction turn), and pace bots get the same wide chord
+ * the road at an out-and-back U-turn or a sharp junction turn), and pace bots get the same wide chord
  * and YawFilter as the rider instead of the raw ±4 m route bearing.
  */
 import { describe, expect, it } from 'vitest';
 
 import { headingAt } from '@/lib/gpxParser';
 import { MAX_LANE_OFFSET_M } from '@/lib/laneOffset';
-import { MAX_YAW_RATE, headingDelta } from '@/lib/ride/rideHeading';
+import { MAX_YAW_RATE, headingDelta, smoothHeadingAt } from '@/lib/ride/rideHeading';
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
+import type { Route } from '@/types';
 import { createBotDriverMemo, createRideDriverMemo, driveBotPose, driveRideFrame } from './rideDriver';
 import { syntheticSceneWorld } from './syntheticWorld';
 import { createRideFrame } from './worldScene';
@@ -28,30 +29,70 @@ const CORNERS = [
   { id: 'scenic-assisi-valley', from: 4290, to: 4450, maxYawRate: 0.9 * MAX_YAW_RATE, pivotFromMs: 11 },
 ];
 
+/**
+ * An out-and-back in the synthetic world, independent of the shipped scenic
+ * data (the generator cuts every U-turn there, but a GPX inside a world bbox
+ * still has them): `outM` east, a `gapM` step north on the spot, then back
+ * west along the same line.
+ */
+function outAndBack(outM: number, gapM: number): Route {
+  const proj = sw.world.projection;
+  const pts: [number, number, number][] = [];
+  const at = (x: number, y: number) => {
+    const [lat, lon] = proj.inverse(x, y);
+    pts.push([lat, lon, 0]);
+  };
+  const x0 = -outM / 2;
+  for (let x = x0; x <= x0 + outM; x += 10) at(x, 0);
+  for (let x = x0 + outM; x >= x0; x -= 10) at(x, gapM);
+  return routeFromGeometry('uturn', 'uturn', { distanceM: 2 * outM + gapM, ascentM: 0, maxGradePct: 0, points: pts });
+}
+
+/**
+ * Rides a fully steered rider from `from` to `to` m and returns the worst
+ * per-frame jump beyond travel plus the lane offset swinging round with the
+ * rate-capped heading, metres.
+ */
+function worstLaneJump(r: Route, from: number, to: number, speed: number): number {
+  const frame = createRideFrame();
+  const memo = createRideDriverMemo();
+  // Settle into the full right-hand lane before the corner.
+  memo.lane = { offsetM: MAX_LANE_OFFSET_M, velMs: 0 };
+  let prev: { x: number; z: number } | null = null;
+  let worstExcess = 0;
+  for (let d = from; d <= to; d += speed * DT) {
+    driveRideFrame(frame, memo, sw, {
+      route: r, distance: d, speed, grade: 0, cadence: 85, power: 200, rideState: 'running',
+      steer: 1, override: null, lookAheadM: 12, dt: DT, timeS: 0,
+    });
+    const p = frame.placement!.position;
+    if (prev) {
+      const allowed = (speed + MAX_LANE_OFFSET_M * MAX_YAW_RATE) * DT;
+      worstExcess = Math.max(worstExcess, Math.hypot(p.x - prev.x, p.z - prev.z) - allowed);
+    }
+    prev = { x: p.x, z: p.z };
+  }
+  return worstExcess;
+}
+
 describe('driveRideFrame lane offset', () => {
+  for (const gapM of [1, 0.3]) {
+    it(`keeps a fully steered rider on its side of the road through an out-and-back U-turn (${gapM} m apart)`, () => {
+      const r = outAndBack(200, gapM);
+      // The wide chord folds onto itself here: it swings through 180° within
+      // a few metres, which is what the filtered heading must absorb.
+      const turnAt = 200;
+      expect(Math.abs(headingDelta(smoothHeadingAt(r, turnAt - 15), smoothHeadingAt(r, turnAt + 15)))).toBeGreaterThan(3);
+      for (const speed of [4, 8, 15]) {
+        expect(worstLaneJump(r, turnAt - 60, turnAt + 60, speed), `${speed} m/s: per-frame jump beyond travel + lane swing, m`).toBeLessThan(0.02);
+      }
+    });
+  }
+
   it('keeps a fully steered rider on its side of the road through the Tiber 123° turn', () => {
     const r = route('scenic-perugia-tiber-park');
     for (const speed of [4, 8, 15]) {
-      const frame = createRideFrame();
-      const memo = createRideDriverMemo();
-      // Settle into the full right-hand lane before the corner.
-      memo.lane = { offsetM: MAX_LANE_OFFSET_M, velMs: 0 };
-      let prev: { x: number; z: number } | null = null;
-      let worstExcess = 0;
-      for (let d = 9590; d <= 9760; d += speed * DT) {
-        driveRideFrame(frame, memo, sw, {
-          route: r, distance: d, speed, grade: 0, cadence: 85, power: 200, rideState: 'running',
-          steer: 1, override: null, lookAheadM: 12, dt: DT, timeS: 0,
-        });
-        const p = frame.placement!.position;
-        if (prev) {
-          // Travel plus the offset swinging round with the (rate-capped) heading.
-          const allowed = (speed + MAX_LANE_OFFSET_M * MAX_YAW_RATE) * DT;
-          worstExcess = Math.max(worstExcess, Math.hypot(p.x - prev.x, p.z - prev.z) - allowed);
-        }
-        prev = { x: p.x, z: p.z };
-      }
-      expect(worstExcess, `${speed} m/s: per-frame jump beyond travel + lane swing, m`).toBeLessThan(0.02);
+      expect(worstLaneJump(r, 9590, 9760, speed), `${speed} m/s: per-frame jump beyond travel + lane swing, m`).toBeLessThan(0.02);
     }
   });
 });
