@@ -31,12 +31,14 @@ describe('<Roads> / <RouteLine> (r3f test renderer)', () => {
     expect(mesh.position.x).toBeCloseTo(sw.chunks[i].centerX);
     const g = mesh.geometry;
     for (const a of ['position', 'normal', 'color', 'uv', 'marking']) expect(g.getAttribute(a)).toBeDefined();
-    // Ribbon vertices sit ROAD_LIFT_M over the ground.
+    // Ribbon vertices sit ROAD_LIFT_M over the triangles the near terrain draws
+    // (the rider's drawnGround), not over the bilinear heightfield between them.
     const pos = g.getAttribute('position');
+    const step = THREE_QUALITY.medium.nearStep;
     for (let v = 0; v < pos.count; v += 7) {
       const x = pos.getX(v) + mesh.position.x;
       const y = -(pos.getZ(v) + mesh.position.z);
-      expect(pos.getY(v)).toBeCloseTo(sw.heightfield.sampleHeight(x, y) + ROAD_LIFT_M, 3);
+      expect(pos.getY(v)).toBeCloseTo(lodHeightAt(sw.heightfield, sw.chunks[i], step, x, y) + ROAD_LIFT_M, 3);
     }
 
     vis.set(i, false);

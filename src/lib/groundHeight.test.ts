@@ -98,11 +98,27 @@ describe('liftAboveTerrain (low chase / side cameras)', () => {
     expect(liftAboveTerrain(terrainScene(900), cam, 300, 1.2)).toBe(0);
   });
 
-  it('does not lift for terrain while the photoreal mesh is the drawn ground', async () => {
+  it('lifts a camera out from under the opaque globe even while the photoreal mesh shows (the globe draws over it)', async () => {
+    // Trasimeno shore, owner report 4 Nov: globe 309 m over a 300 m mesh; a
+    // camera at 301 m sat under the globe and saw its underside as a ceiling.
     setIonToken('eyJ_test');
     const { tileset } = await photorealTileset(300);
     const cam = Cesium.Cartesian3.fromDegrees(8.95, 46.0, 301);
-    expect(liftAboveTerrain(terrainScene(309, tileset), cam, 300, 1.2)).toBe(0);
+    expect(liftAboveTerrain(terrainScene(309, tileset), cam, 300, 1.2)).toBeCloseTo(9.2, 3);
+    expect(heightOf(cam)).toBeCloseTo(310.2, 3);
+    setIonToken(null);
+  });
+
+  it('does not lift for terrain the globe does not draw over the mesh (hidden or see-through)', async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photorealTileset(300);
+    const hidden = { ...terrainScene(309, tileset), globe: { show: false, getHeight: () => 309 } } as unknown as Cesium.Scene;
+    expect(liftAboveTerrain(hidden, Cesium.Cartesian3.fromDegrees(8.95, 46.0, 301), 300, 1.2)).toBe(0);
+    const veiled = {
+      ...terrainScene(309, tileset),
+      globe: { translucency: { enabled: true }, getHeight: () => 309 },
+    } as unknown as Cesium.Scene;
+    expect(liftAboveTerrain(veiled, Cesium.Cartesian3.fromDegrees(8.95, 46.0, 301), 300, 1.2)).toBe(0);
     setIonToken(null);
   });
 });

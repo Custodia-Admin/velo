@@ -1,5 +1,12 @@
 import * as Cesium from 'cesium';
-import { fallbackSceneEle, photorealGroundShown, sceneEle, sceneGroundHeight } from '@/lib/cesiumUtils';
+import {
+  drawnGroundHeight,
+  fallbackSceneEle,
+  photorealGroundShown,
+  sampleGroundHeight,
+  sceneEle,
+  sceneGroundHeight,
+} from '@/lib/cesiumUtils';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { RiderPosition } from '@/lib/physics';
 
@@ -1432,13 +1439,12 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     const dt = Math.min(0.1, Math.max(0, u.dt));
     elapsedMs += dt * 1000;
 
-    // Ground height — smoothed so streaming tile changes don't pop.
-    // Whatever is rendered right now (never waits on streaming tiles); the
-    // camera follows this same height via groundEle().
+    // Ground height: whatever is drawn right now (never waits on streaming
+    // tiles); it rises at once and eases down (see followGround). The camera follows
+    // this same height via groundEle().
     const ground = groundSampler.sample(u.lon, u.lat, u.ele, performance.now());
     const targetEle = ground ?? fallbackSceneEle(scene, u.ele);
-    if (smoothedEle === null) smoothedEle = targetEle;
-    else smoothedEle += (targetEle - smoothedEle) * (1 - Math.exp(-6 * dt));
+    smoothedEle = followGround(smoothedEle, targetEle, dt);
 
     // Corner lean — centripetal tilt, smoothed.
     const headingDelta = lastHeading === null ? 0 : shortestAngle(lastHeading, u.heading);
@@ -1526,6 +1532,78 @@ export const GROUND_SAMPLE_INTERVAL_MS = 250;
 export const GROUND_SAMPLE_MOVE_M = 5;
 
 /**
+ * The avatar's ground height one frame on: up at once (a rider eased up onto
+ * a rising surface spends that time inside it, under the road: a photoreal
+ * tile loading 4 m over the globe left the old smoothing 1 m under it),
+ * down eased so a tile refining lower doesn't drop the rider in a jump.
+ * Overhangs never get here (createMeshRoadFilter).
+ */
+export function followGround(current: number | null, target: number, dt: number): number {
+  if (current === null || target >= current) return target;
+  return current + (target - current) * (1 - Math.exp(-6 * dt));
+}
+
+/** Highest a mesh reading may sit over the bare terrain (or the route) and be the road. */
+export const MESH_OVER_TERRAIN_MAX_M = 60;
+/** A mesh reading may rise this much over the last road reading … */
+export const OVERHANG_RISE_M = 1.5;
+/** … plus this grade times the distance since; more is something over the road. */
+export const OVERHANG_GRADE = 0.25;
+/** Past this much travel from the last road spot a higher reading is taken anyway. */
+export const OVERHANG_GIVE_UP_M = 100;
+
+function metresBetween(lon: number, lat: number, fromLon: number, fromLat: number): number {
+  if (Number.isNaN(fromLon)) return Infinity;
+  return Math.hypot((lon - fromLon) * 111_320 * Math.cos((lat * Math.PI) / 180), (lat - fromLat) * 110_540);
+}
+
+/**
+ * Which photoreal mesh readings are the road. A vertical ray reads the TOP
+ * of whatever is there: a palm canopy 10 m over the Santa Monica Strand, the
+ * I-80 viaduct 29 m over the Cuyahoga towpath, a coarse tile 600 m up. The
+ * road is continuous, so a reading that rises faster than a road climbs from
+ * the last road spot is the road only if the mesh at that last road spot rose
+ * too (a tile refined under the rider); otherwise it is over the road and the
+ * rider keeps the road it has. Falls are always taken (the rider eases down).
+ */
+export function createMeshRoadFilter() {
+  let base: number | undefined;
+  let baseLon = NaN;
+  let baseLat = NaN;
+  return {
+    /**
+     * The road height from one reading (undefined: no mesh road here, the
+     * globe decides). `ceiling`: highest plausible road height here;
+     * `readAt(lon, lat)` re-reads the mesh now at another spot.
+     */
+    next(
+      reading: number | undefined,
+      lon: number,
+      lat: number,
+      ceiling: number,
+      readAt: (lon: number, lat: number) => number | undefined,
+    ): number | undefined {
+      if (reading === undefined || !Number.isFinite(reading)) return undefined;
+      if (reading > ceiling) return base;
+      const moved = metresBetween(lon, lat, baseLon, baseLat);
+      const climbs = base === undefined || moved >= OVERHANG_GIVE_UP_M || reading <= base + OVERHANG_RISE_M + OVERHANG_GRADE * moved;
+      if (!climbs) {
+        const atBase = readAt(baseLon, baseLat);
+        if (atBase === undefined || atBase <= (base as number) + OVERHANG_RISE_M) return base;
+      }
+      base = reading;
+      baseLon = lon;
+      baseLat = lat;
+      return reading;
+    },
+    reset() {
+      base = undefined;
+      baseLon = NaN;
+    },
+  };
+}
+
+/**
  * Throttled {@link sceneGroundHeight}.
  *
  * On terrain (no photoreal mesh shown) the rendered ground is the globe's
@@ -1535,34 +1613,39 @@ export const GROUND_SAMPLE_MOVE_M = 5;
  * times a second (or after a few metres of travel), reusing the last reading
  * in between — avatars smooth the height anyway — and with every rider hidden
  * for the pick, so the ray doesn't hit helmets and re-render the scene once
- * per excluded part (Cesium's drill pick).
+ * per excluded part (Cesium's drill pick). Mesh readings pass the overhang
+ * filter ({@link createMeshRoadFilter}) first.
  */
 export function createGroundSampler(scene: Cesium.Scene) {
   let lastMs = -Infinity;
   let lastLon = NaN;
   let lastLat = NaN;
   let last: number | undefined;
+  const road = createMeshRoadFilter();
+  const meshAt = (lon: number, lat: number) =>
+    withRidersHidden(() => sampleGroundHeight(scene, lon, lat, groundSampleExclusions()));
   return {
     sample(lon: number, lat: number, ele: number, nowMs: number): number | undefined {
       const expect = sceneEle(ele);
       if (!photorealGroundShown(scene)) {
         last = undefined;
+        road.reset();
         return sceneGroundHeight(scene, lon, lat, undefined, expect, { terrainOnly: true });
       }
-      const movedM = Number.isNaN(lastLon)
-        ? Infinity
-        : Math.hypot(
-            (lon - lastLon) * 111_320 * Math.cos((lat * Math.PI) / 180),
-            (lat - lastLat) * 110_540,
-          );
-      if (last !== undefined && nowMs - lastMs < GROUND_SAMPLE_INTERVAL_MS && movedM < GROUND_SAMPLE_MOVE_M) {
-        return last;
+      const movedM = metresBetween(lon, lat, lastLon, lastLat);
+      // No mesh road under the rider yet: look again every frame, so a tile
+      // that loads over the globe is stood on at once (as before).
+      if (last === undefined || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M) {
+        lastMs = nowMs;
+        lastLon = lon;
+        lastLat = lat;
+        const globe = (scene.globe as Cesium.Globe | undefined)?.getHeight?.(Cesium.Cartographic.fromDegrees(lon, lat));
+        const terrain = globe !== undefined && Number.isFinite(globe) ? Math.max(globe, expect) : expect;
+        last = road.next(meshAt(lon, lat), lon, lat, terrain + MESH_OVER_TERRAIN_MAX_M, meshAt);
       }
-      lastMs = nowMs;
-      lastLon = lon;
-      lastLat = lat;
-      last = withRidersHidden(() => sceneGroundHeight(scene, lon, lat, groundSampleExclusions(), expect));
-      return last;
+      // The mesh reading is reused between samples; the globe (drawn over the
+      // mesh wherever its terrain is higher) is read fresh every call.
+      return drawnGroundHeight(scene, lon, lat, last, expect);
     },
   };
 }

@@ -39,6 +39,8 @@ export interface RideDriverInput {
   /** Seconds since the previous frame (clamped by the caller). */
   dt: number;
   timeS: number;
+  /** The drawn ground (worldScene.drawnGround); the heightfield when absent. */
+  ground?: (x: number, y: number) => number;
 }
 
 export function driveRideFrame(frame: RideFrame, memo: RideDriverMemo, sceneWorld: SceneWorld, input: RideDriverInput): void {
@@ -66,12 +68,12 @@ export function driveRideFrame(frame: RideFrame, memo: RideDriverMemo, sceneWorl
         ...ridePose(route, distance, { laneOffsetM, offsetHeading: heading, grade: input.grade, speed: input.speed }),
         heading,
       };
-  const placement = placeRider(sceneWorld, pose);
+  const placement = placeRider(sceneWorld, pose, input.ground);
   const aheadPose = ridePose(route, Math.min(route.totalDistance, pose.distance + input.lookAheadM), {
     laneOffsetM: pose.laneOffsetM,
     offsetHeading: heading,
   });
-  const ahead = placeRider(sceneWorld, aheadPose).position;
+  const ahead = placeRider(sceneWorld, aheadPose, input.ground).position;
   const speed = raw ? pose.speed : input.speed;
   frame.lean += (leanAngle(speed, memo.yaw.rate) - frame.lean) * dampFactor(0.35, dt);
   frame.pose = pose;
