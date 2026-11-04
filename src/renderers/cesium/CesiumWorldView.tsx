@@ -1097,6 +1097,13 @@ export function CesiumWorldView({
       // avatar below measures the ground as it will be drawn.
       const globeShown = globeGateRef.current.update(nowMs, photorealShown, avatarRef.current.meshGround());
       if (viewer.scene.globe.show !== globeShown) viewer.scene.globe.show = globeShown;
+      // The asphalt corridor is a ground classification: over the mesh it
+      // paints asphalt on whatever stands in its 7 m footprint (walls, trees,
+      // the hillside: the grey slabs on the Lugano shore), a second road over
+      // the street the mesh already draws. It shows only where the globe is
+      // the ground.
+      const corridor = roadEntityRef.current?.entity;
+      if (corridor && corridor.show !== globeShown) corridor.show = globeShown;
 
       avatarRef.current.update({
         lon: sampled.lon,
