@@ -510,7 +510,13 @@ const PIP_GEOMETRY = `(() => {
   const shown = (e) => e.getBoundingClientRect().width > 0 && e.checkVisibility();
   const top = [...root.querySelectorAll('[role=radiogroup], [aria-label="Back to the Velo tab"], [data-testid=journey-next]')].filter(shown);
   const bottom = [...bar.parentElement.children].filter(shown);
-  const fits = () => ({ scrollW: bar.scrollWidth, clientW: bar.clientWidth, pause: box(pause), bar: box(bar) });
+  // need: padding + shown children + gaps, the row's own width whether or not it fits (the slack).
+  const need = () => {
+    const cs = w.getComputedStyle(bar);
+    const kids = [...bar.children].filter((e) => e.tagName.toLowerCase() !== 'svg' && e.checkVisibility());
+    return Math.round(parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.columnGap) * (kids.length - 1) + kids.reduce((a, e) => a + e.getBoundingClientRect().width, 0));
+  };
+  const fits = () => ({ scrollW: bar.scrollWidth, clientW: bar.clientWidth, need: need(), pause: box(pause), bar: box(bar) });
   const out = {
     inner: [w.innerWidth, w.innerHeight],
     canvas: canvas ? box(canvas) : null,
@@ -576,7 +582,7 @@ test("at DPR 2 on a 1280-wide laptop screen the world fills the floating window 
       barTop: number;
       figures: number[];
       now: { scrollW: number; clientW: number; pause: { x: number; y: number; r: number; b: number }; bar: { r: number } };
-      widest: { scrollW: number; clientW: number; pause: { r: number }; bar: { r: number } };
+      widest: { scrollW: number; clientW: number; need: number; pause: { r: number }; bar: { r: number } };
     }>(PIP_GEOMETRY);
     // Show mode's director films the ride. Its POV shot is from the rider's
     // head (no rider in frame): wait for another shot (each lasts 20-40 s).
@@ -612,7 +618,7 @@ test("at DPR 2 on a 1280-wide laptop screen the world fills the floating window 
     }
     expect(g.now.pause.x >= 0 && g.now.pause.y >= 0 && g.now.pause.r <= g.inner[0] && g.now.pause.b <= g.inner[1], at).toBe(true);
     for (const px of g.figures) expect(px, at).toBeGreaterThanOrEqual(24);
-    console.info(`show-mode DPR 2: ${size} window ${got.join('x')}: canvas ${g.canvas!.w}x${g.canvas!.h}, rider y ${rider.riderScreen![1]} above bar ${Math.round(g.barTop)}, bar ${g.widest.scrollW}/${g.widest.clientW} px at the widest`);
+    console.info(`show-mode DPR 2: ${size} window ${got.join('x')}: canvas ${g.canvas!.w}x${g.canvas!.h}, rider y ${rider.riderScreen![1]} above bar ${Math.round(g.barTop)}, bar row ${g.widest.need} of ${g.widest.clientW} px at the widest`);
   }
   expect(await page.eval<string[]>('window.__errors')).toEqual([]);
 });

@@ -20,6 +20,7 @@
  *   BASE=... LAYOUTS=laptop xvfb-run -a -s "-screen 0 2560x1600x24" \
  *     node scripts/v2-build-shots/pip.mjs
  *
+ * ONLY_SIZES=corner,third,half picks window sizes; THEMES=day,night the themes.
  * GL overrides the WebGL flags (default software GL), e.g. the Arc GPU:
  *   GL="--use-angle=vulkan --enable-features=Vulkan --enable-gpu --ignore-gpu-blocklist"
  *
@@ -380,7 +381,10 @@ async function run(theme, layout) {
         await savePipJpeg(pip, join(OUT, `pipwin-${size}${laptop ? '-1280' : ''}${suffix}.jpg`), page);
         const m = await evalIn(page, `(() => { const w = documentPictureInPicture.window; const d = w.document; const r = (s) => { const e = d.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)]; };
           const bar = d.querySelector('[data-testid=journey-bar]');
-          return { window: [w.innerWidth, w.innerHeight, w.devicePixelRatio], canvas: r('[data-testid=pip-ride] canvas'), barScroll: [bar.scrollWidth, bar.clientWidth], pause: r('[data-testid=journey-bar] button'),
+          // Width the bar's one row needs (padding + shown children + gaps), against its clientWidth: the slack.
+          const cs = w.getComputedStyle(bar); const kids = [...bar.children].filter((e) => e.tagName !== 'svg' && e.checkVisibility());
+          const need = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + kids.reduce((a, e) => a + e.getBoundingClientRect().width, 0) + parseFloat(cs.columnGap) * (kids.length - 1);
+          return { window: [w.innerWidth, w.innerHeight, w.devicePixelRatio], canvas: r('[data-testid=pip-ride] canvas'), barScroll: [bar.scrollWidth, bar.clientWidth], barNeed: Math.round(need), pause: r('[data-testid=journey-bar] button'),
             root: getComputedStyle(d.documentElement).fontSize, bar: r('[data-testid=journey-bar]'), next: [...d.querySelectorAll('[data-testid=journey-next]')].filter((e) => e.checkVisibility()).map((e) => e.textContent),
             fig: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num')).fontSize, label: getComputedStyle(d.querySelector('[data-testid=journey-bar] .num').nextElementSibling).fontSize,
             world: d.querySelector('[data-world-status]')?.getAttribute('data-world-status') ?? null, renderer: d.querySelector('[data-renderer]')?.getAttribute('data-renderer') ?? null,
