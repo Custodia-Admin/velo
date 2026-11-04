@@ -357,6 +357,19 @@ export function CesiumWorldView({
     void (async () => {
       const container = containerRef.current!;
 
+      // Install the token (or clear any inherited default if null). The
+      // helpers downstream (setupBaseImagery, getTerrainProvider,
+      // getPhotorealTileset) branch on hasIonToken() so the no-token path
+      // never makes ion network calls.
+      setIonToken(ionToken);
+      // Cesium World Terrain (ion asset 1): its endpoint and layer.json are
+      // asked for before the Viewer is built (a long synchronous constructor
+      // on a busy laptop), not when the browser goes idle. The ride start
+      // waits for it (lib/ride/startHold); the promise is cached, so an
+      // unmount here leaves nothing to clean up.
+      const worldTerrain = getTerrainProvider();
+      worldTerrain.catch(() => undefined);
+
       // Defensive mount-timing guard: wait until the container
       // has positive layout dimensions before constructing the Cesium Viewer.
       // The ride view is a full-page route so the race is rare in practice,
@@ -365,12 +378,6 @@ export function CesiumWorldView({
       // immediately when dimensions are already positive (the common path).
       await waitForContainerSize(container);
       if (bootstrapCancelled || !containerRef.current) return;
-
-      // Install the token (or clear any inherited default if null). The
-      // helpers downstream (setupBaseImagery, getTerrainProvider,
-      // getPhotorealTileset) branch on hasIonToken() so the no-token path
-      // never makes ion network calls.
-      setIonToken(ionToken);
 
       const viewer = new Cesium.Viewer(container, {
         timeline: false,
@@ -398,11 +405,9 @@ export function CesiumWorldView({
       });
       viewerRef.current = viewer;
       setActiveViewer(viewer);
-      // Cesium World Terrain (ion asset 1): asked for now, not when the browser
-      // goes idle. Assigning it is cheap (its tiles stream over the next
-      // frames), and the ride start waits for it (lib/ride/startHold); on a
-      // busy laptop the idle callback alone sat out its 2 s timeout.
-      getTerrainProvider()
+      // Assigned as soon as it arrives (its tiles stream over the next frames);
+      // on a busy laptop an idle callback alone sat out its 2 s timeout.
+      worldTerrain
         .then((terrain) => {
           if (viewer.isDestroyed()) return;
           viewer.scene.terrainProvider = terrain;

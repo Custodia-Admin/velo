@@ -10,15 +10,22 @@
  * ground and 15-25 s to the last half metre, so a long hold turned the
  * auto-start into "tap Start" (18-24 s measured with a 20 s cap). The rider
  * rides whatever is drawn in the meantime (never under it), so after the cap
- * a tile that lands later only moves the rider onto it.
+ * a tile that lands later only moves the rider onto it. On a fast machine the
+ * plausible ground arrives inside the cap; on the laptop it never does, and
+ * what the start really waits for there is World Terrain itself
+ * (`groundPending`).
  */
 
 import type { WorldRenderer } from '@/lib/world/renderer';
 
 /** The start waits this long after the world first paints (a beat to see the route and the chase angle). */
 export const START_DELAY_MS = 600;
-/** Longest a start waits for a plausible ground (ms, from the first paint); after that it starts anyway. */
-export const START_HOLD_MAX_MS = 2_500;
+/**
+ * Longest a start waits for a plausible ground (ms, from the first paint);
+ * after that it starts anyway. First paint is ~2.9 s after /ride on the
+ * owner's loaded laptop, so this cap sets the floor of the auto-start there.
+ */
+export const START_HOLD_MAX_MS = 1_500;
 /**
  * Longest a start waits while nothing real is drawn under the rider yet
  * (`groundPending`: Cesium's flat globe before World Terrain lands, 0.7-2.6 s

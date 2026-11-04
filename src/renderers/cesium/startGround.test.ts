@@ -48,6 +48,31 @@ describe('StartGroundWatch: the ride starts on a plausible ground, not on a coar
     expect(w.ready).toBe(false);
   });
 
+  it('the drawn globe counts too: a rider on the mesh waits while the globe under it is still a coarse chord', async () => {
+    // Lugano shore: the rider already stands on the photoreal mesh (in the window), but the globe
+    // drawn there is a chord 79 m under it that will refine up, possibly over the mesh.
+    const w = new StartGroundWatch(async () => 329.2);
+    w.update(8.95, 45.97, 250, 329.5, 0);
+    await flush();
+    for (let t = 0; t <= 5000; t += 100) w.update(8.95, 45.97, 250, 329.5, t);
+    expect(w.ready).toBe(false);
+    // No globe tile drawn there at all: still waiting.
+    for (let t = 5000; t <= 10_000; t += 100) w.update(8.95, 45.97, undefined, 329.5, t);
+    expect(w.ready).toBe(false);
+  });
+
+  it('an unknown finest height is never plausible, even at sea level (heights near 0 m)', async () => {
+    // Santa Monica: route ele 3 m, drawn 2.5 m; the finest height never arrives.
+    const w = new StartGroundWatch(async () => undefined);
+    w.update(-118.5, 34, 2.5, 3, 0);
+    await flush();
+    for (let t = 0; t <= 5000; t += 100) {
+      w.update(-118.5, 34, 2.5, 3, t);
+      await flush();
+    }
+    expect(w.ready).toBe(false);
+  });
+
   it("doesn't wait for the photoreal tile under the rider (it lands later; the rider rises onto it)", async () => {
     const w = new StartGroundWatch(async () => -32.37);
     w.update(-118.5, 34, -32.37, -32.37, 0);

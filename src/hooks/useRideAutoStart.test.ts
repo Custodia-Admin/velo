@@ -102,10 +102,12 @@ describe('ride auto-start: the start hold is wired in', () => {
     vi.advanceTimersByTime(START_DELAY_MS);
     expect(groundReady).toHaveBeenCalled();
     expect(running()).toBe(false);
-    vi.advanceTimersByTime(800);
+    vi.advanceTimersByTime(2 * START_HOLD_POLL_MS);
     expect(running()).toBe(false);
     ready = true;
     vi.advanceTimersByTime(START_HOLD_POLL_MS);
+    // Well inside the cap: it was the ground that let it go.
+    expect(START_DELAY_MS + 3 * START_HOLD_POLL_MS).toBeLessThan(START_HOLD_MAX_MS);
     expect(running()).toBe(true);
   });
 

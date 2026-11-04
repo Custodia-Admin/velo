@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Cesium from 'cesium';
 
@@ -129,5 +132,17 @@ describe('Cesium WorldRenderer groundReady (the ride start holds on it)', () => 
     destroy();
     expect(r.groundReady?.()).toBe(true);
     expect(r.groundPending?.()).toBe(false);
+  });
+
+  it('the view asks for World Terrain before it builds the Viewer, and never in an idle callback', () => {
+    // The start waits for World Terrain (groundPending); on the owner's laptop
+    // the Viewer constructor and the idle wait each cost seconds before it.
+    const src = readFileSync(join(__dirname, 'CesiumWorldView.tsx'), 'utf8');
+    const ask = src.indexOf('const worldTerrain = getTerrainProvider();');
+    expect(ask).toBeGreaterThan(src.indexOf('setIonToken(ionToken);'));
+    expect(ask).toBeLessThan(src.indexOf('await waitForContainerSize(container);'));
+    expect(src.indexOf('await waitForContainerSize(container);')).toBeLessThan(src.indexOf('new Cesium.Viewer('));
+    expect(src.match(/getTerrainProvider\(\)/g)).toHaveLength(1);
+    expect(src).toMatch(/worldTerrain\s*\.then\(\(terrain\) => \{\s*if \(viewer\.isDestroyed\(\)\) return;\s*viewer\.scene\.terrainProvider = terrain;/);
   });
 });
