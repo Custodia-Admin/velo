@@ -6,8 +6,8 @@
  * - it runs before the avatar samples the ground, so the rider measures the
  *   ground as it will be drawn this frame (never a frame under a globe that
  *   just came back);
- * - its answer is what the scene draws, and the asphalt corridor (a ground
- *   classification that paints walls and trees over the mesh) follows it;
+ * - its answer is what the scene draws, and the painted road (ground
+ *   classifications that paint walls and trees over the mesh) follows it;
  * - the start watch is told when the mesh is the ground (a hidden globe stops
  *   refining, which would hold every start to the cap);
  * - a missing rider or a new route puts the globe back.
@@ -33,9 +33,12 @@ describe('CesiumWorldView drives the globe gate', () => {
     expect(avatar).toBeGreaterThan(gate);
   });
 
-  it('hides the asphalt corridor with the globe (over the mesh it paints walls and trees)', () => {
-    expect(SRC).toContain('const corridor = roadEntityRef.current?.entity;');
-    expect(SRC).toContain('if (corridor && corridor.show !== globeShown) corridor.show = globeShown;');
+  it('hides the painted road with the globe (over the mesh it paints walls and trees)', () => {
+    expect(SRC).toContain('const road = roadEntityRef.current;');
+    expect(SRC).toContain('if (road && road.entity.show !== globeShown) {');
+    expect(SRC).toContain('road.entity.show = globeShown;');
+    expect(SRC).toContain('road.centerline.show = globeShown;');
+    expect(SRC).toContain('for (const stripe of roadEdgeStripesRef.current?.entities ?? []) stripe.show = globeShown;');
   });
 
   it('tells the start watch when the mesh is the ground', () => {

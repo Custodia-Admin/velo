@@ -147,10 +147,25 @@ SAMPLE = r"""async (tol) => {
   const hidden = []; const prims = scene.primitives;
   for (let i = 0; i < prims.length; i++) { const p = prims.get(i); if (p && !('_selectedTiles' in p) && p.show) { hidden.push(p); p.show = false; } }
   const gp = scene.groundPrimitives; const gpShow = gp.show; gp.show = false;
-  let gpuR, gpuC;
+  let gpuR, gpuC, viewTop = null, viewAlong = null;
   try {
     try { gpuR = scene.sampleHeight(rc); } catch { gpuR = undefined; }
     try { gpuC = scene.sampleHeight(cam); } catch { gpuC = undefined; }
+    // sampleHeight's overhead pick camera selects its own (often finer) tiles. The main view exactly as
+    // drawn: render it with the riders hidden and read the depth buffer where the rider's contact point
+    // projects; viewTop is the height of the drawn surface that camera ray hits (above the contact point
+    // when the rider is under the ground, below it when the rider floats).
+    try {
+      scene.render();
+      const P = Cesium.Cartesian3.fromDegrees(d.riderLonLat[0], d.riderLonLat[1], d.groundEle);
+      const wp = Cesium.SceneTransforms.worldToWindowCoordinates(scene, P);
+      const Q = wp ? scene.pickPosition(wp) : undefined;
+      if (Q) {
+        const C = viewer.camera.positionWC;
+        viewTop = Cesium.Cartographic.fromCartesian(Q).height;
+        viewAlong = Cesium.Cartesian3.distance(C, Q) - Cesium.Cartesian3.distance(C, P);
+      }
+    } catch { viewTop = null; }
   } finally { for (const p of hidden) p.show = true; gp.show = gpShow; }
   const near = (h) => (h !== undefined && Number.isFinite(h) && Math.abs(h - d.groundEle) < 60 ? h : null);
   // Which surface the GPU top is (diagnostic): the globe when it draws there at that height, else the mesh.
@@ -223,6 +238,7 @@ SAMPLE = r"""async (tol) => {
     (camTop === null || cam.height > camTop) && under === 0;
   return { renderer: 'photoreal', dist: d.dist, rider: d.groundEle, top, riderVsTop: top === null ? null : d.groundEle - top,
     above, overhang, onStructure, underOverhang, camVsTop: camTop === null ? null : cam.height - camTop,
+    riderVsView: viewTop === null ? null : d.groundEle - viewTop, viewAlong,
     surfaces: atRider, camSurfaces: atCam, model: model(rc), bare: bareH, grid: n, skyPx: sky, ceilPx: ceil, undersidePx: under,
     globeShown, meshGround: d.meshGround === undefined ? null : d.meshGround,
     meshShown, meshLoaded: meshShown ? ts.tilesLoaded : null, globeLoaded: globe.tilesLoaded, ok };
@@ -250,7 +266,7 @@ def fmt(s):
     extra = f" roadLevels={s['roadLevels']}" if s["renderer"] == "world" else \
         " " + " ".join(f"{k}={v:.2f}" for k, v in s["surfaces"])
     oh = f" overhang={s['overhang']}" if s.get("overhang") else ""
-    view = f" sky={s['skyPx']}/{s['grid']} underside={s['undersidePx']} globe={'on' if s['globeShown'] else 'off'}" \
+    view = f" view={f(s.get('riderVsView'))} sky={s['skyPx']}/{s['grid']} underside={s['undersidePx']} globe={'on' if s['globeShown'] else 'off'}" \
         if s["renderer"] == "photoreal" else ""
     return f"rider-top={f(s['riderVsTop'])} above={s['above']} cam-top={f(s['camVsTop'])}{extra}{oh}{view} {'ok' if s['ok'] else 'FAIL'}"
 
