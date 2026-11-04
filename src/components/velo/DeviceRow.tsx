@@ -17,7 +17,7 @@ export const DEVICE_PANEL = 'rounded-lg border border-border bg-card divide-y di
 /** Padding for a panel row (Options rows reuse it). */
 export const ROW_PAD = 'p-4 sm:px-5';
 
-export function StateDot({ tone }: { tone: RowView<string>['tone'] }) {
+export function StateDot({ tone, className }: { tone: RowView<string>['tone']; className?: string }) {
   if (tone === 'idle' || tone === 'error') return null;
   return (
     <span
@@ -27,6 +27,7 @@ export function StateDot({ tone }: { tone: RowView<string>['tone'] }) {
         tone === 'ok' && 'bg-primary',
         tone === 'busy' && 'animate-pulse bg-primary',
         tone === 'warn' && 'bg-destructive',
+        className,
       )}
     />
   );
@@ -95,15 +96,18 @@ export function DeviceRow<A extends string>({
   testId,
 }: DeviceRowProps<A>) {
   const ok = view.tone === 'ok';
+  // Glyph and action sit level with the name + state lines (mt-1 centres an
+  // h-10 on those two lines), not with the whole row: an open legend or the
+  // unlock recipe makes the row tall, and both would float down with it.
   return (
     <div
-      className={cn('grid grid-cols-device-row-narrow items-center gap-4 sm:grid-cols-device-row', ROW_PAD)}
+      className={cn('grid grid-cols-device-row-narrow items-start gap-4 sm:grid-cols-device-row', ROW_PAD)}
       data-testid={testId}
       data-tone={view.tone}
     >
       <span
         className={cn(
-          'grid h-10 w-10 shrink-0 place-items-center rounded-full',
+          'mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-full',
           ok ? 'bg-primary/10 text-primary' : 'bg-muted text-foreground',
         )}
       >
@@ -112,25 +116,24 @@ export function DeviceRow<A extends string>({
 
       <div className="min-w-0">
         <div className="text-base font-semibold text-foreground">{view.name}</div>
+        {/* The state wraps in its own column beside the dot / alert icon (a
+            hanging indent), so a long line never strands the dot alone. */}
         <div
           className={cn(
-            'flex flex-wrap items-center gap-2 text-sm',
-            view.tone === 'error' ? 'text-destructive' : 'text-muted-foreground',
+            'flex items-start text-sm',
+            view.tone === 'error' ? 'gap-1.5 text-destructive' : 'gap-2 text-muted-foreground',
           )}
           role="status"
         >
           {view.tone === 'error' ? (
-            <span className="inline-flex items-center gap-1.5 font-semibold">
-              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
-              {view.state}
-            </span>
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           ) : (
-            <>
-              <StateDot tone={view.tone} />
-              <span>{view.state}</span>
-            </>
+            <StateDot tone={view.tone} className="mt-1.5" />
           )}
-          {battery !== null && <Battery pct={battery} label={view.name} />}
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2">
+            <span className={cn(view.tone === 'error' && 'font-semibold')}>{view.state}</span>
+            {battery !== null && <Battery pct={battery} label={view.name} />}
+          </span>
         </div>
         {view.help && <p className="mt-1 max-w-prose text-sm text-muted-foreground">{view.help}</p>}
         {children}
@@ -145,7 +148,7 @@ export function DeviceRow<A extends string>({
       </div>
 
       {view.action && (
-        <div className="col-start-2 justify-self-start sm:col-start-3 sm:justify-self-end">
+        <div className="col-start-2 justify-self-start sm:col-start-3 sm:mt-1 sm:justify-self-end">
           <ActionButton action={view.action} variant={quietAction ? 'quiet' : 'outline'} onAction={onAction} />
         </div>
       )}

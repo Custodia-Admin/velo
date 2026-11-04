@@ -130,6 +130,17 @@ describe('RideChip: a lost trainer', () => {
     expect(useRideHudStore.getState().devicesOpen).toBe(false);
   });
 
+  it('after a reconnect tap that failed (grant phase "failed"): still "tap to reconnect", and the next tap tries again', () => {
+    trainerLostMidRide();
+    useTrainerReconnectStore.setState({ phase: 'failed', name: 'KICKR CORE 78C1' });
+    const el = chip()!;
+    expect(el.text).toBe('Trainer lost · tap to reconnect');
+    expect(visibleOnPhones(el)).toBe(true);
+    el.props.onClick();
+    expect(h.reconnect).toHaveBeenCalledTimes(1);
+    expect(useRideHudStore.getState().devicesOpen).toBe(false);
+  });
+
   it('without one (#27 alone after a real drop: phase stays connected): an alert chip, never the calm demo chip, that opens devices', () => {
     trainerLostMidRide();
     expect(useTrainerReconnectStore.getState().phase).not.toBe('available');
@@ -183,6 +194,15 @@ describe('RideChip: the other taps', () => {
     expect(useRideHudStore.getState().noticeHosts).toBe(1);
     for (const c of h.cleanups.splice(0)) c();
     expect(useRideHudStore.getState().noticeHosts).toBe(0);
+  });
+
+  it('the newest notice speaks: older toasts are dismissed, not queued for the finish page', () => {
+    useRideStore.getState().setMode('demo');
+    useRideStore.getState().pushToast({ id: 'old-1', kind: 'info', title: 'Climb ahead', durationMs: 4_000 });
+    useRideStore.getState().pushToast({ id: 'old-2', kind: 'info', title: 'Halfway there', durationMs: 4_000 });
+    useRideStore.getState().pushToast({ id: 'new', kind: 'info', title: 'New personal best', durationMs: 4_000 });
+    expect(chip()!.text).toBe('New personal best');
+    expect(useRideStore.getState().toasts.map((t) => t.id)).toEqual(['new']);
   });
 });
 

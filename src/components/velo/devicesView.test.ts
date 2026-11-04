@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   ASLEEP_TEXT,
   COULDNT_FIND,
+  HANDLEBAR_GRANTED_HELP,
+  HANDLEBAR_GRANTED_STATE,
+  HANDLEBAR_IDLE_HELP,
   HR_EMPTY_HELP,
   TRAINER_EMPTY_HELP,
   WAITING_TEXT,
@@ -162,6 +165,7 @@ function bars(over: Partial<HandlebarRowInput> = {}): HandlebarRowInput {
     deviceName: null,
     errorMessage: null,
     tried: false,
+    granted: null,
     ...over,
   };
 }
@@ -179,6 +183,42 @@ describe('handlebarRow (every ControllerPanel state keeps its actions)', () => {
     const v = handlebarRow(bars({ tried: true }));
     expect(v.action?.label).toBe('Try again');
     expect(ids(v)).toEqual({ action: 'pair', extras: ['pairAll'] });
+  });
+
+  it('idle, no grant: the plain pairing row (state, help, Pair)', () => {
+    const v = handlebarRow(bars({ granted: null }));
+    expect(v.state).toBe('Optional · not paired');
+    expect(v.help).toBe(HANDLEBAR_IDLE_HELP);
+    expect(v.action).toEqual({ id: 'pair', label: 'Pair', ariaLabel: 'Pair handlebar controls' });
+    expect(v.extras).toEqual([]);
+  });
+
+  it('idle with a grant from an earlier session (#26): one-tap Reconnect <name>, Pair as a link, "Paired before" copy', () => {
+    const v = handlebarRow(bars({ granted: 'Zwift Ride' }));
+    expect(v.tone).toBe('idle');
+    expect(v.name).toBe('Handlebar controls');
+    expect(v.state).toBe(HANDLEBAR_GRANTED_STATE);
+    expect(v.state).toContain('Paired before');
+    expect(v.help).toBe(HANDLEBAR_GRANTED_HELP);
+    expect(v.help).toBe('Velo reconnects them by itself when you start a ride.');
+    expect(v.action).toEqual({ id: 'reconnectGranted', label: 'Reconnect', ariaLabel: 'Reconnect Zwift Ride' });
+    expect(ids(v)).toEqual({ action: 'reconnectGranted', extras: ['pair'] });
+    expect(v.settings).toBe(false);
+    expect(v.showBattery).toBe(false);
+  });
+
+  it('a grant is no longer offered once a pairing was tried: Try again + Show all devices', () => {
+    const v = handlebarRow(bars({ granted: 'Zwift Ride', tried: true }));
+    expect(v.action?.label).toBe('Try again');
+    expect(ids(v)).toEqual({ action: 'pair', extras: ['pairAll'] });
+    expect(v.state).toBe('Optional · not paired');
+  });
+
+  it('a grant changes nothing outside the idle row', () => {
+    const err = handlebarRow(bars({ status: 'error', errorMessage: 'x', granted: 'Zwift Ride' }));
+    expect(ids(err)).toEqual({ action: 'pair', extras: [] });
+    const live = handlebarRow(bars({ status: 'connected', side: 'left', inputSeen: true, granted: 'Zwift Ride' }));
+    expect(ids(live)).toEqual({ action: 'buzz', extras: ['disconnect'] });
   });
 
   it('error: the store sentence, Try again', () => {

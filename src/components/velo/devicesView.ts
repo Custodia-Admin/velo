@@ -223,7 +223,15 @@ export function trainerRow(s: TrainerRowInput): RowView<TrainerActionId> {
 
 // ---- Handlebar controls ------------------------------------------------------
 
-export type HandlebarActionId = 'pair' | 'pairAll' | 'pairOther' | 'reconnect' | 'buzz' | 'disconnect' | 'forget';
+export type HandlebarActionId =
+  | 'pair'
+  | 'pairAll'
+  | 'pairOther'
+  | 'reconnect'
+  | 'reconnectGranted'
+  | 'buzz'
+  | 'disconnect'
+  | 'forget';
 
 export interface HandlebarRowInput {
   status: ControllerStatus;
@@ -235,6 +243,12 @@ export interface HandlebarRowInput {
   errorMessage: string | null;
   /** A pairing attempt from this page didn't connect (chooser empty or closed). */
   tried: boolean;
+  /**
+   * Name of the controls paired in an earlier session that the browser still
+   * holds a grant for (findGrantedController), or null. One tap reconnects
+   * them without the chooser.
+   */
+  granted: string | null;
   /** The browser watches for the sleeping controls to wake (P2.5). */
   wakeArmed?: boolean;
 }
@@ -251,6 +265,8 @@ export interface HandlebarRowView extends RowView<HandlebarActionId> {
 
 export const WAITING_TEXT = 'Press a shift paddle: the gear in the ride view should change.';
 export const HANDLEBAR_IDLE_HELP = 'Shift gears, set how hard the hills feel and steer from the bars.';
+export const HANDLEBAR_GRANTED_STATE = 'Paired before · not connected';
+export const HANDLEBAR_GRANTED_HELP = 'Velo reconnects them by itself when you start a ride.';
 
 /** "Left handlebar · Zwift Ride" when the side is known, else "Handlebar controls". */
 export function handlebarName(side: ControllerSideCheck | null, deviceName: string | null): string {
@@ -280,6 +296,18 @@ export function handlebarRow(s: HandlebarRowInput): HandlebarRowView {
 
   switch (phase) {
     case 'none':
+      // Paired in an earlier session and still granted: one tap, no chooser.
+      // Gone once a pairing from this page was tried (it didn't connect).
+      if (s.granted && !s.tried) {
+        return {
+          ...base,
+          tone: 'idle',
+          state: HANDLEBAR_GRANTED_STATE,
+          help: HANDLEBAR_GRANTED_HELP,
+          action: { id: 'reconnectGranted', label: 'Reconnect', ariaLabel: `Reconnect ${s.granted}` },
+          extras: [{ id: 'pair', label: 'Pair handlebar controls' }],
+        };
+      }
       return {
         ...base,
         tone: 'idle',

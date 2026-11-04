@@ -1,10 +1,11 @@
 /**
  * Handlebar controls (Ride V2 controllers).
  *
- * HandlebarRow is the Devices page row (rendered from
- * devicesView.handlebarRow); ControllerPanel is the older block inside the
- * Home Trainer card. Both drive the same single-controller store and lib
- * calls, and render nothing in browsers without Web Bluetooth.
+ * HandlebarRow is the handlebar row of the Devices page and of the in-ride
+ * devices sheet (rendered from devicesView.handlebarRow). ControllerPanel is
+ * the older block of the Home Trainer card, which P2.4 no longer mounts.
+ * Both drive the same single-controller store and lib calls, and render
+ * nothing in browsers without Web Bluetooth.
  */
 
 import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from 'react';
@@ -378,10 +379,23 @@ export function HandlebarRow() {
   // After a pairing attempt that didn't connect (chooser empty or closed),
   // offer the unfiltered chooser too.
   const [tried, setTried] = useState(false);
+  // Controls paired in an earlier session: one tap, no chooser. Reading the
+  // grant list (getDevices) sends nothing to any device.
+  const [granted, setGranted] = useState<string | null>(null);
+  useEffect(() => {
+    if (!supported || status !== 'idle') return undefined;
+    let cancelled = false;
+    void findGrantedController().then((dev) => {
+      if (!cancelled) setGranted(dev ? (dev.name ?? 'Handlebar controls') : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [supported, status]);
 
   if (!supported) return null;
 
-  const view = handlebarRow({ status, silent, side, inputSeen, buzz, deviceName, errorMessage, tried, wakeArmed });
+  const view = handlebarRow({ status, silent, side, inputSeen, buzz, deviceName, errorMessage, tried, granted, wakeArmed });
 
   const onAction = (id: HandlebarActionId) => {
     switch (id) {
@@ -397,6 +411,10 @@ export function HandlebarRow() {
         return;
       case 'reconnect':
         void reconnectRideController();
+        return;
+      case 'reconnectGranted':
+        // A tap: the confirm buzz and RideOn are the rider's own doing.
+        void reconnectGrantedController();
         return;
       case 'buzz':
         buzzRideController();
