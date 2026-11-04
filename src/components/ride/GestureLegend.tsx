@@ -1,6 +1,6 @@
 /**
- * GestureLegend — small "?" button in the top-right corner of the ride view
- * that opens a glass overlay listing the available handlebar gestures.
+ * GestureLegend — a glass overlay listing the available handlebar gestures,
+ * opened from the ride Settings menu ("Gesture help").
  *
  * Auto-dismisses after 5 s of no interaction (moved to last-interaction tracking).
  * Designed to be unobtrusive: minimal footprint when closed, full-screen glass
@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { HelpCircle, X, HandMetal, TimerReset, TrendingUp, TrendingDown } from 'lucide-react';
+import { X, HandMetal, TimerReset, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GestureRow {
@@ -42,6 +42,13 @@ const GESTURES: GestureRow[] = [
 
 const AUTO_DISMISS_MS = 5_000;
 
+/** Window event that opens the legend (the v2 ride options menu sends it). */
+export const OPEN_GESTURE_LEGEND_EVENT = 'globeride:open-gesture-legend';
+
+/**
+ * The legend overlay. It opens on {@link OPEN_GESTURE_LEGEND_EVENT} (ride
+ * Settings menu > Gesture help); there is no floating "?" chip on the v2 HUD.
+ */
 export function GestureLegend() {
   const [open, setOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,6 +86,11 @@ export function GestureLegend() {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [open, handleClose]);
 
+  useEffect(() => {
+    window.addEventListener(OPEN_GESTURE_LEGEND_EVENT, handleOpen);
+    return () => window.removeEventListener(OPEN_GESTURE_LEGEND_EVENT, handleOpen);
+  }, [handleOpen]);
+
   // Cleanup timer on unmount.
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -86,24 +98,6 @@ export function GestureLegend() {
 
   return (
     <>
-      {/* Trigger button — small "?" chip */}
-      <button
-        type="button"
-        aria-label="Show gesture controls legend"
-        aria-expanded={open}
-        onClick={handleOpen}
-        className={cn(
-          'absolute top-3 right-3 z-[4] pointer-events-auto',
-          'flex items-center justify-center',
-          'h-7 w-7 rounded-full',
-          'glass glass-hairline',
-          'text-muted-foreground hover:text-foreground',
-          'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-        )}
-      >
-        <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
-      </button>
-
       {/* Overlay */}
       {open && (
         <div

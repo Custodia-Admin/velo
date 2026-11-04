@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b1220" />
+    <meta name="theme-color" content="#f8f6f2" />
     <meta
       name="description"
       content="GlobeRide — open-source virtual cycling simulator. Ride anywhere on Earth in your browser, with your own GPX routes and your own FTMS smart trainer."
@@ -13,20 +13,20 @@
     <script>
       // Pre-paint theme bootstrap. Mirrors the logic in src/stores/themeStore.ts
       // so the correct background is up before React mounts and we never flash
-      // the wrong palette. Defaults to dark (cyclists ride in dim rooms).
+      // the wrong palette. The rider's choice wins; otherwise the system
+      // preference (paper day by default, deep night after dark).
       (function () {
+        var dark = false;
         try {
           var t = localStorage.getItem('globeride.theme');
-          if (t !== 'light') {
-            document.documentElement.classList.add('dark');
-          } else {
-            document
-              .querySelector('meta[name="theme-color"]')
-              .setAttribute('content', '#f8fafc');
-          }
+          dark = t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         } catch (e) {
-          document.documentElement.classList.add('dark');
+          dark = false;
         }
+        if (dark) document.documentElement.classList.add('dark');
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute('content', dark ? '#14120f' : '#f8f6f2');
       })();
     </script>
   </head>

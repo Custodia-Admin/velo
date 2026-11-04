@@ -37,3 +37,5 @@ test-results/
 
 # World bake download cache (tools/worldbake/bake.mjs)
 tools/worldbake/cache/
+
+__pycache__/

@@ -162,6 +162,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .mapplate .grat { stroke: hsl(var(--border)); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
 .mapplate .route { stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .mapplate .ends { fill: hsl(var(--background)); stroke: currentColor; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.mapplate .here { fill: currentColor; stroke: hsl(var(--hud)); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
 
 /* Elevation line */
 .profile { display: block; width: 100%; color: hsl(var(--primary)); }

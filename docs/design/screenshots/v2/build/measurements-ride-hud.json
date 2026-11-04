@@ -1,0 +1,2256 @@
+{
+ "ride-hud-1440-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 55619,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 843,
+     "x": 299,
+     "y": 810
+    },
+    {
+     "area": 8018,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 200,
+     "x": 299,
+     "y": 762
+    }
+   ],
+   "sumPct": 4.9,
+   "sumPx": 63637,
+   "topmostPct": 84.7,
+   "topmostY": 762,
+   "unionPct": 4.9,
+   "viewport": [
+    1440,
+    900
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pause",
+   "minTarget": 40,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 40,
+    "w": 200,
+    "x": 299,
+    "y": 762
+   },
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": null,
+   "dist": "9.13 km of 10.88 km",
+   "exit": {
+    "h": 40,
+    "w": 40,
+    "x": 307,
+    "y": 823
+   },
+   "finish": {
+    "h": 40,
+    "w": 94,
+    "x": 995,
+    "y": 823
+   },
+   "map": null,
+   "pause": {
+    "h": 40,
+    "w": 95,
+    "x": 896,
+    "y": 823
+   },
+   "renderer": "world",
+   "rider": [
+    738,
+    567
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 66,
+    "w": 843,
+    "x": 299,
+    "y": 810
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 1093,
+    "y": 823
+   },
+   "tools": null
+  },
+  "riderBox": [
+   673,
+   478,
+   803,
+   694
+  ]
+ },
+ "ride-hud-1440.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 55619,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 843,
+     "x": 299,
+     "y": 810
+    },
+    {
+     "area": 8018,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 200,
+     "x": 299,
+     "y": 762
+    }
+   ],
+   "sumPct": 4.9,
+   "sumPx": 63637,
+   "topmostPct": 84.7,
+   "topmostY": 762,
+   "unionPct": 4.9,
+   "viewport": [
+    1440,
+    900
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pause",
+   "minTarget": 40,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 40,
+    "w": 200,
+    "x": 299,
+    "y": 762
+   },
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": null,
+   "dist": "9.13 km of 10.88 km",
+   "exit": {
+    "h": 40,
+    "w": 40,
+    "x": 307,
+    "y": 823
+   },
+   "finish": {
+    "h": 40,
+    "w": 94,
+    "x": 995,
+    "y": 823
+   },
+   "map": null,
+   "pause": {
+    "h": 40,
+    "w": 95,
+    "x": 896,
+    "y": 823
+   },
+   "renderer": "world",
+   "rider": [
+    737,
+    567
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 66,
+    "w": 843,
+    "x": 299,
+    "y": 810
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 1093,
+    "y": 823
+   },
+   "tools": null
+  },
+  "riderBox": [
+   672,
+   478,
+   802,
+   694
+  ]
+ },
+ "ride-hud-390-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    }
+   ],
+   "sumPct": 10.9,
+   "sumPx": 35868,
+   "topmostPct": 87,
+   "topmostY": 734,
+   "unionPct": 10.9,
+   "viewport": [
+    390,
+    844
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "%",
+   "minTarget": 40,
+   "minTargetEl": "Pause ride",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": null,
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": null,
+   "dist": "9.14 km of 10.88 km",
+   "exit": null,
+   "finish": {
+    "h": 40,
+    "w": 40,
+    "x": 286,
+    "y": 747
+   },
+   "map": null,
+   "pause": {
+    "h": 40,
+    "w": 40,
+    "x": 242,
+    "y": 747
+   },
+   "renderer": "world",
+   "rider": [
+    208,
+    532
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 98,
+    "w": 366,
+    "x": 12,
+    "y": 734
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 330,
+    "y": 747
+   },
+   "tools": null
+  },
+  "riderBox": [
+   147,
+   449,
+   269,
+   651
+  ]
+ },
+ "ride-hud-390.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    }
+   ],
+   "sumPct": 10.9,
+   "sumPx": 35868,
+   "topmostPct": 87,
+   "topmostY": 734,
+   "unionPct": 10.9,
+   "viewport": [
+    390,
+    844
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "%",
+   "minTarget": 40,
+   "minTargetEl": "Pause ride",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": null,
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": null,
+   "dist": "9.14 km of 10.88 km",
+   "exit": null,
+   "finish": {
+    "h": 40,
+    "w": 40,
+    "x": 286,
+    "y": 747
+   },
+   "map": null,
+   "pause": {
+    "h": 40,
+    "w": 40,
+    "x": 242,
+    "y": 747
+   },
+   "renderer": "world",
+   "rider": [
+    209,
+    532
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 98,
+    "w": 366,
+    "x": 12,
+    "y": 734
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 330,
+    "y": 747
+   },
+   "tools": null
+  },
+  "riderBox": [
+   148,
+   449,
+   270,
+   651
+  ]
+ },
+ "ride-hud-lost-1440-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 55619,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 843,
+     "x": 299,
+     "y": 810
+    },
+    {
+     "area": 9924,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 248,
+     "x": 299,
+     "y": 762
+    }
+   ],
+   "sumPct": 5.1,
+   "sumPx": 65543,
+   "topmostPct": 84.7,
+   "topmostY": 762,
+   "unionPct": 5.1,
+   "viewport": [
+    1440,
+    900
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Pause",
+   "minTarget": 40,
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 40,
+    "w": 248,
+    "x": 299,
+    "y": 762
+   },
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "details": null,
+   "dist": "9.25 km of 10.88 km",
+   "exit": {
+    "h": 40,
+    "w": 40,
+    "x": 307,
+    "y": 823
+   },
+   "finish": {
+    "h": 40,
+    "w": 94,
+    "x": 995,
+    "y": 823
+   },
+   "map": null,
+   "pause": {
+    "h": 40,
+    "w": 95,
+    "x": 896,
+    "y": 823
+   },
+   "renderer": "world",
+   "rider": [
+    720,
+    567
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 33.3 km/h",
+   "strip": {
+    "h": 66,
+    "w": 843,
+    "x": 299,
+    "y": 810
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 1093,
+    "y": 823
+   },
+   "tools": null
+  },
+  "riderBox": [
+   655,
+   478,
+   785,
+   694
+  ]
+ },
+ "ride-hud-lost-1440.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 55619,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 843,
+     "x": 299,
+     "y": 810
+    },
+    {
+     "area": 9924,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 248,
+     "x": 299,
+     "y": 762
+    }
+   ],
+   "sumPct": 5.1,
+   "sumPx": 65543,
+   "topmostPct": 84.7,
+   "topmostY": 762,
+   "unionPct": 5.1,
+   "viewport": [
+    1440,
+    900
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Pause",
+   "minTarget": 40,
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 40,
+    "w": 248,
+    "x": 299,
+    "y": 762
+   },
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "details": null,
+   "dist": "9.24 km of 10.88 km",
+   "exit": {
+    "h": 40,
+    "w": 40,
+    "x": 307,
+    "y": 823
+   },
+   "finish": {
+    "h": 40,
+    "w": 94,
+    "x": 995,
+    "y": 823
+   },
+   "map": null,
+   "pause": {
+    "h": 40,
+    "w": 95,
+    "x": 896,
+    "y": 823
+   },
+   "renderer": "world",
+   "rider": [
+    720,
+    567
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 33.4 km/h",
+   "strip": {
+    "h": 66,
+    "w": 843,
+    "x": 299,
+    "y": 810
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 1093,
+    "y": 823
+   },
+   "tools": null
+  },
+  "riderBox": [
+   655,
+   478,
+   785,
+   694
+  ]
+ },
+ "ride-hud-lost-390-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    },
+    {
+     "area": 9924,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 248,
+     "x": 12,
+     "y": 686
+    }
+   ],
+   "sumPct": 13.9,
+   "sumPx": 45792,
+   "topmostPct": 81.3,
+   "topmostY": 686,
+   "unionPct": 13.9,
+   "viewport": [
+    390,
+    844
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "%",
+   "minTarget": 40,
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 40,
+    "w": 248,
+    "x": 12,
+    "y": 686
+   },
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "details": null,
+   "dist": "9.26 km of 10.88 km",
+   "exit": null,
+   "finish": {
+    "h": 40,
+    "w": 40,
+    "x": 286,
+    "y": 747
+   },
+   "map": null,
+   "pause": {
+    "h": 40,
+    "w": 40,
+    "x": 242,
+    "y": 747
+   },
+   "renderer": "world",
+   "rider": [
+    195,
+    532
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 33.3 km/h",
+   "strip": {
+    "h": 98,
+    "w": 366,
+    "x": 12,
+    "y": 734
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 330,
+    "y": 747
+   },
+   "tools": null
+  },
+  "riderBox": [
+   134,
+   449,
+   256,
+   651
+  ]
+ },
+ "ride-hud-lost-390.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    },
+    {
+     "area": 9924,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 248,
+     "x": 12,
+     "y": 686
+    }
+   ],
+   "sumPct": 13.9,
+   "sumPx": 45792,
+   "topmostPct": 81.3,
+   "topmostY": 686,
+   "unionPct": 13.9,
+   "viewport": [
+    390,
+    844
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "%",
+   "minTarget": 40,
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 40,
+    "w": 248,
+    "x": 12,
+    "y": 686
+   },
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "details": null,
+   "dist": "9.26 km of 10.88 km",
+   "exit": null,
+   "finish": {
+    "h": 40,
+    "w": 40,
+    "x": 286,
+    "y": 747
+   },
+   "map": null,
+   "pause": {
+    "h": 40,
+    "w": 40,
+    "x": 242,
+    "y": 747
+   },
+   "renderer": "world",
+   "rider": [
+    195,
+    532
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 33.3 km/h",
+   "strip": {
+    "h": 98,
+    "w": 366,
+    "x": 12,
+    "y": 734
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 330,
+    "y": 747
+   },
+   "tools": null
+  },
+  "riderBox": [
+   134,
+   449,
+   256,
+   651
+  ]
+ },
+ "ride-hud-lost-tv-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 169807,
+     "h": 116,
+     "name": "ride-strip",
+     "w": 1470,
+     "x": 225,
+     "y": 923
+    },
+    {
+     "area": 30288,
+     "h": 70,
+     "name": "ride-status-chip",
+     "w": 433,
+     "x": 225,
+     "y": 839
+    }
+   ],
+   "sumPct": 9.6,
+   "sumPx": 200095,
+   "topmostPct": 77.7,
+   "topmostY": 839,
+   "unionPct": 9.9,
+   "viewport": [
+    1920,
+    1080
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Pause",
+   "minTarget": 70,
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 70,
+    "w": 433,
+    "x": 225,
+    "y": 839
+   },
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "details": null,
+   "dist": "9.25 km of 10.88 km",
+   "exit": {
+    "h": 70,
+    "w": 70,
+    "x": 239,
+    "y": 945
+   },
+   "finish": {
+    "h": 70,
+    "w": 164,
+    "x": 1440,
+    "y": 945
+   },
+   "map": null,
+   "pause": {
+    "h": 70,
+    "w": 165,
+    "x": 1269,
+    "y": 945
+   },
+   "renderer": "world",
+   "rider": [
+    960,
+    681
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 33.4 km/h",
+   "strip": {
+    "h": 116,
+    "w": 1470,
+    "x": 225,
+    "y": 923
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 70,
+    "w": 70,
+    "x": 1611,
+    "y": 945
+   },
+   "tools": null
+  },
+  "riderBox": [
+   882,
+   574,
+   1038,
+   833
+  ]
+ },
+ "ride-hud-lost-tv.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 169807,
+     "h": 116,
+     "name": "ride-strip",
+     "w": 1470,
+     "x": 225,
+     "y": 923
+    },
+    {
+     "area": 30288,
+     "h": 70,
+     "name": "ride-status-chip",
+     "w": 433,
+     "x": 225,
+     "y": 839
+    }
+   ],
+   "sumPct": 9.6,
+   "sumPx": 200095,
+   "topmostPct": 77.7,
+   "topmostY": 839,
+   "unionPct": 9.9,
+   "viewport": [
+    1920,
+    1080
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Pause",
+   "minTarget": 70,
+   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 70,
+    "w": 433,
+    "x": 225,
+    "y": 839
+   },
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "details": null,
+   "dist": "9.25 km of 10.88 km",
+   "exit": {
+    "h": 70,
+    "w": 70,
+    "x": 239,
+    "y": 945
+   },
+   "finish": {
+    "h": 70,
+    "w": 164,
+    "x": 1440,
+    "y": 945
+   },
+   "map": null,
+   "pause": {
+    "h": 70,
+    "w": 165,
+    "x": 1269,
+    "y": 945
+   },
+   "renderer": "world",
+   "rider": [
+    960,
+    681
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 33.4 km/h",
+   "strip": {
+    "h": 116,
+    "w": 1470,
+    "x": 225,
+    "y": 923
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 70,
+    "w": 70,
+    "x": 1611,
+    "y": 945
+   },
+   "tools": null
+  },
+  "riderBox": [
+   882,
+   574,
+   1038,
+   833
+  ]
+ },
+ "ride-hud-open-1440-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 55619,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 843,
+     "x": 299,
+     "y": 810
+    },
+    {
+     "area": 52730,
+     "h": 165,
+     "name": "Route progress",
+     "w": 320,
+     "x": 299,
+     "y": 405
+    },
+    {
+     "area": 30976,
+     "h": 176,
+     "name": "Route map",
+     "w": 176,
+     "x": 299,
+     "y": 578
+    },
+    {
+     "area": 8018,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 200,
+     "x": 299,
+     "y": 762
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "show-toggle",
+     "w": 40,
+     "x": 483,
+     "y": 666
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Camera: chase",
+     "w": 40,
+     "x": 531,
+     "y": 666
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Ghost riders on",
+     "w": 40,
+     "x": 579,
+     "y": 666
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Voice control: off",
+     "w": 40,
+     "x": 483,
+     "y": 714
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Ride settings",
+     "w": 40,
+     "x": 531,
+     "y": 714
+    }
+   ],
+   "sumPct": 12,
+   "sumPx": 155343,
+   "topmostPct": 45,
+   "topmostY": 405,
+   "unionPct": 12.1,
+   "viewport": [
+    1440,
+    900
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "1.7 km to go \u00b7 about 5 min",
+   "minTarget": 40,
+   "minTargetEl": "Watch a show while you ride",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 40,
+    "w": 200,
+    "x": 299,
+    "y": 762
+   },
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": {
+    "h": 349,
+    "w": 320,
+    "x": 299,
+    "y": 405
+   },
+   "dist": "9.16 km of 10.88 km",
+   "exit": {
+    "h": 40,
+    "w": 40,
+    "x": 307,
+    "y": 823
+   },
+   "finish": {
+    "h": 40,
+    "w": 94,
+    "x": 995,
+    "y": 823
+   },
+   "map": {
+    "h": 176,
+    "w": 176,
+    "x": 299,
+    "y": 578
+   },
+   "pause": {
+    "h": 40,
+    "w": 95,
+    "x": 896,
+    "y": 823
+   },
+   "renderer": "world",
+   "rider": [
+    720,
+    568
+   ],
+   "route": {
+    "h": 165,
+    "w": 320,
+    "x": 299,
+    "y": 405
+   },
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nPonte Felcino in 1.7 km\n\nSunny \u00b7 14\u00b0\nLight crosswind 9 km/h",
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 66,
+    "w": 843,
+    "x": 299,
+    "y": 810
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 1093,
+    "y": 823
+   },
+   "tools": {
+    "h": 88,
+    "w": 136,
+    "x": 483,
+    "y": 666
+   }
+  },
+  "riderBox": [
+   655,
+   479,
+   785,
+   695
+  ]
+ },
+ "ride-hud-open-1440.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 55619,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 843,
+     "x": 299,
+     "y": 810
+    },
+    {
+     "area": 52730,
+     "h": 165,
+     "name": "Route progress",
+     "w": 320,
+     "x": 299,
+     "y": 405
+    },
+    {
+     "area": 30976,
+     "h": 176,
+     "name": "Route map",
+     "w": 176,
+     "x": 299,
+     "y": 578
+    },
+    {
+     "area": 8018,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 200,
+     "x": 299,
+     "y": 762
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "show-toggle",
+     "w": 40,
+     "x": 483,
+     "y": 666
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Camera: chase",
+     "w": 40,
+     "x": 531,
+     "y": 666
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Ghost riders on",
+     "w": 40,
+     "x": 579,
+     "y": 666
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Voice control: off",
+     "w": 40,
+     "x": 483,
+     "y": 714
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Ride settings",
+     "w": 40,
+     "x": 531,
+     "y": 714
+    }
+   ],
+   "sumPct": 12,
+   "sumPx": 155343,
+   "topmostPct": 45,
+   "topmostY": 405,
+   "unionPct": 12.1,
+   "viewport": [
+    1440,
+    900
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "1.7 km to go \u00b7 about 5 min",
+   "minTarget": 40,
+   "minTargetEl": "Watch a show while you ride",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 40,
+    "w": 200,
+    "x": 299,
+    "y": 762
+   },
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": {
+    "h": 349,
+    "w": 320,
+    "x": 299,
+    "y": 405
+   },
+   "dist": "9.16 km of 10.88 km",
+   "exit": {
+    "h": 40,
+    "w": 40,
+    "x": 307,
+    "y": 823
+   },
+   "finish": {
+    "h": 40,
+    "w": 94,
+    "x": 995,
+    "y": 823
+   },
+   "map": {
+    "h": 176,
+    "w": 176,
+    "x": 299,
+    "y": 578
+   },
+   "pause": {
+    "h": 40,
+    "w": 95,
+    "x": 896,
+    "y": 823
+   },
+   "renderer": "world",
+   "rider": [
+    720,
+    568
+   ],
+   "route": {
+    "h": 165,
+    "w": 320,
+    "x": 299,
+    "y": 405
+   },
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nPonte Felcino in 1.7 km\n\nSunny \u00b7 14\u00b0\nLight crosswind 9 km/h",
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 66,
+    "w": 843,
+    "x": 299,
+    "y": 810
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 1093,
+    "y": 823
+   },
+   "tools": {
+    "h": 88,
+    "w": 136,
+    "x": 483,
+    "y": 666
+   }
+  },
+  "riderBox": [
+   655,
+   479,
+   785,
+   695
+  ]
+ },
+ "ride-hud-open-390-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    },
+    {
+     "area": 29620,
+     "h": 129,
+     "name": "Route progress",
+     "w": 230,
+     "x": 12,
+     "y": 12
+    },
+    {
+     "area": 16384,
+     "h": 128,
+     "name": "Route map",
+     "w": 128,
+     "x": 250,
+     "y": 12
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "show-toggle",
+     "w": 40,
+     "x": 12,
+     "y": 686
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Camera: chase",
+     "w": 40,
+     "x": 77,
+     "y": 686
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Ghost riders on",
+     "w": 40,
+     "x": 142,
+     "y": 686
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Voice control: off",
+     "w": 40,
+     "x": 208,
+     "y": 686
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Ride settings",
+     "w": 40,
+     "x": 273,
+     "y": 686
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Exit ride and return to setup",
+     "w": 40,
+     "x": 338,
+     "y": 686
+    }
+   ],
+   "sumPct": 27.8,
+   "sumPx": 91472,
+   "topmostPct": 1.4,
+   "topmostY": 12,
+   "unionPct": 27.9,
+   "viewport": [
+    390,
+    844
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "1.7 km to go \u00b7 about 5 min",
+   "minTarget": 40,
+   "minTargetEl": "Watch a show while you ride",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": null,
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": {
+    "h": 40,
+    "w": 366,
+    "x": 12,
+    "y": 686
+   },
+   "dist": "9.16 km of 10.88 km",
+   "exit": {
+    "h": 40,
+    "w": 40,
+    "x": 338,
+    "y": 686
+   },
+   "finish": {
+    "h": 40,
+    "w": 40,
+    "x": 286,
+    "y": 747
+   },
+   "map": {
+    "h": 128,
+    "w": 128,
+    "x": 250,
+    "y": 12
+   },
+   "pause": {
+    "h": 40,
+    "w": 40,
+    "x": 242,
+    "y": 747
+   },
+   "renderer": "world",
+   "rider": [
+    195,
+    532
+   ],
+   "route": {
+    "h": 129,
+    "w": 230,
+    "x": 12,
+    "y": 12
+   },
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nSunny \u00b7 14\u00b0\nLight crosswind 9 km/h",
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 98,
+    "w": 366,
+    "x": 12,
+    "y": 734
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 330,
+    "y": 747
+   },
+   "tools": {
+    "h": 40,
+    "w": 366,
+    "x": 12,
+    "y": 686
+   }
+  },
+  "riderBox": [
+   134,
+   449,
+   256,
+   651
+  ]
+ },
+ "ride-hud-open-390.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    },
+    {
+     "area": 29620,
+     "h": 129,
+     "name": "Route progress",
+     "w": 230,
+     "x": 12,
+     "y": 12
+    },
+    {
+     "area": 16384,
+     "h": 128,
+     "name": "Route map",
+     "w": 128,
+     "x": 250,
+     "y": 12
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "show-toggle",
+     "w": 40,
+     "x": 12,
+     "y": 686
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Camera: chase",
+     "w": 40,
+     "x": 77,
+     "y": 686
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Ghost riders on",
+     "w": 40,
+     "x": 142,
+     "y": 686
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Voice control: off",
+     "w": 40,
+     "x": 208,
+     "y": 686
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Ride settings",
+     "w": 40,
+     "x": 273,
+     "y": 686
+    },
+    {
+     "area": 1600,
+     "h": 40,
+     "name": "Exit ride and return to setup",
+     "w": 40,
+     "x": 338,
+     "y": 686
+    }
+   ],
+   "sumPct": 27.8,
+   "sumPx": 91472,
+   "topmostPct": 1.4,
+   "topmostY": 12,
+   "unionPct": 27.9,
+   "viewport": [
+    390,
+    844
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "1.7 km to go \u00b7 about 5 min",
+   "minTarget": 40,
+   "minTargetEl": "Watch a show while you ride",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": null,
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": {
+    "h": 40,
+    "w": 366,
+    "x": 12,
+    "y": 686
+   },
+   "dist": "9.16 km of 10.88 km",
+   "exit": {
+    "h": 40,
+    "w": 40,
+    "x": 338,
+    "y": 686
+   },
+   "finish": {
+    "h": 40,
+    "w": 40,
+    "x": 286,
+    "y": 747
+   },
+   "map": {
+    "h": 128,
+    "w": 128,
+    "x": 250,
+    "y": 12
+   },
+   "pause": {
+    "h": 40,
+    "w": 40,
+    "x": 242,
+    "y": 747
+   },
+   "renderer": "world",
+   "rider": [
+    195,
+    532
+   ],
+   "route": {
+    "h": 129,
+    "w": 230,
+    "x": 12,
+    "y": 12
+   },
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nSunny \u00b7 14\u00b0\nLight crosswind 9 km/h",
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 98,
+    "w": 366,
+    "x": 12,
+    "y": 734
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 330,
+    "y": 747
+   },
+   "tools": {
+    "h": 40,
+    "w": 366,
+    "x": 12,
+    "y": 686
+   }
+  },
+  "riderBox": [
+   134,
+   449,
+   256,
+   651
+  ]
+ },
+ "ride-hud-open-tv-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 169807,
+     "h": 116,
+     "name": "ride-strip",
+     "w": 1470,
+     "x": 225,
+     "y": 923
+    },
+    {
+     "area": 161499,
+     "h": 288,
+     "name": "Route progress",
+     "w": 560,
+     "x": 225,
+     "y": 214
+    },
+    {
+     "area": 94864,
+     "h": 308,
+     "name": "Route map",
+     "w": 308,
+     "x": 225,
+     "y": 517
+    },
+    {
+     "area": 24451,
+     "h": 70,
+     "name": "ride-status-chip",
+     "w": 349,
+     "x": 225,
+     "y": 839
+    },
+    {
+     "area": 4900,
+     "h": 70,
+     "name": "show-toggle",
+     "w": 70,
+     "x": 547,
+     "y": 671
+    },
+    {
+     "area": 4900,
+     "h": 70,
+     "name": "Camera: chase",
+     "w": 70,
+     "x": 631,
+     "y": 671
+    },
+    {
+     "area": 4900,
+     "h": 70,
+     "name": "Ghost riders on",
+     "w": 70,
+     "x": 715,
+     "y": 671
+    },
+    {
+     "area": 4900,
+     "h": 70,
+     "name": "Voice control: off",
+     "w": 70,
+     "x": 547,
+     "y": 755
+    },
+    {
+     "area": 4900,
+     "h": 70,
+     "name": "Ride settings",
+     "w": 70,
+     "x": 631,
+     "y": 755
+    }
+   ],
+   "sumPct": 22.9,
+   "sumPx": 475121,
+   "topmostPct": 19.8,
+   "topmostY": 214,
+   "unionPct": 23.3,
+   "viewport": [
+    1920,
+    1080
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "1.7 km to go \u00b7 about 5 min",
+   "minTarget": 70,
+   "minTargetEl": "Watch a show while you ride",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 70,
+    "w": 349,
+    "x": 225,
+    "y": 839
+   },
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": {
+    "h": 610,
+    "w": 560,
+    "x": 225,
+    "y": 214
+   },
+   "dist": "9.18 km of 10.88 km",
+   "exit": {
+    "h": 70,
+    "w": 70,
+    "x": 239,
+    "y": 945
+   },
+   "finish": {
+    "h": 70,
+    "w": 164,
+    "x": 1440,
+    "y": 945
+   },
+   "map": {
+    "h": 308,
+    "w": 308,
+    "x": 225,
+    "y": 517
+   },
+   "pause": {
+    "h": 70,
+    "w": 165,
+    "x": 1269,
+    "y": 945
+   },
+   "renderer": "world",
+   "rider": [
+    960,
+    681
+   ],
+   "route": {
+    "h": 288,
+    "w": 560,
+    "x": 225,
+    "y": 214
+   },
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nPonte Felcino in 1.7 km\n\nSunny \u00b7 14\u00b0\nLight crosswind 9 km/h",
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 116,
+    "w": 1470,
+    "x": 225,
+    "y": 923
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 70,
+    "w": 70,
+    "x": 1611,
+    "y": 945
+   },
+   "tools": {
+    "h": 154,
+    "w": 238,
+    "x": 547,
+    "y": 671
+   }
+  },
+  "riderBox": [
+   882,
+   574,
+   1038,
+   833
+  ]
+ },
+ "ride-hud-open-tv.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 169807,
+     "h": 116,
+     "name": "ride-strip",
+     "w": 1470,
+     "x": 225,
+     "y": 923
+    },
+    {
+     "area": 161499,
+     "h": 288,
+     "name": "Route progress",
+     "w": 560,
+     "x": 225,
+     "y": 214
+    },
+    {
+     "area": 94864,
+     "h": 308,
+     "name": "Route map",
+     "w": 308,
+     "x": 225,
+     "y": 517
+    },
+    {
+     "area": 24451,
+     "h": 70,
+     "name": "ride-status-chip",
+     "w": 349,
+     "x": 225,
+     "y": 839
+    },
+    {
+     "area": 4900,
+     "h": 70,
+     "name": "show-toggle",
+     "w": 70,
+     "x": 547,
+     "y": 671
+    },
+    {
+     "area": 4900,
+     "h": 70,
+     "name": "Camera: chase",
+     "w": 70,
+     "x": 631,
+     "y": 671
+    },
+    {
+     "area": 4900,
+     "h": 70,
+     "name": "Ghost riders on",
+     "w": 70,
+     "x": 715,
+     "y": 671
+    },
+    {
+     "area": 4900,
+     "h": 70,
+     "name": "Voice control: off",
+     "w": 70,
+     "x": 547,
+     "y": 755
+    },
+    {
+     "area": 4900,
+     "h": 70,
+     "name": "Ride settings",
+     "w": 70,
+     "x": 631,
+     "y": 755
+    }
+   ],
+   "sumPct": 22.9,
+   "sumPx": 475121,
+   "topmostPct": 19.8,
+   "topmostY": 214,
+   "unionPct": 23.3,
+   "viewport": [
+    1920,
+    1080
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "1.7 km to go \u00b7 about 5 min",
+   "minTarget": 70,
+   "minTargetEl": "Watch a show while you ride",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 70,
+    "w": 349,
+    "x": 225,
+    "y": 839
+   },
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": {
+    "h": 610,
+    "w": 560,
+    "x": 225,
+    "y": 214
+   },
+   "dist": "9.16 km of 10.88 km",
+   "exit": {
+    "h": 70,
+    "w": 70,
+    "x": 239,
+    "y": 945
+   },
+   "finish": {
+    "h": 70,
+    "w": 164,
+    "x": 1440,
+    "y": 945
+   },
+   "map": {
+    "h": 308,
+    "w": 308,
+    "x": 225,
+    "y": 517
+   },
+   "pause": {
+    "h": 70,
+    "w": 165,
+    "x": 1269,
+    "y": 945
+   },
+   "renderer": "world",
+   "rider": [
+    960,
+    681
+   ],
+   "route": {
+    "h": 288,
+    "w": 560,
+    "x": 225,
+    "y": 214
+   },
+   "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nPonte Felcino in 1.7 km\n\nSunny \u00b7 14\u00b0\nLight crosswind 9 km/h",
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 116,
+    "w": 1470,
+    "x": 225,
+    "y": 923
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 70,
+    "w": 70,
+    "x": 1611,
+    "y": 945
+   },
+   "tools": {
+    "h": 154,
+    "w": 238,
+    "x": 547,
+    "y": 671
+   }
+  },
+  "riderBox": [
+   882,
+   574,
+   1038,
+   833
+  ]
+ },
+ "ride-hud-tv-night.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 169807,
+     "h": 116,
+     "name": "ride-strip",
+     "w": 1470,
+     "x": 225,
+     "y": 923
+    },
+    {
+     "area": 24451,
+     "h": 70,
+     "name": "ride-status-chip",
+     "w": 349,
+     "x": 225,
+     "y": 839
+    }
+   ],
+   "sumPct": 9.4,
+   "sumPx": 194258,
+   "topmostPct": 77.7,
+   "topmostY": 839,
+   "unionPct": 9.6,
+   "viewport": [
+    1920,
+    1080
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Pause",
+   "minTarget": 70,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 70,
+    "w": 349,
+    "x": 225,
+    "y": 839
+   },
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": null,
+   "dist": "9.13 km of 10.88 km",
+   "exit": {
+    "h": 70,
+    "w": 70,
+    "x": 239,
+    "y": 945
+   },
+   "finish": {
+    "h": 70,
+    "w": 164,
+    "x": 1440,
+    "y": 945
+   },
+   "map": null,
+   "pause": {
+    "h": 70,
+    "w": 165,
+    "x": 1269,
+    "y": 945
+   },
+   "renderer": "world",
+   "rider": [
+    972,
+    681
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 116,
+    "w": 1470,
+    "x": 225,
+    "y": 923
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 70,
+    "w": 70,
+    "x": 1611,
+    "y": 945
+   },
+   "tools": null
+  },
+  "riderBox": [
+   894,
+   574,
+   1050,
+   833
+  ]
+ },
+ "ride-hud-tv.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 169807,
+     "h": 116,
+     "name": "ride-strip",
+     "w": 1470,
+     "x": 225,
+     "y": 923
+    },
+    {
+     "area": 24451,
+     "h": 70,
+     "name": "ride-status-chip",
+     "w": 349,
+     "x": 225,
+     "y": 839
+    }
+   ],
+   "sumPct": 9.4,
+   "sumPx": 194258,
+   "topmostPct": 77.7,
+   "topmostY": 839,
+   "unionPct": 9.6,
+   "viewport": [
+    1920,
+    1080
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Pause",
+   "minTarget": 70,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": {
+    "h": 70,
+    "w": 349,
+    "x": 225,
+    "y": 839
+   },
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": null,
+   "dist": "9.13 km of 10.88 km",
+   "exit": {
+    "h": 70,
+    "w": 70,
+    "x": 239,
+    "y": 945
+   },
+   "finish": {
+    "h": 70,
+    "w": 164,
+    "x": 1440,
+    "y": 945
+   },
+   "map": null,
+   "pause": {
+    "h": 70,
+    "w": 165,
+    "x": 1269,
+    "y": 945
+   },
+   "renderer": "world",
+   "rider": [
+    981,
+    681
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 116,
+    "w": 1470,
+    "x": 225,
+    "y": 923
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 70,
+    "w": 70,
+    "x": 1611,
+    "y": 945
+   },
+   "tools": null
+  },
+  "riderBox": [
+   903,
+   574,
+   1059,
+   833
+  ]
+ }
+}

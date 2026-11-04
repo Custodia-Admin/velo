@@ -18,6 +18,7 @@ const ICONS = [
   'mountain', 'x', 'check', 'refresh-cw', 'users', 'cloud-sun', 'wind', 'circle-help',
   'loader-circle', 'cloud-fog', 'sun', 'moon', 'gauge', 'picture-in-picture-2', 'maximize-2',
   'volume-2', 'skip-forward', 'trophy', 'mail', 'image', 'circle-alert',
+  'chevron-up', 'chevron-down', 'ghost', 'mic', 'arrow-right',
 ];
 
 function icon(name) {

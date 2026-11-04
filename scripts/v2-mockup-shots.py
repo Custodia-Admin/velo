@@ -38,7 +38,9 @@ from playwright.sync_api import sync_playwright
 REPO = Path(__file__).resolve().parents[1]
 DESIGN = REPO / "docs/design"
 OUT = DESIGN / "screenshots/v2/mockup"
-SCREENS = ["home", "ride-hud", "devices", "show", "finish"]
+SCREENS = ["home", "ride-hud", "ride-hud-open", "ride-hud-lost", "devices", "show", "finish"]
+# Screens that are a state of another mockup: name -> (page, query).
+VARIANTS = {"ride-hud-open": ("ride-hud", "tray=open"), "ride-hud-lost": ("ride-hud", "state=lost")}
 VIEWPORTS = {"1440": (1440, 900, 1), "390": (390, 844, 2), "tv": (1920, 1080, 1)}
 
 MEASURE = """() => {
@@ -96,8 +98,10 @@ def main() -> int:
                         errs = []
                         page.on("pageerror", lambda e: errs.append(str(e)))
                         page.on("console", lambda m: errs.append(m.text) if m.type == "error" else None)
-                        q = "?theme=night" if theme == "night" else ""
-                        page.goto(f"http://127.0.0.1:{port}/mockups/v2-{screen}.html{q}")
+                        base, extra = VARIANTS.get(screen, (screen, ""))
+                        qs = [p for p in ("theme=night" if theme == "night" else "", extra) if p]
+                        q = ("?" + "&".join(qs)) if qs else ""
+                        page.goto(f"http://127.0.0.1:{port}/mockups/v2-{base}.html{q}")
                         page.wait_for_function("window.__mockReady === true", timeout=15000)
                         page.evaluate("document.fonts.ready")
                         page.wait_for_load_state("networkidle")
@@ -114,7 +118,12 @@ def main() -> int:
             browser.close()
     finally:
         httpd.shutdown()
-    (OUT / "measurements.json").write_text(json.dumps(report, indent=1) + "\n")
+    # --only runs keep the other screens' entries (one entry per shot name).
+    mp = OUT / "measurements.json"
+    shots = {r["shot"] for r in report}
+    keep = [r for r in json.loads(mp.read_text())] if mp.exists() else []
+    merged = [r for r in keep if r.get("shot") not in shots] + report
+    mp.write_text(json.dumps(sorted(merged, key=lambda r: r["shot"]), indent=1) + "\n")
     return 1 if any(r["errors"] or r["overflow"] for r in report) else 0
 
 

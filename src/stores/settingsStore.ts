@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { BikeType, RiderPosition } from '@/lib/physics';
-import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
+import { type AvatarColors, DEFAULT_AVATAR_COLORS, migrateAvatarColors } from '@/lib/avatarConfig';
 import type { GraphicsQuality } from '@/lib/graphicsQuality';
 import type { LowLightSetting } from '@/lib/lowLightMode';
 import {
@@ -291,6 +291,8 @@ export const useSettingsStore = create<SettingsStoreState>()(
       merge: (persisted, current) => ({
         ...current,
         ...(persisted as Partial<SettingsStoreState>),
+        // v2 identity: the untouched old cyan default becomes the v2 rider.
+        avatar: migrateAvatarColors((persisted as Partial<RiderSettings>).avatar),
         // Ensure commentary fields default when upgrading from pre-Wave-28 saves.
         liveCommentaryEnabled:
           (persisted as Partial<RiderSettings>).liveCommentaryEnabled ??

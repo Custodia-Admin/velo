@@ -1,0 +1,728 @@
+{
+ "show-1440-night.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Episode 4",
+   "minTarget": 40,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "state": {
+   "camera": {
+    "h": 40,
+    "w": 100,
+    "x": 1268,
+    "y": 24
+   },
+   "controls": {
+    "h": 56,
+    "w": 791,
+    "x": 24,
+    "y": 413
+   },
+   "corner": {
+    "h": 40,
+    "w": 40,
+    "x": 1376,
+    "y": 24
+   },
+   "panel": {
+    "h": 445,
+    "w": 791,
+    "x": 24,
+    "y": 24
+   },
+   "renderer": "world",
+   "rider": [
+    696,
+    525
+   ],
+   "strip": {
+    "h": 78,
+    "w": 594,
+    "x": 822,
+    "y": 798
+   },
+   "stripText": "18:17 TIME 3.1km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 660 m",
+   "title": "Episode 4",
+   "video": {
+    "paused": false,
+    "t": 19.6,
+    "w": 1280
+   }
+  }
+ },
+ "show-1440.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Episode 4",
+   "minTarget": 40,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "state": {
+   "camera": {
+    "h": 40,
+    "w": 100,
+    "x": 1268,
+    "y": 24
+   },
+   "chip": null,
+   "chipText": null,
+   "controls": {
+    "h": 56,
+    "w": 791,
+    "x": 24,
+    "y": 413
+   },
+   "corner": {
+    "h": 40,
+    "w": 40,
+    "x": 1376,
+    "y": 24
+   },
+   "panel": {
+    "h": 445,
+    "w": 791,
+    "x": 24,
+    "y": 24
+   },
+   "renderer": "world",
+   "rider": [
+    704,
+    526
+   ],
+   "strip": {
+    "h": 78,
+    "w": 594,
+    "x": 822,
+    "y": 798
+   },
+   "stripText": "18:16 TIME 3.1km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 660 m",
+   "title": "Episode 4",
+   "toastCards": 0,
+   "video": {
+    "paused": false,
+    "t": 20.6,
+    "w": 1280
+   }
+  }
+ },
+ "show-390-night.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 14,
+   "minFontEl": "Episode 4",
+   "minTarget": 40,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "state": {
+   "camera": null,
+   "controls": {
+    "h": 56,
+    "w": 366,
+    "x": 12,
+    "y": 162
+   },
+   "corner": null,
+   "panel": {
+    "h": 206,
+    "w": 366,
+    "x": 12,
+    "y": 12
+   },
+   "renderer": "world",
+   "rider": [
+    182,
+    494
+   ],
+   "strip": {
+    "h": 130,
+    "w": 366,
+    "x": 12,
+    "y": 702
+   },
+   "stripText": "18:17 TIME 3.1km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 660 m",
+   "title": "Episode 4",
+   "video": {
+    "paused": false,
+    "t": 21,
+    "w": 1280
+   }
+  }
+ },
+ "show-390.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Episode 4",
+   "minTarget": 40,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "state": {
+   "camera": null,
+   "chip": null,
+   "chipText": null,
+   "controls": {
+    "h": 56,
+    "w": 366,
+    "x": 12,
+    "y": 162
+   },
+   "corner": null,
+   "panel": {
+    "h": 206,
+    "w": 366,
+    "x": 12,
+    "y": 12
+   },
+   "renderer": "world",
+   "rider": [
+    168,
+    492
+   ],
+   "strip": {
+    "h": 130,
+    "w": 366,
+    "x": 12,
+    "y": 702
+   },
+   "stripText": "18:17 TIME 3.1km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 660 m",
+   "title": "Episode 4",
+   "toastCards": 0,
+   "video": {
+    "paused": false,
+    "t": 18.8,
+    "w": 1280
+   }
+  }
+ },
+ "show-lost-1440.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Episode 4",
+   "minTarget": 40,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "state": {
+   "camera": {
+    "h": 40,
+    "w": 100,
+    "x": 1268,
+    "y": 24
+   },
+   "chip": {
+    "h": 40,
+    "w": 248,
+    "x": 1168,
+    "y": 750
+   },
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "controls": {
+    "h": 56,
+    "w": 791,
+    "x": 24,
+    "y": 413
+   },
+   "corner": {
+    "h": 40,
+    "w": 40,
+    "x": 1376,
+    "y": 24
+   },
+   "panel": {
+    "h": 445,
+    "w": 791,
+    "x": 24,
+    "y": 24
+   },
+   "renderer": "world",
+   "rider": [
+    761,
+    523
+   ],
+   "strip": {
+    "h": 78,
+    "w": 594,
+    "x": 822,
+    "y": 798
+   },
+   "stripText": "18:31 TIME 3.2km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 530 m",
+   "title": "Episode 4",
+   "toastCards": 0,
+   "video": {
+    "paused": false,
+    "t": 35.8,
+    "w": 1280
+   }
+  },
+  "timeline": [
+   [
+    1,
+    "KICKR CORE lost \u00b7 reconnecting 2 of 4",
+    0
+   ],
+   [
+    2,
+    "KICKR CORE lost \u00b7 reconnecting 3 of 4",
+    0
+   ],
+   [
+    3,
+    "KICKR CORE lost \u00b7 reconnecting 3 of 4",
+    0
+   ],
+   [
+    4,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    5,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    6,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    7,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    8,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    9,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    10,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    11,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    12,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    13,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ]
+  ]
+ },
+ "show-lost-390.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "Episode 4",
+   "minTarget": 40,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "state": {
+   "camera": null,
+   "chip": {
+    "h": 40,
+    "w": 248,
+    "x": 12,
+    "y": 654
+   },
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "controls": {
+    "h": 56,
+    "w": 366,
+    "x": 12,
+    "y": 162
+   },
+   "corner": null,
+   "panel": {
+    "h": 206,
+    "w": 366,
+    "x": 12,
+    "y": 12
+   },
+   "renderer": "world",
+   "rider": [
+    240,
+    489
+   ],
+   "strip": {
+    "h": 130,
+    "w": 366,
+    "x": 12,
+    "y": 702
+   },
+   "stripText": "18:31 TIME 3.2km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 530 m",
+   "title": "Episode 4",
+   "toastCards": 0,
+   "video": {
+    "paused": false,
+    "t": 33.7,
+    "w": 1280
+   }
+  },
+  "timeline": [
+   [
+    1,
+    "KICKR CORE lost \u00b7 reconnecting 2 of 4",
+    0
+   ],
+   [
+    2,
+    "KICKR CORE lost \u00b7 reconnecting 3 of 4",
+    0
+   ],
+   [
+    3,
+    "KICKR CORE lost \u00b7 reconnecting 3 of 4",
+    0
+   ],
+   [
+    4,
+    "KICKR CORE lost \u00b7 reconnecting 3 of 4",
+    0
+   ],
+   [
+    5,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    6,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    7,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    8,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    9,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    10,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    11,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    12,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    13,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ]
+  ]
+ },
+ "show-lost-tv.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Episode 4",
+   "minTarget": 70,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "state": {
+   "camera": {
+    "h": 70,
+    "w": 173,
+    "x": 1621,
+    "y": 42
+   },
+   "chip": {
+    "h": 70,
+    "w": 433,
+    "x": 1445,
+    "y": 818
+   },
+   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "controls": {
+    "h": 98,
+    "w": 918,
+    "x": 42,
+    "y": 460
+   },
+   "corner": {
+    "h": 70,
+    "w": 70,
+    "x": 1808,
+    "y": 42
+   },
+   "panel": {
+    "h": 516,
+    "w": 918,
+    "x": 42,
+    "y": 42
+   },
+   "renderer": "world",
+   "rider": [
+    1014,
+    626
+   ],
+   "strip": {
+    "h": 137,
+    "w": 1040,
+    "x": 838,
+    "y": 902
+   },
+   "stripText": "18:30 TIME 3.2km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 540 m",
+   "title": "Episode 4",
+   "toastCards": 0,
+   "video": {
+    "paused": false,
+    "t": 35.4,
+    "w": 1280
+   }
+  },
+  "timeline": [
+   [
+    1,
+    "KICKR CORE lost \u00b7 reconnecting 2 of 4",
+    0
+   ],
+   [
+    2,
+    "KICKR CORE lost \u00b7 reconnecting 3 of 4",
+    0
+   ],
+   [
+    3,
+    "KICKR CORE lost \u00b7 reconnecting 3 of 4",
+    0
+   ],
+   [
+    4,
+    "KICKR CORE lost \u00b7 reconnecting 3 of 4",
+    0
+   ],
+   [
+    5,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    6,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    7,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    8,
+    "KICKR CORE lost \u00b7 reconnecting 4 of 4",
+    0
+   ],
+   [
+    9,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    10,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    11,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    12,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ],
+   [
+    13,
+    "Trainer lost \u00b7 tap to reconnect",
+    0
+   ]
+  ]
+ },
+ "show-tv-night.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Episode 4",
+   "minTarget": 70,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "state": {
+   "camera": {
+    "h": 70,
+    "w": 173,
+    "x": 1621,
+    "y": 42
+   },
+   "controls": {
+    "h": 98,
+    "w": 918,
+    "x": 42,
+    "y": 460
+   },
+   "corner": {
+    "h": 70,
+    "w": 70,
+    "x": 1808,
+    "y": 42
+   },
+   "panel": {
+    "h": 516,
+    "w": 918,
+    "x": 42,
+    "y": 42
+   },
+   "renderer": "world",
+   "rider": [
+    926,
+    630
+   ],
+   "strip": {
+    "h": 137,
+    "w": 1040,
+    "x": 838,
+    "y": 902
+   },
+   "stripText": "18:16 TIME 3.1km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 660 m",
+   "title": "Episode 4",
+   "video": {
+    "paused": false,
+    "t": 19.7,
+    "w": 1280
+   }
+  }
+ },
+ "show-tv.jpg": {
+  "errors": [],
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Episode 4",
+   "minTarget": 70,
+   "minTargetEl": "Pause video",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "state": {
+   "camera": {
+    "h": 70,
+    "w": 173,
+    "x": 1621,
+    "y": 42
+   },
+   "chip": null,
+   "chipText": null,
+   "controls": {
+    "h": 98,
+    "w": 918,
+    "x": 42,
+    "y": 460
+   },
+   "corner": {
+    "h": 70,
+    "w": 70,
+    "x": 1808,
+    "y": 42
+   },
+   "panel": {
+    "h": 516,
+    "w": 918,
+    "x": 42,
+    "y": 42
+   },
+   "renderer": "world",
+   "rider": [
+    931,
+    630
+   ],
+   "strip": {
+    "h": 137,
+    "w": 1040,
+    "x": 838,
+    "y": 902
+   },
+   "stripText": "18:15 TIME 3.1km DISTANCE -0.1% GRADE Chiesa di Santa Maria in 670 m",
+   "title": "Episode 4",
+   "toastCards": 0,
+   "video": {
+    "paused": false,
+    "t": 19.5,
+    "w": 1280
+   }
+  }
+ }
+}

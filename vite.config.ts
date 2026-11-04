@@ -21,8 +21,8 @@ export default defineConfig({
         short_name: 'GlobeRide',
         description:
           'Virtual cycling on a 3D Earth — bring your own GPX route, your own smart trainer, your own ride.',
-        theme_color: '#0b1220',
-        background_color: '#0b1220',
+        theme_color: '#f8f6f2',
+        background_color: '#f8f6f2',
         display: 'standalone',
         orientation: 'any',
         start_url: '/',

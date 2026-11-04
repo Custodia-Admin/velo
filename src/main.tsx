@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { silenceKnownWarnings } from '@/lib/silenceKnownWarnings';
 import { warnIfTokenMissing } from '@/lib/cesiumTokenWarning';
 import { perfOverlayEnabled } from '@/lib/perf/perfFlag';
+import { installTvLayout } from '@/lib/tvLayout';
 import '@/index.css';
 // Side-effect import ensures the theme is applied as early as the module
 // graph loads, in addition to the pre-paint script in index.html.
@@ -17,6 +18,9 @@ silenceKnownWarnings();
 
 // Remember ?perf=1 (ride perf overlay) before the router drops the query.
 perfOverlayEnabled();
+
+// 10-foot layout (1rem = 28 px) on a TV browser, or with ?layout=tv.
+installTvLayout();
 
 // Dev-only warning if VITE_CESIUM_ION_TOKEN is missing.
 warnIfTokenMissing();

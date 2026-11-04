@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
+import { useRideHudStore } from '@/stores/rideHudStore';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Toast } from '@/types';
@@ -9,9 +10,15 @@ import type { Toast } from '@/types';
 /**
  * Stacked, auto-dismissing toast notifications. Mounted once at the route
  * level; consumers push via `useRideStore.getState().pushToast(...)`.
+ *
+ * While the compact ride HUD is up, its status chip hosts the toasts (one
+ * small pill, newest first, src/components/velo/RideChip.tsx) and this
+ * stack draws nothing: no large red box over the ride.
  */
 export function Toaster() {
   const toasts = useRideStore((s) => s.toasts);
+  const deferred = useRideHudStore((s) => s.noticeHosts > 0);
+  if (deferred) return null;
 
   return (
     <div

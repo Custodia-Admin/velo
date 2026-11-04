@@ -1,0 +1,120 @@
+{
+ "route": "scenic-assisi-valley",
+ "viewport": [
+  1920,
+  1080
+ ],
+ "base": "http://127.0.0.1:4292",
+ "loadavg_start": [
+  3.10986328125,
+  5.634765625,
+  9.84619140625
+ ],
+ "medium": {
+  "renderer": "world",
+  "bundle": [
+   "index-KXJK3ppo.js"
+  ],
+  "gpu": "ANGLE (Intel, Vulkan 1.4.354 (Intel(R) Arc(tm) Graphics (MTL) (0x00007D55)), Intel open-source Mesa driver)",
+  "dpr": 1,
+  "noTokenBanner": 0,
+  "backdropHud": [],
+  "backdropGlass": 24,
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 52,
+    "p95": 33.3,
+    "worst": 83,
+    "over20": 9.6,
+    "load1": 3.35
+   },
+   {
+    "round": 0,
+    "mode": "hud-glass",
+    "fps": 43.7,
+    "p95": 50.1,
+    "worst": 150,
+    "over20": 21,
+    "load1": 4.8
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 57.6,
+    "p95": 16.8,
+    "worst": 67,
+    "over20": 2.8,
+    "load1": 4.74
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 51.4,
+    "p95": 33.4,
+    "worst": 67,
+    "over20": 12.8,
+    "load1": 4.84
+   },
+   {
+    "round": 1,
+    "mode": "hud-glass",
+    "fps": 38.5,
+    "p95": 50,
+    "worst": 233,
+    "over20": 30.1,
+    "load1": 4.53
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 55,
+    "p95": 16.8,
+    "worst": 150,
+    "over20": 3.6,
+    "load1": 5.83
+   }
+  ],
+  "long": {
+   "durS": 90.0,
+   "avgFps": 54.9,
+   "fps5s": [
+    38.3,
+    57.0,
+    57.4,
+    53.6,
+    50.2,
+    46.0,
+    50.8,
+    60.0,
+    60.0,
+    59.0,
+    60.0,
+    57.0,
+    59.2,
+    59.2,
+    58.0,
+    59.0,
+    45.1
+   ],
+   "pctOver20ms": 3.6,
+   "riderInFramePct": 100.0,
+   "riderXRange": [
+    827,
+    1016
+   ],
+   "distRange": [
+    395,
+    1172
+   ],
+   "load1": 3.65
+  },
+  "pageErrors": []
+ },
+ "loadavg_end": [
+  3.6533203125,
+  5.0986328125,
+  9.04736328125
+ ]
+}
