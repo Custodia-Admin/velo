@@ -1,10 +1,10 @@
 /**
  * Water surfaces for the world renderer (geometry only): lake/river/pond
- * polygons triangulated with their holes and subdivided to ≤ `maxEdgeM`
- * edges so the surface follows the valley's fall; waterways without a
- * polygon become ribbons. The terrain under water polygons is pressed down
- * (`waterDepression`) so the river has a bed and banks, and bridges keep
- * their clearance.
+ * polygons triangulated with their holes and cut to ≤ `maxEdgeM` edges so
+ * the surface follows the valley's fall; waterways without a polygon become
+ * ribbons with a vertex every terrain cell. The terrain under water polygons
+ * is pressed down (`waterDepression`) so the river has a bed and banks, and
+ * bridges keep their clearance.
  */
 
 import * as THREE from 'three';
@@ -16,6 +16,8 @@ import type { WaterLayer } from '@/lib/world/loadWorld';
 export const WATER_SURFACE_DROP_M = 0.5;
 /** How far terrain nodes inside water are pressed down, metres. */
 export const WATER_BED_DEPTH_M = 2.6;
+/** Longest water triangle edge: enough to follow a river's fall, cheap on triangles. */
+export const WATER_EDGE_M = 45;
 
 export interface WaterGeometryData {
   positions: Float32Array;
@@ -25,23 +27,275 @@ export interface WaterGeometryData {
 
 type V2 = [number, number];
 
-/** Split triangles until every edge is ≤ maxEdge (midpoint subdivision, 4-way). */
-function subdivide(a: V2, b: V2, c: V2, maxEdge: number, out: V2[], depth = 0): void {
-  const ab = Math.hypot(b[0] - a[0], b[1] - a[1]);
-  const bc = Math.hypot(c[0] - b[0], c[1] - b[1]);
-  const ca = Math.hypot(a[0] - c[0], a[1] - c[1]);
-  if (Math.max(ab, bc, ca) <= maxEdge || depth > 7) {
-    out.push(a, b, c);
-    return;
+/**
+ * Clip a convex polygon (flat x, y list) to the half-plane a·x + b·y ≤ c
+ * (Sutherland–Hodgman). Keeps the winding.
+ */
+function clipHalf(poly: number[], a: number, b: number, c: number): number[] {
+  const out: number[] = [];
+  const n = poly.length / 2;
+  for (let i = 0; i < n; i++) {
+    const j = i + 1 === n ? 0 : i + 1;
+    const px = poly[2 * i];
+    const py = poly[2 * i + 1];
+    const qx = poly[2 * j];
+    const qy = poly[2 * j + 1];
+    const dp = a * px + b * py - c;
+    const dq = a * qx + b * qy - c;
+    if (dp <= 0) out.push(px, py);
+    if ((dp < 0 && dq > 0) || (dp > 0 && dq < 0)) {
+      const t = dp / (dp - dq);
+      out.push(px + (qx - px) * t, py + (qy - py) * t);
+    }
   }
-  const m = (p: V2, q: V2): V2 => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
-  const mab = m(a, b);
-  const mbc = m(b, c);
-  const mca = m(c, a);
-  subdivide(a, mab, mca, maxEdge, out, depth + 1);
-  subdivide(mab, b, mbc, maxEdge, out, depth + 1);
-  subdivide(mca, mbc, c, maxEdge, out, depth + 1);
-  subdivide(mab, mbc, mca, maxEdge, out, depth + 1);
+  return out;
+}
+
+/** Signed area of a flat x, y polygon (positive = counter-clockwise). */
+function signedArea(poly: number[]): number {
+  const n = poly.length / 2;
+  if (n < 3) return 0;
+  // Relative to the first vertex: world coordinates are ~10 km, pieces ~10 m.
+  const x0 = poly[0];
+  const y0 = poly[1];
+  let s = 0;
+  for (let i = 1; i + 1 < n; i++) {
+    s += (poly[2 * i] - x0) * (poly[2 * i + 3] - y0) - (poly[2 * i + 2] - x0) * (poly[2 * i + 1] - y0);
+  }
+  return s / 2;
+}
+
+const K3 = 1 / Math.sqrt(3);
+/** Lattice rows are a few thousand at most; keys pack (row, cell) into one number. */
+const KEY_ROW = 1 << 22;
+const KEY_BIAS = 1 << 21;
+
+/**
+ * Visit the pieces of a triangle cut by a lattice of equilateral triangles
+ * with side `s` (rows of height s·√3/2, every other row shifted by s/2).
+ * Each piece is convex and lies inside one lattice cell, so no edge of it is
+ * longer than `s`. `visit(key, piece, corners)` gets the cell key, the piece
+ * (flat x, y, same winding as the triangle) and the cell's corners (CCW).
+ */
+function forEachLatticePiece(
+  tri: number[],
+  s: number,
+  visit: (key: number, piece: number[], corners: number[]) => void,
+): void {
+  const h = (s * Math.sqrt(3)) / 2;
+  const ys = [tri[1], tri[3], tri[5]];
+  const r0 = Math.floor(Math.min(...ys) / h);
+  const r1 = Math.floor(Math.max(...ys) / h);
+  for (let r = r0; r <= r1; r++) {
+    const y0 = r * h;
+    const y1 = y0 + h;
+    let strip = clipHalf(tri, 0, -1, -y0);
+    if (strip.length < 6) continue;
+    strip = clipHalf(strip, 0, 1, y1);
+    if (strip.length < 6) continue;
+    const o = (((r % 2) + 2) % 2) * (s / 2);
+    // u = x − (y − y0)/√3 − o and v = x + (y − y0)/√3 − o: rising and
+    // falling lattice lines are u = i·s and v = i·s.
+    let uMin = Infinity;
+    let vMax = -Infinity;
+    for (let k = 0; k < strip.length; k += 2) {
+      const dy = (strip[k + 1] - y0) * K3;
+      uMin = Math.min(uMin, strip[k] - dy - o);
+      vMax = Math.max(vMax, strip[k] + dy - o);
+    }
+    const iMin = Math.floor(uMin / s) - 1;
+    const iMax = Math.floor(vMax / s);
+    for (let i = iMin; i <= iMax; i++) {
+      const xi = o + i * s;
+      // Up cell i: u ≥ i·s and v ≤ (i+1)·s.
+      let up = clipHalf(strip, -1, K3, K3 * y0 - xi);
+      if (up.length >= 6) up = clipHalf(up, 1, K3, xi + s + K3 * y0);
+      if (up.length >= 6) visit((r + KEY_BIAS) * KEY_ROW + 2 * i + KEY_BIAS, up, [xi, y0, xi + s, y0, xi + s / 2, y1]);
+      // Down cell i: v ≥ (i+1)·s and u ≤ (i+1)·s.
+      let down = clipHalf(strip, -1, -K3, -(xi + s + K3 * y0));
+      if (down.length >= 6) down = clipHalf(down, 1, -K3, xi + s - K3 * y0);
+      if (down.length >= 6) {
+        visit((r + KEY_BIAS) * KEY_ROW + 2 * i + 1 + KEY_BIAS, down, [xi + s, y0, xi + 1.5 * s, y1, xi + s / 2, y1]);
+      }
+    }
+  }
+}
+
+/**
+ * The union of the convex pieces a polygon leaves in one lattice cell
+ * (polygon ∩ cell), triangulated: edges two pieces share cancel, the rest
+ * chain into the boundary loops, and earcut fills them. Every vertex lies in
+ * the cell, so no edge is longer than its side. `null` when the pieces don't
+ * chain into clean loops or the triangles miss area; the caller then keeps
+ * the pieces.
+ */
+function mergeCellPieces(pieces: number[][], sign: number): number[] | null {
+  // Vertices snapped to 0.1 mm: two pieces computed the same crossing
+  // point with different rounding. A cell holds a few dozen edges, so plain
+  // arrays and linear search beat hashing.
+  const vx: number[] = [];
+  const vy: number[] = [];
+  const sx: number[] = [];
+  const sy: number[] = [];
+  const vertex = (x: number, y: number) => {
+    const kx = Math.round(x * 1e4);
+    const ky = Math.round(y * 1e4);
+    for (let i = 0; i < sx.length; i++) if (sx[i] === kx && sy[i] === ky) return i;
+    vx.push(x);
+    vy.push(y);
+    sx.push(kx);
+    sy.push(ky);
+    return sx.length - 1;
+  };
+  // Directed edges; an edge met in both directions is interior and cancels.
+  const ea: number[] = [];
+  const eb: number[] = [];
+  let pieceArea = 0;
+  for (const p of pieces) {
+    pieceArea += Math.abs(signedArea(p));
+    const n = p.length / 2;
+    const first = vertex(p[0], p[1]);
+    let prev = first;
+    for (let i = 1; i <= n; i++) {
+      const cur = i === n ? first : vertex(p[2 * i], p[2 * i + 1]);
+      if (cur === prev) continue;
+      let k = 0;
+      while (k < ea.length && !(ea[k] === cur && eb[k] === prev)) k++;
+      if (k < ea.length) {
+        ea[k] = ea[ea.length - 1];
+        eb[k] = eb[eb.length - 1];
+        ea.pop();
+        eb.pop();
+      } else {
+        ea.push(prev);
+        eb.push(cur);
+      }
+      prev = cur;
+    }
+  }
+  const used = new Uint8Array(ea.length);
+  const loops: { pts: THREE.Vector2[]; area: number }[] = [];
+  for (let e0 = 0; e0 < ea.length; e0++) {
+    if (used[e0]) continue;
+    const pts: THREE.Vector2[] = [];
+    let e = e0;
+    for (;;) {
+      used[e] = 1;
+      pts.push(new THREE.Vector2(vx[ea[e]], vy[ea[e]]));
+      const end = eb[e];
+      if (end === ea[e0]) break;
+      let k = 0;
+      while (k < ea.length && (used[k] || ea[k] !== end)) k++;
+      if (k === ea.length) return null;
+      e = k;
+    }
+    // Drop the points where cancelled edges met the loop on a straight run
+    // (the cell's sides): the neighbour cell drops the same ones.
+    for (let i = 0; pts.length > 3 && i < pts.length; ) {
+      const a = pts[(i + pts.length - 1) % pts.length];
+      const b = pts[i];
+      const c = pts[(i + 1) % pts.length];
+      const ux = b.x - a.x;
+      const uy = b.y - a.y;
+      const wx = c.x - b.x;
+      const wy = c.y - b.y;
+      if (Math.abs(ux * wy - uy * wx) <= 1e-9 * Math.hypot(ux, uy) * Math.hypot(wx, wy) && ux * wx + uy * wy > 0) pts.splice(i, 1);
+      else i++;
+    }
+    if (pts.length < 3) return null;
+    const flat = pts.flatMap((q) => [q.x, q.y]);
+    loops.push({ pts, area: signedArea(flat) });
+  }
+  const outers = loops.filter((l) => l.area * sign > 0);
+  const holes = loops.filter((l) => l.area * sign < 0);
+  const contains = (ring: THREE.Vector2[], q: THREE.Vector2) => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const a = ring[i];
+      const b = ring[j];
+      if (a.y > q.y !== b.y > q.y && q.x < a.x + ((q.y - a.y) / (b.y - a.y)) * (b.x - a.x)) inside = !inside;
+    }
+    return inside;
+  };
+  const out: number[] = [];
+  let triArea = 0;
+  for (const o of outers) {
+    const mine = holes.filter((hl) => contains(o.pts, hl.pts[0])).map((hl) => hl.pts);
+    const all = [...o.pts, ...mine.flat()];
+    let tris: number[][];
+    try {
+      tris = THREE.ShapeUtils.triangulateShape(o.pts, mine);
+    } catch {
+      return null;
+    }
+    for (const t of tris) {
+      const a = all[t[0]];
+      const b = all[t[1]];
+      const c = all[t[2]];
+      const tri = [a.x, a.y, b.x, b.y, c.x, c.y];
+      const ar = signedArea(tri);
+      if (Math.abs(ar) < 1e-6) continue;
+      triArea += Math.abs(ar);
+      if (ar * sign > 0) out.push(...tri);
+      else out.push(a.x, a.y, c.x, c.y, b.x, b.y);
+    }
+  }
+  return Math.abs(triArea - pieceArea) <= 1e-4 * Math.max(1, pieceArea) ? out : null;
+}
+
+/**
+ * Tessellate a polygon (given as its earcut triangles, flat x, y each) so no
+ * triangle edge is longer than `maxEdge`: the triangles are cut by an
+ * equilateral lattice of side `maxEdge`. A lattice cell the polygon covers
+ * whole becomes one triangle; a shore cell becomes the triangulated part of
+ * the polygon inside it. The count therefore grows with the area
+ * (≈ area / 0.43·maxEdge²) plus the shoreline, not with the length of the
+ * earcut slivers: a 4-way midpoint split turned each km-long sliver across
+ * a lake into ~65 k triangles, and longest-edge bisection still into
+ * hundreds.
+ */
+export function tessellateWaterPolygon(tris: number[][], maxEdge: number, out: number[]): void {
+  if (!(maxEdge > 0)) throw new Error(`maxEdge must be > 0 (got ${maxEdge})`);
+  const cellArea = (maxEdge * maxEdge * Math.sqrt(3)) / 4;
+  const covered = new Map<number, number>();
+  for (const t of tris) {
+    forEachLatticePiece(t, maxEdge, (key, piece) => {
+      covered.set(key, (covered.get(key) ?? 0) + signedArea(piece));
+    });
+  }
+  const emitted = new Set<number>();
+  const shore = new Map<number, number[][]>();
+  for (const t of tris) {
+    forEachLatticePiece(t, maxEdge, (key, piece, corners) => {
+      const a = covered.get(key)!;
+      if (Math.abs(a) >= cellArea * (1 - 1e-6)) {
+        if (emitted.has(key)) return;
+        emitted.add(key);
+        // The whole cell, wound like the polygon's triangles.
+        if (a > 0) out.push(corners[0], corners[1], corners[2], corners[3], corners[4], corners[5]);
+        else out.push(corners[0], corners[1], corners[4], corners[5], corners[2], corners[3]);
+        return;
+      }
+      const list = shore.get(key);
+      if (list) list.push(piece);
+      else shore.set(key, [piece]);
+    });
+  }
+  for (const [key, pieces] of shore) {
+    const merged = pieces.length > 1 ? mergeCellPieces(pieces, Math.sign(covered.get(key)!)) : null;
+    if (merged) {
+      for (const v of merged) out.push(v);
+      continue;
+    }
+    // Fan each convex piece, skipping slivers with no area.
+    for (const piece of pieces) {
+      for (let k = 2; k + 3 < piece.length; k += 2) {
+        const tri = [piece[0], piece[1], piece[k], piece[k + 1], piece[k + 2], piece[k + 3]];
+        if (Math.abs(signedArea(tri)) < 1e-6) continue;
+        for (const v of tri) out.push(v);
+      }
+    }
+  }
 }
 
 function ringPoints(r: Float32Array): THREE.Vector2[] {
@@ -51,7 +305,7 @@ function ringPoints(r: Float32Array): THREE.Vector2[] {
 }
 
 /** All water as one triangle soup in three.js coordinates (x, h, −y). */
-export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM = 12): WaterGeometryData {
+export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM = WATER_EDGE_M): WaterGeometryData {
   const P: number[] = [];
   const K: number[] = [];
   const put = (p: V2, lift: number, kind: number) => {
@@ -70,13 +324,18 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
       continue;
     }
     const all = [...outer, ...holes.flat()];
-    for (const t of tris) {
-      const soup: V2[] = [];
-      subdivide([all[t[0]].x, all[t[0]].y], [all[t[1]].x, all[t[1]].y], [all[t[2]].x, all[t[2]].y], maxEdgeM, soup);
-      for (const p of soup) put(p, 0, 1);
-    }
+    const flat: number[] = [];
+    tessellateWaterPolygon(
+      tris.map((t) => [all[t[0]].x, all[t[0]].y, all[t[1]].x, all[t[1]].y, all[t[2]].x, all[t[2]].y]),
+      maxEdgeM,
+      flat,
+    );
+    for (let i = 0; i < flat.length; i += 2) put([flat[i], flat[i + 1]], 0, 1);
   }
-  // Streams and rivers without polygons: flat ribbons following the terrain.
+  // Streams and rivers without polygons: flat ribbons following the terrain,
+  // a vertex every terrain cell (finer only adds triangles the terrain mesh
+  // under them can't show: Lugano has 1,000 km of mountain streams).
+  const ribbonStep = Math.min(maxEdgeM, hf.spec.cellSize);
   for (const line of water.lines) {
     const p = line.points;
     const hw = line.width / 2;
@@ -87,7 +346,7 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
       const by = p[i + 3];
       const len = Math.hypot(bx - ax, by - ay);
       if (len < 0.1) continue;
-      const steps = Math.max(1, Math.ceil(len / 8));
+      const steps = Math.max(1, Math.ceil(len / ribbonStep));
       const nx = (-(by - ay) / len) * hw;
       const ny = ((bx - ax) / len) * hw;
       for (let s = 0; s < steps; s++) {
