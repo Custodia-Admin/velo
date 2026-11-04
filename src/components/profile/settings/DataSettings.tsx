@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   Database,
   Download,
+  Info,
   Loader2,
   Trash2,
   Upload,
@@ -31,6 +32,7 @@ export function DataSettings() {
     <div className="space-y-6">
       <DataInventorySection />
       <ClearDataSection />
+      <AboutSection />
     </div>
   );
 }
@@ -193,6 +195,17 @@ function ClearDataSection() {
           </div>
         )}
       </div>
+    </Section>
+  );
+}
+
+/** Open-source credit (MIT): the one place in the app that names the upstream project. */
+function AboutSection() {
+  return (
+    <Section icon={<Info className="h-4 w-4" />} title="About">
+      <p className="text-sm text-muted-foreground">
+        Velo is open source (MIT). It started as a fork of GlobeRide by Mason Wyatt.
+      </p>
     </Section>
   );
 }

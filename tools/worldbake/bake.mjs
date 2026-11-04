@@ -23,6 +23,7 @@ import { fetchOsm, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
+import { routeRoadCoverage, routeSurfaceFill, sampleAppRoute } from './routeCoverage.mjs';
 import { validateHeightfield } from './validateDem.mjs';
 import { brotliSize, ensureDir, gzip, here, sha256, stableJson, writeFileAtomic } from './util.mjs';
 
@@ -165,6 +166,17 @@ export async function bake(opts) {
   lap('osm', t);
   t = Date.now();
   const roads = buildRoads(osm.elements.roads, projection, extent);
+  // The route line must sit on a drawn road or path, never on grass: lay a
+  // surface under any stretch no mapped road covers (routeCoverage.mjs).
+  const routeSamples = routesIn.map((r) => ({ id: r.id, ...sampleAppRoute(r.points, projection) }));
+  const mappedCoverage = routeRoadCoverage(routeSamples, roads);
+  const fill = routeSurfaceFill(routeSamples, roads);
+  roads.roads.push(...fill.pieces);
+  const drawnCoverage = routeRoadCoverage(routeSamples, roads);
+  const roadCoverage = Object.fromEntries(
+    routeSamples.map((r, i) => [r.id, { mappedPct: mappedCoverage[i].pct, drawnPct: drawnCoverage[i].pct, filledM: fill.filledM[r.id], tunnelM: drawnCoverage[i].tunnelM }]),
+  );
+  for (const [id, c] of Object.entries(roadCoverage)) log(`route ${id}: ${c.mappedPct}% on mapped roads, ${c.drawnPct}% on drawn surfaces (${c.filledM} m filled${c.tunnelM ? `, ${c.tunnelM} m in tunnels` : ''})`);
   const water = buildWater(osm.elements.water, projection, extent);
   const landcover = buildLandcover(osm.elements.landcover, projection, extent);
   // What the rider follows must never run through a building: every scenic
@@ -304,7 +316,7 @@ export async function bake(opts) {
     sizes,
     totals,
     hashes: Object.fromEntries([...files.map((f) => [f.path, f.sha256]), ['manifest.json', sha256(manifestBytes)]]),
-    routes: snapped.info,
+    routes: snapped.info.map((r) => ({ ...r, roadCoverage: roadCoverage[r.id] })),
     heightfield: { ...height.info, carvedNodes: carve.carvedNodes, maxCutM: round(carve.maxCutM) },
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
     demTiles: dem.tiles,

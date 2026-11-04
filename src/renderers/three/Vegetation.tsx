@@ -49,6 +49,31 @@ export function autumnFor(date: Date): number {
 /** Moving this far from the last gather triggers a new one, metres. */
 export const TREE_REGATHER_M = 48;
 
+/**
+ * Trees fade out of the camera's near volume: fully gone closer than `clearM`
+ * to the camera, fully there from `solidM` (a dithered fade in between). A
+ * crown overhanging the path (Tiber's tree avenue, 8.9–9.4 km, where crowns
+ * come within 3–4 m of the chase camera) otherwise fills a top corner of the
+ * view with its shaded underside, near-black at golden hour.
+ */
+export const TREE_NEAR_FADE = { clearM: 3, solidM: 7 } as const;
+
+/** Share of a tree fragment kept at `distM` from the camera (mirrors the shader). */
+export function treeNearFadeKeep(distM: number): number {
+  const t = Math.min(1, Math.max(0, (distM - TREE_NEAR_FADE.clearM) / (TREE_NEAR_FADE.solidM - TREE_NEAR_FADE.clearM)));
+  return t * t * (3 - 2 * t);
+}
+
+/** Fragment stage: dither-discard tree fragments in the camera's near volume. */
+export const TREE_NEAR_FADE_GLSL = /* glsl */ `
+  {
+    float keepNear = smoothstep(uNearFade.x, uNearFade.y, distance(vWPos, cameraPosition));
+    if (keepNear < 1.0) {
+      float dither = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+      if (keepNear <= dither) discard;
+    }
+  }`;
+
 const TREE_VERTEX_PARS = /* glsl */ `
 attribute vec4 aInstA;
 attribute vec4 aInstB;
@@ -108,10 +133,11 @@ export function createTreeMaterial(atmo: WorldAtmosphere, autumn: number, leafy 
     uPalette: { value: palette },
     uDeciduous: { value: deciduous },
     uAutumn: { value: autumn },
+    uNearFade: { value: new THREE.Vector2(TREE_NEAR_FADE.clearM, TREE_NEAR_FADE.solidM) },
   };
   mat.userData.uniforms = uniforms;
   return patchWorldMaterial(mat, atmo, {
-    key: leafy ? 'trees-leafy-v1' : 'trees-v1',
+    key: leafy ? 'trees-leafy-v3' : 'trees-v3',
     uniforms,
     vertexPars: TREE_VERTEX_PARS,
     vertexBegin: TREE_TRANSFORM,
@@ -120,6 +146,7 @@ export function createTreeMaterial(atmo: WorldAtmosphere, autumn: number, leafy 
 uniform vec3 uPalette[${TREE_PALETTE.length}];
 uniform float uDeciduous[${TREE_PALETTE.length}];
 uniform float uAutumn;
+uniform vec2 uNearFade;
 varying float vCrown;
 varying float vAo;
 varying float vPalette;
@@ -140,6 +167,7 @@ float leafNoise(vec3 p) {
       [
         '#include <clipping_planes_fragment>',
         `#include <clipping_planes_fragment>
+${TREE_NEAR_FADE_GLSL}
   ${
     leafy
       ? `if (vCrown > 0.5) {

@@ -14,7 +14,12 @@ export default defineConfig({
     react(),
     cesium({ rebuildCesium: true }),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt': the new worker WAITS after a deploy instead of skipping
+      // waiting; src/lib/swUpdate.ts activates it only while the rider is off
+      // /ride. 'autoUpdate' reloaded the page mid-ride when a deploy landed.
+      // The plugin's register helper is not used (it reloads on activation).
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['icon.svg', 'favicon.ico'],
       manifest: {
         name: 'Velo',

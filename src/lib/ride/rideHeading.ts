@@ -2,8 +2,8 @@
  * Smoothed direction of travel for drawing the rider and aiming the camera.
  *
  * `gpxParser.headingAt` is a ±4 m chord, so at a sharp route vertex the
- * heading swings by up to 114–163° within a few metres (Tiber park d≈144 m,
- * Assisi valley 3,744 m): the drawn rider pivots on the spot and a chase
+ * heading swings by over 100° within a few metres (Tiber park's 123° junction
+ * turn at 9,672 m): the drawn rider pivots on the spot and a chase
  * camera keyed to it swings the rider out of frame. Two stages fix that:
  *
  * 1. `smoothHeadingAt` — a wider chord (±12 m), a pure function of distance,

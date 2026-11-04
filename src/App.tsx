@@ -4,7 +4,7 @@ import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { Home } from '@/routes/Home';
 import { Toaster } from '@/components/setup/Toaster';
 import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
-import { AchievementToast } from '@/components/ride/AchievementToast';
+import { ServiceWorkerUpdates } from '@/components/ServiceWorkerUpdates';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 
 const Ride = React.lazy(() => import('@/routes/Ride').then(m => ({ default: m.Ride })));
@@ -22,6 +22,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <TrainerEventBridge />
+      <ServiceWorkerUpdates />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           {/* Home is the app: "/" (and any unknown URL, below) goes there */}
@@ -35,7 +36,6 @@ export default function App() {
         </Routes>
       </Suspense>
       <Toaster />
-      <AchievementToast />
     </BrowserRouter>
   );
 }

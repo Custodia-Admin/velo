@@ -36,7 +36,7 @@ describe('FeaturedScenicRide (Today’s ride)', () => {
     expect(out).toContain('home-hero-tiber.jpg');
     expect(out).toContain('home-hero-tiber-night.jpg');
     expect(out).toContain('Today’s ride · Near home');
-    expect(out).toMatch(/10\.\d km · flat · about \d+ min/);
+    expect(out).toMatch(/11\.\d km · flat · about \d+ min/);
   });
 
   it('uses the flat primary button, no glow', () => {

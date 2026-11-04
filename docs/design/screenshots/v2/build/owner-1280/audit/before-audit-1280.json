@@ -1,0 +1,188 @@
+{
+ "devices": {
+  "clipped": [],
+  "controls": 5,
+  "covered": [],
+  "errors": [],
+  "overflowX": false,
+  "pageScrollY": false,
+  "scrollHeight": 648,
+  "scrollWidth": 1280,
+  "scrollers": [],
+  "viewport": [
+   1280,
+   648
+  ]
+ },
+ "finish": {
+  "clipped": [],
+  "controls": 4,
+  "covered": [],
+  "errors": [],
+  "overflowX": false,
+  "pageScrollY": false,
+  "scrollHeight": 648,
+  "scrollWidth": 1280,
+  "scrollers": [
+   {
+    "clientH": 648,
+    "name": "dialog",
+    "scrollH": 689
+   }
+  ],
+  "viewport": [
+   1280,
+   648
+  ]
+ },
+ "home": {
+  "clipped": [],
+  "controls": 7,
+  "covered": [],
+  "errors": [],
+  "overflowX": false,
+  "pageScrollY": true,
+  "scrollHeight": 3820,
+  "scrollWidth": 1280,
+  "scrollers": [],
+  "viewport": [
+   1280,
+   648
+  ]
+ },
+ "onboarding": {
+  "clipped": [],
+  "controls": 3,
+  "covered": [],
+  "errors": [],
+  "overflowX": false,
+  "pageScrollY": true,
+  "scrollHeight": 3820,
+  "scrollWidth": 1280,
+  "scrollers": [],
+  "viewport": [
+   1280,
+   648
+  ]
+ },
+ "ride": {
+  "clipped": [],
+  "controls": 5,
+  "covered": [],
+  "errors": [],
+  "hudArea": {
+   "budget": "ok",
+   "sumPct": 7.6,
+   "surfaces": [
+    [
+     "ride-strip",
+     837,
+     66
+    ],
+    [
+     "ride-status-chip",
+     195,
+     40
+    ]
+   ],
+   "unionPct": 7.6
+  },
+  "overflowX": false,
+  "pageScrollY": false,
+  "scrollHeight": 648,
+  "scrollWidth": 1280,
+  "scrollers": [],
+  "viewport": [
+   1280,
+   648
+  ]
+ },
+ "ride-open": {
+  "clipped": [],
+  "controls": 10,
+  "covered": [],
+  "errors": [],
+  "hudArea": {
+   "budget": "OVER",
+   "sumPct": 18.7,
+   "surfaces": [
+    [
+     "ride-strip",
+     837,
+     66
+    ],
+    [
+     "Route progress",
+     320,
+     165
+    ],
+    [
+     "Route map",
+     176,
+     176
+    ],
+    [
+     "ride-status-chip",
+     195,
+     40
+    ],
+    [
+     "show-toggle",
+     40,
+     40
+    ],
+    [
+     "Camera: chase",
+     40,
+     40
+    ],
+    [
+     "Ghost riders on",
+     40,
+     40
+    ],
+    [
+     "Voice control: off",
+     40,
+     40
+    ],
+    [
+     "Ride settings",
+     40,
+     40
+    ]
+   ],
+   "unionPct": 18.7
+  },
+  "overflowX": false,
+  "pageScrollY": false,
+  "scrollHeight": 648,
+  "scrollWidth": 1280,
+  "scrollers": [],
+  "viewport": [
+   1280,
+   648
+  ]
+ },
+ "settings": {
+  "clipped": [],
+  "controls": 18,
+  "covered": [],
+  "errors": [],
+  "overflowX": false,
+  "pageScrollY": true,
+  "scrollHeight": 3820,
+  "scrollWidth": 1280,
+  "scrollers": [
+   {
+    "clientH": 450,
+    "name": "tabpanel",
+    "scrollH": 776
+   }
+  ],
+  "viewport": [
+   1280,
+   648
+  ]
+ }
+}

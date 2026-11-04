@@ -42,7 +42,7 @@ STAGE = """async () => {
   useRideStore.setState({ distance: 10800, elapsedMs: 2081 * 1000, samples: pre });
   return { conn: st.connection, samples: pre.length };
 }"""
-ONLY = [v for v in os.environ.get("ONLY", "1440,390,tv").split(",") if v]
+ONLY = [v for v in os.environ.get("ONLY", "1440,1280,390,tv").split(",") if v]
 THEMES = [t for t in os.environ.get("THEMES", "day,night").split(",") if t]
 DIALOG = '[role="dialog"][aria-labelledby="finish-title"]'
 

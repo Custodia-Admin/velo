@@ -23,6 +23,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { hairpins, removeRetraces, retracedStubs } from '../src/lib/routeReversals.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'src/lib/scenicRouteData.ts');
@@ -46,17 +47,23 @@ const ROUTES = [
   },
   {
     id: 'scenic-assisi-valley',
-    // Valley floor only: Santa Maria degli Angeli, Rivotorto, Bastia. Never up to Assisi.
-    waypoints: [[43.0580, 12.5777], [43.0444, 12.6150], [43.0678, 12.5496], [43.0580, 12.5777]],
+    // Valley floor only, one loop with no road ridden twice: Santa Maria degli
+    // Angeli, the cycle path beside the SS75 to Rivotorto, back north-west on
+    // Via Francesca along the foot of the hill (never up to Assisi), across
+    // the Tescio plain on Via della Repubblica to Bastia, home on Via Roma.
+    waypoints: [[43.0580, 12.5777], [43.0447, 12.6151], [43.0594, 12.6110], [43.0674, 12.5985], [43.0704, 12.5650], [43.0674, 12.5520], [43.0580, 12.5777]],
   },
   // ── Hometown: Ticino and the Lombardy lakes ──
   {
     id: 'scenic-lugano-melide',
-    waypoints: [[46.0037, 8.9517], [45.9890, 8.9460], [45.9700, 8.9470], [45.9550, 8.9480], [45.9530, 8.9660]],
+    // Points on Riva Paradiso and the Via Cantonale, so the route stays on the
+    // shore (no detour up to Paradiso station and back) and takes the Melide
+    // roundabout straight onto the causeway.
+    waypoints: [[46.0037, 8.9517], [45.98701, 8.95551], [45.96955, 8.94892], [45.9530, 8.9660]],
   },
   {
     id: 'scenic-locarno-brissago',
-    waypoints: [[46.1670, 8.7980], [46.1550, 8.7710], [46.1400, 8.7450], [46.1190, 8.7120]],
+    waypoints: [[46.1670, 8.7980], [46.1550, 8.7710], [46.14306, 8.74249], [46.1190, 8.7120]],
   },
   {
     id: 'scenic-magadino-plain',
@@ -64,11 +71,13 @@ const ROUTES = [
   },
   {
     id: 'scenic-valle-maggia',
-    waypoints: [[46.1880, 8.7540], [46.2480, 8.7080], [46.2850, 8.6570], [46.3160, 8.6030]],
+    waypoints: [[46.1880, 8.7540], [46.2480, 8.7080], [46.28605, 8.65821], [46.3160, 8.6030]],
   },
   {
     id: 'scenic-engadin-lakes',
-    waypoints: [[46.4040, 9.6950], [46.4290, 9.7600], [46.4600, 9.7950], [46.4920, 9.8350]],
+    // Ends on the St. Moritz Bad lakeside path: the old end up in St. Moritz
+    // Dorf took a switchback on Via Somplaz that reads as a U-turn.
+    waypoints: [[46.4040, 9.6950], [46.4290, 9.7600], [46.4600, 9.7950], [46.48996, 9.83843]],
   },
   {
     id: 'scenic-lake-varese',
@@ -77,7 +86,7 @@ const ROUTES = [
   },
   {
     id: 'scenic-lake-como-menaggio',
-    waypoints: [[46.0200, 9.2390], [46.0700, 9.2700], [46.1250, 9.2880], [46.1450, 9.3070]],
+    waypoints: [[46.0200, 9.2390], [46.0700, 9.2700], [46.12492, 9.28575], [46.1450, 9.3070]],
   },
   {
     id: 'scenic-lavaux-chillon',
@@ -85,7 +94,7 @@ const ROUTES = [
   },
   {
     id: 'scenic-riviera-dei-fiori',
-    waypoints: [[43.8010, 7.7170], [43.8150, 7.7760], [43.8300, 7.8550], [43.8530, 7.9640]],
+    waypoints: [[43.8010, 7.7170], [43.8150, 7.7760], [43.83131, 7.85480], [43.8530, 7.9640]],
   },
   {
     id: 'scenic-lake-annecy',
@@ -104,7 +113,9 @@ const ROUTES = [
   {
     id: 'scenic-hangzhou-west-lake',
     // Lakeshore roads and the Yanggong causeway (the Su causeway is foot-only).
-    waypoints: [[30.2609, 120.1470], [30.2600, 120.1380], [30.2426, 120.1311], [30.2339, 120.1450], [30.2500, 120.1640], [30.2609, 120.1470]],
+    // Starts and ends on Beishan Street at the Broken Bridge, so the loop
+    // closes on the through road instead of turning round at the bridge.
+    waypoints: [[30.26183, 120.14905], [30.2600, 120.1380], [30.2426, 120.1311], [30.2339, 120.1450], [30.2500, 120.1640], [30.26183, 120.14905]],
   },
   {
     id: 'scenic-cuyahoga-towpath',
@@ -137,8 +148,13 @@ const STEP_M = 50;
 const SMOOTH_M = 1200;
 /** Elevation is fetched every N resampled points and linearly interpolated. */
 const ELE_EVERY = 2;
-/** Douglas–Peucker tolerance for the shipped polyline, metres. */
-const SIMPLIFY_M = 8;
+/**
+ * Douglas–Peucker tolerance for the shipped polyline, metres. The line is the
+ * routed OSM geometry itself, so it must stay on the road it follows: the
+ * world bake draws that road, and a path is only 1.5 m wide. (Simplifying the
+ * 50 m resample at 8 m cut every bend across the grass.)
+ */
+const SIMPLIFY_M = 1;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -229,30 +245,18 @@ async function routeGeometry(waypoints) {
 }
 
 /**
- * Drop short out-and-back spurs: OSRM visits a waypoint that sits just off
- * the through path by riding to it and straight back over the same nodes,
- * which on screen is a pointless U-turn. Spurs up to 400 m are cut back to
- * the junction; the rest of the line is the routed path untouched. Longer
- * out-and-backs are kept (they are real riding) and show in the log.
+ * Cut OSRM's waypoint artifacts out of the routed line: a waypoint just off
+ * the through road gets visited by riding to it and straight back, which on
+ * screen is a pointless U-turn. src/lib/routeReversals.ts finds every place
+ * the line runs back over (or right beside) itself, cuts the stub back to the
+ * junction it left from, and throws when a turnaround can't be cut without
+ * the route still reversing (then a waypoint needs moving). The rest of the
+ * line is the routed path untouched.
  */
-function dropSpurs(line) {
-  const out = line.slice();
-  const same = (a, b) => haversine(a[0], a[1], b[0], b[1]) < 6;
-  for (let i = 1; i < out.length - 1; i++) {
-    if (!same(out[i - 1], out[i + 1])) continue;
-    let m = 1;
-    while (i - m - 1 >= 0 && i + m + 1 < out.length && same(out[i - m - 1], out[i + m + 1])) m++;
-    let len = 0;
-    for (let k = i - m; k < i; k++) len += haversine(out[k][0], out[k][1], out[k + 1][0], out[k + 1][1]);
-    if (len > 400) {
-      console.log(`  keeping a ${Math.round(len)} m out-and-back at ${out[i]}`);
-      i += m;
-      continue;
-    }
-    out.splice(i - m + 1, 2 * m);
-    i = Math.max(0, i - m - 1);
-  }
-  return out;
+function cleanLine(line) {
+  const { points, cuts } = removeRetraces(line);
+  for (const c of cuts) console.log(`  cut a ${Math.round(c.toM - c.fromM)} m ${c.kind === 'stub' ? 'out-and-back' : `out-and-back at the ${c.kind === 'head' ? 'start' : 'end'}`} at ${Math.round(c.fromM)} m`);
+  return points;
 }
 
 function resample(line, step) {
@@ -424,12 +428,44 @@ for (const r of ROUTES) {
     continue;
   }
   await sleep(1500);
-  const dense = resample(dropSpurs(line), STEP_M);
+  let clean;
+  try {
+    clean = cleanLine(line);
+  } catch (err) {
+    console.log(`FAILED: ${err.message}`);
+    failed.push(r.id);
+    if (existing[r.id]) results.push(existing[r.id]);
+    continue;
+  }
+  // Elevation on a 50 m profile (the DEM is 90 m), smoothed, then carried
+  // onto the exact line by distance along it.
+  const dense = resample(clean, STEP_M);
   const raw = await elevations(dense);
   const ele = smooth(raw, SMOOTH_M);
   const withEle = dense.map(([la, lo], i) => [la, lo, ele[i]]);
-  const shipped = simplify(withEle, SIMPLIFY_M).map(([la, lo, e]) => [+la.toFixed(5), +lo.toFixed(5), Math.round(e)]);
+  const along = [0];
+  for (let i = 1; i < clean.length; i++) along.push(along[i - 1] + haversine(clean[i - 1][0], clean[i - 1][1], clean[i][0], clean[i][1]));
+  const kept = simplify(clean.map(([la, lo], i) => [la, lo, i]), SIMPLIFY_M);
+  const profileS = [0];
+  for (let i = 1; i < dense.length; i++) profileS.push(profileS[i - 1] + haversine(dense[i - 1][0], dense[i - 1][1], dense[i][0], dense[i][1]));
+  const eleAt = (d) => {
+    let k = 0;
+    while (k < profileS.length - 2 && profileS[k + 1] < d) k++;
+    const f = Math.min(1, Math.max(0, (d - profileS[k]) / (profileS[k + 1] - profileS[k] || 1)));
+    return ele[k] + (ele[k + 1] - ele[k]) * f;
+  };
+  const shipped = kept.map(([la, lo, i]) => [+la.toFixed(5), +lo.toFixed(5), Math.round(eleAt(along[i]))]);
+  const turns = hairpins(shipped);
+  const stubs = retracedStubs(shipped);
+  if (turns.length || stubs.length) {
+    console.log(`FAILED: still turns back at ${[...turns.map((h) => h.distanceM), ...stubs.map((x) => x.tipM)].map((v) => Math.round(v)).join(', ')} m`);
+    failed.push(r.id);
+    if (existing[r.id]) results.push(existing[r.id]);
+    continue;
+  }
   const s = stats(withEle);
+  // Distance is the shipped line's own length (what the app rides).
+  s.distanceM = Math.round(shipped.reduce((a, p, i) => (i ? a + haversine(shipped[i - 1][0], shipped[i - 1][1], p[0], p[1]) : 0), 0));
   // Diagnostic only: the same grade measure on the unfloored DEM profile, so a
   // real hill hidden by the shore-floor smoothing still shows up in the log.
   const rawMax = stats(dense.map(([la, lo], i) => [la, lo, raw[i]])).maxGradePct;
@@ -456,7 +492,8 @@ writeFileSync(
  * GENERATED by scripts/build-scenic-routes.mjs — do not edit by hand.
  *
  * Road geometry © OpenStreetMap contributors (ODbL), routed with the OSRM
- * bike profile at routing.openstreetmap.de. Elevation from the Copernicus
+ * bike profile at routing.openstreetmap.de, out-and-back stubs cut, kept to
+ * within ${SIMPLIFY_M} m of the routed road. Elevation from the Copernicus
  * GLO-90 DEM via Open-Meteo, median + ${SMOOTH_M} m mean smoothed.
  * Points are [lat, lon, elevationM].
  */
