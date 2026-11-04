@@ -557,3 +557,66 @@ describe('rideStore outdoor route-less rides', () => {
     expect(useRideStore.getState().livePolyline).toHaveLength(2);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Pace partners stay picked across route loads and resets (PR #37 review D2)
+// ---------------------------------------------------------------------------
+
+describe('rideStore — pace partners', () => {
+  const climb: Route = {
+    ...route,
+    id: 'climb',
+    points: [
+      { lat: 0, lon: 0, ele: 0, distance: 0 },
+      { lat: 0.009, lon: 0, ele: 30, distance: 1000 },
+    ],
+    ascent: 30,
+    maxElevation: 30,
+  };
+
+  beforeEach(() => {
+    useRideStore.setState(useRideStore.getInitialState(), true);
+  });
+
+  function rideBotsAway(): void {
+    const st = useRideStore.getState();
+    st.start();
+    st.tickBots(1);
+    st.tickBots(1);
+    expect(useRideStore.getState().paceBots[0].state.distance).toBeGreaterThan(0);
+  }
+
+  it('loading a route keeps the picked partners and puts them back on the start line', async () => {
+    const { BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
+    useRideStore.getState().setRoute(climb);
+    useRideStore.getState().setPaceBots([createPaceBot('pace-steady', BOT_PRESETS[0]), createPaceBot('pace-climber', BOT_PRESETS[1])]);
+    rideBotsAway();
+
+    useRideStore.getState().setRoute(route);
+    const bots = useRideStore.getState().paceBots;
+    expect(bots.map((b) => b.id)).toEqual(['pace-steady', 'pace-climber']);
+    expect(bots.map((b) => b.name)).toEqual([BOT_PRESETS[0].name, BOT_PRESETS[1].name]);
+    for (const b of bots) expect(b.state).toMatchObject({ distance: 0, speed: 0, power: 0 });
+  });
+
+  it('a reset (re-ride) puts the partners back on the start line', async () => {
+    const { BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
+    useRideStore.getState().setRoute(climb);
+    useRideStore.getState().setPaceBots([createPaceBot('pace-steady', BOT_PRESETS[0])]);
+    rideBotsAway();
+    useRideStore.getState().finish();
+
+    useRideStore.getState().reset();
+    const bots = useRideStore.getState().paceBots;
+    expect(bots.map((b) => b.id)).toEqual(['pace-steady']);
+    expect(bots[0].state.distance).toBe(0);
+  });
+
+  it('clearPaceBots still empties the roster', async () => {
+    const { BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
+    useRideStore.getState().setPaceBots([createPaceBot('pace-steady', BOT_PRESETS[0])]);
+    useRideStore.getState().clearPaceBots();
+    useRideStore.getState().setRoute(route);
+    expect(useRideStore.getState().paceBots).toEqual([]);
+  });
+});

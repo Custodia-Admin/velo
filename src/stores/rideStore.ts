@@ -16,7 +16,7 @@ import { setTrainerControlMode as setFtmsTrainerControlMode } from '@/lib/ftms';
 import type { Workout } from '@/lib/workout';
 import { computeDraftState, type DraftState } from '@/lib/drafting';
 import type { PaceBot } from '@/lib/paceBots';
-import { tickPaceBot } from '@/lib/paceBots';
+import { createPaceBot, tickPaceBot } from '@/lib/paceBots';
 import { gradientAt } from '@/lib/gradientCalculator';
 import type { ProPelotonState } from '@/lib/proCycling/proPelotonSimulator';
 import { tickProPeloton } from '@/lib/proCycling/proPelotonSimulator';
@@ -245,10 +245,12 @@ interface RideStoreState {
   // ---- ADDITIVE: Pace Bots ----
   /**
    * Active pace bot instances. Each carries its own personality + live state.
-   * Default: empty — bots are injected by the PaceBotsPanel before the ride starts.
+   * Default: empty. The rider picks them before the ride (Home → Build your
+   * own ride → Pace partners, velo/PacePartners). They stay picked when a
+   * route loads or the ride resets, and go back to the start line then.
    */
   paceBots: PaceBot[];
-  /** Replace the entire bot roster (called by PaceBotsPanel on selection). */
+  /** Replace the entire bot roster (called by PacePartners on selection). */
   setPaceBots: (bots: PaceBot[]) => void;
   /** Remove all bots (called on route clear or explicit disable). */
   clearPaceBots: () => void;
@@ -401,6 +403,11 @@ let toastCounter = 0;
 function genToastId(): string {
   toastCounter += 1;
   return `t-${Date.now().toString(36)}-${toastCounter}`;
+}
+
+/** The same pace partners, back at the start line (fresh live state). */
+function reseatPaceBots(bots: PaceBot[]): PaceBot[] {
+  return bots.length === 0 ? bots : bots.map((b) => createPaceBot(b.id, b));
 }
 
 export const useRideStore = create<RideStoreState>((set, get) => ({
@@ -631,8 +638,8 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       // Clear any active replay when a new route is loaded normally
       replayData: null,
       replayIndex: 0,
-      // Clear bots so they re-seat at the new route's start when re-selected.
-      paceBots: [],
+      // The rider's pace partners stay picked and go back to the start line.
+      paceBots: reseatPaceBots(st.paceBots),
       // Clear pro peloton — results are route-specific.
       proPeloton: null,
     })),
@@ -818,6 +825,8 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       workoutRunning: false,
       workoutElapsedSec: 0,
       workoutTargetWatts: null,
+      // Pace partners back to the start line for the re-ride.
+      paceBots: reseatPaceBots(get().paceBots),
       // Reset pro peloton to start so re-rides begin from distance 0.
       proPeloton: null,
     }),

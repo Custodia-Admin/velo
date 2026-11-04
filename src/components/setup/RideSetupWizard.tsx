@@ -47,7 +47,7 @@ interface FeaturedRoute {
 }
 import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { GPXUploader } from '@/components/setup/GPXUploader';
-import { PaceBotsPanel } from '@/components/ride/PaceBotsPanel';
+import { PacePartners } from '@/components/velo/PacePartners';
 import { RoutePreview } from '@/components/setup/RoutePreview';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -109,6 +109,13 @@ function savePersistedRouteStep(snapshot: RouteStepPersisted): void {
   }
 }
 
+// ─── Step card ────────────────────────────────────────────────────────────────
+
+/** One wizard step: a paper panel, lifted while open. */
+function stepCard(open: boolean): string {
+  return cn('rounded-lg border border-border bg-card transition-shadow duration-200', open && 'shadow-sm');
+}
+
 // ─── Step badge ───────────────────────────────────────────────────────────────
 
 function StepCircle({
@@ -123,15 +130,15 @@ function StepCircle({
   return (
     <span
       className={cn(
-        'inline-flex items-center justify-center h-6 w-6 rounded-full text-[11px] font-bold shrink-0 transition-colors',
+        'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors duration-150',
         done
           ? 'bg-primary text-primary-foreground'
           : active
-            ? 'bg-primary/20 text-primary ring-2 ring-primary/40'
+            ? 'bg-primary/15 text-primary'
             : 'bg-muted text-muted-foreground',
       )}
     >
-      {done ? <Check className="h-3.5 w-3.5" /> : n}
+      {n}
     </span>
   );
 }
@@ -157,24 +164,20 @@ function StepHeader({
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 text-left focus-visible:outline-none"
+      aria-expanded={active}
+      className="flex min-h-12 w-full items-center gap-3 rounded-md text-left"
     >
       <StepCircle n={n} done={done} active={active} />
-      <div className="flex-1 min-w-0">
-        <div
-          className={cn(
-            'text-sm font-semibold leading-snug',
-            active ? 'text-foreground' : done ? 'text-foreground/80' : 'text-muted-foreground',
-          )}
-        >
+      <div className="min-w-0 flex-1">
+        <div className={cn('text-base font-semibold', active || done ? 'text-foreground' : 'text-muted-foreground')}>
           {title}
         </div>
-        {subtitle && (
-          <div className="text-[11px] text-muted-foreground truncate mt-0.5">{subtitle}</div>
-        )}
+        {subtitle && <div className="truncate text-sm text-muted-foreground">{subtitle}</div>}
       </div>
-      {done && !active && <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-      {active && <ChevronDown className="h-4 w-4 text-primary shrink-0 rotate-180" />}
+      <ChevronDown
+        aria-hidden
+        className={cn('h-5 w-5 shrink-0 transition-transform duration-150', active ? 'rotate-180 text-primary' : 'text-muted-foreground')}
+      />
     </button>
   );
 }
@@ -673,14 +676,7 @@ function TrainerStep() {
 // ─── Step 3: Pace partners ────────────────────────────────────────────────────
 
 function PaceStep() {
-  return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground leading-relaxed">
-        AI riders who ride beside you at their own pace. You can draft behind them.
-      </p>
-      <PaceBotsPanel />
-    </div>
-  );
+  return <PacePartners />;
 }
 
 // ─── Main wizard ──────────────────────────────────────────────────────────────
@@ -690,7 +686,9 @@ export function RideSetupWizard() {
 
   const route = useRideStore((s) => s.route);
   const connection = useRideStore((s) => s.connection);
-  const paceBotCount = useRideStore((s) => s.paceBots.length);
+  // Names of the picked pace partners ('' when riding alone): read from the
+  // store, which is what rides.
+  const partnerNames = useRideStore((s) => s.paceBots.map((b) => b.name).join(', '));
 
   // Which step is expanded
   const [openStep, setOpenStep] = useState<WizardStep>(1);
@@ -698,12 +696,12 @@ export function RideSetupWizard() {
   // Step completion flags
   const step1Done = route !== null;
   const step2Done = connection === 'connected';
-  const step3Done = paceBotCount > 0;
+  const step3Done = partnerNames !== '';
 
   // Subtitle text for collapsed steps
   const step1Subtitle = route ? route.name : undefined;
   const step2Subtitle = step2Done ? 'Trainer connected' : 'Demo mode (no trainer)';
-  const step3Subtitle = step3Done ? `${paceBotCount} riding with you` : 'Riding alone';
+  const step3Subtitle = step3Done ? `With ${partnerNames}` : 'Riding alone';
 
   const handleRouteSelected = useCallback(() => {
     setOpenStep(2);
@@ -733,14 +731,10 @@ export function RideSetupWizard() {
 
       {/* ── Step 1: Route ── */}
       <div
-        className={cn(
-          'rounded-2xl border transition-all duration-200',
-          openStep === 1
-            ? 'border-border/80 bg-card/60 shadow-sm'
-            : 'border-border/40 bg-card/30',
-        )}
+        className={stepCard(openStep === 1)}
+        data-wizard-step={1}
       >
-        <div className="px-4 py-3.5">
+        <div className="px-4 py-2">
           <StepHeader
             n={1}
             title="Choose your route"
@@ -760,14 +754,10 @@ export function RideSetupWizard() {
 
       {/* ── Step 2: Trainer (collapsible) ── */}
       <div
-        className={cn(
-          'rounded-2xl border transition-all duration-200',
-          openStep === 2
-            ? 'border-border/80 bg-card/60 shadow-sm'
-            : 'border-border/40 bg-card/30',
-        )}
+        className={stepCard(openStep === 2)}
+        data-wizard-step={2}
       >
-        <div className="px-4 py-3.5">
+        <div className="px-4 py-2">
           <StepHeader
             n={2}
             title={
@@ -791,14 +781,10 @@ export function RideSetupWizard() {
 
       {/* ── Step 3: Pace partners (collapsible) ── */}
       <div
-        className={cn(
-          'rounded-2xl border transition-all duration-200',
-          openStep === 3
-            ? 'border-border/80 bg-card/60 shadow-sm'
-            : 'border-border/40 bg-card/30',
-        )}
+        className={stepCard(openStep === 3)}
+        data-wizard-step={3}
       >
-        <div className="px-4 py-3.5">
+        <div className="px-4 py-2">
           <StepHeader
             n={3}
             title="Pace partners"
