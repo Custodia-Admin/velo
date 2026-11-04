@@ -5,7 +5,7 @@ W3 streams back to 8 m steps: KILLED  → expected 442979 to be less than or equ
 W4 lattice twice the edge: KILLED  → expected 90 to be less than or equal to 45.000000001 | → expected 90.00000000000007 to be less than or equal to 45.000000001
 W5 no shore merge: KILLED  → expected 43674 to be less than or equal to 29427.2 | AssertionError: expected 43674 to be less than or equal to 29427.2
 W6 shore pieces dropped: KILLED  → expected +0 to be close to 7500, received difference is 7500, but expected 5e-7 | → expected 886496.0792664018 to be close to 960000, received difference is 73503.92073359818, but expected 0.0005
-W7 full cells never detected: SURVIVED
+W7 full cells never detected: SURVIVED — equivalent mutant: the shore-merge path rebuilds a fully covered cell as the same single triangle (the full-cell branch only saves time)
 W8 full cell emitted per piece (doubled): KILLED  → expected 1159921.9644636582 to be close to 960000, received difference is 199921.96446365817, but expected 0.0005 | → expected 1.55885391771223 to be less than 1.005
 W9 merged cells keep collinear points: KILLED  → expected 39322 to be less than or equal to 29427.2 | AssertionError: expected 39322 to be less than or equal to 29427.2
 R1 water ignored: KILLED  → expected 0 to be greater than 1900 | AssertionError: expected 0 to be greater than 1900
