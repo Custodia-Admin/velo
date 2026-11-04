@@ -52,7 +52,7 @@
    },
    "chipText": "KICKR CORE \u00b7 hills 35 %",
    "details": null,
-   "dist": "9.13 km of 10.88 km",
+   "dist": "9.14 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
@@ -74,7 +74,7 @@
    },
    "renderer": "world",
    "rider": [
-    734,
+    738,
     567
    ],
    "route": null,
@@ -96,9 +96,9 @@
    "tools": null
   },
   "riderBox": [
-   669,
+   673,
    478,
-   799,
+   803,
    694
   ]
  },
@@ -211,19 +211,19 @@
   "hudArea": {
    "rects": [
     {
-     "area": 32059,
-     "h": 88,
+     "area": 35868,
+     "h": 98,
      "name": "ride-strip",
      "w": 366,
      "x": 12,
-     "y": 744
+     "y": 734
     }
    ],
-   "sumPct": 9.7,
-   "sumPx": 32059,
-   "topmostPct": 88.2,
-   "topmostY": 744,
-   "unionPct": 9.8,
+   "sumPct": 10.9,
+   "sumPx": 35868,
+   "topmostPct": 87,
+   "topmostY": 734,
+   "unionPct": 10.9,
    "viewport": [
     390,
     844
@@ -233,92 +233,7 @@
    "backdrop": 0,
    "dark": true,
    "minFont": 14,
-   "minFontEl": "0.0 % \u00b7 142 W \u00b7 gear 6",
-   "minTarget": 40,
-   "minTargetEl": "Pause ride",
-   "overflow": false,
-   "scrollWidth": 390,
-   "tv": false
-  },
-  "panelOverlaps": [],
-  "panels": {
-   "chip": null,
-   "chipText": "KICKR CORE \u00b7 hills 35 %",
-   "details": null,
-   "dist": "9.12 km of 10.88 km",
-   "exit": null,
-   "finish": {
-    "h": 40,
-    "w": 40,
-    "x": 286,
-    "y": 757
-   },
-   "map": null,
-   "pause": {
-    "h": 40,
-    "w": 40,
-    "x": 242,
-    "y": 757
-   },
-   "renderer": "world",
-   "rider": [
-    195,
-    532
-   ],
-   "route": null,
-   "routeText": null,
-   "speed": "Speed: 24.6 km/h",
-   "strip": {
-    "h": 88,
-    "w": 366,
-    "x": 12,
-    "y": 744
-   },
-   "toasts": 0,
-   "toggle": {
-    "h": 40,
-    "w": 40,
-    "x": 330,
-    "y": 757
-   },
-   "tools": null
-  },
-  "riderBox": [
-   134,
-   449,
-   256,
-   651
-  ]
- },
- "ride-hud-390.jpg": {
-  "covering": [],
-  "errors": [],
-  "hudArea": {
-   "rects": [
-    {
-     "area": 32059,
-     "h": 88,
-     "name": "ride-strip",
-     "w": 366,
-     "x": 12,
-     "y": 744
-    }
-   ],
-   "sumPct": 9.7,
-   "sumPx": 32059,
-   "topmostPct": 88.2,
-   "topmostY": 744,
-   "unionPct": 9.8,
-   "viewport": [
-    390,
-    844
-   ]
-  },
-  "measure": {
-   "backdrop": 0,
-   "dark": false,
-   "minFont": 14,
-   "minFontEl": "0.0 % \u00b7 142 W \u00b7 gear 6",
+   "minFontEl": "%",
    "minTarget": 40,
    "minTargetEl": "Pause ride",
    "overflow": false,
@@ -336,42 +251,127 @@
     "h": 40,
     "w": 40,
     "x": 286,
-    "y": 757
+    "y": 747
    },
    "map": null,
    "pause": {
     "h": 40,
     "w": 40,
     "x": 242,
-    "y": 757
+    "y": 747
    },
    "renderer": "world",
    "rider": [
-    211,
+    205,
     532
    ],
    "route": null,
    "routeText": null,
    "speed": "Speed: 24.6 km/h",
    "strip": {
-    "h": 88,
+    "h": 98,
     "w": 366,
     "x": 12,
-    "y": 744
+    "y": 734
    },
    "toasts": 0,
    "toggle": {
     "h": 40,
     "w": 40,
     "x": 330,
-    "y": 757
+    "y": 747
    },
    "tools": null
   },
   "riderBox": [
-   150,
+   144,
    449,
-   272,
+   266,
+   651
+  ]
+ },
+ "ride-hud-390.jpg": {
+  "covering": [],
+  "errors": [],
+  "hudArea": {
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    }
+   ],
+   "sumPct": 10.9,
+   "sumPx": 35868,
+   "topmostPct": 87,
+   "topmostY": 734,
+   "unionPct": 10.9,
+   "viewport": [
+    390,
+    844
+   ]
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 14,
+   "minFontEl": "%",
+   "minTarget": 40,
+   "minTargetEl": "Pause ride",
+   "overflow": false,
+   "scrollWidth": 390,
+   "tv": false
+  },
+  "panelOverlaps": [],
+  "panels": {
+   "chip": null,
+   "chipText": "KICKR CORE \u00b7 hills 35 %",
+   "details": null,
+   "dist": "9.14 km of 10.88 km",
+   "exit": null,
+   "finish": {
+    "h": 40,
+    "w": 40,
+    "x": 286,
+    "y": 747
+   },
+   "map": null,
+   "pause": {
+    "h": 40,
+    "w": 40,
+    "x": 242,
+    "y": 747
+   },
+   "renderer": "world",
+   "rider": [
+    206,
+    532
+   ],
+   "route": null,
+   "routeText": null,
+   "speed": "Speed: 24.6 km/h",
+   "strip": {
+    "h": 98,
+    "w": 366,
+    "x": 12,
+    "y": 734
+   },
+   "toasts": 0,
+   "toggle": {
+    "h": 40,
+    "w": 40,
+    "x": 330,
+    "y": 747
+   },
+   "tools": null
+  },
+  "riderBox": [
+   145,
+   449,
+   267,
    651
   ]
  },
@@ -389,19 +389,19 @@
      "y": 810
     },
     {
-     "area": 9924,
+     "area": 9411,
      "h": 40,
      "name": "ride-status-chip",
-     "w": 248,
+     "w": 235,
      "x": 299,
      "y": 762
     }
    ],
-   "sumPct": 5.1,
-   "sumPx": 65543,
+   "sumPct": 5,
+   "sumPx": 65030,
    "topmostPct": 84.7,
    "topmostY": 762,
-   "unionPct": 5.1,
+   "unionPct": 5,
    "viewport": [
     1440,
     900
@@ -413,7 +413,7 @@
    "minFont": 14,
    "minFontEl": "Pause",
    "minTarget": 40,
-   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "minTargetEl": "Trainer connection lost after several re",
    "overflow": false,
    "scrollWidth": 1440,
    "tv": false
@@ -422,13 +422,13 @@
   "panels": {
    "chip": {
     "h": 40,
-    "w": 248,
+    "w": 235,
     "x": 299,
     "y": 762
    },
-   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "chipText": "Trainer lost \u00b7 tap for devices",
    "details": null,
-   "dist": "9.19 km of 10.88 km",
+   "dist": "9.29 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
@@ -455,7 +455,7 @@
    ],
    "route": null,
    "routeText": null,
-   "speed": "Speed: 33.3 km/h",
+   "speed": "Speed: 33.4 km/h",
    "strip": {
     "h": 66,
     "w": 843,
@@ -492,19 +492,19 @@
      "y": 810
     },
     {
-     "area": 9924,
+     "area": 9411,
      "h": 40,
      "name": "ride-status-chip",
-     "w": 248,
+     "w": 235,
      "x": 299,
      "y": 762
     }
    ],
-   "sumPct": 5.1,
-   "sumPx": 65543,
+   "sumPct": 5,
+   "sumPx": 65030,
    "topmostPct": 84.7,
    "topmostY": 762,
-   "unionPct": 5.1,
+   "unionPct": 5,
    "viewport": [
     1440,
     900
@@ -516,7 +516,7 @@
    "minFont": 14,
    "minFontEl": "Pause",
    "minTarget": 40,
-   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "minTargetEl": "Trainer connection lost after several re",
    "overflow": false,
    "scrollWidth": 1440,
    "tv": false
@@ -525,13 +525,13 @@
   "panels": {
    "chip": {
     "h": 40,
-    "w": 248,
+    "w": 235,
     "x": 299,
     "y": 762
    },
-   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "chipText": "Trainer lost \u00b7 tap for devices",
    "details": null,
-   "dist": "9.19 km of 10.88 km",
+   "dist": "9.29 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
@@ -587,27 +587,27 @@
   "hudArea": {
    "rects": [
     {
-     "area": 32059,
-     "h": 88,
+     "area": 35868,
+     "h": 98,
      "name": "ride-strip",
      "w": 366,
      "x": 12,
-     "y": 744
+     "y": 734
     },
     {
-     "area": 9924,
+     "area": 9411,
      "h": 40,
      "name": "ride-status-chip",
-     "w": 248,
+     "w": 235,
      "x": 12,
-     "y": 696
+     "y": 686
     }
    ],
-   "sumPct": 12.8,
-   "sumPx": 41983,
-   "topmostPct": 82.5,
-   "topmostY": 696,
-   "unionPct": 12.8,
+   "sumPct": 13.8,
+   "sumPx": 45279,
+   "topmostPct": 81.3,
+   "topmostY": 686,
+   "unionPct": 13.8,
    "viewport": [
     390,
     844
@@ -617,9 +617,9 @@
    "backdrop": 0,
    "dark": true,
    "minFont": 14,
-   "minFontEl": "0.0 % \u00b7 190 W \u00b7 gear 6",
+   "minFontEl": "%",
    "minTarget": 40,
-   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "minTargetEl": "Trainer connection lost after several re",
    "overflow": false,
    "scrollWidth": 390,
    "tv": false
@@ -628,26 +628,26 @@
   "panels": {
    "chip": {
     "h": 40,
-    "w": 248,
+    "w": 235,
     "x": 12,
-    "y": 696
+    "y": 686
    },
-   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "chipText": "Trainer lost \u00b7 tap for devices",
    "details": null,
-   "dist": "9.16 km of 10.88 km",
+   "dist": "9.29 km of 10.88 km",
    "exit": null,
    "finish": {
     "h": 40,
     "w": 40,
     "x": 286,
-    "y": 757
+    "y": 747
    },
    "map": null,
    "pause": {
     "h": 40,
     "w": 40,
     "x": 242,
-    "y": 757
+    "y": 747
    },
    "renderer": "world",
    "rider": [
@@ -656,19 +656,19 @@
    ],
    "route": null,
    "routeText": null,
-   "speed": "Speed: 33.3 km/h",
+   "speed": "Speed: 33.4 km/h",
    "strip": {
-    "h": 88,
+    "h": 98,
     "w": 366,
     "x": 12,
-    "y": 744
+    "y": 734
    },
    "toasts": 0,
    "toggle": {
     "h": 40,
     "w": 40,
     "x": 330,
-    "y": 757
+    "y": 747
    },
    "tools": null
   },
@@ -685,27 +685,27 @@
   "hudArea": {
    "rects": [
     {
-     "area": 32059,
-     "h": 88,
+     "area": 35868,
+     "h": 98,
      "name": "ride-strip",
      "w": 366,
      "x": 12,
-     "y": 744
+     "y": 734
     },
     {
-     "area": 9924,
+     "area": 9411,
      "h": 40,
      "name": "ride-status-chip",
-     "w": 248,
+     "w": 235,
      "x": 12,
-     "y": 696
+     "y": 686
     }
    ],
-   "sumPct": 12.8,
-   "sumPx": 41983,
-   "topmostPct": 82.5,
-   "topmostY": 696,
-   "unionPct": 12.8,
+   "sumPct": 13.8,
+   "sumPx": 45279,
+   "topmostPct": 81.3,
+   "topmostY": 686,
+   "unionPct": 13.8,
    "viewport": [
     390,
     844
@@ -715,9 +715,9 @@
    "backdrop": 0,
    "dark": false,
    "minFont": 14,
-   "minFontEl": "0.0 % \u00b7 190 W \u00b7 gear 6",
+   "minFontEl": "%",
    "minTarget": 40,
-   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "minTargetEl": "Trainer connection lost after several re",
    "overflow": false,
    "scrollWidth": 390,
    "tv": false
@@ -726,26 +726,26 @@
   "panels": {
    "chip": {
     "h": 40,
-    "w": 248,
+    "w": 235,
     "x": 12,
-    "y": 696
+    "y": 686
    },
-   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "chipText": "Trainer lost \u00b7 tap for devices",
    "details": null,
-   "dist": "9.19 km of 10.88 km",
+   "dist": "9.29 km of 10.88 km",
    "exit": null,
    "finish": {
     "h": 40,
     "w": 40,
     "x": 286,
-    "y": 757
+    "y": 747
    },
    "map": null,
    "pause": {
     "h": 40,
     "w": 40,
     "x": 242,
-    "y": 757
+    "y": 747
    },
    "renderer": "world",
    "rider": [
@@ -754,19 +754,19 @@
    ],
    "route": null,
    "routeText": null,
-   "speed": "Speed: 33.3 km/h",
+   "speed": "Speed: 33.4 km/h",
    "strip": {
-    "h": 88,
+    "h": 98,
     "w": 366,
     "x": 12,
-    "y": 744
+    "y": 734
    },
    "toasts": 0,
    "toggle": {
     "h": 40,
     "w": 40,
     "x": 330,
-    "y": 757
+    "y": 747
    },
    "tools": null
   },
@@ -791,19 +791,19 @@
      "y": 923
     },
     {
-     "area": 30288,
+     "area": 28714,
      "h": 70,
      "name": "ride-status-chip",
-     "w": 433,
+     "w": 410,
      "x": 225,
      "y": 839
     }
    ],
    "sumPct": 9.6,
-   "sumPx": 200095,
+   "sumPx": 198521,
    "topmostPct": 77.7,
    "topmostY": 839,
-   "unionPct": 9.9,
+   "unionPct": 9.8,
    "viewport": [
     1920,
     1080
@@ -815,7 +815,7 @@
    "minFont": 24.5,
    "minFontEl": "Pause",
    "minTarget": 70,
-   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "minTargetEl": "Trainer connection lost after several re",
    "overflow": false,
    "scrollWidth": 1920,
    "tv": true
@@ -824,13 +824,13 @@
   "panels": {
    "chip": {
     "h": 70,
-    "w": 433,
+    "w": 410,
     "x": 225,
     "y": 839
    },
-   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "chipText": "Trainer lost \u00b7 tap for devices",
    "details": null,
-   "dist": "9.18 km of 10.88 km",
+   "dist": "9.30 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 70,
@@ -857,7 +857,7 @@
    ],
    "route": null,
    "routeText": null,
-   "speed": "Speed: 33.3 km/h",
+   "speed": "Speed: 33.4 km/h",
    "strip": {
     "h": 116,
     "w": 1470,
@@ -894,19 +894,19 @@
      "y": 923
     },
     {
-     "area": 30288,
+     "area": 28714,
      "h": 70,
      "name": "ride-status-chip",
-     "w": 433,
+     "w": 410,
      "x": 225,
      "y": 839
     }
    ],
    "sumPct": 9.6,
-   "sumPx": 200095,
+   "sumPx": 198521,
    "topmostPct": 77.7,
    "topmostY": 839,
-   "unionPct": 9.9,
+   "unionPct": 9.8,
    "viewport": [
     1920,
     1080
@@ -918,7 +918,7 @@
    "minFont": 24.5,
    "minFontEl": "Pause",
    "minTarget": 70,
-   "minTargetEl": "Trainer connection lost. Tap to reconnec",
+   "minTargetEl": "Trainer connection lost after several re",
    "overflow": false,
    "scrollWidth": 1920,
    "tv": true
@@ -927,13 +927,13 @@
   "panels": {
    "chip": {
     "h": 70,
-    "w": 433,
+    "w": 410,
     "x": 225,
     "y": 839
    },
-   "chipText": "Trainer lost \u00b7 tap to reconnect",
+   "chipText": "Trainer lost \u00b7 tap for devices",
    "details": null,
-   "dist": "9.16 km of 10.88 km",
+   "dist": "9.29 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 70,
@@ -1097,7 +1097,7 @@
     "x": 299,
     "y": 405
    },
-   "dist": "9.15 km of 10.88 km",
+   "dist": "9.16 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
@@ -1124,7 +1124,7 @@
    },
    "renderer": "world",
    "rider": [
-    721,
+    720,
     568
    ],
    "route": {
@@ -1156,9 +1156,9 @@
    }
   },
   "riderBox": [
-   656,
+   655,
    479,
-   786,
+   785,
    695
   ]
  },
@@ -1276,7 +1276,7 @@
     "x": 299,
     "y": 405
    },
-   "dist": "9.14 km of 10.88 km",
+   "dist": "9.16 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
@@ -1303,8 +1303,8 @@
    },
    "renderer": "world",
    "rider": [
-    731,
-    567
+    720,
+    568
    ],
    "route": {
     "h": 165,
@@ -1335,10 +1335,10 @@
    }
   },
   "riderBox": [
-   666,
-   478,
-   796,
-   694
+   655,
+   479,
+   785,
+   695
   ]
  },
  "ride-hud-open-390-night.jpg": {
@@ -1347,12 +1347,12 @@
   "hudArea": {
    "rects": [
     {
-     "area": 32059,
-     "h": 88,
+     "area": 35868,
+     "h": 98,
      "name": "ride-strip",
      "w": 366,
      "x": 12,
-     "y": 744
+     "y": 734
     },
     {
      "area": 29620,
@@ -1376,7 +1376,7 @@
      "name": "show-toggle",
      "w": 40,
      "x": 12,
-     "y": 696
+     "y": 686
     },
     {
      "area": 1600,
@@ -1384,7 +1384,7 @@
      "name": "Camera: chase",
      "w": 40,
      "x": 77,
-     "y": 696
+     "y": 686
     },
     {
      "area": 1600,
@@ -1392,7 +1392,7 @@
      "name": "Ghost riders on",
      "w": 40,
      "x": 142,
-     "y": 696
+     "y": 686
     },
     {
      "area": 1600,
@@ -1400,7 +1400,7 @@
      "name": "Voice control: off",
      "w": 40,
      "x": 208,
-     "y": 696
+     "y": 686
     },
     {
      "area": 1600,
@@ -1408,7 +1408,7 @@
      "name": "Ride settings",
      "w": 40,
      "x": 273,
-     "y": 696
+     "y": 686
     },
     {
      "area": 1600,
@@ -1416,14 +1416,14 @@
      "name": "Exit ride and return to setup",
      "w": 40,
      "x": 338,
-     "y": 696
+     "y": 686
     }
    ],
-   "sumPct": 26.6,
-   "sumPx": 87663,
+   "sumPct": 27.8,
+   "sumPx": 91472,
    "topmostPct": 1.4,
    "topmostY": 12,
-   "unionPct": 26.8,
+   "unionPct": 27.9,
    "viewport": [
     390,
     844
@@ -1448,20 +1448,20 @@
     "h": 40,
     "w": 366,
     "x": 12,
-    "y": 696
+    "y": 686
    },
-   "dist": "9.14 km of 10.88 km",
+   "dist": "9.16 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
     "x": 338,
-    "y": 696
+    "y": 686
    },
    "finish": {
     "h": 40,
     "w": 40,
     "x": 286,
-    "y": 757
+    "y": 747
    },
    "map": {
     "h": 128,
@@ -1473,11 +1473,11 @@
     "h": 40,
     "w": 40,
     "x": 242,
-    "y": 757
+    "y": 747
    },
    "renderer": "world",
    "rider": [
-    201,
+    195,
     532
    ],
    "route": {
@@ -1489,29 +1489,29 @@
    "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nSunny \u00b7 14\u00b0\nLight crosswind 9 km/h",
    "speed": "Speed: 24.6 km/h",
    "strip": {
-    "h": 88,
+    "h": 98,
     "w": 366,
     "x": 12,
-    "y": 744
+    "y": 734
    },
    "toasts": 0,
    "toggle": {
     "h": 40,
     "w": 40,
     "x": 330,
-    "y": 757
+    "y": 747
    },
    "tools": {
     "h": 40,
     "w": 366,
     "x": 12,
-    "y": 696
+    "y": 686
    }
   },
   "riderBox": [
-   140,
+   134,
    449,
-   262,
+   256,
    651
   ]
  },
@@ -1521,12 +1521,12 @@
   "hudArea": {
    "rects": [
     {
-     "area": 32059,
-     "h": 88,
+     "area": 35868,
+     "h": 98,
      "name": "ride-strip",
      "w": 366,
      "x": 12,
-     "y": 744
+     "y": 734
     },
     {
      "area": 29620,
@@ -1550,7 +1550,7 @@
      "name": "show-toggle",
      "w": 40,
      "x": 12,
-     "y": 696
+     "y": 686
     },
     {
      "area": 1600,
@@ -1558,7 +1558,7 @@
      "name": "Camera: chase",
      "w": 40,
      "x": 77,
-     "y": 696
+     "y": 686
     },
     {
      "area": 1600,
@@ -1566,7 +1566,7 @@
      "name": "Ghost riders on",
      "w": 40,
      "x": 142,
-     "y": 696
+     "y": 686
     },
     {
      "area": 1600,
@@ -1574,7 +1574,7 @@
      "name": "Voice control: off",
      "w": 40,
      "x": 208,
-     "y": 696
+     "y": 686
     },
     {
      "area": 1600,
@@ -1582,7 +1582,7 @@
      "name": "Ride settings",
      "w": 40,
      "x": 273,
-     "y": 696
+     "y": 686
     },
     {
      "area": 1600,
@@ -1590,14 +1590,14 @@
      "name": "Exit ride and return to setup",
      "w": 40,
      "x": 338,
-     "y": 696
+     "y": 686
     }
    ],
-   "sumPct": 26.6,
-   "sumPx": 87663,
+   "sumPct": 27.8,
+   "sumPx": 91472,
    "topmostPct": 1.4,
    "topmostY": 12,
-   "unionPct": 26.8,
+   "unionPct": 27.9,
    "viewport": [
     390,
     844
@@ -1622,20 +1622,20 @@
     "h": 40,
     "w": 366,
     "x": 12,
-    "y": 696
+    "y": 686
    },
-   "dist": "9.15 km of 10.88 km",
+   "dist": "9.16 km of 10.88 km",
    "exit": {
     "h": 40,
     "w": 40,
     "x": 338,
-    "y": 696
+    "y": 686
    },
    "finish": {
     "h": 40,
     "w": 40,
     "x": 286,
-    "y": 757
+    "y": 747
    },
    "map": {
     "h": 128,
@@ -1647,7 +1647,7 @@
     "h": 40,
     "w": 40,
     "x": 242,
-    "y": 757
+    "y": 747
    },
    "renderer": "world",
    "rider": [
@@ -1663,23 +1663,23 @@
    "routeText": "Tiber river park\n\n1.7 km to go \u00b7 about 5 min\n\nSunny \u00b7 14\u00b0\nLight crosswind 9 km/h",
    "speed": "Speed: 24.6 km/h",
    "strip": {
-    "h": 88,
+    "h": 98,
     "w": 366,
     "x": 12,
-    "y": 744
+    "y": 734
    },
    "toasts": 0,
    "toggle": {
     "h": 40,
     "w": 40,
     "x": 330,
-    "y": 757
+    "y": 747
    },
    "tools": {
     "h": 40,
     "w": 366,
     "x": 12,
-    "y": 696
+    "y": 686
    }
   },
   "riderBox": [
@@ -1803,7 +1803,7 @@
     "x": 225,
     "y": 214
    },
-   "dist": "9.14 km of 10.88 km",
+   "dist": "9.18 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 70,
@@ -1830,7 +1830,7 @@
    },
    "renderer": "world",
    "rider": [
-    973,
+    960,
     681
    ],
    "route": {
@@ -1862,9 +1862,9 @@
    }
   },
   "riderBox": [
-   895,
+   882,
    574,
-   1051,
+   1038,
    833
   ]
  },
@@ -1982,7 +1982,7 @@
     "x": 225,
     "y": 214
    },
-   "dist": "9.14 km of 10.88 km",
+   "dist": "9.16 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 70,
@@ -2009,7 +2009,7 @@
    },
    "renderer": "world",
    "rider": [
-    979,
+    960,
     681
    ],
    "route": {
@@ -2041,9 +2041,9 @@
    }
   },
   "riderBox": [
-   901,
+   882,
    574,
-   1057,
+   1038,
    833
   ]
  },
@@ -2100,7 +2100,7 @@
    },
    "chipText": "KICKR CORE \u00b7 hills 35 %",
    "details": null,
-   "dist": "9.12 km of 10.88 km",
+   "dist": "9.14 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 70,
@@ -2122,7 +2122,7 @@
    },
    "renderer": "world",
    "rider": [
-    960,
+    976,
     681
    ],
    "route": null,
@@ -2144,9 +2144,9 @@
    "tools": null
   },
   "riderBox": [
-   882,
+   898,
    574,
-   1038,
+   1054,
    833
   ]
  },
@@ -2203,7 +2203,7 @@
    },
    "chipText": "KICKR CORE \u00b7 hills 35 %",
    "details": null,
-   "dist": "9.10 km of 10.88 km",
+   "dist": "9.14 km of 10.88 km",
    "exit": {
     "h": 70,
     "w": 70,
@@ -2225,7 +2225,7 @@
    },
    "renderer": "world",
    "rider": [
-    961,
+    981,
     681
    ],
    "route": null,
@@ -2247,9 +2247,9 @@
    "tools": null
   },
   "riderBox": [
-   883,
+   903,
    574,
-   1039,
+   1059,
    833
   ]
  }

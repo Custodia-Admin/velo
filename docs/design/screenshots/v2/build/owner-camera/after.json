@@ -1,10 +1,11 @@
 {
- "base": "http://127.0.0.1:5191",
+ "base": "http://localhost:5214",
  "spot": 220.0,
  "time": "night",
  "weather": "overcast",
  "size": "1280x658@2",
  "open": false,
+ "error": false,
  "hudArea": {
   "viewport": [
    1280,
@@ -34,6 +35,6 @@
    }
   ]
  },
- "fps": 21.7,
+ "fps": 58.3,
  "errors": []
 }
