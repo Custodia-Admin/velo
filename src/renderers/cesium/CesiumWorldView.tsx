@@ -35,6 +35,7 @@ import {
   seedFollowCam,
   routeToCartesians,
   onSceneSurface,
+  photorealGroundShown,
   sceneEle,
   setIonToken,
   setActiveViewer,
@@ -1088,15 +1089,25 @@ export function CesiumWorldView({
       // over a black, empty globe with the rider out of sight).
       const groundEle = avatarRef.current.groundEle() ?? sampled.ele;
       // Before the start: is the ground under the rider streamed in at full detail?
-      if (state.rideState === 'idle' || state.rideState === 'ready') {
+      // (Only once World Terrain is the globe's terrain; the flat globe has no finest level.)
+      if (
+        (state.rideState === 'idle' || state.rideState === 'ready') &&
+        !(viewer.terrainProvider instanceof Cesium.EllipsoidTerrainProvider)
+      ) {
         startGroundRef.current ??= new StartGroundWatch(async (lon, lat) => {
           const [c] = await Cesium.sampleTerrainMostDetailed(viewer.terrainProvider, [
             Cesium.Cartographic.fromDegrees(lon, lat),
           ]);
           return c.height;
         });
-        const drawn = viewer.scene.globe.getHeight(Cesium.Cartographic.fromDegrees(sampled.lon, sampled.lat));
-        startGroundRef.current.update(sampled.lon, sampled.lat, drawn, groundEle, nowMs);
+        const carto = Cesium.Cartographic.fromDegrees(sampled.lon, sampled.lat);
+        const drawn = viewer.scene.globe.getHeight(carto);
+        // The photoreal mesh shows but has nothing under the rider yet: it will
+        // land metres over the globe the rider stands on, so keep waiting.
+        const ts = tilesetRef.current;
+        const meshPending =
+          photorealGroundShown(viewer.scene) && !!ts && !ts.isDestroyed() && ts.getHeight(carto, viewer.scene) === undefined;
+        startGroundRef.current.update(sampled.lon, sampled.lat, drawn, groundEle, nowMs, meshPending);
       }
       const aheadAtGround = { ...ahead, ele: groundEle + (ahead.ele - sampled.ele) };
       if (typeof window !== 'undefined') {
@@ -1128,6 +1139,7 @@ export function CesiumWorldView({
             camSide,
             dist: state.distance,
             riderLonLat: [riderLon, riderLat],
+            startGround: startGroundRef.current?.debug() ?? null,
             riderScreen: px ? [Math.round(px.x), Math.round(px.y)] : null,
             riderHeightPx: head && foot ? Math.round(Math.hypot(head.x - foot.x, head.y - foot.y)) : null,
             viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight],
