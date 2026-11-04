@@ -169,7 +169,7 @@ function ClearDataSection() {
     <Section icon={<Trash2 className="h-4 w-4" />} title="Local data">
       <div className="space-y-3">
         <p className="text-[11px] text-muted-foreground leading-relaxed">
-          GlobeRide stores all your data locally — routes, rides, gear, and settings. Clearing resets
+          Velo stores all your data locally — routes, rides, gear, and settings. Clearing resets
           everything to factory defaults and removes all saved routes from IndexedDB.
         </p>
         {!confirming ? (

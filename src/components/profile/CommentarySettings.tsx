@@ -24,7 +24,7 @@ export function CommentarySettings() {
   } = useSettingsStore();
 
   function handleTestVoice() {
-    speakLine('Welcome to GlobeRide.', {
+    speakLine('Welcome to Velo.', {
       volume: commentaryVolume,
       rate: commentaryRate,
       voice: pickPreferredVoice(),

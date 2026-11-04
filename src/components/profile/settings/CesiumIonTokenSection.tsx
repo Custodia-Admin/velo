@@ -87,7 +87,7 @@ export function CesiumIonTokenSection() {
       title="Photoreal Earth (Cesium ion)"
     >
       <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
-        GlobeRide works out of the box with OpenStreetMap tiles. Adding a
+        Velo works out of the box with OpenStreetMap tiles. Adding a
         free Cesium ion token unlocks{' '}
         <span className="font-semibold text-foreground">Bing Aerial satellite imagery</span>,{' '}
         <span className="font-semibold text-foreground">Cesium World Terrain</span>, and{' '}

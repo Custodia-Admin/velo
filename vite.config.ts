@@ -17,10 +17,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'favicon.ico'],
       manifest: {
-        name: 'GlobeRide',
-        short_name: 'GlobeRide',
-        description:
-          'Virtual cycling on a 3D Earth — bring your own GPX route, your own smart trainer, your own ride.',
+        name: 'Velo',
+        short_name: 'Velo',
+        description: 'Ride real places on your smart trainer: a calm, scenic indoor ride in your browser.',
         theme_color: '#f8f6f2',
         background_color: '#f8f6f2',
         display: 'standalone',

@@ -1,10 +1,9 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 import { Home } from '@/routes/Home';
 import { Toaster } from '@/components/setup/Toaster';
 import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
-import { Onboarding } from '@/components/profile/Onboarding';
 import { AchievementToast } from '@/components/ride/AchievementToast';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 
@@ -17,12 +16,6 @@ function LoadingFallback() {
       <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
     </div>
   );
-}
-
-function AppLaunchOnboarding() {
-  const location = useLocation();
-  if (location.pathname === '/') return null;
-  return <Onboarding />;
 }
 
 export default function App() {
@@ -42,7 +35,6 @@ export default function App() {
         </Routes>
       </Suspense>
       <Toaster />
-      <AppLaunchOnboarding />
       <AchievementToast />
     </BrowserRouter>
   );
