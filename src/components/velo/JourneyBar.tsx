@@ -5,12 +5,12 @@
  * size, readable from the sofa), the next landmark, and one Pause button.
  *
  * In a window narrower than sm (the corner size) the next landmark moves to
- * its own pill at the top left (`JourneyLandmark`), so the bar stays one row,
- * and the gaps tighten from 6 to 3. The window is never narrower than
- * lib/show/pip PIP_MIN_WIDTH.corner (448 px), where the figures and Pause fit
- * at h:mm:ss with room to spare in wide system fonts (Ubuntu's DejaVu Sans
- * needed 435 px of the bar's 432 with gap 4). Same numbers as the show strip
- * (`useShowRideNumbers`).
+ * its own pill at the top left (`JourneyLandmark`), so the bar stays one row.
+ * The window is never narrower than lib/show/pip PIP_MIN_WIDTH.corner
+ * (448 px); below xs (475 px, only the laptop's corner window) the gaps
+ * tighten from the mockup's 6 to 3, so the figures and Pause fit at h:mm:ss
+ * in wide system fonts too (Ubuntu's DejaVu Sans needed 435 px of the bar's
+ * 432 with gap 4). Same numbers as the show strip (`useShowRideNumbers`).
  */
 
 import { Flag } from 'lucide-react';
@@ -31,7 +31,7 @@ export function JourneyBar({ numbers, className }: { numbers?: ShowRideNumbers; 
     <section
       aria-label="Ride numbers"
       data-testid="journey-bar"
-      className={cn(HUD_PANEL, 'pointer-events-auto relative flex items-center gap-3 overflow-hidden py-2 pl-4 pr-2 sm:gap-6', className)}
+      className={cn(HUD_PANEL, 'pointer-events-auto relative flex items-center gap-3 overflow-hidden py-2 pl-4 pr-2 xs:gap-6', className)}
     >
       <svg
         className="absolute inset-x-0 top-0 block h-1 w-full text-primary"
@@ -43,7 +43,7 @@ export function JourneyBar({ numbers, className }: { numbers?: ShowRideNumbers; 
         <rect width={TRACK_W} height="4" className="fill-hud-foreground/10" />
         <rect width={Math.round(n.progress * TRACK_W)} height="4" fill="currentColor" />
       </svg>
-      <div className="flex shrink-0 gap-3 sm:gap-6">
+      <div className="flex shrink-0 gap-3 xs:gap-6">
         <Figure size="large" value={n.time} label="Time" ariaLabel={`Time: ${n.time}`} />
         <Figure size="large" value={n.distanceValue} unit={n.distanceUnit} label="Distance" ariaLabel={n.distanceAria} />
         <Figure size="large" value={n.gradeText} unit="%" label="Grade" ariaLabel={`Grade: ${n.gradeText} %`} />

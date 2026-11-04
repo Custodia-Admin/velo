@@ -250,8 +250,19 @@ const STAGE = `(async () => {
   useShowStore.getState().setAutoCamera(false);
   useSettingsStore.getState().setCameraMode('chase');
   useRideStore.setState({ distance: 6100, elapsedMs: 1085 * 1000 });
+  // Paused at the still's spot so the chase camera settles there (software GL draws a few frames a
+  // second: a moving rider on a winding road keeps the camera swinging). FIGURES resumes it.
+  if (useRideStore.getState().rideState === 'running') useRideStore.getState().pause();
   window.__veloWorldLight?.set({ time: 'golden', weather: 'clear' });
   return useRideStore.getState().route?.id ?? null;
+})()`;
+
+/** Right before a shot: riding again (the bar shows Pause), at the still's numbers (18:05, 6.1 km). */
+const FIGURES = `(async () => {
+  const { useRideStore } = await import('/src/stores/rideStore.ts');
+  if (useRideStore.getState().rideState === 'paused') useRideStore.getState().resume();
+  useRideStore.setState({ distance: 6100, elapsedMs: 1085 * 1000 });
+  return useRideStore.getState().rideState;
 })()`;
 
 /** The mockup's window document at the build's sizes (served over http, as the mockup script does). */
@@ -363,21 +374,34 @@ async function run(theme, layout) {
     if (layout === '1440' || laptop) {
       const [screenW, screenH] = await evalIn(page, '[screen.width, screen.height]');
       for (const [size, [w, h]] of Object.entries(laptop ? LAPTOP_SIZES : SIZES).filter(([k]) => !process.env.ONLY_SIZES || process.env.ONLY_SIZES.split(',').includes(k))) {
-        // Window frame (title bar) outside the document: size the window so the document is w x h.
-        await browser.send('Browser.setWindowBounds', { windowId, bounds: { left: screenW - w - 40, top: screenH - h - 80, width: w, height: h } });
-        await sleep(500);
-        const [iw, ih] = await evalIn(page, '[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]');
-        await browser.send('Browser.setWindowBounds', { windowId, bounds: { width: w + (w - iw), height: h + (h - ih) } });
+        // The app's own size control first (it resizes the window and highlights the size), then
+        // size the window so the document is w x h: the frame (title bar) is outside the document,
+        // and a busy Chrome applies resizes late, so re-size from the current outer bounds until
+        // the document holds still at w x h (or Chrome's cap stops it).
         await click(pip, `document.querySelector('[data-pip-size=${size}]')`, `size ${size}`).catch(() => {});
-        await browser.send('Browser.setWindowBounds', { windowId, bounds: { width: w + (w - iw), height: h + (h - ih) } });
-        // Chrome caps a picture-in-picture window's size (half came out 923x518 on a 1920x1080 screen).
+        await sleep(2500);
+        await browser.send('Browser.setWindowBounds', { windowId, bounds: { left: screenW - w - 40, top: screenH - h - 80 } });
         const inner = () => evalIn(page, '[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]');
-        // On the laptop Chrome caps L at 573x318 (asked 640x360): shoot what it gives.
-        const got = await poll(inner, ([a, b]) => Math.abs(a - w) <= w * 0.05 && Math.abs(b - h) <= h * 0.05, 15_000, `window ${w}x${h}`).catch((e) => (laptop ? inner() : Promise.reject(e)));
+        const close = ([a, b]) => Math.abs(a - w) <= w * 0.05 && Math.abs(b - h) <= h * 0.05;
+        // Chrome caps a picture-in-picture window's size (half came out 923x518 on a 1920x1080
+        // screen, L 637x358 on the laptop): shoot what it gives there.
+        for (let i = 0; i < 6; i++) {
+          const a = await inner();
+          await sleep(1000);
+          const b = await inner();
+          if (a[0] === b[0] && a[1] === b[1] && (close(b) || i >= 3)) break;
+          if (a[0] !== b[0] || a[1] !== b[1]) continue;
+          const [ow, oh] = await evalIn(page, '[documentPictureInPicture.window.outerWidth, documentPictureInPicture.window.outerHeight]');
+          await browser.send('Browser.setWindowBounds', { windowId, bounds: { width: ow + (w - b[0]), height: oh + (h - b[1]) } });
+          await sleep(1500);
+        }
+        const got = await poll(inner, close, 15_000, `window ${w}x${h}`).catch((e) => (laptop ? inner() : Promise.reject(e)));
         if (got[0] !== w) console.log(`  window ${size}: asked ${w}x${h}, Chrome gave ${got[0]}x${got[1]}`);
         console.log('  staged', await evalIn(page, STAGE));
         await sleep(Number(process.env.SETTLE_S ?? 12) * 1000);
         await settleCamera(page, h);
+        await evalIn(page, FIGURES);
+        await sleep(1500);
         await savePipJpeg(pip, join(OUT, `pipwin-${size}${laptop ? '-1280' : ''}${suffix}.jpg`), page);
         const m = await evalIn(page, `(() => { const w = documentPictureInPicture.window; const d = w.document; const r = (s) => { const e = d.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)]; };
           const bar = d.querySelector('[data-testid=journey-bar]');
@@ -403,6 +427,7 @@ async function run(theme, layout) {
       await evalIn(page, `(() => { if (${JSON.stringify(vp)} === 'tv') document.documentElement.dataset.layout = 'tv'; else delete document.documentElement.dataset.layout; })()`);
       await sleep(1500);
       await evalIn(page, STAGE);
+      await evalIn(page, FIGURES);
       await sleep(1500);
       await saveJpeg(page, join(OUT, `pip-tab-${vp}${suffix}.jpg`));
       const tm = await evalIn(page, `(() => { const r = (s) => [...document.querySelectorAll(s)].filter(${shown}).map((e) => { const b = e.getBoundingClientRect(); return [Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height)]; });
