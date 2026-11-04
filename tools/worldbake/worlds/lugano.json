@@ -1,0 +1,32 @@
+{
+  "id": "lugano",
+  "name": "Lugano",
+  "description": "Lake Lugano from the city's lakefront past Paradiso to the Melide causeway, Monte Ceneri, and Lago Maggiore from Locarno past Ascona to Brissago.",
+  "origin": { "lat": 46.0593, "lon": 8.8386 },
+  "grid": { "xMin": -11500, "yMax": 13500, "cellSize": 15, "cols": 1534, "rows": 1801 },
+  "dem": { "zoom": 13 },
+  "osmDate": "2026-10-01T00:00:00Z",
+  "routes": ["scenic-lugano-melide", "scenic-locarno-brissago"],
+  "routesOutside": {
+    "scenic-magadino-plain": "Bellinzona is 14 km east of Locarno; the Magadino plain would stretch this world past 2048 nodes and the 8 MB budget.",
+    "scenic-valle-maggia": "Cevio is 15 km up the Maggia valley north of Locarno.",
+    "scenic-lake-varese": "Lake Varese is in Lombardy, 25 km south-west of Lugano.",
+    "scenic-lake-como-menaggio": "Menaggio to Gravedona is on Lake Como, 20 km east of Lugano."
+  },
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 400,
+    "offsetMeanM": 1600,
+    "coreCells": 1.5,
+    "falloffM": 40
+  },
+  "vegetation": {
+    "seed": 4600,
+    "maxInstances": 440000,
+    "spacingM": { "forest": 11, "wood": 11, "scrub": 16, "orchard": 7, "park": 20 },
+    "character": { "gardenKeep": 0.35, "riparianM": 30 }
+  },
+  "moods": ["golden-hour", "clear-afternoon", "clear-noon", "overcast", "mediterranean-mist"],
+  "defaultMood": "golden-hour",
+  "validation": { "seed": 46059, "samples": 50, "maxRmsM": 6 }
+}

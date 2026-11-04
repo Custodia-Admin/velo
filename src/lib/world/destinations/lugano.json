@@ -1,0 +1,90 @@
+{
+  "format": "velo-destination",
+  "version": 1,
+  "id": "lugano",
+  "name": "Lugano",
+  "role": "hometown",
+  "order": 1,
+  "place": "Ticino, Switzerland",
+  "detail": "Ticino and the Lombardy lakes",
+  "world": {
+    "id": "lugano",
+    "dir": "lugano/",
+    "bbox": {
+      "south": 45.93774,
+      "west": 8.68965,
+      "north": 46.18076,
+      "east": 8.98748
+    },
+    "routes": [
+      "scenic-lugano-melide",
+      "scenic-locarno-brissago"
+    ]
+  },
+  "routes": [
+    "scenic-lugano-melide",
+    "scenic-locarno-brissago",
+    "scenic-valle-maggia",
+    "scenic-magadino-plain",
+    "scenic-lake-varese",
+    "scenic-lake-como-menaggio"
+  ],
+  "moods": [
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast",
+    "mediterranean-mist"
+  ],
+  "defaultMood": "golden-hour",
+  "pois": [
+    {
+      "name": "Locarno",
+      "kind": "town",
+      "lat": 46.16957,
+      "lon": 8.79549
+    },
+    {
+      "name": "Lugano",
+      "kind": "town",
+      "lat": 46.0038,
+      "lon": 8.95123
+    },
+    {
+      "name": "Luino",
+      "kind": "town",
+      "lat": 45.99891,
+      "lon": 8.73991
+    }
+  ],
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "terrain-tiles",
+      "name": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry",
+      "licence": "Mixed open sources, attribution required",
+      "url": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+      "attribution": "Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ]
+}

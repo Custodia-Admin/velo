@@ -1,19 +1,16 @@
 /**
- * Home's scenic content: Today's ride, then one section per area
- * (Near home, Hometown, Further afield, Travels).
+ * Home's scenic content: Today's ride, then the sections generated from the
+ * destination manifests (src/lib/world/destinations/*.json): "Home · Perugia",
+ * "Hometown · Lugano", then "Places we want to go". This file holds no list
+ * of places or routes; adding a destination manifest adds its section/tiles.
  * Lazy-loaded by Home so the route geometry stays off the critical path.
  */
 
 import { useMemo, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  SCENIC_AREAS,
-  SCENIC_ROUTES,
-  todaysScenicRoute,
-  type ScenicRouteInfo,
-} from '@/lib/scenicRoutes';
+import { SCENIC_ROUTES, scenicRouteById, todaysScenicRoute, type ScenicRouteInfo } from '@/lib/scenicRoutes';
 import { useRideStore } from '@/stores/rideStore';
-import { worldForRoute } from '@/lib/world/catalog';
+import { destinationLabel, homeSections, type DestinationSection } from '@/lib/world/destinations';
 import { useShowStore } from '@/stores/showStore';
 import { pickVideos } from '@/lib/show/pickVideos';
 import { retryRouteWeather, useRoutesWeather } from '@/hooks/useLiveWeather';
@@ -21,13 +18,8 @@ import {
   FeaturedScenicRide,
   ScenicRouteGrid,
   ScenicSectionHeading,
+  type TilePlace,
 } from '@/components/velo/ScenicRoutes';
-
-/** Places with a baked 3D world (photographed plates) lead each area; map-view routes follow. */
-function withWorldsFirst(routes: ScenicRouteInfo[]): ScenicRouteInfo[] {
-  const world = routes.filter((r) => worldForRoute(r.route) !== null);
-  return [...world, ...routes.filter((r) => !world.includes(r))];
-}
 
 /** Stable list for the weather hook (module-level, so one identity). */
 const ALL_ROUTES = SCENIC_ROUTES.map((r) => r.route);
@@ -64,9 +56,45 @@ export function useRideWithShow(): (info: ScenicRouteInfo) => void {
   };
 }
 
+export interface HomeSectionView {
+  id: string;
+  title: string;
+  detail: string;
+  routes: ScenicRouteInfo[];
+  /** Wishlist tiles lead with the place (destination name, then route · region). */
+  placeById: Record<string, TilePlace>;
+}
+
 /**
- * Today's ride, then `afterFeatured` (Home's comfort line), then one section
- * per area with routes.
+ * The manifest-generated sections resolved to scenic routes, without the
+ * route featured as Today's ride. Sections left empty are dropped.
+ */
+export function homeSectionViews(
+  todayRouteId: string | null,
+  sections: readonly DestinationSection[] = homeSections(),
+): HomeSectionView[] {
+  return sections
+    .map((s) => {
+      const routes: ScenicRouteInfo[] = [];
+      const placeById: Record<string, TilePlace> = {};
+      for (const e of s.entries) {
+        if (e.routeId === todayRouteId) continue;
+        const info = scenicRouteById(e.routeId);
+        if (!info) continue;
+        routes.push(info);
+        if (s.role === 'wishlist') {
+          const d = e.destination;
+          placeById[e.routeId] = { title: d.name, line: info.name === d.name ? d.place : `${info.name} · ${d.place}` };
+        }
+      }
+      return { id: s.id, title: s.title, detail: s.detail, routes, placeById };
+    })
+    .filter((s) => s.routes.length > 0);
+}
+
+/**
+ * Today's ride, then `afterFeatured` (Home's comfort line), then the
+ * destination sections.
  */
 export function ScenicHomeSections({ afterFeatured }: { afterFeatured?: ReactNode } = {}) {
   const ride = useRideScenic();
@@ -76,18 +104,14 @@ export function ScenicHomeSections({ afterFeatured }: { afterFeatured?: ReactNod
   // One batched Open-Meteo request for every tile on the page.
   const weatherById = useRoutesWeather(ALL_ROUTES);
   // Today's pick is featured above, so its own section skips it.
-  const sections = SCENIC_AREAS.map((area) => ({
-    ...area,
-    routes: withWorldsFirst(
-      SCENIC_ROUTES.filter((r) => r.area === area.id && r.route.id !== today.route.id),
-    ),
-  })).filter((s) => s.routes.length > 0);
+  const sections = useMemo(() => homeSectionViews(today.route.id), [today]);
 
   return (
     <>
       <FeaturedScenicRide
         className="mt-6"
         info={today}
+        place={destinationLabel(today.route.id)}
         onRide={(info) => ride(info)}
         onRideWithShow={rideWithShow}
         weather={weatherById[today.route.id]}
@@ -95,11 +119,17 @@ export function ScenicHomeSections({ afterFeatured }: { afterFeatured?: ReactNod
       />
       {afterFeatured}
       {sections.map((s) => (
-        <section key={s.id} className="mt-10 sm:mt-12" aria-labelledby={`area-${s.id}`}>
-          <ScenicSectionHeading id={`area-${s.id}`} title={s.title} detail={s.detail} />
+        <section
+          key={s.id}
+          className="mt-10 sm:mt-12"
+          aria-labelledby={`destination-${s.id}`}
+          data-destination-section={s.id}
+        >
+          <ScenicSectionHeading id={`destination-${s.id}`} title={s.title} detail={s.detail} />
           <ScenicRouteGrid
             className="mt-5"
             routes={s.routes}
+            placeById={s.placeById}
             activeRouteId={activeRouteId}
             onRide={(info) => ride(info)}
             weatherById={weatherById}

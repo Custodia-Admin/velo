@@ -3,15 +3,18 @@
  *
  * The world renderer only draws a route that lies inside a baked world; any
  * other route (a GPX upload elsewhere, a destination ride without a world
- * yet, an outdoor GPS ride) falls back to the photoreal renderer. The bbox
- * mirrors the bundle's manifest (catalog.test.ts keeps them in step), so
- * deciding needs no download.
+ * yet, an outdoor GPS ride) falls back to the photoreal renderer. The list is
+ * derived from the destination manifests (`destinations.ts`): every
+ * destination that links a world contributes one entry, with the bbox and
+ * routes its manifest mirrors from the bundle (destinations.test.ts keeps
+ * them in step), so deciding needs no download.
  *
  * Engine-free (src/lib/world rule): no Cesium, three.js or React.
  */
 
 import type { Route } from '@/types';
 import type { WorldBbox } from './manifest';
+import { DESTINATIONS, type Destination } from './destinations';
 
 export interface WorldCatalogEntry {
   id: string;
@@ -24,15 +27,14 @@ export interface WorldCatalogEntry {
   routeIds: readonly string[];
 }
 
-export const WORLD_CATALOG: readonly WorldCatalogEntry[] = [
-  {
-    id: 'perugia',
-    name: 'Perugia',
-    dir: 'perugia/',
-    bbox: { south: 43.03391, west: 12.31702, north: 43.16021, east: 12.63672 },
-    routeIds: ['scenic-perugia-tiber-park', 'scenic-assisi-valley'],
-  },
-];
+/** One catalog entry per destination with a baked world. */
+export function worldCatalogFrom(destinations: readonly Destination[]): WorldCatalogEntry[] {
+  return destinations.flatMap((d) =>
+    d.world ? [{ id: d.world.id, name: d.name, dir: d.world.dir, bbox: d.world.bbox, routeIds: d.world.routes }] : [],
+  );
+}
+
+export const WORLD_CATALOG: readonly WorldCatalogEntry[] = worldCatalogFrom(DESTINATIONS);
 
 /** Keep this far inside the bbox edge so the chase camera has ground under it. */
 const EDGE_MARGIN_DEG = 0.0025;

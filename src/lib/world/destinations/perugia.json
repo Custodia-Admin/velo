@@ -1,0 +1,93 @@
+{
+  "format": "velo-destination",
+  "version": 1,
+  "id": "perugia",
+  "name": "Perugia",
+  "role": "home",
+  "order": 1,
+  "place": "Umbria, Italy",
+  "detail": "The Tiber valley, Assisi and Lake Trasimeno",
+  "world": {
+    "id": "perugia",
+    "dir": "perugia/",
+    "bbox": {
+      "south": 43.03391,
+      "west": 12.31702,
+      "north": 43.16021,
+      "east": 12.63672
+    },
+    "routes": [
+      "scenic-perugia-tiber-park",
+      "scenic-assisi-valley"
+    ]
+  },
+  "routes": [
+    "scenic-perugia-tiber-park",
+    "scenic-assisi-valley",
+    "scenic-trasimeno-shore"
+  ],
+  "moods": [
+    "clear-afternoon",
+    "clear-noon",
+    "golden-hour",
+    "overcast",
+    "valley-fog"
+  ],
+  "defaultMood": "clear-afternoon",
+  "pois": [
+    {
+      "name": "Assisi",
+      "kind": "town",
+      "lat": 43.0712,
+      "lon": 12.61467
+    },
+    {
+      "name": "Bastia Umbra",
+      "kind": "town",
+      "lat": 43.06776,
+      "lon": 12.54958
+    },
+    {
+      "name": "Perugia",
+      "kind": "town",
+      "lat": 43.11196,
+      "lon": 12.38901
+    },
+    {
+      "name": "Ponte San Giovanni",
+      "kind": "town",
+      "lat": 43.09072,
+      "lon": 12.4391
+    }
+  ],
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "terrain-tiles",
+      "name": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry",
+      "licence": "Mixed open sources, attribution required",
+      "url": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+      "attribution": "Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ]
+}
