@@ -20,7 +20,8 @@
  * frame or two while tiles refine doesn't flip the ground under the rider:
  * the globe can be metres above the mesh, so every flip moves the rider.
  * A jump (Ride again) waits too: a globe drawn again at once shows coarse
- * tiles for a second, over the rider (29 m at the Lugano–Melide start).
+ * tiles for a second, over the rider (5.7 m over the wheels at the
+ * Lugano–Melide start, by the main view's depth).
  */
 
 /** The mesh road has been under the rider this long before the globe hides (ms). */
