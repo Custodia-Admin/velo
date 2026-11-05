@@ -1721,10 +1721,14 @@ export function createMeshRoadFilter() {
  * few metres a step from the road and back to `reading`. A dip on the way
  * counts: the next step is measured from it.
  *
- * Each read is a vertical tile pick, run in the frame that samples. The chain
+ * Each read is a vertical tile pick, run in the frame that samples: 3.7–5.9 ms
+ * a pick on cat-bed (median of a burst of 10 picks a metre apart along the
+ * route at Cuyahoga 3 and 3.1 km and Lugano–Melide 5 km: 37–59 ms). The chain
  * stops reading as soon as `reading` is out of reach of the steps left, which
- * gives the same answer on every replayed sample and cuts the re-reads by
- * 60–70 % (Cuyahoga at 5 m spacing: 104 → 38 per km).
+ * gives the same answer on every replayed sample and cuts Cuyahoga's re-reads
+ * by 50–70 % (27–50 a km instead of 81–162; a ramp is still read to its end).
+ * The worst sample still re-reads 8 times (Cuyahoga read 4 or 8 m apart):
+ * ~30–47 ms in one frame.
  */
 function climbsInSteps(
   from: number,
