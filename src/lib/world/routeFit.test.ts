@@ -286,10 +286,23 @@ function fillOverlapM(roads: Layer): { worst: number; at: string } {
     .filter((r) => !isFill(r) && drawn(roads, r))
     .map((r) => ({ p: metres(r), half: halfOf(roads, r) }))
     .map((m) => ({ ...m, box: bbox(m.p, m.half) }));
+  // Mapped roads by 20 m cell, padded 5 m (past any fill's half-width), so a long piece stays cheap.
+  const CELL = 20;
+  const grid = new Map<string, typeof mapped>();
+  for (const m of mapped) {
+    for (let gx = Math.floor((m.box[0] - 5) / CELL); gx <= Math.floor((m.box[2] + 5) / CELL); gx++) {
+      for (let gy = Math.floor((m.box[1] - 5) / CELL); gy <= Math.floor((m.box[3] + 5) / CELL); gy++) {
+        const k = `${gx},${gy}`;
+        if (!grid.has(k)) grid.set(k, []);
+        grid.get(k)!.push(m);
+      }
+    }
+  }
+  const cellOf = (x: number, y: number) => grid.get(`${Math.floor(x / CELL)},${Math.floor(y / CELL)}`) ?? [];
   let worst = -Infinity;
   let at = '';
-  const probe = (x: number, y: number, half: number, near: typeof mapped, excused: (m: (typeof mapped)[number]) => boolean) => {
-    for (const m of near) {
+  const probe = (x: number, y: number, half: number, excused: (m: (typeof mapped)[number]) => boolean) => {
+    for (const m of cellOf(x, y)) {
       if (excused(m)) continue;
       const reach = half - edgeOf(x, y, m.p, m.half);
       if (reach > worst) { worst = reach; at = `(${x.toFixed(1)}, ${y.toFixed(1)})`; }
@@ -298,7 +311,7 @@ function fillOverlapM(roads: Layer): { worst: number; at: string } {
   for (const f of roads.roads.filter(isFill)) {
     const p = metres(f);
     const half = halfOf(roads, f);
-    const near = mapped.filter((m) => overlaps(m.box, bbox(p, half)));
+    const near = [...new Set([[p[0], p[1]], [p[p.length - 2], p[p.length - 1]]].flatMap(([x, y]) => cellOf(x, y)))];
     const pts = along(p, 0.05);
     const total = pts[pts.length - 1][2];
     // At each end: the roads it lies in are excused while the piece is still
@@ -318,11 +331,11 @@ function fillOverlapM(roads: Layer): { worst: number; at: string } {
       return { joined, until };
     });
     for (const [x, y, d] of pts) {
-      probe(x, y, half, near, (m) => (d < ends[0].until && ends[0].joined.includes(m)) || (d > total - ends[1].until && ends[1].joined.includes(m)));
+      probe(x, y, half, (m) => (d < ends[0].until && ends[0].joined.includes(m)) || (d > total - ends[1].until && ends[1].joined.includes(m)));
     }
     // The middle: its centre line must be off every mapped road.
     const [mx, my] = pts[Math.floor(pts.length / 2)];
-    for (const m of near) {
+    for (const m of cellOf(mx, my)) {
       const reach = half - Math.max(0, edgeOf(mx, my, m.p, m.half));
       if (edgeOf(mx, my, m.p, m.half) <= 0 && reach > worst) { worst = reach; at = `(${mx.toFixed(1)}, ${my.toFixed(1)}) mid`; }
     }
