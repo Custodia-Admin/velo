@@ -8,6 +8,7 @@
 
 import type { DirectorLandmark, DirectorShot } from '@/lib/world/director';
 import type { CameraDistance, ChaseFraming } from '@/lib/world/cameraFraming';
+import { hudCoveredPx, hudLensShiftPx } from '@/lib/world/hudLens';
 import type { WorldCameraMode } from '@/lib/world/renderer';
 import { routeLandmarks } from '@/lib/world/routeLandmarks';
 import type { Route } from '@/types';
@@ -140,7 +141,7 @@ export interface ViewOffsetCamera {
  * clearance are untouched. No-op (and cleared) at 0.
  */
 export function applyHudLensShift(camera: ViewOffsetCamera, width: number, height: number, coveredPx: number): void {
-  const shift = Math.round(Math.min(Math.max(coveredPx, 0), height * 0.5) / 2);
+  const shift = hudLensShiftPx(height, coveredPx);
   if (shift <= 0 || width <= 0 || height <= 0) {
     if (camera.view?.enabled) camera.clearViewOffset();
     return;
@@ -150,11 +151,5 @@ export function applyHudLensShift(camera: ViewOffsetCamera, width: number, heigh
   camera.setViewOffset(width, height, 0, shift, width, height);
 }
 
-/** CSS px a HUD covers at the bottom of the view hosting `canvas` (an ancestor's data-hud-bottom), else 0. */
-export function hudCoveredPx(canvas: { closest?: (sel: string) => Element | null }): number {
-  // (The r3f test renderer's canvas is not a DOM element.)
-  if (typeof canvas.closest !== 'function') return 0;
-  const host = canvas.closest('[data-hud-bottom]') as { dataset?: Record<string, string | undefined> } | null;
-  const n = Number(host?.dataset?.hudBottom);
-  return Number.isFinite(n) && n > 0 ? n : 0;
-}
+/** CSS px a HUD covers at the bottom of the view (shared with photoreal: lib/world/hudLens). */
+export { hudCoveredPx };

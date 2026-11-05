@@ -98,8 +98,8 @@ function FloatingRide({
   const rootRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   // The bottom bar takes a quarter of a small window: tell the world view how
-  // much of the frame it covers (data-hud-bottom, CSS px), so the camera
-  // frames the rider in the clear part above it (renderers/three/ChaseCamera).
+  // much of the frame it covers (data-hud-bottom, CSS px), so either renderer
+  // frames the rider in the clear part above it (lib/world/hudLens).
   useEffect(() => {
     const root = rootRef.current;
     const bottom = bottomRef.current;

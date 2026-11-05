@@ -57,6 +57,7 @@ import { ridePose } from '@/lib/ride/rideSim';
 import type { RiderPose, WorldViewProps } from '@/lib/world/renderer';
 import { createCesiumWorldRenderer } from '@/renderers/cesium/cesiumWorldRenderer';
 import { StartGroundWatch } from '@/renderers/cesium/startGround';
+import { applyHudLensCrop, lensCropState, type LensCropState } from '@/renderers/cesium/hudLensCrop';
 import {
   applyGraphicsQuality,
   recommendedGraphicsQuality,
@@ -289,6 +290,8 @@ export function CesiumWorldView({
   const riderOverrideRef = useRef<RiderPose | null>(null);
   /** Is the ground under the waiting rider at full detail (the start waits for it, lib/ride/startHold)? */
   const startGroundRef = useRef<StartGroundWatch | null>(null);
+  /** The crop that frames the rider above the floating window's bar (hudLensCrop); none in the tab. */
+  const lensCropRef = useRef<LensCropState | null>(null);
   // WorldRenderer.setMood: a pinned mood; null = route mood + live weather.
   const [moodOverride, setMoodOverride] = useState<MoodId | null>(null);
 
@@ -394,6 +397,16 @@ export function CesiumWorldView({
         contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
       });
       viewerRef.current = viewer;
+      // In the floating ride window the bar covers the bottom of the picture
+      // (data-hud-bottom): draw a taller canvas cropped by the window, so the
+      // rider sits in the clear band above the bar (hudLensCrop). Checked
+      // before every frame, ahead of its camera and canvas size.
+      const lensView = { container, camera: viewer.camera, resize: () => viewer.resize() };
+      const lensCrop = lensCropState(lensView);
+      lensCropRef.current = lensCrop;
+      viewer.scene.preUpdate.addEventListener(() => {
+        applyHudLensCrop(lensView, lensCrop);
+      });
       // Assigned as soon as it arrives (its tiles stream over the next frames);
       // on a busy laptop an idle callback alone sat out its 2 s timeout.
       worldTerrain
@@ -1115,6 +1128,9 @@ export function CesiumWorldView({
             viewer.scene,
             Cesium.Cartesian3.fromDegrees(riderLon, riderLat, groundEle),
           );
+          // Screen points in the view's own CSS px: the canvas of a cropped
+          // view (floating window, hudLensCrop) starts this far above it.
+          const cropTop = lensCropRef.current?.extendPx ?? 0;
           return {
             routeEle: sampled.ele,
             groundEle,
@@ -1123,9 +1139,10 @@ export function CesiumWorldView({
             dist: state.distance,
             riderLonLat: [riderLon, riderLat],
             startGround: startGroundRef.current?.debug() ?? null,
-            riderScreen: px ? [Math.round(px.x), Math.round(px.y)] : null,
+            riderScreen: px ? [Math.round(px.x), Math.round(px.y - cropTop)] : null,
             riderHeightPx: head && foot ? Math.round(Math.hypot(head.x - foot.x, head.y - foot.y)) : null,
-            viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight],
+            viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight - cropTop],
+            lensShiftPx: cropTop / 2,
           };
         };
       }
