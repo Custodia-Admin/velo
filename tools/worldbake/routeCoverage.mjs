@@ -605,13 +605,20 @@ function resolveJunctions(drawn, groups, lists) {
   return new Map([...pins].map(([k, m]) => [k, [...m.values()]]));
 }
 
-/** Largest distance from either polyline (metres) to the other, over vertices and segment midpoints. */
+/**
+ * Largest distance from either polyline (metres) to the other, over every
+ * vertex and a point every 0.1 m along each segment (the nearest feature of
+ * the other line can switch mid-segment, so vertices alone under-report).
+ */
 function hausdorff(a, b) {
   const one = (p, q) => {
     let worst = 0;
     for (let i = 0; i < p.length; i += 2) {
       const pts = [[p[i], p[i + 1]]];
-      if (i + 3 < p.length) pts.push([(p[i] + p[i + 2]) / 2, (p[i + 1] + p[i + 3]) / 2]);
+      if (i + 3 < p.length) {
+        const len = Math.hypot(p[i + 2] - p[i], p[i + 3] - p[i + 1]);
+        for (let u = 0.1; u < len; u += 0.1) pts.push([p[i] + ((p[i + 2] - p[i]) * u) / len, p[i + 1] + ((p[i + 3] - p[i + 1]) * u) / len]);
+      }
       for (const [x, y] of pts) {
         let d = Infinity;
         for (let j = 0; j + 3 < q.length; j += 2) {
@@ -801,6 +808,26 @@ export function easeRoadsOntoRoutes(routes, roads) {
     roadsEased: bent.length,
     joins: joins.length,
     bent,
+  };
+}
+
+/**
+ * What the fit changed, for the bake report: per bent road its index, final
+ * shift (Hausdorff between the mapped and shipped lines, m) and its mapped
+ * polyline in the bundle's decimetres as "x,y x,y …", so the shipped-bundle
+ * tests can compare every bent road with the line OSM mapped
+ * (src/lib/world/routeFit.test.ts).
+ */
+export function routeFitReport(fit) {
+  return {
+    roadsBent: fit.roadsEased,
+    maxShiftM: fit.maxShiftM,
+    joins: fit.joins,
+    bent: fit.bent.map((b) => ({
+      road: b.i,
+      shiftM: b.shiftM,
+      mapped: b.mapped.reduce((a, v, k) => (k % 2 ? a : [...a, `${v},${b.mapped[k + 1]}`]), []).join(' '),
+    })),
   };
 }
 

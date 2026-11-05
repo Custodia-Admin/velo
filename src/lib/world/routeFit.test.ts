@@ -10,9 +10,16 @@
  * way the OSM snapshot lacks), joining the roads at its two ends like any
  * mapped junction and never alongside one.
  *
+ * PR #42 review: a bend never drags a leg that turns off the route onto the
+ * road beside it (Locarno 2,072 m), a road end that lay in another road stays
+ * in it (no junction notches), the paint check samples every 0.1 m across the
+ * whole band (corner overhangs), the fill probe sees short pieces, and the
+ * bake reports the final shift.
+ *
  * - synthetic: what the bake's fit does (tools/worldbake/routeCoverage.mjs);
  * - shipped: every bundle in public/worlds, measured the way the renderer
- *   draws roads (flat ends, real widths).
+ *   draws roads (flat ends, real widths), against the mapped line of every
+ *   road the fit bent (tools/worldbake/reports/<id>.json routeFit.bent).
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -24,6 +31,7 @@ import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { createProjection } from './projection';
 import { ROAD_CLASSES, ROAD_FLAGS } from '../../../tools/worldbake/buildVectors.mjs';
 import {
+  ROUTE_EASE_CORNER_M,
   ROUTE_EASE_MAX_M,
   ROUTE_EASE_TAPER_M,
   ROUTE_PAINT_HALF_M,
@@ -104,44 +112,230 @@ function edgeOf(x: number, y: number, p: number[], half: number) {
   return best;
 }
 
+const steps = (roads: Layer) => roads.classes.indexOf('steps');
+/** A road the renderer draws as a ribbon (not steps, not in a tunnel). */
+const drawn = (roads: Layer, r: Road) => r.c !== steps(roads) && !((r.f ?? 0) & ROAD_FLAGS.tunnel) && r.p.length >= 4;
+const halfOf = (roads: Layer, r: Road) => Math.max(1, r.w ?? roads.widths[r.c]) / 2;
+const overlaps = (a: number[], b: number[]) => a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
+
+function cumulative(p: number[]) {
+  const cum = [0];
+  for (let i = 2; i < p.length; i += 2) cum.push(cum[cum.length - 1] + Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]));
+  return cum;
+}
+
+/** Points every `step` metres along each segment of a polyline, every vertex included, with the distance along it. */
+function along(p: number[], step: number): [number, number, number][] {
+  const out: [number, number, number][] = [];
+  const cum = cumulative(p);
+  for (let i = 1; i < cum.length; i++) {
+    const seg = cum[i] - cum[i - 1];
+    for (let u = 0; u < seg; u += step) {
+      const f = u / seg;
+      out.push([p[2 * i - 2] + (p[2 * i] - p[2 * i - 2]) * f, p[2 * i - 1] + (p[2 * i + 1] - p[2 * i - 1]) * f, cum[i - 1] + u]);
+    }
+  }
+  out.push([p[p.length - 2], p[p.length - 1], cum[cum.length - 1]]);
+  return out;
+}
+
+/** The point of polyline `p` nearest (x, y), and the unit direction of its segment there. */
+function nearest(x: number, y: number, p: number[]) {
+  let best = { d: Infinity, x: 0, y: 0, ux: 1, uy: 0 };
+  for (let i = 0; i + 3 < p.length; i += 2) {
+    const ax = p[i], ay = p[i + 1], dx = p[i + 2] - ax, dy = p[i + 3] - ay;
+    const l2 = dx * dx + dy * dy;
+    if (l2 === 0) continue;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+    const qx = ax + t * dx, qy = ay + t * dy;
+    const d = Math.hypot(x - qx, y - qy);
+    const l = Math.sqrt(l2);
+    if (d < best.d) best = { d, x: qx, y: qy, ux: dx / l, uy: dy / l };
+  }
+  return best;
+}
+
+/** Largest distance from either polyline to the other, metres (both densified to 0.1 m). */
+function hausdorff(a: number[], b: number[]) {
+  let h = 0;
+  for (const [x, y] of along(a, 0.1)) h = Math.max(h, nearest(x, y, b).d);
+  for (const [x, y] of along(b, 0.1)) h = Math.max(h, nearest(x, y, a).d);
+  return h;
+}
+
+/** A road's flat end: its centre and both corners, and the road's direction out of it. */
+function endPoints(p: number[], end: 0 | 1, half: number) {
+  const n = p.length;
+  const [x, y, px, py] = end === 0 ? [p[0], p[1], p[2], p[3]] : [p[n - 2], p[n - 1], p[n - 4], p[n - 3]];
+  const l = Math.hypot(x - px, y - py) || 1;
+  const ux = (x - px) / l, uy = (y - py) / l;
+  return { pts: [[x, y], [x - uy * half, y + ux * half], [x + uy * half, y - ux * half]] as [number, number][], ux, uy };
+}
+
+interface Drawn { i: number; p: number[]; half: number; box: number[] }
+
+/**
+ * The mapped roads (fills left out) as drawn, before and after the fit:
+ * `before` puts back the mapped line of every road in `mapped` (index →
+ * polyline in decimetres).
+ */
+function drawnPair(roads: Layer, mapped: Map<number, number[]>) {
+  const before: (Drawn | null)[] = [];
+  const after: (Drawn | null)[] = [];
+  roads.roads.forEach((r, i) => {
+    if (isFill(r) || !drawn(roads, r)) { before.push(null); after.push(null); return; }
+    const half = halfOf(roads, r);
+    const pa = metres(r);
+    const pb = mapped.has(i) ? mapped.get(i)!.map((v) => v / 10) : pa;
+    before.push({ i, p: pb, half, box: bbox(pb, half) });
+    after.push({ i, p: pa, half, box: bbox(pa, half) });
+  });
+  return { before, after };
+}
+
+/**
+ * Where a road the fit moved newly lies over another drawn road along its
+ * length, metres deep (its drawn width reaching past the other's edge) and
+ * long, compared with the mapped lines. Points within reach of a junction the
+ * two roads already had (an end of either inside the other) don't count: a
+ * fork's arms run within reach of each other there.
+ */
+function newOverlaps(roads: Layer, mapped: Map<number, number[]>, minDepth = 0.1) {
+  const { before, after } = drawnPair(roads, mapped);
+  const found: { road: number; other: number; depthM: number; lengthM: number; at: string }[] = [];
+  for (const i of mapped.keys()) {
+    const A = after[i], B = before[i];
+    if (!A || !B) continue;
+    const others = after.filter((o): o is Drawn => !!o && o.i !== i && (overlaps(o.box, bbox(A.p, A.half)) || overlaps(before[o.i]!.box, bbox(B.p, B.half))));
+    // The junctions the two had as mapped, each with the reach of its fork.
+    const zones = new Map<number, { x: number; y: number; r: number }[]>();
+    for (const o of others) {
+      const O = before[o.i]!;
+      const z: { x: number; y: number; r: number }[] = [];
+      for (const [a, b] of [[B, O], [O, B]]) {
+        for (const end of [0, 1] as const) {
+          const { pts, ux, uy } = endPoints(a.p, end, a.half);
+          for (const [x, y] of pts) {
+            if (edgeOf(x, y, b.p, b.half) > 0.05) continue;
+            const q = nearest(x, y, b.p);
+            const sin = Math.abs(ux * q.uy - uy * q.ux);
+            const hh = a.half + b.half;
+            z.push({ x, y, r: hh + Math.min(10, hh / Math.max(sin, 0.1)) });
+          }
+        }
+      }
+      zones.set(o.i, z);
+    }
+    for (const o of others) {
+      let depth = 0, length = 0, at = '';
+      for (const [x, y] of along(A.p, 0.1)) {
+        const deep = A.half - edgeOf(x, y, o.p, o.half);
+        if (deep <= minDepth) continue;
+        const q = nearest(x, y, B.p);
+        if (A.half - edgeOf(q.x, q.y, before[o.i]!.p, o.half) > 0) continue;
+        if (zones.get(o.i)!.some((z) => Math.hypot(q.x - z.x, q.y - z.y) <= z.r)) continue;
+        length += 0.1;
+        if (deep > depth) { depth = deep; at = `(${x.toFixed(1)}, ${y.toFixed(1)})`; }
+      }
+      if (length > 0) found.push({ road: i, other: o.i, depthM: Math.round(depth * 100) / 100, lengthM: Math.round(length * 10) / 10, at });
+    }
+  }
+  return found;
+}
+
+/**
+ * Road ends (centre or a corner of the flat end) that lay in another drawn
+ * road as mapped and no longer lie in any (beyond `tol` metres) as fitted: a
+ * notch opened at a junction.
+ */
+function openedEnds(roads: Layer, mapped: Map<number, number[]>, tol = 0.05) {
+  const { before, after } = drawnPair(roads, mapped);
+  const moved = [...mapped.keys()].filter((i) => after[i]).map((i) => [bbox(before[i]!.p, 3), bbox(after[i]!.p, 3)]).flat();
+  const cover = (set: (Drawn | null)[], j: number, x: number, y: number) => {
+    let best = Infinity;
+    for (const o of set) if (o && o.i !== j && x >= o.box[0] && x <= o.box[2] && y >= o.box[1] && y <= o.box[3]) best = Math.min(best, edgeOf(x, y, o.p, o.half));
+    return best;
+  };
+  const found: { road: number; end: number; point: string; pastEdgeM: number; at: string }[] = [];
+  for (const B of before) {
+    if (!B || !moved.some((m) => overlaps(m, B.box))) continue;
+    const A = after[B.i]!;
+    for (const end of [0, 1] as const) {
+      const pb = endPoints(B.p, end, B.half).pts;
+      const pa = endPoints(A.p, end, A.half).pts;
+      pb.forEach(([x, y], k) => {
+        if (cover(before, B.i, x, y) > tol) return;
+        const e = cover(after, B.i, pa[k][0], pa[k][1]);
+        if (e > tol) found.push({ road: B.i, end, point: k ? 'corner' : 'centre', pastEdgeM: Math.round(e * 100) / 100, at: `(${pa[k][0].toFixed(1)}, ${pa[k][1].toFixed(1)})` });
+      });
+    }
+  }
+  return found;
+}
+
 /**
  * How far a route-fill piece reaches into the mapped roads away from its two
- * ends (its junctions), metres; ≤ 0 means it never lies over one there.
+ * ends (its junctions), metres; ≤ 0 means it never lies over one there. At
+ * each end only the roads that end lies in are excused, and only up to where
+ * the piece's centre line leaves them plus its half-width; its middle is
+ * always probed, so a piece lying along a road (inside it end to end) counts
+ * however short.
  */
 function fillOverlapM(roads: Layer): { worst: number; at: string } {
-  const steps = roads.classes.indexOf('steps');
   const mapped = roads.roads
-    .filter((r) => !isFill(r) && r.c !== steps && !((r.f ?? 0) & ROAD_FLAGS.tunnel) && r.p.length >= 4)
-    .map((r) => ({ p: metres(r), half: Math.max(1, r.w ?? roads.widths[r.c]) / 2 }))
+    .filter((r) => !isFill(r) && drawn(roads, r))
+    .map((r) => ({ p: metres(r), half: halfOf(roads, r) }))
     .map((m) => ({ ...m, box: bbox(m.p, m.half) }));
   let worst = -Infinity;
   let at = '';
+  const probe = (x: number, y: number, half: number, near: typeof mapped, excused: (m: (typeof mapped)[number]) => boolean) => {
+    for (const m of near) {
+      if (excused(m)) continue;
+      const reach = half - edgeOf(x, y, m.p, m.half);
+      if (reach > worst) { worst = reach; at = `(${x.toFixed(1)}, ${y.toFixed(1)})`; }
+    }
+  };
   for (const f of roads.roads.filter(isFill)) {
     const p = metres(f);
-    const half = Math.max(1, f.w ?? roads.widths[f.c]) / 2;
-    const fb = bbox(p, half);
-    const near = mapped.filter((m) => m.box[0] <= fb[2] && m.box[2] >= fb[0] && m.box[1] <= fb[3] && m.box[3] >= fb[1]);
-    const cum = [0];
-    for (let i = 2; i < p.length; i += 2) cum.push(cum[cum.length - 1] + Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]));
-    const total = cum[cum.length - 1];
-    // A join reaches a metre into the road at each end, plus its own width.
-    const junction = 1 + 2 * half;
-    for (let i = 1; i < cum.length; i++) {
-      const seg = cum[i] - cum[i - 1];
-      for (let u = 0; u <= seg; u += 0.25) {
-        const d = cum[i - 1] + u;
-        if (d < junction || d > total - junction) continue;
-        const f2 = seg ? u / seg : 0;
-        const x = p[2 * i - 2] + (p[2 * i] - p[2 * i - 2]) * f2;
-        const y = p[2 * i - 1] + (p[2 * i + 1] - p[2 * i - 1]) * f2;
-        for (const m of near) {
-          const reach = half - edgeOf(x, y, m.p, m.half);
-          if (reach > worst) { worst = reach; at = `(${x.toFixed(1)}, ${y.toFixed(1)})`; }
-        }
+    const half = halfOf(roads, f);
+    const near = mapped.filter((m) => overlaps(m.box, bbox(p, half)));
+    const pts = along(p, 0.05);
+    const total = pts[pts.length - 1][2];
+    // At each end: the roads it lies in are excused while the piece is still
+    // inside them or moving away from them (its reach into them shrinking).
+    const ends = ([0, 1] as const).map((end) => {
+      const [ex, ey] = end === 0 ? [p[0], p[1]] : [p[p.length - 2], p[p.length - 1]];
+      const joined = near.filter((m) => edgeOf(ex, ey, m.p, m.half) <= 0.05);
+      const seq = end === 0 ? pts : [...pts].reverse();
+      let until = total;
+      let prev = Infinity;
+      for (const [x, y, d] of seq) {
+        const inside = joined.some((m) => edgeOf(x, y, m.p, m.half) <= 0);
+        const reach = Math.max(-Infinity, ...joined.map((m) => half - edgeOf(x, y, m.p, m.half)));
+        if (!inside && reach >= prev - 1e-6) { until = end === 0 ? d : total - d; break; }
+        prev = reach;
       }
+      return { joined, until };
+    });
+    for (const [x, y, d] of pts) {
+      probe(x, y, half, near, (m) => (d < ends[0].until && ends[0].joined.includes(m)) || (d > total - ends[1].until && ends[1].joined.includes(m)));
+    }
+    // The middle: its centre line must be off every mapped road.
+    const [mx, my] = pts[Math.floor(pts.length / 2)];
+    for (const m of near) {
+      const reach = half - Math.max(0, edgeOf(mx, my, m.p, m.half));
+      if (edgeOf(mx, my, m.p, m.half) <= 0 && reach > worst) { worst = reach; at = `(${mx.toFixed(1)}, ${my.toFixed(1)}) mid`; }
     }
   }
   return { worst, at };
+}
+
+const clone = (roads: Layer): Layer => JSON.parse(JSON.stringify(roads));
+/** The mapped line (dm) of every road the fit changed, from a copy taken before it. */
+function changedFrom(before: Layer, after: Layer) {
+  const m = new Map<number, number[]>();
+  before.roads.forEach((r, i) => { if (r.p.join() !== after.roads[i].p.join()) m.set(i, r.p); });
+  return m;
 }
 
 describe('bake: fit the drawn roads to a route (one surface under the guide)', () => {
@@ -238,10 +432,88 @@ describe('bake: fit the drawn roads to a route (one surface under the guide)', (
     ]);
     expect(fillOverlapM(roads).worst).toBeGreaterThan(0.1);
   });
+
+  it('the overlap probe sees a short piece too: 3 m laid along a path, inside it or just beside it (review X3b)', () => {
+    for (const y of [0.6, 0.9]) {
+      const roads = layer([
+        { c: CLS.path, p: dm([[0, 0], [60, 0]]) },
+        { c: CLS.path, f: ROAD_FLAGS.routeFill, p: dm([[20, y], [23, y]]) },
+      ]);
+      expect(fillOverlapM(roads).worst, `piece ${y} m off the path`).toBeGreaterThan(0.1);
+    }
+  });
+
+  it('bends a corner the route runs past by at most ROUTE_EASE_CORNER_M, never down the leg that turns away (Locarno 2,072 m)', () => {
+    // A 1.5 m path runs west along y = 0, turns south at (-3, 0), steps 1 m and runs on
+    // south; a 6 m road runs beside that leg, 0.15 m past its edge.
+    const path = { c: CLS.path, p: dm([[40, 0], [-3, 0], [-3, -1], [-3, -40]]) };
+    const roads = layer([path, { c: CLS.tertiary, p: dm([[-6.9, -2.5], [-6.9, -40]]) }]);
+    const before = clone(roads);
+    // The route runs on 1 m past the corner: its paint ends 0.29 m past the path's edge.
+    const r = route('r', [[40, 0], [-4, 0]]);
+    expect(routePaintCoverage([r], roads)[0].pct).toBeLessThan(100);
+    const fit = easeRoadsOntoRoutes([r], roads);
+    expect(fit.joins).toBe(0);
+    expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
+    // The corner moved; the leg from its next vertex on kept its mapped line.
+    const p = metres(roads.roads[0]);
+    expect(p.slice(0, 2)).toEqual([40, 0]);
+    expect(p.slice(-4)).toEqual([-3, -1, -3, -40]);
+    expect(newOverlaps(roads, changedFrom(before, roads))).toEqual([]);
+    expect(fit.maxShiftM).toBeGreaterThan(0.2);
+    expect(fit.maxShiftM).toBeLessThanOrEqual(ROUTE_EASE_CORNER_M);
+
+    // The route crosses 2.25 m of grass from that corner to a road: a join, not a 2.3 m bend.
+    const roads2 = layer([{ ...path }, { c: CLS.tertiary, p: dm([[-9, -20], [-9, 20]]) }]);
+    const before2 = clone(roads2);
+    const r2 = route('r2', [[40, 0], [-9, 0]]);
+    const fit2 = easeRoadsOntoRoutes([r2], roads2);
+    expect(fit2.joins).toBe(1);
+    expect(routePaintCoverage([r2], roads2)[0].pct).toBe(100);
+    expect(hausdorff(metres(before2.roads[0]), metres(roads2.roads[0]))).toBeLessThanOrEqual(ROUTE_EASE_CORNER_M + 0.05);
+    expect(fillOverlapM(roads2).worst).toBeLessThanOrEqual(0.05);
+  });
+
+  it('moves the end of a road that met a bent one with it: no notch opens at the junction', () => {
+    // Two paths meet end to end at (0, 0); the route runs 0.8 m south of the first one
+    // for 14 m, back on it 2 m before the junction.
+    const roads = layer([
+      { c: CLS.path, p: dm([[-40, 0], [0, 0]]) },
+      { c: CLS.path, p: dm([[0, 0], [40, 2]]) },
+    ]);
+    const before = clone(roads);
+    const r = route('r', [[-40, 0], [-24, 0], [-20, -0.8], [-6, -0.8], [-2, 0], [0, 0], [40, 2]]);
+    easeRoadsOntoRoutes([r], roads);
+    expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
+    const moved = changedFrom(before, roads);
+    expect([...moved.keys()]).toEqual([0, 1]);
+    expect(openedEnds(roads, moved)).toEqual([]);
+    expect(newOverlaps(roads, moved)).toEqual([]);
+  });
+
+  it('checks the paint every 0.1 m: a corner overhang shorter than a metre counts (Locarno 2,060 m), and the fit closes it', () => {
+    // Two paths meet at a right angle, flat end to flat end at (0, 0); the route turns 0.2 m past the corner.
+    const roads = layer([
+      { c: CLS.path, p: dm([[-30, 0], [0, 0]]) },
+      { c: CLS.path, p: dm([[0, 0], [0, 30]]) },
+    ]);
+    const r = route('r', [[-30, 0], [0.2, 0], [0.2, 30]]);
+    const c = routePaintCoverage([r], roads)[0];
+    expect(c.misses).toHaveLength(1);
+    expect(c.misses[0].maxOffM).toBeGreaterThanOrEqual(0.19);
+    expect(c.misses[0].lengthM).toBeLessThanOrEqual(2);
+    const before = clone(roads);
+    easeRoadsOntoRoutes([r], roads);
+    expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
+    expect(openedEnds(roads, changedFrom(before, roads))).toEqual([]);
+  });
 });
 
 const WORLDS = fileURLToPath(new URL('../../../public/worlds', import.meta.url));
 const RECIPES = fileURLToPath(new URL('../../../tools/worldbake/worlds', import.meta.url));
+const REPORTS = fileURLToPath(new URL('../../../tools/worldbake/reports', import.meta.url));
+
+interface RouteFitReport { roadsBent: number; maxShiftM: number; joins: number; bent: { road: number; shiftM: number; mapped: string }[] }
 
 function shippedWorlds() {
   return readdirSync(WORLDS)
@@ -252,7 +524,9 @@ function shippedWorlds() {
       const roads: Layer = JSON.parse(gunzipSync(readFileSync(join(WORLDS, id, manifest.layers.roads))).toString('utf8'));
       const projection = createProjection(manifest.projection);
       const routes: Sampled[] = recipe.routes.map((rid: string) => ({ id: rid, ...sampleAppRoute(SCENIC_ROUTE_GEOMETRY[rid].points, projection) }));
-      return { id, roads, routes };
+      const fit: RouteFitReport | undefined = JSON.parse(readFileSync(join(REPORTS, `${id}.json`), 'utf8')).routeFit;
+      const mapped = new Map<number, number[]>((fit?.bent ?? []).map((b) => [b.road, b.mapped.split(' ').flatMap((xy) => xy.split(',').map(Number))]));
+      return { id, roads, routes, fit, mapped };
     });
 }
 
@@ -274,6 +548,28 @@ describe('shipped worlds: the guide sits on one drawn surface', () => {
     it(`${w.id}: no route-fill piece lies over a mapped road except where it joins one`, () => {
       const { worst, at } = fillOverlapM(w.roads);
       expect(worst, `reaches ${worst.toFixed(2)} m into a mapped road at ${at}`).toBeLessThanOrEqual(0.05);
+    });
+
+    it(`${w.id}: the bake reports every road it bent with its final shift (mapped vs shipped)`, () => {
+      expect(w.fit, 'tools/worldbake/reports routeFit').toBeDefined();
+      const fit = w.fit!;
+      expect(fit.roadsBent).toBe(fit.bent.length);
+      expect(fit.joins).toBe(w.roads.roads.filter(isFill).length);
+      for (const b of fit.bent) {
+        const shipped = metres(w.roads.roads[b.road]);
+        const mapped = w.mapped.get(b.road)!.map((v) => v / 10);
+        expect(mapped.join(), `road ${b.road}`).not.toBe(shipped.join());
+        expect(Math.abs(hausdorff(mapped, shipped) - b.shiftM), `road ${b.road}`).toBeLessThanOrEqual(0.011);
+      }
+      expect(fit.maxShiftM).toBe(Math.max(0, ...fit.bent.map((b) => b.shiftM)));
+    });
+
+    it(`${w.id}: no road the fit bent newly lies over another drawn road (beyond 0.1 m, outside their junctions)`, () => {
+      expect(newOverlaps(w.roads, w.mapped)).toEqual([]);
+    });
+
+    it(`${w.id}: every road end that lay in another drawn road as mapped still does (within 0.05 m)`, () => {
+      expect(openedEnds(w.roads, w.mapped)).toEqual([]);
     });
   }
 
