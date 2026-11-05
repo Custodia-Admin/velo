@@ -484,7 +484,7 @@ describe('Ride again on photoreal: the finish line road is not the ground on the
     const start = ridePose(route, 0);
     const nearStart = (c: Cesium.Cartographic) =>
       Math.abs(Cesium.Math.toDegrees(c.latitude) - start.lat) < Math.abs(Cesium.Math.toDegrees(c.latitude) - finish.lat);
-    let startMesh: number | undefined;
+    let startMesh: number | undefined = undefined;
     setIonToken('eyJ_test');
     const { tileset, getHeight } = await photoreal(undefined);
     getHeight.mockImplementation((c?: Cesium.Cartographic) => (nearStart(c!) ? startMesh : 363.4));
