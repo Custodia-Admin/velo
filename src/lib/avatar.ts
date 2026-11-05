@@ -1602,8 +1602,13 @@ export type MeshRoadStatus = 'road' | 'overhang' | 'coarse' | 'none';
  * the mesh at that last road spot rose too (a tile refined under the rider);
  * otherwise it is over the road and the rider keeps the road it has. Lower
  * rises are ridden over. Falls are always taken (the rider eases down).
+ *
+ * `overhangs: false` takes every reading inside the coarse-tile bounds: the
+ * top of whatever is drawn there, which a camera has to clear (a wall, a
+ * hillside, a palm crown), not only the road.
  */
-export function createMeshRoadFilter() {
+export function createMeshRoadFilter(opts: { overhangs?: boolean } = {}) {
+  const overhangs = opts.overhangs ?? true;
   let base: number | undefined;
   let baseLon = NaN;
   let baseLat = NaN;
@@ -1632,6 +1637,7 @@ export function createMeshRoadFilter() {
       }
       const moved = metresBetween(lon, lat, baseLon, baseLat);
       const climbs =
+        !overhangs ||
         base === undefined ||
         moved >= OVERHANG_GIVE_UP_M ||
         reading <= base + Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + OVERHANG_GRADE * moved);
@@ -1682,13 +1688,13 @@ export function createMeshRoadFilter() {
  * rider is on: there is no other drawn surface to stand on, and the hidden
  * globe's stale tiles are not what anyone sees.
  */
-export function createGroundSampler(scene: Cesium.Scene) {
+export function createGroundSampler(scene: Cesium.Scene, opts: { overhangs?: boolean } = {}) {
   let lastMs = -Infinity;
   let lastLon = NaN;
   let lastLat = NaN;
   let last: number | undefined;
   let onMesh = false;
-  const road = createMeshRoadFilter();
+  const road = createMeshRoadFilter(opts);
   const meshAt = (lon: number, lat: number) =>
     withRidersHidden(() => sampleGroundHeight(scene, lon, lat, groundSampleExclusions()));
   return {

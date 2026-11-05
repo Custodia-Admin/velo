@@ -317,6 +317,35 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     expect(f.road()).toBeUndefined();
   });
 
+  it("a camera's filter takes the top of whatever is drawn (a palm crown 10 m up), still not a coarse tile", () => {
+    const cam = createMeshRoadFilter({ overhangs: false });
+    const none = () => undefined;
+    expect(cam.next(-28.6, lon, lat(0), 40, none)).toBe(-28.6);
+    expect(cam.next(-18.6, lon, lat(2), 40, () => -28.6)).toBe(-18.6);
+    expect(cam.status()).toBe('road');
+    expect(cam.next(505.7, lon, lat(4), 40, none)).toBe(-18.6);
+    expect(cam.status()).toBe('coarse');
+    // The rider's filter holds the path under the same crown.
+    const rider = createMeshRoadFilter();
+    rider.next(-28.6, lon, lat(0), 40, none);
+    expect(rider.next(-18.6, lon, lat(2), 40, () => -28.6)).toBe(-28.6);
+  });
+
+  it("the camera's sampler stands on the crown the rider rides under (Santa Monica Strand palms)", async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
+      Cesium.Math.toDegrees(c.latitude) > lat(1) ? -18.6 : -28.6,
+    );
+    const { s } = scene(tileset, { height: -32.6, show: false });
+    const cam = createGroundSampler(s, { overhangs: false });
+    const rider = createGroundSampler(s);
+    cam.sample(lon, lat(0), -30, 0);
+    rider.sample(lon, lat(0), -30, 0);
+    expect(cam.sample(lon, lat(2), -30, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-18.6, 6);
+    expect(rider.sample(lon, lat(2), -30, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(-28.6, 6);
+  });
+
   it('a hole in the mesh under a hidden globe keeps the road; under a drawn globe the globe decides', async () => {
     setIonToken('eyJ_test');
     let reading: number | undefined = 361.4;

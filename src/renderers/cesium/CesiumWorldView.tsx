@@ -1299,7 +1299,11 @@ export function CesiumWorldView({
             if (camCarto) {
               let camGround = cameraGroundSamplers.get(viewer.scene);
               if (!camGround) {
-                camGround = createGroundSampler(viewer.scene);
+                // The camera clears whatever is drawn under it, not just the
+                // road: with the globe hidden nothing else lifts it, and held
+                // under a palm or a rock cut it filmed the inside of the mesh
+                // (Santa Monica 1.5 km: 20 flat frames in 200 s).
+                camGround = createGroundSampler(viewer.scene, { overhangs: false });
                 cameraGroundSamplers.set(viewer.scene, camGround);
               }
               const ground = camGround.sample(

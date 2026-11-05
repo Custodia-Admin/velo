@@ -10,7 +10,9 @@
  *   classifications that paint walls and trees over the mesh) follows it;
  * - the start watch is told when the mesh is the ground (a hidden globe stops
  *   refining, which would hold every start to the cap);
- * - a missing rider or a new route puts the globe back.
+ * - a missing rider or a new route puts the globe back;
+ * - the side camera clears whatever is drawn under it (no rider overhang
+ *   filter): with the globe hidden nothing else lifts it out of the mesh.
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -50,5 +52,9 @@ describe('CesiumWorldView drives the globe gate', () => {
     expect(resets).toBe(2);
     expect(SRC).toMatch(/if \(!r \|\| !avatarRef\.current\) \{\s*globeGateRef\.current\.reset\(\);\s*viewer\.scene\.globe\.show = true;/);
     expect(SRC).toMatch(/globeGateRef\.current\.reset\(\);\s*if \(!viewer\.isDestroyed\(\)\) viewer\.scene\.globe\.show = true;\s*\n\s*if \(!route\) return;/);
+  });
+
+  it('lifts the side camera over the top of whatever is drawn, not just the road', () => {
+    expect(SRC).toContain('camGround = createGroundSampler(viewer.scene, { overhangs: false });');
   });
 });
