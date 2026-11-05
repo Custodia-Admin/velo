@@ -1579,12 +1579,25 @@ export const OVERHANG_MIN_M = 4;
  * A rise refused between two readings further apart than this (m) is read
  * again in steps of at most this length from the last road spot …
  */
-export const OVERHANG_STEP_M = 2;
+export const OVERHANG_STEP_M = 1;
 /**
  * … up to this far from it (m): the sampler reads every ~5 m of travel, so
- * this covers the gap between two samples and bounds the extra reads (4).
+ * this covers the gap between two samples and bounds the extra reads (9).
  */
 export const OVERHANG_STEP_SPAN_M = 10;
+/**
+ * Steepest a re-read step may rise (m per m): a ramp of ground the rider is
+ * lifted along. On Lugano–Melide the route climbs an embankment at 4.93 km at
+ * up to 1.46 and clips a mound at 5 km at up to 1.2; tree crown edges over
+ * the Cuyahoga towpath rise 4 m within half a metre. Replayed over the mesh
+ * along Lugano, Santa Monica, Cuyahoga and Trasimeno at every sample spacing
+ * from 2 to 8 m and every phase, 2 rides every Lugano ramp and climbs no crown
+ * that the filter used to leave over the road; 1.75 left the Lugano rider in
+ * the embankment at one phase, 2.5 climbed Cuyahoga crowns. Per 1 m step this
+ * is half of {@link OVERHANG_MIN_M}: whatever the re-read takes, a rider read
+ * every metre would have been lifted onto too.
+ */
+export const OVERHANG_STEP_GRADE = 2;
 
 function metresBetween(lon: number, lat: number, fromLon: number, fromLat: number): number {
   if (Number.isNaN(fromLon)) return Infinity;
@@ -1613,12 +1626,12 @@ export type MeshRoadStatus = 'road' | 'overhang' | 'coarse' | 'none';
  * otherwise it is over the road and the rider keeps the road it has. Lower
  * rises are ridden over. Falls are always taken (the rider eases down).
  *
- * The rule holds per {@link OVERHANG_STEP_M} of road, whatever the distance
- * between two samples: a rise refused across a longer gap is read again in
- * shorter steps, and it is the road if every step is one a rider is lifted
- * over (Lugano–Melide 5 km: a mound the route clips rises 4.7 m in 6 m, about
- * 2 m per 2 m; read 4 m apart the rider rode over it, read 6 m apart the
- * rider was kept inside it for as long as it stood there).
+ * A rise refused across a gap longer than {@link OVERHANG_STEP_M} is read
+ * again every metre on the way, and it is the road if it is a ramp: no step
+ * steeper than {@link OVERHANG_STEP_GRADE}. Lugano–Melide 5 km: a mound the
+ * route clips rises 4.7 m in 6 m; read 4 m apart (two rises under the floor)
+ * the rider rode over it, read 6 m apart (one 4.67 m rise) the rider was kept
+ * inside it for as long as it stood there.
  */
 export function createMeshRoadFilter() {
   let base: number | undefined;
@@ -1691,12 +1704,12 @@ export function createMeshRoadFilter() {
 
 /**
  * Whether the mesh rises from `from` (the road at fromLon/fromLat) to
- * `reading` (at lon/lat, `moved` metres on) in steps a rider is lifted over:
- * read again every {@link OVERHANG_STEP_M} on the way, each step no higher
- * than {@link createMeshRoadFilter}'s rule allows. Not for a gap of one step
- * or less (nothing to read in between) or over {@link OVERHANG_STEP_SPAN_M}.
- * A spot with no reading breaks the chain; so does a coarse one, as the chain
- * only climbs a few metres a step from the road and back to `reading`.
+ * `reading` (at lon/lat, `moved` metres on) as a ramp: read again every
+ * {@link OVERHANG_STEP_M} or less on the way, no step steeper than
+ * {@link OVERHANG_STEP_GRADE}. Not for a gap of one step or less (nothing to
+ * read in between) or over {@link OVERHANG_STEP_SPAN_M}. A spot with no
+ * reading breaks the chain; so does a coarse one, as the chain only climbs a
+ * few metres a step from the road and back to `reading`.
  */
 function climbsInSteps(
   from: number,
@@ -1710,8 +1723,7 @@ function climbsInSteps(
 ): boolean {
   if (!(moved > OVERHANG_STEP_M && moved <= OVERHANG_STEP_SPAN_M)) return false;
   const steps = Math.ceil(moved / OVERHANG_STEP_M);
-  // The filter's rule over a step of 2 m or less: max(4, 1.5 + 0.25 × 2).
-  const rise = OVERHANG_MIN_M;
+  const rise = OVERHANG_STEP_GRADE * (moved / steps);
   let h = from;
   for (let i = 1; i <= steps; i++) {
     const r = i === steps ? reading : readAt(fromLon + ((lon - fromLon) * i) / steps, fromLat + ((lat - fromLat) * i) / steps);
