@@ -134,6 +134,41 @@ describe('StartGroundWatch: the ride starts on a plausible ground, not on a coar
     expect(failing.ready).toBe(false);
   });
 
+  it('globe hidden, the mesh the one drawn ground: the globe refinement is moot, the rider settling is not', async () => {
+    // Lugano 3 km: World Terrain's finest 387.1 m, the mesh (the real street) 361.4 m.
+    const w = new StartGroundWatch(async () => 387.1);
+    w.update(8.95, 45.98, 400.2, 372.0, 0, true); // easing down onto the mesh
+    await flush();
+    w.update(8.95, 45.98, 400.2, 361.4, 100, true);
+    w.update(8.95, 45.98, 400.2, 361.4, 100 + START_STABLE_MS - 1, true);
+    expect(w.ready).toBe(false);
+    w.update(8.95, 45.98, 400.2, 361.4, 100 + START_STABLE_MS, true);
+    expect(w.ready).toBe(true);
+    // The same frames with the globe drawn: the street 25.7 m under World
+    // Terrain's finest reads as a coarse chord, never ready (the cap starts it).
+    const drawn = new StartGroundWatch(async () => 387.1);
+    drawn.update(8.95, 45.98, 400.2, 361.4, 0);
+    await flush();
+    for (let t = 0; t <= 5000; t += 100) drawn.update(8.95, 45.98, 400.2, 361.4, t);
+    expect(drawn.ready).toBe(false);
+  });
+
+  it('globe hidden: the mesh road needs no World Terrain answer (the finest-height fetch failing)', async () => {
+    const w = new StartGroundWatch(async () => {
+      throw new Error('tile availability not loaded');
+    });
+    w.update(8.95, 45.98, undefined, 361.4, 0, true);
+    await flush();
+    w.update(8.95, 45.98, undefined, 361.4, START_STABLE_MS, true);
+    expect(w.ready).toBe(true);
+    // The globe drawn and no answer: not plausible, the cap decides.
+    const drawn = new StartGroundWatch(async () => undefined);
+    drawn.update(8.95, 45.98, 361.0, 361.4, 0);
+    await flush();
+    drawn.update(8.95, 45.98, 361.0, 361.4, START_STABLE_MS);
+    expect(drawn.ready).toBe(false);
+  });
+
   it('retries a fetch that failed (asked before World Terrain was assigned: no tile availability)', async () => {
     let assigned = false;
     const fetch = vi.fn(async () => {
