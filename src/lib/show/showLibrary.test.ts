@@ -78,6 +78,9 @@ describe('file helpers', () => {
       // No extension at all: nothing says it isn't a video, even when the
       // name happens to end in a listed one's letters.
       'README', 'Show S01E01 Prolog',
+      // Kept off the list: MPEG-2 DVD video, Matroska subtitles (typing
+      // uncertain), Ogg (may hold video).
+      'VTS_01_1.VOB', 'a.mks', 'a.ogg',
     ];
     for (const n of videos) expect(mayBeVideoName(n), n).toBe(true);
     const others = [
@@ -86,6 +89,11 @@ describe('file helpers', () => {
       'folder.jpg', 'poster.JPEG', 'fanart.png', 'a.gif', 'a.webp', 'a.bmp', 'a.tif', 'a.tiff', 'a.heic', 'a.avif', 'a.svg',
       'theme.mp3', 'a.m4a', 'a.aac', 'a.flac', 'a.wav', 'a.opus', 'a.wma', 'a.zip', 'a.rar', 'a.7z', 'a.torrent',
       'Show S01E01.mp4.srt',
+      // Release sidecars (review of PR #63 @e14ff81, N2): audio tracks, fonts,
+      // artwork, checksums, playlists, cue sheets, DVD menus, partial downloads.
+      'Show S01E02.mka', 'a.ac3', 'a.eac3', 'a.DTS', 'font.ttf', 'font.otf', 'folder.ico', 'Show S01E01.tbn',
+      'Show.sfv', 'Show.vol00+01.par2', 'Show.md5', 'list.m3u', 'list.m3u8', 'a.cue', 'VIDEO_TS.IFO', 'VIDEO_TS.BUP',
+      'Show.S01E01.mkv.part',
     ];
     for (const n of others) expect(mayBeVideoName(n), n).toBe(false);
   });

@@ -57,12 +57,14 @@ export function isVideoName(name: string): boolean {
 }
 
 /**
- * Files that are never episodes: subtitles, notes, artwork, audio, archives.
+ * Files that are never episodes: subtitles, notes, artwork, audio, fonts,
+ * checksums, playlists, DVD menus, partial downloads, archives.
  * Chrome's picker keeps "All files", so a library remembered before PR #56
- * can hold them.
+ * can hold them. None of them is typed video/* (shared-mime-info), so a file
+ * pickVideos remembers still counts when Chrome refuses it.
  */
 const NOT_VIDEO_NAME =
-  /\.(srt|vtt|ass|ssa|sub|idx|sup|smi|sami|ttml|dfxp|lrc|nfo|txt|md|pdf|json|xml|html?|url|log|ini|db|jpe?g|png|gif|webp|bmp|tiff?|heic|avif|svg|mp3|m4a|aac|flac|wav|opus|wma|zip|rar|7z|torrent)$/i;
+  /\.(srt|vtt|ass|ssa|sub|idx|sup|smi|sami|ttml|dfxp|lrc|nfo|txt|md|pdf|json|xml|html?|url|log|ini|db|jpe?g|png|gif|webp|bmp|tiff?|heic|avif|svg|ico|tbn|mp3|m4a|aac|flac|wav|opus|wma|mka|ac3|eac3|dts|ttf|otf|sfv|par2|md5|m3u|m3u8|cue|ifo|bup|part|zip|rar|7z|torrent)$/i;
 
 /**
  * A remembered file Chrome refused to open, judged by its name (all that is
