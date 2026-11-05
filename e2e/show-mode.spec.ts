@@ -858,6 +858,15 @@ test('photoreal in the floating window draws the ride field over a cropped canva
     90_000,
     'the photoreal ride',
   );
+  // Software GL draws a 2560 px wide photoreal frame in seconds, and the click that
+  // opens the window needs its user activation: a quarter of the resolution (the
+  // canvas's CSS size, so the frustum's aspect and field, are unchanged).
+  await poll(
+    () => page.eval<boolean>(`(() => { const c = window.__veloCesium; if (c) c.viewer.resolutionScale = 0.25; return !!c; })()`),
+    (v) => v,
+    90_000,
+    'the photoreal scene handle',
+  );
   await poll(() => page.probe(), (p) => (p?.distance ?? 0) > 5, 180_000, 'the ride to move');
   const DEBUG = `(() => { const d = window.__veloRideDebug && window.__veloRideDebug(); return d && !d.destroyed && d.viewportPx ? d : null; })()`;
   type Debug = { riderScreen: [number, number] | null; viewportPx: [number, number]; lensShiftPx: number; fovYDeg: number | null };
@@ -866,10 +875,6 @@ test('photoreal in the floating window draws the ride field over a cropped canva
   expect(tab.lensShiftPx, JSON.stringify(tab)).toBe(0);
   expect(tab.viewportPx).toEqual(await page.eval<[number, number]>('[innerWidth, innerHeight]'));
 
-  // Software GL draws the tab's 2560 px wide photoreal frame in seconds, and the
-  // click that opens the window needs its user activation: draw it at a quarter
-  // of the resolution (the frustum's aspect, so its field, is the same).
-  expect(await page.eval<boolean>(`(() => { const c = window.__veloCesium; if (c) c.viewer.resolutionScale = 0.25; return !!c; })()`)).toBe(true);
   await floatTheRide(page, consoleLines);
   const { targetInfos } = await browser.send<{ targetInfos: { targetId: string; openerId?: string }[] }>('Target.getTargets');
   const pipTarget = targetInfos.find((t) => t.openerId === page.targetId)!;
