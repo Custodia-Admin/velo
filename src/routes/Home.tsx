@@ -5,6 +5,7 @@ import { RideSetupWizard } from '@/components/setup/RideSetupWizard';
 import { useRideStore } from '@/stores/rideStore';
 import { ComfortControls, RiderSwitch } from '@/components/velo/RiderPanel';
 import { HomeHeader } from '@/components/velo/HomeHeader';
+import { WorldCredits } from '@/components/velo/WorldCredits';
 import { COLUMN, DISPLAY, PAGE_X } from '@/components/velo/v2';
 import { cn } from '@/lib/utils';
 import { ScenicRouteGridSkeleton } from '@/components/velo/ScenicRoutes';
@@ -72,8 +73,11 @@ export function Home() {
             </div>
           </details>
 
-          <footer className="pb-10 pt-6 text-xs text-muted-foreground">
-            World stills rendered from the Perugia world bake; map data © OpenStreetMap contributors.
+          <footer className="pb-10 pt-6">
+            <p className="px-2 text-xs text-muted-foreground">
+              World stills rendered from the Perugia world bake; map data © OpenStreetMap contributors.
+            </p>
+            <WorldCredits className="mt-1" />
           </footer>
         </div>
       </main>

@@ -1,0 +1,95 @@
+<!doctype html>
+<!--
+  Velo v2 Home — foot of the page with "Map & terrain credits" (mockup only,
+  design gate for the in-app world credits). The disclosure sits under the
+  existing OSM line, collapsed by default. ?open=1 opens it; ?theme=night for
+  deep night; data-layout="tv" auto at >= 1600 px.
+  Shown in the state after the GLO-30 Lugano re-bake: Lugano's terrain credit
+  is Copernicus GLO-30 (with the licence's Art. 6(c) sentence), Perugia keeps
+  Terrain Tiles. The build renders these rows from the destination manifests.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — Home credits (v2 mockup)</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="v2-kit.css" />
+<script src="v2-data.js"></script>
+<script>
+  // lucide external-link (ISC), not in the generated v2-data.js icon set.
+  window.V2_DATA.icons['external-link'] = [['path', { d: 'M15 3h6v6' }], ['path', { d: 'M10 14 21 3' }], ['path', { d: 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' }]];
+</script>
+<script src="v2-kit.js"></script>
+<style>
+  .byo { margin-top: var(--s-12); border-top: var(--hairline) solid hsl(var(--border)); padding-top: var(--s-2); }
+  .byo summary, .credits summary {
+    display: flex; align-items: center; gap: var(--s-2); cursor: pointer; list-style: none; border-radius: calc(var(--radius) - 0.125rem);
+  }
+  .byo summary { min-height: var(--s-12); padding: 0 var(--s-2); font-weight: 600; }
+  .byo summary::-webkit-details-marker, .credits summary::-webkit-details-marker { display: none; }
+  .chev { display: inline-block; transition: transform 150ms; }
+  details[open] > summary .chev { transform: rotate(90deg); }
+  footer.foot { padding: var(--s-6) 0 var(--s-10); }
+  footer.foot > p { padding: 0 var(--s-2); }
+  .credits summary { min-height: var(--s-10); margin-top: var(--s-1); font-size: var(--text-sm); font-weight: 600; width: max-content; padding: 0 var(--s-2); }
+  .credits ul { list-style: none; padding: 0 var(--s-2); column-gap: var(--s-10); margin-top: var(--s-2); }
+  @media (min-width: 640px) { .credits ul { columns: 2; } }
+  .credits li { break-inside: avoid; border-top: var(--hairline) solid hsl(var(--border)); padding: var(--s-3) 0; display: flex; flex-direction: column; gap: var(--s-1); }
+  .credits .lic b { font-weight: 500; color: hsl(var(--foreground)); }
+  .credits .meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: var(--s-4); }
+  .credits a.btn.link { padding: 0; color: hsl(var(--foreground)); font-weight: 500; }
+</style>
+</head>
+<body>
+<main class="page-x">
+  <div class="col">
+    <details class="byo">
+      <summary><span class="chev" aria-hidden="true">›</span> Build your own ride <span class="muted t-sm" style="font-weight:400">search a place, upload a GPX, add pace partners</span></summary>
+    </details>
+
+    <footer class="foot">
+      <p class="t-xs muted">World stills rendered from the Perugia world bake; map data © OpenStreetMap contributors.</p>
+      <details class="credits" id="credits">
+        <summary><span class="chev" aria-hidden="true">›</span> Map &amp; terrain credits</summary>
+        <ul>
+          <li>
+            <p class="t-sm semi">OpenStreetMap</p>
+            <p class="t-sm muted">© OpenStreetMap contributors</p>
+            <p class="t-sm muted lic"><b>Licence</b> ODbL-1.0</p>
+            <div class="meta"><span class="t-xs muted">Used for every place</span><a class="btn link" href="#">Source <i data-icon="external-link"></i></a></div>
+          </li>
+          <li>
+            <p class="t-sm semi">Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry</p>
+            <p class="t-sm muted">Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration</p>
+            <p class="t-sm muted lic"><b>Licence</b> Mixed open sources, attribution required</p>
+            <div class="meta"><span class="t-xs muted">Used for Perugia</span><a class="btn link" href="#">Source <i data-icon="external-link"></i></a></div>
+          </li>
+          <li>
+            <p class="t-sm semi">Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)</p>
+            <p class="t-sm muted">Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)</p>
+            <p class="t-sm muted lic"><b>Licence</b> Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0</p>
+            <div class="meta"><span class="t-xs muted">Used for every place</span><a class="btn link" href="#">Source <i data-icon="external-link"></i></a></div>
+          </li>
+          <li>
+            <p class="t-sm semi">OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only</p>
+            <p class="t-sm muted">Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors</p>
+            <p class="t-sm muted lic"><b>Licence</b> Route geometry derived from OpenStreetMap (ODbL-1.0)</p>
+            <div class="meta"><span class="t-xs muted">Used for every place</span><a class="btn link" href="#">Source <i data-icon="external-link"></i></a></div>
+          </li>
+          <li>
+            <p class="t-sm semi">Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)</p>
+            <p class="t-sm muted">produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved</p>
+            <p class="t-sm muted lic"><b>Licence</b> Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.</p>
+            <div class="meta"><span class="t-xs muted">Used for Lugano</span><a class="btn link" href="#">Source <i data-icon="external-link"></i></a></div>
+          </li>
+        </ul>
+      </details>
+    </footer>
+  </div>
+</main>
+<script>
+  if (new URLSearchParams(location.search).get('open') === '1') document.getElementById('credits').open = true;
+</script>
+</body>
+</html>
