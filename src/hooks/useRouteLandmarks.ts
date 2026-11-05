@@ -13,7 +13,7 @@ import { worldForRoute, worldUrl } from '@/lib/world/catalog';
 import { validateManifest, type WorldManifest } from '@/lib/world/manifest';
 import { routeLandmarks, type RouteLandmark } from '@/lib/world/routeLandmarks';
 import { findClimbs } from '@/lib/climbDetection';
-import { nextLandmarkText, type Landmark, type Units } from '@/components/velo/rideHudText';
+import { nextLandmark, type Landmark, type NextLandmarkParts, type Units } from '@/components/velo/rideHudText';
 
 const manifests = new Map<string, Promise<WorldManifest | null>>();
 
@@ -49,11 +49,11 @@ export function useRouteLandmarks(route: Route | null): RouteLandmark[] {
 }
 
 /**
- * The ride HUD's next-landmark line ("Ponte Valleceppi in 1.2 km"): the next
- * named place the road passes (world POIs) or detected climb, whichever
+ * The ride HUD's next-landmark line ("Ponte Valleceppi" + "in 1.2 km"): the
+ * next named place the road passes (world POIs) or detected climb, whichever
  * comes first; null when nothing named is ahead.
  */
-export function useNextLandmarkText(route: Route | null, distanceM: number, units: Units): string | null {
+export function useNextLandmark(route: Route | null, distanceM: number, units: Units): NextLandmarkParts | null {
   const climbs = useMemo(() => (route && !route.isLive ? findClimbs(route) : []), [route]);
   const places = useRouteLandmarks(route);
   const landmarks = useMemo<Landmark[]>(
@@ -64,5 +64,5 @@ export function useNextLandmarkText(route: Route | null, distanceM: number, unit
       ].sort((a, b) => a.startDistance - b.startDistance),
     [climbs, places],
   );
-  return nextLandmarkText(landmarks, distanceM, units);
+  return nextLandmark(landmarks, distanceM, units);
 }

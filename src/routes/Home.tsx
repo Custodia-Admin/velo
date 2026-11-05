@@ -5,6 +5,7 @@ import { RideSetupWizard } from '@/components/setup/RideSetupWizard';
 import { useRideStore } from '@/stores/rideStore';
 import { ComfortControls, RiderSwitch } from '@/components/velo/RiderPanel';
 import { HomeHeader } from '@/components/velo/HomeHeader';
+import { WorldCredits } from '@/components/velo/WorldCredits';
 import { COLUMN, DISPLAY, PAGE_X } from '@/components/velo/v2';
 import { cn } from '@/lib/utils';
 import { ScenicRouteGridSkeleton } from '@/components/velo/ScenicRoutes';
@@ -62,7 +63,7 @@ export function Home() {
           </Suspense>
 
           <details className="group mt-12 border-t border-border pt-2" data-build-your-own>
-            <summary className="flex min-h-12 cursor-pointer list-none flex-wrap items-center gap-x-2 rounded-md px-2 text-base font-semibold text-foreground select-none hover:bg-muted/60">
+            <summary className="-mx-2 flex min-h-12 cursor-pointer list-none flex-wrap items-center gap-x-2 rounded-md px-2 text-base font-semibold text-foreground select-none hover:bg-muted/60">
               <span aria-hidden className="inline-block transition-transform duration-150 group-open:rotate-90">›</span>
               Build your own ride
               <span className="text-sm font-normal text-muted-foreground">search a place, upload a GPX, add pace partners</span>
@@ -72,8 +73,11 @@ export function Home() {
             </div>
           </details>
 
-          <footer className="pb-10 pt-6 text-xs text-muted-foreground">
-            World stills rendered from the Perugia world bake; map data © OpenStreetMap contributors.
+          <footer className="pb-10 pt-6">
+            <p className="text-xs text-muted-foreground">
+              World stills rendered from the Perugia world bake; map data © OpenStreetMap contributors.
+            </p>
+            <WorldCredits className="mt-1" />
           </footer>
         </div>
       </main>

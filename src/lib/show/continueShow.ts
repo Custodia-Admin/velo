@@ -10,7 +10,10 @@
  *
  * When it can't carry on it says why, so the chooser tells the truth
  * (ShowPanel): nothing remembered, access refused, the videos gone, or
- * everything watched.
+ * everything watched. When Chrome allows some of several files and refuses
+ * the rest, it carries on only if the video it would start with full access
+ * is one it can read; otherwise it says access was refused, never "watched
+ * everything".
  */
 
 import {
@@ -19,6 +22,7 @@ import {
   nextUp,
   readLibrary,
   recallLibrary,
+  resumeEntries,
   sortForPlayback,
   type LibraryRead,
   type NextUp,
@@ -35,9 +39,11 @@ export interface ContinuePlan {
 /**
  * Why there is nothing to carry on with:
  * - `none`: nothing remembered on this device (or its storage is unavailable);
- * - `denied`: Chrome refused access to the remembered videos;
+ * - `denied`: Chrome refused access to the remembered videos (all of them, or
+ *   the one to carry on with, or some of them once the rest were watched);
  * - `missing`: the videos (or the folder) are no longer where they were;
- * - `done`: every video from last time was watched to the end.
+ * - `done`: every video from last time was watched to the end (and Chrome
+ *   allowed them all).
  */
 export type ContinueFailure = 'none' | 'denied' | 'missing' | 'done';
 
@@ -50,11 +56,45 @@ export type ContinueResult =
  * uses), or null when nothing is left to watch.
  */
 export function planContinue(files: File[], storage?: Storage): ContinuePlan | null {
-  if (files.length === 0) return null;
-  const items = sortForPlayback(files).map((f) => ({ key: fileKey(f) }));
-  const next = nextUp(items, lastWatched(storage), storage);
-  if (!next) return null;
-  return { files, startKey: items[next.index].key, next };
+  const pick = pickInLibrary(files, [], storage);
+  return pick && pick.file ? planFor(files, pick.file, pick.next) : null;
+}
+
+/** One video of last time's library; `file` is null for one Chrome refused. */
+interface LibraryItem {
+  name: string;
+  key: string;
+  file: File | null;
+}
+
+/**
+ * What nextUp picks from the whole library, in playback order: the files that
+ * could be read plus the ones Chrome refused, so a refusal never changes which
+ * video Continue starts. A refused file can't be read, so only its name is
+ * known (no size for fileKey): it takes the key of last time's video, or of a
+ * saved position, with the same name.
+ */
+function pickInLibrary(
+  files: File[],
+  refused: readonly string[],
+  storage?: Storage,
+): (LibraryItem & { next: NextUp }) | null {
+  const last = lastWatched(storage);
+  const known = [...(last ? [last] : []), ...resumeEntries(storage)];
+  const keyOf = (name: string) => known.find((k) => k.name === name)?.key ?? `${name}::refused`;
+  const items = sortForPlayback<LibraryItem>([
+    ...files.map((file) => ({ name: file.name, key: fileKey(file), file })),
+    ...refused.map((name) => ({ name, key: keyOf(name), file: null })),
+  ]);
+  const next = nextUp(items, last, storage);
+  return next ? { ...items[next.index], next } : null;
+}
+
+/** The plan to start `file`; `next.index` points into the files in playback order. */
+function planFor(files: File[], file: File, next: NextUp): ContinuePlan {
+  const startKey = fileKey(file);
+  const index = sortForPlayback(files).findIndex((f) => fileKey(f) === startKey);
+  return { files, startKey, next: { ...next, index } };
 }
 
 export interface ContinueDeps {
@@ -80,6 +120,11 @@ export async function continueLastShow({ ask }: { ask: boolean }, deps: Continue
     return { ok: false, reason: 'missing', library: lib };
   }
   if (read.files.length === 0) return { ok: false, reason: read.denied ? 'denied' : 'missing', library: lib };
-  const plan = planContinue(read.files, deps.storage);
-  return plan ? { ok: true, plan } : { ok: false, reason: 'done', library: lib };
+  const pick = pickInLibrary(read.files, read.refused ?? [], deps.storage);
+  // Nothing left among the files Chrome allowed is not "watched everything"
+  // while it refused some (review of PR #36 @61defbb, F1).
+  if (!pick) return { ok: false, reason: read.denied ? 'denied' : 'done', library: lib };
+  // The video to carry on with is one Chrome refused: never skip past it.
+  if (!pick.file) return { ok: false, reason: 'denied', library: lib };
+  return { ok: true, plan: planFor(read.files, pick.file, pick.next) };
 }

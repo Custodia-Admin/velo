@@ -238,6 +238,7 @@ describe('re-opening the remembered handles (Chrome permissions)', () => {
     } as unknown as RememberedLibrary;
     const read = await readLibrary(lib, { ask: true });
     expect(read.denied).toBe(true);
+    expect(read.refused).toEqual(['Show S01E02.mp4']);
     expect(read.files.map((f) => f.name)).toEqual(['Show S01E03.mp4', 'Show S01E10.mp4']);
   });
 
@@ -246,7 +247,7 @@ describe('re-opening the remembered handles (Chrome permissions)', () => {
       kind: 'files',
       handles: [handle('a.mp4', { state: 'prompt', onAsk: new DOMException('User activation is required', 'SecurityError') })],
     } as unknown as RememberedLibrary;
-    expect(await readLibrary(lib, { ask: true })).toEqual({ files: [], denied: true });
+    expect(await readLibrary(lib, { ask: true })).toEqual({ files: [], denied: true, refused: ['a.mp4'] });
   });
 
   it('folder: refused, moved, or still there', async () => {
@@ -271,6 +272,86 @@ describe('re-opening the remembered handles (Chrome permissions)', () => {
     const read = await readLibrary(there, { ask: true });
     expect(read.denied).toBe(false);
     expect(read.files.map((f) => f.name)).toEqual(['Show S01E01.mp4', 'Show S01E02.mp4']);
+  });
+});
+
+// Review of PR #36 @61defbb, F1: a library of several files after a browser
+// restart, where Chrome allows some handles and refuses the rest (once the
+// click's activation is used up after the first prompt, Chrome throws). The
+// real readLibrary, so the refused names come from the handles. Continue starts
+// what it would start with every file allowed, or says access was refused.
+describe('several files, Chrome refuses some of them after a restart', () => {
+  const noClick = () => new DOMException('User activation is required', 'SecurityError');
+  const allowed = (name: string) => handle(name, { state: 'granted' });
+  const refusedH = (name: string) => handle(name, { state: 'prompt', onAsk: noClick() });
+  /** Watched to the end (true) or part-way (false); the episode files are 100 bytes (handle()). */
+  const seen = (name: string, finished: boolean, at = 1) =>
+    markWatched({ key: fileKey(ep(name, 100)), name, positionS: finished ? 1500 : 300, durationS: 1500 }, at, store);
+  const cont = (handles: ReturnType<typeof handle>[]) =>
+    continueLastShow(
+      { ask: true },
+      { recall: async () => ({ kind: 'files', handles }) as unknown as RememberedLibrary, read: readLibrary, storage: store },
+    );
+
+  it('A: E01 watched, E02 and E03 refused: access refused, not "watched everything"', async () => {
+    seen('Show S01E01.mp4', true);
+    const r = await cont([
+      handle('Show S01E01.mp4', { state: 'prompt', onAsk: 'granted' }),
+      refusedH('Show S01E02.mp4'),
+      refusedH('Show S01E03.mp4'),
+    ]);
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+  });
+
+  it('B: E01 watched, E02 refused, E03 allowed: never skips E02', async () => {
+    seen('Show S01E01.mp4', true);
+    const r = await cont([allowed('Show S01E01.mp4'), refusedH('Show S01E02.mp4'), allowed('Show S01E03.mp4')]);
+    expect(r.ok && r.plan.startKey).not.toBe(fileKey(ep('Show S01E03.mp4', 100)));
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+  });
+
+  it('never "watched everything" while Chrome refused one, even when the rest were all watched', async () => {
+    seen('Show S01E03.mp4', true);
+    const r = await cont([refusedH('Show S01E01.mp4'), allowed('Show S01E02.mp4'), allowed('Show S01E03.mp4')]);
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+    // A reader that can't name the refused files: still not 'done'.
+    const unnamed = await continueLastShow(
+      { ask: true },
+      { recall: async () => ({ kind: 'files', handles: [] }) as unknown as RememberedLibrary, read: async () => ({ files: [ep('Show S01E03.mp4', 100)], denied: true }), storage: store },
+    );
+    expect(unnamed).toMatchObject({ ok: false, reason: 'denied' });
+  });
+
+  it('the video watched part-way last time is the refused one: access refused, not another episode', async () => {
+    seen('Show S01E02.mp4', false);
+    const r = await cont([allowed('Show S01E01.mp4'), refusedH('Show S01E02.mp4'), allowed('Show S01E03.mp4')]);
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+  });
+
+  it('a refused video paused more recently than the others: access refused, not an older one', async () => {
+    saveResume({ key: fileKey(ep('Show S01E03.mp4', 100)), name: 'Show S01E03.mp4', positionS: 200, durationS: 1500 }, 1, store);
+    saveResume({ key: fileKey(ep('Show S01E02.mp4', 100)), name: 'Show S01E02.mp4', positionS: 400, durationS: 1500 }, 9, store);
+    // Last watched something that is not in this library.
+    markWatched({ key: 'Other.mp4::5', name: 'Other.mp4', positionS: 10, durationS: 1500 }, 10, store);
+    const r = await cont([allowed('Show S01E01.mp4'), refusedH('Show S01E02.mp4'), allowed('Show S01E03.mp4')]);
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+  });
+
+  it('carries on when the refusal changes nothing: the episode after a refused, finished one', async () => {
+    seen('Show S01E02.mp4', true);
+    const r = await cont([allowed('Show S01E01.mp4'), refusedH('Show S01E02.mp4'), allowed('Show S01E03.mp4')]);
+    expect(r.ok && r.plan.startKey).toBe(fileKey(ep('Show S01E03.mp4', 100)));
+    // next.index points into the files that will play (E01, E03), not the whole library.
+    expect(r.ok && r.plan.next).toEqual({ index: 1, positionS: 0, reason: 'next' });
+  });
+
+  it('carries on past a refused episode that comes before last time\'s (already watched)', async () => {
+    seen('Show S01E02.mp4', true);
+    const r = await cont([refusedH('Show S01E01.mp4'), allowed('Show S01E02.mp4'), allowed('Show S01E03.mp4')]);
+    expect(r.ok && r.plan.startKey).toBe(fileKey(ep('Show S01E03.mp4', 100)));
+    seen('Show S01E02.mp4', false);
+    const again = await cont([refusedH('Show S01E01.mp4'), allowed('Show S01E02.mp4'), allowed('Show S01E03.mp4')]);
+    expect(again.ok && again.plan).toMatchObject({ startKey: fileKey(ep('Show S01E02.mp4', 100)), next: { reason: 'continue' } });
   });
 });
 

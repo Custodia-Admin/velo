@@ -1656,9 +1656,14 @@ export function createMeshRoadFilter() {
     status(): MeshRoadStatus {
       return status;
     },
+    /** Metres from where the road was last taken to lon/lat (Infinity before the first). */
+    metresFrom(lon: number, lat: number): number {
+      return metresBetween(lon, lat, baseLon, baseLat);
+    },
     reset() {
       base = undefined;
       baseLon = NaN;
+      baseLat = NaN;
       status = 'none';
     },
   };
@@ -1681,6 +1686,13 @@ export function createMeshRoadFilter() {
  * rider, see renderers/cesium/globeGate) a missing reading keeps the road the
  * rider is on: there is no other drawn surface to stand on, and the hidden
  * globe's stale tiles are not what anyone sees.
+ *
+ * That holds only near where the road was taken. A rider
+ * {@link OVERHANG_GIVE_UP_M} or more away from it (a jump: Ride again puts the
+ * rider back on the start line, the probes place it; or a long hole) is on
+ * another road, so a missing reading there is a fresh start: the globe's
+ * terrain decides, drawn or not, until the mesh road there is read (the gate
+ * brings the globe back if none turns up).
  */
 export function createGroundSampler(scene: Cesium.Scene) {
   let lastMs = -Infinity;
@@ -1688,6 +1700,8 @@ export function createGroundSampler(scene: Cesium.Scene) {
   let lastLat = NaN;
   let last: number | undefined;
   let onMesh = false;
+  /** The route's elevation where the road was last taken. */
+  let roadEle = 0;
   const road = createMeshRoadFilter();
   const meshAt = (lon: number, lat: number) =>
     withRidersHidden(() => sampleGroundHeight(scene, lon, lat, groundSampleExclusions()));
@@ -1709,19 +1723,37 @@ export function createGroundSampler(scene: Cesium.Scene) {
         lastLat = lat;
         const globe = (scene.globe as Cesium.Globe | undefined)?.getHeight?.(Cesium.Cartographic.fromDegrees(lon, lat));
         const terrain = globe !== undefined && Number.isFinite(globe) ? Math.max(globe, expect) : expect;
-        // The road the rider is on also bounds the ceiling: a hidden globe's
-        // tiles stop refining, and with them the terrain reading here.
+        // The road the rider is on. Far from where it was taken it isn't the
+        // road here; carried along the route's own climb since, it is the
+        // best guess at it (within ~20 m on the five photoreal routes).
         const held = road.road();
-        const floor = held !== undefined ? Math.max(terrain, held) : terrain;
+        const away = held !== undefined && road.metresFrom(lon, lat) >= OVERHANG_GIVE_UP_M;
+        const heldHere = held !== undefined && away ? held + (expect - roadEle) : held;
+        // It also bounds the ceiling: a hidden globe's tiles stop refining,
+        // and with them the terrain reading here.
+        const floor = heldHere !== undefined ? Math.max(terrain, heldHere) : terrain;
         last = road.next(meshAt(lon, lat), lon, lat, floor + MESH_OVER_TERRAIN_MAX_M, meshAt, expect - MESH_UNDER_ROUTE_MAX_M);
         const status = road.status();
+        if (status === 'road') roadEle = expect;
         onMesh = status === 'road' || status === 'overhang';
-        // No mesh road here: keep the road the rider is on while the globe is
-        // hidden (nothing else is drawn to stand on) or still streaming back
-        // in. A globe hidden for kilometres comes back with coarse tiles: at
-        // Chengdu 5 km one read 780 m under the road, and the rider sank
-        // towards it. The drawn globe still wins where it is higher.
-        if (last === undefined && (globeHidden(scene) || globeStreaming(scene))) last = road.road();
+        if (away && status !== 'road') {
+          // Somewhere else and no mesh road yet: the globe's terrain decides,
+          // as at a fresh start, drawn or not. Holding the old road here kept
+          // the rider 41 m under the Lugano–Melide mesh for a second after a
+          // 2 km jump. A coarse globe chord far under the road (a globe hidden
+          // for kilometres: 780 m under at Chengdu) isn't stood on; the road
+          // carried along the route's climb is.
+          const chord = globe === undefined || !Number.isFinite(globe) || globe < (heldHere as number) - MESH_UNDER_ROUTE_MAX_M;
+          last = chord ? heldHere : undefined;
+        } else if (last === undefined && (globeHidden(scene) || globeStreaming(scene))) {
+          // No mesh road here: keep the road the rider is on while the globe
+          // is hidden (nothing else is drawn to stand on) or still streaming
+          // back in. A globe hidden for kilometres comes back with coarse
+          // tiles: at Chengdu 5 km one read 780 m under the road, and the
+          // rider sank towards it. The drawn globe still wins where it is
+          // higher.
+          last = road.road();
+        }
       }
       // The mesh reading is reused between samples; the globe (drawn over the
       // mesh wherever its terrain is higher) is read fresh every call.

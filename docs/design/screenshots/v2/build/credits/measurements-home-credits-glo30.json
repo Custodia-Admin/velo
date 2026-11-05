@@ -1,0 +1,3308 @@
+{
+ "home-credits-1280": {
+  "columns": 0,
+  "dark": false,
+  "innerHeight": 648,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 3650,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 176,
+   "y": 496
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 128,
+     "y": 3618
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 128,
+     "y": 3760
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 128,
+     "y": 3988
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 660,
+     "y": 3618
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 660,
+     "y": 3803
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1280,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 120,
+   "y": 3570
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-credits-1280-night": {
+  "columns": 0,
+  "dark": true,
+  "innerHeight": 648,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 3650,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 176,
+   "y": 496
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 128,
+     "y": 3618
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 128,
+     "y": 3760
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 128,
+     "y": 3988
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 660,
+     "y": 3618
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 660,
+     "y": 3803
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1280,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 120,
+   "y": 3570
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-credits-1440": {
+  "columns": 0,
+  "dark": false,
+  "innerHeight": 900,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 3786,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 256,
+   "y": 632
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 208,
+     "y": 3754
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 208,
+     "y": 3896
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 208,
+     "y": 4124
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 740,
+     "y": 3754
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 740,
+     "y": 3939
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1440,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 200,
+   "y": 3706
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-credits-1440-night": {
+  "columns": 0,
+  "dark": true,
+  "innerHeight": 900,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 3786,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 256,
+   "y": 632
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 208,
+     "y": 3754
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 208,
+     "y": 3896
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 208,
+     "y": 4124
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 740,
+     "y": 3754
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 740,
+     "y": 3939
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1440,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 200,
+   "y": 3706
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-credits-390": {
+  "columns": 0,
+  "dark": false,
+  "innerHeight": 844,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 8669,
+  "ride": {
+   "h": 48,
+   "w": 358,
+   "x": 16,
+   "y": 717
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 358,
+     "x": 16,
+     "y": 8637
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 271,
+     "w": 358,
+     "x": 16,
+     "y": 8779
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 250,
+     "w": 358,
+     "x": 16,
+     "y": 9050
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 228,
+     "w": 358,
+     "x": 16,
+     "y": 9300
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 315,
+     "w": 358,
+     "x": 16,
+     "y": 9528
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 390,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 8,
+   "y": 8589
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-credits-390-night": {
+  "columns": 0,
+  "dark": true,
+  "innerHeight": 844,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 8669,
+  "ride": {
+   "h": 48,
+   "w": 358,
+   "x": 16,
+   "y": 717
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 358,
+     "x": 16,
+     "y": 8637
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 271,
+     "w": 358,
+     "x": 16,
+     "y": 8779
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 250,
+     "w": 358,
+     "x": 16,
+     "y": 9050
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 228,
+     "w": 358,
+     "x": 16,
+     "y": 9300
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 315,
+     "w": 358,
+     "x": 16,
+     "y": 9528
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 390,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 8,
+   "y": 8589
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-credits-open-1280": {
+  "columns": 2,
+  "dark": false,
+  "errors": [],
+  "innerHeight": 648,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 4235,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 176,
+   "y": 496
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 128,
+     "y": 3618
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source : OpenStreetMap (opens in a new tab)"
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 128,
+     "y": 3760
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source : Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 128,
+     "y": 3988
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source : Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)"
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 660,
+     "y": 3618
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source : OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 660,
+     "y": 3803
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source : Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)"
+   }
+  ],
+  "scrollWidth": 1280,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 120,
+   "y": 3570
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-credits-open-1280-night": {
+  "columns": 2,
+  "dark": true,
+  "errors": [],
+  "innerHeight": 648,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 4235,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 176,
+   "y": 496
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 128,
+     "y": 3618
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source : OpenStreetMap (opens in a new tab)"
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 128,
+     "y": 3760
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source : Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 128,
+     "y": 3988
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source : Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)"
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 660,
+     "y": 3618
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source : OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 660,
+     "y": 3803
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source : Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)"
+   }
+  ],
+  "scrollWidth": 1280,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 120,
+   "y": 3570
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-credits-open-1440": {
+  "columns": 2,
+  "dark": false,
+  "errors": [],
+  "innerHeight": 900,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 4371,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 256,
+   "y": 632
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 208,
+     "y": 3754
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source : OpenStreetMap (opens in a new tab)"
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 208,
+     "y": 3896
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source : Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 208,
+     "y": 4124
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source : Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)"
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 740,
+     "y": 3754
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source : OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 740,
+     "y": 3939
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source : Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)"
+   }
+  ],
+  "scrollWidth": 1440,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 200,
+   "y": 3706
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-credits-open-1440-night": {
+  "columns": 2,
+  "dark": true,
+  "errors": [],
+  "innerHeight": 900,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 4371,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 256,
+   "y": 632
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 208,
+     "y": 3754
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source : OpenStreetMap (opens in a new tab)"
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 208,
+     "y": 3896
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source : Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 208,
+     "y": 4124
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source : Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)"
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 740,
+     "y": 3754
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source : OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 740,
+     "y": 3939
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source : Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)"
+   }
+  ],
+  "scrollWidth": 1440,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 200,
+   "y": 3706
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-credits-open-390": {
+  "columns": 1,
+  "dark": false,
+  "errors": [],
+  "innerHeight": 844,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 9883,
+  "ride": {
+   "h": 48,
+   "w": 358,
+   "x": 16,
+   "y": 717
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 358,
+     "x": 16,
+     "y": 8637
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source : OpenStreetMap (opens in a new tab)"
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 271,
+     "w": 358,
+     "x": 16,
+     "y": 8779
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source : Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 250,
+     "w": 358,
+     "x": 16,
+     "y": 9050
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source : Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)"
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 228,
+     "w": 358,
+     "x": 16,
+     "y": 9300
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source : OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 315,
+     "w": 358,
+     "x": 16,
+     "y": 9528
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source : Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)"
+   }
+  ],
+  "scrollWidth": 390,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 8,
+   "y": 8589
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-credits-open-390-night": {
+  "columns": 1,
+  "dark": true,
+  "errors": [],
+  "innerHeight": 844,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 9883,
+  "ride": {
+   "h": 48,
+   "w": 358,
+   "x": 16,
+   "y": 717
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 358,
+     "x": 16,
+     "y": 8637
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source : OpenStreetMap (opens in a new tab)"
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 271,
+     "w": 358,
+     "x": 16,
+     "y": 8779
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source : Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 250,
+     "w": 358,
+     "x": 16,
+     "y": 9050
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source : Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)"
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 228,
+     "w": 358,
+     "x": 16,
+     "y": 9300
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source : OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)"
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 315,
+     "w": 358,
+     "x": 16,
+     "y": 9528
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source : Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)"
+   }
+  ],
+  "scrollWidth": 390,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 8,
+   "y": 8589
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-top-1280": {
+  "columns": 0,
+  "dark": false,
+  "innerHeight": 648,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 3650,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 176,
+   "y": 496
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 128,
+     "y": 3618
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 128,
+     "y": 3760
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 128,
+     "y": 3988
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 660,
+     "y": 3618
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 660,
+     "y": 3803
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1280,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 120,
+   "y": 3570
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-top-1280-night": {
+  "columns": 0,
+  "dark": true,
+  "innerHeight": 648,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 3650,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 176,
+   "y": 496
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 128,
+     "y": 3618
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 128,
+     "y": 3760
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 128,
+     "y": 3988
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 660,
+     "y": 3618
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 660,
+     "y": 3803
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1280,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 120,
+   "y": 3570
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-top-1440": {
+  "columns": 0,
+  "dark": false,
+  "innerHeight": 900,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 3786,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 256,
+   "y": 632
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 208,
+     "y": 3754
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 208,
+     "y": 3896
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 208,
+     "y": 4124
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 740,
+     "y": 3754
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 740,
+     "y": 3939
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1440,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 200,
+   "y": 3706
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-top-1440-night": {
+  "columns": 0,
+  "dark": true,
+  "innerHeight": 900,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 3786,
+  "ride": {
+   "h": 48,
+   "w": 112,
+   "x": 256,
+   "y": 632
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 208,
+     "y": 3754
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 208,
+     "y": 3896
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 208,
+     "y": 4124
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 740,
+     "y": 3754
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 740,
+     "y": 3939
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1440,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 200,
+   "y": 3706
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-top-390": {
+  "columns": 0,
+  "dark": false,
+  "innerHeight": 844,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 8669,
+  "ride": {
+   "h": 48,
+   "w": 358,
+   "x": 16,
+   "y": 717
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 358,
+     "x": 16,
+     "y": 8637
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 271,
+     "w": 358,
+     "x": 16,
+     "y": 8779
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 250,
+     "w": 358,
+     "x": 16,
+     "y": 9050
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 228,
+     "w": 358,
+     "x": 16,
+     "y": 9300
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 315,
+     "w": 358,
+     "x": 16,
+     "y": 9528
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 390,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 8,
+   "y": 8589
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "home-top-390-night": {
+  "columns": 0,
+  "dark": true,
+  "innerHeight": 844,
+  "links": [
+   {
+    "href": "https://www.openstreetmap.org/copyright",
+    "name": "Source: OpenStreetMap (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
+    "name": "Source: Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://open-meteo.com/en/docs/elevation-api",
+    "name": "Source: Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://routing.openstreetmap.de/about.html",
+    "name": "Source: OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   },
+   {
+    "href": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+    "name": "Source: Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) (opens in a new tab)",
+    "rel": "noopener noreferrer",
+    "target": "_blank"
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203aMap & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 8669,
+  "ride": {
+   "h": 48,
+   "w": 358,
+   "x": 16,
+   "y": 717
+  },
+  "rideInFirstScreen": true,
+  "rows": [
+   {
+    "id": "osm",
+    "rect": {
+     "h": 142,
+     "w": 358,
+     "x": 16,
+     "y": 8637
+    },
+    "text": ""
+   },
+   {
+    "id": "terrain-tiles",
+    "rect": {
+     "h": 271,
+     "w": 358,
+     "x": 16,
+     "y": 8779
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo90",
+    "rect": {
+     "h": 250,
+     "w": 358,
+     "x": 16,
+     "y": 9050
+    },
+    "text": ""
+   },
+   {
+    "id": "osrm-fossgis",
+    "rect": {
+     "h": 228,
+     "w": 358,
+     "x": 16,
+     "y": 9300
+    },
+    "text": ""
+   },
+   {
+    "id": "copernicus-glo30",
+    "rect": {
+     "h": 315,
+     "w": 358,
+     "x": 16,
+     "y": 9528
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 390,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 8,
+   "y": 8589
+  },
+  "summaryText": "\u203aMap & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-1280": {
+  "columns": 0,
+  "dark": false,
+  "innerHeight": 648,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 648,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 128,
+     "y": 199
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 128,
+     "y": 341
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 128,
+     "y": 569
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 660,
+     "y": 199
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 660,
+     "y": 384
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1280,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 120,
+   "y": 151
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-1280-night": {
+  "columns": 0,
+  "dark": true,
+  "innerHeight": 648,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 648,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 128,
+     "y": 199
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 128,
+     "y": 341
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 128,
+     "y": 569
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 660,
+     "y": 199
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 660,
+     "y": 384
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1280,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 120,
+   "y": 151
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-1440": {
+  "columns": 0,
+  "dark": false,
+  "innerHeight": 900,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 900,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 208,
+     "y": 199
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 208,
+     "y": 341
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 208,
+     "y": 569
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 740,
+     "y": 199
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 740,
+     "y": 384
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1440,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 200,
+   "y": 151
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-1440-night": {
+  "columns": 0,
+  "dark": true,
+  "innerHeight": 900,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 900,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 208,
+     "y": 199
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 208,
+     "y": 341
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 208,
+     "y": 569
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 740,
+     "y": 199
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 740,
+     "y": 384
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 1440,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 200,
+   "y": 151
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-390": {
+  "columns": 0,
+  "dark": false,
+  "innerHeight": 844,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 844,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 358,
+     "x": 16,
+     "y": 220
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 358,
+     "x": 16,
+     "y": 362
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 250,
+     "w": 358,
+     "x": 16,
+     "y": 633
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 358,
+     "x": 16,
+     "y": 883
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 315,
+     "w": 358,
+     "x": 16,
+     "y": 1111
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 390,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 8,
+   "y": 172
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-390-night": {
+  "columns": 0,
+  "dark": true,
+  "innerHeight": 844,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": false,
+  "overflow": false,
+  "pageHeight": 844,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 358,
+     "x": 16,
+     "y": 220
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 358,
+     "x": 16,
+     "y": 362
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 250,
+     "w": 358,
+     "x": 16,
+     "y": 633
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 358,
+     "x": 16,
+     "y": 883
+    },
+    "text": ""
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 315,
+     "w": 358,
+     "x": 16,
+     "y": 1111
+    },
+    "text": ""
+   }
+  ],
+  "scrollWidth": 390,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 8,
+   "y": 172
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-open-1280": {
+  "columns": 2,
+  "dark": false,
+  "innerHeight": 648,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 816,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 128,
+     "y": 199
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 128,
+     "y": 341
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 128,
+     "y": 569
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 660,
+     "y": 199
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 660,
+     "y": 384
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source"
+   }
+  ],
+  "scrollWidth": 1280,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 120,
+   "y": 151
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-open-1280-night": {
+  "columns": 2,
+  "dark": true,
+  "innerHeight": 648,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 816,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 128,
+     "y": 199
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 128,
+     "y": 341
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 128,
+     "y": 569
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 660,
+     "y": 199
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 660,
+     "y": 384
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source"
+   }
+  ],
+  "scrollWidth": 1280,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 120,
+   "y": 151
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-open-1440": {
+  "columns": 2,
+  "dark": false,
+  "innerHeight": 900,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 900,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 208,
+     "y": 199
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 208,
+     "y": 341
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 208,
+     "y": 569
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 740,
+     "y": 199
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 740,
+     "y": 384
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source"
+   }
+  ],
+  "scrollWidth": 1440,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 200,
+   "y": 151
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-open-1440-night": {
+  "columns": 2,
+  "dark": true,
+  "innerHeight": 900,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 900,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 492,
+     "x": 208,
+     "y": 199
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 492,
+     "x": 208,
+     "y": 341
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 207,
+     "w": 492,
+     "x": 208,
+     "y": 569
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 185,
+     "w": 492,
+     "x": 740,
+     "y": 199
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 492,
+     "x": 740,
+     "y": 384
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source"
+   }
+  ],
+  "scrollWidth": 1440,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 200,
+   "y": 151
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-open-390": {
+  "columns": 1,
+  "dark": false,
+  "innerHeight": 844,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 1466,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 358,
+     "x": 16,
+     "y": 220
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 358,
+     "x": 16,
+     "y": 362
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 250,
+     "w": 358,
+     "x": 16,
+     "y": 633
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 358,
+     "x": 16,
+     "y": 883
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 315,
+     "w": 358,
+     "x": 16,
+     "y": 1111
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source"
+   }
+  ],
+  "scrollWidth": 390,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 8,
+   "y": 172
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ },
+ "mockup-credits-open-390-night": {
+  "columns": 1,
+  "dark": true,
+  "innerHeight": 844,
+  "links": [
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   },
+   {
+    "href": "#",
+    "name": "Source",
+    "rel": "",
+    "target": ""
+   }
+  ],
+  "minFont": 12,
+  "minFontEl": "Used for every place",
+  "minTarget": 40,
+  "minTargetEl": "\u203a Map & terrain credits",
+  "open": true,
+  "overflow": false,
+  "pageHeight": 1466,
+  "ride": null,
+  "rideInFirstScreen": null,
+  "rows": [
+   {
+    "id": null,
+    "rect": {
+     "h": 142,
+     "w": 358,
+     "x": 16,
+     "y": 220
+    },
+    "text": "OpenStreetMap \u00a9 OpenStreetMap contributors Licence ODbL-1.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 271,
+     "w": 358,
+     "x": 16,
+     "y": 362
+    },
+    "text": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration Licence Mixed open sources, attribution required Used for Perugia Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 250,
+     "w": 358,
+     "x": 16,
+     "y": 633
+    },
+    "text": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation) Copernicus DEM GLO-90 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0) Licence Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0 Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 228,
+     "w": 358,
+     "x": 16,
+     "y": 883
+    },
+    "text": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from \u00a9 OpenStreetMap contributors Licence Route geometry derived from OpenStreetMap (ODbL-1.0) Used for every place Source"
+   },
+   {
+    "id": null,
+    "rect": {
+     "h": 315,
+     "w": 358,
+     "x": 16,
+     "y": 1111
+    },
+    "text": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry) produced using Copernicus WorldDEM-30 \u00a9 DLR e.V. 2010-2014 and \u00a9 Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved Licence Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30. Used for Lugano Source"
+   }
+  ],
+  "scrollWidth": 390,
+  "summary": {
+   "h": 40,
+   "w": 170,
+   "x": 8,
+   "y": 172
+  },
+  "summaryText": "\u203a Map & terrain credits",
+  "tv": false
+ }
+}
