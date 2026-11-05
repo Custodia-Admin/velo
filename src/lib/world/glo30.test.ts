@@ -393,6 +393,31 @@ describe('glo30: fetch, cache and bilinear sampling', () => {
     expect(glo30Sampler({ bbox: box, tiles: tiles(R), grid: GRID })(latOfRow(20), lonOfCol(13, 8))).toBeCloseTo(expected(13, 20, 8), 9);
   });
 
+  describe('clamps reads outside the box to its edge nodes where the edge meets a tile boundary', () => {
+    const raster = openRaster(parseTiff(fixture('glo30-N46_00_E008_00.tif')));
+    const tiles = new Map([['N46_00_E008_00', { raster, rowsPerDegree: R, colsPerDegree: C }]]);
+
+    it('north: the ceil lattice row is a whole degree (46.99 × 36 → 1692 = 47 × 36), so the row above is the next tile', () => {
+      const sample = glo30Sampler({ bbox: { south: 46.2, west: 8.2, north: 46.99, east: 8.8 }, tiles, grid: GRID });
+      // 8.5°E = column 12; the box's top node is row 0 of N46.
+      expect(sample(47.5, 8.5)).toBeCloseTo(expected(12, 0, 8), 9);
+      expect(sample(47, 8.5)).toBeCloseTo(expected(12, 0, 8), 9);
+    });
+
+    it('north: a box whose north edge is exactly 47°N, read on the edge', () => {
+      const sample = glo30Sampler({ bbox: { south: 46.2, west: 8.2, north: 47, east: 8.8 }, tiles, grid: GRID });
+      expect(sample(47, 8.5)).toBeCloseTo(expected(12, 0, 8), 9);
+      expect(sample(48, 8.5)).toBeCloseTo(expected(12, 0, 8), 9);
+    });
+
+    it('east: the ceil lattice column is the last of a tile (8.95 × 24 → 215 = 9 × 24 − 1), so the column after it is the next tile', () => {
+      const sample = glo30Sampler({ bbox: { south: 46.2, west: 8.2, north: 46.5, east: 8.95 }, tiles, grid: GRID });
+      // Row 20, east of the box: clamps to the tile's last column (23).
+      expect(sample(latOfRow(20), 9.5)).toBeCloseTo(expected(C - 1, 20, 8), 9);
+      expect(sample(latOfRow(20), 9)).toBeCloseTo(expected(C - 1, 20, 8), 9);
+    });
+  });
+
   it('refuses a tile whose tiepoint is not where its name says', () => {
     const tiff = parseTiff(fixture('glo30-N46_00_E008_00.tif'));
     expect(() => checkGlo30Tile({ south: 46, west: 9, id: 'N46_00_E009_00' }, tiff, openRaster(tiff))).toThrow(/first pixel centre/);

@@ -6,6 +6,8 @@
  *
  * In a window narrower than sm (the corner size) the next landmark moves to
  * its own pill at the top left (`JourneyLandmark`), so the bar stays one row.
+ * In both, a long place name shortens and the distance stays whole
+ * (`NextLandmark`).
  * The window is never narrower than lib/show/pip PIP_MIN_WIDTH.corner
  * (448 px); below xs (475 px, only the laptop's corner window) the gaps
  * tighten from the mockup's 6 to 3, so the figures and Pause fit at h:mm:ss
@@ -13,10 +15,10 @@
  * 432 with gap 4). Same numbers as the show strip (`useShowRideNumbers`).
  */
 
-import { Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Figure } from './Figure';
+import { NextLandmark } from './NextLandmark';
 import { useShowRideNumbers, type ShowRideNumbers } from './ShowRideStrip';
 import { HUD_PANEL } from './v2';
 
@@ -48,7 +50,7 @@ export function JourneyBar({ numbers, className }: { numbers?: ShowRideNumbers; 
         <Figure size="large" value={n.distanceValue} unit={n.distanceUnit} label="Distance" ariaLabel={n.distanceAria} />
         <Figure size="large" value={n.gradeText} unit="%" label="Grade" ariaLabel={`Grade: ${n.gradeText} %`} />
       </div>
-      {n.next && <NextLine text={n.next} className="hidden min-w-0 flex-1 sm:flex" />}
+      {n.next && <NextLandmark next={n.next} testId="journey-next" className="hidden min-w-0 flex-1 sm:flex" />}
       {action && (
         <Button variant="hud" size="icon" className="ml-auto shrink-0" aria-label={action.label} onClick={action.run}>
           <action.icon className="h-5 w-5" aria-hidden="true" />
@@ -64,18 +66,10 @@ export function JourneyLandmark({ numbers, className }: { numbers?: ShowRideNumb
   const n = numbers ?? live;
   if (!n.next) return null;
   return (
-    <NextLine
-      text={n.next}
+    <NextLandmark
+      next={n.next}
+      testId="journey-next"
       className={cn(HUD_PANEL, 'pointer-events-auto flex h-10 min-w-0 px-3 sm:hidden', className)}
     />
-  );
-}
-
-function NextLine({ text, className }: { text: string; className?: string }) {
-  return (
-    <p className={cn('items-center gap-1.5 text-sm', className)} data-testid="journey-next">
-      <Flag className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span className="truncate">{text}</span>
-    </p>
   );
 }

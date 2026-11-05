@@ -13,8 +13,18 @@ import { getPhotorealTileset, liftAboveTerrain, sampleGroundHeight, setIonToken 
 async function photorealTileset(height: number | undefined) {
   const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
   Object.defineProperty(fake, 'show', { value: true, writable: true });
+  // The mesh's height field. The app reads it down the local vertical
+  // (meshHeightAt → tileset.pick), so the fake's pick answers from it at the
+  // spot the ray goes through.
   const getHeight = vi.fn(() => height);
   Object.defineProperty(fake, 'getHeight', { value: getHeight });
+  Object.defineProperty(fake, 'pick', {
+    value: (ray: Cesium.Ray) => {
+      const c = Cesium.Cartographic.fromCartesian(ray.origin);
+      const h = getHeight();
+      return h === undefined ? undefined : Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h);
+    },
+  });
   vi.spyOn(Cesium.Cesium3DTileset, 'fromIonAssetId').mockResolvedValue(fake);
   const tileset = await getPhotorealTileset();
   return { tileset, getHeight };

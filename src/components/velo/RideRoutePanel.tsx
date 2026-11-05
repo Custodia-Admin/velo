@@ -10,13 +10,13 @@
  * Quantised reads (10 m, 10 s) keep it at display-change rate.
  */
 
-import { Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { quantizedMeters } from '@/lib/hudThrottle';
 import { scenicRouteById } from '@/lib/scenicRoutes';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useNextLandmarkText } from '@/hooks/useRouteLandmarks';
+import { useNextLandmark } from '@/hooks/useRouteLandmarks';
+import { NextLandmark } from './NextLandmark';
 import { RideWeatherChip } from './RideWeatherChip';
 import { RouteProfile } from './RouteProfile';
 import { DISPLAY, HUD_PANEL } from './v2';
@@ -30,7 +30,7 @@ export function RideRoutePanel({ className }: { className?: string }) {
   const units = useSettingsStore((s) => s.units);
 
   const estMinutes = route ? scenicRouteById(route.id)?.estMinutes ?? null : null;
-  const next = useNextLandmarkText(route, distance, units);
+  const next = useNextLandmark(route, distance, units);
 
   if (!route) return null;
   const total = route.isLive ? 0 : route.totalDistance;
@@ -51,12 +51,7 @@ export function RideRoutePanel({ className }: { className?: string }) {
       {total > 0 && route.points.length > 1 && (
         <RouteProfile route={route} at={at} className="h-8" />
       )}
-      {next && (
-        <p className="hidden items-center gap-1.5 text-sm sm:flex">
-          <Flag className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="truncate">{next}</span>
-        </p>
-      )}
+      {next && <NextLandmark next={next} testId="route-next" className="hidden sm:flex" />}
       <RideWeatherChip inline />
     </section>
   );

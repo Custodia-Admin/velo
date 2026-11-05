@@ -495,7 +495,7 @@ export function sampleGroundHeight(
   if (!onRealTerrain()) return undefined;
   const carto = Cesium.Cartographic.fromDegrees(lon, lat);
   // Over the photoreal mesh on WebGL 2, intersect the rendered tiles on the
-  // CPU (Cesium3DTileset.getHeight, ~3 ms). scene.sampleHeight renders a pick
+  // CPU (~3 ms, see meshHeightAt). scene.sampleHeight renders a pick
   // pass and reads it back synchronously, stalling until the GPU has drawn
   // the whole frame: 35–270 ms per call measured on the Arc iGPU, ~30 % of
   // the ride view's main thread. Riders aren't part of the tileset, so
@@ -509,7 +509,7 @@ export function sampleGroundHeight(
         const p = prims.get(i) as Cesium.Cesium3DTileset;
         if (!isPhotorealTileset(p) || !p.show) continue;
         meshShown = true;
-        const h = p.getHeight(carto, scene);
+        const h = meshHeightAt(p, carto, scene);
         if (h !== undefined && Number.isFinite(h) && (best === undefined || h > best)) best = h;
       }
       if (meshShown) return best;
@@ -517,6 +517,36 @@ export function sampleGroundHeight(
   }
   if (!scene.sampleHeightSupported) return undefined;
   return scene.sampleHeight(carto, exclude);
+}
+
+type TilesetPick = (ray: Cesium.Ray, frameState: unknown, result?: Cesium.Cartesian3) => Cesium.Cartesian3 | undefined;
+
+/**
+ * Height of the mesh `tileset` draws this frame at `carto`, straight down the
+ * local vertical. This is Cesium3DTileset.getHeight with the ray fixed:
+ * getHeight (Cesium 1.141) casts its ray through the Earth's centre, which
+ * leaves the vertical by up to 0.19°, so at 363 m it crosses the mesh 1.2 m
+ * towards the equator. On a kerb at Lugano–Melide 2940 m that read 362.84 m
+ * where the road is drawn at 363.41 m (GPU pick and the main view's depth
+ * agree), and the wheels sat 0.57 m in the road. Same tile walk otherwise:
+ * the selected tiles nearest the ray's origin first, the first one hit wins.
+ */
+export function meshHeightAt(
+  tileset: Cesium.Cesium3DTileset,
+  carto: Cesium.Cartographic,
+  scene: Cesium.Scene,
+): number | undefined {
+  const pick = (tileset as unknown as { pick?: TilesetPick }).pick;
+  if (typeof pick !== 'function') return tileset.getHeight(carto, scene);
+  const ellipsoid = (scene as { ellipsoid?: Cesium.Ellipsoid }).ellipsoid ?? Cesium.Ellipsoid.WGS84;
+  // From as far out as getHeight starts (two Earth radii), down the normal.
+  const origin = ellipsoid.cartographicToCartesian(
+    new Cesium.Cartographic(carto.longitude, carto.latitude, 2 * ellipsoid.maximumRadius),
+  );
+  const down = Cesium.Cartesian3.negate(ellipsoid.geodeticSurfaceNormalCartographic(carto), new Cesium.Cartesian3());
+  const hit = pick.call(tileset, new Cesium.Ray(origin, down), (scene as { frameState?: unknown }).frameState);
+  if (!hit) return undefined;
+  return ellipsoid.cartesianToCartographic(hit)?.height;
 }
 
 function isWebGL2(scene: Cesium.Scene): boolean {

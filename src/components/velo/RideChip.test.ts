@@ -56,6 +56,7 @@ import { RideChip } from './RideChip';
 import { useRideStore } from '@/stores/rideStore';
 import { useRideHudStore } from '@/stores/rideHudStore';
 import { useTrainerReconnectStore } from '@/lib/trainerReconnect';
+import { canvasKeyFor, useWorldViewStore } from '@/stores/worldViewStore';
 
 type ChipProps = { onClick: () => void; className: string; 'aria-label': string; 'data-tone': string };
 
@@ -116,7 +117,15 @@ afterEach(() => {
   useRideStore.setState(initialRide, true);
   useTrainerReconnectStore.setState(initialReconnect, true);
   useRideHudStore.setState({ devicesOpen: false, noticeHosts: 0 });
+  useWorldViewStore.setState({ view: null });
 });
+
+/** The world view's canvas lost its WebGL context (ContextLossWatch reported it). */
+function worldViewStopped(): number {
+  const id = useWorldViewStore.getState().attach();
+  useWorldViewStore.getState().contextLost(id, 0);
+  return id;
+}
 
 describe('RideChip: a lost trainer', () => {
   it('with a usable grant: "Trainer lost · tap to reconnect", on phones too, and the tap reconnects (not the sheet)', () => {
@@ -203,6 +212,45 @@ describe('RideChip: the other taps', () => {
     useRideStore.getState().pushToast({ id: 'new', kind: 'info', title: 'New personal best', durationMs: 4_000 });
     expect(chip()!.text).toBe('New personal best');
     expect(useRideStore.getState().toasts.map((t) => t.id)).toEqual(['new']);
+  });
+});
+
+describe('RideChip: the 3D view stopped (WebGL context lost)', () => {
+  it('"3D view stopped · tap to reload", on phones too; the tap remounts the view (new canvas key), not the sheet', () => {
+    useRideStore.getState().setMode('demo');
+    const id = worldViewStopped();
+    const el = chip()!;
+    expect(el.text).toBe('3D view stopped · tap to reload');
+    expect(el.label).toContain('Your ride keeps going');
+    expect(el.props['data-tone']).toBe('warn');
+    expect(visibleOnPhones(el)).toBe(true);
+    el.props.onClick();
+    expect(canvasKeyFor(useWorldViewStore.getState(), id)).toBe(1);
+    expect(useWorldViewStore.getState().view?.stopped).toBe(false);
+    expect(useRideHudStore.getState().devicesOpen).toBe(false);
+    expect(h.reconnect).not.toHaveBeenCalled();
+    // Back to the calm chip once the view is remounted.
+    expect(chip()!.text).toBe('Demo ride · no trainer');
+  });
+
+  it('a lost trainer still speaks first; the stopped view shows once the trainer is back', () => {
+    trainerLostMidRide();
+    useTrainerReconnectStore.setState({ phase: 'available', name: 'KICKR CORE 78C1' });
+    worldViewStopped();
+    expect(chip()!.text).toBe('Trainer lost · tap to reconnect');
+    useRideStore.getState().setConnection('connected', { deviceName: 'KICKR CORE 78C1' });
+    useRideStore.getState().setMode('trainer');
+    expect(chip()!.text).toBe('3D view stopped · tap to reload');
+  });
+
+  it('in the floating window and show mode (alertsOnly) it shows too, and the tap reloads there', () => {
+    useRideStore.getState().setMode('demo');
+    const id = worldViewStopped();
+    const el = chip({ alertsOnly: true })!;
+    expect(el.text).toBe('3D view stopped · tap to reload');
+    el.props.onClick();
+    expect(canvasKeyFor(useWorldViewStore.getState(), id)).toBe(1);
+    expect(chip({ alertsOnly: true })).toBeNull();
   });
 });
 
