@@ -143,7 +143,7 @@ describe('trainerRow', () => {
     expect(ids(v)).toEqual({ action: 'pair', extras: ['guide'] });
   });
 
-  it('guide steps follow TrainerConnect', () => {
+  it('the guide opens on the step for the support report or the connect error', () => {
     expect(stepForReport('ios-unsupported')).toBe('browser');
     expect(stepForReport('insecure-context')).toBe('https');
     expect(stepForReport('adapter-unavailable')).toBe('wake');

@@ -1,9 +1,10 @@
 /**
  * Trainer pairing and the trainer settings.
  *
- * TrainerRow is the Devices page row: the same lib calls as the legacy
- * TrainerConnect (chooser on a tap, one-tap reconnect of a granted trainer,
- * disconnect, troubleshooting guide), rendered from devicesView.trainerRow.
+ * TrainerRow is the Devices page row (also step 2 of Build your own ride and
+ * the in-ride devices sheet): the chooser on a tap, a one-tap reconnect of a
+ * granted trainer, disconnect and the troubleshooting guide, rendered from
+ * devicesView.trainerRow.
  * DemoRiderSwitch / TrainerModeSwitch are rows of the Devices Options panel.
  * The optional handlebar controls pair separately and never touch the
  * trainer link.
@@ -79,7 +80,7 @@ export function DemoRiderSwitch() {
   );
 }
 
-/** ERG / SIM right now, for a connected trainer (TrainerConnect's mode toggle). */
+/** ERG / SIM right now, for a connected trainer. */
 export function TrainerModeSwitch() {
   const connection = useRideStore((s) => s.connection);
   const controlMode = useRideStore((s) => s.trainerControlMode);
