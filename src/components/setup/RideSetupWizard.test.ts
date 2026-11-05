@@ -429,6 +429,7 @@ describe('RideSetupWizard — the route step (search, generate, scenic pick)', (
               .map((b) => ({ ...btn(b), lines: words(tree(b.props.children)) }))
           : [],
         clear: clear ? btn(clear) : null,
+        listClass: list ? (list.props.className as string) : null,
         generator: gen
           ? {
               words: words(genTree),
@@ -442,7 +443,7 @@ describe('RideSetupWizard — the route step (search, generate, scenic pick)', (
         preview: all.find((e) => e.type === RoutePreview)?.props.route as Route | undefined,
         tiles: all
           .filter((e) => 'data-featured-route' in e.props)
-          .map((e) => ({ id: e.props['data-featured-route'] as string, ...btn(e) })),
+          .map((e) => ({ id: e.props['data-featured-route'] as string, className: e.props.className as string, ...btn(e) })),
       };
     };
   }
@@ -510,9 +511,17 @@ describe('RideSetupWizard — the route step (search, generate, scenic pick)', (
       ['Kyoto', 'Japan'],
     ]);
 
+    // The list floats over the scenic tiles: a shadow, and at night a surface of its own
+    // (the tiles are bg-card, and a shadow barely shows on the night page).
+    await vi.waitFor(() => expect(view().tiles.length).toBeGreaterThan(0));
+    const classes = (c: string | null) => (c ?? '').split(/\s+/);
+    expect(classes(view().listClass)).toEqual(expect.arrayContaining(['absolute', 'shadow-lg', 'dark:bg-muted']));
+    expect(classes(view().tiles[0].className)).toContain('bg-card');
+
     view().results[1].onClick();
     const v = view();
     expect(v.results).toEqual([]);
+    expect(v.listClass).toBeNull();
     expect(v.generator!.words.slice(0, 2)).toEqual(['Perugia', 'Umbria, Italy']);
     expect(v.generator!.words).not.toContain(CITY.displayName);
     expect(v.generator!.buttons.map((b) => [b.text, b.variant])).toEqual([['Generate route', 'primary']]);
