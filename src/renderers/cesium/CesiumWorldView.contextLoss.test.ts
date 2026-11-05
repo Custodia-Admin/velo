@@ -20,6 +20,11 @@
  *   is the restore; the watch stops before the viewer is destroyed. Every
  *   mount hands a new WorldRenderer over `onReady`. A Viewer that can't be
  *   built leaves the view stopped, so the chip stays up for another tap.
+ * - Cesium's own error panel is off (`showRenderLoopErrors: false`): it added
+ *   a window 'resize' listener that only its OK button removed, which kept
+ *   every dead viewer alive. A frame that throws (`scene.renderError`, the
+ *   render loop stops) reads stopped like a lost context, so the chip shows
+ *   and a tap builds a new Viewer; that watch stops before destroy too.
  */
 import { isValidElement, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -39,8 +44,26 @@ const rt = vi.hoisted(() => ({
 
 /** A fake Cesium Viewer: what CesiumScene's bootstrap and cleanup touch. */
 const fake = vi.hoisted(() => {
+  /** Cesium's Event: addEventListener returns the remover; raise() calls every listener. */
+  class FakeEvent {
+    listeners: Array<(...args: unknown[]) => void> = [];
+    addEventListener(fn: (...args: unknown[]) => void) {
+      this.listeners.push(fn);
+      return () => this.removeEventListener(fn);
+    }
+    removeEventListener(fn: (...args: unknown[]) => void) {
+      const k = this.listeners.indexOf(fn);
+      if (k >= 0) this.listeners.splice(k, 1);
+      return k >= 0;
+    }
+    raise(...args: unknown[]) {
+      for (const fn of [...this.listeners]) fn(...args);
+    }
+  }
   class FakeViewer {
     static built: FakeViewer[] = [];
+    /** The options of every construction, including the ones that threw. */
+    static optionsSeen: unknown[] = [];
     static failWith: Error | null = null;
     /** Called inside destroy(), before the viewer reads destroyed. */
     static onDestroy: ((v: FakeViewer) => void) | null = null;
@@ -52,11 +75,12 @@ const fake = vi.hoisted(() => {
     terrainProvider = {};
     resolutionScale = 1;
     entities = { add: () => ({}), remove: () => true, contains: () => false };
-    scene: Record<string, unknown> & { canvas: EventTarget };
+    scene: Record<string, unknown> & { canvas: EventTarget; renderError: FakeEvent };
     constructor(
       public container: unknown,
       public options: unknown,
     ) {
+      FakeViewer.optionsSeen.push(options);
       if (FakeViewer.failWith) throw FakeViewer.failWith;
       const event = () => ({ addEventListener: () => undefined, removeEventListener: () => undefined });
       this.scene = {
@@ -64,6 +88,7 @@ const fake = vi.hoisted(() => {
         preUpdate: event(),
         preRender: event(),
         postRender: event(),
+        renderError: new FakeEvent(),
         globe: { show: true },
         skyAtmosphere: { show: false },
         fog: {},
@@ -244,6 +269,7 @@ beforeEach(() => {
   // The tier is chosen already (the auto pick reads the GPU name off a real context).
   useSettingsStore.setState({ graphicsQualityAuto: false });
   fake.FakeViewer.built = [];
+  fake.FakeViewer.optionsSeen = [];
   fake.FakeViewer.failWith = null;
   fake.FakeViewer.onDestroy = null;
 });
@@ -430,14 +456,49 @@ describe('CesiumScene: the viewer canvas and its WebGL context', () => {
     const { inst, report } = await mountScene(2);
     const viewer = fake.FakeViewer.built[0];
     const duringDestroy: boolean[] = [];
-    fake.FakeViewer.onDestroy = (v) => duringDestroy.push(lose(v.scene.canvas).defaultPrevented);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    fake.FakeViewer.onDestroy = (v) => {
+      duringDestroy.push(lose(v.scene.canvas).defaultPrevented);
+      v.scene.renderError.raise(v.scene, new Error('a frame during teardown'));
+    };
     unmountIn(inst);
     expect(viewer.destroyCalls).toBe(1);
     expect(duringDestroy).toEqual([false]);
+    expect(viewer.scene.renderError.listeners, 'the renderError watch is gone').toHaveLength(0);
     expect(lose(viewer.scene.canvas).defaultPrevented).toBe(false);
     restore(viewer.scene.canvas);
+    viewer.scene.renderError.raise(viewer.scene, new Error('a late frame'));
     expect(report.lost).not.toHaveBeenCalled();
     expect(report.restored).not.toHaveBeenCalled();
+    expect(warn.mock.calls.filter((c) => /stopped rendering/.test(String(c[0])))).toEqual([]);
+  });
+
+  it("builds the Viewer with Cesium's own error panel off (the chip says it; the panel's resize listener kept dead viewers alive)", async () => {
+    await mountScene(0);
+    expect(fake.FakeViewer.built).toHaveLength(1);
+    const options = fake.FakeViewer.built[0].options as Record<string, unknown>;
+    expect(options.showRenderLoopErrors).toBe(false);
+  });
+
+  it('a frame that throws (scene.renderError: the render loop stopped) reads stopped for this key, warned once', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { report, onReady } = await mountScene(5);
+    const stopWarnings = () => warn.mock.calls.filter((c) => /stopped rendering/.test(String(c[0]))).length;
+    expect(onReady).toHaveBeenCalledTimes(1);
+    const viewer = fake.FakeViewer.built[0];
+    expect(viewer.scene.renderError.listeners).toHaveLength(1);
+    expect(report.lost).not.toHaveBeenCalled();
+    expect(stopWarnings()).toBe(0);
+    viewer.scene.renderError.raise(viewer.scene, new Error('Expected width to be greater than 0'));
+    expect(report.lost).toHaveBeenCalledTimes(1);
+    expect(report.lost).toHaveBeenCalledWith(5);
+    expect(report.restored).not.toHaveBeenCalled();
+    expect(stopWarnings()).toBe(1);
+    // XR keeps calling scene.render(): every throw still reports, the log stays one line.
+    viewer.scene.renderError.raise(viewer.scene, new Error('again'));
+    expect(report.lost).toHaveBeenCalledTimes(2);
+    expect(report.lost).toHaveBeenLastCalledWith(5);
+    expect(stopWarnings()).toBe(1);
   });
 
   it('no viewer can be built (no WebGL right now): the view reads stopped for this key, no renderer is handed over', async () => {
@@ -448,10 +509,42 @@ describe('CesiumScene: the viewer canvas and its WebGL context', () => {
     expect(report.lost).toHaveBeenCalledWith(4);
     expect(onReady).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalled();
+    // Nor does Cesium draw its "Error constructing CesiumWidget" panel into the container.
+    expect(fake.FakeViewer.optionsSeen).toHaveLength(1);
+    expect((fake.FakeViewer.optionsSeen[0] as Record<string, unknown>).showRenderLoopErrors).toBe(false);
   });
 });
 
 describe('CesiumWorldView + CesiumScene + the store: lose, tap, a new viewer', () => {
+  /** Mount a CesiumScene under the view's report, as the wrapper's element would. */
+  async function mountSceneUnder(report: ViewerContextReport, canvasKey: number) {
+    const inst = instance();
+    mounted.push(inst);
+    const props = { ionToken: null, canvasKey, context: report };
+    const el = renderIn(inst, CesiumScene, props);
+    (elements(el).find((x) => x.props.ref && typeof x.props.ref === 'object')!.props.ref as { current: unknown }).current = {};
+    commit(inst);
+    await flush();
+    return inst;
+  }
+
+  it('a render-loop stop (renderError, no context loss) shows the chip state, and the tap remounts on a new key', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const view = mountView();
+    const id = store().view!.id;
+    await mountSceneUnder(view.report, 0);
+    const viewer = fake.FakeViewer.built[0];
+    expect(selectWorldStopped(store())).toBe(false);
+    viewer.scene.renderError.raise(viewer.scene, new Error('a shader failed to link'));
+    expect(store().view).toEqual<WorldViewSlot>({ id, canvasKey: 0, stopped: true });
+    const lost = renderView(view.inst);
+    expect(hidden(lost.root)).toBe(true);
+    expect(lost.root.props['data-world-context']).toBe('lost');
+    store().reload();
+    expect(store().view).toEqual<WorldViewSlot>({ id, canvasKey: 1, stopped: false });
+    expect(renderView(view.inst).scene?.key).toBe('1');
+  });
+
   it('the scene a key bump mounts reports to the same slot, and the chip state follows it', async () => {
     const view = mountView();
     const id = store().view!.id;

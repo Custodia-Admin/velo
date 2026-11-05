@@ -12,6 +12,10 @@
  * the browser gives the context back (restoreContext()) → the world view
  * remounts on a new canvas that draws again (pixel variety, frames). Then a
  * second loss with no restore → the rider taps the chip → the same recovery.
+ * On photoreal, a frame that throws with the context intact (Cesium's
+ * scene.renderError stops its render loop for good) gets the same chip and
+ * tap (card t_b2730be0), and Cesium's own error panel never exists, not even
+ * hidden in the dead view.
  */
 import { expect, test, type Page } from '@playwright/test';
 
@@ -198,7 +202,7 @@ type CesiumProbe = {
   viewer: {
     canvas: HTMLCanvasElement;
     isDestroyed: () => boolean;
-    scene: { frameState: { frameNumber: number } };
+    scene: { frameState: { frameNumber: number }; primitives: { add: (p: object) => unknown } };
   };
 };
 
@@ -222,6 +226,10 @@ const viewerState = (page: Page) =>
         const r = p.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && getComputedStyle(p).visibility !== 'hidden';
       }).length,
+      // ... nor anywhere in the DOM, hidden in the dead view included: it comes
+      // with a window 'resize' listener that only its OK button removes, which
+      // kept every torn-down viewer alive (card t_b2730be0).
+      errorPanelsInDom: document.querySelectorAll('.cesium-widget-errorPanel').length,
     };
   });
 
@@ -236,9 +244,23 @@ const loseViewerContext = (page: Page, tag: string) =>
     ext.loseContext();
   }, tag);
 
-test('the photoreal view after a lost WebGL context: the chip, the ride carries on, a new viewer draws (restore, then tap)', async ({ page }) => {
-  // Two viewer rebuilds on software GL.
-  test.setTimeout(420_000);
+/** A primitive whose update() throws: Cesium raises scene.renderError and stops its render loop; the context stays. Tags the canvas. */
+const throwInAFrame = (page: Page, tag: string) =>
+  page.evaluate((t) => {
+    const v = (window as unknown as { __veloCesium: CesiumProbe }).__veloCesium.viewer;
+    v.canvas.dataset.e2eCanvas = t;
+    v.scene.primitives.add({
+      update: () => {
+        throw new Error('e2e: a frame throws');
+      },
+      isDestroyed: () => false,
+      destroy: () => undefined,
+    });
+  }, tag);
+
+test('the photoreal view after a lost WebGL context: the chip, the ride carries on, a new viewer draws (restore, then tap; then a frame that throws, tap)', async ({ page }) => {
+  // Three viewer rebuilds on software GL.
+  test.setTimeout(540_000);
   const pageErrors: string[] = [];
   page.on('pageerror', (err) => pageErrors.push(String(err)));
   await page.addInitScript(INIT);
@@ -271,7 +293,7 @@ test('the photoreal view after a lost WebGL context: the chip, the ride carries 
   clock.push(await ride(page));
   await rideOn(page, 2_000);
   clock.push(await ride(page));
-  expect((await viewerState(page)).errorPanels, 'no error box over the ride').toBe(0);
+  expect(await viewerState(page), 'no error box over the ride, nor one hidden in the dead view').toMatchObject({ errorPanels: 0, errorPanelsInDom: 0 });
 
   await page.evaluate(() => (window as unknown as { __e2eLoseContext: WEBGL_lose_context }).__e2eLoseContext.restoreContext());
   await expect(world).toHaveAttribute('data-world-context', 'live');
@@ -290,6 +312,7 @@ test('the photoreal view after a lost WebGL context: the chip, the ride carries 
   clock.push(await ride(page));
   await rideOn(page, 2_000);
   clock.push(await ride(page));
+  expect(await viewerState(page)).toMatchObject({ errorPanels: 0, errorPanelsInDom: 0 });
   await chip.click();
   await expect(world).toHaveAttribute('data-world-context', 'live');
   await expect(chip).not.toHaveText(CHIP);
@@ -298,6 +321,20 @@ test('the photoreal view after a lost WebGL context: the chip, the ride carries 
   // Imagery streams into a new viewer over a few frames.
   await expect.poll(() => worldVariety(page), { message: 'the world draws again after the tap', timeout: 90_000 }).toBeGreaterThan(300);
   expect((await viewerState(page)).errorPanels).toBe(0);
+  clock.push(await ride(page));
+
+  // ---- 3. A frame throws, the context is fine: the render loop stopped, the same chip and tap ----
+  await throwInAFrame(page, 'third');
+  await expect(chip).toHaveText(CHIP);
+  await expect(world).toHaveAttribute('data-world-context', 'lost');
+  await expect(world).toHaveCSS('visibility', 'hidden');
+  expect(await viewerState(page)).toMatchObject({ lost: false, tagged: 'third', errorPanels: 0, errorPanelsInDom: 0 });
+  await chip.click();
+  await expect(world).toHaveAttribute('data-world-context', 'live');
+  await expect(chip).not.toHaveText(CHIP);
+  await expect.poll(async () => viewerState(page), { timeout: 60_000 }).toMatchObject({ count: 1, current: true, lost: false, tagged: null });
+  await expect.poll(async () => (await viewerState(page)).frames, { timeout: 120_000 }).toBeGreaterThan(10);
+  await expect.poll(() => worldVariety(page), { message: 'the world draws again after a frame threw', timeout: 90_000 }).toBeGreaterThan(300);
   clock.push(await ride(page));
 
   expectClockNeverStopped(clock);
