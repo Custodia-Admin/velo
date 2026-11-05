@@ -1,5 +1,7 @@
 # Route fit: one drawn surface under the guide (PR #33 review N3)
 
+> **Superseded figures.** The PR #42 review found a connector bent onto the road beside it at Locarno 2,072 m, junction notches, and a paint check that missed corner overhangs. The fit and the bundles were redone for those findings; current numbers and before/after shots are in [route-fit-nits](../route-fit-nits/README.md).
+
 Card t_7e8cd233. The bake no longer lays a `routeFill` piece beside a path the route runs along. It bends that path onto the route instead (`easeRoadsOntoRoutes`, tools/worldbake/routeCoverage.mjs). It adds a `routeFill` join only where no road runs along the route within 2.5 m. The guide band is the centre line ± 0.29 m: the chevron arms reach 0.24 m and the stroke adds 0.045 m (`ROUTE_GUIDE`, pinned by routeGuide.test.ts).
 
 **Before** is main 1a28b47 and **after** is this branch. Both are one build (bundle `index-CXudCUwe.js`) with only `worlds/*/roads.json.gz` and `manifest.json` swapped, so the A/B isolates the bake change. Every shot uses the world renderer at medium, noon and clear unless named, with the rider held by `__veloWorldLight.place(d)`.

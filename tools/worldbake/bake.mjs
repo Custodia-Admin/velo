@@ -29,7 +29,7 @@ import { fetchOsm, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
-import { easeRoadsOntoRoutes, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
+import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { validateHeightfield } from './validateDem.mjs';
 import { syncDestinations } from './syncDestinations.mjs';
 import { brotliSize, ensureDir, gzip, here, sha256, stableJson, writeFileAtomic } from './util.mjs';
@@ -369,6 +369,7 @@ export async function bake(opts) {
     totals,
     hashes: Object.fromEntries([...files.map((f) => [f.path, f.sha256]), ['manifest.json', sha256(manifestBytes)]]),
     routes: snapped.info.map((r) => ({ ...r, roadCoverage: roadCoverage[r.id] })),
+    routeFit: routeFitReport(fit),
     heightfield: { ...height.info, carvedNodes: carve.carvedNodes, maxCutM: round(carve.maxCutM) },
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
     ...(glo30 ? { demSource: dem.source } : {}),
