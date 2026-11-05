@@ -1,0 +1,1189 @@
+{
+ "card": "t_771036a6",
+ "head": "af7adf6 (code; shots at 498f88b, same view code: the later commits change a test and drop one equivalent line)",
+ "route": "scenic-magadino-plain (Bellinzona to Locarno, outside every baked world: photoreal, token-free OSM)",
+ "tab": {
+  "1440": {
+   "viewport": "1440x900@1",
+   "steps": [
+    {
+     "recover": "restore",
+     "chipAfterS": 0.12,
+     "liveAfterS": 0.83,
+     "newViewerAfterS": 2.39,
+     "before": {
+      "rideState": "running",
+      "elapsedMs": 11833.5,
+      "distance": 117.60951664550358,
+      "samples": 14,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 309,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 305,
+       "y": 762,
+       "w": 195,
+       "h": 40
+      }
+     },
+     "lost": {
+      "rideState": "running",
+      "elapsedMs": 15016.7,
+      "distance": 146.01111920721019,
+      "samples": 17,
+      "worldContext": "lost",
+      "worldVisibility": "hidden",
+      "canvases": 1,
+      "canvasTag": "lost0",
+      "viewerDestroyed": false,
+      "contextLost": true,
+      "frame": 310,
+      "errorPanelsVisible": 0,
+      "chip": "3D view stopped · tap to reload",
+      "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+      "chipTone": "warn",
+      "chipRect": {
+       "x": 305,
+       "y": 762,
+       "w": 258,
+       "h": 40
+      },
+      "hudAreaPct": 6.8,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 829,
+        "h": 66
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 448,
+        "h": 51
+       },
+       {
+        "name": "ride-status-chip",
+        "w": 258,
+        "h": 40
+       }
+      ]
+     },
+     "back": {
+      "rideState": "running",
+      "elapsedMs": 24232.899999999998,
+      "distance": 229.96553039948776,
+      "samples": 28,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 238,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 302,
+       "y": 762,
+       "w": 195,
+       "h": 40
+      },
+      "hudAreaPct": 6.6,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 837,
+        "h": 66
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 448,
+        "h": 51
+       },
+       {
+        "name": "ride-status-chip",
+        "w": 195,
+        "h": 40
+       }
+      ],
+      "variety": 18230
+     }
+    },
+    {
+     "recover": "tap",
+     "chipAfterS": 0.05,
+     "liveAfterS": 0.17,
+     "newViewerAfterS": 1.32,
+     "before": {
+      "rideState": "running",
+      "elapsedMs": 26766.300000000007,
+      "distance": 254.04345555460785,
+      "samples": 31,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 302,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 302,
+       "y": 762,
+       "w": 195,
+       "h": 40
+      }
+     },
+     "lost": {
+      "rideState": "running",
+      "elapsedMs": 29966.100000000002,
+      "distance": 284.45498037330395,
+      "samples": 34,
+      "worldContext": "lost",
+      "worldVisibility": "hidden",
+      "canvases": 1,
+      "canvasTag": "lost1",
+      "viewerDestroyed": false,
+      "contextLost": true,
+      "frame": 303,
+      "errorPanelsVisible": 0,
+      "chip": "3D view stopped · tap to reload",
+      "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+      "chipTone": "warn",
+      "chipRect": {
+       "x": 302,
+       "y": 762,
+       "w": 258,
+       "h": 40
+      },
+      "hudAreaPct": 6.8,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 837,
+        "h": 66
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 448,
+        "h": 51
+       },
+       {
+        "name": "ride-status-chip",
+        "w": 258,
+        "h": 40
+       }
+      ]
+     },
+     "back": {
+      "rideState": "running",
+      "elapsedMs": 38715.399999999994,
+      "distance": 367.4382784951396,
+      "samples": 44,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 220,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 302,
+       "y": 762,
+       "w": 195,
+       "h": 40
+      },
+      "hudAreaPct": 6.6,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 837,
+        "h": 66
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 448,
+        "h": 51
+       },
+       {
+        "name": "ride-status-chip",
+        "w": 195,
+        "h": 40
+       }
+      ],
+      "variety": 19136
+     }
+    }
+   ],
+   "clockWorstPlateauMs": 85,
+   "pageErrors": []
+  },
+  "1280": {
+   "viewport": "1280x648@2",
+   "steps": [
+    {
+     "recover": "restore",
+     "chipAfterS": 0.06,
+     "liveAfterS": 0.75,
+     "newViewerAfterS": 1.53,
+     "before": {
+      "rideState": "running",
+      "elapsedMs": 10649.7,
+      "distance": 107.19912205915078,
+      "samples": 13,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 288,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 225,
+       "y": 510,
+       "w": 195,
+       "h": 40
+      }
+     },
+     "lost": {
+      "rideState": "running",
+      "elapsedMs": 13766.2,
+      "distance": 134.971737437203,
+      "samples": 16,
+      "worldContext": "lost",
+      "worldVisibility": "hidden",
+      "canvases": 1,
+      "canvasTag": "lost0",
+      "viewerDestroyed": false,
+      "contextLost": true,
+      "frame": 290,
+      "errorPanelsVisible": 0,
+      "chip": "3D view stopped · tap to reload",
+      "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+      "chipTone": "warn",
+      "chipRect": {
+       "x": 225,
+       "y": 510,
+       "w": 258,
+       "h": 40
+      },
+      "hudAreaPct": 10.6,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 829,
+        "h": 66
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 448,
+        "h": 51
+       },
+       {
+        "name": "ride-status-chip",
+        "w": 258,
+        "h": 40
+       }
+      ]
+     },
+     "back": {
+      "rideState": "running",
+      "elapsedMs": 23515.5,
+      "distance": 223.30734295897352,
+      "samples": 27,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 250,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 222,
+       "y": 510,
+       "w": 195,
+       "h": 40
+      },
+      "hudAreaPct": 10.4,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 837,
+        "h": 66
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 448,
+        "h": 51
+       },
+       {
+        "name": "ride-status-chip",
+        "w": 195,
+        "h": 40
+       }
+      ],
+      "variety": 22137
+     }
+    },
+    {
+     "recover": "tap",
+     "chipAfterS": 0.02,
+     "liveAfterS": 0.89,
+     "newViewerAfterS": 1.77,
+     "before": {
+      "rideState": "running",
+      "elapsedMs": 25015.500000000004,
+      "distance": 237.56299606907072,
+      "samples": 29,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 301,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 222,
+       "y": 510,
+       "w": 195,
+       "h": 40
+      }
+     },
+     "lost": {
+      "rideState": "running",
+      "elapsedMs": 28198.800000000007,
+      "distance": 267.81769976090044,
+      "samples": 32,
+      "worldContext": "lost",
+      "worldVisibility": "hidden",
+      "canvases": 1,
+      "canvasTag": "lost1",
+      "viewerDestroyed": false,
+      "contextLost": true,
+      "frame": 302,
+      "errorPanelsVisible": 0,
+      "chip": "3D view stopped · tap to reload",
+      "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+      "chipTone": "warn",
+      "chipRect": {
+       "x": 222,
+       "y": 510,
+       "w": 258,
+       "h": 40
+      },
+      "hudAreaPct": 10.7,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 837,
+        "h": 66
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 448,
+        "h": 51
+       },
+       {
+        "name": "ride-status-chip",
+        "w": 258,
+        "h": 40
+       }
+      ]
+     },
+     "back": {
+      "rideState": "running",
+      "elapsedMs": 38098.6,
+      "distance": 361.72662701510495,
+      "samples": 43,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 304,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 222,
+       "y": 510,
+       "w": 195,
+       "h": 40
+      },
+      "hudAreaPct": 10.4,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 837,
+        "h": 66
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 448,
+        "h": 51
+       },
+       {
+        "name": "ride-status-chip",
+        "w": 195,
+        "h": 40
+       }
+      ],
+      "variety": 23344
+     }
+    }
+   ],
+   "clockWorstPlateauMs": 750,
+   "pageErrors": []
+  },
+  "390": {
+   "viewport": "390x844@2",
+   "steps": [
+    {
+     "recover": "restore",
+     "chipAfterS": 0.03,
+     "liveAfterS": 0.65,
+     "newViewerAfterS": 1.72,
+     "before": {
+      "rideState": "running",
+      "elapsedMs": 9999.399999999996,
+      "distance": 101.36216868726272,
+      "samples": 11,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 307,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 0,
+       "y": 0,
+       "w": 0,
+       "h": 0
+      }
+     },
+     "lost": {
+      "rideState": "running",
+      "elapsedMs": 13049.199999999995,
+      "distance": 128.44264976238668,
+      "samples": 14,
+      "worldContext": "lost",
+      "worldVisibility": "hidden",
+      "canvases": 1,
+      "canvasTag": "lost0",
+      "viewerDestroyed": false,
+      "contextLost": true,
+      "frame": 308,
+      "errorPanelsVisible": 0,
+      "chip": "3D view stopped · tap to reload",
+      "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+      "chipTone": "warn",
+      "chipRect": {
+       "x": 12,
+       "y": 686,
+       "w": 258,
+       "h": 40
+      },
+      "hudAreaPct": 22.3,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 366,
+        "h": 98
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 204,
+        "h": 134
+       },
+       {
+        "name": "ride-status-chip",
+        "w": 258,
+        "h": 40
+       }
+      ]
+     },
+     "back": {
+      "rideState": "running",
+      "elapsedMs": 23148.800000000003,
+      "distance": 219.65829344069803,
+      "samples": 25,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 358,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 0,
+       "y": 0,
+       "w": 0,
+       "h": 0
+      },
+      "hudAreaPct": 19.2,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 366,
+        "h": 98
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 204,
+        "h": 134
+       }
+      ],
+      "variety": 14391
+     }
+    },
+    {
+     "recover": "tap",
+     "chipAfterS": 0.0,
+     "liveAfterS": 0.54,
+     "newViewerAfterS": 1.65,
+     "before": {
+      "rideState": "running",
+      "elapsedMs": 24865.300000000007,
+      "distance": 235.9592494789624,
+      "samples": 27,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 402,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 0,
+       "y": 0,
+       "w": 0,
+       "h": 0
+      }
+     },
+     "lost": {
+      "rideState": "running",
+      "elapsedMs": 27915.200000000008,
+      "distance": 264.94609047979895,
+      "samples": 30,
+      "worldContext": "lost",
+      "worldVisibility": "hidden",
+      "canvases": 1,
+      "canvasTag": "lost1",
+      "viewerDestroyed": false,
+      "contextLost": true,
+      "frame": 404,
+      "errorPanelsVisible": 0,
+      "chip": "3D view stopped · tap to reload",
+      "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+      "chipTone": "warn",
+      "chipRect": {
+       "x": 12,
+       "y": 686,
+       "w": 258,
+       "h": 40
+      },
+      "hudAreaPct": 22.3,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 366,
+        "h": 98
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 204,
+        "h": 134
+       },
+       {
+        "name": "ride-status-chip",
+        "w": 258,
+        "h": 40
+       }
+      ]
+     },
+     "back": {
+      "rideState": "running",
+      "elapsedMs": 37964.70000000002,
+      "distance": 360.4568395331766,
+      "samples": 41,
+      "worldContext": "live",
+      "worldVisibility": "visible",
+      "canvases": 1,
+      "canvasTag": null,
+      "viewerDestroyed": false,
+      "contextLost": false,
+      "frame": 366,
+      "errorPanelsVisible": 0,
+      "chip": "Demo ride · no trainer",
+      "chipAria": "Demo ride: no trainer paired, the rider moves on simulated power. Tap for devices.",
+      "chipTone": "calm",
+      "chipRect": {
+       "x": 0,
+       "y": 0,
+       "w": 0,
+       "h": 0
+      },
+      "hudAreaPct": 19.2,
+      "hudRects": [
+       {
+        "name": "ride-strip",
+        "w": 366,
+        "h": 98
+       },
+       {
+        "name": "Add a free Cesium ion token for photorea",
+        "w": 204,
+        "h": 134
+       }
+      ],
+      "variety": 14613
+     }
+    }
+   ],
+   "clockWorstPlateauMs": 251,
+   "pageErrors": []
+  }
+ },
+ "floatingWindow": [
+  {
+   "size": "corner",
+   "recover": "tap",
+   "camera": "chase, show director off (framing comparable)",
+   "before": {
+    "window": [
+     448,
+     252,
+     2
+    ],
+    "root": "16px",
+    "chip": null,
+    "chipTone": null,
+    "chipRect": null,
+    "labelTrunc": null,
+    "labelW": null,
+    "bar": [
+     8,
+     174,
+     432,
+     70
+    ],
+    "context": "live",
+    "canvasVisible": "visible",
+    "errorPanels": 0,
+    "renderer": "photoreal",
+    "canvases": 1,
+    "tagged": null,
+    "current": true,
+    "lost": false,
+    "frames": 1051,
+    "ride": [
+     "running",
+     39148,
+     383.5,
+     47,
+     "visible"
+    ],
+    "tabChip": null,
+    "cam": {
+     "riderScreen": [
+      224,
+      145
+     ],
+     "riderHeightPx": 91,
+     "lensShiftPx": 39,
+     "viewportPx": [
+      448,
+      252
+     ],
+     "camAboveGround": 2.6,
+     "pitchDeg": -4.4
+    }
+   },
+   "lost2": {
+    "window": [
+     448,
+     252,
+     2
+    ],
+    "root": "16px",
+    "chip": "3D view stopped · tap to reload",
+    "chipTone": "warn",
+    "chipRect": [
+     8,
+     126,
+     258,
+     40
+    ],
+    "labelTrunc": false,
+    "labelW": [
+     216,
+     216
+    ],
+    "bar": [
+     8,
+     174,
+     432,
+     70
+    ],
+    "context": "lost",
+    "canvasVisible": "hidden",
+    "errorPanels": 0,
+    "renderer": "photoreal",
+    "canvases": 1,
+    "tagged": "1",
+    "current": true,
+    "lost": true,
+    "frames": 1082,
+    "ride": [
+     "running",
+     42881,
+     419.9,
+     51,
+     "visible"
+    ],
+    "tabChip": "3D view stopped · tap to reload",
+    "cam": {
+     "riderScreen": [
+      224,
+      145
+     ],
+     "riderHeightPx": 91,
+     "lensShiftPx": 39,
+     "viewportPx": [
+      448,
+      252
+     ],
+     "camAboveGround": 2.6,
+     "pitchDeg": -4.4
+    }
+   },
+   "back": {
+    "window": [
+     448,
+     252,
+     2
+    ],
+    "root": "16px",
+    "chip": null,
+    "chipTone": null,
+    "chipRect": null,
+    "labelTrunc": null,
+    "labelW": null,
+    "bar": [
+     8,
+     174,
+     432,
+     70
+    ],
+    "context": "live",
+    "canvasVisible": "visible",
+    "errorPanels": 0,
+    "renderer": "photoreal",
+    "canvases": 1,
+    "tagged": null,
+    "current": true,
+    "lost": false,
+    "frames": 40,
+    "ride": [
+     "running",
+     46048,
+     450.7,
+     55,
+     "visible"
+    ],
+    "tabChip": null,
+    "cam": {
+     "riderScreen": [
+      224,
+      145
+     ],
+     "riderHeightPx": 91,
+     "lensShiftPx": 39,
+     "viewportPx": [
+      448,
+      252
+     ],
+     "camAboveGround": 2.6,
+     "pitchDeg": -4.4
+    }
+   },
+   "back2": {
+    "window": [
+     448,
+     252,
+     2
+    ],
+    "root": "16px",
+    "chip": null,
+    "chipTone": null,
+    "chipRect": null,
+    "labelTrunc": null,
+    "labelW": null,
+    "bar": [
+     8,
+     174,
+     432,
+     70
+    ],
+    "context": "live",
+    "canvasVisible": "visible",
+    "errorPanels": 0,
+    "renderer": "photoreal",
+    "canvases": 1,
+    "tagged": null,
+    "current": true,
+    "lost": false,
+    "frames": 431,
+    "ride": [
+     "running",
+     57931,
+     562.3,
+     66,
+     "visible"
+    ],
+    "tabChip": null,
+    "cam": {
+     "riderScreen": [
+      228,
+      145
+     ],
+     "riderHeightPx": 91,
+     "lensShiftPx": 39,
+     "viewportPx": [
+      448,
+      252
+     ],
+     "camAboveGround": 2.6,
+     "pitchDeg": -4.4
+    }
+   },
+   "bandColours": 12205
+  },
+  {
+   "size": "half",
+   "recover": "restore",
+   "camera": "chase, show director off (framing comparable)",
+   "before": {
+    "window": [
+     637,
+     358,
+     2
+    ],
+    "root": "17.9625px",
+    "chip": null,
+    "chipTone": null,
+    "chipRect": null,
+    "labelTrunc": null,
+    "labelW": null,
+    "bar": [
+     9,
+     270,
+     619,
+     79
+    ],
+    "context": "live",
+    "canvasVisible": "visible",
+    "errorPanels": 0,
+    "renderer": "photoreal",
+    "canvases": 1,
+    "tagged": null,
+    "current": true,
+    "lost": false,
+    "frames": 895,
+    "ride": [
+     "running",
+     73997,
+     729.1,
+     83,
+     "visible"
+    ],
+    "tabChip": null,
+    "cam": {
+     "riderScreen": [
+      319,
+      218
+     ],
+     "riderHeightPx": 130,
+     "lensShiftPx": 44,
+     "viewportPx": [
+      637,
+      358
+     ],
+     "camAboveGround": 2.6,
+     "pitchDeg": -4.4
+    }
+   },
+   "lost2": {
+    "window": [
+     637,
+     358,
+     2
+    ],
+    "root": "17.9625px",
+    "chip": "3D view stopped · tap to reload",
+    "chipTone": "warn",
+    "chipRect": [
+     9,
+     217,
+     289,
+     45
+    ],
+    "labelTrunc": false,
+    "labelW": [
+     242,
+     242
+    ],
+    "bar": [
+     9,
+     270,
+     619,
+     79
+    ],
+    "context": "lost",
+    "canvasVisible": "hidden",
+    "errorPanels": 0,
+    "renderer": "photoreal",
+    "canvases": 1,
+    "tagged": "1",
+    "current": true,
+    "lost": true,
+    "frames": 941,
+    "ride": [
+     "running",
+     78314,
+     774.2,
+     87,
+     "visible"
+    ],
+    "tabChip": "3D view stopped · tap to reload",
+    "cam": {
+     "riderScreen": [
+      319,
+      218
+     ],
+     "riderHeightPx": 130,
+     "lensShiftPx": 44,
+     "viewportPx": [
+      637,
+      358
+     ],
+     "camAboveGround": 2.6,
+     "pitchDeg": -4.4
+    }
+   },
+   "back": {
+    "window": [
+     637,
+     358,
+     2
+    ],
+    "root": "17.9625px",
+    "chip": null,
+    "chipTone": null,
+    "chipRect": null,
+    "labelTrunc": null,
+    "labelW": null,
+    "bar": [
+     9,
+     270,
+     619,
+     79
+    ],
+    "context": "live",
+    "canvasVisible": "visible",
+    "errorPanels": 0,
+    "renderer": "photoreal",
+    "canvases": 1,
+    "tagged": null,
+    "current": true,
+    "lost": false,
+    "frames": 31,
+    "ride": [
+     "running",
+     81130,
+     804.2,
+     91,
+     "visible"
+    ],
+    "tabChip": null,
+    "cam": {
+     "riderScreen": [
+      323,
+      218
+     ],
+     "riderHeightPx": 130,
+     "lensShiftPx": 44,
+     "viewportPx": [
+      637,
+      358
+     ],
+     "camAboveGround": 2.6,
+     "pitchDeg": -4.4
+    }
+   },
+   "back2": {
+    "window": [
+     637,
+     358,
+     2
+    ],
+    "root": "17.9625px",
+    "chip": null,
+    "chipTone": null,
+    "chipRect": null,
+    "labelTrunc": null,
+    "labelW": null,
+    "bar": [
+     9,
+     270,
+     619,
+     79
+    ],
+    "context": "live",
+    "canvasVisible": "visible",
+    "errorPanels": 0,
+    "renderer": "photoreal",
+    "canvases": 1,
+    "tagged": null,
+    "current": true,
+    "lost": false,
+    "frames": 321,
+    "ride": [
+     "running",
+     92363,
+     919.6,
+     103,
+     "visible"
+    ],
+    "tabChip": null,
+    "cam": {
+     "riderScreen": [
+      319,
+      218
+     ],
+     "riderHeightPx": 130,
+     "lensShiftPx": 44,
+     "viewportPx": [
+      637,
+      358
+     ],
+     "camAboveGround": 2.6,
+     "pitchDeg": -4.4
+    }
+   },
+   "bandColours": 11040
+  }
+ ],
+ "realLosses": {
+  "cap": {
+   "hogs": 17,
+   "lostAfterS": 0.06,
+   "backAfterS": 4.2,
+   "sinceTriggerS": 10.76,
+   "transitions": [
+    [
+     14409,
+     "lost",
+     "3D view stopped · tap to reload"
+    ],
+    [
+     18929,
+     "live",
+     "Demo ride · no trainer"
+    ]
+   ],
+   "plateau": {
+    "samples": 98,
+    "worstPlateauMs": 172,
+    "worstAt": 32075.699999928474
+   },
+   "pageErrors": [],
+   "back": {
+    "chip": "Demo ride · no trainer",
+    "worldContext": "live",
+    "canvases": 1,
+    "contextLost": false,
+    "frame": 171,
+    "variety": 21022,
+    "errorPanelsVisible": 0
+   }
+  },
+  "crash": {
+   "hogs": null,
+   "lostAfterS": null,
+   "backAfterS": 7.58,
+   "sinceTriggerS": 7.62,
+   "transitions": [
+    [
+     15063,
+     "lost",
+     "3D view stopped · tap to reload"
+    ],
+    [
+     16456,
+     "live",
+     "Demo ride · no trainer"
+    ]
+   ],
+   "plateau": {
+    "samples": 92,
+    "worstPlateauMs": 3378,
+    "worstAt": 15289.900000095367
+   },
+   "pageErrors": [],
+   "back": {
+    "chip": "Demo ride · no trainer",
+    "worldContext": "live",
+    "canvases": 1,
+    "contextLost": false,
+    "frame": 163,
+    "variety": 19938,
+    "errorPanelsVisible": 0
+   }
+  },
+  "note": "cap: 17 extra WebGL contexts evict the viewer's; Chrome never restores an evicted context, the tap does. crash: CDP Browser.crashGpuProcess; Chrome restores the context by itself ~1.4 s after reporting the loss and the view rebuilds without a tap. The 3.4 s clock plateau starts ~3 s BEFORE Chrome reports the loss (browser-wide rAF stall while the GPU process restarts; useRideLoop clamps dt to 0.1 s, as the PR #50 review measured for the world view)."
+ }
+}

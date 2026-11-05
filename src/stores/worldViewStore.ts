@@ -6,11 +6,14 @@
  * canvas then stays frozen (white or black) while the ride, its HUD and the
  * recording carry on, because none of them depend on the canvas.
  *
- * The world view (renderers/three/ThreeWorldView) reports the loss here; the
- * ride's status chip (RideChip) reads `stopped` and says "The 3D view stopped
- * · tap to reload the view". The view remounts its <Canvas> under a new
- * `canvasKey` when the browser restores the context or the rider taps the
- * chip, so react-three-fiber rebuilds the scene on a fresh context.
+ * The world view reports the loss here; the ride's status chip (RideChip)
+ * reads `stopped` and says "3D view stopped · tap to reload". The view
+ * remounts its canvas under a new `canvasKey` when the browser restores the
+ * context or the rider taps the chip: the world renderer
+ * (renderers/three/ThreeWorldView) remounts its <Canvas>, so
+ * react-three-fiber rebuilds the scene on a fresh context; the photoreal
+ * renderer (renderers/cesium/CesiumWorldView, card t_771036a6) builds a new
+ * Cesium Viewer, which has no restore path of its own.
  *
  * One world view draws at a time (the tab, or the floating ride window), but
  * a view going away and the next one mounting can overlap, and a canvas that
