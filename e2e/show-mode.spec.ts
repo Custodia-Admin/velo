@@ -502,12 +502,16 @@ test('the ride floats in a picture-in-picture window and keeps riding and record
 });
 
 /**
- * The bar's next-landmark line with the widest figures (1:18:05 · 42.2 km ·
- * -12.5 %) and a long place name staged, read from the tab. The name is the
- * part that shortens; the distance stays whole, on one line, inside the bar
- * and clear of Pause. The 640 px window used to show "Bastia Umbra in 6…".
+ * The bar's next-landmark line, read from the tab with figures and text staged
+ * for one synchronous layout (then restored):
+ * - 'hours': 1:18:05 on the clock and a long place name. The name is the part
+ *   that shortens; the distance stays whole, on one line, inside the line and
+ *   clear of Pause. The 640 px window used to show "Bastia Umbra in 6…".
+ * - 'widest': also the widest distance and grade (42.2 km, -12.5 %) and a long
+ *   climb distance ("· 12.5 km to the top"): no room for it, so the line clips
+ *   at its own edge, never under Pause or out of the bar.
  */
-const LANDMARK_LINE = `(() => {
+const LANDMARK_LINE = (mode: 'hours' | 'widest') => `(() => {
   const w = documentPictureInPicture.window;
   const d = w.document;
   const bar = d.querySelector('[data-testid="journey-bar"]');
@@ -518,13 +522,17 @@ const LANDMARK_LINE = `(() => {
   const pause = bar.querySelector('button');
   const box = (e) => { const b = e.getBoundingClientRect(); return { x: b.x, r: b.right, h: b.height }; };
   const real = line.textContent;
+  const text = (e) => e && [...e.childNodes].find((n) => n.nodeType === 3);
   const nums = [...bar.querySelectorAll('.num')];
-  const swap = [...nums, ...(name ? [name] : [])].map((e) => [...e.childNodes].find((n) => n.nodeType === 3));
-  const was = swap.map((n) => n && n.nodeValue);
-  ['1:18:05', '42.2', '-12.5'].forEach((t, i) => { if (swap[i]) swap[i].nodeValue = t; });
-  if (name && swap[nums.length]) swap[nums.length].nodeValue = 'Basilica di Santa Maria degli Angeli';
+  const staged = ${mode === 'widest'} ? ['1:18:05', '42.2', '-12.5'] : ['1:18:05'];
+  const swaps = [
+    ...staged.map((t, i) => [text(nums[i]), t]),
+    [text(name), 'Basilica di Santa Maria degli Angeli'],
+    ...(${mode === 'widest'} ? [[text(dist), ' · 12.5 km to the top']] : []),
+  ].filter(([n]) => n).map(([n, t]) => [n, n.nodeValue, t]);
+  swaps.forEach(([n, , t]) => { n.nodeValue = t; });
   // The space between name and distance is drawn (it leads the distance part, so it must not collapse).
-  const lead = dist && [...dist.childNodes].find((n) => n.nodeType === 3);
+  const lead = text(dist);
   let spaceW = 0;
   if (lead && lead.nodeValue.startsWith(' ')) { const rg = d.createRange(); rg.setStart(lead, 0); rg.setEnd(lead, 1); spaceW = rg.getBoundingClientRect().width; }
   const out = {
@@ -532,13 +540,14 @@ const LANDMARK_LINE = `(() => {
     real,
     text: line.textContent,
     spaceW,
+    lineClips: w.getComputedStyle(line).overflowX !== 'visible',
     dist: dist ? { text: dist.textContent, scrollW: dist.scrollWidth, clientW: dist.clientWidth, ...box(dist) } : null,
     name: name ? { scrollW: name.scrollWidth, clientW: name.clientWidth, ...box(name) } : null,
     line: box(line),
     bar: { scrollW: bar.scrollWidth, clientW: bar.clientWidth, ...box(bar) },
     pause: pause ? box(pause) : null,
   };
-  swap.forEach((n, i) => { if (n) n.nodeValue = was[i]; });
+  swaps.forEach(([n, was]) => { n.nodeValue = was; });
   return out;
 })()`;
 
@@ -547,6 +556,7 @@ interface LandmarkLine {
   real: string;
   text: string;
   spaceW: number;
+  lineClips: boolean;
   dist: { text: string; scrollW: number; clientW: number; x: number; r: number; h: number } | null;
   name: { scrollW: number; clientW: number; x: number; r: number; h: number } | null;
   line: { x: number; r: number; h: number };
@@ -563,23 +573,35 @@ async function landmarkLineAtWidth(browser: Cdp, page: Tab, windowId: number, wi
   await browser.send('Browser.setWindowBounds', { windowId, bounds: { width: width + (width - iw), height: height + (height - ih) } });
   await poll(inner, ([w]) => w >= width, 5_000, `the window at ${width} px`);
   // From sm (640 px) the line sits in the bar; it needs a named place ahead on the route.
-  const g = await poll(() => page.eval<LandmarkLine | null>(LANDMARK_LINE), (v) => !!v, 30_000, 'the next landmark in the bar');
-  const at = `window ${g!.inner.join('x')}: ${JSON.stringify(g)}`;
-  expect(g!.dist, at).not.toBeNull();
-  expect(g!.name, at).not.toBeNull();
-  const { dist, name, line, bar, pause } = g as LandmarkLine & { dist: NonNullable<LandmarkLine['dist']>; name: NonNullable<LandmarkLine['name']> };
-  expect(dist.text, at).toMatch(/^ (in [\d.]+ (m|km|mi|ft)|· [\d.]+ (m|km|mi|ft) to the top)$/);
-  // The distance is whole: not clipped in itself, on one line, inside the line, the bar and left of Pause.
+  const g = (await poll(() => page.eval<LandmarkLine | null>(LANDMARK_LINE('hours')), (v) => !!v, 30_000, 'the next landmark in the bar'))!;
+  const at = `window ${g.inner.join('x')}, 1:18:05 + a long name: ${JSON.stringify(g)}`;
+  expect(g.dist, at).not.toBeNull();
+  expect(g.name, at).not.toBeNull();
+  const dist = g.dist!;
+  const name = g.name!;
+  expect(dist.text, at).toMatch(/^ (in [\d.]+ (m|km|mi)|· [\d.]+ (m|km|mi) to the top)$/);
+  // The distance is whole: not clipped in itself, on one line, inside its line and left of Pause.
   expect(dist.scrollW, at).toBeLessThanOrEqual(dist.clientW);
   expect(dist.h, at).toBeLessThanOrEqual(name.h + 1);
-  expect(dist.r, at).toBeLessThanOrEqual(line.r + 0.5);
-  expect(dist.r, at).toBeLessThanOrEqual(bar.r);
-  if (pause) expect(dist.r, at).toBeLessThanOrEqual(pause.x);
-  expect(g!.spaceW, at).toBeGreaterThan(1);
+  expect(dist.r, at).toBeLessThanOrEqual(g.line.r + 0.5);
+  expect(dist.r, at).toBeLessThanOrEqual(g.bar.r);
+  if (g.pause) expect(dist.r, at).toBeLessThanOrEqual(g.pause.x);
+  expect(g.spaceW, at).toBeGreaterThan(1);
   // The long name is what shortens, and the bar still fits.
   expect(name.scrollW, at).toBeGreaterThan(name.clientW);
-  expect(bar.scrollW, at).toBeLessThanOrEqual(bar.clientW);
-  console.info(`show-mode landmark: window ${g!.inner.join('x')}: "${g!.real}"; staged "${g!.text}": name ${name.clientW}/${name.scrollW} px, distance "${dist.text.trim()}" ${dist.clientW} px whole`);
+  expect(g.bar.scrollW, at).toBeLessThanOrEqual(g.bar.clientW);
+  console.info(`show-mode landmark: window ${g.inner.join('x')}: "${g.real}"; at 1:18:05 with "${g.text}": name ${name.clientW}/${name.scrollW} px, distance "${dist.text.trim()}" ${dist.clientW} px whole`);
+
+  // No room even for the distance: the line clips at its edge; nothing is drawn under Pause.
+  const x = (await page.eval<LandmarkLine | null>(LANDMARK_LINE('widest')))!;
+  const xat = `window ${x.inner.join('x')}, widest figures + a long climb distance: ${JSON.stringify(x)}`;
+  const drawnTo = x.lineClips ? Math.min(x.dist!.r, x.line.r) : x.dist!.r;
+  if (x.pause) {
+    expect(drawnTo, xat).toBeLessThanOrEqual(x.pause.x);
+    expect(x.pause.r, xat).toBeLessThanOrEqual(x.bar.r);
+  }
+  expect(x.bar.scrollW, xat).toBeLessThanOrEqual(x.bar.clientW);
+  console.info(`show-mode landmark: window ${x.inner.join('x')} at the widest: line ${Math.round(x.line.r - x.line.x)} px, distance ${x.dist!.clientW} px, drawn to ${Math.round(drawnTo)} (Pause at ${Math.round(x.pause?.x ?? 0)})`);
 }
 
 /** The floating window's geometry, read from the tab (the window shares its event loop). */

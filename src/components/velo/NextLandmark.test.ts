@@ -28,8 +28,12 @@ function walk(node: unknown, ancestors: El[] = [], out: { el: El; ancestors: El[
 }
 
 const cls = (e: El) => String(e.props.className ?? '');
-/** Classes that clip text with an ellipsis (or hide what overflows). */
-const CLIPS = /\b(truncate|text-ellipsis|overflow-hidden|overflow-x-hidden|line-clamp-\d)\b/;
+/**
+ * Classes that clip text with an ellipsis or hide what overflows. The line's own
+ * `overflow-x-clip` is not one: it is the last resort when even the flag and the
+ * distance don't fit (pinned below), not the element that shortens the text.
+ */
+const CLIPS = /\b(truncate|text-ellipsis|overflow-hidden|overflow-x-hidden|overflow-clip|line-clamp-\d)\b/;
 
 /** The name and distance parts of every landmark line in `tree`. */
 function landmarkParts(tree: unknown) {
@@ -69,6 +73,16 @@ describe('NextLandmark', () => {
       .join('');
     expect(text).toBe('Bastia Umbra in 6.5 km');
     expectDistanceWhole(tree, bastia);
+  });
+
+  it('only when even the distance does not fit does the whole line clip at its edge (never under Pause)', () => {
+    const tree = NextLandmark({ next: bastia });
+    expect(cls(tree)).toMatch(/\boverflow-x-clip\b/);
+    const { distances } = landmarkParts(tree);
+    // Between the line and the distance nothing clips: the wrapper lets the name shrink, never the distance.
+    const between = distances[0].ancestors.slice(distances[0].ancestors.indexOf(tree) + 1);
+    expect(between.length).toBeGreaterThan(0);
+    for (const a of between) expect(cls(a)).not.toMatch(/\boverflow-/);
   });
 
   it('the name can shrink inside its line (min-w-0 down the flex chain)', () => {
