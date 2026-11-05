@@ -667,14 +667,18 @@ async function landmarkLineAtWidth(browser: Cdp, page: Tab, windowId: number, wi
   expect(g.real.split(g.now.distText).length - 1, where).toBe(1);
   expect(g.real.endsWith(g.now.distText), where).toBe(true);
 
-  // 1:18:05 and a long name: the name shortens, the separator is drawn, the distance is whole.
+  // 1:18:05 and a long name: the distance is whole and the flag shows. The name shortens, or
+  // goes when it would keep less than about two characters (DejaVu Sans at 640 px: the line
+  // is 124 px and "in 960 m" 70 px, so the name drops).
   const h = g.hours;
   const hat = `${where}, 1:18:05 + a long name: ${JSON.stringify(h)}`;
   expectNothingCut(h, hat);
-  expect(h.rung, hat).toBe(1);
-  expect(h.nameShortened, hat).toBe(true);
-  expect(h.joinerW, hat).toBeGreaterThan(1);
-  console.info(`show-mode landmark: ${where}: "${g.real}"; at 1:18:05 with a long name: name ${h.nameW} px (shortened), distance "${h.distText}" ${h.distW} px whole, line ${h.lineW} px`);
+  expect([1, 2], hat).toContain(h.rung);
+  if (h.rung === 1) {
+    expect(h.nameShortened, hat).toBe(true);
+    expect(h.joinerW, hat).toBeGreaterThan(1);
+  }
+  console.info(`show-mode landmark: ${where}: "${g.real}"; at 1:18:05 with a long name: rung ${h.rung}, name ${h.rung === 1 ? `${h.nameW} px (shortened)` : 'dropped'}, distance "${h.distText}" ${h.distW} px whole, line ${h.lineW} px`);
 
   // The widest figures: whatever the distance, nothing is cut; a plain "in 6.5 km" shows whole.
   for (const [distText, p] of Object.entries(g.widest)) {
