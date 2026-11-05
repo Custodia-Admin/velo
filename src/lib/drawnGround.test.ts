@@ -11,6 +11,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Cesium from 'cesium';
 
+import { rideAgain } from '@/components/velo/FinishCard';
+
 import {
   createGroundSampler,
   createMeshRoadFilter,
@@ -27,6 +29,9 @@ import {
   sceneGroundHeight,
   setIonToken,
 } from '@/lib/cesiumUtils';
+import { ridePose } from '@/lib/ride/rideSim';
+import { scenicRouteById } from '@/lib/scenicRoutes';
+import { useRideStore } from '@/stores/rideStore';
 
 async function photoreal(height: number | undefined, opts: { show?: boolean; tilesLoaded?: boolean } = {}) {
   const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
@@ -467,6 +472,46 @@ describe('a jump with the globe hidden: the old road is not the ground where the
     const sampler = await landing(2_000, 400, 300);
     expect(sampler.sample(lon, lat(2_000), 335.0, 16)).toBeCloseTo(400, 6);
     expect(sampler.meshGround()).toBe(true);
+  });
+});
+
+describe('Ride again on photoreal: the finish line road is not the ground on the start line', () => {
+  it('the rider back at 0 m stands on the globe there until the mesh road there is read', async () => {
+    // The real user path: the store, FinishCard's Ride again and the pose the
+    // ride view samples the ground at, on the real Lugano–Melide route.
+    const route = scenicRouteById('scenic-lugano-melide')!.route;
+    const finish = ridePose(route, 2_940);
+    const start = ridePose(route, 0);
+    const nearStart = (c: Cesium.Cartographic) =>
+      Math.abs(Cesium.Math.toDegrees(c.latitude) - start.lat) < Math.abs(Cesium.Math.toDegrees(c.latitude) - finish.lat);
+    let startMesh: number | undefined;
+    setIonToken('eyJ_test');
+    const { tileset, getHeight } = await photoreal(undefined);
+    getHeight.mockImplementation((c?: Cesium.Cartographic) => (nearStart(c!) ? startMesh : 363.4));
+    const { s, globe } = scene(tileset, { height: 0, show: false });
+    // The hidden globe's last tiles: refined on the start line, coarse at the finish.
+    globe.getHeight.mockImplementation(((c: Cesium.Cartographic) => (nearStart(c) ? 330.0 : 375.2)) as () => number);
+    const sampler = createGroundSampler(s);
+    const frame = (nowMs: number) => {
+      const pose = ridePose(route, useRideStore.getState().distance);
+      return sampler.sample(pose.lon, pose.lat, pose.ele, nowMs);
+    };
+    useRideStore.getState().setRoute(route);
+    useRideStore.getState().start();
+    useRideStore.setState({ distance: 2_940 });
+    expect(frame(0)).toBeCloseTo(363.4, 6);
+    useRideStore.getState().finish();
+    rideAgain();
+    expect(useRideStore.getState().distance).toBe(0);
+    // The start line's mesh hasn't streamed back yet.
+    const h = frame(16) as number;
+    expect(h).toBeCloseTo(330.0, 6);
+    expect(sampler.meshGround()).toBe(false);
+    // It has: the rider is on the street.
+    startMesh = 321.6;
+    expect(frame(32)).toBeCloseTo(321.6, 6);
+    expect(sampler.meshGround()).toBe(true);
+    useRideStore.getState().reset();
   });
 });
 

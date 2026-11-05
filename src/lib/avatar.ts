@@ -1690,8 +1690,9 @@ export function createMeshRoadFilter() {
  * That holds only near where the road was taken. A rider
  * {@link OVERHANG_GIVE_UP_M} or more away from it (a jump: Ride again puts the
  * rider back on the start line, the probes place it; or a long hole) is on
- * another road, so a missing reading there is a fresh start: the globe
- * decides (the view draws it again at once, renderers/cesium/globeGate).
+ * another road, so a missing reading there is a fresh start: the globe's
+ * terrain decides, drawn or not, until the mesh road there is read (the gate
+ * brings the globe back if none turns up).
  */
 export function createGroundSampler(scene: Cesium.Scene) {
   let lastMs = -Infinity;
@@ -1736,11 +1737,12 @@ export function createGroundSampler(scene: Cesium.Scene) {
         if (status === 'road') roadEle = expect;
         onMesh = status === 'road' || status === 'overhang';
         if (away && status !== 'road') {
-          // Somewhere else and no mesh road yet: the globe decides, as at a
-          // fresh start. Holding the old road here kept the rider 41 m under
-          // the Lugano–Melide mesh for a second after a 2 km jump. Only a
-          // coarse globe chord far under the road (a globe hidden for
-          // kilometres: 780 m under at Chengdu) isn't stood on.
+          // Somewhere else and no mesh road yet: the globe's terrain decides,
+          // as at a fresh start, drawn or not. Holding the old road here kept
+          // the rider 41 m under the Lugano–Melide mesh for a second after a
+          // 2 km jump. A coarse globe chord far under the road (a globe hidden
+          // for kilometres: 780 m under at Chengdu) isn't stood on; the road
+          // carried along the route's climb is.
           const chord = globe === undefined || !Number.isFinite(globe) || globe < (heldHere as number) - MESH_UNDER_ROUTE_MAX_M;
           last = chord ? heldHere : undefined;
         } else if (last === undefined && (globeHidden(scene) || globeStreaming(scene))) {
