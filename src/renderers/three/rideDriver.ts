@@ -5,12 +5,14 @@
  */
 
 import { createLaneState, stepLane, type LaneState } from '@/lib/controllers/steerFeel';
+import { offsetLatLon, partnerSlotM } from '@/lib/ride/partnerSlots';
 import { smoothHeadingAt, YawFilter } from '@/lib/ride/rideHeading';
 import { ridePose } from '@/lib/ride/rideSim';
 import type { RiderPose } from '@/lib/world/renderer';
 import type { RideState, Route } from '@/types';
 import { dampFactor } from './chaseRig';
-import { estimatedCadence, leanAngle, placeRider } from './riderRig';
+import { roadSpanAt, type RoadSpanMemo } from './roadSpan';
+import { estimatedCadence, leanAngle, placeRider, type RiderPlacement } from './riderRig';
 import type { RideFrame, SceneWorld } from './worldScene';
 
 /** State the driver carries between frames. */
@@ -90,6 +92,8 @@ export function driveRideFrame(frame: RideFrame, memo: RideDriverMemo, sceneWorl
 export interface BotDriverMemo {
   yaw: YawFilter;
   lean: number;
+  /** The last drawn-road search under the bot (roadSpan.roadSpanAt). */
+  road?: RoadSpanMemo;
 }
 
 export function createBotDriverMemo(): BotDriverMemo {
@@ -111,4 +115,27 @@ export function driveBotPose(
   const heading = memo.yaw.step(target, bot.distance, dt);
   memo.lean += (leanAngle(bot.speed, memo.yaw.rate) - memo.lean) * dampFactor(0.4, dt);
   return { heading, lean: memo.lean };
+}
+
+/**
+ * Where pace partner `index` is drawn this frame: its point on the route
+ * line moved into its lateral slot (lib/ride/partnerSlots) across the
+ * filtered heading, the slot clamped to the drawn road there. Without the
+ * slot every partner stands inside the rider on the start line.
+ */
+export function placeBot(
+  sceneWorld: SceneWorld,
+  route: Route | null,
+  bot: { distance: number; speed: number; heading: number; lat: number; lon: number },
+  index: number,
+  memo: BotDriverMemo,
+  dt: number,
+  ground?: (x: number, y: number) => number,
+): { placement: RiderPlacement; lean: number; slotM: number } {
+  const { heading, lean } = driveBotPose(memo, route, bot, dt);
+  const [x, y] = sceneWorld.projection.forward(bot.lat, bot.lon);
+  const slotM = partnerSlotM(index, roadSpanAt(sceneWorld, x, y, heading, memo));
+  const at = offsetLatLon(bot.lat, bot.lon, heading, slotM);
+  const placement = placeRider(sceneWorld, { lat: at.lat, lon: at.lon, heading }, ground);
+  return { placement, lean, slotM };
 }

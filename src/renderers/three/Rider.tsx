@@ -16,13 +16,12 @@ import { BOT_COLORWAYS } from '@/lib/paceBots';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import type { Route } from '@/types';
-import { createBotDriverMemo, driveBotPose } from './rideDriver';
+import { createBotDriverMemo, placeBot } from './rideDriver';
 import {
   RIDER_RIG,
   estimatedCadence,
   legPose,
   modelYaw,
-  placeRider,
   type RiderPlacement,
 } from './riderRig';
 import type { RideFrame, SceneWorld } from './worldScene';
@@ -149,7 +148,11 @@ export function LiveRider({ frame, castShadow }: { frame: RideFrame; castShadow:
 
 type Ground = (x: number, y: number) => number;
 
-function BotRider({ sceneWorld, route, index, ground }: { sceneWorld: SceneWorld; route: Route; index: number; ground?: Ground }) {
+/**
+ * Pace partner `index`, drawn in its lateral slot beside the route line
+ * (rideDriver.placeBot), never on the line the rider rides.
+ */
+export function BotRider({ sceneWorld, route, index, ground }: { sceneWorld: SceneWorld; route: Route; index: number; ground?: Ground }) {
   const memo = useMemo(() => createBotDriverMemo(), []);
   const drive = useMemo(
     () =>
@@ -160,8 +163,7 @@ function BotRider({ sceneWorld, route, index, ground }: { sceneWorld: SceneWorld
           return null;
         }
         const s = bot.state;
-        const { heading, lean } = driveBotPose(memo, route, s, dt);
-        const placement = placeRider(sceneWorld, { lat: s.lat, lon: s.lon, heading }, ground);
+        const { placement, lean } = placeBot(sceneWorld, route, s, index, memo, dt, ground);
         return { placement, speed: s.speed, cadence: estimatedCadence(s.speed), lean };
       },
     [sceneWorld, route, index, memo, ground],
