@@ -290,6 +290,13 @@ describe('the one ride chip (compact HUD: every device or error state in one pil
       .toBe('KICKR CORE · hills 35 % · battery 15 %');
   });
 
+  it('the battery note starts at exactly the low-battery mark, with the world live', () => {
+    expect(rideChip({ ...ride, battery: LOW_BATTERY }))
+      .toMatchObject({ label: 'KICKR CORE · hills 35 % · battery 20 %', tone: 'warn', alert: true, action: 'devices' });
+    expect(rideChip({ ...ride, battery: LOW_BATTERY + 1 }))
+      .toMatchObject({ label: 'KICKR CORE · hills 35 %', tone: 'ok', alert: false, action: 'devices' });
+  });
+
   it('handlebar controls that cannot deliver presses: a warning that opens devices; never-paired controls say nothing', () => {
     expect(rideChip({ ...ride, controls: 'silent' })).toMatchObject({ label: 'Controls locked', tone: 'warn', alert: true, action: 'devices' });
     expect(rideChip({ ...ride, controls: 'rightSide' }).label).toBe('Controls: right unit paired');
