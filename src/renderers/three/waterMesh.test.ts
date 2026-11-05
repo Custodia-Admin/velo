@@ -140,9 +140,10 @@ function polygonArea(water: WaterLayer) {
 }
 
 describe('shipped water budgets', () => {
-  it('lists only worlds that ship', () => {
+  it('has an entry for every world that ships, and only for those', () => {
     expect(SHIPPED.length).toBeGreaterThan(0);
-    expect(Object.keys(BUDGET).filter((id) => !SHIPPED.includes(id))).toEqual([]);
+    expect(SHIPPED.filter((id) => !(id in BUDGET)), 'shipped worlds without a water BUDGET entry').toEqual([]);
+    expect(Object.keys(BUDGET).filter((id) => !SHIPPED.includes(id)), 'BUDGET entries for worlds that do not ship').toEqual([]);
   });
 });
 
