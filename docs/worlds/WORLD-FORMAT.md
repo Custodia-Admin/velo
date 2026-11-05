@@ -332,10 +332,19 @@ node tools/worldbake/bake.mjs perugia --clean      # re-download everything firs
 ```
 
 Run bakes on the bake host (cat-bed), not the laptop: copy the repo there,
-bake, copy `public/worlds/<id>/`, `tools/worldbake/reports/<id>.json` and
+bake, copy `public/worlds/<id>/`, `tools/worldbake/reports/<id>.json`,
+`tools/worldbake/worlds/<id>.json` (its `validation` block) and
 `docs/worlds/CREDITS.md` back. Downloads are cached under
 `tools/worldbake/cache/<id>/` (git-ignored). Needs Node ≥ 22.18 (TypeScript
 type stripping), no npm packages.
+
+`--out <dir>` moves only the bundle. In the tree it runs from, the bake
+still rewrites `tools/worldbake/reports/<id>.json`, the recipe's
+`validation` block (unless `--no-validate`) and the world's block in
+`docs/worlds/CREDITS.md` (unless `--no-docs`). To bake for comparison, bake
+from a `git archive` copy, not from a working tree you will commit from.
+With `--no-validate` the report's `validation` is `null` and the recipe
+keeps its previous block.
 
 - **Deterministic**: the same recipe and inputs give byte-identical files.
   OSM queries are pinned to the recipe's `osmDate` (Overpass attic data), so a
@@ -533,7 +542,12 @@ node tools/worldbake/validate.mjs lugano [--bundle dir] [--cache dir] [--no-writ
 
 It reads the bundle's heightfield and routes, checks they match the recipe,
 and writes the same block into the recipe and the report. With the same
-cached Open-Meteo answers it gives the bake's block to the byte.
+cached Open-Meteo answers it gives the bake's block to the byte. It exits 0
+on PASS and FAIL alike. It refuses ("re-bake") a bundle the recipe didn't
+bake: another id, grid, origin or DEM source, or a `generator.recipeSha256`
+other than the hash of the recipe without its `validation`. Editing only the
+`validation` block keeps the bundle valid; any other recipe edit (routes,
+snap, `osmDate`…) needs a re-bake first.
 
 ### Perugia coverage
 
