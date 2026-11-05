@@ -75,7 +75,9 @@ describe('file helpers', () => {
       'a.3gp', 'a.3g2', 'a.f4v', 'a.lrv', 'a.qt', 'a.ts', 'a.m2ts', 'a.mts', 'a.mpg', 'a.mpeg', 'a.avi', 'a.wmv', 'a.flv', 'a.ogm',
       // A release name with a subtitle tag in the middle is still the video.
       'Show.S01E02.SUB.ITA.mkv', 'Show.S01E02.srt.free.3gp',
-      'README',
+      // No extension at all: nothing says it isn't a video, even when the
+      // name happens to end in a listed one's letters.
+      'README', 'Show S01E01 Prolog',
     ];
     for (const n of videos) expect(mayBeVideoName(n), n).toBe(true);
     const others = [
