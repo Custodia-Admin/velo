@@ -11,7 +11,7 @@
 
 import * as Cesium from 'cesium';
 import { IMAGERY_FALLBACK_EVENT } from '@/lib/imageryFallback';
-import { NO_HIT, segmentMeetsSphere, segmentTriangleHit } from '@/lib/segmentHit';
+import { NO_HIT, rayTriangleHit, segmentMeetsSphere, segmentTriangleHit } from '@/lib/segmentHit';
 import { tileReadCacheFor, type TileReadCache } from '@/lib/tileReadCache';
 import type { Route } from '@/types';
 import type { SkyConfig } from '@/lib/skyAndClouds';
@@ -520,6 +520,18 @@ export function sampleGroundHeight(
   return scene.sampleHeight(carto, exclude);
 }
 
+function now(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
+/** The rider's and camera's ground reads ({@link meshHeightAt}): own casts, tileset.pick fallbacks, time spent. */
+const groundReads = { casts: 0, picks: 0, ms: 0 };
+
+/** Ground reads so far ({@link meshHeightAt}), for probes: casts, tileset.pick fallbacks and ms spent in both. */
+export function meshGroundReadStats(): { casts: number; picks: number; ms: number } {
+  return { ...groundReads };
+}
+
 type TilesetPick = (ray: Cesium.Ray, frameState: unknown, result?: Cesium.Cartesian3) => Cesium.Cartesian3 | undefined;
 
 /**
@@ -531,6 +543,14 @@ type TilesetPick = (ray: Cesium.Ray, frameState: unknown, result?: Cesium.Cartes
  * where the road is drawn at 363.41 m (GPU pick and the main view's depth
  * agree), and the wheels sat 0.57 m in the road. Same tile walk otherwise:
  * the selected tiles nearest the ray's origin first, the first one hit wins.
+ *
+ * The walk is Cesium3DTileset.pick's, but each tile's triangles are crossed
+ * in the tile's own frame ({@link meshRayCast}): Cesium's pickModel moves
+ * every vertex of every tile under the ray into world space and tests every
+ * triangle, 1.7 ms a pick at p50 and 3.8 ms at p90 on cat-bed's iGPU even
+ * with the tile geometry already copied, and the rider reads its ground
+ * about nine times a second. Tileset.pick stays the fallback (no model
+ * reader, a frame Cesium would project or exaggerate).
  */
 export function meshHeightAt(
   tileset: Cesium.Cesium3DTileset,
@@ -539,13 +559,25 @@ export function meshHeightAt(
 ): number | undefined {
   const pick = (tileset as unknown as { pick?: TilesetPick }).pick;
   if (typeof pick !== 'function') return tileset.getHeight(carto, scene);
+  const start = now();
   const ellipsoid = (scene as { ellipsoid?: Cesium.Ellipsoid }).ellipsoid ?? Cesium.Ellipsoid.WGS84;
   // From as far out as getHeight starts (two Earth radii), down the normal.
   const origin = ellipsoid.cartographicToCartesian(
     new Cesium.Cartographic(carto.longitude, carto.latitude, 2 * ellipsoid.maximumRadius),
   );
   const down = Cesium.Cartesian3.negate(ellipsoid.geodeticSurfaceNormalCartographic(carto), new Cesium.Cartesian3());
-  const hit = pick.call(tileset, new Cesium.Ray(origin, down), (scene as { frameState?: unknown }).frameState);
+  const ray = new Cesium.Ray(origin, down);
+  const frameState = (scene as { frameState?: unknown }).frameState;
+  const t = meshRayCast(tileset, ray, frameState);
+  let hit: Cesium.Cartesian3 | undefined;
+  if (t === null) {
+    groundReads.picks++;
+    hit = pick.call(tileset, ray, frameState);
+  } else {
+    groundReads.casts++;
+    hit = t === undefined ? undefined : Cesium.Ray.getPoint(ray, t);
+  }
+  groundReads.ms += now() - start;
   if (!hit) return undefined;
   return ellipsoid.cartesianToCartographic(hit)?.height;
 }
@@ -612,7 +644,11 @@ export function meshTopHeight(scene: Cesium.Scene, lon: number, lat: number): nu
 
 /** The parts of Cesium's private tile / model classes a segment cast walks (Cesium 1.141, engine 25). */
 interface TileLike {
-  content?: { _model?: ModelLike } | null;
+  content?: {
+    _model?: ModelLike;
+    _ready?: boolean;
+    pick?: (ray: Cesium.Ray, frameState: unknown, result?: Cesium.Cartesian3) => Cesium.Cartesian3 | undefined;
+  } | null;
   contentBoundingVolume?: { boundingSphere?: Cesium.BoundingSphere };
 }
 interface ModelLike {
@@ -743,6 +779,125 @@ export function meshSegmentHit(
   if (reads) reads.run(cast);
   else cast();
   return best <= 1 ? best : undefined;
+}
+
+/** The frame Cesium's own tile pick would test in, as far as the ground cast needs it. */
+interface PickFrameLike {
+  context?: { webgl2?: boolean };
+  mode?: number;
+  verticalExaggeration?: number;
+}
+
+/** Scratch for ground casts, made on the first cast (module scope runs under test mocks of 'cesium' too). */
+let rayScratch:
+  | {
+      o: Cesium.Cartesian3;
+      d: Cesium.Cartesian3;
+      hit: Cesium.Cartesian3;
+      inverse: Cesium.Matrix4;
+      sphere: Cesium.BoundingSphere;
+      span: Cesium.Interval;
+    }
+  | undefined;
+
+/** Determinant of a matrix's rotation-scale part: negative when it mirrors. */
+function linearDet(m: Cesium.Matrix4): number {
+  return m[0] * (m[5] * m[10] - m[6] * m[9]) - m[4] * (m[1] * m[10] - m[2] * m[9]) + m[8] * (m[1] * m[6] - m[2] * m[5]);
+}
+
+/**
+ * Cesium3DTileset.pick(ray, frameState) for the tiles `tileset` draws this
+ * frame, without moving any tile into world space: where the ray first meets
+ * the mesh, as the distance along it (the ray's direction is a unit vector),
+ * undefined when it meets nothing, or null when this frame or this Cesium
+ * can't be cast the way pick would (no model reader or selected tiles,
+ * WebGL 1, a 2D / Columbus view or morph, vertical exaggeration): then call
+ * pick itself.
+ *
+ * The walk is pick's (Cesium 1.141): the selected tiles whose bounding
+ * sphere the ray meets, nearest sphere to the ray's origin first, and the
+ * FIRST tile with any hit answers with its nearest hit (Model3DTileContent /
+ * pickModel: a ready content and model, each primitive's own sphere when it
+ * has one instance, faces turned away culled unless the model draws both
+ * sides). Each instance's triangles are crossed in its own frame
+ * (lib/segmentHit rayTriangleHit), and the tile geometry copied back from
+ * the GPU is kept for the next reads (lib/tileReadCache).
+ */
+export function meshRayCast(tileset: Cesium.Cesium3DTileset, ray: Cesium.Ray, frameState: unknown): number | undefined | null {
+  const reader = segmentReader();
+  const tiles = (tileset as unknown as { _selectedTiles?: TileLike[] })._selectedTiles;
+  const fs = frameState as PickFrameLike | undefined;
+  if (
+    !reader ||
+    !Array.isArray(tiles) ||
+    fs?.context?.webgl2 !== true ||
+    fs.mode !== Cesium.SceneMode.SCENE3D ||
+    fs.verticalExaggeration !== 1
+  ) {
+    return null;
+  }
+  const sc = (rayScratch ??= {
+    o: new Cesium.Cartesian3(),
+    d: new Cesium.Cartesian3(),
+    hit: new Cesium.Cartesian3(),
+    inverse: new Cesium.Matrix4(),
+    sphere: new Cesium.BoundingSphere(),
+    span: new Cesium.Interval(),
+  });
+  type Content = NonNullable<TileLike['content']>;
+  const candidates: Array<{ content: Content; dist: number }> = [];
+  for (const tile of tiles) {
+    const sphere = tile.contentBoundingVolume?.boundingSphere;
+    if (!sphere || !tile.content || !Cesium.IntersectionTests.raySphere(ray, sphere, sc.span)) continue;
+    candidates.push({ content: tile.content, dist: Cesium.BoundingSphere.distanceSquaredTo(sphere, ray.origin) });
+  }
+  candidates.sort((a, b) => a.dist - b.dist);
+  const castTile = (content: Content): number => {
+    const model = content._model;
+    if (!model) {
+      // Not a model tile (empty, composite): Cesium's own pick for it.
+      const own = typeof content.pick === 'function' ? content.pick(ray, frameState, sc.hit) : undefined;
+      return own ? Cesium.Cartesian3.distance(ray.origin, own) : NO_HIT;
+    }
+    if (!content._ready || model._ready !== true) return NO_HIT;
+    const cull = model.backFaceCulling ?? true;
+    let best = NO_HIT;
+    reader.forEachPrimitive(model, undefined, (runtime, primitive, instances, computed) => {
+      if (runtime.boundingSphere && instances.length === 1) {
+        const sphere = Cesium.BoundingSphere.transform(runtime.boundingSphere, computed, sc.sphere);
+        if (!Cesium.IntersectionTests.raySphere(ray, sphere, sc.span)) return;
+      }
+      if (primitive.indices === undefined || primitive.indices === null) return;
+      const position = primitive.attributes?.find((at) => at.semantic === 'POSITION');
+      if (!position || position.type !== 'VEC3') return;
+      const vertices = reader.readAttributeAsTypedArray(position);
+      const indices = reader.readIndicesAsTypedArray(primitive.indices);
+      if (!vertices || !indices) return;
+      for (const instance of instances) {
+        // The ray moves into the instance's frame, not the tile into the world's.
+        Cesium.Matrix4.inverse(instance.transform, sc.inverse);
+        const o = Cesium.Matrix4.multiplyByPoint(sc.inverse, ray.origin, sc.o);
+        const d = Cesium.Matrix4.multiplyByPointAsVector(sc.inverse, ray.direction, sc.d);
+        const t = rayTriangleHit(vertices, 3, indices, o.x, o.y, o.z, d.x, d.y, d.z, cull, linearDet(instance.transform));
+        if (t < best) best = t;
+      }
+    });
+    return best;
+  };
+  let hit: number | undefined;
+  const cast = () => {
+    for (const { content } of candidates) {
+      const t = castTile(content);
+      if (t !== NO_HIT) {
+        hit = t;
+        return;
+      }
+    }
+  };
+  const reads = meshTopReadCache();
+  if (reads) reads.run(cast);
+  else cast();
+  return hit;
 }
 
 /**

@@ -30,6 +30,8 @@ import {
   hasIonToken,
   julianDateForMood,
   liftAboveTerrain,
+  meshGroundReadStats,
+  meshHeightAt,
   meshTopReadStats,
   MOODS,
   moodForRoute,
@@ -429,12 +431,17 @@ export function CesiumWorldView({
         .catch(() => undefined);
       // Scene handle for render probes (scripts/ride-surface-probe.py): dev
       // builds, or `localStorage['velo.debug.cesium'] = '1'` (as velo.debug.three).
-      // `place(m)` holds the rider at a route distance (null releases it).
+      // `place(m)` holds the rider at a route distance (null releases it);
+      // `groundAt(lon, lat)` is the rider's photoreal ground read (meshHeightAt).
       if (cesiumDebugOptedIn()) {
         (window as unknown as { __veloCesium?: unknown }).__veloCesium = {
           viewer,
           Cesium,
           photoreal: () => tilesetRef.current,
+          groundAt: (lon: number, lat: number) => {
+            const ts = tilesetRef.current;
+            return ts ? meshHeightAt(ts, Cesium.Cartographic.fromDegrees(lon, lat), viewer.scene) : undefined;
+          },
           globeGate: globeGateRef.current,
           place: (distanceM: number | null) => {
             const r = useRideStore.getState().route;
@@ -1180,6 +1187,8 @@ export function CesiumWorldView({
             // fraction, whether a clear spot was found, cuts and tile reads.
             sideCam: sideCamSightRef.current.debug(),
             sideCamTileReads: meshTopReadStats(),
+            // The rider's photoreal ground reads (meshHeightAt): own casts, pick fallbacks, ms.
+            groundReads: meshGroundReadStats(),
             dist: state.distance,
             riderLonLat: [riderLon, riderLat],
             startGround: startGroundRef.current?.debug() ?? null,
