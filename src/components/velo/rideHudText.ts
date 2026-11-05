@@ -74,13 +74,23 @@ export interface Landmark {
 }
 
 /**
+ * The next landmark line in two parts, so a narrow line can shorten the place
+ * and keep the distance whole (`NextLandmark`): "Rivotorto" + "in 900 m",
+ * or "Climb 1" + "· 300 m to the top". Read as one line: `${name} ${distance}`.
+ */
+export interface NextLandmarkParts {
+  name: string;
+  distance: string;
+}
+
+/**
  * The next named thing on the road, from real route data only (detected
  * climbs). Inside a climb: how far to its top. Null when nothing is ahead.
  */
-export function nextLandmarkText(landmarks: readonly Landmark[], distanceM: number, units: Units): string | null {
+export function nextLandmark(landmarks: readonly Landmark[], distanceM: number, units: Units): NextLandmarkParts | null {
   for (const l of landmarks) {
-    if (distanceM < l.startDistance) return `${l.name} in ${formatLeft(l.startDistance - distanceM, units)}`;
-    if (distanceM < l.endDistance) return `${l.name} · ${formatLeft(l.endDistance - distanceM, units)} to the top`;
+    if (distanceM < l.startDistance) return { name: l.name, distance: `in ${formatLeft(l.startDistance - distanceM, units)}` };
+    if (distanceM < l.endDistance) return { name: l.name, distance: `· ${formatLeft(l.endDistance - distanceM, units)} to the top` };
   }
   return null;
 }

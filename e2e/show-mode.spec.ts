@@ -447,8 +447,11 @@ test('the ride floats in a picture-in-picture window and keeps riding and record
   const hiddenFrom = hidden.from;
   const hiddenTo = hidden.to;
 
-  // ---- Bring the ride back to the tab ----
+  // ---- The next landmark keeps its distance whole (review of PR #36 @61defbb, F2) ----
   await foreground(other);
+  await landmarkLineAtWidth(browser, page, windowId, 640, 360);
+
+  // ---- Bring the ride back to the tab ----
   await page.click(button('Bring the ride back'), 'Bring the ride back');
   await poll(() => page.eval<{ open: boolean }>(PIP_STATE), (s) => !s.open, 15_000, 'the window to close');
   await poll(
@@ -497,6 +500,77 @@ test('the ride floats in a picture-in-picture window and keeps riding and record
 
   expect(await page.eval<string[]>('window.__errors')).toEqual([]);
 });
+
+/**
+ * The bar's next-landmark line with the widest figures (1:18:05 · 42.2 km ·
+ * -12.5 %) and a long place name staged, read from the tab. The name is the
+ * part that shortens; the distance stays whole, on one line, inside the bar
+ * and clear of Pause. The 640 px window used to show "Bastia Umbra in 6…".
+ */
+const LANDMARK_LINE = `(() => {
+  const w = documentPictureInPicture.window;
+  const d = w.document;
+  const bar = d.querySelector('[data-testid="journey-bar"]');
+  const line = [...bar.querySelectorAll('[data-testid="journey-next"]')].find((e) => e.checkVisibility());
+  if (!line) return null;
+  const name = line.querySelector('[data-testid="landmark-name"]');
+  const dist = line.querySelector('[data-testid="landmark-distance"]');
+  const pause = bar.querySelector('button');
+  const box = (e) => { const b = e.getBoundingClientRect(); return { x: b.x, r: b.right, h: b.height }; };
+  const nums = [...bar.querySelectorAll('.num')];
+  const swap = [...nums, ...(name ? [name] : [])].map((e) => [...e.childNodes].find((n) => n.nodeType === 3));
+  const was = swap.map((n) => n && n.nodeValue);
+  ['1:18:05', '42.2', '-12.5'].forEach((t, i) => { if (swap[i]) swap[i].nodeValue = t; });
+  if (name && swap[nums.length]) swap[nums.length].nodeValue = 'Basilica di Santa Maria degli Angeli';
+  const out = {
+    inner: [w.innerWidth, w.innerHeight],
+    text: line.textContent,
+    dist: dist ? { text: dist.textContent, scrollW: dist.scrollWidth, clientW: dist.clientWidth, ...box(dist) } : null,
+    name: name ? { scrollW: name.scrollWidth, clientW: name.clientWidth, ...box(name) } : null,
+    line: box(line),
+    bar: { scrollW: bar.scrollWidth, clientW: bar.clientWidth, ...box(bar) },
+    pause: pause ? box(pause) : null,
+  };
+  swap.forEach((n, i) => { if (n) n.nodeValue = was[i]; });
+  return out;
+})()`;
+
+interface LandmarkLine {
+  inner: [number, number];
+  text: string;
+  dist: { text: string; scrollW: number; clientW: number; x: number; r: number; h: number } | null;
+  name: { scrollW: number; clientW: number; x: number; r: number; h: number } | null;
+  line: { x: number; r: number; h: number };
+  bar: { scrollW: number; clientW: number; x: number; r: number };
+  pause: { x: number; r: number } | null;
+}
+
+/** Size the floating window (as a window manager would) and check the bar's landmark line there. */
+async function landmarkLineAtWidth(browser: Cdp, page: Tab, windowId: number, width: number, height: number) {
+  const inner = () => page.eval<[number, number]>('[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]');
+  await browser.send('Browser.setWindowBounds', { windowId, bounds: { width, height } });
+  await sleep(300);
+  const [iw, ih] = await inner();
+  await browser.send('Browser.setWindowBounds', { windowId, bounds: { width: width + (width - iw), height: height + (height - ih) } });
+  await poll(inner, ([w]) => w >= width, 5_000, `the window at ${width} px`);
+  // From sm (640 px) the line sits in the bar; it needs a named place ahead on the route.
+  const g = await poll(() => page.eval<LandmarkLine | null>(LANDMARK_LINE), (v) => !!v, 30_000, 'the next landmark in the bar');
+  const at = `window ${g!.inner.join('x')}: ${JSON.stringify(g)}`;
+  expect(g!.dist, at).not.toBeNull();
+  expect(g!.name, at).not.toBeNull();
+  const { dist, name, line, bar, pause } = g as LandmarkLine & { dist: NonNullable<LandmarkLine['dist']>; name: NonNullable<LandmarkLine['name']> };
+  expect(dist.text, at).toMatch(/^ (in [\d.]+ (m|km|mi|ft)|· [\d.]+ (m|km|mi|ft) to the top)$/);
+  // The distance is whole: not clipped in itself, on one line, inside the line, the bar and left of Pause.
+  expect(dist.scrollW, at).toBeLessThanOrEqual(dist.clientW);
+  expect(dist.h, at).toBeLessThanOrEqual(name.h + 1);
+  expect(dist.r, at).toBeLessThanOrEqual(line.r + 0.5);
+  expect(dist.r, at).toBeLessThanOrEqual(bar.r);
+  if (pause) expect(dist.r, at).toBeLessThanOrEqual(pause.x);
+  // The long name is what shortens, and the bar still fits.
+  expect(name.scrollW, at).toBeGreaterThan(name.clientW);
+  expect(bar.scrollW, at).toBeLessThanOrEqual(bar.clientW);
+  console.info(`show-mode landmark: window ${g!.inner.join('x')}: name ${name.clientW}/${name.scrollW} px, distance "${dist.text.trim()}" ${dist.clientW} px whole`);
+}
 
 /** The floating window's geometry, read from the tab (the window shares its event loop). */
 const PIP_GEOMETRY = `(() => {

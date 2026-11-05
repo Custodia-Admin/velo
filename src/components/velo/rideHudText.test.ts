@@ -9,7 +9,7 @@ import {
   aboutMinutes,
   chipTap,
   formatLeft,
-  nextLandmarkText,
+  nextLandmark,
   noticeMs,
   rideChip,
   type RideChipInput,
@@ -63,19 +63,22 @@ describe('next landmark', () => {
     { name: 'Climb 1', startDistance: 2000, endDistance: 2600 },
     { name: 'Climb 2', startDistance: 5000, endDistance: 5400 },
   ];
+  const line = (n: ReturnType<typeof nextLandmark>) => (n ? `${n.name} ${n.distance}` : null);
 
   it('names the next climb ahead with the distance to it', () => {
-    expect(nextLandmarkText(climbs, 800, 'metric')).toBe('Climb 1 in 1.2 km');
+    expect(nextLandmark(climbs, 800, 'metric')).toEqual({ name: 'Climb 1', distance: 'in 1.2 km' });
+    expect(line(nextLandmark(climbs, 800, 'metric'))).toBe('Climb 1 in 1.2 km');
   });
 
   it('inside a climb, says how far to the top', () => {
-    expect(nextLandmarkText(climbs, 2300, 'metric')).toBe('Climb 1 · 300 m to the top');
+    expect(nextLandmark(climbs, 2300, 'metric')).toEqual({ name: 'Climb 1', distance: '· 300 m to the top' });
+    expect(line(nextLandmark(climbs, 2300, 'metric'))).toBe('Climb 1 · 300 m to the top');
   });
 
   it('moves on after a climb and is silent past the last one (or with none)', () => {
-    expect(nextLandmarkText(climbs, 3000, 'metric')).toBe('Climb 2 in 2.0 km');
-    expect(nextLandmarkText(climbs, 6000, 'metric')).toBeNull();
-    expect(nextLandmarkText([], 0, 'metric')).toBeNull();
+    expect(line(nextLandmark(climbs, 3000, 'metric'))).toBe('Climb 2 in 2.0 km');
+    expect(nextLandmark(climbs, 6000, 'metric')).toBeNull();
+    expect(nextLandmark([], 0, 'metric')).toBeNull();
   });
 });
 
