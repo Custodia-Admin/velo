@@ -130,6 +130,8 @@ import { attachScenePerf } from '@/lib/perf/scenePerf';
 import { createPerfGovernor, type PerfGovernor } from '@/lib/perf/perfGovernor';
 import { shouldRenderOnDemand } from '@/lib/perf/renderMode';
 import { useMultiriderStore } from '@/stores/multiriderStore';
+import { canvasKeyFor, useWorldViewStore } from '@/stores/worldViewStore';
+import { watchContextLoss } from '@/renderers/contextLoss';
 
 function cesiumDebugOptedIn(): boolean {
   if (typeof window === 'undefined') return false;
@@ -187,6 +189,26 @@ const cameraGroundSamplers = new WeakMap<Cesium.Scene, ReturnType<typeof createG
 /** The chase camera never dips closer than this to the terrain under it (m). */
 const CHASE_MIN_CLEARANCE_M = 1.2;
 
+type CesiumWorldViewProps = WorldViewProps & {
+  /**
+   * Called once the Cesium.Viewer is fully constructed (legacy hook; new
+   * callers use `onReady`, whose WorldRenderer carries the viewer as `native`).
+   */
+  onViewerReady?: (viewer: Cesium.Viewer) => void;
+};
+
+/**
+ * What a viewer reports about its WebGL context, for the canvas key it was
+ * built under (stores/worldViewStore counts a report only for the slot
+ * owner's current key, so a torn-down viewer's late events are ignored).
+ */
+export interface ViewerContextReport {
+  /** The context is gone, or no viewer could be built: the world is frozen. */
+  lost: (canvasKey: number) => void;
+  /** The browser gave the context back: build the viewer again. */
+  restored: (canvasKey: number) => void;
+}
+
 /**
  * The photoreal renderer ('photoreal' behind lib/world/renderer.ts): Cesium
  * globe + terrain + OSM buildings + the route polyline + a multi-part bike
@@ -194,19 +216,70 @@ const CHASE_MIN_CLEARANCE_M = 1.2;
  * follows the avatar when riding, and frames the entire route when idle so
  * the user can preview before clicking Start.
  *
+ * A lost WebGL context (a GPU reset, a driver update, Chrome's GPU watchdog
+ * or its cap on live contexts; card t_771036a6): Cesium has no restore path
+ * of its own, so this view owns the world-view slot (stores/worldViewStore)
+ * while mounted. The ride's status chip says "3D view stopped · tap to
+ * reload" and the dead view is hidden; a browser restore or the rider's tap
+ * bumps the canvas key, which remounts CesiumScene on a new Viewer, and that
+ * Viewer's WorldRenderer goes to the ride view through `onReady` again. The
+ * ride loop, its clock and the recording never depend on the viewer.
+ *
  * Opt-in and lazy: only src/renderers/registry.ts imports this module, via
  * import(), so the Cesium chunk loads only when this renderer draws.
  */
-export function CesiumWorldView({
+export function CesiumWorldView(props: CesiumWorldViewProps) {
+  const [viewId, setViewId] = useState(0);
+  // The id the viewer's reports go to: set in the attach effect itself, so a
+  // viewer that fails to build right after mount still reaches the slot.
+  const viewIdRef = useRef(0);
+  useEffect(() => {
+    const id = useWorldViewStore.getState().attach();
+    viewIdRef.current = id;
+    setViewId(id);
+    return () => {
+      viewIdRef.current = 0;
+      useWorldViewStore.getState().detach(id);
+    };
+  }, []);
+  const canvasKey = useWorldViewStore((s) => canvasKeyFor(s, viewId));
+  // A lost view is hidden until it remounts: a dead WebGL canvas paints white
+  // (with a broken-image glyph) and Cesium may put its "Rendering has
+  // stopped" panel over it; the plain ride background is calmer.
+  const contextLost = useWorldViewStore((s) => s.view !== null && s.view.id === viewId && s.view.stopped);
+  const [report] = useState<ViewerContextReport>(() => ({
+    lost: (key) => {
+      if (viewIdRef.current) useWorldViewStore.getState().contextLost(viewIdRef.current, key);
+    },
+    restored: (key) => {
+      if (viewIdRef.current) useWorldViewStore.getState().contextRestored(viewIdRef.current, key);
+    },
+  }));
+  return (
+    <div
+      className={contextLost ? 'absolute inset-0 invisible' : 'absolute inset-0'}
+      data-world-context={contextLost ? 'lost' : 'live'}
+    >
+      <CesiumScene key={canvasKey} {...props} canvasKey={canvasKey} context={report} />
+    </div>
+  );
+}
+
+/**
+ * One Cesium Viewer and everything drawn in it. CesiumWorldView remounts it
+ * (a new `key` = `canvasKey`) to rebuild the world on a fresh WebGL context.
+ */
+export function CesiumScene({
   ionToken,
   onReady,
   onViewerReady,
-}: WorldViewProps & {
-  /**
-   * Called once the Cesium.Viewer is fully constructed (legacy hook; new
-   * callers use `onReady`, whose WorldRenderer carries the viewer as `native`).
-   */
-  onViewerReady?: (viewer: Cesium.Viewer) => void;
+  canvasKey,
+  context,
+}: CesiumWorldViewProps & {
+  /** The key this scene is mounted under (its reports carry it). */
+  canvasKey: number;
+  /** Where the viewer's canvas reports its WebGL context. */
+  context: ViewerContextReport;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
@@ -233,6 +306,8 @@ export function CesiumWorldView({
   const photorealPromiseRef = useRef<Promise<Cesium.Cesium3DTileset> | null>(null);
   const removeTickRef = useRef<(() => void) | null>(null);
   const detachPerfRef = useRef<(() => void) | null>(null);
+  /** Stops the watch on the viewer canvas's WebGL context (renderers/contextLoss). */
+  const stopContextWatchRef = useRef<(() => void) | null>(null);
   // Adaptive quality governor — steps scene cost down when real frames run
   // over budget (see lib/perf/perfGovernor). Recreated on quality-tier change.
   const perfGovernorRef = useRef<PerfGovernor | null>(null);
@@ -384,31 +459,48 @@ export function CesiumWorldView({
       await waitForContainerSize(container);
       if (bootstrapCancelled || !containerRef.current) return;
 
-      const viewer = new Cesium.Viewer(container, {
-        timeline: false,
-        animation: false,
-        baseLayerPicker: false,
-        fullscreenButton: false,
-        geocoder: false,
-        homeButton: false,
-        infoBox: false,
-        sceneModePicker: false,
-        selectionIndicator: false,
-        navigationHelpButton: false,
-        navigationInstructionsInitiallyVisible: false,
-        // No default base layer: setupBaseImagery() below adds exactly one
-        // (Bing via ion with its stall watchdog, or OSM without a token).
-        // The Viewer's own default is the same Bing layer, so keeping it
-        // stacked two opaque copies — every imagery tile fetched, decoded,
-        // uploaded and sampled twice.
-        baseLayer: false,
-        // Mark the WebGL context as XR-compatible so that
-        // navigator.xr.requestSession('immersive-vr' | 'immersive-ar') can use
-        // this canvas. xrCompatible is a valid WebGL context attribute (WebXR
-        // spec) but isn't typed in Cesium's WebGLOptions — cast to satisfy tsc.
-        contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
-      });
+      let viewer: Cesium.Viewer;
+      try {
+        viewer = new Cesium.Viewer(container, {
+          timeline: false,
+          animation: false,
+          baseLayerPicker: false,
+          fullscreenButton: false,
+          geocoder: false,
+          homeButton: false,
+          infoBox: false,
+          sceneModePicker: false,
+          selectionIndicator: false,
+          navigationHelpButton: false,
+          navigationInstructionsInitiallyVisible: false,
+          // No default base layer: setupBaseImagery() below adds exactly one
+          // (Bing via ion with its stall watchdog, or OSM without a token).
+          // The Viewer's own default is the same Bing layer, so keeping it
+          // stacked two opaque copies — every imagery tile fetched, decoded,
+          // uploaded and sampled twice.
+          baseLayer: false,
+          // Mark the WebGL context as XR-compatible so that
+          // navigator.xr.requestSession('immersive-vr' | 'immersive-ar') can use
+          // this canvas. xrCompatible is a valid WebGL context attribute (WebXR
+          // spec) but isn't typed in Cesium's WebGLOptions — cast to satisfy tsc.
+          contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
+        });
+      } catch (err) {
+        // No WebGL context to be had right now (the GPU process is still
+        // down, or Chrome blocked WebGL after repeated crashes): the view
+        // stays stopped, so the chip stays up and a tap tries again.
+        console.warn('[velo] the photoreal view could not start:', err);
+        context.lost(canvasKey);
+        return;
+      }
       viewerRef.current = viewer;
+      // A lost context freezes the canvas for good (Cesium never restores
+      // one): report it, so the chip shows and a restore or a tap remounts
+      // this scene on a new Viewer. Stopped first thing in the cleanup.
+      stopContextWatchRef.current = watchContextLoss(viewer.scene.canvas, {
+        lost: () => context.lost(canvasKey),
+        restored: () => context.restored(canvasKey),
+      });
       // In the floating ride window the bar covers the bottom of the picture
       // (data-hud-bottom): draw a taller canvas cropped by the window, so the
       // rider sits in the clear band above the bar (hudLensCrop). Checked
@@ -578,6 +670,9 @@ export function CesiumWorldView({
       // Signal the async init to bail out if it hasn't constructed the viewer
       // yet (e.g. unmount before waitForContainerSize resolves).
       bootstrapCancelled = true;
+      // Tearing the viewer down is not a loss the rider needs to hear about.
+      stopContextWatchRef.current?.();
+      stopContextWatchRef.current = null;
       ro.disconnect();
       if (typeof window !== 'undefined') delete (window as unknown as { __veloCesium?: unknown }).__veloCesium;
 
