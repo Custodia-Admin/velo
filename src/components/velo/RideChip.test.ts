@@ -243,6 +243,20 @@ describe('RideChip: the 3D view stopped (WebGL context lost)', () => {
     expect(chip()!.text).toBe('3D view stopped · tap to reload');
   });
 
+  it('a low trainer battery does not hide it: the tap reloads the view, then the battery note returns', () => {
+    useRideStore.getState().setConnection('connected', { deviceName: 'KICKR CORE 78C1' });
+    useRideStore.getState().setMode('trainer');
+    useRideStore.setState({ batteryLevel: 15 });
+    expect(chip()!.text).toBe('KICKR CORE · hills 35 % · battery 15 %');
+    const id = worldViewStopped();
+    const el = chip()!;
+    expect(el.text).toBe('3D view stopped · tap to reload');
+    el.props.onClick();
+    expect(canvasKeyFor(useWorldViewStore.getState(), id)).toBe(1);
+    expect(useRideHudStore.getState().devicesOpen).toBe(false);
+    expect(chip()!.text).toBe('KICKR CORE · hills 35 % · battery 15 %');
+  });
+
   it('in the floating window and show mode (alertsOnly) it shows too, and the tap reloads there', () => {
     useRideStore.getState().setMode('demo');
     const id = worldViewStopped();

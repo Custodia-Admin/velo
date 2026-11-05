@@ -287,8 +287,9 @@ const CONTROLS_ALERT: Partial<Record<ControlsPhase, string>> = {
 };
 
 /**
- * The chip, worst problem first: a lost or failing trainer, then a frozen
- * 3D view (WebGL context lost), then handlebar
+ * The chip, worst problem first: a lost or failing trainer (lost,
+ * reconnecting, connecting, a failed pairing), then a frozen 3D view (WebGL
+ * context lost), then a low trainer battery, then handlebar
  * controls that cannot deliver presses, then a dropped heart-rate strap,
  * then a passing notice (a toast, a few seconds), else the calm status
  * ("KICKR CORE · hills 35 %", "Demo ride · no trainer").
@@ -325,11 +326,17 @@ export function rideChip(i: RideChipInput): RideChipView {
   }
 
   const base = statusChip(i);
-  if (base.alert) return { ...base, action: 'devices' };
+  // A low battery is the one trainer alert while the trainer still works
+  // (statusChip: connected, battery <= LOW_BATTERY). Reconnecting,
+  // connecting and a failed pairing come first; the battery waits below.
+  const lowBattery = base.alert && i.connection === 'connected';
+  if (base.alert && !lowBattery) return { ...base, action: 'devices' };
 
   // The world froze (GPU reset, driver update, the browser's context cap)
-  // while the ride, the HUD and the recording carry on. Second only to the
-  // trainer: the rider sees it at once and the fix is one tap.
+  // while the ride, the HUD and the recording carry on. Second only to a
+  // trainer that is lost or not connected: the rider sees it at once and
+  // the fix is one tap. A low trainer battery waits, or its note would hold
+  // the chip for the whole ride and nothing would reload the view.
   if (i.worldStopped) {
     return {
       label: WORLD_STOPPED_LABEL,
@@ -340,6 +347,9 @@ export function rideChip(i: RideChipInput): RideChipView {
       action: 'reloadWorld',
     };
   }
+
+  // The low trainer battery note ("KICKR CORE · hills 35 % · battery 15 %").
+  if (lowBattery) return { ...base, action: 'devices' };
 
   const controls = CONTROLS_ALERT[i.controls];
   if (controls) {
