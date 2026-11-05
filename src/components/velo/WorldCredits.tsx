@@ -23,7 +23,7 @@ export function WorldCredits({
   if (entries.length === 0) return null;
   return (
     <details className={cn('group', className)} data-world-credits>
-      <summary className="-mx-2 flex min-h-10 w-max cursor-pointer list-none items-center gap-2 rounded-md px-2 text-sm font-semibold text-foreground select-none hover:bg-muted/60">
+      <summary className="-mx-2 flex min-h-10 w-max cursor-pointer list-none items-center gap-2 rounded-md px-2 text-sm font-medium text-muted-foreground select-none hover:bg-muted/60 hover:text-foreground group-open:text-foreground">
         <span aria-hidden className="inline-block transition-transform duration-150 group-open:rotate-90">›</span>
         Map &amp; terrain credits
       </summary>
