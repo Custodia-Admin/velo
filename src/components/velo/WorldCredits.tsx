@@ -23,17 +23,17 @@ export function WorldCredits({
   if (entries.length === 0) return null;
   return (
     <details className={cn('group', className)} data-world-credits>
-      <summary className="flex min-h-10 w-max cursor-pointer list-none items-center gap-2 rounded-md px-2 text-sm font-semibold text-foreground select-none hover:bg-muted/60">
+      <summary className="-mx-2 flex min-h-10 w-max cursor-pointer list-none items-center gap-2 rounded-md px-2 text-sm font-semibold text-foreground select-none hover:bg-muted/60">
         <span aria-hidden className="inline-block transition-transform duration-150 group-open:rotate-90">›</span>
         Map &amp; terrain credits
       </summary>
-      <ul className="mt-2 gap-x-10 px-2 sm:columns-2">
+      <ul className="mt-2 gap-x-10 sm:columns-2">
         {entries.map(({ key, credit, places }) => (
           <li key={key} data-credit={credit.id} className="flex break-inside-avoid flex-col gap-1 border-t border-border py-3">
             <p className="text-sm font-semibold text-foreground">{credit.name}</p>
             <p className="text-sm text-muted-foreground">{credit.attribution}</p>
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Licence</span> {credit.licence}
+              <span className="font-semibold text-foreground">Licence</span> {credit.licence}
             </p>
             <div className="flex flex-wrap items-center justify-between gap-x-4">
               <span className="text-xs text-muted-foreground">{creditPlaces(places, destinations.length)}</span>

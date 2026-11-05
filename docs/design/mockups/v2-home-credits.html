@@ -31,12 +31,11 @@
   .chev { display: inline-block; transition: transform 150ms; }
   details[open] > summary .chev { transform: rotate(90deg); }
   footer.foot { padding: var(--s-6) 0 var(--s-10); }
-  footer.foot > p { padding: 0 var(--s-2); }
-  .credits summary { min-height: var(--s-10); margin-top: var(--s-1); font-size: var(--text-sm); font-weight: 600; width: max-content; padding: 0 var(--s-2); }
-  .credits ul { list-style: none; padding: 0 var(--s-2); column-gap: var(--s-10); margin-top: var(--s-2); }
+  .credits summary { min-height: var(--s-10); margin-top: var(--s-1); font-size: var(--text-sm); font-weight: 600; width: max-content; padding: 0 var(--s-2); margin-left: calc(var(--s-2) * -1); }
+  .credits ul { list-style: none; padding: 0; column-gap: var(--s-10); margin-top: var(--s-2); }
   @media (min-width: 640px) { .credits ul { columns: 2; } }
   .credits li { break-inside: avoid; border-top: var(--hairline) solid hsl(var(--border)); padding: var(--s-3) 0; display: flex; flex-direction: column; gap: var(--s-1); }
-  .credits .lic b { font-weight: 500; color: hsl(var(--foreground)); }
+  .credits .lic b { font-weight: 600; color: hsl(var(--foreground)); }
   .credits .meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: var(--s-4); }
   .credits a.btn.link { padding: 0; color: hsl(var(--foreground)); font-weight: 500; }
 </style>

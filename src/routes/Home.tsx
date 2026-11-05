@@ -74,7 +74,7 @@ export function Home() {
           </details>
 
           <footer className="pb-10 pt-6">
-            <p className="px-2 text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               World stills rendered from the Perugia world bake; map data © OpenStreetMap contributors.
             </p>
             <WorldCredits className="mt-1" />
