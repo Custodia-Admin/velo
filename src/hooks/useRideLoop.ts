@@ -85,13 +85,10 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
 
       const s = store.getState();
       const fsm = selectRideFsm(s);
-      // This loop commands the trainer only for its own trainer rides; the
-      // workout engine drives ERG itself.
+      // This loop commands the trainer only for its own trainer rides.
       const resistance = loopResistance(fsm);
-      // Replay loop handles frames when replayData is present — bail out here.
-      // Workout engine handles frames when a workout is running — bail out here too.
       // Outdoor rides don't require a pre-loaded route — route is built live.
-      if (fsm.source === 'replay' || fsm.source === 'workout' || fsm.phase !== 'riding') {
+      if (fsm.phase !== 'riding') {
         // Paused: the gate holds (sends nothing) so the trainer keeps its
         // resistance; the first riding frame re-sends it.
         resistanceGate.current.step(resistance, Date.now(), false);

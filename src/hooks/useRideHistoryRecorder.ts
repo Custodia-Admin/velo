@@ -22,7 +22,6 @@ import { useProfileStore } from '@/stores/profileStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRiderRosterStore } from '@/stores/riderRosterStore';
 import { computeRideMetrics } from '@/lib/metrics';
-import { totalDurationSec } from '@/lib/workout';
 import type { RideState } from '@/types';
 // ADDITIVE: World Tour stage detection (static import — no async needed)
 import { WORLD_TOUR_STAGES } from '@/lib/worldTourStages';
@@ -55,7 +54,7 @@ export function useRideHistoryRecorder(): void {
       savedRef.current = true;
 
         const s = useRideStore.getState();
-        const { samples, elapsedMs, route, activeWorkout, workoutElapsedSec, startedAt, replayData } = s;
+        const { samples, elapsedMs, route, startedAt } = s;
 
         // Skip trivially short rides.
         if (elapsedMs / 1000 < MIN_DURATION_SEC) return;
@@ -67,26 +66,10 @@ export function useRideHistoryRecorder(): void {
           : 0;
 
         const name =
-          activeWorkout?.name ??
-          route?.name ??
-          (replayData ? 'Replay' : 'Ride') +
-            ` — ${new Date(startedAt ?? Date.now()).toLocaleDateString()}`;
-
-        let source: 'route' | 'workout' | 'replay' = 'route';
-        if (replayData) source = 'replay';
-        else if (activeWorkout) source = 'workout';
+          route?.name ?? `Ride — ${new Date(startedAt ?? Date.now()).toLocaleDateString()}`;
 
         const ftpW = useSettingsStore.getState().ftpW;
-        const metrics = computeRideMetrics(samples, ftpW, activeWorkout);
-        const targetDurationSec = activeWorkout ? totalDurationSec(activeWorkout) : 0;
-        const workoutCompliance = activeWorkout
-          ? {
-              completed: workoutElapsedSec >= targetDurationSec * 0.95,
-              targetDurationSec,
-              completedDurationSec: Math.round(workoutElapsedSec),
-              segmentCompliance: metrics.segments,
-            }
-          : undefined;
+        const metrics = computeRideMetrics(samples, ftpW);
 
         const record = {
           id: rideId(),
@@ -98,15 +81,14 @@ export function useRideHistoryRecorder(): void {
           avgPower: computeAvgPower(samples),
           avgSpeed: computeAvgSpeed(samples),
           sampleCount: samples.length,
-          workoutName: activeWorkout?.name,
           samples: [...samples], // snapshot so the store can be reset freely
-          source,
+          // Every ride is a route ride now; 'workout' / 'replay' records saved
+          // by older builds stay readable (lib/rideHistory RideSource).
+          source: 'route' as const,
           metrics,
           ftpW,
           riderId: useRiderRosterStore.getState().activeRiderId,
           routeRef: route ? { id: route.id, name: route.name } : undefined,
-          workoutRef: activeWorkout ? { id: activeWorkout.id, name: activeWorkout.name } : undefined,
-          workoutCompliance,
         };
 
         saveRide(record).catch((err) => {
@@ -114,10 +96,7 @@ export function useRideHistoryRecorder(): void {
         });
 
         // Award XP and update lifetime stats in the profile store.
-        const workoutCompleted =
-          !!activeWorkout &&
-          workoutElapsedSec > 0 &&
-          workoutElapsedSec >= totalDurationSec(activeWorkout);
+        const workoutCompleted = false;
 
         // ── later waves extra ride metadata ──────────────────────────────────
         // Draft seconds: accumulated via _rideDraftSec on the ride store when

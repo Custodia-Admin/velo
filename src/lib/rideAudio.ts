@@ -9,7 +9,7 @@
  * • Tasteful and minimal — never distracting.
  * • Ambient wind/road hum scales with speed (quasi-realistic).
  * • Effort layer: low-drone frequency rises with gradient/power intensity.
- * • Event chimes: short, pleasant; used for workout-segment change & ride finish.
+ * • Event chime: short, pleasant; plays on ride finish.
  * • Master gain exposed so the toggle/volume control can duck cleanly.
  * • Respects autoplay policy — AudioContext is resumed only from a user gesture
  *   (the caller must call `engine.resumeContext()` from an interaction handler).
@@ -57,47 +57,6 @@ function createNoiseSource(ctx: AudioContext): AudioBufferSourceNode {
   src.buffer = buffer;
   src.loop = true;
   return src;
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Chime synthesiser
-// ──────────────────────────────────────────────────────────────────────────────
-
-/**
- * Play a short, pleasant chime. Uses two sine oscillators a perfect 5th apart,
- * each with a fast attack and slow exponential decay.
- *
- * @param ctx      AudioContext
- * @param dest     Destination node (master gain)
- * @param rootHz   Root frequency (default 880 for segment, 1046 for finish)
- * @param volume   Linear amplitude 0–1
- */
-function playChime(
-  ctx: AudioContext,
-  dest: AudioNode,
-  rootHz: number,
-  volume: number,
-): void {
-  const now = ctx.currentTime;
-  const peaks = [rootHz, rootHz * 1.5]; // root + perfect fifth
-
-  for (const freq of peaks) {
-    const osc = ctx.createOscillator();
-    const env = ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, now);
-
-    env.gain.setValueAtTime(0, now);
-    env.gain.linearRampToValueAtTime(volume * 0.22, now + 0.015);
-    env.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
-
-    osc.connect(env);
-    env.connect(dest);
-    osc.start(now);
-    osc.stop(now + 1.5);
-    // GC: nodes are automatically garbage collected after stop()
-  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -274,14 +233,6 @@ export class RideAudioEngine {
   unpause(): void {
     // update() will re-ramp master gain back to the user's volume setting.
     // No explicit action needed.
-  }
-
-  /**
-   * Play the workout-segment-change chime (soft, mid-register).
-   */
-  playSegmentChime(): void {
-    if (!this.ctx || !this.masterGain || !this.running) return;
-    playChime(this.ctx, this.masterGain, 880, 0.6);
   }
 
   /**

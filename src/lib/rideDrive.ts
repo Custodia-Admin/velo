@@ -23,7 +23,7 @@ export function ridesOnDemoPower(mode: RideMode, connection: ConnectionState): b
   return mode !== 'outdoor' && !trainerDrivesRide(mode, connection);
 }
 
-/** The FSM drive for a trainer/demo ride (not outdoor, replay or workout). */
+/** The FSM drive for a trainer/demo ride (not outdoor). */
 export function indoorDriveKind(mode: RideMode, connection: ConnectionState): RideDriveKind {
   return driveOf({ source: mode === 'trainer' ? 'trainer' : 'demo', trainer: trainerLinkOf(connection) });
 }

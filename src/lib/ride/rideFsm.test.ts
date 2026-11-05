@@ -135,14 +135,14 @@ describe('rideFsm — trainer table: every (link, event) pair', () => {
 });
 
 describe('rideFsm — source swaps: every (phase, from, to) triple', () => {
-  const live = new Set<RideSource>(['trainer', 'demo', 'workout']);
+  const live = new Set<RideSource>(['trainer', 'demo']);
   const triples = RIDE_PHASES.flatMap((p) =>
     RIDE_SOURCES.flatMap((from) => RIDE_SOURCES.map((to) => [p, from, to] as const)),
   );
 
   it.each(triples)('%s: %s → %s', (phase, from, to) => {
     const inProgress = phase === 'riding' || phase === 'paused';
-    const want = to !== 'replay' && (!inProgress || (live.has(from) && live.has(to)));
+    const want = !inProgress || (live.has(from) && live.has(to));
     expect(sourceSwapAllowed(phase, from, to)).toBe(want);
     const s = at(phase, { source: from });
     const e = { type: 'SET_SOURCE', source: to } as const;
@@ -152,26 +152,6 @@ describe('rideFsm — source swaps: every (phase, from, to) triple', () => {
       expect(() => transition(s, e, { strict: true })).toThrow(IllegalRideTransition);
       expect(transition(s, e, { strict: false })).toBe(s);
     }
-  });
-
-  it.each(RIDE_PHASES)('LOAD_REPLAY from %s → ready/replay', (phase) => {
-    expect(transition(at(phase), { type: 'LOAD_REPLAY' }, { strict: true })).toEqual(
-      at('ready', { source: 'replay' }),
-    );
-  });
-
-  it.each(RIDE_PHASES)('CLEAR_REPLAY from %s/replay → ready (route) or idle', (phase) => {
-    const s = at(phase, { source: 'replay' });
-    expect(transition(s, { type: 'CLEAR_REPLAY', source: 'demo', hasRoute: true }, { strict: true }))
-      .toEqual(at('ready', { source: 'demo' }));
-    expect(transition(s, { type: 'CLEAR_REPLAY', source: 'trainer', hasRoute: false }, { strict: true }))
-      .toEqual(at('idle', { source: 'trainer' }));
-  });
-
-  it('CLEAR_REPLAY is illegal outside a replay or back into replay', () => {
-    expect(can(at('ready'), { type: 'CLEAR_REPLAY', source: 'demo', hasRoute: true })).toBe(false);
-    expect(can(at('ready', { source: 'replay' }), { type: 'CLEAR_REPLAY', source: 'replay', hasRoute: true }))
-      .toBe(false);
   });
 });
 
@@ -200,13 +180,16 @@ describe('rideFsm — mapping to the store strings', () => {
     }
   });
 
-  it('sourceOf precedence: replay > outdoor > workout > demo > trainer', () => {
-    const base = { mode: 'trainer' as const, rideMode: 'trainer' as const, replayData: null, workoutRunning: false };
+  it('three ride sources: trainer, demo, outdoor', () => {
+    expect(RIDE_SOURCES).toEqual(['trainer', 'demo', 'outdoor']);
+  });
+
+  it('sourceOf precedence: outdoor > demo > trainer', () => {
+    const base = { mode: 'trainer' as const, rideMode: 'trainer' as const };
     expect(sourceOf(base)).toBe('trainer');
     expect(sourceOf({ ...base, mode: 'demo' })).toBe('demo');
-    expect(sourceOf({ ...base, mode: 'demo', workoutRunning: true })).toBe('workout');
-    expect(sourceOf({ ...base, workoutRunning: true, rideMode: 'outdoor' })).toBe('outdoor');
-    expect(sourceOf({ ...base, rideMode: 'outdoor', replayData: {} })).toBe('replay');
+    expect(sourceOf({ ...base, rideMode: 'outdoor' })).toBe('outdoor');
+    expect(sourceOf({ mode: 'demo', rideMode: 'outdoor' })).toBe('outdoor');
   });
 
   it('describes a state compactly', () => {
@@ -218,8 +201,6 @@ describe('rideFsm — driveOf: every (source, link) pair', () => {
   const want: Record<RideSource, Record<TrainerLink, string>> = {
     trainer: { disconnected: 'demo', connecting: 'demo', connected: 'trainer', lost: 'held' },
     demo:    { disconnected: 'demo', connecting: 'demo', connected: 'demo', lost: 'demo' },
-    workout: { disconnected: 'workout', connecting: 'workout', connected: 'workout', lost: 'workout' },
-    replay:  { disconnected: 'replay', connecting: 'replay', connected: 'replay', lost: 'replay' },
     outdoor: { disconnected: 'gps', connecting: 'gps', connected: 'gps', lost: 'gps' },
   };
   for (const source of RIDE_SOURCES) {
@@ -235,7 +216,7 @@ describe('rideFsm — resistanceOf: every (phase, source, link) triple', () => {
   for (const phase of RIDE_PHASES) {
     for (const source of RIDE_SOURCES) {
       for (const trainer of TRAINER_LINKS) {
-        const commands = trainer === 'connected' && (source === 'trainer' || source === 'workout');
+        const commands = trainer === 'connected' && source === 'trainer';
         const want = !commands ? 'off' : phase === 'riding' ? 'track' : phase === 'paused' ? 'hold' : 'off';
         it(`${phase}/${source}/${trainer} → ${want}`, () => {
           expect(resistanceOf({ phase, source, trainer })).toBe(want);
@@ -287,7 +268,7 @@ describe('rideFsm — standstill and auto-pause policy', () => {
     expect(autoPauseDue({ state: riding, standstillSec: STANDSTILL_AUTOPAUSE_S - 0.01, enabled: true })).toBe(false);
     expect(autoPauseDue({ state: riding, standstillSec: STANDSTILL_AUTOPAUSE_S, enabled: true })).toBe(true);
     expect(autoPauseDue({ state: at('paused'), standstillSec: 60, enabled: true })).toBe(false);
-    for (const source of ['demo', 'workout', 'replay', 'outdoor'] as const) {
+    for (const source of ['demo', 'outdoor'] as const) {
       expect(autoPauseDue({ state: at('riding', { source }), standstillSec: 60, enabled: true })).toBe(false);
     }
   });

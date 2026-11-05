@@ -160,13 +160,6 @@ describe('rideSim.step — route end', () => {
     expect(out.state.rideState).toBe('finished');
     expect(out.state.distance).toBe(route.totalDistance);
   });
-
-  it('loops instead when asked (workouts outlast the map)', () => {
-    const out = step(running({ distance: route.totalDistance - 0.01 }), { ...demo, loop: true }, route);
-    expect(out.finished).toBe(false);
-    expect(out.state.rideState).toBe('running');
-    expect(out.state.distance).toBeLessThan(1);
-  });
 });
 
 describe('ridePose', () => {
@@ -201,8 +194,6 @@ describe('rideSim.step matches the live ride loop (useRideLoop + rideStore.tick)
       distance: 500,
       speed: 0,
       samples: [],
-      replayData: null,
-      workoutRunning: false,
       mode: 'trainer',
       connection: 'disconnected',
     });
@@ -237,7 +228,7 @@ describe('rideSim.step matches the live ride loop (useRideLoop + rideStore.tick)
 
   it('reaches the finish on the same frame as rideStore.tick', () => {
     const start = route.totalDistance - 3;
-    useRideStore.setState({ route, rideState: 'running', distance: start, speed: 0, samples: [], workoutRunning: false, mode: 'demo' });
+    useRideStore.setState({ route, rideState: 'running', distance: start, speed: 0, samples: [], mode: 'demo' });
     let sim = running({ distance: start });
     for (let f = 0; f < 120 && sim.rideState === 'running'; f++) {
       const st = useRideStore.getState();
