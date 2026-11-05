@@ -408,7 +408,7 @@ describe('RideSetupWizard — the route step (search, generate, scenic pick)', (
     onClick: e.props.onClick as () => void,
   });
 
-  type InputProps = AnyProps & { value: string; onChange: (e: unknown) => void };
+  type InputProps = AnyProps & { value: string; onChange: (e: unknown) => void; onFocus: () => void };
   type RangeProps = AnyProps & { 'aria-label': string; 'aria-valuetext': string; onChange: (e: unknown) => void };
 
   /** Mount step 1's RouteStep (the wizard's own element and props) and return its renderer. */
@@ -689,6 +689,36 @@ describe('RideSetupWizard — the route step (search, generate, scenic pick)', (
     await searchAndPick(view, 'Kyoto', [KYOTO], 0);
     expect(view().preview).toBeUndefined();
     expect(view().generator!.buttons.map((b) => [b.text, b.disabled])).toEqual([['Generate route', false]]);
+  });
+
+  it('a preview belongs to its place: picking another place drops it and offers Generate route again', async () => {
+    const view = mount();
+    await searchAndPick(view);
+    h.generate.mockResolvedValueOnce(generated('Perugia', 36_300));
+    view().generator!.buttons[0].onClick();
+    await vi.waitFor(() => expect(view().preview?.name).toBe('Perugia · 36 km out-and-back'));
+
+    // The search field still holds the list: open it and pick the county instead.
+    view().search.onFocus();
+    expect(view().results).toHaveLength(3);
+    view().results[0].onClick();
+    const v = view();
+    expect(v.preview).toBeUndefined();
+    expect(v.generator!.buttons.map((b) => [b.text, b.variant])).toEqual([['Generate route', 'primary']]);
+    expect(useRideStore.getState().route).toBeNull();
+  });
+
+  it('an error belongs to its place too: picking another place clears it', async () => {
+    const view = mount();
+    await searchAndPick(view);
+    h.generate.mockRejectedValueOnce(new RouteGenerationError('raw', 'osrm_no_route'));
+    view().generator!.buttons[0].onClick();
+    await vi.waitFor(() => expect(view().alerts).toHaveLength(1));
+    view().search.onFocus();
+    view().results[2].onClick();
+    expect(view().alerts).toEqual([]);
+    expect(view().generator!.words.slice(0, 2)).toEqual(['Kyoto', 'Japan']);
+    expect(view().generator!.buttons.map((b) => [b.text, b.variant])).toEqual([['Generate route', 'primary']]);
   });
 
   it('scenic tiles: the closest six, none pressed; a tap sets that route, presses its tile and opens step 2', async () => {

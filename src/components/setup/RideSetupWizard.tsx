@@ -285,25 +285,26 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
   // Cancel any in-flight generation when the component unmounts.
   useEffect(() => () => genAbortRef.current?.abort(), []);
 
-  // A generation still running belongs to the place being left: drop it, or
-  // its route would preview (and commit) under the next place's name.
-  const cancelGenerate = useCallback(() => {
+  // Everything that belongs to the place being left: its preview, its error
+  // and a route still generating for it (else that route would preview, and
+  // commit, under the next place's name).
+  const leavePlace = useCallback(() => {
     genAbortRef.current?.abort();
     genAbortRef.current = null;
     setGenerating(false);
     setPhase(null);
+    setGenError(null);
+    setPreviewRoute(null);
   }, []);
 
   const onPlaceSelect = useCallback(
     (r: GeocodeResult) => {
-      cancelGenerate();
+      leavePlace();
       setSelected(r);
       setShowResults(false);
-      setGenError(null);
-      setPreviewRoute(null);
       requestFlyTo({ lat: r.lat, lon: r.lon, boundingBox: r.boundingBox, label: r.shortName });
     },
-    [requestFlyTo, cancelGenerate],
+    [requestFlyTo, leavePlace],
   );
 
   const runGenerate = useCallback(
@@ -409,13 +410,11 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
               variant="ghost"
               size="icon"
               onClick={() => {
-                cancelGenerate();
+                leavePlace();
                 setQuery('');
                 setResults([]);
                 setSelected(null);
                 setShowResults(false);
-                setPreviewRoute(null);
-                setGenError(null);
               }}
               aria-label="Clear search"
               className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground"
