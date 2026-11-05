@@ -171,7 +171,7 @@ export function PhotorealNoticeView({
           type="button"
           onClick={onOpenSettings}
           aria-label={NOTICE_COPY.upgrade.aria}
-          className="flex h-full min-w-0 items-center gap-2 rounded-lg pl-3 pr-1 hover:text-primary"
+          className="flex h-10 min-w-0 items-center gap-2 rounded-lg pl-3 pr-1 hover:text-primary"
         >
           <Earth className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
           {line}

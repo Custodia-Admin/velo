@@ -213,7 +213,8 @@ describe('PhotorealNoticeView: one h-10 line in the chip lane', () => {
     expect(buttons).toHaveLength(2);
     const [go, x] = buttons;
     expect(go.props['aria-label']).toBe(NOTICE_COPY.upgrade.aria);
-    expect(classes(go)).toContain('h-full');
+    // h-10 like the chip (h-full would be 38 px inside the pill's border).
+    expect(classes(go)).toContain('h-10');
     (go.props.onClick as () => void)();
     expect(fx.onOpenSettings).toHaveBeenCalledTimes(1);
     expect(fx.onDismiss).not.toHaveBeenCalled();
