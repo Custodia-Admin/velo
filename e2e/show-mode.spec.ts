@@ -647,8 +647,8 @@ function expectNothingCut(p: LandmarkParts, at: string, inBar = true) {
     expect(p.clearOfPause, at).toBe(true);
     expect(p.barFits, at).toBe(true);
   }
-  // A name that shows keeps about two characters (min-w-8); less and it goes.
-  if (p.rung === 1) expect(p.nameW, at).toBeGreaterThanOrEqual(2 * p.remPx - 0.5);
+  // A name that shows keeps at least two characters before its ellipsis (min-w-10, 2.5 rem); less and it goes.
+  if (p.rung === 1) expect(p.nameW, at).toBeGreaterThanOrEqual(2.5 * p.remPx - 0.5);
 }
 
 /** Size the floating window (as a window manager would) and check the bar's landmark line there. */
@@ -669,8 +669,8 @@ async function landmarkLineAtWidth(browser: Cdp, page: Tab, windowId: number, wi
   expect(g.real.endsWith(g.now.distText), where).toBe(true);
 
   // 1:18:05 and a long name: the distance is whole and the flag shows. The name shortens, or
-  // goes when it would keep less than about two characters (DejaVu Sans at 640 px: the line
-  // is 124 px and "in 960 m" 70 px, so the name drops).
+  // goes when it would keep less than two characters (DejaVu Sans at 640 px: the line is
+  // 124-137 px and "in 960 m" 70 px, so the name drops).
   const h = g.hours;
   const hat = `${where}, 1:18:05 + a long name: ${JSON.stringify(h)}`;
   expectNothingCut(h, hat);

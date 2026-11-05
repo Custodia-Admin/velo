@@ -104,8 +104,8 @@ function expectLadder(tree: unknown, next: NextLandmarkParts) {
   const nameBox = inner[2];
   expect(name.ancestors.at(-1)).toBe(nameBox);
   expect(joiner.ancestors.at(-1)).toBe(nameBox);
-  // The name shortens down to about two characters and grows no wider than its text.
-  for (const c of ['flex', 'min-w-8', 'max-w-max', 'flex-1']) expect(has(nameBox, c), `${c} in ${cls(nameBox)}`).toBe(true);
+  // The name keeps at least two characters ("Ba…") or goes, and grows no wider than its text.
+  for (const c of ['flex', 'min-w-10', 'max-w-max', 'flex-1']) expect(has(nameBox, c), `${c} in ${cls(nameBox)}`).toBe(true);
   // It shortens with an ellipsis; break-all keeps its narrowest out of the group's.
   expect(has(name.el, 'line-clamp-1')).toBe(true);
   expect(has(name.el, 'break-all')).toBe(true);

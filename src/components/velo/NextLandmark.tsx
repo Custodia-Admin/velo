@@ -4,8 +4,10 @@
  * The line never cuts a word off at its edge (review of PR #48 @dfd7071, N3).
  * When it is too narrow it gives things up in this order, and the distance,
  * the part the rider uses, is always whole when it shows:
- *   1. the place name shortens ("Bastia Um… in 6.5 km"), down to about two
- *      characters (`min-w-8`);
+ *   1. the place name shortens ("Bastia Um… in 6.5 km"), keeping at least
+ *      two characters before the ellipsis ("Ba…"): `min-w-10`, 2.5 rem, holds
+ *      "Ba…" in DejaVu Sans, the widest of the fonts checked (2 rem held
+ *      only "B…");
  *   2. the name goes: "⚑ in 6.5 km" ("⚑ 300 m to the top" inside a climb);
  *   3. the flag goes: "in 6.5 km";
  *   4. the line shows nothing, like a ride with no named place ahead.
@@ -57,7 +59,7 @@ export function NextLandmark({
         <Flag className="order-last mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" data-testid="landmark-flag" />
         <span className={cn(FIT_ROW, 'min-w-min flex-1')} data-testid="landmark-group">
           <span className="h-lh" aria-hidden="true" />
-          <span className="order-last flex min-w-8 max-w-max flex-1">
+          <span className="order-last flex min-w-10 max-w-max flex-1">
             <span className="line-clamp-1 break-all" data-testid="landmark-name">
               {next.name}
             </span>
