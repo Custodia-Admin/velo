@@ -169,3 +169,54 @@ describe('GPXUploader — the loaded route', () => {
     await vi.waitFor(() => expect(h.saved).toEqual([demo]));
   });
 });
+
+describe('GPXUploader — Upload GPX and drag and drop', () => {
+  type DropZone = AnyProps & {
+    className: string;
+    onDragOver: (e: unknown) => void;
+    onDragLeave: () => void;
+    onDrop: (e: unknown) => void;
+  };
+  function zone(): DropZone {
+    h.i = 0;
+    const root = elements(GPXUploader()).find((e) => 'data-gpx-dropzone' in e.props);
+    if (!root) throw new Error('no drop zone');
+    return { ...root.props } as DropZone;
+  }
+
+  it('Upload GPX opens the file picker (the hidden input, out of the tab order)', () => {
+    const { input, button } = render();
+    expect(input.tabIndex).toBe(-1);
+    const ref = input.ref as { current: { click: () => void } | null };
+    const click = vi.fn();
+    ref.current = { click };
+    button('Upload GPX').onClick();
+    expect(click).toHaveBeenCalledTimes(1);
+  });
+
+  it('a GPX dropped on the row loads; the row lights up only while a file is over it', async () => {
+    const over = { preventDefault: vi.fn() };
+    zone().onDragOver(over);
+    expect(over.preventDefault).toHaveBeenCalled();
+    expect(zone().className).toContain('outline-dashed');
+    zone().onDragLeave();
+    expect(zone().className).not.toContain('outline-dashed');
+
+    zone().onDragOver({ preventDefault: () => {} });
+    const drop = {
+      preventDefault: vi.fn(),
+      dataTransfer: { files: [{ name: 'Lakeside.gpx', text: async () => GPX }] },
+    };
+    zone().onDrop(drop);
+    expect(drop.preventDefault).toHaveBeenCalled();
+    expect(zone().className).not.toContain('outline-dashed');
+    await vi.waitFor(() => expect(useRideStore.getState().route?.name).toBe('Lakeside'));
+    expect(h.parsed).toEqual([[GPX, 'Lakeside']]);
+    expect(render().tile).toContain('Lakeside');
+
+    // A drop with no file (text, a link) changes nothing.
+    zone().onDrop({ preventDefault: () => {}, dataTransfer: { files: [] } });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(h.parsed).toHaveLength(1);
+  });
+});

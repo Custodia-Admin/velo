@@ -97,6 +97,12 @@ describe('RoutePreview', () => {
       .map((e) => textOf(e)).join('|');
     expect(flat).toContain('36.3 km · about 1 h 27 min');
     expect(flat).not.toContain('0 m climbing');
+    // No length to time (a 0 m route): no "about —" either.
+    const empty = elements(RoutePreview({ route: { ...route, totalDistance: 0 }, onCommit: () => {}, onRegenerate: () => {} }))
+      .map((e) => textOf(e)).join('|');
+    expect(empty).toContain('0.0 km · 412 m climbing');
+    expect(empty).not.toContain('about');
+    expect(empty).not.toContain('—');
   });
 
   it('Use this route commits (the one filled action); Try again regenerates and waits while it runs', () => {

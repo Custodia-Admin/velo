@@ -285,15 +285,25 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
   // Cancel any in-flight generation when the component unmounts.
   useEffect(() => () => genAbortRef.current?.abort(), []);
 
+  // A generation still running belongs to the place being left: drop it, or
+  // its route would preview (and commit) under the next place's name.
+  const cancelGenerate = useCallback(() => {
+    genAbortRef.current?.abort();
+    genAbortRef.current = null;
+    setGenerating(false);
+    setPhase(null);
+  }, []);
+
   const onPlaceSelect = useCallback(
     (r: GeocodeResult) => {
+      cancelGenerate();
       setSelected(r);
       setShowResults(false);
       setGenError(null);
       setPreviewRoute(null);
       requestFlyTo({ lat: r.lat, lon: r.lon, boundingBox: r.boundingBox, label: r.shortName });
     },
-    [requestFlyTo],
+    [requestFlyTo, cancelGenerate],
   );
 
   const runGenerate = useCallback(
@@ -399,6 +409,7 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
               variant="ghost"
               size="icon"
               onClick={() => {
+                cancelGenerate();
                 setQuery('');
                 setResults([]);
                 setSelected(null);
