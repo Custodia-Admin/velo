@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { BOT_PRESETS, createPaceBot } from '@/lib/paceBots';
 import { PARTNER_EDGE_MARGIN_M, PARTNER_SLOT_MAX_RATE_MPS } from '@/lib/ride/partnerSlots';
+import { YAW_SNAP_M } from '@/lib/ride/rideHeading';
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import type { LoadedWorld, RoadsLayer } from '@/lib/world/loadWorld';
 import type { Route } from '@/types';
@@ -309,6 +310,49 @@ describe('placeBot', () => {
       for (const f of settled) expect(f.slotM).toBeCloseTo(narrow, 2);
       // Never across the line on the way.
       for (const f of frames) expect(f.slotM * Math.sign(wide)).toBeGreaterThan(0);
+    }
+  });
+
+  it('seats a partner in its new clamp on the first frame after a jump of more than 40 m (a seek, Ride again), and eases one of 40 m', () => {
+    // A 1.5 m path along y = 0 up to x = 0, then a 7 m road. The route runs
+    // east from x = −200 (distance d is at x = d − 200): the path clamps
+    // every slot to ±0.65 m, the road leaves them at 1.2, −1.2 and 2.4 m.
+    // Review of PR #55 @fc70772 (Z9): placeBot passing a frozen distance to
+    // stepPartnerSlot left every jump eased in from the old slot for ~1 s.
+    const world = withRoads([path(-390, 0, 0, 0), { cls: 0, width: 7, flags: 0, points: Float32Array.from([0, 0, 390, 0]) }]);
+    const r = routeThrough(world, [-200, 0], [300, 0]);
+    expect(YAW_SNAP_M).toBe(40);
+    const cap = PARTNER_SLOT_MAX_RATE_MPS * DT + 1e-9;
+    const narrow = [0.65, -0.65, 0.65];
+    const wide = [1.2, -1.2, 2.4];
+    for (const i of [0, 1, 2]) {
+      // One memo for the whole ride, as Rider.tsx keeps one per partner.
+      const memo = createBotDriverMemo();
+      const at = (d: number) => {
+        const p = sampleRouteAtDistance(r, d);
+        return placeBot(world, r, { distance: d, speed: 8, heading: headingAt(r, d), lat: p.lat, lon: p.lon }, i, memo, DT).slotM;
+      };
+      for (const f of ride(world, r, i, 100, 120, 8, memo)) expect(f.slotM).toBeCloseTo(narrow[i], 4);
+      // Forward 180 m from the path onto the road (a seek): the road's slot at once.
+      expect(at(300)).toBeCloseTo(wide[i], 9);
+      for (const f of ride(world, r, i, 300, 320, 8, memo)) expect(f.slotM).toBeCloseTo(wide[i], 9);
+      // Back to the start from the road (Ride again, −320 m): the path's clamp at once.
+      expect(at(0)).toBeCloseTo(narrow[i], 4);
+      // Back 50 m from the road (x = 40) onto the path (x = −10): a backward seek.
+      expect(at(250)).toBeCloseTo(wide[i], 9);
+      expect(at(240)).toBeCloseTo(wide[i], 9);
+      expect(at(190)).toBeCloseTo(narrow[i], 4);
+      // A jump of exactly 40 m from the path onto the road is no seek: the
+      // partner drifts over at no more than 2.5 m/s and settles in 1.5 s.
+      const before = at(170);
+      expect(before).toBeCloseTo(narrow[i], 4);
+      const first = at(210);
+      expect(Math.abs(first - before)).toBeLessThanOrEqual(cap);
+      expect((first - before) * Math.sign(wide[i] - narrow[i])).toBeGreaterThan(0);
+      const frames = ride(world, r, i, 210 + 8 * DT, 240, 8, memo);
+      expect(Math.abs(frames[0].slotM - first)).toBeLessThanOrEqual(cap);
+      expect(maxStep(frames)).toBeLessThanOrEqual(cap);
+      for (const f of frames.filter((f) => f.d > 210 + 8 * 1.5)) expect(f.slotM).toBeCloseTo(wide[i], 2);
     }
   });
 
