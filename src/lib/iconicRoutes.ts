@@ -16,7 +16,7 @@ import type { MoodId } from '@/lib/cesiumUtils';
 // Extra metadata attached to each iconic route (not part of Route type).
 // ---------------------------------------------------------------------------
 
-export interface IconicRouteInfo {
+interface IconicRouteInfo {
   route: Route;
   /** Famous climb name (may differ from route.name for display). */
   climbName: string;
