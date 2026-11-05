@@ -525,7 +525,8 @@ const LANDMARK_LINE = `(() => {
   if (!line) return null;
   const pause = bar.querySelector('button');
   const q = (id) => line.querySelector('[data-testid="' + id + '"]');
-  const flag = q('landmark-flag'), name = q('landmark-name'), joiner = q('landmark-joiner'), dist = q('landmark-distance');
+  // Tolerates #48's markup (no flag/joiner test ids) so a regression fails on what it shows, not on a missing node.
+  const flag = q('landmark-flag') ?? line.querySelector('svg'), name = q('landmark-name'), joiner = q('landmark-joiner'), dist = q('landmark-distance');
   // The sweep forces the line wider than the bar has room for: there only the line's own clipping counts.
   let clipTo = bar;
   const seen = (el) => {
@@ -543,21 +544,21 @@ const LANDMARK_LINE = `(() => {
   };
   const st = (el) => { const s = seen(el); return s >= 0.99 ? 'whole' : s <= 0.01 ? 'hidden' : 'CUT'; };
   const parts = () => {
-    const p = { flag: st(flag), name: st(name), joiner: st(joiner), dist: st(dist) };
+    const p = { flag: st(flag), name: st(name), joiner: joiner ? st(joiner) : st(name), dist: st(dist) };
     const dr = dist.getBoundingClientRect(), lr = line.getBoundingClientRect();
     p.rung = Object.values(p).includes('CUT') ? 'BAD'
       : p.name === 'whole' && p.joiner === 'whole' && p.flag === 'whole' && p.dist === 'whole' ? 1
       : p.name === 'hidden' && p.joiner === 'hidden' && p.flag === 'whole' && p.dist === 'whole' ? 2
       : p.name === 'hidden' && p.joiner === 'hidden' && p.flag === 'hidden' && p.dist === 'whole' ? 3
       : p.name === 'hidden' && p.joiner === 'hidden' && p.flag === 'hidden' && p.dist === 'hidden' ? 4 : 'BAD';
-    p.distText = dist.textContent;
+    p.distText = dist.textContent.trim();
     p.distW = Math.round(dr.width);
     p.distSelfWhole = dist.scrollWidth <= dist.clientWidth;
     p.distInLine = p.dist !== 'whole' || (dr.left >= lr.left - 0.5 && dr.right <= lr.right + 0.5);
     p.clearOfPause = p.dist !== 'whole' || !pause || dr.right <= pause.getBoundingClientRect().left + 0.5;
     p.nameW = Math.round(name.getBoundingClientRect().width);
     p.nameShortened = name.scrollHeight > name.clientHeight + 0.5 || name.scrollWidth > name.clientWidth + 0.5;
-    p.joinerW = joiner.getBoundingClientRect().width;
+    p.joinerW = joiner ? joiner.getBoundingClientRect().width : 0;
     p.lineW = Math.round(lr.width);
     p.barFits = bar.scrollWidth <= bar.clientWidth;
     p.remPx = parseFloat(w.getComputedStyle(d.documentElement).fontSize);
@@ -575,7 +576,7 @@ const LANDMARK_LINE = `(() => {
     const undo = swap([
       ...figures.map((t, i) => [text(nums[i]), t]),
       [text(name), LONG],
-      ...(distText ? [[text(dist), distText], [text(joiner), climb ? ' · ' : ' ']] : []),
+      ...(distText ? (joiner ? [[text(dist), distText], [text(joiner), climb ? ' · ' : ' ']] : [[text(dist), (climb ? ' · ' : ' ') + distText]]) : []),
     ]);
     try { return fn(); } finally { undo(); }
   };
