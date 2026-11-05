@@ -61,6 +61,8 @@ function render(destinations: readonly Destination[]) {
     tree,
     rows: rows.map((el) => ({
       id: el.props['data-credit'] as string,
+      /** The row's visible lines (its <p>s): name, notice, licence. */
+      lines: elements(el.props.children).filter((p) => p.type === 'p').map((p) => text(p).replace(/\s+/g, ' ').trim()),
       text: text(el).replace(/\s+/g, ' '),
       hrefs: elements(el).flatMap((a) => (a.type === 'a' ? [a.props.href as string] : [])),
     })),
@@ -103,7 +105,7 @@ describe('WorldCredits: a GLO-30 world carries the licence notice to the screen'
     expect(glo30!.text).toContain(
       'produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved',
     );
-    expect(glo30!.text).toContain(GLO30_CREDIT.name);
+    expect(glo30!.lines).toEqual([GLO30_CREDIT.name, GLO30_CREDIT.attribution, `Licence ${GLO30_CREDIT.licence}`]);
   });
 
   it('links each credit to its own source, in a new tab', () => {
@@ -131,7 +133,7 @@ describe('WorldCredits: the list comes from Destination.credits', () => {
   it('renders exactly the credits it is given, every field, in first-seen order', () => {
     const { rows } = render([place('alpha', 'Alpha', [survey])]);
     expect(rows.map((r) => r.id)).toEqual(['test-survey']);
-    for (const field of [survey.name, survey.attribution, survey.licence]) expect(rows[0].text).toContain(field);
+    expect(rows[0].lines).toEqual([survey.name, survey.attribution, `Licence ${survey.licence}`]);
     expect(rows[0].hrefs).toEqual([survey.url]);
   });
 
@@ -154,7 +156,7 @@ describe('WorldCredits: the list comes from Destination.credits', () => {
     const { rows } = render(DESTINATIONS);
     for (const credit of new Map(DESTINATIONS.flatMap((d) => d.credits.map((c) => [c.id, c] as const))).values()) {
       const row = rows.find((r) => r.id === credit.id)!;
-      for (const field of [credit.name, credit.attribution, credit.licence]) expect(row.text).toContain(field);
+      expect(row.lines).toEqual([credit.name, credit.attribution, `Licence ${credit.licence}`]);
       expect(row.hrefs).toEqual([credit.url]);
     }
   });

@@ -72,7 +72,8 @@ MEASURE = """(root) => {
     open: scope ? scope.open : null, summary: rect(summary), summaryText: summary?.textContent.trim(),
     rows: scope ? [...scope.querySelectorAll('li')].map((li) => ({ id: li.dataset.credit, rect: rect(li), text: li.innerText.replace(/\\s+/g, ' ').trim() })) : [],
     links: scope ? [...scope.querySelectorAll('a[href]')].map((a) => ({ href: a.getAttribute('href'), target: a.target, rel: a.rel, name: a.textContent.replace(/\\s+/g, ' ').trim() })) : [],
-    columns: scope?.querySelector('ul') ? getComputedStyle(scope.querySelector('ul')).gridTemplateColumns.split(' ').length : 0,
+    // Credit rows flow in CSS columns: count the distinct left edges of the rows.
+    columns: scope ? new Set([...scope.querySelectorAll('li')].map((li) => Math.round(li.getBoundingClientRect().left)).filter((x) => scope.open)).size : 0,
     minFont: scope ? minFont : null, minFontEl, minTarget: scope ? Math.round(minTarget) : null, minTargetEl,
     tv: document.documentElement.getAttribute('data-layout') === 'tv',
     dark: document.documentElement.classList.contains('dark'),
