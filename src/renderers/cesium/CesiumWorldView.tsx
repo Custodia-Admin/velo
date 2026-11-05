@@ -56,6 +56,7 @@ import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { ridePose } from '@/lib/ride/rideSim';
 import type { RiderPose, WorldViewProps } from '@/lib/world/renderer';
 import { createCesiumWorldRenderer } from '@/renderers/cesium/cesiumWorldRenderer';
+import { GlobeGate } from '@/renderers/cesium/globeGate';
 import { StartGroundWatch } from '@/renderers/cesium/startGround';
 import { applyHudLensCrop, lensCropState, type LensCropState } from '@/renderers/cesium/hudLensCrop';
 import {
@@ -70,7 +71,7 @@ import { shouldChaseCamUpdate } from '@/lib/chaseCamGuard';
 import { createLaneState, stepLane } from '@/lib/controllers/steerFeel';
 import { activeSteer } from '@/stores/controllerStore';
 import type { AvatarColors } from '@/lib/avatarConfig';
-import { BOT_COLORWAYS } from '@/lib/paceBots';
+import { placeBotAvatars } from './botAvatars';
 import {
   createWeatherSystem,
   type WeatherSystem,
@@ -292,6 +293,8 @@ export function CesiumWorldView({
   const startGroundRef = useRef<StartGroundWatch | null>(null);
   /** The crop that frames the rider above the floating window's bar (hudLensCrop); none in the tab. */
   const lensCropRef = useRef<LensCropState | null>(null);
+  /** Is the globe drawn, or is the photoreal mesh the one ground (renderers/cesium/globeGate)? */
+  const globeGateRef = useRef(new GlobeGate());
   // WorldRenderer.setMood: a pinned mood; null = route mood + live weather.
   const [moodOverride, setMoodOverride] = useState<MoodId | null>(null);
 
@@ -423,6 +426,7 @@ export function CesiumWorldView({
           viewer,
           Cesium,
           photoreal: () => tilesetRef.current,
+          globeGate: globeGateRef.current,
           place: (distanceM: number | null) => {
             const r = useRideStore.getState().route;
             riderOverrideRef.current = distanceM === null || !r ? null : ridePose(r, distanceM);
@@ -769,6 +773,10 @@ export function CesiumWorldView({
     climbArchesRef.current?.destroy();
     climbArchesRef.current = null;
 
+    // A new route starts on the globe until the mesh under the new rider loads.
+    globeGateRef.current.reset();
+    if (!viewer.isDestroyed()) viewer.scene.globe.show = true;
+
     if (!route) return;
 
     // Mood, sky, clouds, particles and the wet road are applied by the
@@ -836,13 +844,8 @@ export function CesiumWorldView({
     // Read synchronously; if the user adds bots after route load the preRender
     // handler will detect the count mismatch and skip (bots won't render until
     // the next route load or a manual rebuild — acceptable for the first ship).
-    const initialBots = useRideStore.getState().paceBots;
-    const newBotAvatars: Avatar[] = initialBots.map((bot, i) => {
-      const ba = createAvatar(viewer);
-      ba.setColors(BOT_COLORWAYS[i % BOT_COLORWAYS.length]);
-      return ba;
-    });
-    botAvatarsRef.current = newBotAvatars;
+    // Each is placed on the route at creation (the start line after a load).
+    botAvatarsRef.current = placeBotAvatars(useRideStore.getState().paceBots, route, () => createAvatar(viewer));
 
     const start = route.points[0];
     avatar.update({
@@ -1049,7 +1052,11 @@ export function CesiumWorldView({
 
       const state = useRideStore.getState();
       const r = state.route;
-      if (!r || !avatarRef.current) return;
+      if (!r || !avatarRef.current) {
+        globeGateRef.current.reset();
+        viewer.scene.globe.show = true;
+        return;
+      }
 
       // Handlebar steering: drift across the lane, back to the line on release.
       stepLane(laneRef.current, activeSteer(), dt);
@@ -1071,6 +1078,26 @@ export function CesiumWorldView({
       const heading = pose.heading;
       const sampled = onSceneSurface({ lat: pose.lat, lon: pose.lon, ele: pose.ele });
       const ahead = onSceneSurface({ lat: aheadPose.lat, lon: aheadPose.lon, ele: aheadPose.ele });
+
+      // One drawn ground: once the photoreal mesh is the road under the rider
+      // the globe is hidden (it drew coarse terrain up to 26 m over the real
+      // street on the Lugano shore, and the rider rode it); it comes back
+      // where the mesh isn't the ground (renderers/cesium/globeGate). Decided
+      // from the rider's last ground reading, before this frame's, so the
+      // avatar below measures the ground as it will be drawn.
+      const globeShown = globeGateRef.current.update(nowMs, photorealShown, avatarRef.current.meshGround());
+      if (viewer.scene.globe.show !== globeShown) viewer.scene.globe.show = globeShown;
+      // The painted road (asphalt corridor, dashed centre line, edge stripes)
+      // is a ground classification: over the mesh it paints whatever stands
+      // in its footprint (walls, trees, the hillside: the grey slabs on the
+      // Lugano shore), a second road over the street the mesh already draws.
+      // It shows only where the globe is the ground.
+      const road = roadEntityRef.current;
+      if (road && road.entity.show !== globeShown) {
+        road.entity.show = globeShown;
+        road.centerline.show = globeShown;
+        for (const stripe of roadEdgeStripesRef.current?.entities ?? []) stripe.show = globeShown;
+      }
 
       avatarRef.current.update({
         lon: sampled.lon,
@@ -1103,7 +1130,9 @@ export function CesiumWorldView({
         });
         const carto = Cesium.Cartographic.fromDegrees(sampled.lon, sampled.lat);
         const drawn = viewer.scene.globe.getHeight(carto);
-        startGroundRef.current.update(sampled.lon, sampled.lat, drawn, groundEle, nowMs);
+        // With the globe hidden the mesh is the drawn ground: the globe's
+        // refinement no longer matters (its tiles stop updating anyway).
+        startGroundRef.current.update(sampled.lon, sampled.lat, drawn, groundEle, nowMs, !globeShown);
       }
       const aheadAtGround = { ...ahead, ele: groundEle + (ahead.ele - sampled.ele) };
       if (typeof window !== 'undefined') {
@@ -1139,6 +1168,8 @@ export function CesiumWorldView({
             dist: state.distance,
             riderLonLat: [riderLon, riderLat],
             startGround: startGroundRef.current?.debug() ?? null,
+            globeShown: viewer.scene.globe.show,
+            meshGround: avatarRef.current?.meshGround() ?? false,
             riderScreen: px ? [Math.round(px.x), Math.round(px.y - cropTop)] : null,
             riderHeightPx: head && foot ? Math.round(Math.hypot(head.x - foot.x, head.y - foot.y)) : null,
             viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight - cropTop],

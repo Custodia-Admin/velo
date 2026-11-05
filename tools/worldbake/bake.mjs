@@ -100,6 +100,27 @@ export function creditsFor(demSource) {
   return CREDITS.map((c) => (c.id === 'terrain-tiles' ? GLO30_CREDIT : c));
 }
 
+/**
+ * `manifest.generator` for a bake from `demSource`. The key order is part of
+ * the manifest's bytes: the default source keeps `demSource` + `demZoom`
+ * where they always were, GLO-30 names its source and has no zoom.
+ */
+export function generatorFor(demSource, recipe, recipeBytes, dem) {
+  return {
+    tool: 'velo-worldbake',
+    version: TOOL_VERSION,
+    recipeSha256: sha256(recipeBytes),
+    osmDate: recipe.osmDate,
+    ...(demSource === GLO30_DEM_SOURCE ? { demSource: dem.source } : { demSource: DEM_SOURCE, demZoom: recipe.dem.zoom }),
+    demTiles: dem.tiles.length,
+  };
+}
+
+/** Stop the bake when the bundle (every file, brotli 11) is over the budget. */
+export function checkBundleBudget(totals) {
+  if (totals.brotli > MAX_BUNDLE_BROTLI_BYTES) throw new Error(`bundle is ${(totals.brotli / 1e6).toFixed(2)} MB brotli, over the ${MAX_BUNDLE_BROTLI_BYTES / 1e6} MB budget`);
+}
+
 /** Lat/lon bbox of the extent (edges walked every 100 m), rounded outward to 1e-5°. */
 function extentBbox(projection, ext) {
   let south = Infinity, west = Infinity, north = -Infinity, east = -Infinity;
@@ -313,14 +334,7 @@ export async function bake(opts) {
       carvedNodes: carve.carvedNodes,
     },
     credits: creditsFor(demSource),
-    generator: {
-      tool: 'velo-worldbake',
-      version: TOOL_VERSION,
-      recipeSha256: sha256(recipeBytes),
-      osmDate: recipe.osmDate,
-      ...(glo30 ? { demSource: dem.source } : { demSource: DEM_SOURCE, demZoom: recipe.dem.zoom }),
-      demTiles: dem.tiles.length,
-    },
+    generator: generatorFor(demSource, recipe, recipeBytes, dem),
   };
   validateManifest(JSON.parse(JSON.stringify(manifest)));
   const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
@@ -333,7 +347,7 @@ export async function bake(opts) {
     { stored: 0, content: 0, brotli: 0 },
   );
   log(`bundle: ${(totals.stored / 1e6).toFixed(2)} MB gzip as shipped, ${(totals.brotli / 1e6).toFixed(2)} MB brotli, ${(totals.content / 1e6).toFixed(2)} MB raw`);
-  if (totals.brotli > MAX_BUNDLE_BROTLI_BYTES) throw new Error(`bundle is ${(totals.brotli / 1e6).toFixed(2)} MB brotli, over the ${MAX_BUNDLE_BROTLI_BYTES / 1e6} MB budget`);
+  checkBundleBudget(totals);
 
   // 5. Validation against an independent DEM (not part of the bundle).
   let validation = null;
@@ -387,7 +401,7 @@ function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 }) 
     `- Bounding box (WGS84): south ${bbox.south}, west ${bbox.west}, north ${bbox.north}, east ${bbox.east}.`,
     `- World extent: x ${extent.xMin}…${extent.xMax} m, y ${extent.yMin}…${extent.yMax} m, local transverse Mercator at ${recipe.origin.lat}, ${recipe.origin.lon}.`,
     glo30
-      ? `- Elevation: ${dem.tiles.length} Copernicus DEM GLO-30 tiles (1″ COG), \`${GLO30_URL_TEMPLATE}\`: ${tiles}${dem.missing.length ? ` (${dem.missing.map((id) => `\`${id}\``).join(', ')} absent from the bucket: open ocean, read as 0 m)` : ''}.`
+      ? `- Elevation: ${dem.tiles.length} Copernicus DEM GLO-30 tiles (1″ COG), \`${GLO30_URL_TEMPLATE}\`: ${tiles}${dem.missing.length ? ` (${dem.missing.map((id) => `\`${id}\``).join(', ')} absent from the bucket: open ocean, read as 0 m)` : ''}. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.`
       : `- Elevation: ${dem.tiles.length} Terrain Tiles (terrarium) at zoom ${dem.zoom}, \`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png\`: ${tiles}.`,
     `- OpenStreetMap: Overpass API (\`${OVERPASS_URL}\`), data as of ${recipe.osmDate} (attic query), layers ${Object.keys(osm.queries).join(', ')} over the bounding box above. Queries are recorded in \`tools/worldbake/reports/${recipe.id}.json\`.`,
     `- Routes: ${manifest.routes.map((r) => `\`${r.id}\``).join(', ')} from \`src/lib/scenicRouteData.ts\` (OSRM bike geometry + Copernicus GLO-90 profile via Open-Meteo).`,

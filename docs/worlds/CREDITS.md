@@ -80,7 +80,8 @@ The in-app credits line comes from each bundle's `manifest.json` `credits`.
 - Used for: `height.bin.gz` and every height in the bundle, **only** in worlds
   whose recipe sets `"dem": { "source": "copernicus-glo30" }` (see
   [WORLD-FORMAT.md](WORLD-FORMAT.md) "DEM source"). Such a bundle carries the
-  `copernicus-glo30` credit instead of `terrain-tiles`. No world uses it yet.
+  `copernicus-glo30` credit instead of `terrain-tiles`; that credit's
+  `licence` field holds the disclaimer below. No world uses it yet.
 - URL template (public bucket on the AWS Open Data Registry,
   https://registry.opendata.aws/copernicus-dem/, readme
   https://copernicus-dem-30m.s3.amazonaws.com/readme.html):
@@ -98,6 +99,21 @@ The in-app credits line comes from each bundle's `manifest.json` `credits`.
   > produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus
   > Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European
   > Union and ESA; all rights reserved
+
+- Required disclaimer. Art. 6(c) of the GLO-30 licence
+  (https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf)
+  asks anyone who distributes the data or communicates it to the public,
+  modified or not, to add this sentence to the licence or legal notice that
+  covers the distribution. This section is that notice for the repository,
+  and the bundle's `copernicus-glo30` credit carries the same sentence:
+
+  > The organisations in charge of the Copernicus programme by law or by
+  > delegation do not incur any liability for any use of the Copernicus
+  > WorldDEM-30
+
+  Anyone redistributing a GLO-30 bundle takes on the same obligations
+  (Art. 6(e)), and must not suggest that the Copernicus programme or Airbus
+  endorses Velo (Art. 6(d)).
 
 - Modifications: resampled bilinearly from the 1″ pixel-centre grid onto a
   local transverse Mercator grid, open-ocean tiles filled with 0 m, quantised

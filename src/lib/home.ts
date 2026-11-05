@@ -3,8 +3,9 @@
  * up in Lugano, so the Ticino rides stay in the library as "hometown".
  *
  * Use HOME for anything that needs a default place before a route is picked
- * (map centre, a weather fallback). Scenic routes tagged 'near-home' start
- * within an easy drive of it (checked in scenicRoutes.test.ts).
+ * (map centre, a weather fallback). The routes of the home destination
+ * (role 'home' in src/lib/world/destinations/) start within an easy drive of
+ * it (checked in scenicRoutes.test.ts).
  */
 
 export interface HomePlace {

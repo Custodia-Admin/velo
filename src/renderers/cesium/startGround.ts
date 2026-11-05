@@ -17,6 +17,9 @@
  * rider rides whatever is drawn anyway (the higher of mesh and globe, rising
  * at once: cesiumUtils.drawnGroundHeight, avatar.followGround), so a tile
  * that lands later moves the rider a few metres, never under the ground.
+ * Once the globe is hidden (renderers/cesium/globeGate) the mesh road is the
+ * one drawn ground, and World Terrain's finest height says nothing about it:
+ * on the Lugano shore the street sits 7-26 m under it.
  */
 
 /** Drawn globe and rider ground within this of the most detailed terrain = not a coarse chord. */
@@ -56,9 +59,19 @@ export class StartGroundWatch {
 
   /**
    * One frame before the start. `drawnGlobe`: the globe's height under the
-   * rider as drawn (undefined if no tile); `groundEle`: the rider's ground.
+   * rider as drawn (undefined if no tile); `groundEle`: the rider's ground;
+   * `meshGround`: the globe is hidden and the mesh under the rider is the one
+   * drawn ground (renderers/cesium/globeGate), so the globe's refinement is
+   * moot and only the rider's ground holding still counts.
    */
-  update(lon: number, lat: number, drawnGlobe: number | undefined, groundEle: number, nowMs: number): void {
+  update(
+    lon: number,
+    lat: number,
+    drawnGlobe: number | undefined,
+    groundEle: number,
+    nowMs: number,
+    meshGround = false,
+  ): void {
     this.lastDrawn = drawnGlobe;
     this.lastGround = groundEle;
     this.lastNow = nowMs;
@@ -79,10 +92,11 @@ export class StartGroundWatch {
     }
     const target = this.target;
     const plausible =
-      target !== null &&
-      drawnGlobe !== undefined &&
-      Math.abs(drawnGlobe - target) <= START_PLAUSIBLE_M &&
-      Math.abs(groundEle - target) <= START_PLAUSIBLE_M;
+      meshGround ||
+      (target !== null &&
+        drawnGlobe !== undefined &&
+        Math.abs(drawnGlobe - target) <= START_PLAUSIBLE_M &&
+        Math.abs(groundEle - target) <= START_PLAUSIBLE_M);
     if (!plausible || this.ele === null || Math.abs(groundEle - this.ele) > START_STABLE_M) {
       this.ele = plausible ? groundEle : null;
       this.since = nowMs;

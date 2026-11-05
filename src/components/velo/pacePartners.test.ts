@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { BOT_PRESETS, createPaceBot } from '@/lib/paceBots';
+import type { Route } from '@/types';
 import { MAX_PARTNERS, PARTNERS, partnersStatus, pickedPartnerIds, togglePartner } from './pacePartners';
 
 describe('pace partners', () => {
@@ -53,6 +54,26 @@ describe('pace partners', () => {
 
   it('ignores an unknown id', () => {
     expect(togglePartner([], 'pace-nobody')).toEqual([]);
+  });
+
+  it('with a route loaded, a new partner stands on its start line (not at 0/0)', () => {
+    const route: Route = {
+      id: 'tiber',
+      name: 'Tiber',
+      points: [
+        { lat: 43.08, lon: 12.42, ele: 190, distance: 0 },
+        { lat: 43.08, lon: 12.43, ele: 190, distance: 800 },
+      ],
+      totalDistance: 800,
+      ascent: 0,
+      descent: 0,
+      minElevation: 190,
+      maxElevation: 190,
+      loadedAt: 0,
+    };
+    const [bot] = togglePartner([], PARTNERS[2].id, route);
+    expect(bot.state).toMatchObject({ distance: 0, lat: 43.08, lon: 12.42, ele: 190 });
+    expect(togglePartner([], PARTNERS[2].id, null)[0].state).toMatchObject({ lat: 0, lon: 0 });
   });
 
   it('says how many ride along, and why the rest are off at the cap', () => {

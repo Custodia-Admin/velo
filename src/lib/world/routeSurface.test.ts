@@ -47,6 +47,12 @@ function routeAlongX(x0: number, x1: number): WorldRoute {
   };
 }
 
+/** The same route turned to run along x = 0, from y0 to y1. */
+function routeAlongY(y0: number, y1: number): WorldRoute {
+  const r = routeAlongX(y0, y1);
+  return { ...r, x: r.y, y: r.x };
+}
+
 /** A square lake from x = a to x = b, straddling y = 0. */
 const lake = (a: number, b: number): WaterLayer => ({
   areas: [{ kind: 'lake', rings: [Float32Array.from([a, -500, b, -500, b, 500, a, 500])] }],
@@ -91,6 +97,39 @@ describe('routeSurfaces', () => {
     expect(routeSurfaces([routeAlongX(0, 2000)], roads, lake(500, 600))[0].offRoad).toEqual([]);
     const far = roadsOf({ points: [0, 13, 2000, 13] });
     expect(longestRun(routeSurfaces([routeAlongX(0, 2000)], far, lake(5000, 6000))[0].offRoad)).toBe(2010);
+  });
+
+  it('finds a road that lies wholly in the neighbouring 64 m grid cell', () => {
+    // The route runs on y = 0 (cell row 0); the road 11 m south, at y = −11,
+    // is indexed only in row −1. Same across a cell column: route on x = 0,
+    // road on x = −11.
+    const south = roadsOf({ points: [-100, -11, 2100, -11] });
+    expect(routeSurfaces([routeAlongX(0, 2000)], south, lake(5000, 6000))[0].offRoad).toEqual([]);
+    const west = roadsOf({ points: [-11, -100, -11, 2100] });
+    expect(routeSurfaces([routeAlongY(0, 2000)], west, lake(5000, 6000))[0].offRoad).toEqual([]);
+  });
+
+  it('does not count an island (a hole in the lake) as water', () => {
+    // Lake from x = −500 to 1500 with an island from x = 205 to 795; no roads.
+    // The route is off-road all the way but on water only off the island.
+    const islandLake: WaterLayer = {
+      areas: [
+        {
+          kind: 'lake',
+          rings: [
+            Float32Array.from([-500, -500, 1500, -500, 1500, 500, -500, 500]),
+            Float32Array.from([205, -100, 205, 100, 795, 100, 795, -100]),
+          ],
+        },
+      ],
+      lines: [],
+    };
+    const [r] = routeSurfaces([routeAlongX(0, 1000)], roadsOf(), islandLake);
+    expect(r.offRoad).toEqual([{ fromM: 0, toM: 1000, lengthM: 1010 }]);
+    expect(r.onWater).toEqual([
+      { fromM: 0, toM: 200, lengthM: 210 },
+      { fromM: 800, toM: 1000, lengthM: 210 },
+    ]);
   });
 });
 

@@ -7,16 +7,20 @@
  * independent encoder. No network: fetch is stubbed throughout.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { decodeFloatPredictor, geoReference, openRaster, parseTiff } from '../../../tools/worldbake/geotiff.mjs';
+import { TAG, decodeFloatPredictor, fullResolutionIfd, geoReference, openRaster, parseTiff } from '../../../tools/worldbake/geotiff.mjs';
 import {
   GLO30_CREDIT,
+  GLO30_DISCLAIMER,
+  GLO30_SOURCE,
   checkGlo30Tile,
   fetchGlo30,
   glo30ColsPerDegree,
+  glo30Sampler,
   glo30TileId,
   glo30TileName,
   glo30TileUrl,
@@ -24,7 +28,7 @@ import {
   glo90TileUrl,
 } from '../../../tools/worldbake/fetchGlo30.mjs';
 import { DEFAULT_DEM_SOURCE, DEM_SOURCES, demSourceOf } from '../../../tools/worldbake/demSource.mjs';
-import { CREDITS, creditsFor } from '../../../tools/worldbake/bake.mjs';
+import { CREDITS, MAX_BUNDLE_BROTLI_BYTES, checkBundleBudget, creditsFor, generatorFor } from '../../../tools/worldbake/bake.mjs';
 
 const FIXTURES = fileURLToPath(new URL('../../../tools/worldbake/fixtures/', import.meta.url));
 const fixture = (name: string) => readFileSync(join(FIXTURES, name));
@@ -85,10 +89,17 @@ describe('geotiff: floating-point predictor (3)', () => {
 });
 
 describe('geotiff: TIFF/BigTIFF tiles from an independent encoder', () => {
+  // codec = [Compression, Predictor]: 8/3 is what the real GLO-30 tiles use.
   const cases = [
-    { file: 'glo30-N46_00_E008_00.tif', west: 8, littleEndian: true, bigTiff: false, block: [16, 16] },
-    { file: 'glo30-N46_00_E009_00-bigtiff.tif', west: 9, littleEndian: true, bigTiff: true, block: [16, 16] },
-    { file: 'glo30-strips-be.tif', west: 8, littleEndian: false, bigTiff: false, block: [24, 10] },
+    { file: 'glo30-N46_00_E008_00.tif', west: 8, littleEndian: true, bigTiff: false, block: [16, 16], codec: [8, 3] },
+    { file: 'glo30-N46_00_E009_00-bigtiff.tif', west: 9, littleEndian: true, bigTiff: true, block: [16, 16], codec: [8, 3] },
+    { file: 'glo30-strips-be.tif', west: 8, littleEndian: false, bigTiff: false, block: [24, 10], codec: [8, 3] },
+    // Plain float32 in the file's byte order: big-endian, so reading it little-endian scrambles every sample.
+    { file: 'glo30-none-be.tif', west: 8, littleEndian: false, bigTiff: false, block: [16, 16], codec: [1, 1] },
+    { file: 'glo30-pred1-be.tif', west: 8, littleEndian: false, bigTiff: false, block: [24, 10], codec: [8, 1] },
+    // Full resolution followed by two overviews: the reader must stay on IFD 0.
+    { file: 'glo30-overviews.tif', west: 8, littleEndian: true, bigTiff: false, block: [16, 16], codec: [8, 3] },
+    { file: 'glo30-nodata.tif', west: 8, littleEndian: true, bigTiff: false, block: [16, 16], codec: [8, 3], noData: '-32767' },
   ];
   for (const c of cases) {
     it(`decodes every pixel of ${c.file} exactly`, () => {
@@ -98,7 +109,7 @@ describe('geotiff: TIFF/BigTIFF tiles from an independent encoder', () => {
       const raster = openRaster(tiff);
       expect([raster.width, raster.height]).toEqual([C, R]);
       expect([raster.blockWidth, raster.blockHeight]).toEqual(c.block);
-      expect([raster.compression, raster.predictor]).toEqual([8, 3]);
+      expect([raster.compression, raster.predictor]).toEqual(c.codec);
       const all = raster.readAll();
       let worst = 0;
       for (let j = 0; j < R; j++) for (let i = 0; i < C; i++) worst = Math.max(worst, Math.abs(all[j * C + i] - expected(i, j, c.west)));
@@ -117,8 +128,41 @@ describe('geotiff: TIFF/BigTIFF tiles from an independent encoder', () => {
       expect(geo.scaleY).toBeCloseTo(1 / R, 15);
       expect(geo.x0).toBe(c.west); // pixel (0, 0) centred on the NW corner
       expect(geo.y0).toBe(47);
+      expect(geo.noData).toBe(c.noData);
     });
   }
+
+  it('picks the full-resolution IFD of a file with overviews, wherever it sits', () => {
+    const tiff = parseTiff(fixture('glo30-overviews.tif'));
+    expect(tiff.ifds.map((ifd: { tags: Map<number, number[]> }) => ifd.tags.get(TAG.NewSubfileType)?.[0] ?? 0)).toEqual([0, 1, 1]);
+    expect(fullResolutionIfd(tiff)).toBe(0);
+    // The overviews decode too (2× and 4× reductions), and carry no georeferencing.
+    const half = openRaster(tiff, 1);
+    expect([half.width, half.height]).toEqual([C / 2, R / 2]);
+    expect(half.value(5, 7)).toBe(expected(10, 14, 8));
+    expect(() => geoReference(tiff, 2)).toThrow(/no ModelPixelScale/);
+    // A reduced-resolution image ahead of the full one is skipped; a file of overviews only is refused.
+    const reduced = { tags: new Map([[TAG.NewSubfileType, [1]]]) };
+    expect(fullResolutionIfd({ ifds: [reduced, { tags: new Map() }, reduced] })).toBe(1);
+    expect(() => fullResolutionIfd({ ifds: [reduced] })).toThrow(/no full-resolution image/);
+  });
+
+  it('places pixel centres from the tiepoint pixel (I, J) and the raster type', () => {
+    const tiff = parseTiff(fixture('glo30-N46_00_E008_00.tif'));
+    // The same grid tied at pixel (3, 2) instead of (0, 0).
+    tiff.ifds[0].tags.set(TAG.ModelTiepoint, [3, 2, 0, 8 + 3 / C, 47 - 2 / R, 0]);
+    let geo = geoReference(tiff);
+    expect(geo.x0).toBeCloseTo(8, 12);
+    expect(geo.y0).toBeCloseTo(47, 12);
+    // PixelIsArea: the tiepoint names the pixel's NW corner, so centres sit half a pixel in.
+    const keys = [...tiff.ifds[0].tags.get(TAG.GeoKeyDirectory)];
+    keys[4 + 1 * 4 + 3] = 1; // GTRasterTypeGeoKey (second key) → PixelIsArea
+    tiff.ifds[0].tags.set(TAG.GeoKeyDirectory, keys);
+    geo = geoReference(tiff);
+    expect(geo.rasterType).toBe('area');
+    expect(geo.x0).toBeCloseTo(8 + 0.5 / C, 12);
+    expect(geo.y0).toBeCloseTo(47 - 0.5 / R, 12);
+  });
 
   it('rejects files that are not TIFF', () => {
     expect(() => parseTiff(Buffer.from('GIF89a, not a tiff'))).toThrow(/not a TIFF/);
@@ -174,6 +218,11 @@ describe('glo30: tile names and bbox selection', () => {
     // 4.9999° × 2400 columns/degree = 11999.76 → column 11999 is the last of E004.
     expect(ids({ south: 52.1, west: 4.9999, north: 52.4, east: 5.2 })).toEqual(['N52_00_E004_00', 'N52_00_E005_00']);
     expect(ids({ south: 52.1, west: 5.0001, north: 52.4, east: 5.2 })).toEqual(['N52_00_E005_00']);
+    // Only the east edge depends on the spacing: 4.99965° × 2400 = 11999.16 → ceil 12000, the first column of E005.
+    // At 3600 columns/degree it would be 17998.74 → 17999, still inside E004.
+    expect(ids({ south: 52.1, west: 4.9, north: 52.4, east: 4.99965 })).toEqual(['N52_00_E004_00', 'N52_00_E005_00']);
+    // Below 50° the same east edge stays inside E004.
+    expect(ids({ south: 46.1, west: 4.9, north: 46.4, east: 4.99965 })).toEqual(['N46_00_E004_00']);
   });
 
   it('handles the equator and the prime meridian', () => {
@@ -305,6 +354,45 @@ describe('glo30: fetch, cache and bilinear sampling', () => {
     expect(existsSync(join(cache, 'copernicus-glo30', `${glo30TileName(45, 8)}.404`))).toBe(false);
   });
 
+  it('refuses a box where every tile is missing from both buckets (open ocean)', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: { method?: string }) => {
+        calls.push(`${init?.method ?? 'GET'} ${url}`);
+        return new Response(null, { status: 404 });
+      }),
+    );
+    const cache = tmpCache();
+    await expect(fetchGlo30({ bbox: { south: 45.99, west: 8.5, north: 46.5, east: 8.9 }, cacheDir: cache, grid: GRID })).rejects.toThrow(
+      /every tile over the bbox is missing/,
+    );
+    expect([...calls].sort()).toEqual(
+      [`GET ${glo30TileUrl(46, 8)}`, `HEAD ${glo90TileUrl(46, 8)}`, `GET ${glo30TileUrl(45, 8)}`, `HEAD ${glo90TileUrl(45, 8)}`].sort(),
+    );
+  });
+
+  it('refuses a tile that declares nodata (voids would bake as heights)', () => {
+    const tiff = parseTiff(fixture('glo30-nodata.tif'));
+    expect(() => checkGlo30Tile({ south: 46, west: 8, id: 'N46_00_E008_00' }, tiff, openRaster(tiff))).toThrow(/declares nodata -32767/);
+  });
+
+  it('refuses a raster whose size disagrees with its pixel scale', () => {
+    const tiff = parseTiff(fixture('glo30-overviews.tif'));
+    const tile = { south: 46, west: 8, id: 'N46_00_E008_00' };
+    expect(checkGlo30Tile(tile, tiff, openRaster(tiff))).toEqual({ rowsPerDegree: R, colsPerDegree: C });
+    // The 2× overview with IFD 0's georeferencing: 12×18 pixels where the scale says 24×36.
+    expect(() => checkGlo30Tile(tile, tiff, openRaster(tiff, 1))).toThrow(/12×18 pixels, but its pixel scale gives 24×36/);
+  });
+
+  it('refuses tiles whose rows per degree differ from the grid', () => {
+    const raster = openRaster(parseTiff(fixture('glo30-N46_00_E008_00.tif')));
+    const box = { south: 46.2, west: 8.2, north: 46.7, east: 8.8 };
+    const tiles = (rowsPerDegree: number) => new Map([['N46_00_E008_00', { raster, rowsPerDegree, colsPerDegree: C }]]);
+    expect(() => glo30Sampler({ bbox: box, tiles: tiles(3600), grid: GRID })).toThrow(/3600 rows per degree, expected 36/);
+    expect(glo30Sampler({ bbox: box, tiles: tiles(R), grid: GRID })(latOfRow(20), lonOfCol(13, 8))).toBeCloseTo(expected(13, 20, 8), 9);
+  });
+
   it('refuses a tile whose tiepoint is not where its name says', () => {
     const tiff = parseTiff(fixture('glo30-N46_00_E008_00.tif'));
     expect(() => checkGlo30Tile({ south: 46, west: 9, id: 'N46_00_E009_00' }, tiff, openRaster(tiff))).toThrow(/first pixel centre/);
@@ -340,5 +428,62 @@ describe('glo30: recipe option and credits', () => {
     expect(GLO30_CREDIT.attribution).toContain(
       '© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved',
     );
+  });
+
+  // GLO-30 licence Art. 6(c): whoever distributes the data, modified or not, puts this sentence in the licence or
+  // legal notice covering the distribution. The bundle's credit and docs/worlds/CREDITS.md both carry it.
+  const ART_6C =
+    'The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30';
+
+  it('carries the licence\'s liability disclaimer, verbatim, in the GLO-30 credit and CREDITS.md', () => {
+    expect(GLO30_DISCLAIMER).toBe(ART_6C);
+    expect(GLO30_CREDIT.licence).toContain(ART_6C);
+    expect(creditsFor('copernicus-glo30').find((c: { id: string }) => c.id === 'copernicus-glo30')).toBe(GLO30_CREDIT);
+    const doc = readFileSync(fileURLToPath(new URL('../../../docs/worlds/CREDITS.md', import.meta.url)), 'utf8');
+    const section = doc.slice(doc.indexOf('### Copernicus DEM GLO-30 Public'), doc.indexOf('### Copernicus DEM GLO-90'));
+    const prose = section.replace(/\n\s*>\s*/g, ' ').replace(/\s+/g, ' ');
+    expect(prose).toContain(ART_6C);
+    // The default credits don't mention GLO-30 at all.
+    expect(JSON.stringify(CREDITS)).not.toContain('WorldDEM-30');
+  });
+});
+
+describe('worldbake: manifest generator and bundle budget', () => {
+  const read = (rel: string) => readFileSync(fileURLToPath(new URL(`../../../${rel}`, import.meta.url)));
+  const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
+
+  it('writes the committed bundles\' generator block, key order included, for the default source', () => {
+    for (const id of ['perugia', 'lugano']) {
+      const recipeBytes = read(`tools/worldbake/worlds/${id}.json`);
+      const recipe = JSON.parse(recipeBytes.toString('utf8'));
+      const shipped = JSON.parse(read(`public/worlds/${id}/manifest.json`).toString('utf8')).generator;
+      const gen = generatorFor(demSourceOf(recipe), recipe, recipeBytes, { source: 'unused', tiles: new Array(shipped.demTiles) });
+      expect(Object.keys(gen)).toEqual(['tool', 'version', 'recipeSha256', 'osmDate', 'demSource', 'demZoom', 'demTiles']);
+      expect(gen.recipeSha256).toBe(sha(recipeBytes));
+      // recipeSha256 aside (a recipe edit re-bakes anyway), the shipped block is exactly what the helper writes.
+      expect(JSON.stringify({ ...gen, recipeSha256: '' })).toBe(JSON.stringify({ ...shipped, recipeSha256: '' }));
+      expect(gen.demZoom).toBe(recipe.dem.zoom);
+    }
+  });
+
+  it('names the GLO-30 source and drops demZoom for a GLO-30 recipe', () => {
+    const recipeBytes = Buffer.from('{"osmDate":"2026-10-01T00:00:00Z","dem":{"source":"copernicus-glo30"}}');
+    const recipe = JSON.parse(recipeBytes.toString('utf8'));
+    const gen = generatorFor(demSourceOf(recipe), recipe, recipeBytes, { source: GLO30_SOURCE, tiles: ['N46_00_E008_00', 'N45_00_E008_00'] });
+    expect(gen).toEqual({
+      tool: 'velo-worldbake',
+      version: 1,
+      recipeSha256: sha(recipeBytes),
+      osmDate: '2026-10-01T00:00:00Z',
+      demSource: 'copernicus-dem-30m/glo30-cog',
+      demTiles: 2,
+    });
+    expect(Object.keys(gen)).toEqual(['tool', 'version', 'recipeSha256', 'osmDate', 'demSource', 'demTiles']);
+  });
+
+  it('stops the bake above the brotli budget and passes at it', () => {
+    expect(MAX_BUNDLE_BROTLI_BYTES).toBe(8e6);
+    expect(() => checkBundleBudget({ stored: 0, content: 0, brotli: MAX_BUNDLE_BROTLI_BYTES })).not.toThrow();
+    expect(() => checkBundleBudget({ stored: 0, content: 0, brotli: MAX_BUNDLE_BROTLI_BYTES + 1 })).toThrow(/8\.00 MB brotli, over the 8 MB budget/);
   });
 });
