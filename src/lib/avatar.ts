@@ -1575,6 +1575,16 @@ export const OVERHANG_GIVE_UP_M = 100;
  * dark wall).
  */
 export const OVERHANG_MIN_M = 4;
+/**
+ * A rise refused between two readings further apart than this (m) is read
+ * again in steps of at most this length from the last road spot …
+ */
+export const OVERHANG_STEP_M = 2;
+/**
+ * … up to this far from it (m): the sampler reads every ~5 m of travel, so
+ * this covers the gap between two samples and bounds the extra reads (4).
+ */
+export const OVERHANG_STEP_SPAN_M = 10;
 
 function metresBetween(lon: number, lat: number, fromLon: number, fromLat: number): number {
   if (Number.isNaN(fromLon)) return Infinity;
@@ -1602,6 +1612,13 @@ export type MeshRoadStatus = 'road' | 'overhang' | 'coarse' | 'none';
  * the mesh at that last road spot rose too (a tile refined under the rider);
  * otherwise it is over the road and the rider keeps the road it has. Lower
  * rises are ridden over. Falls are always taken (the rider eases down).
+ *
+ * The rule holds per {@link OVERHANG_STEP_M} of road, whatever the distance
+ * between two samples: a rise refused across a longer gap is read again in
+ * shorter steps, and it is the road if every step is one a rider is lifted
+ * over (Lugano–Melide 5 km: a mound the route clips rises 4.7 m in 6 m, about
+ * 2 m per 2 m; read 4 m apart the rider rode over it, read 6 m apart the
+ * rider was kept inside it for as long as it stood there).
  */
 export function createMeshRoadFilter() {
   let base: number | undefined;
@@ -1637,7 +1654,10 @@ export function createMeshRoadFilter() {
         reading <= base + Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + OVERHANG_GRADE * moved);
       if (!climbs) {
         const atBase = readAt(baseLon, baseLat);
-        if (atBase === undefined || atBase <= (base as number) + OVERHANG_RISE_M) {
+        if (
+          (atBase === undefined || atBase <= (base as number) + OVERHANG_RISE_M) &&
+          !climbsInSteps(base as number, baseLon, baseLat, reading, lon, lat, moved, readAt)
+        ) {
           status = 'overhang';
           return base;
         }
@@ -1667,6 +1687,38 @@ export function createMeshRoadFilter() {
       status = 'none';
     },
   };
+}
+
+/**
+ * Whether the mesh rises from `from` (the road at fromLon/fromLat) to
+ * `reading` (at lon/lat, `moved` metres on) in steps a rider is lifted over:
+ * read again every {@link OVERHANG_STEP_M} on the way, each step no higher
+ * than {@link createMeshRoadFilter}'s rule allows. Not for a gap of one step
+ * or less (nothing to read in between) or over {@link OVERHANG_STEP_SPAN_M}.
+ * A spot with no reading breaks the chain; so does a coarse one, as the chain
+ * only climbs a few metres a step from the road and back to `reading`.
+ */
+function climbsInSteps(
+  from: number,
+  fromLon: number,
+  fromLat: number,
+  reading: number,
+  lon: number,
+  lat: number,
+  moved: number,
+  readAt: (lon: number, lat: number) => number | undefined,
+): boolean {
+  if (!(moved > OVERHANG_STEP_M && moved <= OVERHANG_STEP_SPAN_M)) return false;
+  const steps = Math.ceil(moved / OVERHANG_STEP_M);
+  // The filter's rule over a step of 2 m or less: max(4, 1.5 + 0.25 × 2).
+  const rise = OVERHANG_MIN_M;
+  let h = from;
+  for (let i = 1; i <= steps; i++) {
+    const r = i === steps ? reading : readAt(fromLon + ((lon - fromLon) * i) / steps, fromLat + ((lat - fromLat) * i) / steps);
+    if (r === undefined || !Number.isFinite(r) || r > h + rise) return false;
+    h = r;
+  }
+  return true;
 }
 
 /**

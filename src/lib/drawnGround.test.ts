@@ -20,6 +20,8 @@ import {
   GROUND_SAMPLE_INTERVAL_MS,
   OVERHANG_GIVE_UP_M,
   OVERHANG_MIN_M,
+  OVERHANG_STEP_M,
+  OVERHANG_STEP_SPAN_M,
 } from '@/lib/avatar';
 import {
   drawnGroundHeight,
@@ -244,6 +246,99 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     sampler.sample(lon0, at(0), 330, 0);
     sampler.sample(lon0, at(2), 330, GROUND_SAMPLE_INTERVAL_MS);
     for (let i = 2; i < 6; i++) expect(sampler.sample(lon0, at(4), 330, i * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(331.2, 6);
+  });
+
+  // Lugano–Melide 4990–5006 m on the mesh, read down the vertical along the
+  // route every metre (cat-bed, PR #52 follow-up): the lakeside path, then a
+  // mound the route clips, 4.7 m up in 6 m (about 2 m per 2 m), and back down.
+  const MOUND = [
+    326.04, 326.05, 326.06, 326.07, 326.07, 326.16, 327.09, 328.29, 329.05, 329.83, 330.74, 331.65, 331.96, 331.52, 331.07,
+    330.57, 330.07,
+  ];
+  /** The mound `m` metres from 4990 m (linear between metres; the path before it, the far side after). */
+  const mound = (m: number) => {
+    if (m <= 0) return MOUND[0];
+    if (m >= MOUND.length - 1) return MOUND[MOUND.length - 1];
+    const i = Math.floor(m);
+    return MOUND[i] + (MOUND[i + 1] - MOUND[i]) * (m - i);
+  };
+  const metres = (lat: number) => (lat - 34) * 110_540;
+
+  it('a rise refused across a long gap is read again every OVERHANG_STEP_M: the mound is ridden over however far apart it is read', () => {
+    const readAt = (_lon: number, lat: number) => mound(metres(lat));
+    // 4994 → 5000 m in one sample is 4.67 m up (over the 4 m floor); read
+    // again every 2 m it is 1.0, 2.0 and 1.7 m steps. Read 4 m apart it always
+    // was ridden over; 6 m apart the rider stayed inside the mound.
+    for (const spots of [[0, 4, 8, 10], [0, 4, 10], [4, 10], [0, 6, 10], [1, 10]]) {
+      const f = createMeshRoadFilter();
+      const got = spots.map((m) => f.next(mound(m), lon0, at(m), HIGH, readAt));
+      expect(got[got.length - 1], `read at ${spots.join(', ')} m`).toBeCloseTo(330.74, 6);
+      expect(f.status()).toBe('road');
+      // Stopped there, it stays on top.
+      expect(f.next(mound(10), lon0, at(10), HIGH, readAt)).toBeCloseTo(330.74, 6);
+    }
+    expect(OVERHANG_STEP_M).toBe(2);
+  });
+
+  it('the sampler lifts a rider read 6 m apart onto the mound and keeps it there, stopped', async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
+      mound(metres(Cesium.Math.toDegrees(c.latitude))),
+    );
+    const { s } = scene(tileset, { height: 352.6, show: false });
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(lon0, at(4), 288.1, 0)).toBeCloseTo(326.07, 6);
+    for (let i = 1; i <= 4; i++) {
+      expect(sampler.sample(lon0, at(10), 288.0, i * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(330.74, 6);
+      expect(sampler.meshGround()).toBe(true);
+    }
+  });
+
+  it('canopy and viaduct edges stay over the road however far apart they are read', () => {
+    const palm = (lat: number) => (lat > at(3) && lat < at(15) ? -18.0 : -28.2);
+    const f = createMeshRoadFilter();
+    expect([0, 6, 12, 18].map((m) => f.next(palm(at(m)), lon0, at(m), HIGH, (_lon, lat) => palm(lat)))).toEqual([
+      -28.2, -28.2, -28.2, -28.2,
+    ]);
+    const deck = (lat: number) => (lat > at(9) && lat < at(70) ? 189.3 : 160.2);
+    const g = createMeshRoadFilter();
+    for (let m = 0; m <= 78; m += 6) expect(g.next(deck(at(m)), lon0, at(m), HIGH, (_lon, lat) => deck(lat))).toBe(160.2);
+    // A low road bridge's deck 4.1 m up, from 1 m on: over the road read 2 m
+    // apart (above), and read 6 m apart too.
+    const low = (lat: number) => (lat > at(1) ? 104.1 : 100);
+    const h = createMeshRoadFilter();
+    h.next(100, lon0, at(0), HIGH, (_lon, lat) => low(lat));
+    expect(h.next(104.1, lon0, at(6), HIGH, (_lon, lat) => low(lat))).toBe(100);
+    expect(h.status()).toBe('overhang');
+  });
+
+  it('a spot with no reading on the way proves nothing: the rider keeps the road', () => {
+    const holed = (lat: number) => (metres(lat) > 5 && metres(lat) < 9 ? undefined : mound(metres(lat)));
+    const f = createMeshRoadFilter();
+    f.next(mound(4), lon0, at(4), HIGH, (_lon, lat) => holed(lat));
+    expect(f.next(mound(10), lon0, at(10), HIGH, (_lon, lat) => holed(lat))).toBeCloseTo(326.07, 6);
+    expect(f.status()).toBe('overhang');
+  });
+
+  it('the re-reads are bounded: a few per sample near the last road spot, none further on under a deck', () => {
+    const deck = (lat: number) => (lat > at(9) && lat < at(70) ? 189.3 : 160.2);
+    const f = createMeshRoadFilter();
+    const reads: number[] = [];
+    for (let m = 0; m <= 78; m += 6) {
+      let n = 0;
+      f.next(deck(at(m)), lon0, at(m), HIGH, (_lon, lat) => {
+        n++;
+        return deck(lat);
+      });
+      reads.push(n);
+    }
+    // The road last taken at 6 m. At 12 m: the spot there, then 8 m and the
+    // deck edge at 10 m. From 18 m on (12 m past it, over OVERHANG_STEP_SPAN_M)
+    // only the spot where the road was taken, as before.
+    expect(reads).toEqual([0, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]);
+    expect(OVERHANG_STEP_SPAN_M).toBe(10);
+    expect(OVERHANG_STEP_SPAN_M / OVERHANG_STEP_M - 1).toBe(4);
   });
 
   it('the sampler keeps the road under a canopy and the rider stays on it', async () => {
