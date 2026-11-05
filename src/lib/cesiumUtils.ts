@@ -11,6 +11,7 @@
 
 import * as Cesium from 'cesium';
 import { IMAGERY_FALLBACK_EVENT } from '@/lib/imageryFallback';
+import { tileReadCacheFor, type TileReadCache } from '@/lib/tileReadCache';
 import type { Route } from '@/types';
 import type { SkyConfig } from '@/lib/skyAndClouds';
 
@@ -532,11 +533,29 @@ export function sightReadable(scene: Cesium.Scene): boolean {
 }
 
 /**
+ * Tile geometry copies the sight's reads reuse (lib/tileReadCache), on
+ * Cesium's private ModelReader; null when this Cesium has no such reads.
+ */
+let meshTopReads: TileReadCache | null | undefined;
+function meshTopReadCache(): TileReadCache | null {
+  if (meshTopReads === undefined) {
+    meshTopReads = tileReadCacheFor((Cesium as unknown as { ModelReader?: unknown }).ModelReader);
+  }
+  return meshTopReads;
+}
+
+/** Drop the tile geometry the sight's reads kept (the view that read it is gone). */
+export function clearMeshTopReads(): void {
+  meshTopReads?.clear();
+}
+
+/**
  * Top of the shown photoreal mesh at lon/lat (highest of the shown photoreal
  * tilesets), intersected on the CPU against the rendered tiles
  * (Cesium3DTileset.getHeight). Undefined with no tile there, no mesh shown,
  * or no WebGL 2. Unfiltered: the top of whatever stands there (roof, crown,
- * hillside), which is what a camera has to see past.
+ * hillside), which is what a camera has to see past. The tile geometry each
+ * read copies back from the GPU is kept for the next reads (lib/tileReadCache).
  */
 export function meshTopHeight(scene: Cesium.Scene, lon: number, lat: number): number | undefined {
   if (!isWebGL2(scene)) return undefined;
@@ -544,11 +563,12 @@ export function meshTopHeight(scene: Cesium.Scene, lon: number, lat: number): nu
   if (!prims || typeof prims.length !== 'number') return undefined;
   let carto: Cesium.Cartographic | undefined;
   let best: number | undefined;
+  const reads = meshTopReadCache();
   for (let i = 0; i < prims.length; i++) {
     const p = prims.get(i) as Cesium.Cesium3DTileset;
     if (!isPhotorealTileset(p) || !p.show) continue;
-    carto ??= Cesium.Cartographic.fromDegrees(lon, lat);
-    const h = p.getHeight(carto, scene);
+    const at = (carto ??= Cesium.Cartographic.fromDegrees(lon, lat));
+    const h = reads ? reads.run(() => p.getHeight(at, scene)) : p.getHeight(at, scene);
     if (h !== undefined && Number.isFinite(h) && (best === undefined || h > best)) best = h;
   }
   return best;

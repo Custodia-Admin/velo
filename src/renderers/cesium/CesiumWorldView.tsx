@@ -22,6 +22,7 @@ import {
   applyFollowCam,
   applySceneMood,
   clampCartesiansToScene,
+  clearMeshTopReads,
   flyToPoint,
   flyToRoute,
   getPhotorealTileset,
@@ -649,6 +650,8 @@ export function CesiumWorldView({
       climbArchesRef.current = null;
       if (viewer && !viewer.isDestroyed()) destroyCinematicEffects(viewer);
       if (viewer && !viewer.isDestroyed()) viewer.destroy();
+      // The side camera's sight kept copies of this view's tile geometry.
+      clearMeshTopReads();
       viewerRef.current = null;
       // Don't reset to 0 — keeping the counter forward-only means a future
       // remount produces n+2 (distinct from the prior n+1) and dependent

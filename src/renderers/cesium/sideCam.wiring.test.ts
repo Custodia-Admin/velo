@@ -61,6 +61,10 @@ describe('CesiumWorldView places the side camera with sight of the rider', () =>
     expect(SRC).toContain('const lift = Math.max(needed, cameraLiftRef.current * Math.exp(-1.5 * Math.min(dt, 0.1)));');
   });
 
+  it("drops the sight's tile geometry copies when the view is destroyed", () => {
+    expect(SRC).toMatch(/viewer\.destroy\(\);\s*\/\/[^\n]*\n\s*clearMeshTopReads\(\);/);
+  });
+
   it('builds one sight per view, not one per render', () => {
     expect(SRC).toContain('const [sideCamSight] = useState(createSideCamSight);');
     expect(SRC).toContain('const sideCamSightRef = useRef(sideCamSight);');

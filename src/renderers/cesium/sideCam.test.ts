@@ -14,7 +14,7 @@ import {
   sideTrackSideFromPose,
   type CameraMode,
 } from '@/lib/cesiumCameras';
-import { getPhotorealTileset, meshTopHeight, setIonToken, sightReadable } from '@/lib/cesiumUtils';
+import { clearMeshTopReads, getPhotorealTileset, meshTopHeight, setIonToken, sightReadable } from '@/lib/cesiumUtils';
 import { createSideCamSight, SIGHT_MIN_OFFSET_M } from '@/lib/sideCamSight';
 import { placeSideCam, type SideCamInput } from '@/renderers/cesium/sideCam';
 
@@ -36,12 +36,14 @@ type Field = (e: number, n: number) => number | undefined;
 
 async function world(
   mesh: Field,
-  opts: { globe?: Field; globeShown?: boolean; webgl2?: boolean; others?: unknown[] } = {},
+  opts: { globe?: Field; globeShown?: boolean; webgl2?: boolean; others?: unknown[]; pick?: () => void } = {},
 ) {
   setIonToken('eyJ_test');
   const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
   Object.defineProperty(fake, 'show', { value: true, writable: true });
   const getHeight = vi.fn((c: Cesium.Cartographic) => {
+    // What pickModel does per tile under the ray (reads its buffers), if the test says.
+    opts.pick?.();
     const { e, n } = enu(c);
     const h = mesh(e, n);
     return h === undefined ? undefined : GROUND + h;
@@ -377,6 +379,48 @@ describe('placeSideCam: where it reads, how high it stands', () => {
     }
     expect(Math.max(...perFrame)).toBe(1);
     expect(perFrame.reduce((a, b) => a + b, 0)).toBeGreaterThan(40);
+  });
+});
+
+describe('meshTopHeight reuses the tile geometry it copies back from the GPU', () => {
+  /** Cesium's private ModelReader, the reads pickModel makes per tile primitive. */
+  const reader = (Cesium as unknown as {
+    ModelReader: { readIndicesAsTypedArray: (i: unknown) => Uint16Array; readAttributeAsTypedArray: (a: unknown) => unknown };
+  }).ModelReader;
+
+  it('this Cesium has the two reads the cache wraps', () => {
+    expect(typeof reader.readIndicesAsTypedArray).toBe('function');
+    expect(typeof reader.readAttributeAsTypedArray).toBe('function');
+  });
+
+  it("a tile's indices are copied once across reads; outside the sight's reads every time", async () => {
+    let copies = 0;
+    // A GPU-backed index buffer, as on WebGL 2 (no CPU typedArray).
+    const indices = {
+      count: 3,
+      indexDatatype: Cesium.IndexDatatype.UNSIGNED_SHORT,
+      buffer: {
+        isDestroyed: () => false,
+        getBufferData: (out: Uint16Array) => {
+          copies++;
+          out.set([0, 1, 2]);
+        },
+      },
+    };
+    // getHeight picks the tile: pickModel reads its indices through ModelReader.
+    const { scene } = await world(() => 7.5, {
+      pick: () => expect([...reader.readIndicesAsTypedArray(indices)]).toEqual([0, 1, 2]),
+    });
+    clearMeshTopReads();
+    for (let k = 0; k < 5; k++) expect(meshTopHeight(scene, LON, LAT)).toBeCloseTo(GROUND + 7.5, 6);
+    expect(copies).toBe(1);
+    reader.readIndicesAsTypedArray(indices);
+    reader.readIndicesAsTypedArray(indices);
+    expect(copies).toBe(3);
+    // The view is gone: its copies with it.
+    clearMeshTopReads();
+    meshTopHeight(scene, LON, LAT);
+    expect(copies).toBe(4);
   });
 });
 
