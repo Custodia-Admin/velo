@@ -16,6 +16,13 @@
  * whole band (corner overhangs), the fill probe sees short pieces, and the
  * bake reports the final shift.
  *
+ * PR #46 review: the paint check's shortcut (a band whose four corners lie in
+ * ONE road segment is on it) is pinned where it must not apply (a turning
+ * road's inner notch) and where it must not tolerate a few centimetres; the
+ * shipped paint is also checked by this file's own edge model, so a bug in
+ * routeCoverage.mjs's band check can't hide in the bake and its pin alike; and
+ * the corner rule is pinned with the path mapped in either direction.
+ *
  * - synthetic: what the bake's fit does (tools/worldbake/routeCoverage.mjs);
  * - shipped: every bundle in public/worlds, measured the way the renderer
  *   draws roads (flat ends, real widths), against the mapped line of every
@@ -31,6 +38,7 @@ import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { createProjection } from './projection';
 import { ROAD_CLASSES, ROAD_FLAGS } from '../../../tools/worldbake/buildVectors.mjs';
 import {
+  COVERAGE_MARGIN_M,
   ROUTE_EASE_CORNER_M,
   ROUTE_EASE_MAX_M,
   ROUTE_EASE_TAPER_M,
@@ -89,26 +97,29 @@ function bbox(p: number[], pad: number): [number, number, number, number] {
   return [b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad];
 }
 
+/**
+ * Distance past the drawn edge of segment `i` (vertex offset) of polyline `p`, metres: a strip
+ * `half` either side of it, with a flat end at the polyline's first and last points.
+ */
+function segEdgeOf(x: number, y: number, p: number[], i: number, half: number) {
+  const ax = p[i], ay = p[i + 1], dx = p[i + 2] - ax, dy = p[i + 3] - ay;
+  const l2 = dx * dx + dy * dy;
+  if (l2 === 0) return Infinity;
+  const len = Math.sqrt(l2);
+  const raw = ((x - ax) * dx + (y - ay) * dy) / l2;
+  const past = i === 0 && raw < 0 ? -raw * len : i + 4 >= p.length && raw > 1 ? (raw - 1) * len : 0;
+  if (past > 0) {
+    const lat = Math.abs((x - ax) * dy - (y - ay) * dx) / len;
+    return lat <= half ? past : Math.hypot(lat - half, past);
+  }
+  const t = Math.max(0, Math.min(1, raw));
+  return Math.hypot(x - ax - t * dx, y - ay - t * dy) - half;
+}
+
 /** Distance past a road's drawn edge (flat ends, as roadRibbons draws it), metres. */
 function edgeOf(x: number, y: number, p: number[], half: number) {
   let best = Infinity;
-  for (let i = 0; i + 3 < p.length; i += 2) {
-    const ax = p[i], ay = p[i + 1], dx = p[i + 2] - ax, dy = p[i + 3] - ay;
-    const l2 = dx * dx + dy * dy;
-    if (l2 === 0) continue;
-    const len = Math.sqrt(l2);
-    const raw = ((x - ax) * dx + (y - ay) * dy) / l2;
-    const past = i === 0 && raw < 0 ? -raw * len : i + 4 >= p.length && raw > 1 ? (raw - 1) * len : 0;
-    let e: number;
-    if (past > 0) {
-      const lat = Math.abs((x - ax) * dy - (y - ay) * dx) / len;
-      e = lat <= half ? past : Math.hypot(lat - half, past);
-    } else {
-      const t = Math.max(0, Math.min(1, raw));
-      e = Math.hypot(x - ax - t * dx, y - ay - t * dy) - half;
-    }
-    best = Math.min(best, e);
-  }
+  for (let i = 0; i + 3 < p.length; i += 2) best = Math.min(best, segEdgeOf(x, y, p, i, half));
   return best;
 }
 
@@ -351,6 +362,109 @@ function changedFrom(before: Layer, after: Layer) {
   return m;
 }
 
+/** The paint check below looks every PAINT_STEP_M along a route step and at 2 × PAINT_ACROSS + 1 points across its band. */
+const PAINT_STEP_M = 0.1;
+const PAINT_ACROSS = 6;
+/**
+ * How far past the drawn roads a paint sample may lie on the shipped bundles, m: a corner sliver
+ * between two samples. Sampling them every 0.02 m at 25 points across finds 0.020 m at most
+ * (Locarno 2,858 m); this file's 0.1 m × 13 sampling sees 0.010 m. A band check that trusts its
+ * corners over a turning road (review Y1) leaves 0.06 m; one loosened by 5 cm (Y11), 0.05 m.
+ */
+const PAINT_SLIVER_M = 0.025;
+
+/**
+ * Distance past the nearest drawn edge of `list` (metres), by segment from a grid of `cell`-metre
+ * cells; only segments near a cell `keep` accepts are indexed. A lookup stops at the first
+ * segment within `stop` of the point (it tries the last segment that answered first).
+ */
+function segmentGrid(roads: Layer, list: Road[], keep: (x0: number, y0: number, x1: number, y1: number) => boolean, cell = 4) {
+  const grid = new Map<number, { p: number[]; i: number; half: number }[]>();
+  const key = (x: number, y: number) => Math.floor(x / cell) * 1e6 + Math.floor(y / cell);
+  for (const r of list) {
+    const p = metres(r);
+    const half = halfOf(roads, r);
+    const [x0, y0, x1, y1] = bbox(p, half);
+    if (!keep(x0, y0, x1, y1)) continue;
+    for (let i = 0; i + 3 < p.length; i += 2) {
+      const sx0 = Math.min(p[i], p[i + 2]) - half, sx1 = Math.max(p[i], p[i + 2]) + half;
+      const sy0 = Math.min(p[i + 1], p[i + 3]) - half, sy1 = Math.max(p[i + 1], p[i + 3]) + half;
+      if (!keep(sx0, sy0, sx1, sy1)) continue;
+      for (let gx = Math.floor(sx0 / cell); gx <= Math.floor(sx1 / cell); gx++) {
+        for (let gy = Math.floor(sy0 / cell); gy <= Math.floor(sy1 / cell); gy++) {
+          const k = gx * 1e6 + gy;
+          if (!grid.has(k)) grid.set(k, []);
+          grid.get(k)!.push({ p, i, half });
+        }
+      }
+    }
+  }
+  let last: { p: number[]; i: number; half: number } | null = null;
+  return (x: number, y: number, stop: number) => {
+    if (last) {
+      const e = segEdgeOf(x, y, last.p, last.i, last.half);
+      if (e <= stop) return e;
+    }
+    let best = Infinity;
+    for (const s of grid.get(key(x, y)) ?? []) {
+      const e = segEdgeOf(x, y, s.p, s.i, s.half);
+      if (e < best) {
+        best = e;
+        last = s;
+        if (e <= stop) break;
+      }
+    }
+    return best;
+  };
+}
+
+/**
+ * Where the painted guide lies more than `tol` past the drawn roads, measured with this file's
+ * own edge model (segEdgeOf: a strip per segment, flat ends) and sampling, not with
+ * routeCoverage.mjs: a bug in its band check would hide in the bake's fit and in
+ * routePaintCoverage alike (PR #46 review N1). Each route step's band (centre line ±
+ * ROUTE_PAINT_HALF_M) is sampled every PAINT_STEP_M along it, both ends included, edge to edge
+ * across it, and every sample is held against every drawn road near it (each may lie on a
+ * different road). A step whose middle lies within a tunnel's half-width + COVERAGE_MARGIN_M is
+ * skipped: nothing is drawn there on purpose. Returns each off step: route, distance at its end
+ * and its worst sample (m past the edge, where).
+ */
+function paintOffRoad(roads: Layer, routes: Sampled[], tol: number) {
+  const CORRIDOR = 20;
+  const corridor = new Set<number>();
+  for (const r of routes) for (let i = 0; i < r.x.length; i++) corridor.add(Math.floor(r.x[i] / CORRIDOR) * 1e6 + Math.floor(r.y[i] / CORRIDOR));
+  const nearRoute = (x0: number, y0: number, x1: number, y1: number) => {
+    for (let gx = Math.floor(x0 / CORRIDOR) - 1; gx <= Math.floor(x1 / CORRIDOR) + 1; gx++) {
+      for (let gy = Math.floor(y0 / CORRIDOR) - 1; gy <= Math.floor(y1 / CORRIDOR) + 1; gy++) if (corridor.has(gx * 1e6 + gy)) return true;
+    }
+    return false;
+  };
+  const edge = segmentGrid(roads, roads.roads.filter((r) => drawn(roads, r)), nearRoute);
+  const tunnel = segmentGrid(roads, roads.roads.filter((r) => ((r.f ?? 0) & ROAD_FLAGS.tunnel) !== 0), nearRoute);
+  const off: { id: string; s: number; offM: number; at: string }[] = [];
+  for (const r of routes) {
+    for (let i = 1; i < r.s.length; i++) {
+      const ax = r.x[i - 1], ay = r.y[i - 1], bx = r.x[i], by = r.y[i];
+      const len = Math.hypot(bx - ax, by - ay);
+      if (len === 0) continue;
+      const nx = (-(by - ay) / len) * ROUTE_PAINT_HALF_M, ny = ((bx - ax) / len) * ROUTE_PAINT_HALF_M;
+      let worst = -Infinity, at = '';
+      for (let u = 0; ; u = Math.min(u + PAINT_STEP_M, len)) {
+        const cx = ax + ((bx - ax) * u) / len, cy = ay + ((by - ay) * u) / len;
+        for (let o = -PAINT_ACROSS; o <= PAINT_ACROSS; o++) {
+          const x = cx + (nx * o) / PAINT_ACROSS, y = cy + (ny * o) / PAINT_ACROSS;
+          const e = edge(x, y, tol);
+          if (e > worst) { worst = e; at = `(${x.toFixed(2)}, ${y.toFixed(2)})`; }
+        }
+        if (u >= len) break;
+      }
+      if (worst <= tol || tunnel((ax + bx) / 2, (ay + by) / 2, COVERAGE_MARGIN_M) <= COVERAGE_MARGIN_M) continue;
+      off.push({ id: r.id, s: Math.round(r.s[i] * 10) / 10, offM: Math.round(worst * 1000) / 1000, at });
+    }
+  }
+  return off;
+}
+
 describe('bake: fit the drawn roads to a route (one surface under the guide)', () => {
   it('bends a path mapped beside the route onto it, and adds nothing', () => {
     // A 1.5 m path along y = 0; the route leaves it for 20 m, 1.2 m to the side (0.45 m past its edge).
@@ -456,38 +570,48 @@ describe('bake: fit the drawn roads to a route (one surface under the guide)', (
     }
   });
 
-  it('bends a corner the route runs past by at most ROUTE_EASE_CORNER_M, never down the leg that turns away (Locarno 2,072 m)', () => {
-    // A 1.5 m path runs west along y = 0, turns south at (-3, 0), steps 1 m and runs on
-    // south; a 6 m road runs beside that leg, 0.15 m past its edge.
-    const path = { c: CLS.path, p: dm([[40, 0], [-3, 0], [-3, -1], [-3, -40]]) };
-    const roads = layer([path, { c: CLS.tertiary, p: dm([[-6.9, -2.5], [-6.9, -40]]) }]);
-    const before = clone(roads);
-    // The route runs on 1 m past the corner: its paint ends 0.29 m past the path's edge.
-    const r = route('r', [[40, 0], [-4, 0]]);
-    expect(routePaintCoverage([r], roads)[0].pct).toBeLessThan(100);
-    const fit = easeRoadsOntoRoutes([r], roads);
-    expect(fit.joins).toBe(0);
-    expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
-    // The corner moved; the leg from its next vertex on kept its mapped line.
-    const p = metres(roads.roads[0]);
-    expect(p.slice(0, 2)).toEqual([40, 0]);
-    expect(p.slice(-4)).toEqual([-3, -1, -3, -40]);
-    expect(newOverlaps(roads, changedFrom(before, roads))).toEqual([]);
-    expect(fit.roadsEased).toBe(1);
-    expect(fit.maxShiftM).toBe(Math.round(hausdorff(metres(before.roads[0]), p) * 100) / 100);
-    expect(fit.maxShiftM).toBeGreaterThan(0.2);
-    expect(fit.maxShiftM).toBeLessThanOrEqual(ROUTE_EASE_CORNER_M);
+  /** A polyline (flat x, y pairs) with its points in the opposite order. */
+  const flip = (p: number[]) => p.flatMap((_, i) => (i % 2 ? [] : [p[p.length - 2 - i], p[p.length - 1 - i]]));
 
-    // The route crosses 2.25 m of grass from that corner to a road: a join, not a 2.3 m bend.
-    const roads2 = layer([{ ...path }, { c: CLS.tertiary, p: dm([[-9, -20], [-9, 20]]) }]);
-    const before2 = clone(roads2);
-    const r2 = route('r2', [[40, 0], [-9, 0]]);
-    const fit2 = easeRoadsOntoRoutes([r2], roads2);
-    expect(fit2.joins).toBe(1);
-    expect(routePaintCoverage([r2], roads2)[0].pct).toBe(100);
-    expect(hausdorff(metres(before2.roads[0]), metres(roads2.roads[0]))).toBeLessThanOrEqual(ROUTE_EASE_CORNER_M + 0.05);
-    expect(fillOverlapM(roads2).worst).toBeLessThanOrEqual(0.05);
-  });
+  // The path is mapped in both directions (review Y8): the turn-away leg lies after the bent
+  // corner along the polyline, then before it, so the vertex rule is pinned on either side.
+  for (const reversed of [false, true]) {
+    it(`bends a corner the route runs past by at most ROUTE_EASE_CORNER_M, never down the leg that turns away (Locarno 2,072 m)${reversed ? ', path mapped from the leg' : ''}`, () => {
+      // A 1.5 m path runs west along y = 0, turns south at (-3, 0), steps 1 m and runs on
+      // south; a 6 m road runs beside that leg, 0.15 m past its edge.
+      const mapped = dm([[40, 0], [-3, 0], [-3, -1], [-3, -40]]);
+      const asMapped = (p: number[]) => (reversed ? flip(p) : p);
+      const path = { c: CLS.path, p: asMapped(mapped) };
+      const roads = layer([path, { c: CLS.tertiary, p: dm([[-6.9, -2.5], [-6.9, -40]]) }]);
+      const before = clone(roads);
+      // The route runs on 1 m past the corner: its paint ends 0.29 m past the path's edge.
+      const r = route('r', [[40, 0], [-4, 0]]);
+      expect(routePaintCoverage([r], roads)[0].pct).toBeLessThan(100);
+      const fit = easeRoadsOntoRoutes([r], roads);
+      expect(fit.joins).toBe(0);
+      expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
+      // The corner moved; the leg from its next vertex on kept its mapped line.
+      const p = metres(roads.roads[0]);
+      const west = asMapped(p);
+      expect(west.slice(0, 2)).toEqual([40, 0]);
+      expect(west.slice(-4)).toEqual([-3, -1, -3, -40]);
+      expect(newOverlaps(roads, changedFrom(before, roads))).toEqual([]);
+      expect(fit.roadsEased).toBe(1);
+      expect(fit.maxShiftM).toBe(Math.round(hausdorff(metres(before.roads[0]), p) * 100) / 100);
+      expect(fit.maxShiftM).toBeGreaterThan(0.2);
+      expect(fit.maxShiftM).toBeLessThanOrEqual(ROUTE_EASE_CORNER_M);
+
+      // The route crosses 2.25 m of grass from that corner to a road: a join, not a 2.3 m bend.
+      const roads2 = layer([{ ...path }, { c: CLS.tertiary, p: dm([[-9, -20], [-9, 20]]) }]);
+      const before2 = clone(roads2);
+      const r2 = route('r2', [[40, 0], [-9, 0]]);
+      const fit2 = easeRoadsOntoRoutes([r2], roads2);
+      expect(fit2.joins).toBe(1);
+      expect(routePaintCoverage([r2], roads2)[0].pct).toBe(100);
+      expect(hausdorff(metres(before2.roads[0]), metres(roads2.roads[0]))).toBeLessThanOrEqual(ROUTE_EASE_CORNER_M + 0.05);
+      expect(fillOverlapM(roads2).worst).toBeLessThanOrEqual(0.05);
+    });
+  }
 
   it('moves the end of a road that met a bent one with it: no notch opens at the junction', () => {
     // Two paths meet end to end at (0, 0); the route runs 0.8 m south of the first one
@@ -586,6 +710,52 @@ describe('bake: fit the drawn roads to a route (one surface under the guide)', (
     expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
     expect(openedEnds(roads, changedFrom(before, roads))).toEqual([]);
   });
+
+  it("checks the band between its corners where ONE road turns: an L-shaped path's corners don't vouch for its inner notch (PR #46 review Y1)", () => {
+    // One 1.5 m path turns 90° at (0, 0). One route step, (1, 0.3) → (0.3, 1), cuts its inner
+    // corner: all four corners of that step's band lie on the path, but the band's outer edge
+    // crosses the notch between the two legs, 0.105 m past both edges at (0.855, 0.855). A single
+    // segment's strip is convex, so its corners decide for the band; a turning road's is not.
+    const roads = layer([{ c: CLS.path, p: dm([[10, 0], [0, 0], [0, 10]]) }]);
+    const p = metres(roads.roads[0]);
+    const r = route('r', [[9, 0.3], [1, 0.3], [0.3, 1], [0.3, 9]]);
+    const i = 9;
+    expect([r.x[i - 1], r.y[i - 1], r.x[i], r.y[i]].map((v) => Math.round(v * 1000) / 1000)).toEqual([1, 0.3, 0.3, 1]);
+    const len = Math.hypot(r.x[i] - r.x[i - 1], r.y[i] - r.y[i - 1]);
+    const nx = (-(r.y[i] - r.y[i - 1]) / len) * ROUTE_PAINT_HALF_M, ny = ((r.x[i] - r.x[i - 1]) / len) * ROUTE_PAINT_HALF_M;
+    for (const [x, y] of [[r.x[i - 1], r.y[i - 1]], [r.x[i], r.y[i]]]) {
+      for (const k of [1, -1]) expect(edgeOf(x + nx * k, y + ny * k, p, 0.75), 'band corner on the path').toBeLessThan(0);
+    }
+    const mx = (r.x[i - 1] + r.x[i]) / 2 - nx, my = (r.y[i - 1] + r.y[i]) / 2 - ny;
+    expect(edgeOf(mx, my, p, 0.75), 'outer edge over the notch').toBeCloseTo(0.105, 3);
+
+    const c = routePaintCoverage([r], roads)[0];
+    expect(c.misses).toEqual([{ fromS: Math.round(r.s[i - 1] * 10) / 10, toS: Math.round(r.s[i] * 10) / 10, lengthM: 1, maxOffM: 0.11 }]);
+    expect(paintOffRoad(roads, [r], 0).map((o) => o.s)).toEqual([Math.round(r.s[i] * 10) / 10]);
+
+    const fit = easeRoadsOntoRoutes([r], roads);
+    expect(fit.joins).toBe(0);
+    expect(fit.roadsEased).toBe(1);
+    expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
+    expect(paintOffRoad(roads, [r], PAINT_SLIVER_M)).toEqual([]);
+  });
+
+  it('counts a 3 cm overhang past one straight segment: its corners decide only when they are on the road (PR #46 review Y11)', () => {
+    // A straight 1.5 m path; for 8 m the route runs 0.49 m north of its centre line, so the
+    // paint's north edge lies 0.03 m past the path's.
+    const roads = layer([{ c: CLS.path, p: dm([[-50, 0], [50, 0]]) }]);
+    const y = 0.75 - ROUTE_PAINT_HALF_M + 0.03;
+    const r = route('r', [[-40, 0], [-5, 0], [-4, y], [4, y], [5, 0], [40, 0]]);
+    const c = routePaintCoverage([r], roads)[0];
+    expect(c.misses).toHaveLength(1);
+    expect(c.misses[0].maxOffM).toBe(0.03);
+    expect(c.misses[0].fromS).toBeLessThanOrEqual(36);
+    expect(c.misses[0].toS).toBeGreaterThanOrEqual(44);
+    expect(paintOffRoad(roads, [r], 0.02).length).toBeGreaterThanOrEqual(8);
+
+    easeRoadsOntoRoutes([r], roads);
+    expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
+  });
 });
 
 const WORLDS = fileURLToPath(new URL('../../../public/worlds', import.meta.url));
@@ -622,6 +792,11 @@ describe('shipped worlds: the guide sits on one drawn surface', () => {
         expect(c.misses, `${c.id}: ${c.misses.slice(0, 4).map((m: { fromS: number; toS: number }) => `${m.fromS}–${m.toS} m`).join(', ')}`).toEqual([]);
         expect(c.pct).toBe(100);
       }
+    });
+
+    it(`${w.id}: the painted guide lies on drawn roads by this file's own check too (0.1 m × 13 samples, within ${PAINT_SLIVER_M} m)`, () => {
+      const off = paintOffRoad(w.roads, w.routes, PAINT_SLIVER_M);
+      expect(off.slice(0, 6).map((o) => `${o.id} ${o.s} m: ${o.offM} m off at ${o.at}`)).toEqual([]);
     });
 
     it(`${w.id}: no route-fill piece lies over a mapped road except where it joins one`, () => {
