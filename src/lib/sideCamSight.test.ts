@@ -234,6 +234,8 @@ describe('createSideCamSight: moving in, crossing the road, easing', () => {
     r.run(SIGHT_SAMPLE_MS - 50, 20); // 20 m/s: 7 m in 350 ms
     const refreshes = r.reads() / 3;
     expect(refreshes).toBeGreaterThanOrEqual(Math.floor(7 / SIGHT_SAMPLE_MOVE_M));
+    // At 0, 3 and 6 m: tops are not re-read every metre as casts are.
+    expect(refreshes).toBeLessThanOrEqual(Math.floor(7 / SIGHT_SAMPLE_MOVE_M) + 1);
   });
 
   it('a slope on its side, a wall across the road: moves in fast, eases back out slowly', () => {
@@ -763,10 +765,14 @@ describe('createSideCamSight with segment casts (seenAt)', () => {
     expect(SIGHT_RAY_READS_PER_FRAME).toBe(4);
     // Its own side closed (4 spots), the far side open ahead (1) and beside the rider (1).
     const c = sightRig({ right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) });
-    const placed = [c.step(8), c.step(8), c.step(8)];
+    // The pose offset and height move a little meanwhile (under SIGHT_BASE_MOVE_M):
+    // the refresh keeps the ones it started with.
+    const placed = [c.step(8), c.step(8, { baseM: BASE + 0.5, upM: UP + 0.2 }), c.step(8)];
     expect(c.perUpdate).toEqual([4, 2, 0]);
+    for (const s of c.spots) expect(s).toMatchObject({ baseM: BASE, upM: UP });
     expect(placed[0]).toEqual({ side: 1, offsetM: BASE, clear: false });
-    expect(placed[1]).toEqual({ side: -1, offsetM: BASE, clear: true });
+    // Full offset across the road (of the pose's offset now).
+    expect(placed[1]).toEqual({ side: -1, offsetM: BASE + 0.5, clear: true });
     expect(c.sight.cuts()).toBe(1);
     // On the second frame the far side is cast where the refresh started
     // (ahead 0 then, 13 cm behind the rider now) and beside the rider.
