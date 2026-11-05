@@ -949,9 +949,32 @@ describe('createSideCamSight: faces where the camera stands now (blockedAt)', ()
       for (let f = 0; f < 10; f++) g.step();
       expect(g.placed.every((x) => Math.abs(x - BASE) < 1e-9)).toBe(true);
       expect(g.sight.debug().guards).toBe(0);
+      // Nor on the way back out (in to 7.6 m by a face for 10 frames, then only the odd answer).
+      const ref = guardRig((s, a, b, f) => (f < 10 ? faceAt(8.1)(s, a, b) : undefined));
+      const odd = guardRig((s, a, b, f) => (f < 10 ? faceAt(8.1)(s, a, b) : t));
+      for (let f = 0; f < 6 * 60; f++) {
+        ref.step();
+        odd.step();
+      }
+      expect(odd.placed).toEqual(ref.placed);
+      expect(odd.sight.debug().guards).toBe(10);
     }
     expect(guardRig(() => 1).step().offsetM).toBeCloseTo(BASE - SIGHT_GUARD_MARGIN_M, 9);
     expect(guardRig(() => 0).step().offsetM).toBeCloseTo(BASE, 9);
+  });
+
+  it('the way out is cast only as far as the reads let it go: a face beyond that is not in front of it', () => {
+    // In to 4.5 m for a second; then the reads allow 6.75 m, and a face stands 7 m out.
+    const g = guardRig((s, a, b, f) => (f >= 60 ? faceAt(7)(s, a, b) : undefined));
+    for (let f = 0; f < 60; f++) g.step({ seenAt: (s) => s.offsetM <= 5 });
+    for (let f = 60; f < 60 + 6 * 60; f++) g.step({ seenAt: (s) => s.offsetM <= 7 });
+    // Out to 6.75 m (6.5 m had it cast out to 9 m and stopped in front of the face).
+    expect(g.placed[g.placed.length - 1]).toBeGreaterThan(6.7);
+    expect(Math.max(...g.placed.slice(60))).toBeLessThanOrEqual(0.75 * BASE + 1e-9);
+    expect(g.sight.debug().guards).toBe(0);
+    const out = g.asked.filter((a) => a.from.offsetM > 0);
+    expect(out.length).toBeGreaterThan(0);
+    for (const a of out) expect(a.to.offsetM).toBeLessThanOrEqual(0.75 * BASE + 1e-9);
   });
 
   it('easing back out it stops in front of a face on the way, where the reads let it go further (Lugano 1501 m)', () => {

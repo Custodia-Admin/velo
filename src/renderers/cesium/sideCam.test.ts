@@ -568,21 +568,26 @@ describe('placeSideCam (segment casts)', () => {
     expect(perFrame.filter((k) => k > 0).length).toBeGreaterThan(50);
   });
 
-  it('a face turned to the camera, between the spots read: in front of it as the rider passes (Lugano 1501 m)', async () => {
-    // A 0.5 m panel 8.4 m east, 30.2-30.7 m along the road, 5 m tall, its
-    // front to the camera (east) and its back to the road: the reads from the
-    // bars see its back and pass it; the camera at 9 m would film its front.
-    const panel = tile(
-      [primitive([8.4, 30.2, 0, 8.4, 30.7, 0, 8.4, 30.7, 5, 8.4, 30.2, 5], [0, 1, 2, 0, 2, 3])],
-      { e: 8.4, n: 30.45, u: 2.5, r: 2.6 },
-    );
+  it.each([
+    ['east', 1],
+    ['west', -1],
+  ] as const)('a face turned to the camera, between the spots read: in front of it as the rider passes (%s; Lugano 1501 m)', async (_name, e) => {
+    // A 0.5 m panel 8.4 m out, 30.2-30.7 m along the road, 5 m tall, its
+    // front to the camera and its back to the road: the reads from the bars
+    // see its back and pass it; the camera 9 m out would film its front.
+    const x0 = 8.4 * e;
+    const front = e === 1 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
+    const panel = tile([primitive([x0, 30.2, 0, x0, 30.7, 0, x0, 30.7, 5, x0, 30.2, 5], front)], { e: x0, n: 30.45, u: 2.5, r: 2.6 });
     const { scene } = await world(() => 0, { extra: [panel] });
+    // The pose on that side (the painted road's corridor rule picks it; here unpainted).
+    const pose = computeCameraPose('sideTracking', RIDER, 0, undefined, { points: [], riderDistanceM: 100, preferredSide: e });
+    expect(Math.sign(pose.offsetENU.x)).toBe(e);
     const sight = createSideCamSight();
     const ride: Array<[number, number]> = [];
     for (let f = 0; f <= 60 * 8; f++) {
       const n = (8 * f) / 60;
-      const p = placeSideCam(input(scene, sight, { lat: LAT + n / M_LAT, distanceM: n, nowMs: f * (1000 / 60), speed: 8 }));
-      ride.push([n, p.offsetENU.x]);
+      const p = placeSideCam(input(scene, sight, { pose, lat: LAT + n / M_LAT, distanceM: n, nowMs: f * (1000 / 60), speed: 8 }));
+      ride.push([n, p.offsetENU.x * e]);
     }
     // Before it: the full offset. The reads never saw it.
     for (const [n, x] of ride) if (n < 30) expect(x).toBeCloseTo(SIDE_TRACK_OFFSET_M, 6);
@@ -600,16 +605,19 @@ describe('placeSideCam (segment casts)', () => {
     expect(ride.find(([n]) => n > 31)![1]).toBeLessThan(8.1);
     expect(ride[ride.length - 1][1]).toBeGreaterThan(SIDE_TRACK_OFFSET_M - 0.1);
     expect(sight.debug().guards).toBe(held.length);
-    // The guard's casts run beside the rider: from the bars to the camera, and on out while it eases back.
+    // The guard's casts run beside the rider, on its side: from the bars (1 m up) to the camera
+    // (3.2 m up), and from the camera on out while it eases back.
     const g = guardCasts();
     expect(g.length).toBeGreaterThan(ride.length);
     for (const [a, b] of g) {
       expect(a.n).toBeCloseTo(b.n, 4);
+      expect(a.u).toBeCloseTo(Math.abs(a.e) < 1e-3 ? 1 : SIDE_TRACK_UP_M, 2);
       expect(b.u).toBeCloseTo(SIDE_TRACK_UP_M, 2);
+      expect(Math.sign(b.e)).toBe(e);
     }
     // Culled as the reads are, the panel is not on the line: the guard casts are of either facing.
-    expect(meshSegmentHit(scene, point(0, 30.4, 1), point(9, 30.4, SIDE_TRACK_UP_M))).toBeUndefined();
-    expect(meshSegmentHit(scene, point(0, 30.4, 1), point(9, 30.4, SIDE_TRACK_UP_M), true)).toBeCloseTo(8.4 / 9, 6);
+    expect(meshSegmentHit(scene, point(0, 30.4, 1), point(9 * e, 30.4, SIDE_TRACK_UP_M))).toBeUndefined();
+    expect(meshSegmentHit(scene, point(0, 30.4, 1), point(9 * e, 30.4, SIDE_TRACK_UP_M), true)).toBeCloseTo(8.4 / 9, 6);
   });
 });
 
