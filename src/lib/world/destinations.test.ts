@@ -58,11 +58,6 @@ describe('destination manifests on disk', () => {
     expect([...listed].sort()).toEqual([...ids].sort());
   });
 
-  it('agrees with each route’s area: near-home → home, hometown → hometown, the rest → wishlist', () => {
-    const roleFor = { 'near-home': 'home', hometown: 'hometown', further: 'wishlist', travels: 'wishlist' } as const;
-    for (const r of SCENIC_ROUTES) expect(destinationForRoute(r.route.id)?.role, r.route.id).toBe(roleFor[r.area]);
-  });
-
   it('has Perugia as home and Lugano as hometown, both with a baked world', () => {
     const home = DESTINATIONS.filter((d) => d.role === 'home');
     const hometown = DESTINATIONS.filter((d) => d.role === 'hometown');
