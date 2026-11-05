@@ -549,6 +549,11 @@ export function clearMeshTopReads(): void {
   meshTopReads?.clear();
 }
 
+/** Hits, copies, bytes and entries of the sight's tile geometry cache, for probes (null: no cache). */
+export function meshTopReadStats(): ReturnType<TileReadCache['stats']> | null {
+  return meshTopReads ? meshTopReads.stats() : null;
+}
+
 /**
  * Top of the shown photoreal mesh at lon/lat (highest of the shown photoreal
  * tilesets), intersected on the CPU against the rendered tiles

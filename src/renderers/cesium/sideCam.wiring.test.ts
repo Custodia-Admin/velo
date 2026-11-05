@@ -74,5 +74,6 @@ describe('CesiumWorldView places the side camera with sight of the rider', () =>
   it('starts the sight state over on a mode change, and shows it to probes', () => {
     expect(SRC).toMatch(/lastCamModeRef\.current = currentMode;\s*sideCamSightRef\.current\.reset\(\);/);
     expect(SRC).toContain('sideCam: sideCamSightRef.current.debug(),');
+    expect(SRC).toContain('sideCamTileReads: meshTopReadStats(),');
   });
 });

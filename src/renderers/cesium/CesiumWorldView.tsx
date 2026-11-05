@@ -30,6 +30,7 @@ import {
   hasIonToken,
   julianDateForMood,
   liftAboveTerrain,
+  meshTopReadStats,
   MOODS,
   moodForRoute,
   resetFollowCam,
@@ -1178,6 +1179,7 @@ export function CesiumWorldView({
             // Side / orbit camera sight (lib/sideCamSight): side, eased offset
             // fraction, whether a clear spot was found, cuts and tile reads.
             sideCam: sideCamSightRef.current.debug(),
+            sideCamTileReads: meshTopReadStats(),
             dist: state.distance,
             riderLonLat: [riderLon, riderLat],
             startGround: startGroundRef.current?.debug() ?? null,
