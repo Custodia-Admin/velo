@@ -517,14 +517,21 @@ const LANDMARK_LINE = `(() => {
   const dist = line.querySelector('[data-testid="landmark-distance"]');
   const pause = bar.querySelector('button');
   const box = (e) => { const b = e.getBoundingClientRect(); return { x: b.x, r: b.right, h: b.height }; };
+  const real = line.textContent;
   const nums = [...bar.querySelectorAll('.num')];
   const swap = [...nums, ...(name ? [name] : [])].map((e) => [...e.childNodes].find((n) => n.nodeType === 3));
   const was = swap.map((n) => n && n.nodeValue);
   ['1:18:05', '42.2', '-12.5'].forEach((t, i) => { if (swap[i]) swap[i].nodeValue = t; });
   if (name && swap[nums.length]) swap[nums.length].nodeValue = 'Basilica di Santa Maria degli Angeli';
+  // The space between name and distance is drawn (it leads the distance part, so it must not collapse).
+  const lead = dist && [...dist.childNodes].find((n) => n.nodeType === 3);
+  let spaceW = 0;
+  if (lead && lead.nodeValue.startsWith(' ')) { const rg = d.createRange(); rg.setStart(lead, 0); rg.setEnd(lead, 1); spaceW = rg.getBoundingClientRect().width; }
   const out = {
     inner: [w.innerWidth, w.innerHeight],
+    real,
     text: line.textContent,
+    spaceW,
     dist: dist ? { text: dist.textContent, scrollW: dist.scrollWidth, clientW: dist.clientWidth, ...box(dist) } : null,
     name: name ? { scrollW: name.scrollWidth, clientW: name.clientWidth, ...box(name) } : null,
     line: box(line),
@@ -537,7 +544,9 @@ const LANDMARK_LINE = `(() => {
 
 interface LandmarkLine {
   inner: [number, number];
+  real: string;
   text: string;
+  spaceW: number;
   dist: { text: string; scrollW: number; clientW: number; x: number; r: number; h: number } | null;
   name: { scrollW: number; clientW: number; x: number; r: number; h: number } | null;
   line: { x: number; r: number; h: number };
@@ -566,10 +575,11 @@ async function landmarkLineAtWidth(browser: Cdp, page: Tab, windowId: number, wi
   expect(dist.r, at).toBeLessThanOrEqual(line.r + 0.5);
   expect(dist.r, at).toBeLessThanOrEqual(bar.r);
   if (pause) expect(dist.r, at).toBeLessThanOrEqual(pause.x);
+  expect(g!.spaceW, at).toBeGreaterThan(1);
   // The long name is what shortens, and the bar still fits.
   expect(name.scrollW, at).toBeGreaterThan(name.clientW);
   expect(bar.scrollW, at).toBeLessThanOrEqual(bar.clientW);
-  console.info(`show-mode landmark: window ${g!.inner.join('x')}: name ${name.clientW}/${name.scrollW} px, distance "${dist.text.trim()}" ${dist.clientW} px whole`);
+  console.info(`show-mode landmark: window ${g!.inner.join('x')}: "${g!.real}"; staged "${g!.text}": name ${name.clientW}/${name.scrollW} px, distance "${dist.text.trim()}" ${dist.clientW} px whole`);
 }
 
 /** The floating window's geometry, read from the tab (the window shares its event loop). */

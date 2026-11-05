@@ -124,9 +124,12 @@ file picker (at most Chrome's one-line permission prompt).
 Repeat with several files chosen one by one (not a folder). Velo asks
 Chrome about each file in turn, and only the first ask is sure to have the
 click's user activation. If Chrome's restore prompt doesn't cover them all,
-the later files are refused: the chooser then says "Chrome didn’t allow
-Velo to open last time’s videos" with Choose videos as its one action (or
-plays the ones it could open). Record which of the two happened.
+the later files are refused. Velo then plays the episode it would have
+played with every file allowed, if that one opened; otherwise the chooser
+says "Chrome didn’t allow Velo to open last time’s videos" with Choose
+videos as its one action. It never skips past a refused episode, and never
+says "watched everything" while one was refused (review of PR #36 @61defbb,
+F1). Record which of the two happened.
 
 When Continue can't carry on, the chooser says why in one sentence and
 makes the matching pick its one filled button (`continueFailureText` in
@@ -135,6 +138,6 @@ ShowPanel.tsx, reasons from `continueLastShow`):
 | Reason | When | Sentence starts |
 | --- | --- | --- |
 | `none` | nothing remembered, or the browser's storage can't be read | "Velo can’t reopen last time’s videos on this device." |
-| `denied` | Chrome refused access (prompt declined, or no click to ask with) | "Chrome didn’t allow Velo to open…" |
+| `denied` | Chrome refused access (prompt declined, or no click to ask with): to everything, to the episode to carry on with, or to some files once the rest were watched | "Chrome didn’t allow Velo to open…" |
 | `missing` | the files or the folder moved, were deleted, or hold no video | "Last time’s videos have moved…" / "The folder … has moved…" |
-| `done` | every video was watched to the end | "You have watched everything from last time." |
+| `done` | every video was watched to the end, and Chrome allowed them all | "You have watched everything from last time." |
