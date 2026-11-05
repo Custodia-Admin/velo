@@ -54,6 +54,24 @@ describe('picking videos (File System Access)', () => {
     expect(h.rememberHandles).not.toHaveBeenCalled();
   });
 
+  // Review of PR #48 @dfd7071, N1: Chrome's picker keeps "All files", and a
+  // remembered subtitle that Chrome later refuses blocked Continue.
+  it('remembers only the videos of a pick that also holds a subtitle', async () => {
+    const a = video('Show S01E01.mp4');
+    const srt = new File(['1'], 'Show S01E01.srt', { type: 'text/plain' });
+    const b = video('Show S01E02.mp4');
+    h.handles = [a, srt, b].map((f) => ({ name: f.name, getFile: async () => f }));
+    expect(await pickVideos()).toEqual([a, b]);
+    expect(h.rememberHandles).toHaveBeenCalledWith([h.handles[0], h.handles[2]]);
+  });
+
+  it('a pick with no video keeps last time\'s library', async () => {
+    const srt = new File(['1'], 'Show S01E01.srt', { type: 'text/plain' });
+    h.handles = [{ name: srt.name, getFile: async () => srt }];
+    expect(await pickVideos()).toEqual([]);
+    expect(h.rememberHandles).not.toHaveBeenCalled();
+  });
+
   it('remembers a picked folder, and returns its videos', async () => {
     h.dir = { name: 'Show S01' };
     h.folderFiles = [video('Show S01E01.mp4')];

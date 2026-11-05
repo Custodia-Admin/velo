@@ -59,6 +59,11 @@ another tab (Netflix, YouTube, anything) or another app on the TV
   the size picker and "Back to the Velo tab". The window scales its own type
   with its width (`html[data-surface='pip']` in `index.css`: 16 px at a 480 px
   corner, 22 px at half). Problems (trainer lost, …) show as one chip.
+- The next landmark line never cuts a word at its edge (`NextLandmark`).
+  When it is narrow, the place name shortens, then goes ("⚑ in 6.5 km"),
+  then the flag goes, then the line shows nothing. The distance is whole
+  whenever it shows. At the widest figures (1:18:05, 42.2 km, −12.5 %) the
+  640 px window leaves 79–111 px for the line (review of PR #48 @dfd7071).
 - The bar covers a quarter of a small window, so the window tells the world
   view how much it covers (`data-hud-bottom`) and the camera shifts its lens
   by half of that (`lib/world/hudLens`): the rider sits in the clear part
@@ -128,13 +133,18 @@ file picker (at most Chrome's one-line permission prompt).
 
 Repeat with several files chosen one by one (not a folder). Velo asks
 Chrome about each file in turn, and only the first ask is sure to have the
-click's user activation. If Chrome's restore prompt doesn't cover them all,
-the later files are refused. Velo then plays the episode it would have
-played with every file allowed, if that one opened; otherwise the chooser
-says "Chrome didn’t allow Velo to open last time’s videos" with Choose
-videos as its one action. It never skips past a refused episode, and never
-says "watched everything" while one was refused (review of PR #36 @61defbb,
-F1). Record which of the two happened.
+click's user activation, so it asks first about the episode it plans to
+start (worked out from the file names, last time's video and the saved
+positions), then the rest (review of PR #48 @dfd7071). If Chrome's restore
+prompt doesn't cover them all, the later files are refused. Velo then plays
+the episode it would have played with every file allowed, if that one
+opened; otherwise the chooser says "Chrome didn’t allow Velo to open last
+time’s videos" with Choose videos as its one action. It never skips past a
+refused episode, and never says "watched everything" while one was refused
+(review of PR #36 @61defbb, F1). Only videos count: a pick remembers only
+its videos, and a subtitle Chrome refuses (picked with "All files" before
+that) never blocks Continue (review of PR #48 @dfd7071, N1). Record which of
+the two happened.
 
 When Continue can't carry on, the chooser says why in one sentence and
 makes the matching pick its one filled button (`continueFailureText` in

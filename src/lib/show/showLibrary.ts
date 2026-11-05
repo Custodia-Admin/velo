@@ -48,7 +48,15 @@ export function sortForPlayback<T extends { name: string }>(files: readonly T[])
 
 export function isVideoFile(file: { name: string; type: string }): boolean {
   if (file.type.startsWith('video/')) return true;
-  return /\.(mp4|m4v|webm|mkv|mov|ogv)$/i.test(file.name);
+  return isVideoName(file.name);
+}
+
+/**
+ * A video by its name alone (the extensions the picker offers). For a file
+ * Chrome refused to open: only its name is known, no type.
+ */
+export function isVideoName(name: string): boolean {
+  return /\.(mp4|m4v|webm|mkv|mov|ogv)$/i.test(name);
 }
 
 export interface ResumeEntry {
@@ -427,7 +435,7 @@ export interface LibraryRead {
    */
   denied: boolean;
   /**
-   * The names of the remembered files Chrome refused (a set of files; a
+   * The names of the remembered videos Chrome refused (a set of files; a
    * refused folder has none to give). Only the name is known: a refused file
    * can't be read, so it has no size. Absent when the reader can't tell.
    */
@@ -458,7 +466,10 @@ export async function readLibrary(lib: RememberedLibrary, { ask }: { ask: boolea
   const refused: string[] = [];
   for (const h of lib.handles) {
     if (!(await allowed(h, { ask }))) {
-      refused.push(h.name);
+      // Only a refused video counts. A subtitle or any other file picked with
+      // Chrome's "All files" never plays, so refusing it must not block
+      // Continue (review of PR #48 @dfd7071, N1).
+      if (isVideoName(h.name)) refused.push(h.name);
       continue;
     }
     try {

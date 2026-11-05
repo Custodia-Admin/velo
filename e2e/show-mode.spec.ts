@@ -503,65 +503,152 @@ test('the ride floats in a picture-in-picture window and keeps riding and record
 
 /**
  * The bar's next-landmark line, read from the tab with figures and text staged
- * for one synchronous layout (then restored):
- * - 'hours': 1:18:05 on the clock and a long place name. The name is the part
- *   that shortens; the distance stays whole, on one line, inside the line and
- *   clear of Pause. The 640 px window used to show "Bastia Umbra in 6…".
- * - 'widest': also the widest distance and grade (42.2 km, -12.5 %) and a long
- *   climb distance ("· 12.5 km to the top"): no room for it, so the line clips
- *   at its own edge, never under Pause or out of the bar.
+ * for one synchronous layout at a time (then restored). Every part (flag,
+ * name, separator, distance) is measured against the boxes that clip it:
+ * whole, out of sight, or CUT (part of it clipped: the defect). The rungs
+ * (NextLandmark): 1 flag + name + distance, 2 flag + distance, 3 distance,
+ * 4 nothing; anything else is 'BAD'.
+ * - hours: 1:18:05 on the clock and a long place name. The name shortens; the
+ *   distance stays whole (the 640 px window used to show "Bastia Umbra in 6…").
+ * - widest: also 42.2 km and -12.5 %, with each staged distance. Even a plain
+ *   "in 6.5 km" used to be cut at the line's edge with CI's DejaVu Sans
+ *   (review of PR #48 @dfd7071, N3).
+ * - sweep: the line forced to every width from 420 px down to 0 (long name,
+ *   "in 6.5 km", and a climb's "12.5 km to the top"): never a CUT part, and the
+ *   rungs only step down as the line narrows.
  */
-const LANDMARK_LINE = (mode: 'hours' | 'widest') => `(() => {
+const LANDMARK_LINE = `(() => {
   const w = documentPictureInPicture.window;
   const d = w.document;
   const bar = d.querySelector('[data-testid="journey-bar"]');
   const line = [...bar.querySelectorAll('[data-testid="journey-next"]')].find((e) => e.checkVisibility());
   if (!line) return null;
-  const name = line.querySelector('[data-testid="landmark-name"]');
-  const dist = line.querySelector('[data-testid="landmark-distance"]');
   const pause = bar.querySelector('button');
-  const box = (e) => { const b = e.getBoundingClientRect(); return { x: b.x, r: b.right, h: b.height }; };
-  const real = line.textContent;
+  const q = (id) => line.querySelector('[data-testid="' + id + '"]');
+  // Tolerates #48's markup (no flag/joiner test ids) so a regression fails on what it shows, not on a missing node.
+  const flag = q('landmark-flag') ?? line.querySelector('svg'), name = q('landmark-name'), joiner = q('landmark-joiner'), dist = q('landmark-distance');
+  // The sweep forces the line wider than the bar has room for: there only the line's own clipping counts.
+  let clipTo = bar;
+  const seen = (el) => {
+    if (!el) return 0;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return 0;
+    let x0 = r.left, x1 = r.right, y0 = r.top, y1 = r.bottom;
+    for (let a = el.parentElement; a; a = a.parentElement) {
+      const cs = w.getComputedStyle(a), b = a.getBoundingClientRect();
+      if (cs.overflowX !== 'visible') { x0 = Math.max(x0, b.left); x1 = Math.min(x1, b.right); }
+      if (cs.overflowY !== 'visible') { y0 = Math.max(y0, b.top); y1 = Math.min(y1, b.bottom); }
+      if (a === clipTo) break;
+    }
+    return (Math.max(0, x1 - x0) * Math.max(0, y1 - y0)) / (r.width * r.height);
+  };
+  const st = (el) => { const s = seen(el); return s >= 0.99 ? 'whole' : s <= 0.01 ? 'hidden' : 'CUT'; };
+  const parts = () => {
+    const p = { flag: st(flag), name: st(name), joiner: joiner ? st(joiner) : st(name), dist: st(dist) };
+    const dr = dist.getBoundingClientRect(), lr = line.getBoundingClientRect();
+    p.rung = Object.values(p).includes('CUT') ? 'BAD'
+      : p.name === 'whole' && p.joiner === 'whole' && p.flag === 'whole' && p.dist === 'whole' ? 1
+      : p.name === 'hidden' && p.joiner === 'hidden' && p.flag === 'whole' && p.dist === 'whole' ? 2
+      : p.name === 'hidden' && p.joiner === 'hidden' && p.flag === 'hidden' && p.dist === 'whole' ? 3
+      : p.name === 'hidden' && p.joiner === 'hidden' && p.flag === 'hidden' && p.dist === 'hidden' ? 4 : 'BAD';
+    p.distText = dist.textContent.trim();
+    p.distW = Math.round(dr.width);
+    p.distSelfWhole = dist.scrollWidth <= dist.clientWidth;
+    p.distInLine = p.dist !== 'whole' || (dr.left >= lr.left - 0.5 && dr.right <= lr.right + 0.5);
+    p.clearOfPause = p.dist !== 'whole' || !pause || dr.right <= pause.getBoundingClientRect().left + 0.5;
+    p.nameW = Math.round(name.getBoundingClientRect().width);
+    p.nameShortened = name.scrollHeight > name.clientHeight + 0.5 || name.scrollWidth > name.clientWidth + 0.5;
+    p.joinerW = joiner ? joiner.getBoundingClientRect().width : 0;
+    p.lineW = Math.round(lr.width);
+    p.barFits = bar.scrollWidth <= bar.clientWidth;
+    p.remPx = parseFloat(w.getComputedStyle(d.documentElement).fontSize);
+    return p;
+  };
   const text = (e) => e && [...e.childNodes].find((n) => n.nodeType === 3);
   const nums = [...bar.querySelectorAll('.num')];
-  const staged = ${mode === 'widest'} ? ['1:18:05', '42.2', '-12.5'] : ['1:18:05'];
-  const swaps = [
-    ...staged.map((t, i) => [text(nums[i]), t]),
-    [text(name), 'Basilica di Santa Maria degli Angeli'],
-    ...(${mode === 'widest'} ? [[text(dist), ' · 12.5 km to the top']] : []),
-  ].filter(([n]) => n).map(([n, t]) => [n, n.nodeValue, t]);
-  swaps.forEach(([n, , t]) => { n.nodeValue = t; });
-  // The space between name and distance is drawn (it leads the distance part, so it must not collapse).
-  const lead = text(dist);
-  let spaceW = 0;
-  if (lead && lead.nodeValue.startsWith(' ')) { const rg = d.createRange(); rg.setStart(lead, 0); rg.setEnd(lead, 1); spaceW = rg.getBoundingClientRect().width; }
-  const out = {
-    inner: [w.innerWidth, w.innerHeight],
-    real,
-    text: line.textContent,
-    spaceW,
-    lineClips: w.getComputedStyle(line).overflowX !== 'visible',
-    dist: dist ? { text: dist.textContent, scrollW: dist.scrollWidth, clientW: dist.clientWidth, ...box(dist) } : null,
-    name: name ? { scrollW: name.scrollWidth, clientW: name.clientWidth, ...box(name) } : null,
-    line: box(line),
-    bar: { scrollW: bar.scrollWidth, clientW: bar.clientWidth, ...box(bar) },
-    pause: pause ? box(pause) : null,
+  const swap = (pairs) => {
+    const done = pairs.filter(([n]) => n).map(([n, t]) => [n, n.nodeValue, t]);
+    done.forEach(([n, , t]) => { n.nodeValue = t; });
+    return () => done.forEach(([n, was]) => { n.nodeValue = was; });
   };
-  swaps.forEach(([n, was]) => { n.nodeValue = was; });
-  return out;
+  const LONG = 'Basilica di Santa Maria degli Angeli';
+  const at = (figures, distText, climb, fn) => {
+    const undo = swap([
+      ...figures.map((t, i) => [text(nums[i]), t]),
+      [text(name), LONG],
+      ...(distText ? (joiner ? [[text(dist), distText], [text(joiner), climb ? ' · ' : ' ']] : [[text(dist), (climb ? ' · ' : ' ') + distText]]) : []),
+    ]);
+    try { return fn(); } finally { undo(); }
+  };
+  const WIDEST = ['1:18:05', '42.2', '-12.5'];
+  const sweep = (distText, climb) => at(WIDEST, distText, climb, () => {
+    const rows = [];
+    const was = line.style.flex;
+    clipTo = line;
+    try {
+      for (let px = 420; px >= 0; px -= 2) {
+        line.style.flex = '0 0 ' + px + 'px';
+        const p = parts();
+        const prev = rows[rows.length - 1];
+        if (!prev || prev.rung !== p.rung || p.rung === 'BAD') rows.push({ px, ...p });
+      }
+    } finally { line.style.flex = was; clipTo = bar; }
+    return rows;
+  });
+  return {
+    inner: [w.innerWidth, w.innerHeight],
+    real: line.textContent,
+    now: parts(),
+    hours: at(['1:18:05'], null, false, parts),
+    widest: Object.fromEntries([['in 6.5 km', false], ['in 960 m', false], ['in 12.5 km', false], ['12.5 km to the top', true]].map(([t, c]) => [t, at(WIDEST, t, c, parts)])),
+    sweep: sweep('in 6.5 km', false),
+    sweepClimb: sweep('12.5 km to the top', true),
+  };
 })()`;
+
+interface LandmarkParts {
+  flag: string;
+  name: string;
+  joiner: string;
+  dist: string;
+  rung: 1 | 2 | 3 | 4 | 'BAD';
+  distText: string;
+  distW: number;
+  distSelfWhole: boolean;
+  distInLine: boolean;
+  clearOfPause: boolean;
+  nameW: number;
+  nameShortened: boolean;
+  joinerW: number;
+  lineW: number;
+  barFits: boolean;
+  remPx: number;
+}
 
 interface LandmarkLine {
   inner: [number, number];
   real: string;
-  text: string;
-  spaceW: number;
-  lineClips: boolean;
-  dist: { text: string; scrollW: number; clientW: number; x: number; r: number; h: number } | null;
-  name: { scrollW: number; clientW: number; x: number; r: number; h: number } | null;
-  line: { x: number; r: number; h: number };
-  bar: { scrollW: number; clientW: number; x: number; r: number };
-  pause: { x: number; r: number } | null;
+  now: LandmarkParts;
+  hours: LandmarkParts;
+  widest: Record<string, LandmarkParts>;
+  sweep: (LandmarkParts & { px: number })[];
+  sweepClimb: (LandmarkParts & { px: number })[];
+}
+
+/**
+ * No part cut, the distance whole wherever it shows (inside the line) and, in
+ * the bar as laid out (`inBar`), clear of Pause with the bar fitting.
+ */
+function expectNothingCut(p: LandmarkParts, at: string, inBar = true) {
+  expect(p.rung, at).not.toBe('BAD');
+  expect(p.distSelfWhole, at).toBe(true);
+  expect(p.distInLine, at).toBe(true);
+  if (inBar) {
+    expect(p.clearOfPause, at).toBe(true);
+    expect(p.barFits, at).toBe(true);
+  }
+  // A name that shows keeps at least two characters before its ellipsis (min-w-10, 2.5 rem); less and it goes.
+  if (p.rung === 1) expect(p.nameW, at).toBeGreaterThanOrEqual(2.5 * p.remPx - 0.5);
 }
 
 /** Size the floating window (as a window manager would) and check the bar's landmark line there. */
@@ -573,38 +660,46 @@ async function landmarkLineAtWidth(browser: Cdp, page: Tab, windowId: number, wi
   await browser.send('Browser.setWindowBounds', { windowId, bounds: { width: width + (width - iw), height: height + (height - ih) } });
   await poll(inner, ([w]) => w >= width, 5_000, `the window at ${width} px`);
   // From sm (640 px) the line sits in the bar; it needs a named place ahead on the route.
-  const g = (await poll(() => page.eval<LandmarkLine | null>(LANDMARK_LINE('hours')), (v) => !!v, 30_000, 'the next landmark in the bar'))!;
-  const at = `window ${g.inner.join('x')}, 1:18:05 + a long name: ${JSON.stringify(g)}`;
-  expect(g.dist, at).not.toBeNull();
-  expect(g.name, at).not.toBeNull();
-  const dist = g.dist!;
-  const name = g.name!;
-  expect(dist.text, at).toMatch(/^ (in [\d.]+ (m|km|mi)|· [\d.]+ (m|km|mi) to the top)$/);
-  // One line, read once: the place, then its distance (not repeated inside the name).
-  expect(g.real.split(dist.text.trim()).length - 1, at).toBe(1);
-  expect(g.real.endsWith(dist.text), at).toBe(true);
-  // The distance is whole: not clipped in itself, on one line, inside its line and left of Pause.
-  expect(dist.scrollW, at).toBeLessThanOrEqual(dist.clientW);
-  expect(dist.h, at).toBeLessThanOrEqual(name.h + 1);
-  expect(dist.r, at).toBeLessThanOrEqual(g.line.r + 0.5);
-  expect(dist.r, at).toBeLessThanOrEqual(g.bar.r);
-  if (g.pause) expect(dist.r, at).toBeLessThanOrEqual(g.pause.x);
-  expect(g.spaceW, at).toBeGreaterThan(1);
-  // The long name is what shortens, and the bar still fits.
-  expect(name.scrollW, at).toBeGreaterThan(name.clientW);
-  expect(g.bar.scrollW, at).toBeLessThanOrEqual(g.bar.clientW);
-  console.info(`show-mode landmark: window ${g.inner.join('x')}: "${g.real}"; at 1:18:05 with "${g.text}": name ${name.clientW}/${name.scrollW} px, distance "${dist.text.trim()}" ${dist.clientW} px whole`);
+  const g = (await poll(() => page.eval<LandmarkLine | null>(LANDMARK_LINE), (v) => !!v, 30_000, 'the next landmark in the bar'))!;
+  const where = `window ${g.inner.join('x')}`;
 
-  // No room even for the distance: the line clips at its edge; nothing is drawn under Pause.
-  const x = (await page.eval<LandmarkLine | null>(LANDMARK_LINE('widest')))!;
-  const xat = `window ${x.inner.join('x')}, widest figures + a long climb distance: ${JSON.stringify(x)}`;
-  const drawnTo = x.lineClips ? Math.min(x.dist!.r, x.line.r) : x.dist!.r;
-  if (x.pause) {
-    expect(drawnTo, xat).toBeLessThanOrEqual(x.pause.x);
-    expect(x.pause.r, xat).toBeLessThanOrEqual(x.bar.r);
+  // The real line: one sentence, read once (the place, then its distance), all of it showing.
+  expect(g.now.distText, `${where}: ${JSON.stringify(g.now)}`).toMatch(/^(in [\d.]+ (m|km|mi)|[\d.]+ (m|km|mi) to the top)$/);
+  expect(g.real.split(g.now.distText).length - 1, where).toBe(1);
+  expect(g.real.endsWith(g.now.distText), where).toBe(true);
+
+  // 1:18:05 and a long name: the distance is whole and the flag shows. The name shortens, or
+  // goes when it would keep less than two characters (DejaVu Sans at 640 px: the line is
+  // 124-137 px and "in 960 m" 70 px, so the name drops).
+  const h = g.hours;
+  const hat = `${where}, 1:18:05 + a long name: ${JSON.stringify(h)}`;
+  expectNothingCut(h, hat);
+  expect([1, 2], hat).toContain(h.rung);
+  if (h.rung === 1) {
+    expect(h.nameShortened, hat).toBe(true);
+    expect(h.joinerW, hat).toBeGreaterThan(1);
   }
-  expect(x.bar.scrollW, xat).toBeLessThanOrEqual(x.bar.clientW);
-  console.info(`show-mode landmark: window ${x.inner.join('x')} at the widest: line ${Math.round(x.line.r - x.line.x)} px, distance ${x.dist!.clientW} px, drawn to ${Math.round(drawnTo)} (Pause at ${Math.round(x.pause?.x ?? 0)})`);
+  console.info(`show-mode landmark: ${where}: "${g.real}"; at 1:18:05 with a long name: rung ${h.rung}, name ${h.rung === 1 ? `${h.nameW} px (shortened)` : 'dropped'}, distance "${h.distText}" ${h.distW} px whole, line ${h.lineW} px`);
+
+  // The widest figures: whatever the distance, nothing is cut; a plain "in 6.5 km" shows whole.
+  for (const [distText, p] of Object.entries(g.widest)) {
+    const at = `${where}, widest figures + "${distText}": ${JSON.stringify(p)}`;
+    expectNothingCut(p, at);
+    console.info(`show-mode landmark: ${where} at the widest, "${distText}": rung ${p.rung} (line ${p.lineW} px, distance ${p.distW} px)`);
+  }
+  const plain = g.widest['in 6.5 km'];
+  expect(plain.dist, `${where}, widest figures + "in 6.5 km": ${JSON.stringify(plain)}`).toBe('whole');
+
+  // Every width from 420 px to 0: never a cut part, and the line only gives things up as it narrows.
+  for (const [label, rows] of [['in 6.5 km', g.sweep], ['12.5 km to the top', g.sweepClimb]] as const) {
+    const sat = `${where}, line forced 420 → 0 px with "${label}": ${JSON.stringify(rows.map((r) => [r.px, r.rung]))}`;
+    for (const r of rows) expectNothingCut(r, `${sat} at ${r.px} px: ${JSON.stringify(r)}`, false);
+    const rungs = rows.map((r) => r.rung as number);
+    expect(rungs[0], sat).toBe(1);
+    expect(rungs.at(-1), sat).toBe(4);
+    for (let i = 1; i < rungs.length; i++) expect(rungs[i], sat).toBeGreaterThan(rungs[i - 1]);
+    console.info(`show-mode landmark: ${where}, "${label}" by line width: ${rows.map((r) => `rung ${r.rung} from ${r.px} px`).join(', ')}`);
+  }
 }
 
 /** The floating window's geometry, read from the tab (the window shares its event loop). */
