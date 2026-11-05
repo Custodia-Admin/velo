@@ -500,6 +500,12 @@ describe('RideSetupWizard — the route step (search, generate, scenic pick)', (
     const view = mount();
     expect(view().generator).toBeNull();
     h.geocode.mockResolvedValue([COUNTY, CITY, KYOTO]);
+    // Typing is debounced (Nominatim's one-request-a-second policy): a pause shorter
+    // than the debounce between keystrokes asks nothing yet.
+    view().search.onChange({ target: { value: 'Pe' } });
+    view();
+    await new Promise((r) => setTimeout(r, 150));
+    expect(h.geocode).not.toHaveBeenCalled();
     view().search.onChange({ target: { value: 'Perugia' } });
     expect(view().search.value).toBe('Perugia');
     await vi.waitFor(() => expect(view().results).toHaveLength(3));
