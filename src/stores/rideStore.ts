@@ -199,7 +199,7 @@ interface RideStoreState {
   /**
    * The power target most recently sent to the trainer in ERG mode, watts.
    * null when not in ERG mode or no target has been set yet.
-   * Read by ConnectionStatus / TrainerConnect to show current target in the HUD.
+   * Read by the ride chip and the Devices trainer row to show the current target.
    */
   targetPowerW: number | null;
 
