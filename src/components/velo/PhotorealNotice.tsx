@@ -36,15 +36,16 @@ export const UPGRADE_DISMISS_KEY = 'globeride.noTokenBannerDismissedAt';
 export const FALLBACK_DISMISS_KEY = 'globeride.imageryFallbackBannerDismissedAt';
 
 /**
- * The notice copy: one short line on every viewport. At 390 the pill must stay
- * one line and about 300 px wide, so the band (10.9 % of the screen) plus the
- * pill stays under the owner's 15 % ride-UI budget; on sm+ the pill sits at
- * the band's right end, clear of the chase-camera rider in the middle (a
- * longer line reached the rider's wheels at 1440).
+ * The notice copy: one short line on every viewport, naming the Settings
+ * section the tap opens ("Photoreal Earth (Cesium ion)"). At 390 the pill
+ * must stay one line and about 300 px wide, so the band (10.9 % of the
+ * screen) plus the pill stays under the owner's 15 % ride-UI budget; on sm+
+ * the pill sits at the band's right end, clear of the chase-camera rider in
+ * the middle (a longer line reached the rider's wheels at 1440).
  */
 export const NOTICE_COPY = {
   upgrade: {
-    line: 'Add a free token for photoreal',
+    line: 'Free token for photoreal Earth',
     aria: 'Add a free Cesium ion token for photoreal Earth. Opens Settings.',
     dismiss: 'Dismiss photoreal upgrade banner',
   },

@@ -177,7 +177,7 @@ test('a route outside every baked world rides photoreal (OSM fallback with no to
   await expect(view).toHaveAttribute('data-renderer-preferred', 'world');
   await expect(view).toHaveAttribute('data-renderer', 'photoreal');
   // The photoreal ride still offers the token upgrade.
-  await expect(page.getByText('Add a free token for photoreal').first()).toBeVisible();
+  await expect(page.getByText('Free token for photoreal Earth').first()).toBeVisible();
   await expect
     .poll(async () => Number(((await hudNumbers(page)).speed ?? '').match(/[\d.]+/)?.[0] ?? 0), { timeout: 60_000 })
     .toBeGreaterThan(5);

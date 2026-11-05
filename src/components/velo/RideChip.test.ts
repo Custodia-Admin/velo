@@ -286,7 +286,7 @@ describe('RideChip in show mode (alertsOnly)', () => {
 });
 
 describe('RideChip with an aside: the chip lane (photoreal notice, card t_375b203d)', () => {
-  const ASIDE = createElement('span', { 'data-testid': 'aside' }, 'Add a free token for photoreal');
+  const ASIDE = createElement('span', { 'data-testid': 'aside' }, 'Free token for photoreal Earth');
 
   interface RenderedLane {
     className: string;

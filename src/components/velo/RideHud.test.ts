@@ -111,7 +111,7 @@ describe('RideHud', () => {
     expect(pill).toContain('h-10');
     expect(pill).toContain('hud-surface');
     expect(pill).not.toMatch(/\b(absolute|fixed)\b/);
-    expect(html).toContain('Add a free token for photoreal');
+    expect(html).toContain('Free token for photoreal Earth');
     expect(html).toContain('aria-label="Dismiss photoreal upgrade banner"');
     expect(html).not.toContain('ride-banner-float');
   });

@@ -173,7 +173,7 @@ type SettingsTab = NonNullable<Parameters<typeof SettingsPanel>[0]['initialTab']
 
 /**
  * The ride's Settings sheet for the app-wide 'globeride:open-settings' event
- * (the photoreal notice's "Add a free token for photoreal" opens it on the
+ * (the photoreal notice's "Free token for photoreal Earth" opens it on the
  * Visual tab, where the ion token goes). RideHud mounts it beside its
  * column, so it listens while the HUD is collapsed too: the options menu
  * below lives in the ride details and is mounted only while they are open,
