@@ -150,12 +150,17 @@ describe('ride auto-start: the start hold is wired in', () => {
     expect(running()).toBe(true);
   });
 
-  it("an idle store (the wizard's setRoute landed first) is moved to ready and started", () => {
-    useRideStore.setState({ rideState: 'idle' });
+  it("an idle store (the wizard's setRoute landed first) is re-set to the route's start, then started", () => {
+    // rideFsm lets START leave 'idle' directly, so reaching 'running' alone doesn't show the
+    // re-set; numbers left in the store do: the ride must start from 0 m, 0:00.
+    useRideStore.setState({ rideState: 'idle', distance: 1_234, elapsedMs: 99_000 });
     expect(useRideStore.getState().route).toBe(route);
     AutoStartHost({ worldRenderer: renderer(() => true) });
     vi.advanceTimersByTime(START_DELAY_MS);
-    expect(useRideStore.getState().rideState).toBe('running');
+    const s = useRideStore.getState();
+    expect(s.rideState).toBe('running');
+    expect(s.distance).toBe(0);
+    expect(s.elapsedMs).toBe(0);
   });
 
   it('a renderer with nothing to stream starts after the short beat', () => {
