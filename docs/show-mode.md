@@ -59,6 +59,11 @@ another tab (Netflix, YouTube, anything) or another app on the TV
   the size picker and "Back to the Velo tab". The window scales its own type
   with its width (`html[data-surface='pip']` in `index.css`: 16 px at a 480 px
   corner, 22 px at half). Problems (trainer lost, …) show as one chip.
+- The next landmark line never cuts a word at its edge (`NextLandmark`).
+  When it is narrow, the place name shortens, then goes ("⚑ in 6.5 km"),
+  then the flag goes, then the line shows nothing. The distance is whole
+  whenever it shows. At the widest figures (1:18:05, 42.2 km, −12.5 %) the
+  640 px window leaves 79–111 px for the line (review of PR #48 @dfd7071).
 - The bar covers a quarter of a small window, so the window tells the world
   view how much it covers (`data-hud-bottom`) and the camera shifts its lens
   by half of that (`lib/world/hudLens`): the rider sits in the clear part
