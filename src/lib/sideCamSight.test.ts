@@ -488,6 +488,35 @@ describe('createSideCamSight: one tile read a frame', () => {
     expect(c.sight.debug().pending).toBe(false);
   });
 
+  it('at 15 fps a ten-read refresh outlasts the refresh interval and still finishes (it is not restarted)', () => {
+    const world: World = { right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) };
+    const sight = createSideCamSight();
+    let reads = 0;
+    const sides: number[] = [];
+    for (let f = 0; f < 12; f++) {
+      const t = (f * 1000) / 15;
+      const dist = (f * 8) / 15;
+      const p = sight.update({
+        nowMs: t,
+        dt: 1 / 15,
+        distanceM: dist,
+        side: 1,
+        baseM: BASE,
+        upM: UP,
+        allowSwitch: true,
+        topAt: (side, x, ahead) => {
+          reads++;
+          return side === 1 ? world.right(x, dist + ahead) : world.left(x, dist + ahead);
+        },
+      });
+      sides.push(p.side);
+    }
+    // 667 ms for the ten reads, past the 400 ms refresh interval: the cut on the tenth frame.
+    expect(sides.indexOf(-1)).toBe(9);
+    expect(reads).toBeGreaterThanOrEqual(10);
+    expect(sight.cuts()).toBe(1);
+  });
+
   it('riding past walls, hedges and open ground for 30 s: at most one read in any frame', () => {
     const slope = profile(LUGANO.d193.cam);
     const bank = profile(LUGANO.d1888.cam);
