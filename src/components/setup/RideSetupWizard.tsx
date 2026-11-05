@@ -429,14 +429,14 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
             <ul
               aria-label="Places found"
               data-search-results
-              className="absolute z-30 mt-1 max-h-72 w-full divide-y divide-border overflow-auto rounded-lg border border-border bg-card shadow-md"
+              className="absolute z-30 mt-1 max-h-72 w-full divide-y divide-border overflow-auto rounded-lg border border-border bg-card shadow-lg dark:border-foreground/15 dark:bg-muted"
             >
               {results.map((r) => (
                 <li key={r.placeId}>
                   <button
                     type="button"
                     onClick={() => onPlaceSelect(r)}
-                    className="flex min-h-12 w-full items-start gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/60 focus-visible:bg-muted/60"
+                    className="flex min-h-12 w-full items-start gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-foreground/5 focus-visible:bg-foreground/5"
                   >
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
                     <span className="flex min-w-0 flex-col">
