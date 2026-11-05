@@ -227,7 +227,7 @@ export interface ChipNotice {
 }
 
 /** What tapping the chip does. */
-export type RideChipAction = 'reconnectTrainer' | 'notice' | 'devices';
+export type RideChipAction = 'reconnectTrainer' | 'reloadWorld' | 'notice' | 'devices';
 
 export interface RideChipView extends ChipView {
   action: RideChipAction;
@@ -241,7 +241,18 @@ export interface RideChipInput extends ChipInput {
   controls: ControlsPhase;
   heartRate: SensorStatus;
   notice: ChipNotice | null;
+  /** The 3D view lost its WebGL context and is frozen (stores/worldViewStore). */
+  worldStopped: boolean;
 }
+
+/**
+ * The 3D view stopped (WebGL context lost): one tap remounts it. The ride
+ * itself never stopped. Short like "Trainer lost · tap to reconnect": the
+ * card's longer "The 3D view stopped · tap to reload the view" took the
+ * phone HUD past its 15 % budget (15.1 %) and would not fit the floating
+ * window's corner size; the screen-reader sentence says it in full.
+ */
+export const WORLD_STOPPED_LABEL = '3D view stopped · tap to reload';
 
 const CONTROLS_ALERT: Partial<Record<ControlsPhase, string>> = {
   rightSide: 'Controls: right unit paired',
@@ -252,7 +263,8 @@ const CONTROLS_ALERT: Partial<Record<ControlsPhase, string>> = {
 };
 
 /**
- * The chip, worst problem first: a lost or failing trainer, then handlebar
+ * The chip, worst problem first: a lost or failing trainer, then a frozen
+ * 3D view (WebGL context lost), then handlebar
  * controls that cannot deliver presses, then a dropped heart-rate strap,
  * then a passing notice (a toast, a few seconds), else the calm status
  * ("KICKR CORE · hills 35 %", "Demo ride · no trainer").
@@ -290,6 +302,20 @@ export function rideChip(i: RideChipInput): RideChipView {
 
   const base = statusChip(i);
   if (base.alert) return { ...base, action: 'devices' };
+
+  // The world froze (GPU reset, driver update, the browser's context cap)
+  // while the ride, the HUD and the recording carry on. Second only to the
+  // trainer: the rider sees it at once and the fix is one tap.
+  if (i.worldStopped) {
+    return {
+      label: WORLD_STOPPED_LABEL,
+      aria: 'The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.',
+      tone: 'warn',
+      pulse: false,
+      alert: true,
+      action: 'reloadWorld',
+    };
+  }
 
   const controls = CONTROLS_ALERT[i.controls];
   if (controls) {
@@ -340,19 +366,26 @@ export interface TappableNotice {
 /** What a chip tap can do to the app (RideChip passes the real ones). */
 export interface ChipTapEffects {
   reconnectTrainer: () => void;
+  /** Remount the world view's canvas on a fresh WebGL context. */
+  reloadWorld: () => void;
   dismissNotice: (id: string) => void;
   toggleDevices: () => void;
 }
 
 /**
  * One tap on the chip: "Trainer lost · tap to reconnect" reconnects the
- * granted trainer; a notice with an action runs it and dismisses that
+ * granted trainer; "The 3D view stopped · tap to reload the view" remounts
+ * the world view; a notice with an action runs it and dismisses that
  * toast; anything else opens or closes the devices sheet. Returns what it did.
  */
 export function chipTap(action: RideChipAction, notice: TappableNotice | null, fx: ChipTapEffects): RideChipAction {
   if (action === 'reconnectTrainer') {
     fx.reconnectTrainer();
     return 'reconnectTrainer';
+  }
+  if (action === 'reloadWorld') {
+    fx.reloadWorld();
+    return 'reloadWorld';
   }
   if (action === 'notice' && notice?.run) {
     notice.run();

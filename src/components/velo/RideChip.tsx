@@ -6,7 +6,9 @@
  * large red box: details live on the devices sheet the chip opens.
  *
  * Tapping it (`chipTap`, rideHudText.ts): "Trainer lost · tap to reconnect"
- * reconnects the granted trainer (the Devices row's own action); a notice
+ * reconnects the granted trainer (the Devices row's own action); "The 3D
+ * view stopped · tap to reload the view" (the world canvas lost its WebGL
+ * context, stores/worldViewStore) remounts the world view; a notice
  * with an action runs it; anything else opens the devices sheet. The
  * reconnect label needs a trainer grant the app can use
  * (useTrainerReconnectStore phase 'available' / 'failed'); a trainer lost
@@ -29,6 +31,7 @@ import { useControllerStore } from '@/stores/controllerStore';
 import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { selectWorldStopped, useWorldViewStore } from '@/stores/worldViewStore';
 import { HUD_PANEL } from './v2';
 import { chipTap, noticeMs, rideChip, type ChipNotice } from './rideHudText';
 
@@ -85,6 +88,7 @@ export function RideChip({ className, alertsOnly = false }: { className?: string
   const ctrlInputSeen = useControllerStore((s) => s.inputSeen);
   const setDevicesOpen = useRideHudStore((s) => s.setDevicesOpen);
   const devicesOpen = useRideHudStore((s) => s.devicesOpen);
+  const worldStopped = useWorldViewStore(selectWorldStopped);
   const notice = useRideNotice();
 
   const view = rideChip({
@@ -103,11 +107,13 @@ export function RideChip({ className, alertsOnly = false }: { className?: string
     controls: controllerPhase({ status: ctrlStatus, silent: ctrlSilent, side: ctrlSide, inputSeen: ctrlInputSeen }),
     heartRate,
     notice,
+    worldStopped,
   });
 
   const onTap = () => {
     chipTap(view.action, notice, {
       reconnectTrainer: () => void reconnectGrantedTrainer(),
+      reloadWorld: () => useWorldViewStore.getState().reload(),
       dismissNotice: (id) => useRideStore.getState().dismissToast(id),
       toggleDevices: () => setDevicesOpen(!devicesOpen),
     });

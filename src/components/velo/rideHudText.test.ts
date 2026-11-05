@@ -18,6 +18,7 @@ import {
   shortDeviceName,
   statusChip,
   type ChipInput,
+  WORLD_STOPPED_LABEL,
 } from './rideHudText';
 
 describe('remaining distance and time', () => {
@@ -163,6 +164,7 @@ describe('the one ride chip (compact HUD: every device or error state in one pil
     controls: 'live',
     heartRate: 'connected',
     notice: null,
+    worldStopped: false,
   };
 
   it('calm: the trainer line, tap opens the devices sheet, quiet on phones', () => {
@@ -231,6 +233,34 @@ describe('the one ride chip (compact HUD: every device or error state in one pil
     expect(v.action).toBe('devices');
   });
 
+  it('the 3D view stopped (WebGL context lost): an alert on every viewport whose tap reloads the view', () => {
+    const v = rideChip({ ...ride, worldStopped: true });
+    expect(v).toMatchObject({ label: '3D view stopped · tap to reload', tone: 'warn', alert: true, action: 'reloadWorld' });
+    expect(v.label).toBe(WORLD_STOPPED_LABEL);
+    // The screen-reader sentence says it in full, and that the ride carries on.
+    expect(v.aria).toBe('The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.');
+    // Demo rides, outdoor rides and replays too: the world view is the same.
+    expect(rideChip({ ...ride, connection: 'disconnected', mode: 'demo', deviceName: null, worldStopped: true }).action).toBe('reloadWorld');
+    expect(rideChip({ ...ride, mode: 'outdoor', worldStopped: true }).action).toBe('reloadWorld');
+  });
+
+  it('the stopped view comes after every trainer problem and before controls, heart rate and notices', () => {
+    const stopped = { ...ride, worldStopped: true };
+    // Trainer first: lost (with or without a grant), reconnecting, a failed pairing.
+    expect(rideChip({ ...stopped, connection: 'disconnected', mode: 'demo', trainerReconnectable: true, errorCode: 'reconnect-failed' }).action)
+      .toBe('reconnectTrainer');
+    expect(rideChip({ ...stopped, connection: 'disconnected', mode: 'demo', deviceName: null, errorCode: 'reconnect-failed' }).label)
+      .toBe('Trainer lost · tap for devices');
+    expect(rideChip({ ...stopped, connection: 'reconnecting', reconnectAttempt: 1, reconnectMaxAttempts: 5 }).label)
+      .toBe('KICKR CORE lost · reconnecting 1 of 5');
+    expect(rideChip({ ...stopped, connection: 'error', deviceName: null }).label).toBe('Trainer not connected · tap for devices');
+    // Then the view, over everything else.
+    expect(rideChip({ ...stopped, controls: 'locked' }).action).toBe('reloadWorld');
+    expect(rideChip({ ...stopped, heartRate: 'error' }).action).toBe('reloadWorld');
+    expect(rideChip({ ...stopped, notice: { title: 'Trainer reconnected', kind: 'success' } }).action).toBe('reloadWorld');
+    expect(rideChip({ ...stopped, notice: { title: 'FTP test suggested', kind: 'info', actionLabel: 'Start' } }).action).toBe('reloadWorld');
+  });
+
   it('handlebar controls that cannot deliver presses: a warning that opens devices; never-paired controls say nothing', () => {
     expect(rideChip({ ...ride, controls: 'silent' })).toMatchObject({ label: 'Controls locked', tone: 'warn', alert: true, action: 'devices' });
     expect(rideChip({ ...ride, controls: 'rightSide' }).label).toBe('Controls: right unit paired');
@@ -264,7 +294,7 @@ describe('the one ride chip (compact HUD: every device or error state in one pil
 });
 
 describe('a chip tap (chipTap: what RideChip runs on click)', () => {
-  const effects = () => ({ reconnectTrainer: vi.fn(), dismissNotice: vi.fn(), toggleDevices: vi.fn() });
+  const effects = () => ({ reconnectTrainer: vi.fn(), reloadWorld: vi.fn(), dismissNotice: vi.fn(), toggleDevices: vi.fn() });
 
   it('"Trainer lost · tap to reconnect" reconnects the trainer, and only that', () => {
     const fx = effects();
@@ -272,6 +302,17 @@ describe('a chip tap (chipTap: what RideChip runs on click)', () => {
     expect(chipTap('reconnectTrainer', { id: 't1', run }, fx)).toBe('reconnectTrainer');
     expect(fx.reconnectTrainer).toHaveBeenCalledTimes(1);
     expect(fx.toggleDevices).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('"3D view stopped · tap to reload" reloads the view, and only that', () => {
+    const fx = effects();
+    const run = vi.fn();
+    expect(chipTap('reloadWorld', { id: 'n1', run }, fx)).toBe('reloadWorld');
+    expect(fx.reloadWorld).toHaveBeenCalledTimes(1);
+    expect(fx.reconnectTrainer).not.toHaveBeenCalled();
+    expect(fx.toggleDevices).not.toHaveBeenCalled();
+    expect(fx.dismissNotice).not.toHaveBeenCalled();
     expect(run).not.toHaveBeenCalled();
   });
 
