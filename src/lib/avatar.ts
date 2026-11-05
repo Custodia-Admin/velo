@@ -1753,8 +1753,12 @@ export type MeshRead = (lon: number, lat: number, under?: number) => number | un
  *   only if the mesh at that last road spot rose too (a tile refined under
  *   the rider) or it is a ramp (below); otherwise the rider keeps the road it
  *   has ('overhang');
- * - with no road to go on from, a reading more than {@link STRUCTURE_M} over
- *   the bare terrain is looked under for the ground near the terrain.
+ * - with no road to go on from, a reading over the bare terrain is looked
+ *   under for the ground near the terrain.
+ * A surface found under something is the road only within
+ * {@link UNDER_BARE_M} of the bare terrain: a tile can draw a second layer
+ * under the road with nothing between (Lugano–Melide 4.93 km), and where the
+ * terrain can't tell them apart the top is ridden, as before.
  * Falls are always taken (the rider eases down).
  *
  * A rise refused across a gap longer than {@link OVERHANG_STEP_M} is read
