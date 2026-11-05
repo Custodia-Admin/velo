@@ -307,6 +307,40 @@ describe("meshHeightAt casts its own ray with Cesium3DTileset.pick's answer", ()
     expect(meshGroundReadStats().picks).toBe(before.picks);
   });
 
+  it('a ray that starts low (inside a tile, under a deck or a crown) gets pick\'s answer too', async () => {
+    // Reads that start under what stands over the road (PR #76's `under`) go through the same cast.
+    const rnd = lcg(76_148);
+    const tiles = [
+      ...fieldTiles(street, -16, 16, -8, 40, turnFrom(rnd)),
+      tile([primitive(quad(-4, 4, 0, 30, 5), FRAME)], { e: 0, n: 15, u: 5, r: 16 }),
+      tile([primitive(quad(-4, 4, 4, 26, 9, true), FRAME)], { e: 0, n: 15, u: 9, r: 16 }),
+      tile([primitive(quad(-14, -6, 2, 10, 3), FRAME)], { e: 0, n: 15, u: 0, r: 40 }),
+    ];
+    const { tileset, fs } = await world(tiles);
+    const ell = Cesium.Ellipsoid.WGS84;
+    let hits = 0;
+    let misses = 0;
+    for (let k = 0; k < 800; k++) {
+      const c = spot((rnd() - 0.5) * 34, -10 + rnd() * 52);
+      const from = GROUND - 3 + rnd() * 16;
+      const ray = new Cesium.Ray(
+        ell.cartographicToCartesian(new Cesium.Cartographic(c.longitude, c.latitude, from)),
+        Cesium.Cartesian3.negate(ell.geodeticSurfaceNormalCartographic(c), new Cesium.Cartesian3()),
+      );
+      const theirs = Cesium.Cesium3DTileset.prototype.pick.call(tileset, ray, fs as never);
+      const ours = meshRayCast(tileset, ray, fs);
+      if (!theirs) {
+        misses++;
+        expect(ours).toBeUndefined();
+      } else {
+        hits++;
+        expect(Math.abs(ours! - Cesium.Cartesian3.distance(ray.origin, theirs))).toBeLessThan(1e-6);
+      }
+    }
+    expect(hits).toBeGreaterThan(400);
+    expect(misses).toBeGreaterThan(50);
+  });
+
   it('the first tile by sphere distance with any hit answers, not the highest hit (a coarse tile over a fine one)', async () => {
     const fine = tile([primitive(quad(-4, 4, -4, 4, 1), FRAME)], { e: 0, n: 0, u: 1, r: 6 });
     const coarse = tile([primitive(quad(-2, 2, -2, 2, -3), FRAME)], { e: 0, n: 0, u: 0, r: 40 });
