@@ -117,12 +117,28 @@ function defaultBotState(): BotState {
   };
 }
 
-/** Create a PaceBot from a preset + an id. */
+/**
+ * Live state for a bot standing on `route`'s start line, facing along it:
+ * where tickPaceBot would put it at distance 0, so renderers draw it at the
+ * start before the first running tick.
+ */
+function startLineState(route: Route): BotState {
+  const start = sampleRouteAtDistance(route, 0);
+  return { ...defaultBotState(), lat: start.lat, lon: start.lon, ele: start.ele, heading: headingAt(route, 0) };
+}
+
+/**
+ * Create a PaceBot from a preset + an id. With a route it stands on that
+ * route's start line; without one it sits at the 0/0 default until a route
+ * seats it (rideStore.setRoute) or the first tick moves it.
+ */
 export function createPaceBot(
   id: string,
   preset: Pick<PaceBot, 'name' | 'personality' | 'ftpW' | 'weightKg'>,
+  route?: Route | null,
 ): PaceBot {
-  return { id, ...preset, state: defaultBotState() };
+  const seated = route && route.points.length > 0 ? startLineState(route) : defaultBotState();
+  return { id, ...preset, state: seated };
 }
 
 // ---------------------------------------------------------------------------

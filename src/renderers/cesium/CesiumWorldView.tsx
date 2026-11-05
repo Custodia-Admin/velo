@@ -69,7 +69,7 @@ import { shouldChaseCamUpdate } from '@/lib/chaseCamGuard';
 import { createLaneState, stepLane } from '@/lib/controllers/steerFeel';
 import { activeSteer } from '@/stores/controllerStore';
 import type { AvatarColors } from '@/lib/avatarConfig';
-import { BOT_COLORWAYS } from '@/lib/paceBots';
+import { placeBotAvatars } from './botAvatars';
 import {
   createWeatherSystem,
   type WeatherSystem,
@@ -823,13 +823,8 @@ export function CesiumWorldView({
     // Read synchronously; if the user adds bots after route load the preRender
     // handler will detect the count mismatch and skip (bots won't render until
     // the next route load or a manual rebuild — acceptable for the first ship).
-    const initialBots = useRideStore.getState().paceBots;
-    const newBotAvatars: Avatar[] = initialBots.map((bot, i) => {
-      const ba = createAvatar(viewer);
-      ba.setColors(BOT_COLORWAYS[i % BOT_COLORWAYS.length]);
-      return ba;
-    });
-    botAvatarsRef.current = newBotAvatars;
+    // Each is placed on the route at creation (the start line after a load).
+    botAvatarsRef.current = placeBotAvatars(useRideStore.getState().paceBots, route, () => createAvatar(viewer));
 
     const start = route.points[0];
     avatar.update({

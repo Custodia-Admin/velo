@@ -120,6 +120,14 @@ describe('PacePartners', () => {
     expect(bot.state.lat).toBeGreaterThan(43);
   });
 
+  it('a partner picked after the route stands on that route\'s start line', () => {
+    useRideStore.getState().setRoute(lakeRoute('trasimeno'));
+    render().tile(PARTNERS[1].id).onClick();
+    const [bot] = useRideStore.getState().paceBots;
+    expect(bot.id).toBe(PARTNERS[1].id);
+    expect(bot.state).toMatchObject({ distance: 0, lat: 43.1, lon: 12.0, ele: 260 });
+  });
+
   it(`disables the other tiles at ${MAX_PARTNERS} and says why; removing one frees them`, () => {
     for (const p of PARTNERS.slice(0, MAX_PARTNERS)) render().tile(p.id).onClick();
     const full = render();
