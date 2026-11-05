@@ -332,13 +332,18 @@ describe('CesiumWorldView: the world-view slot', () => {
     expect(selectWorldStopped(store())).toBe(true);
   });
 
-  it('a view that lost the slot (the tab after the floating window opened) is ignored', () => {
+  it('a view that lost the slot (the tab after the floating window opened) is ignored, and stays shown', () => {
     const tab = mountView();
     const pip = mountView();
     tab.report.lost(0);
     expect(selectWorldStopped(store())).toBe(false);
     pip.report.lost(0);
     expect(selectWorldStopped(store())).toBe(true);
+    // Only the window's view is hidden: the slot's stop is not the tab's.
+    expect(hidden(renderView(pip.inst).root)).toBe(true);
+    const tabNow = renderView(tab.inst).root;
+    expect(hidden(tabNow)).toBe(false);
+    expect(tabNow.props['data-world-context']).toBe('live');
   });
 
   it('leaving the ride (unmount) clears the slot, and late reports change nothing', () => {

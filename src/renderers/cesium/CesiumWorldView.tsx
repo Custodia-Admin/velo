@@ -231,16 +231,14 @@ export interface ViewerContextReport {
 export function CesiumWorldView(props: CesiumWorldViewProps) {
   const [viewId, setViewId] = useState(0);
   // The id the viewer's reports go to: set in the attach effect itself, so a
-  // viewer that fails to build right after mount still reaches the slot.
+  // viewer that fails to build right after mount still reaches the slot. (A
+  // report after the view left is ignored: detach cleared the slot.)
   const viewIdRef = useRef(0);
   useEffect(() => {
     const id = useWorldViewStore.getState().attach();
     viewIdRef.current = id;
     setViewId(id);
-    return () => {
-      viewIdRef.current = 0;
-      useWorldViewStore.getState().detach(id);
-    };
+    return () => useWorldViewStore.getState().detach(id);
   }, []);
   const canvasKey = useWorldViewStore((s) => canvasKeyFor(s, viewId));
   // A lost view is hidden until it remounts: a dead WebGL canvas paints white
