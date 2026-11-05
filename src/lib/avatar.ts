@@ -1648,6 +1648,20 @@ export const UNDER_CLEARANCE_M = 2;
  */
 export const UNDER_RISE_M = 0.5;
 /**
+ * A surface read under what stands over the road is the road only if it is
+ * at most this far under the bare terrain (the globe's World Terrain, m).
+ * The towpath under the Cuyahoga crowns is within ±3 m of it (p5–p95 over
+ * 11.5 km), the Santa Monica Strand under its palms 4 m under it. One tile
+ * can also draw a second layer under the road with nothing facing down
+ * between (Lugano–Melide 4.29, 4.51 and 4.93 km: 1–8 m under the road, flat
+ * while the road climbs onto the embankment); ridden as "the road under
+ * something" it put the rider up to 8 m inside the mesh. There the bare
+ * terrain is 10–20 m over both layers (coarse World Terrain on the steep
+ * shore), so nothing is looked under and the rider rides what is drawn on
+ * top, as before. With no terrain to go by, nothing is looked under either.
+ */
+export const UNDER_BARE_M = 5;
+/**
  * Steepest a road climbs over {@link CLIMB_SPAN_M} (m per m). A steeper rise
  * with a road under it that climbs no steeper is something over that road.
  * Only checked where the mesh has a surface {@link UNDER_CLEARANCE_M} under
@@ -1868,6 +1882,8 @@ export function createMeshRoadFilter() {
             Math.abs(from - baseBare) <= STRUCTURE_M &&
             h - bare > from - baseBare + OVERHANG_MIN_M)) &&
         !climbsInSteps(from, baseLon, baseLat, h, lon, lat, moved, readAt, RAMP_GRADE);
+      // Looked under only near the bare terrain (UNDER_BARE_M).
+      const nearBare = (h: number) => bare !== undefined && h >= bare - UNDER_BARE_M;
       const allow = Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + OVERHANG_GRADE * moved);
       if (top <= base + allow) {
         let road = top;
@@ -1877,7 +1893,7 @@ export function createMeshRoadFilter() {
           // top climbs steeper (a crown sloping up from the towpath). Read
           // down to the surface nearest the road: under the I-80 viaduct
           // (Cuyahoga 3020 m) a bush 4 m over the towpath is the first one.
-          const under = surfaceNear(readAt, lon, lat, top - UNDER_CLEARANCE_M, base, allow, usable);
+          const under = surfaceNear(readAt, lon, lat, top - UNDER_CLEARANCE_M, base, allow, usable, nearBare);
           if (
             usable(under) &&
             (Math.abs(under - base) < top - base ||
@@ -1895,7 +1911,7 @@ export function createMeshRoadFilter() {
       // Over the road: the road goes on under it where the mesh has it, read
       // down from the highest it can have climbed to.
       const near = Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + UNDER_GRADE * moved);
-      const under = surfaceNear(readAt, lon, lat, Math.min(base + near, top - UNDER_CLEARANCE_M), base, near, usable);
+      const under = surfaceNear(readAt, lon, lat, Math.min(base + near, top - UNDER_CLEARANCE_M), base, near, usable, nearBare);
       if (under !== undefined && !climbsOnto(under)) return take(under, lon, lat);
       if (
         roseAt(readAt, base, baseLon, baseLat) ||
@@ -1932,7 +1948,7 @@ export function createMeshRoadFilter() {
 
 /**
  * Down the vertical at lon/lat from `from`, the up-facing surface nearest
- * `near` within `within` of it (undefined if none). At most
+ * `near` within `within` of it that `ok` accepts (undefined if none). At most
  * {@link UNDER_READS} reads, each from {@link UNDER_GAP_M} under the last
  * surface; it stops at the first surface at or under `near` (anything further
  * down is further from it) or past `near - within`. A reader that can't look
@@ -1946,13 +1962,19 @@ function surfaceNear(
   near: number,
   within: number,
   usable: (h: number | undefined) => h is number,
+  ok: (h: number) => boolean = () => true,
 ): number | undefined {
   let best: number | undefined;
   let top = from;
   for (let i = 0; i < UNDER_READS; i++) {
     const h = readAt(lon, lat, top);
     if (h === undefined || !Number.isFinite(h) || h > top || h < near - within) break;
-    if (usable(h) && Math.abs(h - near) <= within && (best === undefined || Math.abs(h - near) < Math.abs(best - near))) {
+    if (
+      usable(h) &&
+      Math.abs(h - near) <= within &&
+      (best === undefined || Math.abs(h - near) < Math.abs(best - near)) &&
+      ok(h)
+    ) {
       best = h;
     }
     if (h <= near) break;
@@ -2121,6 +2143,11 @@ export function createGroundSampler(scene: Cesium.Scene) {
         // rider holds the road with the globe hidden.
         const standsIn = bare !== undefined && held !== undefined && Math.abs(bare - held) <= GLOBE_STANDIN_M;
         onMesh = status === 'road' || (status === 'overhang' && held !== undefined && !away && !standsIn);
+        // Where the globe stands in, the rider stands on it once it is drawn
+        // (below: held while it is still hidden), not on the road held over
+        // it: under the I-80 deck the globe was drawn 0.75 m under the road
+        // held, and the rider floated over it.
+        if (status === 'overhang' && standsIn && !away) last = undefined;
         if (away && status !== 'road') {
           // Somewhere else and no mesh road yet: the globe's terrain decides,
           // as at a fresh start, drawn or not. Holding the old road here kept

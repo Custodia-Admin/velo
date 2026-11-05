@@ -25,6 +25,7 @@ import {
   OVERHANG_STEP_GRADE,
   OVERHANG_STEP_M,
   OVERHANG_STEP_SPAN_M,
+  UNDER_BARE_M,
 } from '@/lib/avatar';
 import {
   drawnGroundHeight,
@@ -733,7 +734,7 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
       (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
         deck && Cesium.Math.toDegrees(c.latitude) > lat(1) ? 215.3 : 160.2,
       );
-      const { s } = scene(tileset, { height: globeH, show: false });
+      const { s, globe } = scene(tileset, { height: globeH, show: false });
       const sampler = createGroundSampler(s);
       sampler.sample(lon, lat(0), 160, 0);
       expect(sampler.meshGround()).toBe(true);
@@ -741,6 +742,13 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
       // Hidden, the globe's height isn't drawn: the rider holds the road.
       expect(sampler.sample(lon, lat(2), 160, GROUND_SAMPLE_INTERVAL_MS), `globe ${globeH}`).toBeCloseTo(160.2, 6);
       expect(sampler.meshGround(), `globe ${globeH}`).toBe(!standsIn);
+      // Drawn (the gate shows it a second later), it is the ground where it
+      // stands in: the rider on it, not floating over it on the road held.
+      globe.show = true;
+      expect(sampler.sample(lon, lat(4), 160, 2 * GROUND_SAMPLE_INTERVAL_MS), `globe ${globeH} drawn`).toBeCloseTo(
+        standsIn ? globeH : Math.max(160.2, globeH),
+        6,
+      );
     }
   });
 
@@ -1283,6 +1291,64 @@ describe('under what stands over the road: the rider rides the road under it (t_
     [7040, 317.87, 321.13, 321.13],
   ];
 
+  // Lugano–Melide 4920–4970 m, every metre: the road onto the embankment (up to
+  // 1.3 m per m, 8 m up), and under it a second layer of the same tile, flat at
+  // 327.5 m, with nothing facing down between (drilled with back-face culling
+  // off). The globe (coarse World Terrain on the steep shore) is 9–11 m over both.
+  const lugano4900: Row[] = [
+    [4920, 338.41, 328.76, 328.76, 327.72],
+    [4921, 338.35, 328.7, 328.7, 327.7],
+    [4922, 338.33, 328.64, 328.64, 327.68],
+    [4923, 338.31, 328.61, 328.61, 327.67],
+    [4924, 338.3, 328.6, 328.6, 327.67],
+    [4925, 338.28, 328.58, 328.58, 327.66],
+    [4926, 338.26, 328.55, 328.55, 327.66],
+    [4927, 338.23, 328.53, 328.53, 327.65],
+    [4928, 338.19, 328.53, 328.53, 327.64],
+    [4929, 338.15, 328.53, 328.53, 327.63],
+    [4930, 338.12, 328.52, 328.52, 327.62],
+    [4931, 338.08, 328.52, 328.52, 327.61],
+    [4932, 338.05, 328.52, 328.52, 327.6],
+    [4933, 338.01, 328.92, 328.92, 327.59],
+    [4934, 337.97, 330, 330, 327.58],
+    [4935, 337.9, 331.19, 331.19, 327.56],
+    [4936, 337.83, 332.53, 332.53, 327.55],
+    [4937, 337.76, 333.95, 333.95, 327.53],
+    [4938, 337.69, 335.22, 335.22, 327.51],
+    [4939, 337.62, 335.6, 335.6, 327.5],
+    [4940, 337.55, 335.74, 335.74, 327.49],
+    [4941, 337.48, 335.87, 335.87, 327.47],
+    [4942, 337.41, 336.19, 336.19, 327.46],
+    [4943, 337.34, 335.95, 335.95, 327.39],
+    [4944, 337.28, 335.6, 335.6, 327.32],
+    [4945, 337.21, 335.26, 335.26, 327.29],
+    [4946, 337.14, 334.93, 334.93, 327.28],
+    [4947, 337.07, 334.57, 334.57, 334.48, 327.27],
+    [4948, 337, 334.43, 334.43, 327.25],
+    [4949, 336.93, 334.36, 334.36, 327.25],
+    [4950, 336.86, 334.08, 334.08, 327.23],
+    [4951, 336.79, 333.55, 333.55, 327.22],
+    [4952, 336.72, 332.88, 332.88, 327.21],
+    [4953, 336.65, 332.24, 332.24, 327.2],
+    [4954, 336.58, 331.61, 331.61, 327.19],
+    [4955, 336.53, 330.98, 330.98, 327.18],
+    [4956, 336.53, 330.54, 330.54, 327.15],
+    [4957, 336.53, 330.11, 330.11, 327.12],
+    [4958, 336.53, 329.67, 329.67, 327.09],
+    [4959, 336.54, 329.23, 329.23, 327.06],
+    [4960, 336.54, 328.8, 328.8, 327.02],
+    [4961, 336.54, 328.36, 328.36, 326.99],
+    [4962, 336.54, 327.92, 327.92, 326.95],
+    [4963, 336.54, 327.88, 327.88, 326.78],
+    [4964, 336.54, 328.03, 328.03, 326.76],
+    [4965, 336.54, 328.18, 328.18, 326.74],
+    [4966, 336.55, 328.33, 328.33, 326.73],
+    [4967, 336.55, 328.48, 328.48, 326.71],
+    [4968, 336.55, 328.63, 328.63, 326.67],
+    [4969, 336.55, 328.77, 328.77, 326.61],
+    [4970, 336.55, 328.92, 328.92, 326.55],
+  ];
+
   const lonC = -81.5;
   const atC = (m: number) => 41 + m / 110_540;
   const metresC = (lat: number) => (lat - 41) * 110_540;
@@ -1370,5 +1436,36 @@ describe('under what stands over the road: the rider rides the road under it (t_
     }
     // Rolled on from the shore, the deck is the road throughout.
     for (const reads of everyRide(melide, 2, 'road')) expect(Math.abs(worst(reads)), `road ${reads[0].m}`).toBeLessThanOrEqual(0.3);
+  });
+  it('Lugano–Melide 4.93 km: the rider rides the road onto the embankment, never the layer under it (read 2–8 m apart, rolled in or jumped in)', () => {
+    // Taken as "the road under something" (the first look-under did, from
+    // 4934 m on), that layer put the rider up to 8.7 m inside the embankment:
+    // on cat-bed the camera saw no sky and the wheels 2.27 m inside the mesh.
+    for (const from of ['road', 'jump'] as const) {
+      for (const reads of everyRide(lugano4900, 1, from)) {
+        expect(Math.abs(worst(reads)), `${from} read ${reads[1].m - reads[0].m} m apart from ${reads[0].m} m`).toBeLessThanOrEqual(0.3);
+      }
+    }
+  });
+
+  it('only a surface within UNDER_BARE_M of the bare terrain is taken from under something; with no terrain, none', () => {
+    // A crown 14 m over the towpath, the towpath drawn under it (Cuyahoga 2748 m).
+    const readAt = (_lon: number, lat: number, under?: number) => {
+      const hits = lat > atC(1) ? [175, 160.9] : [160.9];
+      return under === undefined ? hits[0] : hits.find((h) => h <= under);
+    };
+    for (const [bare, taken] of [
+      [160.4, true],
+      [160.9 + UNDER_BARE_M - 0.01, true],
+      [160.9 + UNDER_BARE_M + 0.01, false],
+      [undefined, false],
+    ] as const) {
+      const f = createMeshRoadFilter();
+      f.next(160.9, lonC, atC(0), 1e9, readAt, -Infinity, bare);
+      // Held or taken, the rider stays on the towpath height; only the status
+      // says whether the mesh road was read there (the globe gate goes by it).
+      expect(f.next(175, lonC, atC(4), 1e9, readAt, -Infinity, bare), `bare ${bare}`).toBe(160.9);
+      expect(f.status(), `bare ${bare}`).toBe(taken ? 'road' : 'overhang');
+    }
   });
 });
