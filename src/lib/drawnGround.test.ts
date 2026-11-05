@@ -448,6 +448,11 @@ describe('a jump with the globe hidden: the old road is not the ground where the
     expect(sampler.meshGround()).toBe(false);
   });
 
+  it('the globe decides there even a little under the road carried there (that is only a guess)', async () => {
+    const sampler = await landing(2_000, undefined, 341.9);
+    expect(sampler.sample(lon, lat(2_000), 303.3, 16)).toBeCloseTo(341.9, 6);
+  });
+
   it('a hole near the road still keeps it; from OVERHANG_GIVE_UP_M on the globe decides', async () => {
     const sampler = await landing(100, undefined, 383.75);
     expect(sampler.sample(lon, lat(OVERHANG_GIVE_UP_M - 1), 275.8, 16)).toBeCloseTo(322.6, 6);
