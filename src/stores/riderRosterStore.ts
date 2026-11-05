@@ -45,7 +45,7 @@ export interface RosterRider {
   name: string;
   /** Null until this rider has been active at least once; then a snapshot. */
   settings: PerRiderSettings | null;
-  /** XP / lifetime totals snapshot. Null until first switch away. */
+  /** Profile snapshot (id, name). Null until first switch away. */
   profile: RiderProfile | null;
 }
 
