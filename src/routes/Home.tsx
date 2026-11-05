@@ -63,7 +63,7 @@ export function Home() {
           </Suspense>
 
           <details className="group mt-12 border-t border-border pt-2" data-build-your-own>
-            <summary className="flex min-h-12 cursor-pointer list-none flex-wrap items-center gap-x-2 rounded-md px-2 text-base font-semibold text-foreground select-none hover:bg-muted/60">
+            <summary className="-mx-2 flex min-h-12 cursor-pointer list-none flex-wrap items-center gap-x-2 rounded-md px-2 text-base font-semibold text-foreground select-none hover:bg-muted/60">
               <span aria-hidden className="inline-block transition-transform duration-150 group-open:rotate-90">›</span>
               Build your own ride
               <span className="text-sm font-normal text-muted-foreground">search a place, upload a GPX, add pace partners</span>

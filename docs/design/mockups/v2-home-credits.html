@@ -26,7 +26,8 @@
   .byo summary, .credits summary {
     display: flex; align-items: center; gap: var(--s-2); cursor: pointer; list-style: none; border-radius: calc(var(--radius) - 0.125rem);
   }
-  .byo summary { min-height: var(--s-12); padding: 0 var(--s-2); font-weight: 600; }
+  /* Both summaries bleed their padding into the gutter, so the chevrons sit on the column edge. */
+  .byo summary { min-height: var(--s-12); padding: 0 var(--s-2); margin: 0 calc(var(--s-2) * -1); font-weight: 600; }
   .byo summary::-webkit-details-marker, .credits summary::-webkit-details-marker { display: none; }
   .chev { display: inline-block; transition: transform 150ms; }
   details[open] > summary .chev { transform: rotate(90deg); }
