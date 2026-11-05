@@ -56,11 +56,11 @@
     },
     {
       "path": "roads.json.gz",
-      "bytes": 1943663,
-      "sha256": "d8eaa3834f1238c54b26481274a276f9d711d24613db14aa32db3d00caf2ed08",
+      "bytes": 1943671,
+      "sha256": "5c020878893320b69dc8b42fee70275e4cb71b925a830940c130cb086dd3fe17",
       "compression": "gzip",
-      "contentBytes": 4996311,
-      "contentSha256": "4f25111621bf3f34970874d57f26798377fe450c48c4dd5a3b717372a2da6dac"
+      "contentBytes": 4996323,
+      "contentSha256": "6e3b594ec73c280e80dc87e580955d0e45e2d2b254ed5085e9b67f33095d4bf0"
     },
     {
       "path": "water.json.gz",

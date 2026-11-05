@@ -170,9 +170,22 @@ natively, without Node's web-stream wrapper.
   painted guide (centre line ± 0.29 m, its chevrons' reach) lies on ONE drawn surface:
   - where the paint leaves the road the route runs along (a path mapped a
     metre to the side, a corner the route cuts), the bake bends that road
-    toward the route just far enough, easing back to its mapped line over
-    8 m either side. The road keeps its class, width and surface, and nothing
-    is laid beside it;
+    toward the route just far enough: only the nearest road within 60° of the
+    route's heading at that step, never one it crosses and never two at once.
+    Between nearby pulls the bend runs straight from one to the next; past
+    them it eases back to the mapped line over 8 m, but never past a vertex
+    where the road turns more than 60° off the route (the segment beyond
+    pivots on its far end, the rest of the road keeps its line). Round the
+    outside of a corner, or beside a stretch more than 30° off the route's
+    heading, it bends at most 0.6 m: past that the route has left that road
+    and gets a join instead. Where the paint runs past a road's flat end, that
+    end grows along its own line. The road keeps its class, width and surface,
+    and nothing is laid beside it;
+  - every road end that lay in another road as mapped (a junction: the end's
+    centre or a corner of its flat end) stays in it. When a bend moves one of
+    the two roads there, the other moves with it: end to end, both take the
+    larger move; where a road ends on another's side, the road the route bends
+    leads (else the wider one) and only the move across that road is matched;
   - where no road runs along the route within 2.5 m (a way newer than
     `osmDate`, the join where an out-and-back was cut), it adds a `routeFill`
     piece along the route, reaching a metre into the drawn roads at either end
@@ -181,10 +194,17 @@ natively, without Node's web-stream wrapper.
     Renderers draw these under the mapped roads.
 
   Road ends count as drawn up to their last point (flat ends, as the renderer
-  draws them), not as round caps. `tools/worldbake/routeCoverage.mjs <world>`
-  reports each route's share near mapped roads, with its centreline on drawn
-  roads, and with its whole guide on them; the bake report has the
-  numbers under `routes[].roadCoverage` (`easedM` bent, `joinedM` added).
+  draws them), not as round caps. The guide is checked every 0.1 m along the
+  route and at 13 points across its band. `tools/worldbake/routeCoverage.mjs
+  <world>` reports each route's share near mapped roads, with its centreline
+  on drawn roads, and with its whole guide on them; the bake report has the
+  numbers under `routes[].roadCoverage` (`easedM` bent, `joinedM` added) and
+  `routeFit`: `roadsBent`, `maxShiftM` (the largest final shift, the
+  Hausdorff distance between a road's mapped and shipped line), `joins`, and
+  `bent[]` with each moved road's index, shift and mapped polyline (dm,
+  `"x,y x,y …"`). `src/lib/world/routeFit.test.ts` compares those mapped
+  lines with the bundle: no moved road may newly lie over another drawn road
+  and no junction end may leave the road it lay in.
 
 ## water.json
 
@@ -340,7 +360,7 @@ Perugia, 31 Oct 2026 on cat-bed (Node 26), from a clean cache:
 | Determinism | two clean-cache bakes, identical SHA-256 for every file |
 | Size | 4.73 MB as shipped (gzip), 3.56 MB brotli, 9.5 MB raw |
 | Heightfield vs Open-Meteo, 50 seeded points | RMS 5.96 m, bias −1.18 m, max 18.2 m |
-| Routes | max gap 0 m; grade Δ 0.109 pp (Tiber park), 0.101 pp (Assisi valley) |
+| Routes | max gap 0 m; grade Δ 0.109 pp (Tiber park), 0.101 pp (Assisi valley); painted guide 100 % on drawn roads, checked every 0.1 m across the band (the route fit bends 17 paths under 1.6 km of route, by at most 1.02 m, and grows 4 road ends; no joins) |
 
 The 50-point RMS passes, but only just. Spot checks of 500 more points
 (5 seeds × 100) gave RMS 6.0–8.2 m, about 7.0 m overall. The raw z12 and z13
@@ -458,7 +478,7 @@ destination until they get worlds of their own. Baked 4 Nov 2026 on cat-bed:
 | Bake time | 516 s from an empty cache (Overpass ≈ 7 min of it) |
 | Determinism | two bakes from cache and one from an empty cache: identical bytes for all 8 files (re-bake after the route fixes: two bakes from cache, identical) |
 | Size | 9.46 MB as shipped (gzip), 7.12 MB brotli, 19.3 MB raw |
-| Routes | max gap 0 m; grade Δ 0.61 pp (Lugano–Melide), 0.61 pp (Locarno–Brissago); painted guide 100 % on drawn roads (Locarno–Brissago: 99.98 % within 1 m of mapped roads; the route fit bends 10 paths over 348 m of route (≤ 0.85 m, and 2.51 m at the 2,072 m junction) and adds one 2.9 m join, where a 116 m route fill used to lie beside the paths) |
+| Routes | max gap 0 m; grade Δ 0.61 pp (Lugano–Melide), 0.61 pp (Locarno–Brissago); painted guide 100 % on drawn roads, checked every 0.1 m across the band (Locarno–Brissago: 99.98 % within 1 m of mapped roads; the route fit moves 20 roads by at most 0.85 m: 8 bent under 247 m of route, 7 junction neighbours moved with them, 5 road ends grown ≤ 0.22 m; at the 2,072 m junction it adds one 7.6 m join instead of bending the connector path onto the wide road; a 116 m route fill used to lie beside the paths) |
 | Heightfield vs Open-Meteo, 50 seeded points | **fails as written**: RMS 18.17 m at the points; 9.12 m registered at the GLO-90 nodes |
 
 Lugano–Melide's grade Δ was 1.127 pp at the first bake: its geometry rode
