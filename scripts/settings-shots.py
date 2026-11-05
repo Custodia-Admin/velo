@@ -21,7 +21,7 @@ with sync_playwright() as p:
         ride_scenic_route(pg, 'scenic-lugano-melide')
         pg.wait_for_url("**/ride**")
         pg.wait_for_timeout(6000)
-        # The in-app "open settings" event (what NoTokenBanner uses), straight to Visual.
+        # The in-app "open settings" event (what the ride photoreal notice uses), straight to Visual.
         pg.evaluate("() => window.dispatchEvent(new CustomEvent('globeride:open-settings', { detail: { tab: 'visual' } }))")
         group = pg.get_by_role("radiogroup", name="Distance")
         group.scroll_into_view_if_needed()
