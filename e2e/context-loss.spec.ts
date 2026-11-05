@@ -18,6 +18,10 @@ const INIT = `
   // window.__veloThree = the live renderer: its canvas and its own context
   // (calling getContext on a canvas three has not set up yet would create one).
   localStorage.setItem('velo.debug.three', '1');
+  // The world is rebuilt twice on software GL: the low tier (no shadows, fewer
+  // trees, no MSAA) keeps each rebuild and frame affordable on a CI runner.
+  // The recovery path is the same on every tier.
+  localStorage.setItem('globeride.settings.v1', JSON.stringify({ state: { graphicsQuality: 'low', graphicsQualityAuto: false }, version: 1 }));
   // A canvas-only view for the pixel check: the HUD hidden, the world shown.
   document.addEventListener('DOMContentLoaded', () => {
     const s = document.createElement('style');
@@ -101,6 +105,9 @@ async function worldVariety(page: Page): Promise<number> {
   }, png.toString('base64'));
 }
 
+// Fewer pixels for SwiftShader to fill; the HUD keeps its desktop layout.
+test.use({ viewport: { width: 960, height: 540 } });
+
 test('a lost WebGL context: the chip says so, the ride never stops, and the world draws again (restore, then tap)', async ({ page }) => {
   // Two world rebuilds on software GL.
   test.setTimeout(420_000);
@@ -119,6 +126,7 @@ test('a lost WebGL context: the chip says so, the ride never stops, and the worl
   await expect.poll(async () => (await ride(page)).rideState, { timeout: 90_000 }).toBe('running');
   await expect.poll(async () => (await canvasState(page)).frames, { timeout: 60_000 }).toBeGreaterThan(2);
   expect(await canvasState(page)).toMatchObject({ count: 1, current: true, lost: false });
+  expect(await page.evaluate(() => (window as unknown as { __veloRideDebug: () => { quality: string } }).__veloRideDebug().quality)).toBe('low');
   const drawn = await worldVariety(page);
   expect(drawn, 'the world draws before the loss').toBeGreaterThan(500);
   const clock: RideProbe[] = [await ride(page)];
