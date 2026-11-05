@@ -23,6 +23,11 @@ export interface GeocodeResult {
   boundingBox?: [number, number, number, number];
   /** Best-guess OSM type — "city", "village", "peak", "road", … */
   type?: string;
+  /**
+   * What the place is, in Nominatim's words ("city", "county", "village",
+   * "peak"…): tells apart two results with the same display name.
+   */
+  kind?: string;
   importance?: number;
 }
 
@@ -41,6 +46,7 @@ interface NominatimRow {
   lon: string;
   boundingbox?: [string, string, string, string];
   type?: string;
+  addresstype?: string;
   importance?: number;
 }
 
@@ -133,6 +139,7 @@ export async function geocode(
               ]
             : undefined,
           type: r.type,
+          kind: r.addresstype,
           importance: r.importance,
         };
       })

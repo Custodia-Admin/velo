@@ -66,7 +66,15 @@ vi.mock('zustand', async (orig) => {
 });
 
 import { isValidElement } from 'react';
-import { RideSetupWizard, compassPoint, generatedRouteName, placeRegion } from './RideSetupWizard';
+import {
+  GenerateActions,
+  RideSetupWizard,
+  compassPoint,
+  generateErrorText,
+  generatedRouteName,
+  placeRegion,
+  resultRegion,
+} from './RideSetupWizard';
 import { TrainerRow } from '@/components/velo/TrainerPanel';
 import { PARTNERS, togglePartner } from '@/components/velo/pacePartners';
 import { SCENIC_ROUTES } from '@/lib/scenicRoutes';
@@ -244,5 +252,64 @@ describe('RideSetupWizard — route step helpers', () => {
   it('a place\'s region drops the name its heading already shows', () => {
     expect(placeRegion({ shortName: 'Perugia', displayName: 'Perugia, Umbria, Italy' })).toBe('Umbria, Italy');
     expect(placeRegion({ shortName: 'Kyoto', displayName: 'Kyoto' })).toBe('Kyoto');
+  });
+});
+
+describe('RideSetupWizard — search results and the generator\'s actions', () => {
+  it('two results that read the same say what each place is; a lone result does not', () => {
+    // Nominatim's real answer for "Perugia": the county and the city, one display name.
+    const county = { shortName: 'Perugia', displayName: 'Perugia, Umbria, Italy', kind: 'county' };
+    const city = { shortName: 'Perugia', displayName: 'Perugia, Umbria, Italy', kind: 'city' };
+    const kyoto = { shortName: 'Kyoto', displayName: 'Kyoto, Japan', kind: 'city' };
+    expect(resultRegion(county, [county, city, kyoto])).toBe('Umbria, Italy · county');
+    expect(resultRegion(city, [county, city, kyoto])).toBe('Umbria, Italy · city');
+    expect(resultRegion(kyoto, [county, city, kyoto])).toBe('Japan');
+    expect(resultRegion({ ...city, kind: undefined }, [county, city])).toBe('Umbria, Italy');
+  });
+
+  it('router failures read in plain words (no "synthetic routing"); other errors pass through', () => {
+    const noRoute = generateErrorText('osrm_no_route', 'Perugia', 'raw');
+    const network = generateErrorText('osrm_network', 'Perugia', 'Could not reach the cycling router. Try again or use synthetic routing.');
+    expect(noRoute).toBe('No bike roads near Perugia. Try another place, or draw the route without roads.');
+    expect(network).toBe("Couldn't reach the bike router. Try again, or draw the route without roads.");
+    for (const t of [noRoute, network]) expect(t).not.toMatch(/synthetic/i);
+    expect(generateErrorText('unknown', 'Perugia', 'Elevation service down')).toBe('Elevation service down');
+  });
+
+  function actions(over: Partial<Parameters<typeof GenerateActions>[0]> = {}) {
+    const onGenerate = vi.fn();
+    const onRoadFree = vi.fn();
+    const tree = elements(
+      GenerateActions({ generating: false, phaseLabel: null, offerRoadFree: false, onGenerate, onRoadFree, ...over }),
+    );
+    const buttons = tree
+      .filter((e) => typeof e.props.onClick === 'function')
+      .map((e) => ({ ...e.props, text: textOf(e.props.children).trim() }) as { text: string; variant?: string; disabled?: boolean; onClick: () => void });
+    return { buttons, onGenerate, onRoadFree };
+  }
+
+  it('normally one filled Generate route; while it runs it says the phase and waits', () => {
+    const idle = actions();
+    expect(idle.buttons.map((b) => [b.text, b.variant])).toEqual([['Generate route', 'primary']]);
+    idle.buttons[0].onClick();
+    expect(idle.onGenerate).toHaveBeenCalledOnce();
+    const busy = actions({ generating: true, phaseLabel: 'Snapping to bike roads…' });
+    expect(busy.buttons).toHaveLength(1);
+    expect(busy.buttons[0].text).toBe('Snapping to bike roads…');
+    expect(busy.buttons[0].disabled).toBe(true);
+  });
+
+  it('after a router failure the filled action is the one that still works; Try again is the outline beside it', () => {
+    const a = actions({ offerRoadFree: true });
+    expect(a.buttons.map((b) => [b.text, b.variant])).toEqual([
+      ['Draw it without roads', 'primary'],
+      ['Try again', 'outline'],
+    ]);
+    expect(a.buttons.filter((b) => b.variant === 'primary')).toHaveLength(1);
+    a.buttons[0].onClick();
+    expect(a.onRoadFree).toHaveBeenCalledOnce();
+    expect(a.onGenerate).not.toHaveBeenCalled();
+    a.buttons[1].onClick();
+    expect(a.onGenerate).toHaveBeenCalledOnce();
   });
 });

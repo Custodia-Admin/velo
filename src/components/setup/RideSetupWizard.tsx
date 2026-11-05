@@ -25,6 +25,7 @@ import {
   Search,
   X,
   Repeat,
+  RotateCcw,
   Wifi,
   WifiOff,
   type LucideIcon,
@@ -38,6 +39,7 @@ import {
   RouteGenerationError,
   type GeneratedShape,
   type GenerationPhase,
+  type RouteGenerationCode,
 } from '@/lib/routeGenerator';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -336,10 +338,7 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
           // Both osrm_no_route and osrm_network are recoverable with synthetic.
           // The unknown bucket also offers it — the user might just want to try.
           setGenError({
-            message:
-              err.code === 'osrm_no_route'
-                ? `No bike roads near ${selected.shortName}. Try a different location or use synthetic routing.`
-                : err.message,
+            message: generateErrorText(err.code, selected.shortName, err.message),
             allowSynthetic: !useSynthetic,
           });
         } else {
@@ -431,7 +430,7 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
                     <span className="flex min-w-0 flex-col">
                       <span className="text-sm font-semibold text-foreground">{r.shortName}</span>
-                      <span className="text-sm text-muted-foreground">{placeRegion(r)}</span>
+                      <span className="text-sm text-muted-foreground">{resultRegion(r, results)}</span>
                     </span>
                   </button>
                 </li>
@@ -480,30 +479,21 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
               />
             )}
 
-            {genError && (
-              <div className="flex flex-col items-start gap-3">
-                <ErrorLine>{genError.message}</ErrorLine>
-                {genError.allowSynthetic && (
-                  <Button variant="outline" onClick={onUseSynthetic} disabled={generating}>
-                    Use synthetic routing instead
-                  </Button>
-                )}
-              </div>
-            )}
+            {genError && <ErrorLine>{genError.message}</ErrorLine>}
 
             {/* Generate (one filled action: the preview's "Use this route" replaces it) */}
             {(generating || !previewRoute) && (
-              <div>
-                <Button variant="primary" onClick={onGenerate} disabled={generating} aria-busy={generating || undefined}>
-                  {generating
-                    ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {phase ? PHASE_LABEL[phase] : 'Generating…'}</>
-                    : <><RouteIcon className="h-4 w-4" aria-hidden /> Generate route</>}
-                </Button>
-                <span role="status" aria-live="polite" className="sr-only">
-                  {generating && phase ? PHASE_LABEL[phase] : ''}
-                </span>
-              </div>
+              <GenerateActions
+                generating={generating}
+                phaseLabel={phase ? PHASE_LABEL[phase] : null}
+                offerRoadFree={!generating && genError?.allowSynthetic === true}
+                onGenerate={onGenerate}
+                onRoadFree={onUseSynthetic}
+              />
             )}
+            <span role="status" aria-live="polite" className="sr-only">
+              {generating && phase ? PHASE_LABEL[phase] : ''}
+            </span>
 
             {previewRoute && !generating && (
               <RoutePreview
@@ -583,6 +573,74 @@ export function generatedRouteName(place: string, shape: GeneratedShape, totalDi
 export function placeRegion(place: Pick<GeocodeResult, 'shortName' | 'displayName'>): string {
   const rest = place.displayName.split(',').slice(1).map((p) => p.trim()).filter(Boolean).join(', ');
   return rest || place.displayName;
+}
+
+/**
+ * A search result's second line: its region, plus what the place is when
+ * another result reads the same. Nominatim returns Perugia the city and
+ * Perugia the county, both "Perugia, Umbria, Italy": "Umbria, Italy · city".
+ */
+export function resultRegion(
+  place: Pick<GeocodeResult, 'shortName' | 'displayName' | 'kind'>,
+  all: readonly Pick<GeocodeResult, 'displayName'>[],
+): string {
+  const region = placeRegion(place);
+  const twins = all.filter((r) => r.displayName === place.displayName).length > 1;
+  return twins && place.kind ? `${region} · ${place.kind}` : region;
+}
+
+/**
+ * Why a route didn't generate, in plain words (UI-RULES §6: no "synthetic
+ * routing"): both router failures can still draw the route without roads.
+ */
+export function generateErrorText(code: RouteGenerationCode, place: string, message: string): string {
+  if (code === 'osrm_no_route') return `No bike roads near ${place}. Try another place, or draw the route without roads.`;
+  if (code === 'osrm_network') return "Couldn't reach the bike router. Try again, or draw the route without roads.";
+  return message;
+}
+
+/**
+ * The generator's actions, one filled button (UI-RULES §7). Normally that is
+ * Generate route. After the bike router failed, it is the way that still
+ * works, drawing the route without roads, with Try again beside it (outline)
+ * for a router that was only out of reach.
+ */
+export function GenerateActions({
+  generating,
+  phaseLabel,
+  offerRoadFree,
+  onGenerate,
+  onRoadFree,
+}: {
+  generating: boolean;
+  phaseLabel: string | null;
+  offerRoadFree: boolean;
+  onGenerate: () => void;
+  onRoadFree: () => void;
+}) {
+  if (offerRoadFree) {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="primary" onClick={onRoadFree}>
+          <RouteIcon className="h-4 w-4" aria-hidden />
+          Draw it without roads
+        </Button>
+        <Button variant="outline" onClick={onGenerate}>
+          <RotateCcw className="h-4 w-4" aria-hidden />
+          Try again
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <Button variant="primary" onClick={onGenerate} disabled={generating} aria-busy={generating || undefined}>
+        {generating
+          ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {phaseLabel ?? 'Generating…'}</>
+          : <><RouteIcon className="h-4 w-4" aria-hidden /> Generate route</>}
+      </Button>
+    </div>
+  );
 }
 
 /** A plain error sentence (UI-RULES §8): icon + text, no red box. */
