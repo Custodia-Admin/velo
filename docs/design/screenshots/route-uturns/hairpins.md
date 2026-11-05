@@ -23,3 +23,5 @@
 | puerto-vallarta-malecon | – | 0 | 0 | 0 | 9.53 → 9.65 | 8 → 8 | 0.5 → 0.5 |
 
 total hairpins 16 in 11 routes -> 0; stubs 18 -> 0
+
+Garda (lake-garda-lazise) has no hairpin or stub, but its line moved: 0.7–2.35 km now runs inland on Via Marzan and Via Campanello, up to 530 m from the old shore line. Since OSM changeset 191376414 (2 Nov 2026, a survey edit), the 190 m of Passeggiata Giuseppe Garibaldi north of the beach (way 1158666741) is a footway with `bicycle=no`, so the bike router turns back at the beach and the cutter removes that 1.6 km out-and-back. This is deliberate: the shore path has no bike-legal link there. Checked again on 4 Nov 2026 against Overpass and the live router (same detour). Waypoint 2 stays on the promenade, so a later rebuild returns to the shore by itself if bikes are allowed there again.

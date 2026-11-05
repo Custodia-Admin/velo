@@ -53,7 +53,6 @@ export const ALL_SETTINGS: SettingEntry[] = [
   { id: 'commentaryVolume',      tab: 'audio', tabLabel: 'Audio', label: 'Commentary volume', description: 'Volume for spoken commentary (0–100)' },
   { id: 'commentaryRate',        tab: 'audio', tabLabel: 'Audio', label: 'Speech rate',   description: 'Speed of commentary text-to-speech (80–120%)' },
   { id: 'commentaryThrottleSec', tab: 'audio', tabLabel: 'Audio', label: 'Commentary gap', description: 'Minimum seconds between commentary lines' },
-  { id: 'workoutVoiceCuesEnabled', tab: 'audio', tabLabel: 'Audio', label: 'Workout voice cues', description: 'Spoken segment transitions and 30-second warnings' },
   { id: 'climbAnnouncementsEnabled', tab: 'audio', tabLabel: 'Audio', label: 'Climb announcements', description: 'Alert when a sustained climb is detected' },
   // Controls
   { id: 'gestureControlsEnabled', tab: 'controls', tabLabel: 'Controls', label: 'Handlebar gestures', description: 'Double-tap, long-press, 2-finger swipe during rides' },
@@ -61,8 +60,6 @@ export const ALL_SETTINGS: SettingEntry[] = [
   // Multiplayer (placeholder — no settings in store yet)
   { id: 'multiplayer-coming-soon', tab: 'multiplayer', tabLabel: 'Multiplayer', label: 'Multiplayer settings', description: 'Room caps and peer-color preferences (coming soon)' },
   // Data
-  { id: 'autoUploadStrava', tab: 'data', tabLabel: 'Data', label: 'Auto-upload to Strava', description: 'Upload finished rides automatically to Strava' },
-  { id: 'strava-connect',   tab: 'data', tabLabel: 'Data', label: 'Strava connection',     description: 'Connect or disconnect your Strava account' },
   { id: 'clear-data',       tab: 'data', tabLabel: 'Data', label: 'Clear local data',       description: 'Reset all settings, routes, and rides to factory defaults' },
 ];
 

@@ -1,5 +1,4 @@
 import type { Route, SavedRoute } from '@/types';
-import { SAMPLE_ROUTES } from '@/lib/sampleRoutes';
 import { getDb, ROUTES_STORE } from '@/lib/db';
 
 // All three persistence modules share one 'globeride' IDB opened by
@@ -39,18 +38,6 @@ export async function listRoutes(): Promise<SavedRoute[]> {
   return all.reverse();
 }
 
-/** Load a single saved route by id. Returns undefined if missing. */
-export async function loadRoute(id: string): Promise<SavedRoute | undefined> {
-  const db = await getDb();
-  return db.get(STORE, id);
-}
-
-/** Delete a saved route. No-op if missing. */
-export async function deleteRoute(id: string): Promise<void> {
-  const db = await getDb();
-  await db.delete(STORE, id);
-}
-
 /** Check whether a route id already exists in the library. */
 export async function hasRoute(id: string): Promise<boolean> {
   const db = await getDb();
@@ -62,28 +49,4 @@ export async function hasRoute(id: string): Promise<boolean> {
 export async function countRoutes(): Promise<number> {
   const db = await getDb();
   return db.count(STORE);
-}
-
-/**
- * Insert any sample routes that aren't already present. Idempotent: runs every
- * launch but only writes the gaps, so users who deleted a sample don't get it
- * back uninvited.
- */
-export async function seedSampleRoutesIfMissing(): Promise<void> {
-  const db = await getDb();
-  const tx = db.transaction(STORE, 'readwrite');
-  const store = tx.objectStore(STORE);
-  const seedKey = 'globeride.samplesSeeded.v1';
-  if (localStorage.getItem(seedKey)) {
-    await tx.done;
-    return;
-  }
-  for (const seed of SAMPLE_ROUTES) {
-    const existing = await store.getKey(seed.id);
-    if (existing) continue;
-    const route = seed.make();
-    await store.put(toSavedRoute(route, 'sample'));
-  }
-  await tx.done;
-  localStorage.setItem(seedKey, '1');
 }

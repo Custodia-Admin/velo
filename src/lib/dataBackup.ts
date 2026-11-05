@@ -2,9 +2,7 @@
  * Local-first backup utilities.
  *
  * The backup intentionally contains only local app data: IndexedDB stores and
- * GlobeRide-owned persisted browser storage keys. It does not include
- * session-only Strava token overrides unless they are already in sessionStorage
- * at export time.
+ * app-owned persisted browser storage keys.
  */
 
 import { DB_VERSION, RIDES_STORE, ROUTES_STORE, WORKOUTS_STORE, deleteGlobeRideDb, getDb } from '@/lib/db';
@@ -113,7 +111,6 @@ export async function getLocalDataInventory(): Promise<LocalDataInventory> {
       'OpenStreetMap / map tiles',
       'OSRM route snapping',
       'OpenTopoData / Open-Elevation',
-      'Strava',
       'AI provider when configured',
     ],
   };

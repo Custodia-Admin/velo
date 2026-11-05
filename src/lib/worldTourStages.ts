@@ -17,7 +17,7 @@ import type { MoodId } from '@/lib/cesiumUtils';
 // ---------------------------------------------------------------------------
 
 /** One crowd zone on an iconic climb — used by the spectator system. */
-export interface SpectatorClimb {
+interface SpectatorClimb {
   /** Distance from route start where the crowd section begins, meters. */
   startDistance: number;
   /** Distance from route start where the crowd section ends, meters. */
@@ -29,7 +29,7 @@ export interface SpectatorClimb {
   densityPerKm: number;
 }
 
-export interface WorldTourStageInfo {
+interface WorldTourStageInfo {
   route: Route;
   info: {
     /** Grand tour family. */

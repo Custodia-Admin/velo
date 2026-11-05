@@ -29,7 +29,7 @@ import { COLUMN, DISPLAY, KICKER, PAGE_X, WORDMARK } from '@/components/velo/v2'
 import { useRideExport } from '@/hooks/useRideExport';
 import { computeMetrics } from '@/lib/metrics';
 import { computeAscentM, listRides } from '@/lib/rideHistory';
-import { SCENIC_ROUTES, todaysScenicRoute, type ScenicRouteInfo } from '@/lib/scenicRoutes';
+import { SCENIC_ROUTES, scenicRoutesWithRole, todaysScenicRoute, type ScenicRouteInfo } from '@/lib/scenicRoutes';
 import { cn, formatDuration } from '@/lib/utils';
 import { postersFor } from '@/lib/world/posters';
 import { usePlayStore } from '@/stores/playStore';
@@ -104,12 +104,12 @@ export function secondaryStats(
 }
 
 /**
- * "Tomorrow, maybe": the near-home route after this one in catalogue order
+ * "Tomorrow, maybe": the home route after this one in catalogue order
  * (never the route just ridden). Rides away from home get tomorrow's
- * featured near-home route instead.
+ * featured home route instead.
  */
 export function nextScenicRoute(currentId: string | undefined, now: Date): ScenicRouteInfo | null {
-  const near = SCENIC_ROUTES.filter((r) => r.area === 'near-home');
+  const near = scenicRoutesWithRole('home');
   const pool = near.length > 1 ? near : SCENIC_ROUTES;
   if (pool.length < 2) return null;
   const at = pool.findIndex((r) => r.route.id === currentId);

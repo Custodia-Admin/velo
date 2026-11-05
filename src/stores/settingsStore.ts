@@ -11,16 +11,9 @@ import {
   isCameraDistance,
   isCameraMode,
 } from '@/lib/cesiumCameras';
-import type { Workout } from '@/lib/workout';
 import { DEFAULT_TRAINER_DIFFICULTY, clampDifficulty } from '@/lib/trainerComfort';
 import { DEFAULT_WIND_FEEL, isWindFeel, type WindFeel } from '@/lib/meteo/windFeel';
 import { DEFAULT_RENDERER, isRendererKind, type RendererKind } from '@/lib/world/renderer';
-import {
-  emptyPlan,
-  setDay as setPlanDay,
-  shiftDaysToNextWeek,
-  type WeeklyPlan,
-} from '@/lib/coach/plan';
 
 /** Unit system for HUD + Settings UI. The physics engine is always SI. */
 export type UnitSystem = 'metric' | 'imperial';
@@ -60,8 +53,6 @@ export interface RiderSettings {
    * {@link graphicsQuality} from the detected GPU (balanced on integrated GPUs).
    */
   graphicsQualityAuto: boolean;
-  /** Automatically upload the .FIT to Strava when a ride finishes (requires Strava connected). */
-  autoUploadStrava: boolean;
   /** Currently equipped helmet id -- defaults to the level-0 starter. */
   helmetId: string;
   /** Currently equipped bike gear id -- defaults to the first bike in the catalog. */
@@ -74,8 +65,6 @@ export interface RiderSettings {
   shoesId: string;
   /** Currently equipped bottle gear id (empty string = none). */
   bottleId: string;
-  /** Free-form training goal persisted for the AI coach (e.g. "build base for a century"). */
-  coachGoal: string;
   // ---- Live AI commentary ----
   /** Whether live AI race commentary is enabled. */
   liveCommentaryEnabled: boolean;
@@ -96,8 +85,6 @@ export interface RiderSettings {
   /** Whether handlebar gesture controls are active during a ride. */
   gestureControlsEnabled: boolean;
   // ---- Voice cues ----
-  /** Whether spoken workout segment transition cues are enabled. */
-  workoutVoiceCuesEnabled: boolean;
   /** Whether spoken climb detection announcements are enabled. */
   climbAnnouncementsEnabled: boolean;
   // ---- Camera mode ----
@@ -113,26 +100,12 @@ export interface RiderSettings {
   rideAudioEnabled: boolean;
   /** Procedural ride audio master volume, 0-100. */
   rideAudioVolume: number;
-  // ---- Manual coach plan ----
-  /**
-   * User-built weekly training plan (Mon..Sun). Null until the rider
-   * drops their first workout onto a day — UI shows a "Start a plan"
-   * empty state in that case so we don't litter localStorage with a
-   * blank grid for riders who only use the AI Coach.
-   */
-  coachPlan: WeeklyPlan | null;
   // ---- Comfort ----
   /**
    * Share of the real route gradient the trainer simulates in SIM mode,
    * 0..1. Velo defaults to easy (0.35). The world and physics stay real.
    */
   trainerDifficulty: number;
-  /**
-   * Whether structured workouts may put the trainer in ERG (fixed power).
-   * Off by default: power targets are shown as a guide and the trainer stays
-   * in SIM, following the route at `trainerDifficulty`.
-   */
-  ergEnabled: boolean;
   /**
    * How much live wind loads the trainer (per rider). 'subtle' = a third of
    * the real effect, capped; 'real' = physical; 'off' = ignore wind.
@@ -169,30 +142,25 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   avatar: DEFAULT_AVATAR_COLORS,
   graphicsQuality: 'medium' as GraphicsQuality,
   graphicsQualityAuto: true,
-  autoUploadStrava: true,
   helmetId: 'helmet-starter',
   bikeId: 'midnight-road',
   kitId: 'starter-kit',
   glassesId: '',
   shoesId: '',
   bottleId: '',
-  coachGoal: '',
   liveCommentaryEnabled: true,
   commentaryVolume: 70,
   commentaryRate: 100,
   commentaryThrottleSec: 45,
   lowLightHud: 'auto',
   gestureControlsEnabled: true,
-  workoutVoiceCuesEnabled: true,
   climbAnnouncementsEnabled: true,
   cameraMode: 'chase',
   cameraDistance: DEFAULT_CAMERA_DISTANCE,
   voiceControlEnabled: true,
   rideAudioEnabled: true,
   rideAudioVolume: 60,
-  coachPlan: null,
   trainerDifficulty: DEFAULT_TRAINER_DIFFICULTY,
-  ergEnabled: false,
   windFeel: DEFAULT_WIND_FEEL,
   liveWeatherEnabled: true,
   playMode: false,
@@ -237,20 +205,6 @@ interface SettingsStoreState extends RiderSettings {
   setRideAudioEnabled: (enabled: boolean) => void;
   /** Set procedural ride audio volume 0-100. */
   setRideAudioVolume: (volume: number) => void;
-  /**
-   * Assign (or clear with `null`) a workout to a specific day slot
-   * (0 = Mon … 6 = Sun) of the manual coach plan. Lazily creates the
-   * plan on first write so we don't seed an empty grid into
-   * localStorage for AI-Coach-only riders.
-   */
-  setCoachPlanDay: (dayIdx: number, workout: Workout | null) => void;
-  /** Drop the manual plan back to null. */
-  clearCoachPlan: () => void;
-  /**
-   * Rotate the manual plan forward by one day and bump the week
-   * counter. No-op when no plan exists yet.
-   */
-  shiftCoachPlanToNextWeek: () => void;
   reset: () => void;
 }
 
@@ -272,15 +226,6 @@ export const useSettingsStore = create<SettingsStoreState>()(
       setBottleId: (id) => set({ bottleId: id }),
       setRideAudioEnabled: (enabled) => set({ rideAudioEnabled: enabled }),
       setRideAudioVolume: (volume) => set({ rideAudioVolume: Math.max(0, Math.min(100, volume)) }),
-      setCoachPlanDay: (dayIdx, workout) =>
-        set((s) => ({
-          coachPlan: setPlanDay(s.coachPlan ?? emptyPlan(), dayIdx, workout),
-        })),
-      clearCoachPlan: () => set({ coachPlan: null }),
-      shiftCoachPlanToNextWeek: () =>
-        set((s) => ({
-          coachPlan: s.coachPlan ? shiftDaysToNextWeek(s.coachPlan) : null,
-        })),
       reset: () => set({ ...DEFAULT_SETTINGS }),
     }),
     {
@@ -314,9 +259,6 @@ export const useSettingsStore = create<SettingsStoreState>()(
           (persisted as Partial<RiderSettings>).gestureControlsEnabled ??
           DEFAULT_SETTINGS.gestureControlsEnabled,
         // Graceful migration for upgraded fields.
-        workoutVoiceCuesEnabled:
-          (persisted as Partial<RiderSettings>).workoutVoiceCuesEnabled ??
-          DEFAULT_SETTINGS.workoutVoiceCuesEnabled,
         climbAnnouncementsEnabled:
           (persisted as Partial<RiderSettings>).climbAnnouncementsEnabled ??
           DEFAULT_SETTINGS.climbAnnouncementsEnabled,
@@ -360,9 +302,6 @@ export const useSettingsStore = create<SettingsStoreState>()(
           (persisted as Partial<RiderSettings>).trainerDifficulty ??
             DEFAULT_SETTINGS.trainerDifficulty,
         ),
-        ergEnabled:
-          (persisted as Partial<RiderSettings>).ergEnabled ??
-          DEFAULT_SETTINGS.ergEnabled,
         windFeel: isWindFeel((persisted as Partial<RiderSettings>).windFeel)
           ? (persisted as Partial<RiderSettings>).windFeel!
           : DEFAULT_SETTINGS.windFeel,
@@ -393,30 +332,25 @@ export const useSettingsStore = create<SettingsStoreState>()(
           avatar: s.avatar,
           graphicsQuality: s.graphicsQuality,
           graphicsQualityAuto: s.graphicsQualityAuto,
-          autoUploadStrava: s.autoUploadStrava,
           helmetId: s.helmetId,
           bikeId: s.bikeId,
           kitId: s.kitId,
           glassesId: s.glassesId,
           shoesId: s.shoesId,
           bottleId: s.bottleId,
-          coachGoal: s.coachGoal,
           liveCommentaryEnabled: s.liveCommentaryEnabled,
           commentaryVolume: s.commentaryVolume,
           commentaryRate: s.commentaryRate,
           commentaryThrottleSec: s.commentaryThrottleSec,
           lowLightHud: s.lowLightHud,
           gestureControlsEnabled: s.gestureControlsEnabled,
-          workoutVoiceCuesEnabled: s.workoutVoiceCuesEnabled,
           climbAnnouncementsEnabled: s.climbAnnouncementsEnabled,
           cameraMode: s.cameraMode,
           cameraDistance: s.cameraDistance,
           voiceControlEnabled: s.voiceControlEnabled,
           rideAudioEnabled: s.rideAudioEnabled,
           rideAudioVolume: s.rideAudioVolume,
-          coachPlan: s.coachPlan,
           trainerDifficulty: s.trainerDifficulty,
-          ergEnabled: s.ergEnabled,
           windFeel: s.windFeel,
           liveWeatherEnabled: s.liveWeatherEnabled,
           playMode: s.playMode,

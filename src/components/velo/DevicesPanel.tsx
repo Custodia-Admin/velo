@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { COLUMN, DISPLAY, KICKER, PAGE_X, WORDMARK } from '@/components/velo/v2';
 import { DEVICE_PANEL, ROW_PAD } from '@/components/velo/DeviceRow';
 import { rideLine } from '@/components/velo/devicesView';
-import { DemoRiderSwitch, ErgSwitch, TrainerModeSwitch, TrainerRow } from '@/components/velo/TrainerPanel';
+import { DemoRiderSwitch, TrainerModeSwitch, TrainerRow } from '@/components/velo/TrainerPanel';
 import { ControllerDebugSwitch, HandlebarRow, useControllerSupported } from '@/components/velo/ControllerPanel';
 import { HeartRateRow } from '@/components/velo/HeartRateRow';
 import { useRideScenic } from '@/components/velo/ScenicHome';
@@ -109,9 +109,6 @@ function OptionsPanel() {
         Options
       </h2>
       <div className={cn(DEVICE_PANEL, 'mt-3')}>
-        <div className={ROW_PAD}>
-          <ErgSwitch />
-        </div>
         <div className={cn(ROW_PAD, 'empty:hidden')}>
           <TrainerModeSwitch />
         </div>

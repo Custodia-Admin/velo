@@ -24,8 +24,8 @@ export interface RibbonLine {
   /** Straight span between the end heights instead of following the ground. */
   bridge?: boolean;
   /**
-   * Share of the road decal's depth pull (default 1). Route-fill surfaces use
-   * less, so where one overlaps a mapped road the mapped road wins.
+   * Share of the road decal's depth pull (default 1). Route-fill pieces use
+   * less, so where one joins a mapped road the mapped road wins.
    */
   pull?: number;
 }
@@ -88,7 +88,7 @@ export const ROAD_CLASS_COLORS: Readonly<Record<string, [number, number, number]
 };
 const UNPAVED = srgb(0xa58e6e);
 const FALLBACK = srgb(0x5d5b58);
-/** Depth-pull share of route-fill surfaces (under the mapped roads they join). */
+/** Depth-pull share of route-fill pieces (under the mapped roads they join at either end). */
 export const ROUTE_FILL_PULL = 0.85;
 
 /** Classes that get painted lines (centre dashes + edges). */
@@ -105,7 +105,7 @@ export function roadLines(roads: RoadsLayer): RibbonLine[] {
       points: r.points,
       width: Math.max(1, r.width),
       color: unpaved ? UNPAVED : (ROAD_CLASS_COLORS[cls] ?? FALLBACK),
-      // A route fill is a short piece along the route: no lane paint on it.
+      // A route fill is a short join along the route: no lane paint on it.
       marking: !unpaved && !fill && MARKED.has(cls) ? 1 : 0,
       bridge: (r.flags & roads.flags.bridge) !== 0,
       ...(fill ? { pull: ROUTE_FILL_PULL } : {}),

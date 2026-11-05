@@ -41,6 +41,7 @@ vi.mock('react', async (orig) => {
 });
 
 import { START_DELAY_MS, START_HOLD_MAX_MS, START_HOLD_POLL_MS, START_PENDING_MAX_MS } from '@/lib/ride/startHold';
+import { START_STABLE_MS, StartGroundWatch } from '@/renderers/cesium/startGround';
 import { useRideStore } from '@/stores/rideStore';
 import { useRideAutoStart, type RideAutoStartInput } from './useRideAutoStart';
 
@@ -142,10 +143,24 @@ describe('ride auto-start: the start hold is wired in', () => {
     const r = renderer(() => false);
     AutoStartHost({ worldRenderer: r });
     vi.advanceTimersByTime(START_HOLD_MAX_MS - 500);
-    // The wizard's setRoute lands late: rideState flips, the effect re-runs.
-    AutoStartHost({ worldRenderer: r, rideState: 'idle' });
+    // The wizard's setRoute lands late: the store drops to 'idle', the effect re-runs.
+    useRideStore.setState({ rideState: 'idle' });
+    AutoStartHost({ worldRenderer: r });
     vi.advanceTimersByTime(START_DELAY_MS);
     expect(running()).toBe(true);
+  });
+
+  it("an idle store (the wizard's setRoute landed first) is re-set to the route's start, then started", () => {
+    // rideFsm lets START leave 'idle' directly, so reaching 'running' alone doesn't show the
+    // re-set; numbers left in the store do: the ride must start from 0 m, 0:00.
+    useRideStore.setState({ rideState: 'idle', distance: 1_234, elapsedMs: 99_000 });
+    expect(useRideStore.getState().route).toBe(route);
+    AutoStartHost({ worldRenderer: renderer(() => true) });
+    vi.advanceTimersByTime(START_DELAY_MS);
+    const s = useRideStore.getState();
+    expect(s.rideState).toBe('running');
+    expect(s.distance).toBe(0);
+    expect(s.elapsedMs).toBe(0);
   });
 
   it('a renderer with nothing to stream starts after the short beat', () => {
@@ -156,8 +171,16 @@ describe('ride auto-start: the start hold is wired in', () => {
     expect(running()).toBe(true);
   });
 
-  it('never starts without autoStart or a renderer, and fires only once', () => {
+  it('never starts without autoStart, even with a painted renderer whose ground is ready', () => {
     AutoStartHost({ worldRenderer: renderer(() => true), wantsAutoStart: false });
+    vi.advanceTimersByTime(30_000);
+    expect(running()).toBe(false);
+    AutoStartHost({ worldRenderer: renderer(undefined), wantsAutoStart: false });
+    vi.advanceTimersByTime(30_000);
+    expect(running()).toBe(false);
+  });
+
+  it('never starts without a renderer, and fires only once', () => {
     AutoStartHost({ worldRenderer: null });
     vi.advanceTimersByTime(30_000);
     expect(running()).toBe(false);
@@ -170,6 +193,19 @@ describe('ride auto-start: the start hold is wired in', () => {
     AutoStartHost({ worldRenderer: renderer(() => true), rideState: 'ready' });
     vi.advanceTimersByTime(30_000);
     expect(useRideStore.getState().rideState).toBe('paused');
+  });
+
+  it('pace partners picked on Home ride along when the start re-sets an idle ride\'s route', async () => {
+    const { BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
+    useRideStore.getState().setPaceBots([createPaceBot('pace-steady', BOT_PRESETS[0])]);
+    // The wizard's setRoute landed before /ride's own and left 'idle'.
+    useRideStore.setState({ rideState: 'idle' });
+    AutoStartHost({ worldRenderer: renderer() });
+    vi.advanceTimersByTime(START_DELAY_MS + START_HOLD_POLL_MS);
+    expect(running()).toBe(true);
+    const bots = useRideStore.getState().paceBots;
+    expect(bots.map((b) => b.id)).toEqual(['pace-steady']);
+    expect(bots[0].state.distance).toBe(0);
   });
 
   it('leaving the ride view cancels a held start', () => {
@@ -187,5 +223,84 @@ describe('ride auto-start: the start hold is wired in', () => {
     expect(call).toContain('?.autoStart === true');
     expect(call).toMatch(/\n\s+worldRenderer,\n/);
     expect(src).not.toMatch(/getState\(\)\.start\(\)/);
+  });
+});
+
+describe('ride auto-start timing: the tuning the start hold was measured for', () => {
+  // World Terrain is assigned 0.7-2.6 s after the first paint on the owner's
+  // loaded laptop (first paint ~2.9 s after /ride, target ~5 s to rolling),
+  // and the ground there never gets plausible inside the cap.
+  it.each([
+    { terrainMs: 700, runningBy: 2_000 },
+    { terrainMs: 1_600, runningBy: 2_000 },
+    { terrainMs: 2_600, runningBy: 2_800 },
+  ])(
+    'laptop: World Terrain lands $terrainMs ms after the first paint, the ground never ready: rolling by $runningBy ms',
+    ({ terrainMs, runningBy }) => {
+      const paint = Date.now();
+      const r = { groundReady: () => false, groundPending: () => Date.now() - paint < terrainMs } as unknown as WorldRenderer;
+      AutoStartHost({ worldRenderer: r });
+      vi.advanceTimersByTime(terrainMs - 1);
+      // Nothing real drawn under the rider yet: it waits for the terrain.
+      expect(running()).toBe(false);
+      vi.advanceTimersByTime(runningBy - (terrainMs - 1));
+      expect(running()).toBe(true);
+    },
+  );
+
+  it('the held window fits between the first look and the cap, so a plausible ground can release the start', () => {
+    expect(START_DELAY_MS + START_STABLE_MS + START_HOLD_POLL_MS).toBeLessThanOrEqual(START_HOLD_MAX_MS);
+  });
+
+  /**
+   * The real StartGroundWatch fed every 16 ms frame (drawn globe = rider
+   * ground, Trasimeno heights measured on the laptop) behind the renderer's
+   * groundReady, as CesiumWorldView wires it. Returns when the ride started
+   * (ms after the first paint) and whether the watch had released it.
+   */
+  async function rideOnWatch(drawnAt: (ms: number) => number): Promise<{ startedAt: number | null; byGround: boolean }> {
+    const finest = 307.2;
+    const watch = new StartGroundWatch(async () => finest);
+    const paint = Date.now();
+    const frame = () => {
+      const ms = Date.now() - paint;
+      const drawn = drawnAt(ms);
+      watch.update(12.1, 43.2, drawn, drawn, ms);
+    };
+    frame();
+    const frames = setInterval(frame, 16);
+    let startedAt: number | null = null;
+    let byGround = false;
+    const unsubscribe = useRideStore.subscribe((s) => {
+      if (startedAt !== null || s.rideState !== 'running') return;
+      startedAt = Date.now() - paint;
+      byGround = watch.ready;
+    });
+    const r = { groundReady: () => watch.ready, groundPending: () => false } as unknown as WorldRenderer;
+    try {
+      AutoStartHost({ worldRenderer: r });
+      await vi.advanceTimersByTimeAsync(5_000);
+    } finally {
+      clearInterval(frames);
+      unsubscribe();
+    }
+    return { startedAt, byGround };
+  }
+
+  it('fast machine, plausible ground from the first paint: the watch releases the start within a poll of the beat', async () => {
+    // World Terrain is asked for before the Viewer is built, so it is the globe's terrain at the first paint.
+    const { startedAt, byGround } = await rideOnWatch(() => 303.4); // 3.8 m under the finest: plausible
+    expect(byGround).toBe(true);
+    expect(startedAt).not.toBeNull();
+    expect(startedAt!).toBeGreaterThanOrEqual(START_DELAY_MS);
+    expect(startedAt!).toBeLessThanOrEqual(START_DELAY_MS + START_HOLD_POLL_MS);
+  });
+
+  it('a globe that refines into the window at the first look still releases the start before the cap', async () => {
+    // A coarse chord (Trasimeno, 333.0 m over 307.2 m measured) until the beat ends, then in the window.
+    const { startedAt, byGround } = await rideOnWatch((ms) => (ms < START_DELAY_MS ? 333.0 : 303.4));
+    expect(byGround).toBe(true);
+    expect(startedAt).not.toBeNull();
+    expect(startedAt!).toBeLessThan(START_HOLD_MAX_MS);
   });
 });

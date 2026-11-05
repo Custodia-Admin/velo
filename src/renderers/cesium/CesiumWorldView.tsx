@@ -37,7 +37,6 @@ import {
   onSceneSurface,
   sceneEle,
   setIonToken,
-  setActiveViewer,
   setupBaseImagery,
   type MoodId,
 } from '@/lib/cesiumUtils';
@@ -61,6 +60,7 @@ import { GlobeGate } from '@/renderers/cesium/globeGate';
 import { StartGroundWatch } from '@/renderers/cesium/startGround';
 import { createSideCamSight } from '@/lib/sideCamSight';
 import { placeSideCam } from '@/renderers/cesium/sideCam';
+import { applyHudLensCrop, lensCropState, type LensCropState } from '@/renderers/cesium/hudLensCrop';
 import {
   applyGraphicsQuality,
   recommendedGraphicsQuality,
@@ -73,7 +73,7 @@ import { shouldChaseCamUpdate } from '@/lib/chaseCamGuard';
 import { createLaneState, stepLane } from '@/lib/controllers/steerFeel';
 import { activeSteer } from '@/stores/controllerStore';
 import type { AvatarColors } from '@/lib/avatarConfig';
-import { BOT_COLORWAYS } from '@/lib/paceBots';
+import { placeBotAvatars } from './botAvatars';
 import {
   createWeatherSystem,
   type WeatherSystem,
@@ -102,8 +102,7 @@ import {
   type SpectatorCollection,
 } from '@/lib/spectatorSystem';
 import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
-import { ProPelotonAvatars } from '@/components/ride/ProPelotonAvatars';
-import { waitForContainerSize } from '@/lib/landing/waitForContainerSize';
+import { waitForContainerSize } from '@/lib/waitForContainerSize';
 import {
   CHASE_FRAMING,
   chasePitchRad,
@@ -114,11 +113,6 @@ import {
   type CameraPose,
   type SideTrackCorridor,
 } from '@/lib/cesiumCameras';
-import {
-  createSegmentPortals,
-  type SegmentPortalHandle,
-} from '@/lib/strava/segmentPortals';
-import { mapSegmentsToRoute } from '@/lib/segmentOverlay';
 import {
   createRoadEntity,
   createRoadEdgeStripes,
@@ -277,8 +271,6 @@ export function CesiumWorldView({
   const appliedSceneRef = useRef<SceneWeather | null>(null);
   // Live polyline entity for outdoor GPS mode.
   const livePolylineEntityRef = useRef<Cesium.Entity | null>(null);
-  // Strava segment portal handles — rebuilt on route change, destroyed on cleanup.
-  const segmentPortalHandleRef = useRef<SegmentPortalHandle | null>(null);
   // ---- Road surface ----
   const roadEntityRef = useRef<RoadEntityHandle | null>(null);
   const roadEdgeStripesRef = useRef<EdgeStripesHandle | null>(null);
@@ -305,6 +297,8 @@ export function CesiumWorldView({
   const riderOverrideRef = useRef<RiderPose | null>(null);
   /** Is the ground under the waiting rider at full detail (the start waits for it, lib/ride/startHold)? */
   const startGroundRef = useRef<StartGroundWatch | null>(null);
+  /** The crop that frames the rider above the floating window's bar (hudLensCrop); none in the tab. */
+  const lensCropRef = useRef<LensCropState | null>(null);
   /** Is the globe drawn, or is the photoreal mesh the one ground (renderers/cesium/globeGate)? */
   const globeGateRef = useRef(new GlobeGate());
   // WorldRenderer.setMood: a pinned mood; null = route mood + live weather.
@@ -329,7 +323,6 @@ export function CesiumWorldView({
   const rideMode = useRideStore((s) => s.rideMode);
   const livePolyline = useRideStore((s) => s.livePolyline);
   const flyToTarget = useRideStore((s) => s.flyToTarget);
-  const loadedSegments = useRideStore((s) => s.loadedSegments);
   const searchPinRef = useRef<Cesium.Entity | null>(null);
   const theme = useThemeStore((s) => s.theme);
   const avatarColors = useSettingsStore((s) => s.avatar);
@@ -413,7 +406,16 @@ export function CesiumWorldView({
         contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
       });
       viewerRef.current = viewer;
-      setActiveViewer(viewer);
+      // In the floating ride window the bar covers the bottom of the picture
+      // (data-hud-bottom): draw a taller canvas cropped by the window, so the
+      // rider sits in the clear band above the bar (hudLensCrop). Checked
+      // before every frame, ahead of its camera and canvas size.
+      const lensView = { container, camera: viewer.camera, resize: () => viewer.resize() };
+      const lensCrop = lensCropState(lensView);
+      lensCropRef.current = lensCrop;
+      viewer.scene.preUpdate.addEventListener(() => {
+        applyHudLensCrop(lensView, lensCrop);
+      });
       // Assigned as soon as it arrives (its tiles stream over the next frames);
       // on a busy laptop an idle callback alone sat out its 2 s timeout.
       worldTerrain
@@ -635,8 +637,6 @@ export function CesiumWorldView({
       spectatorCollectionRef.current?.destroy();
       spectatorCollectionRef.current = null;
       spectatorDistancesRef.current = [];
-      segmentPortalHandleRef.current?.destroy();
-      segmentPortalHandleRef.current = null;
       // ---- Road surface cleanup ----
       roadEntityRef.current?.destroy();
       roadEntityRef.current = null;
@@ -646,7 +646,6 @@ export function CesiumWorldView({
       kmMarkersRef.current = null;
       climbArchesRef.current?.destroy();
       climbArchesRef.current = null;
-      setActiveViewer(null);
       if (viewer && !viewer.isDestroyed()) destroyCinematicEffects(viewer);
       if (viewer && !viewer.isDestroyed()) viewer.destroy();
       viewerRef.current = null;
@@ -770,10 +769,6 @@ export function CesiumWorldView({
     spectatorDistancesRef.current = [];
     dryMaterialsRef.current = null;
 
-    // Tear down previous segment portals.
-    segmentPortalHandleRef.current?.destroy();
-    segmentPortalHandleRef.current = null;
-
     // ---- Road surface — tear down previous surface ----
     roadEntityRef.current?.destroy();
     roadEntityRef.current = null;
@@ -855,13 +850,8 @@ export function CesiumWorldView({
     // Read synchronously; if the user adds bots after route load the preRender
     // handler will detect the count mismatch and skip (bots won't render until
     // the next route load or a manual rebuild — acceptable for the first ship).
-    const initialBots = useRideStore.getState().paceBots;
-    const newBotAvatars: Avatar[] = initialBots.map((bot, i) => {
-      const ba = createAvatar(viewer);
-      ba.setColors(BOT_COLORWAYS[i % BOT_COLORWAYS.length]);
-      return ba;
-    });
-    botAvatarsRef.current = newBotAvatars;
+    // Each is placed on the route at creation (the start line after a load).
+    botAvatarsRef.current = placeBotAvatars(useRideStore.getState().paceBots, route, () => createAvatar(viewer));
 
     const start = route.points[0];
     avatar.update({
@@ -1173,6 +1163,9 @@ export function CesiumWorldView({
             viewer.scene,
             Cesium.Cartesian3.fromDegrees(riderLon, riderLat, groundEle),
           );
+          // Screen points in the view's own CSS px: the canvas of a cropped
+          // view (floating window, hudLensCrop) starts this far above it.
+          const cropTop = lensCropRef.current?.extendPx ?? 0;
           return {
             routeEle: sampled.ele,
             groundEle,
@@ -1186,9 +1179,10 @@ export function CesiumWorldView({
             startGround: startGroundRef.current?.debug() ?? null,
             globeShown: viewer.scene.globe.show,
             meshGround: avatarRef.current?.meshGround() ?? false,
-            riderScreen: px ? [Math.round(px.x), Math.round(px.y)] : null,
+            riderScreen: px ? [Math.round(px.x), Math.round(px.y - cropTop)] : null,
             riderHeightPx: head && foot ? Math.round(Math.hypot(head.x - foot.x, head.y - foot.y)) : null,
-            viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight],
+            viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight - cropTop],
+            lensShiftPx: cropTop / 2,
           };
         };
       }
@@ -1200,6 +1194,7 @@ export function CesiumWorldView({
         const currentMode = effectiveCameraMode(
           useSettingsStore.getState().cameraMode,
           useShowStore.getState(),
+          { routeId: r.id, distance: state.distance, speed: state.speed, steer: activeSteer() },
           nowMs,
         );
         const riderPose = {
@@ -1506,29 +1501,6 @@ export function CesiumWorldView({
     // initial flyToBoundingSphere altitude (~7 km up, pitched -35°).
   }, [viewerReady]);
 
-  // ---- Strava segment portals — rebuild when loadedSegments changes ----
-  // Triggered by the background fetch completing after route load.
-  useEffect(() => {
-    const viewer = viewerRef.current;
-    if (!viewer || viewer.isDestroyed() || !route) return;
-
-    // Tear down previous portals before building new ones.
-    segmentPortalHandleRef.current?.destroy();
-    segmentPortalHandleRef.current = null;
-
-    if (loadedSegments.length === 0) return;
-
-    // Map the Strava segments onto the route (already done in the store, but
-    // we do a lightweight re-map here so the Cesium effect owns a clean copy).
-    const routeSegments = mapSegmentsToRoute(
-      loadedSegments.map((rs) => rs.segment),
-      route,
-    );
-    if (routeSegments.length === 0) return;
-
-    segmentPortalHandleRef.current = createSegmentPortals(viewer, routeSegments, route);
-  }, [loadedSegments, route]);
-
   // ---- Outdoor GPS live polyline ----
   // Update the live track entity each time the GPS polyline array grows.
   useEffect(() => {
@@ -1583,10 +1555,6 @@ export function CesiumWorldView({
       {/* Multi-rider peer avatars — rendered into the Cesium viewer once it is ready. */}
       {viewerReady && viewerRef.current && !viewerRef.current.isDestroyed() && (
         <MultiRiderPeers viewer={viewerRef.current} />
-      )}
-      {/* ---- Pro peloton ghosts ---- */}
-      {viewerReady && viewerRef.current && !viewerRef.current.isDestroyed() && (
-        <ProPelotonAvatars viewer={viewerRef.current} />
       )}
     </>
   );

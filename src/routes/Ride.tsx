@@ -10,6 +10,8 @@ import { RideHud } from '@/components/velo/RideHud';
 import { GestureLegend } from '@/components/ride/GestureLegend';
 import { ShowCorner, ShowPanel } from '@/components/velo/ShowPanel';
 import { ShowHud } from '@/components/velo/ShowHud';
+import { RideFloatingNotice, ShowSurface, useRidePipWindow } from '@/components/velo/ShowSurface';
+import { closeRidePip } from '@/lib/show/pip';
 import { retainShowForRide, useShowStore } from '@/stores/showStore';
 import { useIdle } from '@/hooks/useIdle';
 import { cn } from '@/lib/utils';
@@ -18,12 +20,9 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideLoop } from '@/hooks/useRideLoop';
 import { useRideAutoStart } from '@/hooks/useRideAutoStart';
-import { useReplayLoop } from '@/hooks/useReplayLoop';
-import { useWorkoutEngine } from '@/hooks/useWorkoutEngine';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useRideAudio } from '@/hooks/useRideAudio';
 import { useRideHistoryRecorder } from '@/hooks/useRideHistoryRecorder';
-import { useFtpTestSuggestion } from '@/hooks/useFtpTestSuggestion';
 import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
 import { useHandlebarGestures } from '@/hooks/useHandlebarGestures';
 import { useRideControllerActions } from '@/hooks/useRideControllerActions';
@@ -33,20 +32,13 @@ import { retainRideSession } from '@/lib/controllers/rideSession';
 import { reconnectGrantedController } from '@/lib/controllers/rideController';
 import { ControllerDebugOverlay, useControllerDebugVisible } from '@/components/velo/ControllerDebugOverlay';
 import { PerfOverlay } from '@/components/velo/PerfOverlay';
-import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/velo/FinishCard';
-import { useCompanionReceiver } from '@/hooks/useCompanionReceiver';
 import { useGeolocationWatch } from '@/hooks/useGeolocationWatch';
-import { useRaceRecorder } from '@/hooks/useRaceRecorder';
 import { cancelSpeech } from '@/lib/speechSynthesis';
 import { useVoiceControl } from '@/hooks/useVoiceControl';
 import { useMultiriderSync } from '@/hooks/useMultiriderSync';
 import { MultiRiderInvite } from '@/components/ride/MultiRiderInvite';
-import { SegmentHUD } from '@/components/ride/SegmentHUD';
-import { fetchSegmentsNearRoute } from '@/lib/strava/segments';
-import { mapSegmentsToRoute } from '@/lib/segmentOverlay';
-import { refreshAccessToken, stravaCredsPresent } from '@/lib/strava';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
@@ -86,7 +78,6 @@ export function Ride() {
   const location      = useLocation();
   const route         = useRideStore((s) => s.route);
   const rideState     = useRideStore((s) => s.rideState);
-  const activeWorkout = useRideStore((s) => s.activeWorkout);
   const rideMode      = useRideStore((s) => s.rideMode);
   const preferredRenderer = useSettingsStore((s) => s.renderer);
   // Ride details or the devices sheet open: the no-token banner steps aside.
@@ -114,6 +105,17 @@ export function Ride() {
   const dimmed = useIdle(showActive && showSource !== 'none' && rideState === 'running');
   const dimClass = cn('transition-opacity duration-300', dimmed && 'opacity-20');
 
+  // ---- Journey mode: the ride floating over other tabs ----
+  // While the picture-in-picture window is open the world draws there (one
+  // WebGL context at a time) and the tab shows a notice. The window closes
+  // with show mode, at the finish, and when the ride view goes.
+  const floatingWindow = useRidePipWindow();
+  const floating = floatingWindow !== null;
+  useEffect(() => {
+    if (!showActive || rideState === 'finished') closeRidePip();
+  }, [showActive, rideState]);
+  useEffect(() => () => closeRidePip(), []);
+
   // Ref for the main ride canvas container — used by gesture detection.
   const rideCanvasRef = useRef<HTMLDivElement>(null);
 
@@ -135,18 +137,10 @@ export function Ride() {
   const gpsSamplesRef = useRef(gpsSamples);
   gpsSamplesRef.current = gpsSamples;
 
-  // Run the replay loop when replay data is present; otherwise the live loop.
-  // Both hooks are always called (Rules of Hooks) -- each guards on its own
-  // condition internally so only one does real work at a time.
   useRideLoop(rideMode === 'outdoor' ? gpsSamplesRef : undefined);
-  useReplayLoop();
-  useWorkoutEngine();
   useRideHistoryRecorder();
-  useRaceRecorder();
   useMultiriderSync();
   useRideAudio();
-  useCompanionReceiver();  // phone companion -- ingests phone HR/cadence + handles remote control
-  useFtpTestSuggestion();
   useWakeLock(rideState === 'running');
 
   // ---- Handlebar gestures ----
@@ -203,32 +197,6 @@ export function Ride() {
     // Mount/unmount only: location.state is the arrival intent.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ---- Strava segment fetch ----
-  // Fire once per route load, in the background. Ride continues on failure.
-  useEffect(() => {
-    if (!route || !stravaCredsPresent()) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const token = await refreshAccessToken();
-        if (cancelled) return;
-
-        const stravaSegs = await fetchSegmentsNearRoute(route, token);
-        if (cancelled || stravaSegs.length === 0) return;
-
-        const routeSegments = mapSegmentsToRoute(stravaSegs, route);
-        if (cancelled) return;
-
-        useRideStore.getState().setLoadedSegments(routeSegments);
-      } catch {
-        // Strava unavailable — segment overlay is optional; ride continues.
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [route]);
 
   // Surface GPS errors as toasts in outdoor mode.
   useEffect(() => {
@@ -287,7 +255,10 @@ export function Ride() {
       ref={rideCanvasRef}
       className="hud-flat ride-hud-v2 fixed inset-0 w-screen h-screen overflow-hidden bg-background"
     >
-      <RideView ionToken={token} onRendererReady={setWorldRenderer} />
+      {!floating && <RideView ionToken={token} onRendererReady={setWorldRenderer} />}
+      <ShowSurface ionToken={token} onRendererReady={setWorldRenderer} />
+      {/* With a video of the rider's own playing, the tab keeps the video panel. */}
+      {floating && showSource !== 'files' && <RideFloatingNotice />}
 
       {/* No-token banner — subtle nudge offering the photoreal upgrade.
           Invisible when a token is already installed; dismissible per-session
@@ -324,9 +295,6 @@ export function Ride() {
           modes={
             <>
               <PlayPanel compact />
-              {activeWorkout && <WorkoutHUD />}
-              {/* Strava Live Segments HUD */}
-              <SegmentHUD />
             </>
           }
         />

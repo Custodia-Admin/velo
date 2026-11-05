@@ -11,10 +11,7 @@ import * as THREE from 'three';
 
 import { createAtmosphere, patchWorldMaterial, type WorldAtmosphere } from './materials/atmosphere';
 import { NOISE_GLSL } from './materials/toonTerrain';
-import { buildWaterGeometry } from './waterMesh';
-
-/** Longest water triangle edge: enough to follow a river's fall, cheap on triangles. */
-export const WATER_EDGE_M = 45;
+import { buildWaterGeometry, WATER_EDGE_M } from './waterMesh';
 import type { SceneWorld } from './worldScene';
 
 export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMaterial {

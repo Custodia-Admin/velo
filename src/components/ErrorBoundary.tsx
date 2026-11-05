@@ -41,7 +41,7 @@ interface ErrorBoundaryState {
 // ---------------------------------------------------------------------------
 
 export function buildReportUrl(err: Error, info: ErrorInfo | null): string {
-  const base = 'https://github.com/masonwyatt23/globeride/issues/new';
+  const base = 'https://github.com/Custodia-Admin/velo/issues/new';
   const title = encodeURIComponent(`[crash] ${err.message.slice(0, 80)}`);
   const body = encodeURIComponent(
     [

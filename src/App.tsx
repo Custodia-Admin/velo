@@ -1,22 +1,14 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
-import { Landing } from '@/routes/Landing';
 import { Home } from '@/routes/Home';
-import { DrawRoute } from '@/routes/DrawRoute';
-import { StravaCallback } from '@/routes/StravaCallback';
 import { Toaster } from '@/components/setup/Toaster';
 import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
 import { ServiceWorkerUpdates } from '@/components/ServiceWorkerUpdates';
-import { useRaceResultCardAutoToast } from '@/hooks/useRaceResultCardAutoToast';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 
 const Ride = React.lazy(() => import('@/routes/Ride').then(m => ({ default: m.Ride })));
-const Explore = React.lazy(() => import('@/routes/Explore').then(m => ({ default: m.Explore })));
-const Companion = React.lazy(() => import('@/routes/Companion').then(m => ({ default: m.Companion })));
-const Replay = React.lazy(() => import('@/routes/Replay').then(m => ({ default: m.Replay })));
 const Devices = React.lazy(() => import('@/routes/Devices').then(m => ({ default: m.Devices })));
-const WorkoutBuilderRoute = React.lazy(() => import('@/routes/WorkoutBuilderRoute').then(m => ({ default: m.WorkoutBuilderRoute })));
 
 function LoadingFallback() {
   return (
@@ -26,15 +18,6 @@ function LoadingFallback() {
   );
 }
 
-/**
- * Thin wrapper so the race result auto-toast hook can be called inside the
- * React tree (hooks must live in a component). Renders nothing.
- */
-function RaceResultAutoToast() {
-  useRaceResultCardAutoToast();
-  return null;
-}
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -42,31 +25,17 @@ export default function App() {
       <ServiceWorkerUpdates />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
-          {/* Marketing landing page — public entry point */}
-          <Route path="/" element={<RouteErrorBoundary routeName="Landing"><Landing /></RouteErrorBoundary>} />
+          {/* Home is the app: "/" (and any unknown URL, below) goes there */}
+          <Route path="/" element={<Navigate to="/app" replace />} />
           {/* Ride-setup app */}
           <Route path="/app" element={<RouteErrorBoundary routeName="Home"><Home /></RouteErrorBoundary>} />
           {/* Pair the trainer, handlebar controls and heart-rate strap */}
           <Route path="/devices" element={<RouteErrorBoundary routeName="Devices"><Suspense fallback={<LoadingFallback />}><Devices /></Suspense></RouteErrorBoundary>} />
-          <Route path="/explore" element={<RouteErrorBoundary routeName="Explore"><Suspense fallback={<LoadingFallback />}><Explore /></Suspense></RouteErrorBoundary>} />
           <Route path="/ride" element={<RouteErrorBoundary routeName="Ride"><Suspense fallback={<LoadingFallback />}><Ride /></Suspense></RouteErrorBoundary>} />
-          {/* Phone companion screen — same-origin BroadcastChannel peer */}
-          <Route path="/companion" element={<RouteErrorBoundary routeName="Companion"><Suspense fallback={<LoadingFallback />}><Companion /></Suspense></RouteErrorBoundary>} />
-          {/* Draw a route on the globe — redirects to /explore with draw mode ready */}
-          <Route path="/draw" element={<RouteErrorBoundary routeName="Draw"><DrawRoute /></RouteErrorBoundary>} />
-          {/* Cinematic replay */}
-          <Route path="/replay/:rideId" element={<RouteErrorBoundary routeName="Replay"><Suspense fallback={<LoadingFallback />}><Replay /></Suspense></RouteErrorBoundary>} />
-          {/* Custom workout builder */}
-          <Route path="/workouts/new" element={<RouteErrorBoundary routeName="Workout Builder"><Suspense fallback={<LoadingFallback />}><WorkoutBuilderRoute /></Suspense></RouteErrorBoundary>} />
-          <Route path="/workouts/:id/edit" element={<RouteErrorBoundary routeName="Workout Builder"><Suspense fallback={<LoadingFallback />}><WorkoutBuilderRoute /></Suspense></RouteErrorBoundary>} />
-          {/* Strava OAuth callback — auto-captures ?code= after user approves */}
-          <Route path="/strava-callback" element={<RouteErrorBoundary routeName="Strava Callback"><StravaCallback /></RouteErrorBoundary>} />
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
       </Suspense>
       <Toaster />
-      {/* Race result card auto-toast — surfaces "Download result card" after a race */}
-      <RaceResultAutoToast />
     </BrowserRouter>
   );
 }

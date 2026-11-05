@@ -1,13 +1,17 @@
 /**
- * Show mode state: watch your own videos while the ride rolls on.
+ * Show mode state: watch your own videos while the ride rolls on, or float
+ * the ride over another tab (journey mode, a Document Picture-in-Picture
+ * window; lib/show/pip.ts).
  *
- * Only the panel size is persisted. Everything else is per ride: object URLs
- * are revoked when show mode ends, and the auto camera starts fresh each time.
+ * Only the panel size and the floating window's size are persisted.
+ * Everything else is per ride: object URLs are revoked when show mode ends,
+ * and the auto camera (the cinematic director) starts fresh each time.
  */
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { fileKey, sortForPlayback, titleFromFileName } from '@/lib/show/showLibrary';
+import { isPipSize, type PipSize } from '@/lib/show/pip';
 
 export type ShowSize = 's' | 'm' | 'l';
 /** Where the show is: nothing chosen yet, local files, or a PiP window elsewhere. */
@@ -34,10 +38,15 @@ interface ShowState {
   startedAtMs: number | null;
   autoCamera: boolean;
   size: ShowSize;
+  /** The ride is floating in a picture-in-picture window (journey mode). */
+  pipOpen: boolean;
+  /** Size of the floating window (persisted). */
+  pipSize: PipSize;
 
   startShow: (nowMs?: number) => void;
   endShow: () => void;
-  loadFiles: (files: File[]) => void;
+  /** Load videos in playback order; `startKey` picks the one to start with (default the first). */
+  loadFiles: (files: File[], opts?: { startKey?: string }) => void;
   usePip: () => void;
   openPanel: () => void;
   setIndex: (index: number) => void;
@@ -46,6 +55,8 @@ interface ShowState {
   setPlaying: (playing: boolean) => void;
   setSize: (size: ShowSize) => void;
   setAutoCamera: (on: boolean) => void;
+  setPipOpen: (open: boolean) => void;
+  setPipSize: (size: PipSize) => void;
 }
 
 function revokeAll(items: ShowItem[]): void {
@@ -67,6 +78,8 @@ export const useShowStore = create<ShowState>()(
       startedAtMs: null,
       autoCamera: true,
       size: 'm',
+      pipOpen: false,
+      pipSize: 'corner',
 
       startShow: (nowMs = now()) =>
         set((s) => ({
@@ -90,7 +103,7 @@ export const useShowStore = create<ShowState>()(
         });
       },
 
-      loadFiles: (files) => {
+      loadFiles: (files, opts) => {
         if (files.length === 0) return;
         revokeAll(get().items);
         const items = sortForPlayback(files).map((f) => ({
@@ -98,7 +111,8 @@ export const useShowStore = create<ShowState>()(
           title: titleFromFileName(f.name),
           url: URL.createObjectURL(f),
         }));
-        set({ items, index: 0, source: 'files', panelOpen: true, playing: false });
+        const at = opts?.startKey ? items.findIndex((it) => it.key === opts.startKey) : 0;
+        set({ items, index: Math.max(0, at), source: 'files', panelOpen: true, playing: false });
       },
 
       usePip: () => {
@@ -124,15 +138,22 @@ export const useShowStore = create<ShowState>()(
       setPlaying: (playing) => set({ playing }),
       setSize: (size) => set({ size }),
       setAutoCamera: (autoCamera) => set({ autoCamera }),
+      setPipOpen: (pipOpen) => set({ pipOpen }),
+      setPipSize: (pipSize) => set({ pipSize }),
     }),
     {
       name: 'globeride.velo.show.v1',
       storage: createJSONStorage(() => localStorage),
       version: 1,
-      partialize: (s) => ({ size: s.size }),
+      partialize: (s) => ({ size: s.size, pipSize: s.pipSize }),
       merge: (persisted, current) => {
-        const size = (persisted as Partial<ShowState> | undefined)?.size;
-        return { ...current, size: size && SHOW_SIZES.includes(size) ? size : current.size };
+        const p = persisted as Partial<ShowState> | undefined;
+        const size = p?.size;
+        return {
+          ...current,
+          size: size && SHOW_SIZES.includes(size) ? size : current.size,
+          pipSize: isPipSize(p?.pipSize) ? p.pipSize : current.pipSize,
+        };
       },
     },
   ),

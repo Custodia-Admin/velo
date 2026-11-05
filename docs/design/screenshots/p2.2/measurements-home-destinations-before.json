@@ -1,0 +1,125 @@
+{
+ "before-1440": {
+  "overflow": false,
+  "scrollWidth": 1440,
+  "sections": 4,
+  "titles": [
+   "Near home",
+   "Hometown",
+   "Further afield",
+   "Travels"
+  ],
+  "details": [
+   "Perugia and Umbria",
+   "Ticino and the Lombardy lakes",
+   "Alpine lakes, Garda and the Riviera",
+   "China, the United States and Mexico"
+  ],
+  "tiles": [
+   2,
+   6,
+   5,
+   7
+  ],
+  "mapBadges": [
+   1,
+   0,
+   0,
+   0
+  ],
+  "columns": [
+   2,
+   3,
+   3,
+   3
+  ],
+  "minFont": 12,
+  "minFontEl": "Map view",
+  "minTarget": 282,
+  "minTargetEl": "Ride Lake Annecy, 18.0 km \u00b7 flat \u00b7 about 55 min, m",
+  "tv": false,
+  "dark": false
+ },
+ "before-390": {
+  "overflow": false,
+  "scrollWidth": 390,
+  "sections": 4,
+  "titles": [
+   "Near home",
+   "Hometown",
+   "Further afield",
+   "Travels"
+  ],
+  "details": [
+   "Perugia and Umbria",
+   "Ticino and the Lombardy lakes",
+   "Alpine lakes, Garda and the Riviera",
+   "China, the United States and Mexico"
+  ],
+  "tiles": [
+   2,
+   6,
+   5,
+   7
+  ],
+  "mapBadges": [
+   1,
+   0,
+   0,
+   0
+  ],
+  "columns": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "minFont": 12,
+  "minFontEl": "Map view",
+  "minTarget": 304,
+  "minTargetEl": "Ride Lugano lakefront to Melide, 9.7 km \u00b7 flat \u00b7 a",
+  "tv": false,
+  "dark": false
+ },
+ "before-tv": {
+  "overflow": false,
+  "scrollWidth": 1920,
+  "sections": 4,
+  "titles": [
+   "Near home",
+   "Hometown",
+   "Further afield",
+   "Travels"
+  ],
+  "details": [
+   "Perugia and Umbria",
+   "Ticino and the Lombardy lakes",
+   "Alpine lakes, Garda and the Riviera",
+   "China, the United States and Mexico"
+  ],
+  "tiles": [
+   2,
+   6,
+   5,
+   7
+  ],
+  "mapBadges": [
+   1,
+   0,
+   0,
+   0
+  ],
+  "columns": [
+   2,
+   3,
+   3,
+   3
+  ],
+  "minFont": 21,
+  "minFontEl": "Map view",
+  "minTarget": 492,
+  "minTargetEl": "Ride Lugano lakefront to Melide, 9.7 km \u00b7 flat \u00b7 a",
+  "tv": true,
+  "dark": false
+ }
+}

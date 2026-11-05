@@ -557,3 +557,124 @@ describe('rideStore outdoor route-less rides', () => {
     expect(useRideStore.getState().livePolyline).toHaveLength(2);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Pace partners stay picked across route loads and resets (PR #37 review D2)
+// ---------------------------------------------------------------------------
+
+describe('rideStore — pace partners', () => {
+  const climb: Route = {
+    ...route,
+    id: 'climb',
+    points: [
+      { lat: 0, lon: 0, ele: 0, distance: 0 },
+      { lat: 0.009, lon: 0, ele: 30, distance: 1000 },
+    ],
+    ascent: 30,
+    maxElevation: 30,
+  };
+
+  beforeEach(() => {
+    useRideStore.setState(useRideStore.getInitialState(), true);
+  });
+
+  function rideBotsAway(): void {
+    const st = useRideStore.getState();
+    st.start();
+    st.tickBots(1);
+    st.tickBots(1);
+    expect(useRideStore.getState().paceBots[0].state.distance).toBeGreaterThan(0);
+  }
+
+  it('loading a route keeps the picked partners and puts them back on the start line', async () => {
+    const { BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
+    useRideStore.getState().setRoute(climb);
+    useRideStore.getState().setPaceBots([createPaceBot('pace-steady', BOT_PRESETS[0]), createPaceBot('pace-climber', BOT_PRESETS[1])]);
+    rideBotsAway();
+
+    useRideStore.getState().setRoute(route);
+    const bots = useRideStore.getState().paceBots;
+    expect(bots.map((b) => b.id)).toEqual(['pace-steady', 'pace-climber']);
+    expect(bots.map((b) => b.name)).toEqual([BOT_PRESETS[0].name, BOT_PRESETS[1].name]);
+    for (const b of bots) expect(b.state).toMatchObject({ distance: 0, speed: 0, power: 0 });
+  });
+
+  it('a reset (re-ride) puts the partners back on the start line', async () => {
+    const { BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
+    useRideStore.getState().setRoute(climb);
+    useRideStore.getState().setPaceBots([createPaceBot('pace-steady', BOT_PRESETS[0])]);
+    rideBotsAway();
+    useRideStore.getState().finish();
+
+    useRideStore.getState().reset();
+    const bots = useRideStore.getState().paceBots;
+    expect(bots.map((b) => b.id)).toEqual(['pace-steady']);
+    expect(bots[0].state.distance).toBe(0);
+  });
+
+  it('clearPaceBots still empties the roster', async () => {
+    const { BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
+    useRideStore.getState().setPaceBots([createPaceBot('pace-steady', BOT_PRESETS[0])]);
+    useRideStore.getState().clearPaceBots();
+    useRideStore.getState().setRoute(route);
+    expect(useRideStore.getState().paceBots).toEqual([]);
+  });
+
+  // PR #37 review nit 3: re-seated partners carried createPaceBot's 0/0
+  // default until the first running tick, so during 'ready' the renderers
+  // drew them ~1,390 km away instead of on the start line.
+  const perugia: Route = {
+    ...route,
+    id: 'perugia-east',
+    points: [
+      { lat: 43.1107, lon: 12.3908, ele: 312, distance: 0 },
+      { lat: 43.1107, lon: 12.4031, ele: 318, distance: 1000 },
+    ],
+    ascent: 6,
+    minElevation: 312,
+    maxElevation: 318,
+  };
+
+  function expectOnStartLine(r: Route): void {
+    const bots = useRideStore.getState().paceBots;
+    expect(bots.length).toBeGreaterThan(0);
+    for (const b of bots) {
+      expect(b.state.distance).toBe(0);
+      expect(b.state.lat).toBe(r.points[0].lat);
+      expect(b.state.lon).toBe(r.points[0].lon);
+      expect(b.state.ele).toBe(r.points[0].ele);
+      // Due east along the route (radians clockwise from north).
+      expect(b.state.heading).toBeCloseTo(Math.PI / 2, 6);
+    }
+  }
+
+  it('loading a route stands the partners on its start line, facing along it', async () => {
+    const { BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
+    useRideStore.getState().setPaceBots([createPaceBot('pace-steady', BOT_PRESETS[0]), createPaceBot('pace-attacker', BOT_PRESETS[3])]);
+    useRideStore.getState().setRoute(perugia);
+    expect(useRideStore.getState().rideState).toBe('ready');
+    expectOnStartLine(perugia);
+  });
+
+  it('a reset after riding stands the partners back on the start line, not at 0/0', async () => {
+    const { BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
+    useRideStore.getState().setRoute(perugia);
+    useRideStore.getState().setPaceBots([createPaceBot('pace-steady', BOT_PRESETS[0])]);
+    rideBotsAway();
+    expect(useRideStore.getState().paceBots[0].state.lon).toBeGreaterThan(perugia.points[0].lon);
+    useRideStore.getState().finish();
+
+    useRideStore.getState().reset();
+    expectOnStartLine(perugia);
+  });
+
+  it('clearing the route leaves the partners picked, at the unplaced default', async () => {
+    const { BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
+    useRideStore.getState().setRoute(perugia);
+    useRideStore.getState().setPaceBots([createPaceBot('pace-steady', BOT_PRESETS[0])]);
+    useRideStore.getState().setRoute(null);
+    const [bot] = useRideStore.getState().paceBots;
+    expect(bot.id).toBe('pace-steady');
+    expect(bot.state).toMatchObject({ distance: 0, lat: 0, lon: 0 });
+  });
+});

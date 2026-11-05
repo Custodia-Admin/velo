@@ -165,8 +165,8 @@ describe('renderer seam: Cesium loads lazily', () => {
     expect(engineImportsReachable([path.join(SRC, 'main.tsx')], staticValue)).toEqual([]);
   });
 
-  it('the ride and replay routes reach Cesium only through import()', () => {
-    for (const route of ['routes/Ride.tsx', 'routes/Replay.tsx']) {
+  it('the ride route reaches Cesium only through import()', () => {
+    for (const route of ['routes/Ride.tsx']) {
       expect(engineImportsReachable([path.join(SRC, route)], staticValue)).toEqual([]);
     }
   });
@@ -217,8 +217,8 @@ describe('world renderer (three.js) is token-free', () => {
     expect(bad).toEqual([]);
   });
 
-  it('three.js sits behind import(): the app shell and ride/replay routes do not bundle it', () => {
-    for (const entry of ['main.tsx', 'routes/Ride.tsx', 'routes/Replay.tsx']) {
+  it('three.js sits behind import(): the app shell and the ride route do not bundle it', () => {
+    for (const entry of ['main.tsx', 'routes/Ride.tsx']) {
       const hits = engineImportsReachable([path.join(SRC, entry)], staticValue);
       expect(hits.filter((h) => /imports '(three|@react-three|postprocessing)/.test(h))).toEqual([]);
     }
@@ -228,12 +228,8 @@ describe('world renderer (three.js) is token-free', () => {
 describe('renderer seam: ride features go through RideView / WorldRenderer', () => {
   const appFiles = filesUnder(SRC).filter((f) => !isTest(f));
 
-  it('only the renderer registry (and the legacy shim) import a renderer module', () => {
-    const allowed = new Set(
-      ['src/renderers/registry.ts', 'src/components/ride/CesiumViewer.tsx'].map((f) =>
-        path.join(ROOT, f),
-      ),
-    );
+  it('only the renderer registry imports a renderer module', () => {
+    const allowed = new Set(['src/renderers/registry.ts'].map((f) => path.join(ROOT, f)));
     const offenders = appFiles
       .filter((f) => !f.startsWith(path.join(SRC, 'renderers') + path.sep) && !allowed.has(f))
       .flatMap((f) =>
@@ -251,12 +247,6 @@ describe('renderer seam: ride features go through RideView / WorldRenderer', () 
         .map(() => rel(f)),
     );
     expect(offenders).toEqual([]);
-  });
-
-  it('the old path still re-exports the moved view (back-compat shim)', async () => {
-    const shim = fs.readFileSync(path.join(SRC, 'components/ride/CesiumViewer.tsx'), 'utf8');
-    expect(shim).toMatch(/CesiumWorldView as CesiumViewer/);
-    expect(shim).toContain("'@/renderers/cesium/CesiumWorldView'");
   });
 
   it('renderer camera modes match the persisted camera setting', () => {

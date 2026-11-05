@@ -1,0 +1,42 @@
+{
+ "1500": {
+  "waterPixels": {
+   "before": 0.0344,
+   "after": 0.0345
+  },
+  "IoU before↔after": 0.9942,
+  "IoU before↔before (reload)": 1.0,
+  "IoU after↔after (reload)": 1.0,
+  "xorPixels": 0.0002
+ },
+ "3000": {
+  "waterPixels": {
+   "before": 0.0342,
+   "after": 0.0342
+  },
+  "IoU before↔after": 0.9992,
+  "IoU before↔before (reload)": 1.0,
+  "IoU after↔after (reload)": 1.0,
+  "xorPixels": 3e-05
+ },
+ "5000": {
+  "waterPixels": {
+   "before": 0.0195,
+   "after": 0.0196
+  },
+  "IoU before↔after": 0.9919,
+  "IoU before↔before (reload)": 1.0,
+  "IoU after↔after (reload)": 1.0,
+  "xorPixels": 0.00016
+ },
+ "8000": {
+  "waterPixels": {
+   "before": 0.0119,
+   "after": 0.012
+  },
+  "IoU before↔after": 0.9879,
+  "IoU before↔before (reload)": 0.9999,
+  "IoU after↔after (reload)": 1.0,
+  "xorPixels": 0.00015
+ }
+}

@@ -12,7 +12,6 @@ import { expect, test, type Page } from '@playwright/test';
 
 const INIT = `
   localStorage.removeItem('globeride.cesiumIonToken');
-  localStorage.setItem('globeride.onboarding.v2', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 2 }));
 `;
 
 async function hudNumbers(page: Page) {
@@ -133,6 +132,33 @@ test('token-free smoke ride: Home → Perugia route → riding in the world rend
   expect(pageErrors).toEqual([]);
 });
 
+test('a hometown route rides the Lugano world (P2.2), no cesium.com traffic', async ({ page }) => {
+  const cesiumRequests: string[] = [];
+  const pageErrors: string[] = [];
+  page.on('request', (req) => {
+    if (/(^|\.)cesium\.com$/.test(new URL(req.url()).hostname)) cesiumRequests.push(req.url());
+  });
+  page.on('pageerror', (err) => pageErrors.push(String(err)));
+  await page.addInitScript(INIT);
+
+  await page.goto('/app');
+  await expect(page.locator('[data-destination-section="lugano"]')).toBeVisible();
+  await rideScenicRoute(page, 'scenic-locarno-brissago', 'Locarno to Brissago');
+
+  const view = page.locator('[data-renderer]');
+  await expect(view).toHaveAttribute('data-renderer', 'world');
+  await expect.poll(async () => (await worldDebug(page))?.world ?? null, { timeout: 60_000 }).toBe('lugano');
+  const a = await worldDebug(page);
+  await expect.poll(async () => (await worldDebug(page))?.distance ?? 0, { timeout: 60_000 }).toBeGreaterThan(a!.distance!);
+  const b = await worldDebug(page);
+  expect(Math.abs(b!.riderGroundGap!)).toBeLessThan(0.05);
+  expect(b!.cameraClearance).toBeGreaterThan(0.5);
+  await expect(page.getByText('Add a free Cesium ion token')).toHaveCount(0);
+
+  expect(cesiumRequests).toEqual([]);
+  expect(pageErrors).toEqual([]);
+});
+
 test('a route outside every baked world rides photoreal (OSM fallback with no token)', async ({ page }) => {
   const cesiumRequests: string[] = [];
   const pageErrors: string[] = [];
@@ -143,8 +169,9 @@ test('a route outside every baked world rides photoreal (OSM fallback with no to
   await page.addInitScript(INIT);
 
   await page.goto('/app');
-  // Lugano is area 'hometown', never Today's ride, but go through the same path.
-  await rideScenicRoute(page, 'scenic-lugano-melide', 'Lugano lakefront to Melide');
+  // Bellinzona–Locarno is in the Lugano destination but outside the Lugano
+  // world (docs/worlds/WORLD-FORMAT.md, "Lugano"): a map ride.
+  await rideScenicRoute(page, 'scenic-magadino-plain', 'Bellinzona to Locarno');
 
   const view = page.locator('[data-renderer]');
   await expect(view).toHaveAttribute('data-renderer-preferred', 'world');

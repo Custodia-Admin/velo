@@ -155,9 +155,7 @@ describe('search result tab routing', () => {
     expect(entry?.tab).toBe('controls');
   });
 
-  it('Strava result routes to data tab', () => {
-    const results = searchSettings('strava');
-    expect(results.length).toBeGreaterThan(0);
-    expect(results.every((e) => e.tab === 'data')).toBe(true);
+  it('has no Strava settings any more', () => {
+    expect(searchSettings('strava')).toEqual([]);
   });
 });

@@ -1,48 +1,29 @@
 /**
- * Auto camera for show mode: cycles chase → drone → orbit shots on a fixed
- * schedule so the world looks alive in the corner of your eye while you
- * watch something, with no taps needed mid-ride.
+ * Show mode's auto camera: the cinematic director (src/lib/world/director.ts)
+ * driven by the ride. Both renderers call `showDirectorFrame` once per frame
+ * while show mode is on; it returns null when the rider's own camera applies
+ * (show mode off, or the rider took the camera over).
  *
- * Pure (no Cesium, no stores) so it is testable in node.
+ * One director per show session (route + the moment show mode started), so
+ * the edit carries on when the ride moves between the tab and the floating
+ * window, and starts afresh with a new show. Seeded from the route id: the
+ * same route gets the same edit for the same ride.
+ *
+ * Pure apart from that one session; the renderers read the stores.
  */
 
 import type { CameraMode } from '@/lib/cesiumCameras';
+import {
+  createDirector,
+  seedFromString,
+  type Director,
+  type DirectorFrame,
+  type DirectorLandmark,
+  type DirectorShot,
+} from '@/lib/world/director';
 
-export interface DirectorShot {
-  mode: CameraMode;
-  durationMs: number;
-}
-
-/**
- * Long, calm shots. Side tracking and first person are left out: both sit at
- * road height and clip into terrain on rolling routes.
- */
-export const SHOW_DIRECTOR_SHOTS: ReadonlyArray<DirectorShot> = [
-  { mode: 'chase', durationMs: 45_000 },
-  { mode: 'drone', durationMs: 35_000 },
-  { mode: 'cinematic', durationMs: 25_000 },
-  { mode: 'chase', durationMs: 35_000 },
-  { mode: 'drone', durationMs: 30_000 },
-];
-
-/** Camera mode for a point in time, measured from when show mode started. */
-export function directorShotAt(
-  elapsedMs: number,
-  shots: ReadonlyArray<DirectorShot> = SHOW_DIRECTOR_SHOTS,
-): CameraMode {
-  if (shots.length === 0) return 'chase';
-  const total = shots.reduce((sum, s) => sum + s.durationMs, 0);
-  if (!Number.isFinite(elapsedMs) || elapsedMs < 0 || total <= 0) return shots[0].mode;
-  let t = elapsedMs % total;
-  for (const shot of shots) {
-    if (t < shot.durationMs) return shot.mode;
-    t -= shot.durationMs;
-  }
-  return shots[shots.length - 1].mode;
-}
-
-export interface DirectorInput {
-  /** Show mode is on (panel open or a picture-in-picture show elsewhere). */
+export interface DirectorGate {
+  /** Show mode is on (a video panel, or the ride floating over another tab). */
   active: boolean;
   /** The rider has not taken manual control of the camera. */
   autoCamera: boolean;
@@ -50,12 +31,64 @@ export interface DirectorInput {
   startedAtMs: number | null;
 }
 
-/** The camera mode the ride view should use this frame. */
+export interface DirectorRide {
+  routeId: string | null;
+  /** Route distance, metres. */
+  distance: number;
+  /** m/s. */
+  speed: number;
+  /** Shaped handlebar steering (controllerStore.activeSteer). */
+  steer: number;
+}
+
+let session: { key: string; director: Director } | null = null;
+
+/** The director's shot for this frame, or null when the rider's own camera applies. */
+export function showDirectorFrame(
+  gate: DirectorGate,
+  ride: DirectorRide,
+  nowMs: number,
+  landmarks: readonly DirectorLandmark[] = [],
+): DirectorFrame | null {
+  if (!gate.active || !gate.autoCamera || gate.startedAtMs === null) return null;
+  const key = `${ride.routeId ?? ''}@${gate.startedAtMs}`;
+  if (!session || session.key !== key) {
+    session = { key, director: createDirector({ seed: seedFromString(ride.routeId ?? 'velo') }) };
+  }
+  return session.director.update({
+    t: nowMs / 1000,
+    distance: ride.distance,
+    speed: ride.speed,
+    steer: ride.steer,
+    landmarks,
+  });
+}
+
+/** Forget the session (tests). */
+export function resetShowDirector(): void {
+  session = null;
+}
+
+/**
+ * The photoreal (Cesium) renderer has no front, dolly or landmark orbit, and
+ * its road-height cameras clip into streamed terrain on rolling routes: it
+ * films the director's edit with its calm modes.
+ */
+export const CESIUM_SHOT_MODE: Readonly<Record<DirectorShot, CameraMode>> = {
+  chase: 'chase',
+  side: 'drone',
+  orbit: 'cinematic',
+  front: 'cinematic',
+  pov: 'chase',
+};
+
+/** The camera mode the photoreal ride view should use this frame. */
 export function effectiveCameraMode(
   riderMode: CameraMode,
-  show: DirectorInput,
+  gate: DirectorGate,
+  ride: DirectorRide,
   nowMs: number,
 ): CameraMode {
-  if (!show.active || !show.autoCamera || show.startedAtMs === null) return riderMode;
-  return directorShotAt(nowMs - show.startedAtMs);
+  const frame = showDirectorFrame(gate, ride, nowMs);
+  return frame ? CESIUM_SHOT_MODE[frame.shot] : riderMode;
 }

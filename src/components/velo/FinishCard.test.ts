@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { powerSummary, rideAgain, secondaryStats } from '@/components/velo/FinishCard';
+import { nextScenicRoute, powerSummary, rideAgain, secondaryStats } from '@/components/velo/FinishCard';
 import { useRideStore } from '@/stores/rideStore';
 import type { Route, TelemetrySample } from '@/types';
 
@@ -62,6 +62,25 @@ describe('finish screen figures', () => {
   });
 });
 
+describe('Tomorrow, maybe', () => {
+  // As it was when routes carried their own `area` field, before the
+  // destination manifests became the one source of where a route sits.
+  const TRASIMENO = 'scenic-trasimeno-shore';
+  const TIBER = 'scenic-perugia-tiber-park';
+  const ASSISI = 'scenic-assisi-valley';
+  const next = (id: string | undefined, day: number) => nextScenicRoute(id, new Date(2026, 10, day, 9))?.route.id;
+
+  it('offers the next home route in library order after a home ride', () => {
+    expect([TRASIMENO, TIBER, ASSISI].map((id) => next(id, 1))).toEqual([TIBER, ASSISI, TRASIMENO]);
+  });
+
+  it('offers tomorrow’s featured home route after any other ride', () => {
+    for (const id of [undefined, 'scenic-lugano-melide', 'scenic-hangzhou-west-lake', 'gpx-123']) {
+      expect([1, 2, 3, 4].map((day) => next(id, day)), String(id)).toEqual([ASSISI, TRASIMENO, TIBER, ASSISI]);
+    }
+  });
+});
+
 describe('Ride again', () => {
   const route: Route = {
     id: 'r1',
@@ -99,7 +118,9 @@ describe('finish screen layout contract', () => {
   const src = readFileSync(resolve(__dirname, 'FinishCard.tsx'), 'utf8');
 
   it('is its own opaque full-screen page that fits the viewport (flex column, shrinking plate)', () => {
-    expect(src).toMatch(/fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background/);
+    // Opaque: `bg-background` with no `/NN` alpha suffix (`bg-background/60`
+    // would let the ride scene show through).
+    expect(src).toMatch(/fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background(?![/\w-])/);
     expect(src).toMatch(/flex min-h-0 flex-1 flex-col/);
     expect(src).toMatch(/aspect-4\/3 min-h-32 w-full sm:aspect-21\/9/);
     expect(src).not.toMatch(/max-h-finish-fit/);

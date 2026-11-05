@@ -1,0 +1,78 @@
+{
+ "route": "scenic-locarno-brissago",
+ "quality": "medium",
+ "viewport": [
+  1440,
+  900
+ ],
+ "gl": "gpu",
+ "worldReadyS": 5.6,
+ "renderer": "world",
+ "debug": {
+  "renderer": "world",
+  "world": "lugano",
+  "quality": "medium",
+  "dpr": 1,
+  "canvas": [
+   1440,
+   900
+  ],
+  "distance": 105.0293486022396,
+  "riderXZ": [
+   -3236.28,
+   -11940.72
+  ],
+  "routeEle": 201,
+  "groundEle": 203.12363576238107,
+  "riderGroundGap": 0,
+  "cameraHeight": 205.72363576238106,
+  "cameraClearance": 2.613439789845671,
+  "riderScreen": [
+   720,
+   567
+  ],
+  "nearChunks": 2,
+  "drawCalls": 76,
+  "triangles": 1244393,
+  "trees": 8643,
+  "light": {
+   "phase": "night",
+   "at": "2026-11-04T17:16:49.500Z",
+   "timeSource": "clock",
+   "sunAltitude": -12.6,
+   "condition": "rain",
+   "weatherSource": "live",
+   "rain": 1
+  },
+  "fps": 12.1,
+  "avgMs": 82.5,
+  "p95Ms": 211.3,
+  "worstMs": 385.1,
+  "jankPct": 52,
+  "frames": 202
+ },
+ "fpsSamples": [
+  11.9,
+  11.8,
+  12.1,
+  12.2,
+  12.2,
+  12.1
+ ],
+ "p95Samples": [
+  202.7,
+  202.7,
+  202.7,
+  205.1,
+  211.3,
+  211.3
+ ],
+ "speed": "Speed: 33.2 km/h",
+ "visibility": "visible",
+ "cesiumComRequests": 0,
+ "cesiumChunkRequests": [],
+ "pageErrors": [],
+ "consoleErrors": [
+  "THREE.Clock: This module has been deprecated. Please use THREE.Timer instead."
+ ]
+}

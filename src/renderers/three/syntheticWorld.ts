@@ -43,7 +43,8 @@ export function syntheticSceneWorld(): SceneWorld {
   const heightfield = syntheticHeightfield();
   const extent = { xMin: -400, xMax: 400, yMin: -200, yMax: 200 };
   const world = {
-    manifest: { id: 'synthetic', extent, defaultMood: 'clear-afternoon' },
+    // pois is required in a real manifest; the show director's landmark lookup reads it.
+    manifest: { id: 'synthetic', extent, defaultMood: 'clear-afternoon', pois: [] },
     projection: createProjection({ type: 'tmerc', ellipsoid: 'WGS84', lat0: 43.1107, lon0: 12.3908, k0: 1 }),
     heightfield,
     roads: SYNTHETIC_ROADS,

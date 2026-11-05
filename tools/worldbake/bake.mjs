@@ -7,6 +7,10 @@
 //   --cache <dir>      download cache (default tools/worldbake/cache, env WORLDBAKE_CACHE)
 //   --no-docs          don't rewrite this world's block in docs/worlds/CREDITS.md
 //
+// The heightfield comes from the recipe's `dem.source`: AWS Terrain Tiles by
+// default (`dem.zoom`), or Copernicus GLO-30 COGs with "copernicus-glo30"
+// (demSource.mjs, fetchGlo30.mjs).
+//
 // Same recipe + same cached inputs → byte-identical bundle (sha256 per file in
 // manifest.json). OSM queries are pinned to the recipe's osmDate, so a clean
 // cache re-downloads the same data. Runs on the bake host (cat-bed), not the
@@ -19,16 +23,21 @@ import { createProjection } from '../../src/lib/world/projection.ts';
 import { decodeHeightDeltas } from '../../src/lib/world/heightfield.ts';
 import { validateManifest, WORLD_FORMAT, WORLD_FORMAT_VERSION } from '../../src/lib/world/manifest.ts';
 import { fetchDem, DEM_SOURCE } from './fetchDem.mjs';
+import { fetchGlo30, GLO30_CREDIT, GLO30_URL_TEMPLATE } from './fetchGlo30.mjs';
+import { demSourceOf, GLO30_DEM_SOURCE } from './demSource.mjs';
 import { fetchOsm, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
-import { routeRoadCoverage, routeSurfaceFill, sampleAppRoute } from './routeCoverage.mjs';
+import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { validateHeightfield } from './validateDem.mjs';
+import { syncDestinations } from './syncDestinations.mjs';
 import { brotliSize, ensureDir, gzip, here, sha256, stableJson, writeFileAtomic } from './util.mjs';
 
 const TOOL_VERSION = 1;
 const ROOT = resolve(here(import.meta.url), '../..');
+/** Bundle budget (blueprint P1.3): all files, brotli quality 11. */
+export const MAX_BUNDLE_BROTLI_BYTES = 8e6;
 
 function parseArgs(argv) {
   const args = { world: null, clean: false, validate: true, docs: true, out: null, cache: process.env.WORLDBAKE_CACHE ?? null };
@@ -81,6 +90,37 @@ export const CREDITS = [
   },
 ];
 
+/**
+ * Credits for a bundle baked from `demSource`. The default source keeps the
+ * list above exactly (same bytes in the manifest); GLO-30 swaps the Terrain
+ * Tiles entry for the Copernicus DEM GLO-30 one.
+ */
+export function creditsFor(demSource) {
+  if (demSource !== GLO30_DEM_SOURCE) return CREDITS;
+  return CREDITS.map((c) => (c.id === 'terrain-tiles' ? GLO30_CREDIT : c));
+}
+
+/**
+ * `manifest.generator` for a bake from `demSource`. The key order is part of
+ * the manifest's bytes: the default source keeps `demSource` + `demZoom`
+ * where they always were, GLO-30 names its source and has no zoom.
+ */
+export function generatorFor(demSource, recipe, recipeBytes, dem) {
+  return {
+    tool: 'velo-worldbake',
+    version: TOOL_VERSION,
+    recipeSha256: sha256(recipeBytes),
+    osmDate: recipe.osmDate,
+    ...(demSource === GLO30_DEM_SOURCE ? { demSource: dem.source } : { demSource: DEM_SOURCE, demZoom: recipe.dem.zoom }),
+    demTiles: dem.tiles.length,
+  };
+}
+
+/** Stop the bake when the bundle (every file, brotli 11) is over the budget. */
+export function checkBundleBudget(totals) {
+  if (totals.brotli > MAX_BUNDLE_BROTLI_BYTES) throw new Error(`bundle is ${(totals.brotli / 1e6).toFixed(2)} MB brotli, over the ${MAX_BUNDLE_BROTLI_BYTES / 1e6} MB budget`);
+}
+
 /** Lat/lon bbox of the extent (edges walked every 100 m), rounded outward to 1e-5°. */
 function extentBbox(projection, ext) {
   let south = Infinity, west = Infinity, north = -Infinity, east = -Infinity;
@@ -115,6 +155,8 @@ export async function bake(opts) {
   const recipePath = join(ROOT, 'tools/worldbake/worlds', `${opts.world}.json`);
   const recipeBytes = readFileSync(recipePath);
   const recipe = JSON.parse(recipeBytes.toString('utf8'));
+  const demSource = demSourceOf(recipe);
+  const glo30 = demSource === GLO30_DEM_SOURCE;
   const outDir = resolve(opts.out ?? join(ROOT, 'public/worlds', recipe.id));
   const cacheDir = resolve(opts.cache ?? join(ROOT, 'tools/worldbake/cache'), recipe.id);
   if (opts.clean && existsSync(cacheDir)) {
@@ -139,7 +181,9 @@ export async function bake(opts) {
   let t = Date.now();
   const m = 0.005;
   const demBbox = { south: bbox.south - m, west: bbox.west - m, north: bbox.north + m, east: bbox.east + m };
-  const dem = await fetchDem({ bbox: demBbox, zoom: recipe.dem.zoom, cacheDir, log });
+  const dem = glo30
+    ? await fetchGlo30({ bbox: demBbox, cacheDir, log })
+    : await fetchDem({ bbox: demBbox, zoom: recipe.dem.zoom, cacheDir, log });
   const heights = sampleGrid({ grid: g, projection, dem });
   lap('dem', t);
 
@@ -166,17 +210,32 @@ export async function bake(opts) {
   lap('osm', t);
   t = Date.now();
   const roads = buildRoads(osm.elements.roads, projection, extent);
-  // The route line must sit on a drawn road or path, never on grass: lay a
-  // surface under any stretch no mapped road covers (routeCoverage.mjs).
+  // The route's painted guide must sit on ONE drawn road, never on grass and
+  // never on a second surface laid beside the road: bend the road the route
+  // runs along where the paint leaves it, add the way the snapshot lacks
+  // where no road runs along it (routeCoverage.mjs).
   const routeSamples = routesIn.map((r) => ({ id: r.id, ...sampleAppRoute(r.points, projection) }));
   const mappedCoverage = routeRoadCoverage(routeSamples, roads);
-  const fill = routeSurfaceFill(routeSamples, roads);
-  roads.roads.push(...fill.pieces);
-  const drawnCoverage = routeRoadCoverage(routeSamples, roads);
+  const paintBefore = routePaintCoverage(routeSamples, roads);
+  const fit = easeRoadsOntoRoutes(routeSamples, roads);
+  const paintAfter = routePaintCoverage(routeSamples, roads);
   const roadCoverage = Object.fromEntries(
-    routeSamples.map((r, i) => [r.id, { mappedPct: mappedCoverage[i].pct, drawnPct: drawnCoverage[i].pct, filledM: fill.filledM[r.id], tunnelM: drawnCoverage[i].tunnelM }]),
+    routeSamples.map((r, i) => [
+      r.id,
+      {
+        mappedPct: mappedCoverage[i].pct,
+        paintPctBefore: paintBefore[i].pct,
+        paintPct: paintAfter[i].pct,
+        easedM: fit.easedM[r.id],
+        joinedM: fit.joinedM[r.id],
+        tunnelM: paintAfter[i].tunnelM,
+      },
+    ]),
   );
-  for (const [id, c] of Object.entries(roadCoverage)) log(`route ${id}: ${c.mappedPct}% on mapped roads, ${c.drawnPct}% on drawn surfaces (${c.filledM} m filled${c.tunnelM ? `, ${c.tunnelM} m in tunnels` : ''})`);
+  for (const [id, c] of Object.entries(roadCoverage)) {
+    log(`route ${id}: ${c.mappedPct}% within 1 m of mapped roads; guide on drawn roads ${c.paintPctBefore}% → ${c.paintPct}% (${c.easedM} m eased, ${c.joinedM} m joined${c.tunnelM ? `, ${c.tunnelM} m in tunnels` : ''})`);
+  }
+  log(`route fit: ${fit.roadsEased} roads bent (up to ${fit.maxShiftM} m), ${fit.joins} join pieces`);
   const water = buildWater(osm.elements.water, projection, extent);
   const landcover = buildLandcover(osm.elements.landcover, projection, extent);
   // What the rider follows must never run through a building: every scenic
@@ -274,16 +333,8 @@ export async function bake(opts) {
       pois: pois.length,
       carvedNodes: carve.carvedNodes,
     },
-    credits: CREDITS,
-    generator: {
-      tool: 'velo-worldbake',
-      version: TOOL_VERSION,
-      recipeSha256: sha256(recipeBytes),
-      osmDate: recipe.osmDate,
-      demSource: DEM_SOURCE,
-      demZoom: recipe.dem.zoom,
-      demTiles: dem.tiles.length,
-    },
+    credits: creditsFor(demSource),
+    generator: generatorFor(demSource, recipe, recipeBytes, dem),
   };
   validateManifest(JSON.parse(JSON.stringify(manifest)));
   const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
@@ -296,6 +347,7 @@ export async function bake(opts) {
     { stored: 0, content: 0, brotli: 0 },
   );
   log(`bundle: ${(totals.stored / 1e6).toFixed(2)} MB gzip as shipped, ${(totals.brotli / 1e6).toFixed(2)} MB brotli, ${(totals.content / 1e6).toFixed(2)} MB raw`);
+  checkBundleBudget(totals);
 
   // 5. Validation against an independent DEM (not part of the bundle).
   let validation = null;
@@ -305,7 +357,7 @@ export async function bake(opts) {
     const mask = (x, y) => snapped.routes.some((r) => r.x.some((rx, i) => Math.hypot(rx - x, r.y[i] - y) < core));
     validation = await validateHeightfield({ hf: height.hf, projection, extent, recipe, cacheDir, routeMask: mask });
     lap('validate', t);
-    log(`validate: RMS ${validation.rmsM} m vs Open-Meteo over ${validation.samples} points (bias ${validation.meanBiasM} m, max ${validation.maxAbsM} m) → ${validation.pass ? 'PASS' : 'FAIL'}`);
+    log(`validate: RMS ${validation.rmsM} m vs Open-Meteo over ${validation.samples} points (bias ${validation.meanBiasM} m, max ${validation.maxAbsM} m) → ${validation.pass ? 'PASS' : 'FAIL'}; at the GLO-90 nodes ${validation.registered.rmsM} m (bias ${validation.registered.meanBiasM} m)`);
   }
   timings.total = round((Date.now() - t0) / 1000, 1);
 
@@ -317,22 +369,28 @@ export async function bake(opts) {
     totals,
     hashes: Object.fromEntries([...files.map((f) => [f.path, f.sha256]), ['manifest.json', sha256(manifestBytes)]]),
     routes: snapped.info.map((r) => ({ ...r, roadCoverage: roadCoverage[r.id] })),
+    routeFit: routeFitReport(fit),
     heightfield: { ...height.info, carvedNodes: carve.carvedNodes, maxCutM: round(carve.maxCutM) },
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
+    ...(glo30 ? { demSource: dem.source } : {}),
     demTiles: dem.tiles,
+    ...(glo30 ? { demMissingTiles: dem.missing } : {}),
     overpass: { url: OVERPASS_URL, osmDate: recipe.osmDate, queries: osm.queries },
     validation,
   };
   const reportDir = join(ROOT, 'tools/worldbake/reports');
   ensureDir(reportDir);
   writeFileSync(join(reportDir, `${recipe.id}.json`), `${JSON.stringify(report, null, 2)}\n`);
-  if (opts.docs) writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest });
+  if (opts.docs) writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 });
+  // The destination that links this world mirrors its bbox, routes, moods,
+  // towns and credits (src/lib/world/destinations/*.json).
+  if (!opts.out) syncDestinations({ log });
   log(`done in ${timings.total} s → ${outDir}`);
   return report;
 }
 
 /** Rewrite this world's generated block in docs/worlds/CREDITS.md. */
-function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest }) {
+function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 }) {
   const path = join(ROOT, 'docs/worlds/CREDITS.md');
   const start = `<!-- world:${recipe.id}:start (generated by tools/worldbake/bake.mjs) -->`;
   const end = `<!-- world:${recipe.id}:end -->`;
@@ -343,7 +401,9 @@ function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest }) {
     '',
     `- Bounding box (WGS84): south ${bbox.south}, west ${bbox.west}, north ${bbox.north}, east ${bbox.east}.`,
     `- World extent: x ${extent.xMin}…${extent.xMax} m, y ${extent.yMin}…${extent.yMax} m, local transverse Mercator at ${recipe.origin.lat}, ${recipe.origin.lon}.`,
-    `- Elevation: ${dem.tiles.length} Terrain Tiles (terrarium) at zoom ${dem.zoom}, \`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png\`: ${tiles}.`,
+    glo30
+      ? `- Elevation: ${dem.tiles.length} Copernicus DEM GLO-30 tiles (1″ COG), \`${GLO30_URL_TEMPLATE}\`: ${tiles}${dem.missing.length ? ` (${dem.missing.map((id) => `\`${id}\``).join(', ')} absent from the bucket: open ocean, read as 0 m)` : ''}. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.`
+      : `- Elevation: ${dem.tiles.length} Terrain Tiles (terrarium) at zoom ${dem.zoom}, \`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png\`: ${tiles}.`,
     `- OpenStreetMap: Overpass API (\`${OVERPASS_URL}\`), data as of ${recipe.osmDate} (attic query), layers ${Object.keys(osm.queries).join(', ')} over the bounding box above. Queries are recorded in \`tools/worldbake/reports/${recipe.id}.json\`.`,
     `- Routes: ${manifest.routes.map((r) => `\`${r.id}\``).join(', ')} from \`src/lib/scenicRouteData.ts\` (OSRM bike geometry + Copernicus GLO-90 profile via Open-Meteo).`,
     `- Validation: ${recipe.validation.samples} seeded Open-Meteo elevation samples (Copernicus GLO-90), not shipped.`,

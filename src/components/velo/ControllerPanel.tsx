@@ -2,20 +2,17 @@
  * Handlebar controls (Ride V2 controllers).
  *
  * HandlebarRow is the handlebar row of the Devices page and of the in-ride
- * devices sheet (rendered from devicesView.handlebarRow). ControllerPanel is
- * the older block of the Home Trainer card, which P2.4 no longer mounts.
- * Both drive the same single-controller store and lib calls, and render
- * nothing in browsers without Web Bluetooth.
+ * devices sheet (rendered from devicesView.handlebarRow). It drives the
+ * single-controller store and lib calls, and renders nothing in browsers
+ * without Web Bluetooth.
  */
 
 import { useEffect, useId, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { AlertCircle, Bluetooth, Loader2 } from 'lucide-react';
+import { Bluetooth } from 'lucide-react';
 import { DeviceRow } from '@/components/velo/DeviceRow';
-import { WAITING_TEXT, handlebarRow, type HandlebarActionId } from '@/components/velo/devicesView';
-import { Button } from '@/components/ui/button';
+import { handlebarRow, type HandlebarActionId } from '@/components/velo/devicesView';
 import { Switch } from '@/components/velo/Switch';
 import { UnlockSteps } from '@/components/velo/UnlockSteps';
-import { BatteryReading } from '@/components/velo/BatteryReading';
 import { cn } from '@/lib/utils';
 import {
   buzzRideController,
@@ -27,16 +24,6 @@ import {
   reconnectRideController,
 } from '@/lib/controllers/rideController';
 import { ACTION_LEGEND, SHOW_LEGEND, type LegendRow } from '@/lib/controllers/controllerActions';
-import {
-  LOCKED_INTRO,
-  MAYBE_RIGHT_TEXT,
-  PAIR_OTHER_LABEL,
-  RIGHT_SIDE_TEXT,
-  UNLOCK_INTRO,
-  asleepText,
-  controllerPhase,
-  panelStatusLine,
-} from '@/lib/controllers/controllerView';
 import { useControllerStore } from '@/stores/controllerStore';
 
 
@@ -81,200 +68,6 @@ function SwitchRow({
       </div>
       <Switch checked={checked} onChange={onChange} labelledBy={labelId} describedBy={hintId} />
     </div>
-  );
-}
-
-function Note({ children }: { children: ReactNode }) {
-  return (
-    <p className="flex max-w-prose items-start gap-3 text-sm text-foreground" role="status">
-      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
-      <span>{children}</span>
-    </p>
-  );
-}
-
-export function ControllerPanel() {
-  const supported = useControllerSupported();
-  const status = useControllerStore((s) => s.status);
-  const battery = useControllerStore((s) => s.battery);
-  const silent = useControllerStore((s) => s.silent);
-  const side = useControllerStore((s) => s.side);
-  const buzz = useControllerStore((s) => s.buzz);
-  const inputSeen = useControllerStore((s) => s.inputSeen);
-  const errorMessage = useControllerStore((s) => s.errorMessage);
-  const wakeArmed = useControllerStore((s) => s.wakeArmed);
-  const titleId = useId();
-  const statusId = useId();
-  // After a pairing attempt that didn't connect (chooser empty or closed),
-  // offer the unfiltered chooser too.
-  const [tried, setTried] = useState(false);
-  // Controls paired in an earlier session: one tap, no chooser. Reading the
-  // grant list (getDevices) sends nothing to any device.
-  const [granted, setGranted] = useState<string | null>(null);
-  useEffect(() => {
-    if (!supported || status !== 'idle') return undefined;
-    let cancelled = false;
-    void findGrantedController().then((dev) => {
-      if (!cancelled) setGranted(dev ? (dev.name ?? 'Handlebar controls') : null);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [supported, status]);
-
-  if (!supported) return null;
-
-  const phase = controllerPhase({ status, silent, side, inputSeen });
-  const busy = status === 'connecting' || status === 'reconnecting';
-  const live = status === 'connected' || status === 'reconnecting';
-  const statusLine = panelStatusLine(phase, side, buzz);
-  const connected = phase === 'waiting' || phase === 'live' || phase === 'rightSide' || phase === 'silent';
-  const pairOther = (
-    <Button variant="outline" onClick={() => void pairRideController()}>
-      {PAIR_OTHER_LABEL}
-    </Button>
-  );
-  const disconnect = (
-    <Button variant="ghost" onClick={() => void disconnectRideController()}>
-      Disconnect
-    </Button>
-  );
-
-  let actions: ReactNode;
-  if (status === 'idle' || status === 'error') {
-    actions = (
-      <>
-        {granted && status === 'idle' && !tried && (
-          <Button variant="outline" onClick={() => void reconnectGrantedController()}>
-            Reconnect {granted}
-          </Button>
-        )}
-        <Button
-          variant="outline"
-          onClick={() => {
-            setTried(true);
-            void pairRideController();
-          }}
-        >
-          {status === 'error' || tried ? 'Try again' : 'Pair handlebar controls'}
-        </Button>
-        {tried && (
-          <Button variant="ghost" onClick={() => void pairRideController({ showAllDevices: true })}>
-            Show all devices
-          </Button>
-        )}
-      </>
-    );
-  } else if (status === 'connecting') {
-    actions = (
-      <Button variant="outline" disabled aria-busy>
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-        Pairing…
-      </Button>
-    );
-  } else if (status === 'locked' || status === 'asleep') {
-    actions = (
-      <>
-        <Button variant="outline" onClick={() => void reconnectRideController()}>
-          {status === 'locked' ? 'Try again' : 'Reconnect'}
-        </Button>
-        <Button variant="ghost" onClick={() => void disconnectRideController({ forget: true })}>
-          Forget
-        </Button>
-      </>
-    );
-  } else if (phase === 'rightSide') {
-    actions = (
-      <>
-        {pairOther}
-        {disconnect}
-      </>
-    );
-  } else if (phase === 'silent') {
-    actions = (
-      <>
-        <Button variant="outline" onClick={() => void reconnectRideController()}>
-          Reconnect
-        </Button>
-        {side !== 'left' && pairOther}
-        {disconnect}
-      </>
-    );
-  } else {
-    actions = (
-      <>
-        <Button variant="outline" disabled={status !== 'connected'} onClick={() => void buzzRideController('test')}>
-          Test buzz
-        </Button>
-        <Button variant="outline" onClick={() => void disconnectRideController()}>
-          Disconnect
-        </Button>
-      </>
-    );
-  }
-
-  return (
-    <section aria-labelledby={titleId} aria-describedby={statusId} className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex min-w-0 flex-1 basis-64 flex-col gap-1">
-          <h3 id={titleId} className="text-sm font-semibold text-foreground">
-            Handlebar controls
-          </h3>
-          {status === 'idle' ? (
-            <span id={statusId} className="text-sm text-muted-foreground">
-              {granted
-                ? 'Paired before. Velo reconnects them by itself when you start a ride.'
-                : 'Shift gears, set how hard the hills feel and steer from the bars.'}
-            </span>
-          ) : (
-            <span id={statusId} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-              {live && (
-                <span
-                  aria-hidden
-                  className={cn(
-                    'h-2 w-2 shrink-0 rounded-full',
-                    phase === 'live' && 'bg-accent',
-                    (phase === 'waiting' || phase === 'reconnecting') && 'bg-primary animate-pulse',
-                    (phase === 'rightSide' || phase === 'silent') && 'bg-destructive',
-                  )}
-                />
-              )}
-              {statusLine}
-              {connected && battery !== null && <BatteryReading pct={battery} />}
-            </span>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2" aria-busy={busy}>{actions}</div>
-      </div>
-
-      {phase === 'rightSide' && <Note>{RIGHT_SIDE_TEXT}</Note>}
-      {phase === 'waiting' && (
-        <span className="text-sm text-muted-foreground" role="status">
-          {WAITING_TEXT}
-        </span>
-      )}
-      {phase === 'silent' && (
-        <>
-          <UnlockSteps intro={UNLOCK_INTRO} />
-          {side !== 'left' && <Note>{MAYBE_RIGHT_TEXT}</Note>}
-        </>
-      )}
-      {status === 'locked' && <UnlockSteps intro={LOCKED_INTRO} />}
-      {status === 'asleep' && <Note>{asleepText(wakeArmed)}</Note>}
-      {status === 'error' && errorMessage && <Note>{errorMessage}</Note>}
-
-      {live && (
-        <>
-          <SteeringSwitch />
-          <GearBuzzSwitch />
-          <ButtonLegend>
-            <ShowLegend />
-          </ButtonLegend>
-        </>
-      )}
-
-      <ControllerDebugSwitch />
-    </section>
   );
 }
 

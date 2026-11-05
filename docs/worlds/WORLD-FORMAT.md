@@ -12,7 +12,8 @@ Code:
 | Piece | File |
 | --- | --- |
 | Bake recipe per world | `tools/worldbake/worlds/<id>.json` |
-| Bake pipeline | `tools/worldbake/{bake,fetchDem,fetchOsm,buildHeightfield,buildVectors,snapRoutes,validateDem,util}.mjs` |
+| Recipe JSON Schema | `tools/worldbake/recipe.schema.json` |
+| Bake pipeline | `tools/worldbake/{bake,demSource,fetchDem,fetchGlo30,geotiff,fetchOsm,buildHeightfield,buildVectors,snapRoutes,validateDem,util}.mjs` |
 | Manifest JSON Schema | `tools/worldbake/manifest.schema.json` |
 | Manifest types + validator | `src/lib/world/manifest.ts` |
 | Loader (fetch, verify, decode, progress) | `src/lib/world/loadWorld.ts` |
@@ -54,7 +55,9 @@ which the loader checks when `crypto.subtle` exists).
   `forward(lat, lon) → [x, y]` and `inverse(x, y) → [lat, lon]` (matches PROJ to
   under 1 mm, see `projection.test.ts`).
 - **Heights** are metres above mean sea level, as the source DEMs give them
-  (the route profiles use the same convention).
+  (the route profiles use the same convention). Copernicus GLO-30 heights are
+  above the EGM2008 geoid; the Terrain Tiles mix national datums (EU-DEM in
+  Europe).
 - Vector layers store coordinates as **integer decimetres** in world metres
   (`"units": "dm"`); divide by 10.
 - Renderers usually map world `(x, y, h)` → three.js `(x, h, −y)`.
@@ -80,7 +83,7 @@ Validated by `validateManifest()`; schema in
 | `routes[]` | `{ id, name, lengthM, maxGapM, gradeMeanAbsDiffPct }` per snapped scenic route (ids match `src/lib/scenicRoutes.ts`). |
 | `stats` | Counts (roads, buildings, trees, …) for logs and UI. |
 | `credits[]` | `{ id, name, licence, url, attribution }`: show these wherever the world is shown. |
-| `generator` | Tool version, recipe SHA-256, OSM snapshot date, DEM source/zoom/tile count. |
+| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count). |
 
 ## height.bin: the heightfield (`u16-delta`)
 
@@ -162,16 +165,46 @@ natively, without Node's web-stream wrapper.
 - `f` is a bit set of `flags` (omitted when 0); `n` indexes `names`.
 - Polylines are clipped to the extent and simplified (Douglas–Peucker 0.5 m).
   Heights come from the heightfield.
-- `routeFill` pieces are not OSM ways. The bake lays one under every stretch
-  of a scenic route whose centreline is off every drawn road (a way missing
-  from the OSM snapshot, the join where an out-and-back was cut, a path
-  mapped a metre to the side), so the route line always sits on a road or
-  path. Each piece follows the route itself, reaches 2 m into the roads either
-  side, and takes the class, surface (`unpaved`), width and name of the
-  nearest mapped way within 12 m (else an unpaved `path`). Renderers draw them
-  under the mapped roads. `tools/worldbake/routeCoverage.mjs <world>` reports
-  each route's share on mapped roads and on drawn surfaces; the bake report
-  has the same numbers under `routes[].roadCoverage`.
+- `routeFill` pieces are not OSM ways: each is a way the OSM snapshot lacks
+  under a scenic route. The bake fits the drawn roads to every route so its
+  painted guide (centre line ± 0.29 m, its chevrons' reach) lies on ONE drawn surface:
+  - where the paint leaves the road the route runs along (a path mapped a
+    metre to the side, a corner the route cuts), the bake bends that road
+    toward the route just far enough: only the nearest road within 60° of the
+    route's heading at that step, never one it crosses and never two at once.
+    Between nearby pulls the bend runs straight from one to the next; past
+    them it eases back to the mapped line over 8 m, but never past a vertex
+    where the road turns more than 60° off the route (the segment beyond
+    pivots on its far end, the rest of the road keeps its line). Round the
+    outside of a corner, or beside a stretch more than 30° off the route's
+    heading, it bends at most 0.6 m: past that the route has left that road
+    and gets a join instead. Where the paint runs past a road's flat end, that
+    end grows along its own line. The road keeps its class, width and surface,
+    and nothing is laid beside it;
+  - every road end that lay in another road as mapped (a junction: the end's
+    centre or a corner of its flat end) stays in it. When a bend moves one of
+    the two roads there, the other moves with it: end to end, both take the
+    larger move; where a road ends on another's side, the road the route bends
+    leads (else the wider one) and only the move across that road is matched;
+  - where no road runs along the route within 2.5 m (a way newer than
+    `osmDate`, the join where an out-and-back was cut), it adds a `routeFill`
+    piece along the route, reaching a metre into the drawn roads at either end
+    like any mapped junction and never running alongside one. It takes the
+    class and surface of the road it leaves (else an unpaved `path`).
+    Renderers draw these under the mapped roads.
+
+  Road ends count as drawn up to their last point (flat ends, as the renderer
+  draws them), not as round caps. The guide is checked every 0.1 m along the
+  route and at 13 points across its band. `tools/worldbake/routeCoverage.mjs
+  <world>` reports each route's share near mapped roads, with its centreline
+  on drawn roads, and with its whole guide on them; the bake report has the
+  numbers under `routes[].roadCoverage` (`easedM` bent, `joinedM` added) and
+  `routeFit`: `roadsBent`, `maxShiftM` (the largest final shift, the
+  Hausdorff distance between a road's mapped and shipped line), `joins`, and
+  `bent[]` with each moved road's index, shift and mapped polyline (dm,
+  `"x,y x,y …"`). `src/lib/world/routeFit.test.ts` compares those mapped
+  lines with the bundle: no moved road may newly lie over another drawn road
+  and no junction end may leave the road it lay in.
 
 ## water.json
 
@@ -307,8 +340,17 @@ type stripping), no npm packages.
   OSM queries are pinned to the recipe's `osmDate` (Overpass attic data), so a
   clean-cache bake downloads the same OSM state. Terrain tiles are static.
 - **Checks** the bake runs: manifest validation, height round-trip, route gap
-  and grade, bundle size, and the heightfield against 50 seeded Open-Meteo
-  (Copernicus GLO-90) samples (RMS ≤ 6 m).
+  and grade, bundle size (fails above 8 MB brotli; the grid is capped at 2048
+  nodes a side), and the heightfield against 50 seeded Open-Meteo
+  (Copernicus GLO-90) samples (RMS ≤ 6 m). Open-Meteo answers with the
+  nearest GLO-90 node (3″, about 65 × 93 m), not an interpolation, so the
+  report also gives `validation.registered`: the heightfield read at that
+  node (the north-west corner of the sample's 3″ cell) against Open-Meteo's
+  value for it. On steep ground the point RMS mostly measures where in the
+  cell the sample fell; the registered RMS measures the terrain.
+- After writing to `public/worlds/`, it runs `syncDestinations.mjs`, which
+  copies the world's bbox, routes, moods, towns and credits into its
+  destination manifest (`docs/worlds/DESTINATIONS.md`).
 
 Perugia, 31 Oct 2026 on cat-bed (Node 26), from a clean cache:
 
@@ -318,7 +360,7 @@ Perugia, 31 Oct 2026 on cat-bed (Node 26), from a clean cache:
 | Determinism | two clean-cache bakes, identical SHA-256 for every file |
 | Size | 4.73 MB as shipped (gzip), 3.56 MB brotli, 9.5 MB raw |
 | Heightfield vs Open-Meteo, 50 seeded points | RMS 5.96 m, bias −1.18 m, max 18.2 m |
-| Routes | max gap 0 m; grade Δ 0.109 pp (Tiber park), 0.101 pp (Assisi valley) |
+| Routes | max gap 0 m; grade Δ 0.109 pp (Tiber park), 0.101 pp (Assisi valley); painted guide 100 % on drawn roads, checked every 0.1 m across the band (the route fit bends 17 paths under 1.6 km of route, by at most 1.02 m, and grows 4 road ends; no joins) |
 
 The 50-point RMS passes, but only just. Spot checks of 500 more points
 (5 seeds × 100) gave RMS 6.0–8.2 m, about 7.0 m overall. The raw z12 and z13
@@ -326,6 +368,90 @@ terrarium tiles give the same figures, so the gap is between the two source
 DEMs (EU-DEM in the Terrain Tiles and Copernicus GLO-90), not loss in the
 bake. Most of it comes from steep slopes, where 90 m and 30 m cells disagree
 most.
+
+### Recipe
+
+`tools/worldbake/worlds/<id>.json`, schema `tools/worldbake/recipe.schema.json`:
+`id`, `name`, `description`, `origin` (world `(0, 0)`), `grid` (`xMin`, `yMax`,
+`cellSize`, `cols`, `rows`, ≤ 2048 a side), `dem` (below), `osmDate`, `routes`
+(+ `routesOutside` with reasons), `snap`, `vegetation`, `moods`,
+`defaultMood` and `validation` (`seed`, `samples`, `maxRmsM`). The recipe's
+SHA-256 goes into `manifest.generator.recipeSha256`.
+
+### DEM source (`dem`)
+
+| `dem` | Source | Notes |
+| --- | --- | --- |
+| `{ "zoom": 13 }` (no `source`, or `"source": "aws-terrain-tiles"`) | AWS Terrain Tiles, terrarium PNGs (`fetchDem.mjs`). **The default.** | Web Mercator tiles at `zoom`; EU-DEM in Europe. Perugia and Lugano use it. |
+| `{ "source": "copernicus-glo30" }` | Copernicus DEM GLO-30 Public, 1″ Cloud Optimized GeoTIFFs (`fetchGlo30.mjs` + `geotiff.mjs`). Opt-in. | No `zoom` (the bake refuses one). The manifest gets `demSource: "copernicus-dem-30m/glo30-cog"`, no `demZoom`, and the `copernicus-glo30` credit (notice plus the licence's Art. 6(c) liability disclaimer, see [CREDITS.md](CREDITS.md)) in place of `terrain-tiles`. |
+
+Both sources give `buildHeightfield.sampleGrid` the same thing: a bilinear
+`sample(lat, lon)` on the source's pixel centres. Every grid node is projected
+to WGS84 lat/lon (`projection.inverse`) and sampled, so the world grid, CRS
+and quantisation are the same whichever source fed them. A recipe without
+`dem.source` bakes exactly as before, to the byte.
+
+GLO-30 details, checked against the bucket and the tiles' own tags:
+
+- **Tiles**: one 1° × 1° tile per whole-degree south-west corner,
+  `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_<N|S>dd_00_<E|W>ddd_00_DEM/Copernicus_DSM_COG_10_<N|S>dd_00_<E|W>ddd_00_DEM.tif`
+  (e.g. `N46_00_E008_00` covers 46–47°N, 8–9°E). They are fetched whole over
+  plain HTTPS (17–43 MB each). The bake takes only the tiles whose pixels a
+  bilinear read inside the world's bbox (+ 500 m) touches: 1 for Perugia
+  (`N43_00_E012_00`) and 2 for Lugano (`N46_00_E008_00`, `N45_00_E008_00`:
+  the world crosses 46°N, and its east edge, 8.9925°E with the margin, stays
+  west of 9°E).
+- **Grid**: `GTRasterTypeGeoKey` is PixelIsPoint and the tiepoint is the
+  tile's NW corner, so pixel centres sit on whole arc-seconds: row j at
+  lat S+1 − j/3600, column i at lon W + i/C. The bucket's tiles drop the
+  original shared south row and east column, so a tile owns latitudes
+  (S, S+1] and longitudes [W, W+1). Rows are 1″ everywhere; above 50° the
+  columns widen (C = 2400 per degree to 60°, 1800 to 70°, 1200 to 80°, 720 to
+  85°, 360 beyond). The sampler reads C and R from `ModelPixelScale`, checks
+  them against the tile's size and tiepoint, and interpolates each row with
+  its own band's spacing, so it stays bilinear across tile seams and bands.
+- **Decoding** (`geotiff.mjs`, Node built-ins only): TIFF and BigTIFF IFDs in
+  either byte order; tile or strip offsets and byte counts; uncompressed or
+  DEFLATE blocks (`zlib.inflateSync`); no predictor, or the floating-point
+  predictor (3) undone row by row, first the byte-wise horizontal
+  differencing, then the byte-plane de-interleave (most significant plane
+  first); float32 samples; the first full-resolution IFD (IFD 0 in a COG,
+  reduced-resolution overviews skipped). A tile that declares a nodata value
+  is refused, because void filling isn't implemented. Blocks are inflated
+  lazily, so a small world decodes only the 1024² blocks it reads. Each of
+  these paths has a tifffile-written fixture in `tools/worldbake/fixtures/`.
+- **Missing tiles**: the bucket has no tile over open ocean (HTTP 404), and
+  those read 0 m. GLO-30 *Public* also lacks a few unreleased land tiles (e.g.
+  `N40_00_E044_00`, Armenia), which 404 too. So each 404 is checked against the
+  same tile in the GLO-90 bucket: 404 there too means ocean; 200 means land
+  without public GLO-30, and the bake stops (bake that world from the default
+  source).
+- **Cache**: `<cache>/<id>/copernicus-glo30/<name>.tif`, plus `<name>.404` for
+  an ocean tile, under `tools/worldbake/cache/` or `--cache`. A warm cache
+  never touches the network; `--clean` clears it with the rest of the world's
+  cache.
+- **It is a surface model.** Copernicus DEM includes buildings and tree
+  canopy (water is flattened). The route corridor carve still re-grades the
+  road itself, but expect towns and forests to stand a few metres proud of
+  the Terrain Tiles version.
+
+Checks on cat-bed, 4 Nov 2026 (Node 26):
+
+| Check | Result |
+| --- | --- |
+| Decoder vs tifffile, full tiles N46_00_E008_00 and N45_00_E008_00 (3600² each) | bit-identical, every pixel |
+| Sampler vs tifffile + numpy bilinear (PixelIsPoint), 50 points over 4 tiles (the pre-#32 Lugano experiment box) | max difference 3·10⁻¹⁰ m |
+| N52_00_E004_00 (2400 columns per degree) + N52_00_E003_00 (ocean) | identical to tifffile inside E004, 0 m over the sea; a warm-cache re-read with `fetch` disabled gives identical samples |
+| Default source: Perugia from the same cache, main vs this change | all 8 files byte-identical (and equal to the committed bundle) |
+| Perugia with `copernicus-glo30`, baked twice | byte-identical; 4.95 MB brotli (Terrain Tiles 4.58 MB); 24 s from cache |
+| Perugia vs Open-Meteo (50 seeded points) | Terrain Tiles: point RMS 5.96 m, at the GLO-90 node 4.54 m. GLO-30: point RMS 8.47 m, at the GLO-90 node 2.18 m |
+
+Open-Meteo answers with the nearest north-west GLO-90 node, not an
+interpolated value, so a sharper DEM scores *worse* at the sample point and
+better at the node. The Lugano experiment (`cat-bed:~/velo-bake/glo30.py`) read
+the tiles as PixelIsArea, which put it half a pixel (~15 m) off. Its 6.53 m
+"GLO-30 at the GLO-90 node" figure becomes 1.71 m on the tiles' real
+PixelIsPoint grid (and 16.58 m → 20.63 m at the points).
 
 ### Perugia coverage
 
@@ -337,11 +463,47 @@ Assisi route, 18 km east of the centre. `scenic-trasimeno-shore`
 (Castiglione del Lago, 30 km west) is left for its own world; stretching this
 one to 45 km would cost resolution and budget.
 
+### Lugano
+
+The world is 23 × 27 km at 15 m (`x −11500…11495`, `y −13500…13500` around
+46.0593° N 8.8386° E, 1534 × 1801 nodes). It holds `scenic-lugano-melide`
+and `scenic-locarno-brissago`, about 22 km apart across Monte Ceneri. The other
+Ticino and Lombardy routes (Magadino plain, Valle Maggia, Lake Varese, Lake
+Como) are 20–45 km further out; one world reaching them would pass 2048
+nodes a side and the 8 MB budget, so they stay map rides in the Lugano
+destination until they get worlds of their own. Baked 4 Nov 2026 on cat-bed:
+
+| Check | Result |
+| --- | --- |
+| Bake time | 516 s from an empty cache (Overpass ≈ 7 min of it) |
+| Determinism | two bakes from cache and one from an empty cache: identical bytes for all 8 files (re-bake after the route fixes: two bakes from cache, identical) |
+| Size | 9.46 MB as shipped (gzip), 7.12 MB brotli, 19.3 MB raw |
+| Routes | max gap 0 m; grade Δ 0.61 pp (Lugano–Melide), 0.61 pp (Locarno–Brissago); painted guide 100 % on drawn roads, checked every 0.1 m across the band (Locarno–Brissago: 99.98 % within 1 m of mapped roads; the route fit moves 20 roads by at most 0.85 m: 8 bent under 247 m of route, 7 junction neighbours moved with them, 5 road ends grown ≤ 0.22 m; at the 2,072 m junction it adds one 7.6 m join instead of bending the connector path onto the wide road; a 116 m route fill used to lie beside the paths) |
+| Heightfield vs Open-Meteo, 50 seeded points | **fails as written**: RMS 18.17 m at the points; 9.12 m registered at the GLO-90 nodes |
+
+Lugano–Melide's grade Δ was 1.127 pp at the first bake: its geometry rode
+~800 m up a street and back down it with a different profile each way. The
+route generator now cuts that stub (#33), and the re-bake brings it to 0.61 pp.
+Locarno–Brissago first crossed Lago Maggiore for 3.6 km on the "Ascona -
+Ronco" boat line; it now takes the shore road, and `routeSurface.test.ts`
+fails any shipped route that runs over water or off its drawn roads.
+
+The DEM check can't be passed on this terrain by any 30 m elevation model.
+Copernicus GLO-30, the source GLO-90 is made from, read from its own tiles
+at the same 50 points, scores 16.58 m at the points and 6.53 m at the nodes
+against Open-Meteo. On the 32 samples where the ground within the GLO-90
+cell is gentle (heightfield relief point-to-node < 10 m), Lugano scores
+5.72 m at the points and 5.03 m at the nodes. The rest sit on 30–40°
+slopes, where neighbouring GLO-90 nodes differ by 70 m. Against GLO-30 at
+the points, Lugano's heightfield (EU-DEM via Terrain Tiles) scores 6.26 m.
+
 ### Adding a world
 
 1. Write `tools/worldbake/worlds/<id>.json`. Set `origin` near the middle and
    size the `grid` to cover the routes plus 100 m (≤ 2048 nodes a side, about
-   13 m cells). List the scenic route ids, choose an `osmDate` and moods.
+   13 m cells). List the scenic route ids, choose an `osmDate` and moods, and
+   the DEM source (`"dem": { "zoom": 13 }` or
+   `"dem": { "source": "copernicus-glo30" }`).
 2. Bake on the bake host and check the log: every route has gap 0 and grade
    Δ ≤ 1 pp, the bundle is ≤ 8 MB and validation passes.
 3. Commit the bundle, the report and the updated CREDITS.md block.

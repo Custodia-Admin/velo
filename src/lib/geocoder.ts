@@ -103,8 +103,8 @@ export async function geocode(
         // display names toward the user's locale.
         'Accept-Language': navigator.language || 'en',
         // Custom header that survives same-origin restrictions, so Nominatim
-        // operators can correlate traffic back to GlobeRide if needed.
-        'X-Client-App': 'globeride/route-search',
+        // operators can correlate traffic back to Velo if needed.
+        'X-Client-App': 'velo/route-search',
       },
       signal: opts.signal,
     });

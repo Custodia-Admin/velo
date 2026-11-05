@@ -1,0 +1,40 @@
+{
+ "3500": {
+  "dbg": {
+   "distance": 3500,
+   "gap": 0,
+   "riderScreen": [
+    719,
+    564
+   ]
+  },
+  "waterShareFrame": 0.16,
+  "waterShareLowerHalf": 0.316
+ },
+ "4500": {
+  "dbg": {
+   "distance": 4500,
+   "gap": 0,
+   "riderScreen": [
+    719,
+    567
+   ]
+  },
+  "waterShareFrame": 0.09,
+  "waterShareLowerHalf": 0.172
+ },
+ "5500": {
+  "dbg": {
+   "distance": 5500,
+   "gap": 0,
+   "riderScreen": [
+    719,
+    567
+   ]
+  },
+  "waterShareFrame": 0.08,
+  "waterShareLowerHalf": 0.141
+ },
+ "click": "grid",
+ "errors": []
+}
