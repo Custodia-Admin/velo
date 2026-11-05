@@ -580,6 +580,9 @@ async function landmarkLineAtWidth(browser: Cdp, page: Tab, windowId: number, wi
   const dist = g.dist!;
   const name = g.name!;
   expect(dist.text, at).toMatch(/^ (in [\d.]+ (m|km|mi)|· [\d.]+ (m|km|mi) to the top)$/);
+  // One line, read once: the place, then its distance (not repeated inside the name).
+  expect(g.real.split(dist.text.trim()).length - 1, at).toBe(1);
+  expect(g.real.endsWith(dist.text), at).toBe(true);
   // The distance is whole: not clipped in itself, on one line, inside its line and left of Pause.
   expect(dist.scrollW, at).toBeLessThanOrEqual(dist.clientW);
   expect(dist.h, at).toBeLessThanOrEqual(name.h + 1);
