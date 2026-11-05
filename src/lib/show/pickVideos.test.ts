@@ -66,7 +66,10 @@ describe('picking videos (File System Access)', () => {
     const a = video('Show S01E01.mp4');
     const srt = new File(['1'], 'Show S01E01.srt', { type: 'text/plain' });
     const b = video('Show S01E02.mp4');
-    h.handles = [a, srt, b].map((f) => ({ name: f.name, getFile: async () => f }));
+    // A file of no known kind: kept out by its type, though its name alone
+    // could be a video (a refused one would then block Continue).
+    const readme = new File(['1'], 'README', { type: 'text/plain' });
+    h.handles = [a, srt, b, readme].map((f) => ({ name: f.name, getFile: async () => f }));
     expect(await pickVideos()).toEqual([a, b]);
     expect(h.rememberHandles).toHaveBeenCalledWith([h.handles[0], h.handles[2]]);
   });
