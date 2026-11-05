@@ -25,13 +25,11 @@ import {
 /** Stable list for the weather hook (module-level, so one identity). */
 const ALL_ROUTES = SCENIC_ROUTES.map((r) => r.route);
 
-/** One-tap journey: load the route, drop any attached workout, ride. */
+/** One-tap journey: load the route, ride. */
 export function useRideScenic(): (info: ScenicRouteInfo, opts?: { show?: boolean }) => void {
   const navigate = useNavigate();
   return (info, opts) => {
-    const store = useRideStore.getState();
-    store.clearWorkout();
-    store.setRoute(info.route);
+    useRideStore.getState().setRoute(info.route);
     navigate('/ride', { state: { autoStart: true, show: opts?.show === true } });
   };
 }

@@ -92,7 +92,6 @@ export function RideChip({
   const battery = useRideStore((s) => s.batteryLevel);
   const reconnectAttempt = useRideStore((s) => s.reconnectAttempt);
   const reconnectMaxAttempts = useRideStore((s) => s.reconnectMaxAttempts);
-  const replay = useRideStore((s) => s.replayData !== null);
   const errorCode = useRideStore((s) => s.errorCode);
   const heartRate = useRideStore((s) => s.hrSensorStatus);
   const difficulty = useSettingsStore((s) => s.trainerDifficulty);
@@ -116,7 +115,6 @@ export function RideChip({
     battery,
     reconnectAttempt,
     reconnectMaxAttempts,
-    replay,
     trainerReconnectable: reconnectPhase === 'available' || reconnectPhase === 'failed',
     errorCode,
     controls: controllerPhase({ status: ctrlStatus, silent: ctrlSilent, side: ctrlSide, inputSeen: ctrlInputSeen }),

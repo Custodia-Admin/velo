@@ -188,9 +188,7 @@ export function FinishCard() {
   const secondary = secondaryStats(climbedFigure(ascentM, units), averageFigure(distance, seconds, units), power);
 
   const rideNext = (info: ScenicRouteInfo) => {
-    const store = useRideStore.getState();
-    store.clearWorkout();
-    store.setRoute(info.route);
+    useRideStore.getState().setRoute(info.route);
     navigate('/app');
   };
 

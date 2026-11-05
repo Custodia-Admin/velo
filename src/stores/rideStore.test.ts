@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useRideStore } from '@/stores/rideStore';
 import type { Route } from '@/types';
 
@@ -68,32 +68,31 @@ describe('rideStore.tick — speed source resolution', () => {
       distance: 0,
       samples: [],
       speed: 0,
-      replayData: null,
       mode: 'trainer',
+      rideMode: 'trainer',
     });
   });
 
-  it('drives speed from the recorded sample during a replay (regression)', () => {
-    // replayData truthy → replay session; mode stays the default 'trainer'.
-    useRideStore.setState({ replayData: {} as never });
+  it('drives speed from the loop on an outdoor ride, even with a trainer connected', () => {
+    useRideStore.setState({ speed: 5, rideMode: 'outdoor', mode: 'trainer', connection: 'connected' });
     tickWith(7.5);
     expect(useRideStore.getState().speed).toBe(7.5);
   });
 
   it('keeps trainer-ingested speed in live trainer mode', () => {
-    useRideStore.setState({ speed: 5, replayData: null, mode: 'trainer', connection: 'connected' });
+    useRideStore.setState({ speed: 5, mode: 'trainer', connection: 'connected' });
     tickWith(99);
     expect(useRideStore.getState().speed).toBe(5);
   });
 
   it('shows the computed speed while no trainer is paired (regression: HUD read 0 km/h)', () => {
-    useRideStore.setState({ speed: 0, replayData: null, mode: 'trainer', connection: 'disconnected' });
+    useRideStore.setState({ speed: 0, mode: 'trainer', connection: 'disconnected' });
     tickWith(8.5);
     expect(useRideStore.getState().speed).toBe(8.5);
   });
 
   it('drives speed from the solved value in Demo Mode', () => {
-    useRideStore.setState({ mode: 'demo', replayData: null });
+    useRideStore.setState({ mode: 'demo' });
     tickWith(12);
     expect(useRideStore.getState().speed).toBe(12);
   });
@@ -128,9 +127,7 @@ describe('rideStore.tick — distance advancement', () => {
       elapsedMs: 0,
       samples: [],
       speed: 0,
-      replayData: null,
       mode: 'demo',
-      workoutRunning: false,
     });
   });
 
@@ -161,21 +158,6 @@ describe('rideStore.tick — distance advancement', () => {
     expect(useRideStore.getState().rideState).toBe('finished');
   });
 
-  it('with workoutRunning=true overshoot loops distance instead of finishing', () => {
-    useRideStore.setState({ workoutRunning: true });
-    // 1001 m advance on 1000 m route → wraps to 1 m, stays running
-    useRideStore.getState().tick(makeTick({ speedNow: 1001, dt: 1 }));
-    expect(useRideStore.getState().rideState).toBe('running');
-    expect(useRideStore.getState().distance).toBeCloseTo(1, 5);
-  });
-
-  it('looped distance is always in [0, totalDistance)', () => {
-    useRideStore.setState({ workoutRunning: true, distance: 999 });
-    useRideStore.getState().tick(makeTick({ speedNow: 500, dt: 1 }));
-    const d = useRideStore.getState().distance;
-    expect(d).toBeGreaterThanOrEqual(0);
-    expect(d).toBeLessThan(route.totalDistance);
-  });
 });
 
 // ---- Paused / inactive state -----------------------------------------------
@@ -189,9 +171,7 @@ describe('rideStore.tick — paused / inactive state', () => {
       elapsedMs: 500,
       samples: [],
       speed: 5,
-      replayData: null,
       mode: 'demo',
-      workoutRunning: false,
     });
   });
 
@@ -236,9 +216,7 @@ describe('rideStore.tick — sample recording', () => {
       elapsedMs: 0,
       samples: [],
       speed: 0,
-      replayData: null,
       mode: 'demo',
-      workoutRunning: false,
     });
   });
 
@@ -314,9 +292,7 @@ describe('rideStore.tick — elapsedMs', () => {
       elapsedMs: 0,
       samples: [],
       speed: 0,
-      replayData: null,
       mode: 'demo',
-      workoutRunning: false,
     });
   });
 
@@ -353,9 +329,7 @@ describe('rideStore.tick — telemetry pass-through', () => {
       heartRate: null,
       grade: 0,
       elevation: 0,
-      replayData: null,
       mode: 'demo',
-      workoutRunning: false,
     });
   });
 
@@ -404,9 +378,7 @@ describe('rideStore — state transitions', () => {
       elapsedMs: 0,
       samples: [],
       speed: 0,
-      replayData: null,
       mode: 'demo',
-      workoutRunning: false,
     });
   });
 
@@ -480,9 +452,9 @@ describe('rideStore — state transitions', () => {
   });
 });
 
-// ---- workoutRunning speed routing ------------------------------------------
+// ---- Lost-link speed routing -----------------------------------------------
 
-describe('rideStore.tick — workoutRunning speed routing', () => {
+describe('rideStore.tick — lost-link speed routing', () => {
   beforeEach(() => {
     useRideStore.setState({
       route,
@@ -491,13 +463,16 @@ describe('rideStore.tick — workoutRunning speed routing', () => {
       elapsedMs: 0,
       samples: [],
       speed: 3,
-      replayData: null,
       mode: 'trainer',
-      workoutRunning: true,
+      connection: 'reconnecting',
     });
   });
 
-  it('drives speed from speedNow when workoutRunning=true (even in trainer mode)', () => {
+  afterEach(() => {
+    useRideStore.setState({ connection: 'disconnected' });
+  });
+
+  it('drives speed from speedNow while the trainer link is lost (held on its last power)', () => {
     useRideStore.getState().tick(makeTick({ speedNow: 8 }));
     expect(useRideStore.getState().speed).toBe(8);
   });
