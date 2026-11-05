@@ -38,7 +38,7 @@ export function NextLandmark({
           {next.name}
         </span>
         {/* whitespace-pre keeps the leading space and the distance on one line. */}
-        <span className="shrink-0 whitespace-pre tabular-nums" data-testid="landmark-distance">
+        <span className="shrink-0 whitespace-pre" data-testid="landmark-distance">
           {` ${next.distance}`}
         </span>
       </span>

@@ -58,6 +58,10 @@ function expectDistanceWhole(tree: unknown, next: { name: string; distance: stri
     for (const a of [el, ...ancestors]) expect(cls(a), `${String(a.type)} ${cls(a)}`).not.toMatch(CLIPS);
     expect(cls(el)).toMatch(/\bshrink-0\b/);
     expect(cls(el)).toMatch(/\bwhitespace-(pre|nowrap)\b/);
+    // Same type as the name, as the mockups' one-span line: no figure styling. tabular-nums made
+    // " in 6.5 km" 8 px wider in headed Chrome (less room for the name), and `.num` is what the
+    // floating-window probes read as the bar's figures.
+    expect(cls(el)).not.toMatch(/\b(num|tabular-nums|font-\S+|text-\S+)\b/);
     expect(ancestors.some((a) => a.props['data-testid'] === 'landmark-name')).toBe(false);
   }
 }
