@@ -370,7 +370,7 @@ destination until they get worlds of their own. Baked 4 Nov 2026 on cat-bed:
 | Bake time | 516 s from an empty cache (Overpass ≈ 7 min of it) |
 | Determinism | two bakes from cache and one from an empty cache: identical bytes for all 8 files (re-bake after the route fixes: two bakes from cache, identical) |
 | Size | 9.46 MB as shipped (gzip), 7.12 MB brotli, 19.3 MB raw |
-| Routes | max gap 0 m; grade Δ 0.61 pp (Lugano–Melide), 0.61 pp (Locarno–Brissago); painted guide 100 % on drawn roads (Locarno–Brissago: 99.98 % within 1 m of mapped roads; the route fit bends 11 paths by up to 2.35 m over 310 m of route and adds one 2.9 m join, where a 116 m route fill used to lie beside the paths) |
+| Routes | max gap 0 m; grade Δ 0.61 pp (Lugano–Melide), 0.61 pp (Locarno–Brissago); painted guide 100 % on drawn roads (Locarno–Brissago: 99.98 % within 1 m of mapped roads; the route fit bends 10 paths over 348 m of route (≤ 0.85 m, and 2.51 m at the 2,072 m junction) and adds one 2.9 m join, where a 116 m route fill used to lie beside the paths) |
 | Heightfield vs Open-Meteo, 50 seeded points | **fails as written**: RMS 18.17 m at the points; 9.12 m registered at the GLO-90 nodes |
 
 Lugano–Melide's grade Δ was 1.127 pp at the first bake: its geometry rode

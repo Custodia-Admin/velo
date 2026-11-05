@@ -1,26 +1,26 @@
 # Route fit: one drawn surface under the guide (PR #33 review N3)
 
-Card t_7e8cd233. The bake no longer lays a `routeFill` piece beside a path the route runs along. It bends that path onto the route instead (`easeRoadsOntoRoutes`, tools/worldbake/routeCoverage.mjs), and only adds a `routeFill` join where no road runs along the route within 2.5 m.
+Card t_7e8cd233. The bake no longer lays a `routeFill` piece beside a path the route runs along. It bends that path onto the route instead (`easeRoadsOntoRoutes`, tools/worldbake/routeCoverage.mjs). It adds a `routeFill` join only where no road runs along the route within 2.5 m. The guide band is the centre line ± 0.29 m: the chevron arms reach 0.24 m and the stroke adds 0.045 m (`ROUTE_GUIDE`, pinned by routeGuide.test.ts).
 
-**Before** is main 1a28b47. **After** is this branch. Both are the same build, with only `worlds/*/roads.json.gz` and `manifest.json` swapped. That makes the A/B the bake change alone. Every shot uses the world renderer at medium quality, noon and clear unless named. The rider is held with `__veloWorldLight.place(d)`.
+**Before** is main 1a28b47 and **after** is this branch. Both are one build (bundle `index-CXudCUwe.js`) with only `worlds/*/roads.json.gz` and `manifest.json` swapped, so the A/B isolates the bake change. Every shot uses the world renderer at medium, noon and clear unless named, with the rider held by `__veloWorldLight.place(d)`.
 
 ## Coverage
 
-These numbers come from `node --experimental-strip-types tools/worldbake/routeCoverage.mjs <world>` on the shipped bundles. "Paint" means the centre line ± 0.25 m.
+Measured on the shipped bundles. Coverage tool: `node --experimental-strip-types tools/worldbake/routeCoverage.mjs <world>`.
 
-| Route | Within 1 m of a mapped road | Strict centreline on a drawn road | Paint on drawn roads | Route fill |
+| Route | Strict centreline on a drawn road | Guide band on drawn roads | Route fill | Bent |
 | --- | --- | --- | --- | --- |
-| Tiber park, before | 100 % | 97.8 % without the fill | 92.17 % without the fill | 16 pieces, 242 m, beside the paths |
-| Tiber park, after | 100 % | **100 %** | **100 %** | none; 1,841 m of route on bent paths (≤ 0.97 m) |
-| Assisi valley, before | 100 % | 99.62 % without the fill | 97.58 % without the fill | 8 pieces, 58 m |
-| Assisi valley, after | 100 % | **100 %** | **100 %** | none; 720 m bent |
-| Locarno–Brissago, before | 99.98 % | 98.81 % without the fill | 97.81 % without the fill | 4 pieces, 116 m |
-| Locarno–Brissago, after | 99.98 % | 100 % | **100 %** | one 2.9 m join at 2,071 m; 310 m bent (≤ 2.07 m at the 2,072 m junction) |
-| Lugano–Melide | 100 % | 100 % | 100 % | none, unchanged |
+| Tiber park, before | 97.8 % without the fill | 90.12 % without the fill | 16 pieces (242 m) beside the paths | – |
+| Tiber park, after | **100 %** | **100 %** | none | 2.3 km of route, paths ≤ 0.99 m |
+| Assisi valley, before | 99.62 % without the fill | 96.91 % without the fill | 8 pieces (58 m) | – |
+| Assisi valley, after | **100 %** | **100 %** | none | 870 m, ≤ 0.92 m |
+| Locarno–Brissago, before | 98.81 % without the fill | 97.53 % without the fill | 4 pieces (116 m) | – |
+| Locarno–Brissago, after | **100 %** | **100 %** | one 2.9 m join at 2,071 m | 348 m: ≤ 0.85 m, plus 2.51 m at the 2,072 m junction |
+| Lugano–Melide | 100 % | 100 % | none | none |
 
-Perugia bends 20 paths, all by at most 0.97 m. Lugano bends 11, by at most 2.07 m. In both worlds, buildings, routes, terrain, water, landcover and vegetation are byte-identical to main.
+Perugia bends 19 paths and Lugano 10. In both worlds, buildings, routes, terrain, water, landcover and vegetation are byte-identical to main.
 
-## Chase shots, before | after
+## Chase shots, before | after (HUD on)
 
 | Spot | 1440×900 | 390×844 | 1280×648 @2 |
 | --- | --- | --- | --- |
@@ -28,23 +28,31 @@ Perugia bends 20 paths, all by at most 0.97 m. Lugano bends 11, by at most 2.07 
 | Tiber 2,490 m | [jpg](perugia-tiber-park-2490-1440x900-clear.jpg) | [jpg](perugia-tiber-park-2490-390x844-clear.jpg) | [jpg](perugia-tiber-park-2490-1280x648-2x-clear.jpg) |
 | Tiber 4,160 m | [jpg](perugia-tiber-park-4160-1440x900-clear.jpg) | [jpg](perugia-tiber-park-4160-390x844-clear.jpg) | [jpg](perugia-tiber-park-4160-1280x648-2x-clear.jpg) |
 | Tiber 9,480 m | [jpg](perugia-tiber-park-9480-1440x900-clear.jpg) | [jpg](perugia-tiber-park-9480-390x844-clear.jpg) | [jpg](perugia-tiber-park-9480-1280x648-2x-clear.jpg) |
-| Locarno 2,072 m (largest bend + the join) | [jpg](locarno-brissago-2072-1440x900-clear.jpg) | [jpg](locarno-brissago-2072-390x844-clear.jpg) | – |
-| Locarno 2,551 m (old 105 m fill) | [jpg](locarno-brissago-2551-1440x900-clear.jpg) | – | – |
+| Locarno 2,072 m (largest bend and the join) | [jpg](locarno-brissago-2072-1440x900-clear.jpg) | [jpg](locarno-brissago-2072-390x844-clear.jpg) | – |
+| Locarno 2,551 m (old 105 m fill) | [jpg](locarno-brissago-2551-1440x900-clear.jpg) | [jpg](locarno-brissago-2551-390x844-clear.jpg) | – |
 
-Pixels that changed by more than 24 grey levels, before vs after:
+Share of pixels that changed by more than 24 grey levels, before vs after:
 
 | Spot | 1440 | 390 | 1280 @2 |
 | --- | --- | --- | --- |
-| Tiber 1,961 m | 0.11 % | 0.30 % | 0.08 % |
-| Tiber 2,490 m | 1.73 % | 4.93 % | 1.62 % |
-| Tiber 4,160 m | 1.40 % | 2.73 % | 0.96 % |
-| Tiber 9,480 m | 2.43 % | 5.83 % | 1.88 % |
+| Tiber 1,961 m | 0.16 % | 0.29 % | 0.03 % (overcast 0.18 %) |
+| Tiber 2,490 m | 1.84 % | 4.69 % | 1.27 % |
+| Tiber 4,160 m | 1.31 % | 2.91 % | 0.84 % |
+| Tiber 9,480 m | 2.43 % | 6.28 % | 1.91 % |
 
-At the owner's spot the difference is water and cloud animation, i.e. noise. The camera there sees 1,961–2,100 m, which never had a fill, and nothing in that view changes. At 2,490, 4,160 and 9,480 m the before has a widened path with a square step in its edge where the fill piece starts. The after shows one path of constant width with the guide on it.
+- **At the owner's spot** the only differences are water and cloud animation. The camera there sees 1,961–2,100 m, a stretch that never had a fill.
+- **At 2,490, 4,160 and 9,480 m** the before shows a widened path, with a square step in its edge where the fill piece starts. The after shows one path of constant width with the guide on it.
+
+## Overhead (the app's overhead camera, HUD hidden), before | after
+
+- [Tiber 2,490](perugia-tiber-park-2490-1440x900-clear-overhead.jpg)
+- [Tiber 4,140](perugia-tiber-park-4140-1440x900-clear-overhead.jpg)
+- [Tiber 9,470](perugia-tiber-park-9470-1440x900-clear-overhead.jpg)
+- [Locarno 2,066](locarno-brissago-2066-1440x900-clear-overhead.jpg)
 
 ## Plan views, before | after
 
-These are drawn from the bundles: a 50 × 34 m window, north up. Grey/tan strips are mapped roads, drawn the way the renderer draws them (real width, flat ends). Magenta is route fill. Terracotta is the painted guide.
+Each plan view is drawn from the bundles: a 50 × 34 m window, north up. Grey and tan are mapped roads, drawn as the renderer draws them (real width, flat ends). Magenta is route fill and terracotta is the guide band.
 
 - [Tiber 1,690](plan-perugia-tiber-park-1690.jpg)
 - [Tiber 2,470](plan-perugia-tiber-park-2470.jpg)
@@ -55,15 +63,15 @@ These are drawn from the bundles: a 50 × 34 m window, north up. Grey/tan strips
 - [Locarno 2,072](plan-locarno-brissago-2072.jpg)
 - [Locarno 2,600](plan-locarno-brissago-2600.jpg)
 
-At Locarno 2,072 m a 13 m connector path bends by up to 2.07 m. Its corner now follows the route into the junction (77° of turning over 13 vertices, the largest 32°; before it was 72° over 3 vertices). The 2.9 m join covers the last metre to the wide road.
+**Locarno 2,072 m.** A 13 m connector path is bent by up to 2.51 m (OSM way geometry from the 1 Oct snapshot; the route is today's OSRM line). Its corner now follows the route into the junction with the wide road, and the 2.9 m join covers the last metre. It reads as one path, but it hugs the wide road for a few metres. It is the only bend over 1 m in either world.
 
-## Frame rate (cat-bed, Arrow Lake iGPU, gl-egl, 1920×1080, medium, Tiber park)
+## Frame rate (cat-bed, Arrow Lake iGPU, gl-egl, 1920×1080, medium, Tiber park, HUD on)
 
-Before and after runs were interleaved. cat-bed was carrying qemu co-tenants (load 6–10), so the uncapped runs swing with that load.
+Before and after runs were interleaved, 3 pairs × 2 windows each, on an idle host (load 0.8–1.6).
 
 | | before | after |
 | --- | --- | --- |
-| HUD on, vsync (3 pairs × 2 windows) | 59.2–60 fps (mean 59.8) | 60–60 fps (mean 60.0) |
-| HUD on, uncapped (5 pairs × 2 windows) | 40.4–85.3 fps | 32.2–87.5 fps (the 32.2 is one window with a 1.5 s stall) |
+| vsync | 60 fps in all 6 windows | 60 fps in all 6 windows |
+| uncapped | 97.1–110.6 fps (mean 106.5) | 88.4–116.3 fps (mean 102.8) |
 
-Uncapped pairs move together: round 4 put both at ~40 and round 5 both at ~70–76. The road layer gains about 1.5 kB and loses 24 pieces, so no cost is expected, and none shows.
+An earlier set on the 0.25 m bake ran under qemu co-tenants (load 6–10). It gave 59.2–60 vs 60 with vsync, and the uncapped pairs swung together between 40 and 87 fps. The road layer gains about 1.5 kB and loses 24 pieces.
