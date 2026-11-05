@@ -79,7 +79,9 @@ export function treeNearFadeKeep(distM: number): number {
  * glow and a dark cypress doesn't stay black. It follows the light (night
  * stays dark) and goes in before the haze, like the rest of the lit colour.
  * It only fills what the light leaves dark (`TREE_LEAF_TRANSMIT_KNEE`): a
- * crown the sun or the sky already lights, as at noon, keeps its look.
+ * crown the sun or the sky already lights keeps its look. At noon the median
+ * near crown moves under 3 levels of luminance, but its darkest shade
+ * pockets still lift by about 9 (cat-bed numbers: vegetationLeafLight.test.ts).
  */
 export const TREE_LEAF_TRANSMIT = 0.025;
 
