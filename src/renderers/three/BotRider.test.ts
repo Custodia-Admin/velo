@@ -19,9 +19,17 @@ const { BOT_COLORWAYS, BOT_PRESETS, createPaceBot } = await import('@/lib/paceBo
 const { routeFromGeometry } = await import('@/lib/scenicRoutes');
 const { syntheticSceneWorld } = await import('./syntheticWorld');
 const { createRideDriverMemo, driveRideFrame } = await import('./rideDriver');
-const { createRideFrame } = await import('./worldScene');
+const { createRideFrame, createSceneWorld } = await import('./worldScene');
+const { headingAt, sampleRouteAtDistance } = await import('@/lib/gpxParser');
+const { PARTNER_SLOT_MAX_RATE_MPS } = await import('@/lib/ride/partnerSlots');
 
-type Drive = (dt: number) => { placement: { worldX: number; worldY: number; position: { x: number; z: number } } } | null;
+type Drive = (dt: number) => {
+  placement: { worldX: number; worldY: number; heading: number; position: { x: number; y: number; z: number } };
+  lean: number;
+} | null;
+type PaceBot = import('@/lib/paceBots').PaceBot;
+type Route = import('@/types').Route;
+type SceneWorld = import('./worldScene').SceneWorld;
 
 const sw = syntheticSceneWorld();
 /** An eastbound route north of the synthetic roads (off every ribbon: unclamped slots). */
@@ -34,10 +42,30 @@ const route = (() => {
   return routeFromGeometry('east', 'east', { distanceM: 600, ascentM: 0, maxGradePct: 0, points: pts });
 })();
 
-function botElement(index: number) {
-  const el = BotRider({ sceneWorld: sw, route, index }) as unknown as { type: unknown; props: { colors: unknown; drive: Drive } };
+function botElement(index: number, world: SceneWorld = sw, r: Route = route, ground?: (x: number, y: number) => number) {
+  const el = BotRider({ sceneWorld: world, route: r, index, ground }) as unknown as { type: unknown; props: { colors: unknown; drive: Drive } };
   expect(el.type).toBe(RiderModel);
   return el;
+}
+
+/** A route through world points (x, y), sampled every 10 m. */
+function routeVia(world: SceneWorld, ...via: [number, number][]): Route {
+  const pts: [number, number, number][] = [];
+  for (let k = 0; k + 1 < via.length; k++) {
+    const [[x0, y0], [x1, y1]] = [via[k], via[k + 1]];
+    const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / 10));
+    for (let i = k === 0 ? 0 : 1; i <= n; i++) {
+      const [lat, lon] = world.projection.inverse(x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n);
+      pts.push([lat, lon, 0]);
+    }
+  }
+  return routeFromGeometry('via', 'via', { distanceM: 0, ascentM: 0, maxGradePct: 0, points: pts });
+}
+
+/** Three partners all at distance `d` on `r`, as tickPaceBot leaves them riding at `speed`. */
+function rosterAt(bots: PaceBot[], r: Route, d: number, speed = 8): PaceBot[] {
+  const at = sampleRouteAtDistance(r, d);
+  return bots.map((b) => ({ ...b, state: { ...b.state, distance: d, lat: at.lat, lon: at.lon, heading: headingAt(r, d), speed } }));
 }
 
 describe('BotRider', () => {
@@ -82,4 +110,75 @@ describe('BotRider', () => {
     useRideStore.setState({ paceBots: [] });
     expect(drive(1 / 60)).toBeNull();
   });
+
+  it('keeps one driver memo per partner across frames: where the road narrows the partner drifts over, never jumps', () => {
+    // A 7 m road along y = 60 that becomes a 1.5 m path at x = 0.
+    const narrows = createSceneWorld({
+      ...sw.world,
+      roads: {
+        ...sw.world.roads,
+        roads: [
+          { cls: 0, width: 7, flags: 0, points: Float32Array.from([-390, 60, 0, 60]) },
+          { cls: 2, width: 1.5, flags: 0, points: Float32Array.from([0, 60, 390, 60]) },
+        ],
+      },
+    } as typeof sw.world);
+    const r = routeVia(narrows, [-200, 60], [300, 60]);
+    const bots = BOT_PRESETS.slice(0, 3).map((p, i) => createPaceBot(`b${i}`, p, r));
+    const drive = botElement(2, narrows, r).props.drive;
+    const lateral: number[] = [];
+    for (let d = 150; d <= 260; d += 8 / 60) {
+      useRideStore.setState({ paceBots: rosterAt(bots, r, d) });
+      lateral.push(60 - drive(1 / 60)!.placement.worldY);
+    }
+    expect(lateral[0]).toBeCloseTo(2.4, 2);
+    expect(lateral[lateral.length - 1]).toBeCloseTo(0.65, 2);
+    for (let i = 1; i < lateral.length; i++) expect(Math.abs(lateral[i] - lateral[i - 1])).toBeLessThanOrEqual(PARTNER_SLOT_MAX_RATE_MPS / 60 + 0.002);
+  });
+
+  it('seats a partner afresh when it comes back to the roster', () => {
+    const narrow = createSceneWorld({
+      ...sw.world,
+      roads: { ...sw.world.roads, roads: [{ cls: 2, width: 1.5, flags: 0, points: Float32Array.from([0, 60, 390, 60]) }] },
+    } as typeof sw.world);
+    const r = routeVia(narrow, [-200, 60], [300, 60]);
+    const bots = BOT_PRESETS.slice(0, 1).map((p, i) => createPaceBot(`b${i}`, p, r));
+    const drive = botElement(0, narrow, r).props.drive;
+    // Off the path (x < 0): the full 1.2 m slot.
+    useRideStore.setState({ paceBots: rosterAt(bots, r, 190) });
+    expect(60 - drive(1 / 60)!.placement.worldY).toBeCloseTo(1.2, 2);
+    useRideStore.setState({ paceBots: [] });
+    expect(drive(1 / 60)).toBeNull();
+    // Back 20 m on, on the path: straight into its clamp, not drifting in from 1.2 m.
+    useRideStore.setState({ paceBots: rosterAt(bots, r, 210) });
+    expect(60 - drive(1 / 60)!.placement.worldY).toBeCloseTo(0.65, 2);
+  });
+
+  it('stands the partner on the ground it is given (the drawn ground, like the rider)', () => {
+    useRideStore.setState({ paceBots: [createPaceBot('b0', BOT_PRESETS[0], route)] });
+    const p = botElement(0, sw, route, () => 321.5).props.drive(1 / 60)!.placement;
+    expect(p.position.y).toBe(321.5);
+  });
+
+  it('leans the partner into a corner and turns it at the heading filter rate', () => {
+    // East, then a 90° turn right (south) at x = 0, off every road.
+    const r = routeVia(sw, [-200, 60], [0, 60], [0, -150]);
+    const bots = [createPaceBot('b0', BOT_PRESETS[0], r)];
+    const drive = botElement(0, sw, r).props.drive;
+    let maxLean = 0;
+    let prev: number | null = null;
+    for (let d = 150; d <= 260; d += 8 / 60) {
+      useRideStore.setState({ paceBots: rosterAt(bots, r, d) });
+      const out = drive(1 / 60)!;
+      maxLean = Math.max(maxLean, Math.abs(out.lean));
+      if (prev !== null) {
+        let turn = out.placement.heading - prev;
+        turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+        expect(Math.abs(turn)).toBeLessThanOrEqual((140 * Math.PI) / 180 / 60 + 1e-9);
+      }
+      prev = out.placement.heading;
+    }
+    expect(maxLean).toBeGreaterThan(0.05);
+  });
 });
+

@@ -7,10 +7,13 @@
  * 2.4 m right (then 2.4 m left, 3.6 m right, …).
  *
  * The renderers apply the slot; the ride sim, drafting and the store keep the
- * on-line distance. Pure: no stores, no engines.
+ * on-line distance. Where the renderer knows the drawn road, the slot is
+ * clamped to it (partnerSlotM) and eased toward that clamp frame by frame
+ * (stepPartnerSlot), so it never jumps sideways. Pure: no stores, no engines.
  */
 
 import { offsetSideways } from '@/lib/laneOffset';
+import { YAW_SNAP_M } from './rideHeading';
 
 /** Lateral step between partner slots, metres. */
 export const PARTNER_SLOT_STEP_M = 1.2;
@@ -53,6 +56,55 @@ export function partnerSlotM(index: number, span?: RoadSpan | null): number {
   const hi = span.rightM - PARTNER_EDGE_MARGIN_M;
   if (lo > hi) return (span.leftM + span.rightM) / 2;
   return Math.min(hi, Math.max(lo, slot));
+}
+
+/**
+ * How fast a partner drifts across the road to a new slot. The clamped slot
+ * changes in steps: where the road under the line narrows, widens or ends,
+ * or a junction swaps the ribbon under it. Drawn as is, the partner jumps
+ * sideways in one frame (up to 3.8 m on the Tiber route before this eased
+ * it). The drift is a damped approach (PARTNER_SLOT_TAU_S) capped at
+ * PARTNER_SLOT_MAX_RATE_MPS: at most 0.042 m a frame at 60 fps, a cyclist
+ * moving over, never a teleport.
+ */
+export const PARTNER_SLOT_MAX_RATE_MPS = 2.5;
+/** Time constant of the drift toward a new slot, seconds. */
+export const PARTNER_SLOT_TAU_S = 0.15;
+
+/**
+ * One step of a partner's lateral offset `m` toward `target` over `dt`
+ * seconds, metres. Never overshoots: the offset stays between where it was
+ * and the target, so it never leaves the range the clamped slots span.
+ */
+export function easeSlotM(m: number, target: number, dt: number): number {
+  if (!(dt > 0)) return m;
+  const step = (target - m) * (1 - Math.exp(-dt / PARTNER_SLOT_TAU_S));
+  const cap = PARTNER_SLOT_MAX_RATE_MPS * dt;
+  return m + Math.max(-cap, Math.min(cap, step));
+}
+
+/** A partner's drawn lateral offset carried between frames (NaN until the first frame). */
+export interface PartnerSlotState {
+  m: number;
+  /** Route distance at the last step, metres. */
+  distance: number;
+}
+
+export function createPartnerSlotState(): PartnerSlotState {
+  return { m: NaN, distance: NaN };
+}
+
+/**
+ * Advance `state` toward `target` (partnerSlotM) at route `distance` and
+ * return the offset to draw, metres right of the line. The first frame, and
+ * a jump along the route the heading filter snaps on too (a seek, Ride
+ * again), seat the partner in its slot at once.
+ */
+export function stepPartnerSlot(state: PartnerSlotState, target: number, distance: number, dt: number): number {
+  const jumped = !Number.isFinite(state.distance) || Math.abs(distance - state.distance) > YAW_SNAP_M;
+  state.distance = distance;
+  state.m = jumped || !Number.isFinite(state.m) ? target : easeSlotM(state.m, target, dt);
+  return state.m;
 }
 
 /**

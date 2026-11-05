@@ -16,7 +16,7 @@ import { BOT_COLORWAYS } from '@/lib/paceBots';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import type { Route } from '@/types';
-import { createBotDriverMemo, placeBot } from './rideDriver';
+import { createBotDriverMemo, placeBot, resetBotDriverMemo } from './rideDriver';
 import {
   RIDER_RIG,
   estimatedCadence,
@@ -159,7 +159,7 @@ export function BotRider({ sceneWorld, route, index, ground }: { sceneWorld: Sce
       (dt: number): RiderDrive | null => {
         const bot = useRideStore.getState().paceBots[index];
         if (!bot) {
-          memo.yaw.reset();
+          resetBotDriverMemo(memo);
           return null;
         }
         const s = bot.state;

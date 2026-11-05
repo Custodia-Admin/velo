@@ -5,8 +5,8 @@
  */
 
 import { createLaneState, stepLane, type LaneState } from '@/lib/controllers/steerFeel';
-import { offsetLatLon, partnerSlotM } from '@/lib/ride/partnerSlots';
-import { smoothHeadingAt, YawFilter } from '@/lib/ride/rideHeading';
+import { createPartnerSlotState, offsetLatLon, partnerSlotM, stepPartnerSlot, type PartnerSlotState } from '@/lib/ride/partnerSlots';
+import { routeBearingAt, smoothHeadingAt, YawFilter } from '@/lib/ride/rideHeading';
 import { ridePose } from '@/lib/ride/rideSim';
 import type { RiderPose } from '@/lib/world/renderer';
 import type { RideState, Route } from '@/types';
@@ -94,10 +94,18 @@ export interface BotDriverMemo {
   lean: number;
   /** The drawn road segments around the bot (roadSpan.roadSpanAt). */
   road?: RoadSpanMemo;
+  /** The lateral slot as drawn, eased toward the clamped slot (partnerSlots.stepPartnerSlot). */
+  slot: PartnerSlotState;
 }
 
 export function createBotDriverMemo(): BotDriverMemo {
-  return { yaw: new YawFilter(), lean: 0 };
+  return { yaw: new YawFilter(), lean: 0, slot: createPartnerSlotState() };
+}
+
+/** Forget a partner's drawn heading and slot (it left the roster): it is seated afresh when it comes back. */
+export function resetBotDriverMemo(memo: BotDriverMemo): void {
+  memo.yaw.reset();
+  memo.slot = createPartnerSlotState();
 }
 
 /**
@@ -120,8 +128,14 @@ export function driveBotPose(
 /**
  * Where pace partner `index` is drawn this frame: its point on the route
  * line moved into its lateral slot (lib/ride/partnerSlots) across the
- * filtered heading, the slot clamped to the drawn road there. Without the
- * slot every partner stands inside the rider on the start line.
+ * filtered heading. Without the slot every partner stands inside the rider
+ * on the start line.
+ *
+ * The slot is clamped to the drawn ribbon the route runs on there (the one
+ * under the route point, along the route's own bearing: roadSpan.roadSpanAt)
+ * and eased toward that clamp over time (stepPartnerSlot), so a partner
+ * drifts over where the road narrows or a junction changes the ribbon
+ * instead of jumping sideways.
  */
 export function placeBot(
   sceneWorld: SceneWorld,
@@ -134,7 +148,9 @@ export function placeBot(
 ): { placement: RiderPlacement; lean: number; slotM: number } {
   const { heading, lean } = driveBotPose(memo, route, bot, dt);
   const [x, y] = sceneWorld.projection.forward(bot.lat, bot.lon);
-  const slotM = partnerSlotM(index, roadSpanAt(sceneWorld, x, y, heading, memo));
+  const bearing = route && route.points.length >= 2 ? routeBearingAt(route, bot.distance, bot.heading) : bot.heading;
+  const target = partnerSlotM(index, roadSpanAt(sceneWorld, x, y, heading, bearing, memo));
+  const slotM = stepPartnerSlot(memo.slot, target, bot.distance, dt);
   const at = offsetLatLon(bot.lat, bot.lon, heading, slotM);
   const placement = placeRider(sceneWorld, { lat: at.lat, lon: at.lon, heading }, ground);
   return { placement, lean, slotM };

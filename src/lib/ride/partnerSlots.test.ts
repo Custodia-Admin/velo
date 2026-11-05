@@ -5,7 +5,18 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { baseSlotM, offsetLatLon, partnerSlotM, PARTNER_EDGE_MARGIN_M } from './partnerSlots';
+import {
+  baseSlotM,
+  createPartnerSlotState,
+  easeSlotM,
+  offsetLatLon,
+  partnerSlotM,
+  PARTNER_EDGE_MARGIN_M,
+  PARTNER_SLOT_MAX_RATE_MPS,
+  PARTNER_SLOT_TAU_S,
+  stepPartnerSlot,
+} from './partnerSlots';
+import { YAW_SNAP_M } from './rideHeading';
 
 const R = 6_371_000;
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -54,6 +65,67 @@ describe('partner slots', () => {
   it('puts a partner on the middle of a road narrower than its margins', () => {
     expect(partnerSlotM(0, { leftM: -0.05, rightM: 0.1 })).toBeCloseTo(0.025, 9);
     expect(partnerSlotM(1, { leftM: -0.05, rightM: 0.1 })).toBeCloseTo(0.025, 9);
+  });
+});
+
+describe('slot easing', () => {
+  const DT = 1 / 60;
+
+  it('drifts a partner over at no more than 2.5 m/s (0.042 m a 60 fps frame), never jumping', () => {
+    expect(PARTNER_SLOT_MAX_RATE_MPS).toBe(2.5);
+    // 2.4 m → 0.65 m (a 7 m road becoming a 1.5 m path, partner 2).
+    let m = 2.4;
+    const steps: number[] = [];
+    for (let f = 0; f < 120; f++) {
+      const next = easeSlotM(m, 0.65, DT);
+      steps.push(m - next);
+      m = next;
+    }
+    expect(Math.max(...steps)).toBeCloseTo(PARTNER_SLOT_MAX_RATE_MPS * DT, 9);
+    for (const s of steps) expect(s).toBeGreaterThanOrEqual(0);
+    // At the cap for the first ~0.6 s, then the damped tail: in the slot within 1.2 s.
+    expect(steps[0]).toBeCloseTo(2.5 / 60, 9);
+    expect(m).toBeCloseTo(0.65, 3);
+  });
+
+  it('settles small moves on the time constant and never overshoots the target', () => {
+    expect(PARTNER_SLOT_TAU_S).toBe(0.15);
+    // 0.1 m (under the cap): 63 % of the way in one time constant.
+    let m = 0;
+    for (let t = 0; t < PARTNER_SLOT_TAU_S - 1e-9; t += DT) m = easeSlotM(m, 0.1, DT);
+    expect(m).toBeCloseTo(0.1 * (1 - Math.exp(-1)), 3);
+    // Toward a target either side, from either side: never past it.
+    for (const [from, to] of [[1.2, -0.65], [-1.2, 0.1], [0.65, 0.66]]) {
+      let x = from;
+      for (let f = 0; f < 240; f++) {
+        x = easeSlotM(x, to, DT);
+        expect((x - to) * Math.sign(from - to)).toBeGreaterThanOrEqual(0);
+      }
+      expect(x).toBeCloseTo(to, 6);
+    }
+    // A paused frame (dt 0) moves nothing.
+    expect(easeSlotM(1.2, 0.65, 0)).toBe(1.2);
+  });
+
+  it('is frame-rate independent at the cap: a second at 30 or 144 fps covers the same 2.5 m', () => {
+    for (const fps of [30, 60, 144]) {
+      let m = 0;
+      for (let f = 0; f < fps; f++) m = easeSlotM(m, 10, 1 / fps);
+      expect(m).toBeCloseTo(2.5, 6);
+    }
+  });
+
+  it('seats a partner in its slot on the first frame and after a jump along the route, and eases it otherwise', () => {
+    const s = createPartnerSlotState();
+    expect(stepPartnerSlot(s, 2.4, 0, DT)).toBe(2.4);
+    // Riding on: the clamp narrows to 0.65 m; the drawn slot drifts.
+    expect(stepPartnerSlot(s, 0.65, 0.13, DT)).toBeCloseTo(2.4 - 2.5 / 60, 9);
+    // A seek or Ride again (further than the heading filter's snap): straight into the slot.
+    expect(stepPartnerSlot(s, 1.2, 0.13 + YAW_SNAP_M + 1, DT)).toBe(1.2);
+    // Back to the start line after a finish: seated, not drifting in from the finish.
+    expect(stepPartnerSlot(s, -0.65, 0, DT)).toBe(-0.65);
+    // A jump of up to YAW_SNAP_M is riding (a slow frame), eased.
+    expect(stepPartnerSlot(s, 1.2, YAW_SNAP_M, DT)).toBeCloseTo(-0.65 + 2.5 / 60, 9);
   });
 });
 

@@ -7,21 +7,18 @@
 
 import type { RoadSpan } from '@/lib/ride/partnerSlots';
 import type { RibbonLine } from './roadRibbons';
-import type { SceneWorld } from './worldScene';
-
-/** A ribbon counts as the road under the point within this distance of its centreline, metres (the bake's ROUTE_ROAD_SNAP_M). */
-export const ROAD_SPAN_SNAP_M = 4;
+import { ROAD_MAX_SEG_M, type SceneWorld } from './worldScene';
 
 /**
- * Only a ribbon running within 45° of the travel heading is the road the
- * partner rides along. At a junction the crossing road's centreline passes
- * through the route point too, and measured across the heading its width
- * is a length along the road: it pulled a partner 0.7 m from the rider at
- * the Tiber start's first side road.
+ * Only a ribbon running within 45° of the route's own direction at the
+ * point is the road the route rides along. At a junction the crossing
+ * road's paved width covers the route point too, and measured across the
+ * heading its width is a length along the road: it pulled a partner 0.7 m
+ * from the rider at the Tiber start's first side road.
  */
 export const ROAD_SPAN_MAX_ANGLE_COS = Math.SQRT1_2;
 
-/** The nearest ribbon segment to a point: its centreline and half-width. */
+/** A ribbon segment: its centreline and half-width. */
 export interface RoadSegment {
   ax: number;
   ay: number;
@@ -49,15 +46,33 @@ function boxOf(line: RibbonLine): Float64Array {
   return b;
 }
 
+/** Half-width of the widest ribbon in each scene, metres. */
+const widest = new WeakMap<SceneWorld, number>();
+
+function widestHalfWidth(sw: SceneWorld): number {
+  let w = widest.get(sw);
+  if (w === undefined) {
+    w = 0;
+    for (const bucket of sw.roadBuckets) for (const line of bucket) w = Math.max(w, line.width / 2);
+    widest.set(sw, w);
+  }
+  return w;
+}
+
 /**
- * Gather the ribbon segments any part of which lies within `radius` of world
- * (x, y): [ax, ay, bx, by, halfWidth] each. A chunk's road bucket holds
- * whole lines (10k segments in a Perugia city chunk), so a line whose box is
- * out of reach is skipped before its segments.
+ * Gather the ribbon segments whose paved surface comes within `radius` of
+ * world (x, y) (radius 0: the ribbons the point lies on): [ax, ay, bx, by,
+ * halfWidth] each. A chunk's road bucket holds whole lines (10k segments in
+ * a Perugia city chunk), so a line whose box is out of reach is skipped
+ * before its segments.
  */
 export function gatherRoadSegments(sw: SceneWorld, x: number, y: number, radius: number): Float64Array {
+  // A line sits in the bucket of each chunk holding one of its densified
+  // segments' midpoints: up to half a segment along and a half-width across
+  // from any point on its surface.
+  const pad = radius + widestHalfWidth(sw) + ROAD_MAX_SEG_M / 2;
   const chunks: number[] = [];
-  for (const [dx, dy] of [[0, 0], [-radius, -radius], [radius, -radius], [-radius, radius], [radius, radius]]) {
+  for (const [dx, dy] of [[0, 0], [-pad, -pad], [pad, -pad], [-pad, pad], [pad, pad]]) {
     const k = sw.locate(x + dx, y + dy);
     if (k >= 0 && !chunks.includes(k)) chunks.push(k);
   }
@@ -65,8 +80,9 @@ export function gatherRoadSegments(sw: SceneWorld, x: number, y: number, radius:
   const out: number[] = [];
   for (const k of chunks) {
     for (const line of sw.roadBuckets[k]) {
+      const reach = radius + line.width / 2;
       const b = boxOf(line);
-      if (x < b[0] - radius || x > b[2] + radius || y < b[1] - radius || y > b[3] + radius) continue;
+      if (x < b[0] - reach || x > b[2] + reach || y < b[1] - reach || y > b[3] + reach) continue;
       if (seen.has(line)) continue;
       seen.add(line);
       const p = line.points;
@@ -78,18 +94,30 @@ export function gatherRoadSegments(sw: SceneWorld, x: number, y: number, radius:
         const l2 = dx * dx + dy * dy;
         if (l2 === 0) continue;
         const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
-        if (Math.hypot(x - ax - t * dx, y - ay - t * dy) <= radius) out.push(ax, ay, p[i + 2], p[i + 3], line.width / 2);
+        if (Math.hypot(x - ax - t * dx, y - ay - t * dy) <= reach) out.push(ax, ay, p[i + 2], p[i + 3], line.width / 2);
       }
     }
   }
   return Float64Array.from(out);
 }
 
-/** Nearest of `segs` (gatherRoadSegments) within ROAD_SPAN_SNAP_M of (x, y) running along `heading`, or null. */
-function nearestOf(segs: Float64Array, x: number, y: number, heading: number): RoadSegment | null {
-  const fx = Math.sin(heading);
-  const fy = Math.cos(heading);
-  let best = ROAD_SPAN_SNAP_M;
+/**
+ * The ribbon of `segs` (gatherRoadSegments) the route runs on at (x, y), or
+ * null:
+ * - Only a ribbon whose paved width reaches the point counts. The nearest
+ *   centreline within a few metres was often a neighbouring path the route
+ *   isn't on; its span lay wholly on one side of the line and clamped every
+ *   partner onto that side.
+ * - Of those, only ribbons running along the route's own `bearing` there
+ *   (radians clockwise from north). That is the route segment's direction,
+ *   which turns with the route at a bend; the drawn heading lags it and
+ *   dropped the route's own ribbon at the Tiber and Assisi bends.
+ * The nearest centreline of those wins; a tie goes to the wider ribbon.
+ */
+function roadUnder(segs: Float64Array, x: number, y: number, bearing: number): RoadSegment | null {
+  const fx = Math.sin(bearing);
+  const fy = Math.cos(bearing);
+  let best = Infinity;
   let at = -1;
   for (let o = 0; o + 4 < segs.length; o += 5) {
     const ax = segs[o];
@@ -97,9 +125,10 @@ function nearestOf(segs: Float64Array, x: number, y: number, heading: number): R
     const dx = segs[o + 2] - ax;
     const dy = segs[o + 3] - ay;
     const l2 = dx * dx + dy * dy;
-    if (Math.abs(dx * fx + dy * fy) < ROAD_SPAN_MAX_ANGLE_COS * Math.sqrt(l2)) continue;
     const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
     const d = Math.hypot(x - ax - t * dx, y - ay - t * dy);
+    if (d > segs[o + 4]) continue;
+    if (Math.abs(dx * fx + dy * fy) < ROAD_SPAN_MAX_ANGLE_COS * Math.sqrt(l2)) continue;
     if (d < best || (d === best && at >= 0 && segs[o + 4] > segs[at + 4])) {
       best = d;
       at = o;
@@ -110,11 +139,11 @@ function nearestOf(segs: Float64Array, x: number, y: number, heading: number): R
 }
 
 /**
- * Nearest drawn ribbon segment within ROAD_SPAN_SNAP_M of world (x, y) that
- * runs along `heading` (radians clockwise from north), or null.
+ * The drawn ribbon segment world (x, y) lies on that runs along `bearing`
+ * (radians clockwise from north), or null.
  */
-export function nearestRoadSegment(sw: SceneWorld, x: number, y: number, heading: number): RoadSegment | null {
-  return nearestOf(gatherRoadSegments(sw, x, y, ROAD_SPAN_SNAP_M), x, y, heading);
+export function roadSegmentAt(sw: SceneWorld, x: number, y: number, bearing: number): RoadSegment | null {
+  return roadUnder(gatherRoadSegments(sw, x, y, 0), x, y, bearing);
 }
 
 /**
@@ -137,7 +166,7 @@ export function spanAcross(seg: RoadSegment, x: number, y: number, heading: numb
   return { leftM: -seg.halfWidth - off, rightM: seg.halfWidth - off };
 }
 
-/** Segments a partner keeps at hand: everything within this distance of where they were gathered, metres. */
+/** Segments a partner keeps at hand: every ribbon whose surface comes within this distance of where they were gathered, metres. */
 export const ROAD_GATHER_M = 30;
 
 /** Per-partner cache: where the segments around it were gathered, and those segments. */
@@ -148,23 +177,33 @@ export interface RoadSpanMemo {
 }
 
 /**
- * The drawn road around world (x, y) across `heading`, or null off every
- * drawn road running that way. With a `memo` (one per partner), the
- * segments within ROAD_GATHER_M are gathered once and searched every frame
- * until the point is about to leave them.
+ * The drawn road under world (x, y), measured across the drawn `heading`,
+ * or null where the point lies on no drawn road running along the route's
+ * `bearing` there (both radians clockwise from north; see roadUnder).
+ * With a `memo` (one per partner), the segments within ROAD_GATHER_M are
+ * gathered once and searched every frame until the point leaves that
+ * circle: any ribbon under a point inside it comes within ROAD_GATHER_M of
+ * the centre.
  */
-export function roadSpanAt(sw: SceneWorld, x: number, y: number, heading: number, memo?: { road?: RoadSpanMemo }): RoadSpan | null {
+export function roadSpanAt(
+  sw: SceneWorld,
+  x: number,
+  y: number,
+  heading: number,
+  bearing: number,
+  memo?: { road?: RoadSpanMemo },
+): RoadSpan | null {
   let segs: Float64Array;
   if (memo) {
     let m = memo.road;
-    if (!m || Math.hypot(x - m.x, y - m.y) > ROAD_GATHER_M - ROAD_SPAN_SNAP_M) {
+    if (!m || Math.hypot(x - m.x, y - m.y) > ROAD_GATHER_M) {
       m = { x, y, segs: gatherRoadSegments(sw, x, y, ROAD_GATHER_M) };
       memo.road = m;
     }
     segs = m.segs;
   } else {
-    segs = gatherRoadSegments(sw, x, y, ROAD_SPAN_SNAP_M);
+    segs = gatherRoadSegments(sw, x, y, 0);
   }
-  const seg = nearestOf(segs, x, y, heading);
+  const seg = roadUnder(segs, x, y, bearing);
   return seg ? spanAcross(seg, x, y, heading) : null;
 }

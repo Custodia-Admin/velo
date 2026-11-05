@@ -164,6 +164,8 @@ describe('updateBotAvatars', () => {
     const made = bots.map(() => fakeAvatar([]));
     updateBotAvatars(bots, made.map((f) => f.avatar), 0.016);
     const [r, l] = made.map((f) => enu(43.1, 12.4, f.updates[0]));
+    // The avatar faces the bot's heading (east), not just stands where it should.
+    for (const f of made) expect(f.updates[0].heading).toBeCloseTo(Math.PI / 2, 9);
     expect(r[0]).toBeCloseTo(0, 4);
     expect(r[1]).toBeCloseTo(-1.2, 3);
     expect(l[0]).toBeCloseTo(0, 4);

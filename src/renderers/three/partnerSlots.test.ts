@@ -2,22 +2,32 @@
  * The drawn road under a pace partner (roadSpan.ts) and where the world
  * renderer draws each partner (rideDriver.placeBot): in its lateral slot
  * (lib/ride/partnerSlots) across the filtered heading, clamped to the
- * ribbon Roads.tsx draws there. Review of PR #45 @4ea2ff0: seated partners
- * stood 0.0–0.1 m from the rider and covered the rider's own model.
+ * ribbon Roads.tsx draws there and eased toward that clamp.
+ *
+ * - Review of PR #45 @4ea2ff0: seated partners stood 0.0–0.1 m from the
+ *   rider and covered the rider's own model.
+ * - Review of PR #55 @c10de1a: mid-ride the clamp took a neighbouring
+ *   ribbon the route isn't on (the route's own ribbon dropped out at bends,
+ *   judged against the lagging filtered heading), so partners swapped
+ *   sides, merged and jumped up to 3.8 m in one frame; and nothing pinned
+ *   that the slot is drawn across the FILTERED heading.
  */
 import { describe, expect, it } from 'vitest';
 
+import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { BOT_PRESETS, createPaceBot } from '@/lib/paceBots';
-import { PARTNER_EDGE_MARGIN_M } from '@/lib/ride/partnerSlots';
+import { PARTNER_EDGE_MARGIN_M, PARTNER_SLOT_MAX_RATE_MPS } from '@/lib/ride/partnerSlots';
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import type { LoadedWorld, RoadsLayer } from '@/lib/world/loadWorld';
 import type { Route } from '@/types';
-import { createBotDriverMemo, createRideDriverMemo, driveRideFrame, placeBot } from './rideDriver';
-import { nearestRoadSegment, ROAD_GATHER_M, ROAD_SPAN_SNAP_M, roadSpanAt, spanAcross, type RoadSpanMemo } from './roadSpan';
+import { createBotDriverMemo, createRideDriverMemo, driveRideFrame, placeBot, type BotDriverMemo } from './rideDriver';
+import { ROAD_GATHER_M, roadSegmentAt, roadSpanAt, spanAcross, type RoadSpanMemo } from './roadSpan';
 import { syntheticSceneWorld } from './syntheticWorld';
 import { createRideFrame, createSceneWorld, type SceneWorld } from './worldScene';
 
 const DT = 1 / 60;
+const DEG = Math.PI / 180;
+const EAST = Math.PI / 2;
 const sw = syntheticSceneWorld();
 
 /** The synthetic world with its roads swapped (same terrain and projection). */
@@ -25,26 +35,68 @@ function withRoads(roads: RoadsLayer['roads']): SceneWorld {
   return createSceneWorld({ ...sw.world, roads: { ...sw.world.roads, roads } } as LoadedWorld);
 }
 
-/** A straight route through world points (x, y), sampled every 10 m. */
-function routeThrough(world: SceneWorld, from: [number, number], to: [number, number]): Route {
-  const n = Math.round(Math.hypot(to[0] - from[0], to[1] - from[1]) / 10);
+/** A 1.5 m path (the bake's path/footway default) through world points [x, y, …]. */
+const path = (...xy: number[]) => ({ cls: 2, width: 1.5, flags: 0, points: Float32Array.from(xy) });
+
+/** A route through world points (x, y), sampled every ~10 m along each leg. */
+function routeVia(world: SceneWorld, ...via: [number, number][]): Route {
   const pts: [number, number, number][] = [];
-  for (let i = 0; i <= n; i++) {
-    const [lat, lon] = world.projection.inverse(from[0] + ((to[0] - from[0]) * i) / n, from[1] + ((to[1] - from[1]) * i) / n);
-    pts.push([lat, lon, 0]);
+  let total = 0;
+  for (let k = 0; k + 1 < via.length; k++) {
+    const [from, to] = [via[k], via[k + 1]];
+    const len = Math.hypot(to[0] - from[0], to[1] - from[1]);
+    const n = Math.max(1, Math.round(len / 10));
+    for (let i = k === 0 ? 0 : 1; i <= n; i++) {
+      const [lat, lon] = world.projection.inverse(from[0] + ((to[0] - from[0]) * i) / n, from[1] + ((to[1] - from[1]) * i) / n);
+      pts.push([lat, lon, 0]);
+    }
+    total += len;
   }
-  return routeFromGeometry('t', 't', { distanceM: n * 10, ascentM: 0, maxGradePct: 0, points: pts });
+  return routeFromGeometry('t', 't', { distanceM: Math.round(total), ascentM: 0, maxGradePct: 0, points: pts });
 }
+
+/** A straight route through world points (x, y), sampled every 10 m. */
+const routeThrough = (world: SceneWorld, from: [number, number], to: [number, number]) => routeVia(world, from, to);
 
 /** The partners seated on the start line (rideStore.reseatPaceBots does this on a route load). */
 const seat = (r: Route, n: number) => BOT_PRESETS.slice(0, n).map((p, i) => createPaceBot(`b${i}`, p, r));
 
-describe('roadSpan', () => {
-  const EAST = Math.PI / 2;
+interface Frame {
+  d: number;
+  slotM: number;
+  /** Where the partner is drawn, world metres, and its drawn heading. */
+  x: number;
+  y: number;
+  heading: number;
+  /** The bot's own point on the route line, world metres. */
+  lineX: number;
+  lineY: number;
+}
 
+/**
+ * Partner `index` ridden along `route` from `from` to `to` metres at
+ * `speed` m/s, 60 fps, with one driver memo for the whole ride (as
+ * Rider.tsx keeps one per partner). The bot's state is what tickPaceBot
+ * leaves: its point on the line and the raw ±4 m route bearing.
+ */
+function ride(world: SceneWorld, route: Route, index: number, from: number, to: number, speed = 8, memo: BotDriverMemo = createBotDriverMemo()): Frame[] {
+  const out: Frame[] = [];
+  for (let d = from; d <= to; d += speed * DT) {
+    const at = sampleRouteAtDistance(route, d);
+    const p = placeBot(world, route, { distance: d, speed, heading: headingAt(route, d), lat: at.lat, lon: at.lon }, index, memo, DT);
+    const [lineX, lineY] = world.projection.forward(at.lat, at.lon);
+    out.push({ d, slotM: p.slotM, x: p.placement.worldX, y: p.placement.worldY, heading: p.placement.heading, lineX, lineY });
+  }
+  return out;
+}
+
+/** Largest change of the drawn slot between two frames, metres. */
+const maxStep = (frames: Frame[]) => frames.reduce((m, f, i) => (i ? Math.max(m, Math.abs(f.slotM - frames[i - 1].slotM)) : 0), 0);
+
+describe('roadSpan', () => {
   it('finds the ribbon under a point and measures it across the travel heading', () => {
     // The synthetic E–W road: 7 m wide along y = 0.
-    const seg = nearestRoadSegment(sw, 10, 1, EAST)!;
+    const seg = roadSegmentAt(sw, 10, 1, EAST)!;
     expect(seg.halfWidth).toBe(3.5);
     // Eastbound, 1 m north of the centre = 1 m left of it: 4.5 m of road to the right.
     const east = spanAcross(seg, 10, 1, EAST);
@@ -54,60 +106,97 @@ describe('roadSpan', () => {
     const west = spanAcross(seg, 10, 1, -EAST);
     expect(west.leftM).toBeCloseTo(-4.5, 6);
     expect(west.rightM).toBeCloseTo(2.5, 6);
-    expect(roadSpanAt(sw, 10, 1, -EAST)).toEqual(west);
+    expect(roadSpanAt(sw, 10, 1, -EAST, -EAST)).toEqual(west);
   });
 
-  it('knows no road off every drawn ribbon, in a tunnel or on steps', () => {
-    expect(roadSpanAt(sw, 0, 60, EAST)).toBeNull();
-    // Within 4 m of a centreline counts; 4.5 m off it (1 m outside the 7 m road) does not.
-    expect(roadSpanAt(sw, 10, 3.9, EAST)).not.toBeNull();
-    expect(roadSpanAt(sw, 10, 4.5, EAST)).toBeNull();
+  it('counts only a ribbon whose paved width reaches the point: none off every ribbon, in a tunnel or on steps', () => {
+    expect(roadSpanAt(sw, 0, 60, EAST, EAST)).toBeNull();
+    // On the 7 m road 3.4 m off its centre; 3.6 m off it is beside the road.
+    expect(roadSpanAt(sw, 10, 3.4, EAST, EAST)).not.toBeNull();
+    expect(roadSpanAt(sw, 10, 3.6, EAST, EAST)).toBeNull();
+    expect(roadSpanAt(sw, 10, 3.6, EAST, EAST, {})).toBeNull();
     // The synthetic tunnel (y = 150, x −300…−200) and steps (0,100)–(10,110) aren't drawn.
-    expect(nearestRoadSegment(sw, -250, 150, EAST)).toBeNull();
-    expect(nearestRoadSegment(sw, 5, 105, Math.PI / 4)).toBeNull();
+    expect(roadSegmentAt(sw, -250, 150, EAST)).toBeNull();
+    expect(roadSegmentAt(sw, 5, 105, Math.PI / 4)).toBeNull();
   });
 
-  it('takes the road running along the heading, never a side road crossing it', () => {
+  it('never takes a neighbouring path for the road under the route', () => {
+    // The route runs east along y = 0 where nothing is drawn; a 1.5 m path
+    // runs beside it, its centre 2 m north (its edge 1.25 m from the line).
+    // The old rule took any ribbon centre within 4 m: a span wholly left of
+    // the line ([-2.75, -1.25]) that clamped every partner onto that side.
+    const beside = withRoads([path(-390, 2, 390, 2)]);
+    expect(roadSpanAt(beside, 0, 0, EAST, EAST)).toBeNull();
+    expect(roadSpanAt(beside, 0, 0, EAST, EAST, {})).toBeNull();
+    const r = routeThrough(beside, [-300, 0], [300, 0]);
+    for (const i of [0, 1, 2]) {
+      for (const f of ride(beside, r, i, 0, 100)) expect(f.slotM).toBeCloseTo([1.2, -1.2, 2.4][i], 9);
+    }
+  });
+
+  it('finds a wide road from a point far off its centreline', () => {
+    // An 18 m road (the widest the bundles draw): 8 m north of its centre is still on it.
+    const wide = withRoads([{ cls: 0, width: 18, flags: 0, points: Float32Array.from([-390, 0, 390, 0]) }]);
+    const span = { leftM: expect.closeTo(-1, 6), rightM: expect.closeTo(17, 6) };
+    expect(roadSpanAt(wide, 10, 8, EAST, EAST)).toEqual(span);
+    expect(roadSpanAt(wide, 10, 8, EAST, EAST, {})).toEqual(span);
+  });
+
+  it("takes the road running along the route's bearing, never a side road crossing it", () => {
     // A 7 m road along y = 0 and a 3 m side road along x = 0. Eastbound at
-    // (0.2, 1): the side road's centreline is 0.2 m away, the road's 1 m.
+    // (0.2, 1) both cover the point, and the side road's centreline is nearer.
     const cross = withRoads([
       { cls: 0, width: 7, flags: 0, points: Float32Array.from([-390, 0, 390, 0]) },
       { cls: 1, width: 3, flags: 0, points: Float32Array.from([0, -190, 0, 190]) },
     ]);
-    expect(nearestRoadSegment(cross, 0.2, 1, EAST)!.halfWidth).toBe(3.5);
-    expect(roadSpanAt(cross, 0.2, 1, EAST)).toEqual({ leftM: expect.closeTo(-2.5, 6), rightM: expect.closeTo(4.5, 6) });
+    expect(roadSegmentAt(cross, 0.2, 1, EAST)!.halfWidth).toBe(3.5);
+    expect(roadSpanAt(cross, 0.2, 1, EAST, EAST)).toEqual({ leftM: expect.closeTo(-2.5, 6), rightM: expect.closeTo(4.5, 6) });
     // Northbound on the side road, the main road is the crossing.
-    expect(nearestRoadSegment(cross, 0.2, 1, 0)!.halfWidth).toBe(1.5);
-    // Up to 45° off the heading still counts as along it; past that it is a crossing.
-    expect(nearestRoadSegment(cross, 0.2, 1, EAST - (40 * Math.PI) / 180)!.halfWidth).toBe(3.5);
-    expect(nearestRoadSegment(cross, 0.2, 1, EAST - (50 * Math.PI) / 180)!.halfWidth).toBe(1.5);
+    expect(roadSegmentAt(cross, 0.2, 1, 0)!.halfWidth).toBe(1.5);
+    // Up to 45° off the bearing still counts as along it; past that it is a crossing.
+    expect(roadSegmentAt(cross, 0.2, 1, EAST - 40 * DEG)!.halfWidth).toBe(3.5);
+    expect(roadSegmentAt(cross, 0.2, 1, EAST - 50 * DEG)!.halfWidth).toBe(1.5);
   });
 
-  it('with a memo, gathers the segments around a partner once and again only before it leaves them', () => {
+  it("picks the ribbon by the route's bearing, and measures it across the drawn heading", () => {
+    // A 1.5 m path running 40° (NE). Through a bend the drawn heading lags:
+    // here it still reads east, 50° off the path. Judged against it, the path
+    // the route is on would be a crossing (PR #55 @c10de1a, Tiber 9,995.6 m).
+    const ne = withRoads([path(-100 * Math.sin(40 * DEG), -100 * Math.cos(40 * DEG), 100 * Math.sin(40 * DEG), 100 * Math.cos(40 * DEG))]);
+    expect(roadSpanAt(ne, 0, 0, EAST, 40 * DEG)).toEqual({ leftM: expect.closeTo(-0.75, 6), rightM: expect.closeTo(0.75, 6) });
+    expect(roadSpanAt(ne, 0, 0, EAST, EAST)).toBeNull();
+    // Out-and-back on an E–W path, 0.5 m north of its centre: on the way back
+    // the bearing reads west while the drawn heading is still turning (100°).
+    // The span is the side of the line the partner is drawn on: across the
+    // drawn heading, 1.25 m of path to its right; across the bearing, 0.25 m.
+    const ew = withRoads([path(-390, 0, 390, 0)]);
+    expect(roadSpanAt(ew, 0, 0.5, 100 * DEG, -EAST)).toEqual({ leftM: expect.closeTo(-0.25, 6), rightM: expect.closeTo(1.25, 6) });
+  });
+
+  it('with a memo, gathers the segments around a partner once and again only when it leaves that circle', () => {
     const memo: { road?: RoadSpanMemo } = {};
-    const at = (x: number, y: number) => roadSpanAt(sw, x, y, EAST, memo);
-    expect(at(-300, 1)).toEqual(roadSpanAt(sw, -300, 1, EAST));
+    const at = (x: number, y: number) => roadSpanAt(sw, x, y, EAST, EAST, memo);
+    expect(at(-300, 1)).toEqual(roadSpanAt(sw, -300, 1, EAST, EAST));
     const first = memo.road!;
     expect(first.segs.length).toBeGreaterThan(0);
-    // Riding east along the road: the same gather serves the next 26 m.
-    for (let x = -300; x <= -300 + ROAD_GATHER_M - ROAD_SPAN_SNAP_M; x += 0.5) {
-      expect(at(x, 1)).toEqual(roadSpanAt(sw, x, 1, EAST));
+    // Riding east along the road: the same gather serves the next 30 m.
+    for (let x = -300; x <= -300 + ROAD_GATHER_M; x += 0.5) {
+      expect(at(x, 1)).toEqual(roadSpanAt(sw, x, 1, EAST, EAST));
     }
     expect(memo.road).toBe(first);
-    at(-300 + ROAD_GATHER_M - ROAD_SPAN_SNAP_M + 0.5, 1);
+    at(-300 + ROAD_GATHER_M + 0.5, 1);
     expect(memo.road).not.toBe(first);
     // 60 m north of the road: nothing there.
     expect(at(-270, 60)).toBeNull();
   });
 
-  it('with a memo, still finds the next segment of a road that was out of snap reach at the gather', () => {
-    // A road that bends 3° at x = −10: from (−30, 1) its second segment is 20 m away.
-    const bend = withRoads([{ cls: 0, width: 7, flags: 0, points: Float32Array.from([-390, 0, -10, 0, 390, 20]) }]);
+  it('with a memo, finds a ribbon that was out of reach at the gather once the point leaves the circle', () => {
+    // A path starting 31 m east of the gather point: its end is 30.25 m away.
+    const later = withRoads([path(-269, 60, 100, 60)]);
     const memo: { road?: RoadSpanMemo } = {};
-    roadSpanAt(bend, -30, 1, EAST, memo);
-    // At x = −5 only the second segment is within 4 m of the line point.
-    expect(roadSpanAt(bend, -5, 1.2, EAST, memo)).toEqual(roadSpanAt(bend, -5, 1.2, EAST));
-    expect(roadSpanAt(bend, -5, 1.2, EAST)).not.toBeNull();
+    expect(roadSpanAt(later, -300, 60, EAST, EAST, memo)).toBeNull();
+    expect(roadSpanAt(later, -270, 60, EAST, EAST, memo)).toBeNull();
+    expect(roadSpanAt(later, -268.5, 60, EAST, EAST, memo)).toEqual({ leftM: expect.closeTo(-0.75, 6), rightM: expect.closeTo(0.75, 6) });
   });
 });
 
@@ -188,5 +277,88 @@ describe('placeBot', () => {
     const p = placeBot(sw, east, { ...b0.state, heading: 0 }, 0, createBotDriverMemo(), DT).placement;
     expect(p.worldY).toBeCloseTo(-1.2, 2);
     expect(p.heading).toBeCloseTo(Math.PI / 2, 2);
+  });
+
+  it('stands the partner on the ground it is given', () => {
+    const [b0] = seat(east, 1);
+    const p = placeBot(sw, east, b0.state, 0, createBotDriverMemo(), DT, () => 123.25).placement;
+    expect(p.position.y).toBe(123.25);
+    expect(p.pitch).toBe(0);
+  });
+
+  it('eases a partner over where the road narrows: never faster than 2.5 m/s sideways, settled within 1.5 s', () => {
+    // A 7 m road along y = 0 that becomes a 1.5 m path at x = 0.
+    const narrows = withRoads([{ cls: 0, width: 7, flags: 0, points: Float32Array.from([-390, 0, 0, 0]) }, path(0, 0, 390, 0)]);
+    const r = routeThrough(narrows, [-200, 0], [300, 0]);
+    expect(PARTNER_SLOT_MAX_RATE_MPS).toBe(2.5);
+    for (const [i, wide, narrow] of [[0, 1.2, 0.65], [1, -1.2, -0.65], [2, 2.4, 0.65]]) {
+      const frames = ride(narrows, r, i, 150, 260);
+      expect(frames[0].slotM).toBeCloseTo(wide, 9);
+      expect(maxStep(frames)).toBeLessThanOrEqual(PARTNER_SLOT_MAX_RATE_MPS * DT + 1e-9);
+      // On the path from x = 3.5 (past the road's end cap); 1.5 s later the partner is in its clamp.
+      const settled = frames.filter((f) => f.lineX > 3.5 + 8 * 1.5);
+      expect(settled.length).toBeGreaterThan(60);
+      for (const f of settled) expect(f.slotM).toBeCloseTo(narrow, 2);
+      // Never across the line on the way.
+      for (const f of frames) expect(f.slotM * Math.sign(wide)).toBeGreaterThan(0);
+    }
+  });
+
+  it("keeps the clamp through a sharp bend in a narrow path: the ribbon follows the route's bearing, not the lagging heading", () => {
+    // A 1.5 m path east to (0, 0), then turning 120° right (SSW); the route
+    // rides its centreline. The drawn heading trails the corner by up to
+    // ~65° here, so judged against it the path would drop out for ~4 m and
+    // the slot would drift toward its unclamped 1.2 m, off the path.
+    const dir = 210 * DEG;
+    const corner = withRoads([path(-200, 0, 0, 0, 180 * Math.sin(dir), 180 * Math.cos(dir))]);
+    const r = routeVia(corner, [-200, 0], [0, 0], [150 * Math.sin(dir), 150 * Math.cos(dir)]);
+    for (const [i, slot] of [[0, 0.65], [1, -0.65]]) {
+      const frames = ride(corner, r, i, 150, 260);
+      for (const f of frames) expect(f.slotM).toBeCloseTo(slot, 4);
+    }
+  });
+
+  it('draws the slot across the FILTERED heading through a U-turn, and switches sides only as the heading comes round', () => {
+    // Out and back along a 1.5 m E–W path, the route 0.5 m north of its
+    // centre: eastbound 1.25 m of path lie right of the line (south), 0.25 m
+    // left; westbound the other way round. At the turn the route bearing
+    // flips at once while the drawn heading takes ~1.3 s to come round (the
+    // YawFilter's 140°/s cap): the frames that tell the drawn heading from
+    // the route's.
+    const ew = withRoads([path(-390, 0, 390, 0)]);
+    const r = routeVia(ew, [-200, 0.5], [100, 0.5], [-200, 0.5]);
+    const eastbound = [1.15, -0.15, 1.15];
+    const westbound = [0.15, -1.15, 0.15];
+    for (const i of [0, 1, 2]) {
+      const frames = ride(ew, r, i, 250, 380);
+      let early = 0;
+      let late = 0;
+      for (const f of frames) {
+        const ox = f.x - f.lineX;
+        const oy = f.y - f.lineY;
+        const len = Math.hypot(ox, oy);
+        // The offset is the slot, across the drawn heading: perpendicular to it.
+        expect(len).toBeCloseTo(Math.abs(f.slotM), 2);
+        expect(Math.abs(ox * Math.sin(f.heading) + oy * Math.cos(f.heading))).toBeLessThanOrEqual(0.01 * Math.max(1, len));
+        // Past the turn (300 m) with the drawn heading still within 45° of
+        // east, the partner keeps its eastbound clamp: the span is read
+        // across the drawn heading, not the flipped route bearing.
+        const eastness = Math.sin(f.heading);
+        if (f.d > 300 && eastness > Math.SQRT1_2) {
+          early++;
+          expect(f.slotM).toBeCloseTo(eastbound[i], 4);
+        }
+        // Once it points within 10° of west the partner has settled into its westbound clamp.
+        if (f.d > 300 + 8 * 2.5 && eastness < -Math.cos(10 * DEG)) {
+          late++;
+          expect(f.slotM).toBeCloseTo(westbound[i], 2);
+        }
+        // Never off the paved width by more than the sideways sweep of
+        // the eased slot while the heading pivots (0.1 m at most here).
+        expect(Math.abs(f.y)).toBeLessThanOrEqual(0.75 + 0.1);
+      }
+      expect(early).toBeGreaterThan(10);
+      expect(late).toBeGreaterThan(300);
+    }
   });
 });
