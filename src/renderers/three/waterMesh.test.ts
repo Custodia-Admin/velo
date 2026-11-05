@@ -5,7 +5,7 @@
  * the 4-way midpoint split made Lugano 5.19 M water triangles (415 MB of
  * vertex buffers, half the frame rate).
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -75,16 +75,56 @@ describe('tessellateWaterPolygon', () => {
 });
 
 const WORLDS = fileURLToPath(new URL('../../../public/worlds', import.meta.url));
+const SHIPPED = readdirSync(WORLDS)
+  .filter((d) => existsSync(join(WORLDS, d, 'manifest.json')))
+  .sort();
 
 /**
  * Shipped water budgets, triangles (polygons + stream ribbons). Lugano was
  * 5.19 M; Perugia 80 k before, when the 4-way split also over-cut its rivers
- * (edges down to 11 m where 45 m holds).
+ * (edges down to 11 m where 45 m holds). Every bundle under public/worlds
+ * needs an entry: a new world fails until its measured count is pinned here.
  */
 const BUDGET: Record<string, { max?: number; expected?: number }> = {
   lugano: { max: 400_000 },
   perugia: { expected: 26_752 },
 };
+
+/**
+ * The most triangles a world's water should take, from its own water layer,
+ * whatever its budget entry says:
+ * - polygons: a lattice cell the water covers whole is one triangle
+ *   (≤ area / cell area). A shore cell is its loop's vertices − 2: the
+ *   ring's own vertices inside it, two crossing points per lattice line the
+ *   shore crosses and the cell's corners under water. The three lattice line
+ *   families are h = s·√3/2 apart, so a shore of length L crosses them about
+ *   (6/π)·L/h times, and there are about as many shore cells as crossings
+ *   (a shore enters and leaves a cell; each crossing bounds two cells): at
+ *   most V + 3·(6/π)·L/h triangles over all shore cells.
+ * - stream ribbons: two triangles per step of one terrain cell (never more
+ *   than s), so ≤ 2·(len / step + 1) per line segment.
+ */
+function waterCeiling(water: WaterLayer, cellSize: number) {
+  const s = WATER_EDGE_M;
+  const cellArea = (s * s * Math.sqrt(3)) / 4;
+  const h = (s * Math.sqrt(3)) / 2;
+  let vertices = 0;
+  let shore = 0;
+  for (const a of water.areas) {
+    for (const r of a.rings) {
+      const n = r.length / 2;
+      vertices += n;
+      for (let i = 0, j = n - 1; i < n; j = i++) shore += Math.hypot(r[2 * i] - r[2 * j], r[2 * i + 1] - r[2 * j + 1]);
+    }
+  }
+  const step = Math.min(s, cellSize);
+  let ribbons = 0;
+  for (const l of water.lines) {
+    const p = l.points;
+    for (let i = 0; i + 3 < p.length; i += 2) ribbons += 2 * (Math.hypot(p[i + 2] - p[i], p[i + 3] - p[i + 1]) / step + 1);
+  }
+  return { polygons: polygonArea(water) / cellArea + vertices + (3 * (6 / Math.PI) * shore) / h, ribbons };
+}
 
 function polygonArea(water: WaterLayer) {
   let total = 0;
@@ -99,7 +139,14 @@ function polygonArea(water: WaterLayer) {
   return total;
 }
 
-describe.each(Object.keys(BUDGET).filter((id) => existsSync(join(WORLDS, id, 'manifest.json'))))('shipped world %s water mesh', (id) => {
+describe('shipped water budgets', () => {
+  it('lists only worlds that ship', () => {
+    expect(SHIPPED.length).toBeGreaterThan(0);
+    expect(Object.keys(BUDGET).filter((id) => !SHIPPED.includes(id))).toEqual([]);
+  });
+});
+
+describe.each(SHIPPED)('shipped world %s water mesh', (id) => {
   let world: LoadedWorld;
   beforeAll(async () => {
     const dir = join(WORLDS, id);
@@ -111,9 +158,15 @@ describe.each(Object.keys(BUDGET).filter((id) => existsSync(join(WORLDS, id, 'ma
   it('stays within its triangle budget, every edge ≤ WATER_EDGE_M, the lakes whole', () => {
     const data = buildWaterGeometry(world.water, world.heightfield, WATER_EDGE_M);
     const tris = data.positions.length / 9;
-    const b = BUDGET[id];
-    if (b.max !== undefined) expect(tris).toBeLessThanOrEqual(b.max);
-    if (b.expected !== undefined) {
+    let polygons = 0;
+    for (let i = 0; i < data.kinds.length; i += 3) if (data.kinds[i] === 1) polygons++;
+    const ceiling = waterCeiling(world.water, world.heightfield.spec.cellSize);
+    expect(polygons, `${id} polygon triangles`).toBeLessThanOrEqual(ceiling.polygons);
+    expect(tris - polygons, `${id} stream ribbon triangles`).toBeLessThanOrEqual(ceiling.ribbons);
+    const b: { max?: number; expected?: number } | undefined = BUDGET[id];
+    expect(b, `${id} has no water BUDGET entry: it draws ${tris} triangles, pin that as { expected: ${tris} }`).toBeDefined();
+    if (b?.max !== undefined) expect(tris).toBeLessThanOrEqual(b.max);
+    if (b?.expected !== undefined) {
       expect(tris).toBeGreaterThanOrEqual(b.expected * 0.9);
       expect(tris).toBeLessThanOrEqual(b.expected * 1.1);
     }
