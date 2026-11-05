@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Custodia-Admin/velo/tools/worldbake/recipe.schema.json",
+  "title": "Velo world bake recipe (tools/worldbake/worlds/<id>.json)",
+  "description": "Input of tools/worldbake/bake.mjs. See docs/worlds/WORLD-FORMAT.md \"Recipe\".",
+  "type": "object",
+  "required": ["id", "name", "origin", "grid", "dem", "osmDate", "routes", "snap", "vegetation", "moods", "defaultMood", "validation"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "World id: bundle folder public/worlds/<id>/ and cache folder." },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "origin": {
+      "type": "object",
+      "required": ["lat", "lon"],
+      "properties": { "lat": { "type": "number" }, "lon": { "type": "number" } },
+      "description": "World (0, 0): the local transverse Mercator's central point."
+    },
+    "grid": {
+      "type": "object",
+      "required": ["xMin", "yMax", "cellSize", "cols", "rows"],
+      "properties": {
+        "xMin": { "type": "number" },
+        "yMax": { "type": "number" },
+        "cellSize": { "type": "number", "exclusiveMinimum": 0 },
+        "cols": { "type": "integer", "minimum": 2, "maximum": 2048 },
+        "rows": { "type": "integer", "minimum": 2, "maximum": 2048 }
+      }
+    },
+    "dem": {
+      "description": "Heightfield source. Without \"source\" the bake uses aws-terrain-tiles (the default, needs \"zoom\").",
+      "oneOf": [
+        {
+          "title": "AWS Terrain Tiles (terrarium), the default",
+          "type": "object",
+          "required": ["zoom"],
+          "properties": {
+            "source": { "const": "aws-terrain-tiles" },
+            "zoom": { "type": "integer", "minimum": 0, "maximum": 15, "description": "Slippy-map zoom of the terrarium PNGs (13 ≈ 13 m pixels at 43°N)." }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "Copernicus DEM GLO-30 (1 arc-second COGs), opt-in",
+          "type": "object",
+          "required": ["source"],
+          "properties": { "source": { "const": "copernicus-glo30" } },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "osmDate": { "type": "string", "description": "Overpass attic date (ISO 8601) every OSM query is pinned to." },
+    "routes": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Scenic route ids from src/lib/scenicRoutes.ts that lie inside the world." },
+    "routesOutside": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Nearby route ids left out, with the reason." },
+    "snap": {
+      "type": "object",
+      "required": ["stepM", "offsetMedianM", "offsetMeanM", "coreCells", "falloffM"],
+      "properties": {
+        "stepM": { "type": "number" },
+        "offsetMedianM": { "type": "number" },
+        "offsetMeanM": { "type": "number" },
+        "coreCells": { "type": "number" },
+        "falloffM": { "type": "number" }
+      }
+    },
+    "vegetation": {
+      "type": "object",
+      "required": ["seed", "maxInstances", "spacingM"],
+      "properties": {
+        "seed": { "type": "integer" },
+        "maxInstances": { "type": "integer", "minimum": 0 },
+        "spacingM": { "type": "object", "additionalProperties": { "type": "number" } },
+        "character": { "type": "object" }
+      }
+    },
+    "moods": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "defaultMood": { "type": "string" },
+    "validation": {
+      "type": "object",
+      "required": ["seed", "samples", "maxRmsM"],
+      "properties": {
+        "seed": { "type": "integer" },
+        "samples": { "type": "integer", "minimum": 1 },
+        "maxRmsM": { "type": "number" }
+      }
+    }
+  }
+}

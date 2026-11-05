@@ -67,4 +67,11 @@ describe('world manifest', () => {
     );
     expect(codeOf(() => validateManifest({ ...shipped, pois: [{ ...shipped.pois[0], kind: 'castle' }] }))).toBe('corrupt');
   });
+
+  it('takes generator.demZoom only from zoomed DEM sources (absent for Copernicus GLO-30)', () => {
+    const { demZoom: _zoom, ...glo30 } = shipped.generator;
+    expect(codeOf(() => validateManifest({ ...shipped, generator: { ...glo30, demSource: 'copernicus-dem-30m/glo30-cog' } }))).toBe(null);
+    expect(codeOf(() => validateManifest({ ...shipped, generator: { ...shipped.generator, demZoom: 12.5 } }))).toBe('corrupt');
+    expect(schema.properties.generator.required).not.toContain('demZoom');
+  });
 });

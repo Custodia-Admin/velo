@@ -75,6 +75,35 @@ The in-app credits line comes from each bundle's `manifest.json` `credits`.
   road follows the route's smoothed elevation profile (see
   [WORLD-FORMAT.md](WORLD-FORMAT.md)).
 
+### Copernicus DEM GLO-30 Public (opt-in heightfield source)
+
+- Used for: `height.bin.gz` and every height in the bundle, **only** in worlds
+  whose recipe sets `"dem": { "source": "copernicus-glo30" }` (see
+  [WORLD-FORMAT.md](WORLD-FORMAT.md) "DEM source"). Such a bundle carries the
+  `copernicus-glo30` credit instead of `terrain-tiles`. No world uses it yet.
+- URL template (public bucket on the AWS Open Data Registry,
+  https://registry.opendata.aws/copernicus-dem/, readme
+  https://copernicus-dem-30m.s3.amazonaws.com/readme.html):
+  `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_<N|S>dd_00_<E|W>ddd_00_DEM/Copernicus_DSM_COG_10_<N|S>dd_00_<E|W>ddd_00_DEM.tif`.
+  Missing tiles are checked against the GLO-90 bucket
+  (`copernicus-dem-90m`, a HEAD request only) to tell ocean from unreleased
+  land.
+- Licence: the Copernicus DEM licence. GLO-30 Public and GLO-90 are free for
+  the general public, with the notice below
+  (https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM,
+  "Licensing and citation guidelines").
+- Required notice. The bake resamples and quantises the data, so we use the
+  licence's wording for adapted or modified GLO-30:
+
+  > produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus
+  > Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European
+  > Union and ESA; all rights reserved
+
+- Modifications: resampled bilinearly from the 1″ pixel-centre grid onto a
+  local transverse Mercator grid, open-ocean tiles filled with 0 m, quantised
+  to 1/64 m, and re-graded inside a corridor of about 60 m along each scenic
+  route.
+
 ### Copernicus DEM GLO-90 via the Open-Meteo elevation API
 
 - Used for: the scenic routes' elevation profiles in `src/lib/scenicRouteData.ts`

@@ -153,14 +153,14 @@
     },
     "generator": {
       "type": "object",
-      "required": ["tool", "version", "recipeSha256", "osmDate", "demSource", "demZoom", "demTiles"],
+      "required": ["tool", "version", "recipeSha256", "osmDate", "demSource", "demTiles"],
       "properties": {
         "tool": { "type": "string" },
         "version": { "type": "integer", "minimum": 1 },
         "recipeSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
         "osmDate": { "type": "string" },
         "demSource": { "type": "string" },
-        "demZoom": { "type": "integer" },
+        "demZoom": { "type": "integer", "description": "Terrain Tiles zoom (aws-terrain-tiles source only)" },
         "demTiles": { "type": "integer", "minimum": 1 }
       }
     }
