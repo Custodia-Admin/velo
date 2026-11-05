@@ -160,7 +160,7 @@ const OSM_TILE_URL = 'https://tile.openstreetmap.org/';
 /**
  * Custom DOM event dispatched on `window` whenever the photoreal Bing path
  * silently stalls and we fall back to OSM at runtime. Consumed by
- * NoTokenBanner (or any future status surface) so the user sees a soft
+ * the photoreal notice (velo/PhotorealNotice, or any future status surface) so the user sees a soft
  * "photoreal unavailable" notice instead of just a downgraded-looking globe.
  */
 export { IMAGERY_FALLBACK_EVENT };

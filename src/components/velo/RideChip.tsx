@@ -21,9 +21,16 @@
  * Below sm the calm states hide (the band is the whole HUD there); the chip
  * shows only when something needs the rider. `alertsOnly` (show mode, over
  * the video) hides the calm states on every viewport.
+ *
+ * `aside` (card t_375b203d): a quiet notice that shares the chip's lane, at
+ * its far end (the photoreal notice; the caller stretches the lane to the
+ * band). It must always render something. It shows while the chip is calm
+ * (alone on phones, where the calm chip is hidden) and steps aside while
+ * the chip carries an alert, so one thing speaks at a time and the lane
+ * stays one h-10 row.
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { controllerPhase } from '@/lib/controllers/controllerView';
 import { reconnectGrantedTrainer, useTrainerReconnectStore } from '@/lib/trainerReconnect';
@@ -68,7 +75,15 @@ export function useRideNotice(): (ChipNotice & { id: string; run?: () => void })
   }, [latest]);
 }
 
-export function RideChip({ className, alertsOnly = false }: { className?: string; alertsOnly?: boolean }) {
+export function RideChip({
+  className,
+  alertsOnly = false,
+  aside,
+}: {
+  className?: string;
+  alertsOnly?: boolean;
+  aside?: ReactNode;
+}) {
   const connection = useRideStore((s) => s.connection);
   const mode = useRideStore((s) => (s.rideMode === 'outdoor' ? 'outdoor' : s.mode));
   const deviceName = useRideStore((s) => s.deviceName);
@@ -119,9 +134,8 @@ export function RideChip({ className, alertsOnly = false }: { className?: string
     });
   };
 
-  if (alertsOnly && !view.alert) return null;
-
-  return (
+  const lane = aside !== undefined && aside !== null;
+  const button = (
     <button
       type="button"
       aria-live="polite"
@@ -136,7 +150,7 @@ export function RideChip({ className, alertsOnly = false }: { className?: string
         HUD_PANEL,
         'pointer-events-auto h-10 max-w-full items-center gap-2 border border-border/60 px-3 text-sm font-semibold sm:max-w-sm',
         view.alert ? 'inline-flex' : 'hidden sm:inline-flex',
-        className,
+        lane ? 'shrink-0' : className,
       )}
     >
       <span
@@ -153,5 +167,20 @@ export function RideChip({ className, alertsOnly = false }: { className?: string
         {view.label}
       </span>
     </button>
+  );
+  const chip = alertsOnly && !view.alert ? null : button;
+
+  if (!lane) return chip;
+  // The chip lane: the chip at the start, the quiet notice at the end while
+  // nothing is wrong (alone at the start on phones, where the calm chip is
+  // hidden). It wraps, never overflows, on a band too narrow for both.
+  return (
+    <div
+      data-testid="ride-chip-lane"
+      className={cn('flex max-w-full flex-wrap items-center justify-between gap-2', className)}
+    >
+      {chip}
+      {!view.alert && aside}
+    </div>
   );
 }
