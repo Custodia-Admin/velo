@@ -11,6 +11,7 @@
 
 import * as Cesium from 'cesium';
 import { IMAGERY_FALLBACK_EVENT } from '@/lib/imageryFallback';
+import { tileReadCacheFor, type TileReadCache } from '@/lib/tileReadCache';
 import type { Route } from '@/types';
 import type { SkyConfig } from '@/lib/skyAndClouds';
 
@@ -553,6 +554,62 @@ function isWebGL2(scene: Cesium.Scene): boolean {
 }
 
 /**
+ * The side cameras can read what is drawn around them on the CPU: a photoreal
+ * mesh is shown and the context is WebGL 2 (on WebGL 1 only a GPU pick could
+ * read the mesh, a pipeline stall per spot, so they don't look).
+ */
+export function sightReadable(scene: Cesium.Scene): boolean {
+  return isWebGL2(scene) && photorealGroundShown(scene);
+}
+
+/**
+ * Tile geometry copies the sight's reads reuse (lib/tileReadCache), on
+ * Cesium's private ModelReader; null when this Cesium has no such reads.
+ */
+let meshTopReads: TileReadCache | null | undefined;
+function meshTopReadCache(): TileReadCache | null {
+  if (meshTopReads === undefined) {
+    meshTopReads = tileReadCacheFor((Cesium as unknown as { ModelReader?: unknown }).ModelReader);
+  }
+  return meshTopReads;
+}
+
+/** Drop the tile geometry the sight's reads kept (the view that read it is gone). */
+export function clearMeshTopReads(): void {
+  meshTopReads?.clear();
+}
+
+/** Hits, copies, bytes and entries of the sight's tile geometry cache, for probes (null: no cache). */
+export function meshTopReadStats(): ReturnType<TileReadCache['stats']> | null {
+  return meshTopReads ? meshTopReads.stats() : null;
+}
+
+/**
+ * Top of the shown photoreal mesh at lon/lat (highest of the shown photoreal
+ * tilesets), intersected on the CPU against the rendered tiles
+ * (Cesium3DTileset.getHeight). Undefined with no tile there, no mesh shown,
+ * or no WebGL 2. Unfiltered: the top of whatever stands there (roof, crown,
+ * hillside), which is what a camera has to see past. The tile geometry each
+ * read copies back from the GPU is kept for the next reads (lib/tileReadCache).
+ */
+export function meshTopHeight(scene: Cesium.Scene, lon: number, lat: number): number | undefined {
+  if (!isWebGL2(scene)) return undefined;
+  const prims = (scene as { primitives?: Cesium.PrimitiveCollection }).primitives;
+  if (!prims || typeof prims.length !== 'number') return undefined;
+  let carto: Cesium.Cartographic | undefined;
+  let best: number | undefined;
+  const reads = meshTopReadCache();
+  for (let i = 0; i < prims.length; i++) {
+    const p = prims.get(i) as Cesium.Cesium3DTileset;
+    if (!isPhotorealTileset(p) || !p.show) continue;
+    const at = (carto ??= Cesium.Cartographic.fromDegrees(lon, lat));
+    const h = reads ? reads.run(() => p.getHeight(at, scene)) : p.getHeight(at, scene);
+    if (h !== undefined && Number.isFinite(h) && (best === undefined || h > best)) best = h;
+  }
+  return best;
+}
+
+/**
  * Height of whatever the globe is rendering right now at lon/lat, without
  * waiting for anything: the precise surface sample (terrain / photoreal mesh)
  * when available, else the height of the terrain tiles already loaded
@@ -611,6 +668,31 @@ export function drawnGroundHeight(
   const terrain = plausible(h) ? h : undefined;
   if (!plausible(sampled)) return terrain;
   return terrain !== undefined && globeDrawnOpaque(globe) ? Math.max(sampled, terrain) : sampled;
+}
+
+/**
+ * Top of what is drawn at lon/lat for the side cameras' sight: the mesh top
+ * (`meshTop`, {@link meshTopHeight}) and the globe where it draws over it, as
+ * {@link drawnGroundHeight}. A hidden or see-through globe never stands in for
+ * a mesh read that missed: it is not drawn there (on the Lugano shore it sits
+ * up to 26 m over the street, so the camera moved in from a wall that isn't).
+ */
+export function drawnTopHeight(
+  scene: Cesium.Scene,
+  lon: number,
+  lat: number,
+  meshTop: number | undefined,
+  expectEle?: number,
+): number | undefined {
+  const globe = scene.globe as Cesium.Globe | undefined;
+  if (globe && !globeDrawnOpaque(globe)) {
+    const plausible =
+      meshTop !== undefined &&
+      Number.isFinite(meshTop) &&
+      (expectEle === undefined || Math.abs(meshTop - expectEle) <= MAX_COARSE_TILE_ERROR_M);
+    return plausible ? meshTop : undefined;
+  }
+  return drawnGroundHeight(scene, lon, lat, meshTop, expectEle);
 }
 
 /** The globe draws its terrain as an opaque surface (not hidden, not see-through). */
