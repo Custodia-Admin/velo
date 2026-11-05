@@ -16,6 +16,7 @@ vi.mock('./ShowRideStrip', () => ({ useShowRideNumbers: () => null }));
 
 const { JourneyBar, JourneyLandmark } = await import('./JourneyBar');
 const { Figure } = await import('./Figure');
+const { NextLandmark } = await import('./NextLandmark');
 
 type El = ReactElement<Record<string, unknown>>;
 function elements(node: unknown, out: El[] = []): El[] {
@@ -33,7 +34,7 @@ const numbers = {
   distanceUnit: 'km',
   distanceAria: 'Distance: 42.2 km',
   gradeText: '-12.5',
-  next: 'Rivotorto in 900 m',
+  next: { name: 'Rivotorto', distance: 'in 900 m' },
   progress: 0.4,
   action: { label: 'Pause ride', icon: Pause, run: () => undefined },
 };
@@ -49,11 +50,24 @@ describe('JourneyBar', () => {
   });
 
   it('the next landmark: in the bar from sm, its own pill below sm', () => {
-    const inBar = elements(JourneyBar({ numbers })).find((e) => e.props['data-testid'] === 'journey-next' || e.props.text === numbers.next);
+    const inBar = elements(JourneyBar({ numbers })).find((e) => e.type === NextLandmark);
+    expect(inBar?.props.next).toBe(numbers.next);
     expect(String(inBar?.props.className)).toMatch(/\bhidden\b.*\bsm:flex\b/);
     const pill = JourneyLandmark({ numbers }) as El | null;
-    expect(pill?.props.text).toBe(numbers.next);
+    expect(pill?.type).toBe(NextLandmark);
+    expect(pill?.props.next).toBe(numbers.next);
     expect(String(pill?.props.className)).toMatch(/\bsm:hidden\b/);
     expect(JourneyLandmark({ numbers: { ...numbers, next: null } })).toBeNull();
+  });
+
+  // Review of PR #36 @61defbb (F2): "Bastia Umbra in 6…" in the 640 px window.
+  it('bar and pill both shorten the place name only (NextLandmark), never the distance', () => {
+    const lines = [...elements(JourneyBar({ numbers })), JourneyLandmark({ numbers }) as El].filter((e) => e.type === NextLandmark);
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+      expect(line.props.testId).toBe('journey-next');
+      // No truncation around the line itself: NextLandmark decides what shortens.
+      expect(String(line.props.className)).not.toMatch(/\btruncate\b|text-ellipsis/);
+    }
   });
 });

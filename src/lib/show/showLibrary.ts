@@ -116,9 +116,14 @@ export function resumePosition(
 export function latestResume(
   storage: Storage | undefined = defaultStorage(),
 ): ResumeEntry | null {
-  const entries = Object.values(readMap(storage));
+  const entries = resumeEntries(storage);
   if (entries.length === 0) return null;
   return entries.reduce((a, b) => (b.savedAt > a.savedAt ? b : a));
+}
+
+/** Every saved position (unfinished files). */
+export function resumeEntries(storage: Storage | undefined = defaultStorage()): ResumeEntry[] {
+  return Object.values(readMap(storage));
 }
 
 /** "12:34" or "1:02:03". */
@@ -421,6 +426,12 @@ export interface LibraryRead {
    * the prompt, or there was no click to ask with (Chrome throws then).
    */
   denied: boolean;
+  /**
+   * The names of the remembered files Chrome refused (a set of files; a
+   * refused folder has none to give). Only the name is known: a refused file
+   * can't be read, so it has no size. Absent when the reader can't tell.
+   */
+  refused?: string[];
 }
 
 /** Permission, with Chrome's refusals (no click behind the request) counted as a no. */
@@ -444,10 +455,10 @@ export async function readLibrary(lib: RememberedLibrary, { ask }: { ask: boolea
     }
   }
   const files: File[] = [];
-  let denied = false;
+  const refused: string[] = [];
   for (const h of lib.handles) {
     if (!(await allowed(h, { ask }))) {
-      denied = true;
+      refused.push(h.name);
       continue;
     }
     try {
@@ -456,5 +467,5 @@ export async function readLibrary(lib: RememberedLibrary, { ask }: { ask: boolea
       // File moved or deleted since last time: skip it.
     }
   }
-  return { files: sortForPlayback(files.filter(isVideoFile)), denied };
+  return { files: sortForPlayback(files.filter(isVideoFile)), denied: refused.length > 0, refused };
 }

@@ -9,14 +9,16 @@
  * re-renders at display rate.
  */
 
-import { Flag, Pause, Play, type LucideIcon } from 'lucide-react';
+import { Pause, Play, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn, formatDistance, formatDuration } from '@/lib/utils';
-import { useNextLandmarkText } from '@/hooks/useRouteLandmarks';
+import { useNextLandmark } from '@/hooks/useRouteLandmarks';
 import { quantizedMeters } from '@/lib/hudThrottle';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { Figure } from './Figure';
+import { NextLandmark } from './NextLandmark';
+import type { NextLandmarkParts } from './rideHudText';
 import { HUD_PANEL } from './v2';
 
 const M_PER_MI = 1609.344;
@@ -27,8 +29,8 @@ export interface ShowRideNumbers {
   distanceUnit: string;
   distanceAria: string;
   gradeText: string;
-  /** "Rivotorto in 900 m", or null when nothing named is ahead. */
-  next: string | null;
+  /** "Rivotorto" + "in 900 m", or null when nothing named is ahead. */
+  next: NextLandmarkParts | null;
   /** Share of the route ridden, 0..1 (0 on live/outdoor routes). */
   progress: number;
   action: { label: string; icon: LucideIcon; run: () => void } | null;
@@ -46,7 +48,7 @@ export function useShowRideNumbers(): ShowRideNumbers {
   const units = useSettingsStore((s) => s.units);
   const imperial = units === 'imperial';
 
-  const next = useNextLandmarkText(route, distance, units);
+  const next = useNextLandmark(route, distance, units);
 
   const total = route && !route.isLive ? route.totalDistance : 0;
   const fmt = (m: number) => (imperial ? `${(m / M_PER_MI).toFixed(2)} mi` : formatDistance(m));
@@ -74,7 +76,19 @@ export function useShowRideNumbers(): ShowRideNumbers {
 }
 
 export function ShowRideStrip({ dimmed, className }: { dimmed: boolean; className?: string }) {
-  const n = useShowRideNumbers();
+  return <ShowRideStripView numbers={useShowRideNumbers()} dimmed={dimmed} className={className} />;
+}
+
+/** The strip for a set of numbers (what ShowRideStrip renders; tests call it directly). */
+export function ShowRideStripView({
+  numbers: n,
+  dimmed,
+  className,
+}: {
+  numbers: ShowRideNumbers;
+  dimmed: boolean;
+  className?: string;
+}) {
   const { next, action } = n;
 
   return (
@@ -96,10 +110,7 @@ export function ShowRideStrip({ dimmed, className }: { dimmed: boolean; classNam
       {(next || action) && (
         <div className="flex items-center justify-between gap-3">
           {next ? (
-            <span className="flex min-w-0 max-w-56 items-center gap-1.5 text-sm">
-              <Flag className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span className="truncate">{next}</span>
-            </span>
+            <NextLandmark next={next} testId="show-next" className="flex min-w-0 max-w-56" />
           ) : (
             <span aria-hidden="true" />
           )}
