@@ -523,6 +523,38 @@ function isWebGL2(scene: Cesium.Scene): boolean {
 }
 
 /**
+ * The side cameras can read what is drawn around them on the CPU: a photoreal
+ * mesh is shown and the context is WebGL 2 (on WebGL 1 only a GPU pick could
+ * read the mesh, a pipeline stall per spot, so they don't look).
+ */
+export function sightReadable(scene: Cesium.Scene): boolean {
+  return isWebGL2(scene) && photorealGroundShown(scene);
+}
+
+/**
+ * Top of the shown photoreal mesh at lon/lat (highest of the shown photoreal
+ * tilesets), intersected on the CPU against the rendered tiles
+ * (Cesium3DTileset.getHeight). Undefined with no tile there, no mesh shown,
+ * or no WebGL 2. Unfiltered: the top of whatever stands there (roof, crown,
+ * hillside), which is what a camera has to see past.
+ */
+export function meshTopHeight(scene: Cesium.Scene, lon: number, lat: number): number | undefined {
+  if (!isWebGL2(scene)) return undefined;
+  const prims = (scene as { primitives?: Cesium.PrimitiveCollection }).primitives;
+  if (!prims || typeof prims.length !== 'number') return undefined;
+  let carto: Cesium.Cartographic | undefined;
+  let best: number | undefined;
+  for (let i = 0; i < prims.length; i++) {
+    const p = prims.get(i) as Cesium.Cesium3DTileset;
+    if (!isPhotorealTileset(p) || !p.show) continue;
+    carto ??= Cesium.Cartographic.fromDegrees(lon, lat);
+    const h = p.getHeight(carto, scene);
+    if (h !== undefined && Number.isFinite(h) && (best === undefined || h > best)) best = h;
+  }
+  return best;
+}
+
+/**
  * Height of whatever the globe is rendering right now at lon/lat, without
  * waiting for anything: the precise surface sample (terrain / photoreal mesh)
  * when available, else the height of the terrain tiles already loaded
