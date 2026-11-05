@@ -147,9 +147,8 @@ export function rayTriangleHit(
   cull = true,
   detScale = 1,
 ): number {
-  const len2 = dx * dx + dy * dy + dz * dz;
-  if (!(len2 > 0) || !Number.isFinite(len2)) return NO_HIT;
-  const len = Math.sqrt(len2);
+  // (A zero or non-finite d makes every determinant 0 or NaN: no hit, without a guard.)
+  const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
   const nx = dx / len;
   const ny = dy / len;
   const nz = dz / len;
