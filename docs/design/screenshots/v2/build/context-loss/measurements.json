@@ -1,0 +1,1163 @@
+{
+ "tab": {
+  "ctxloss-build-back-tap-1280-night.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 40,
+    "w": 200,
+    "x": 219,
+    "y": 510
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 7.7,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1495182.8000000047,
+    9150.082466666909
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-back-tap-1280.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 40,
+    "w": 200,
+    "x": 219,
+    "y": 510
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 7.7,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1495316.3000000052,
+    9150.994716666906
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-back-tap-1440-night.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 40,
+    "w": 200,
+    "x": 299,
+    "y": 762
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 4.9,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1495849.3000000045,
+    9154.636883333727
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-back-tap-1440.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 40,
+    "w": 200,
+    "x": 299,
+    "y": 762
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 4.9,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1496382.6000000047,
+    9158.281100000338
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-back-tap-390-night.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 0,
+    "w": 0,
+    "x": 0,
+    "y": 0
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 10.9,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1494632.900000006,
+    9146.324816667115
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-back-tap-390.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 0,
+    "w": 0,
+    "x": 0,
+    "y": 0
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 10.9,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1494899.5000000058,
+    9148.146583333664
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-back-tap-tv-night.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 70,
+    "w": 349,
+    "x": 225,
+    "y": 839
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 9.4,
+   "minTarget": 70,
+   "minFont": 24.5,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1495383.600000001,
+    9151.454600000217
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-back-tap-tv.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 70,
+    "w": 349,
+    "x": 225,
+    "y": 839
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 9.4,
+   "minTarget": 70,
+   "minFont": 24.5,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1496766.2000000055,
+    9160.902366667033
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-before-1280-night.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 40,
+    "w": 200,
+    "x": 219,
+    "y": 510
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 7.7,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1486799.8000000012,
+    9092.798633333421
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-before-1280.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 40,
+    "w": 200,
+    "x": 219,
+    "y": 510
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 7.7,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1487383.2000000025,
+    9096.785200000064
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-before-1440-night.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 40,
+    "w": 200,
+    "x": 299,
+    "y": 762
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 4.9,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1487632.9000000018,
+    9098.49148333349
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-before-1440.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 40,
+    "w": 200,
+    "x": 299,
+    "y": 762
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 4.9,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1488000.000000002,
+    9101.000000000144
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-before-390-night.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 0,
+    "w": 0,
+    "x": 0,
+    "y": 0
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 10.9,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1488116.4000000039,
+    9101.795400000221
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-before-390.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 0,
+    "w": 0,
+    "x": 0,
+    "y": 0
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 10.9,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1487983.0000000028,
+    9100.883833333472
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-before-tv-night.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 70,
+    "w": 349,
+    "x": 225,
+    "y": 839
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 9.4,
+   "minTarget": 70,
+   "minFont": 24.5,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1487283.3999999997,
+    9096.103233333406
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-before-tv.jpg": {
+   "chip": "KICKR CORE · hills 35 %",
+   "chipAria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.",
+   "chipTone": "ok",
+   "chipRect": {
+    "h": 70,
+    "w": 349,
+    "x": 225,
+    "y": 839
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 9.4,
+   "minTarget": 70,
+   "minFont": 24.5,
+   "overflow": false,
+   "contextLost": false,
+   "ride": [
+    "running",
+    1487883.0000000028,
+    9100.200500000177
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-lost-1280-night.jpg": {
+   "chip": "3D view stopped · tap to reload",
+   "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+   "chipTone": "warn",
+   "chipRect": {
+    "h": 40,
+    "w": 258,
+    "x": 219,
+    "y": 510
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 7.9,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": true,
+   "ride": [
+    "running",
+    1491099.6000000038,
+    9122.180600000196
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-lost-1280.jpg": {
+   "chip": "3D view stopped · tap to reload",
+   "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+   "chipTone": "warn",
+   "chipRect": {
+    "h": 40,
+    "w": 258,
+    "x": 219,
+    "y": 510
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 7.9,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": true,
+   "ride": [
+    "running",
+    1492066.5000000037,
+    9128.787750000178
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-lost-1440-night.jpg": {
+   "chip": "3D view stopped · tap to reload",
+   "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+   "chipTone": "warn",
+   "chipRect": {
+    "h": 40,
+    "w": 258,
+    "x": 299,
+    "y": 762
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 5.1,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": true,
+   "ride": [
+    "running",
+    1492449.500000004,
+    9131.404916666972
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-lost-1440.jpg": {
+   "chip": "3D view stopped · tap to reload",
+   "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+   "chipTone": "warn",
+   "chipRect": {
+    "h": 40,
+    "w": 258,
+    "x": 299,
+    "y": 762
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 5.1,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": true,
+   "ride": [
+    "running",
+    1492799.6000000036,
+    9133.797266666948
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-lost-390-night.jpg": {
+   "chip": "3D view stopped · tap to reload",
+   "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+   "chipTone": "warn",
+   "chipRect": {
+    "h": 40,
+    "w": 258,
+    "x": 12,
+    "y": 686
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 14,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": true,
+   "ride": [
+    "running",
+    1491066.300000005,
+    9121.953050000338
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-lost-390.jpg": {
+   "chip": "3D view stopped · tap to reload",
+   "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+   "chipTone": "warn",
+   "chipRect": {
+    "h": 40,
+    "w": 258,
+    "x": 12,
+    "y": 686
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 14,
+   "minTarget": 40,
+   "minFont": 14,
+   "overflow": false,
+   "contextLost": true,
+   "ride": [
+    "running",
+    1491149.5000000047,
+    9122.521583333564
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-lost-tv-night.jpg": {
+   "chip": "3D view stopped · tap to reload",
+   "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+   "chipTone": "warn",
+   "chipRect": {
+    "h": 70,
+    "w": 449,
+    "x": 225,
+    "y": 839
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 9.7,
+   "minTarget": 70,
+   "minFont": 24.5,
+   "overflow": false,
+   "contextLost": true,
+   "ride": [
+    "running",
+    1492250.0000000005,
+    9130.041666666866
+   ],
+   "pageErrors": []
+  },
+  "ctxloss-build-lost-tv.jpg": {
+   "chip": "3D view stopped · tap to reload",
+   "chipAria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+   "chipTone": "warn",
+   "chipRect": {
+    "h": 70,
+    "w": 449,
+    "x": 225,
+    "y": 839
+   },
+   "labelTruncated": false,
+   "hudAreaPct": 9.7,
+   "minTarget": 70,
+   "minFont": 24.5,
+   "overflow": false,
+   "contextLost": true,
+   "ride": [
+    "running",
+    1493283.100000005,
+    9137.101183333649
+   ],
+   "pageErrors": []
+  }
+ },
+ "timelines": {
+  "timeline-1280-day": [
+   {
+    "rideState": "running",
+    "elapsedMs": 1489233.3000000026,
+    "distance": 9109.42755000008,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1489366.6000000024,
+    "distance": 9110.338433333414,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1491999.9000000036,
+    "distance": 9128.332650000177,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1493566.400000004,
+    "distance": 9139.037066666873,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1495316.3000000052,
+    "distance": 9150.994716666906,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   }
+  ],
+  "timeline-1280-night": [
+   {
+    "rideState": "running",
+    "elapsedMs": 1488383.1000000024,
+    "distance": 9103.6178500001,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1488449.7000000025,
+    "distance": 9104.0729500001,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1491016.3000000038,
+    "distance": 9121.611383333528,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1492916.3000000042,
+    "distance": 9134.5947166669,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1495182.8000000047,
+    "distance": 9150.082466666909,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   }
+  ],
+  "timeline-1440-day": [
+   {
+    "rideState": "running",
+    "elapsedMs": 1490083.0000000026,
+    "distance": 9115.233833333514,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1490183.0000000026,
+    "distance": 9115.917166666846,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1492782.9000000036,
+    "distance": 9133.68315000028,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1493932.7000000041,
+    "distance": 9141.54011666696,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1496382.6000000047,
+    "distance": 9158.281100000338,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   }
+  ],
+  "timeline-1440-night": [
+   {
+    "rideState": "running",
+    "elapsedMs": 1489716.3000000028,
+    "distance": 9112.728050000209,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1489749.500000003,
+    "distance": 9112.954916666877,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1492416.200000004,
+    "distance": 9131.17736666697,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1493416.2000000037,
+    "distance": 9138.010700000319,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1495849.3000000045,
+    "distance": 9154.636883333727,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   }
+  ],
+  "timeline-390-day": [
+   {
+    "rideState": "running",
+    "elapsedMs": 1488599.6000000036,
+    "distance": 9105.097266666817,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1488633.0000000035,
+    "distance": 9105.32550000015,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1491149.5000000047,
+    "distance": 9122.521583333564,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1492466.2000000048,
+    "distance": 9131.519033333585,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1494899.5000000058,
+    "distance": 9148.146583333664,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   }
+  ],
+  "timeline-390-night": [
+   {
+    "rideState": "running",
+    "elapsedMs": 1488466.400000004,
+    "distance": 9104.187066666896,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1488516.400000004,
+    "distance": 9104.528733333565,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1491016.300000005,
+    "distance": 9121.611383333671,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1492116.300000005,
+    "distance": 9129.128050000356,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1494632.900000006,
+    "distance": 9146.324816667115,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   }
+  ],
+  "timeline-tv-day": [
+   {
+    "rideState": "running",
+    "elapsedMs": 1490749.8000000033,
+    "distance": 9119.790300000219,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1490766.5000000033,
+    "distance": 9119.904416666886,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1493266.400000005,
+    "distance": 9136.987066666981,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1494383.100000005,
+    "distance": 9144.617850000333,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1496766.2000000055,
+    "distance": 9160.902366667033,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   }
+  ],
+  "timeline-tv-night": [
+   {
+    "rideState": "running",
+    "elapsedMs": 1489616.7999999996,
+    "distance": 9112.048133333437,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1489733.4999999995,
+    "distance": 9112.845583333437,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1492216.7000000004,
+    "distance": 9129.814116666865,
+    "canvases": 1,
+    "contextLost": true,
+    "chip": "3D view stopped · tap to reload"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1493283.4000000006,
+    "distance": 9137.10323333354,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   },
+   {
+    "rideState": "running",
+    "elapsedMs": 1495383.600000001,
+    "distance": 9151.454600000217,
+    "canvases": 1,
+    "contextLost": false,
+    "chip": "KICKR CORE · hills 35 %"
+   }
+  ]
+ },
+ "pip_laptop_night": [
+  {
+   "size": "corner",
+   "recover": "tap",
+   "window": [
+    448,
+    252,
+    2
+   ],
+   "chip": "3D view stopped · tap to reload",
+   "chipRect": [
+    8,
+    126,
+    249,
+    40
+   ],
+   "labelTruncated": false,
+   "tabChip": "3D view stopped · tap to reload",
+   "canvasVisibility": "hidden",
+   "ride_before_lost_back": [
+    [
+     "running",
+     1114916,
+     6358,
+     40,
+     "visible"
+    ],
+    [
+     "running",
+     1119965,
+     6392.7,
+     45,
+     "visible"
+    ],
+    [
+     "running",
+     1132281,
+     6500.4,
+     61,
+     "visible"
+    ]
+   ],
+   "back": {
+    "context": "live",
+    "current": true,
+    "lost": false,
+    "frames": 242,
+    "canvases": 1
+   },
+   "bandColoursBack": 16579
+  },
+  {
+   "size": "third",
+   "recover": "restore",
+   "window": [
+    512,
+    288,
+    2
+   ],
+   "chip": "3D view stopped · tap to reload",
+   "chipRect": [
+    8,
+    159,
+    255,
+    41
+   ],
+   "labelTruncated": false,
+   "tabChip": "3D view stopped · tap to reload",
+   "canvasVisibility": "hidden",
+   "ride_before_lost_back": [
+    [
+     "running",
+     1148081,
+     6634.5,
+     79,
+     "visible"
+    ],
+    [
+     "running",
+     1153281,
+     6676.5,
+     84,
+     "visible"
+    ],
+    [
+     "running",
+     1165464,
+     6775.8,
+     101,
+     "visible"
+    ]
+   ],
+   "back": {
+    "context": "live",
+    "current": true,
+    "lost": false,
+    "frames": 168,
+    "canvases": 1
+   },
+   "bandColoursBack": 23781
+  },
+  {
+   "size": "half",
+   "recover": "tap",
+   "window": [
+    637,
+    358,
+    2
+   ],
+   "chip": "3D view stopped · tap to reload",
+   "chipRect": [
+    9,
+    217,
+    280,
+    45
+   ],
+   "labelTruncated": false,
+   "tabChip": "3D view stopped · tap to reload",
+   "canvasVisibility": "hidden",
+   "ride_before_lost_back": [
+    [
+     "running",
+     1179564,
+     6890.8,
+     119,
+     "visible"
+    ],
+    [
+     "running",
+     1184897,
+     6933.1,
+     125,
+     "visible"
+    ],
+    [
+     "running",
+     1195697,
+     7018.7,
+     140,
+     "visible"
+    ]
+   ],
+   "back": {
+    "context": "live",
+    "current": true,
+    "lost": false,
+    "frames": 227,
+    "canvases": 1
+   },
+   "bandColoursBack": 33995
+  }
+ ],
+ "same_spot_1440": {
+  "note": "rider held at 9,060 m, golden/clear; canvas-only shots before the loss and after the tap",
+  "renderer_before_after_equal": [
+   "quality medium",
+   "dpr 1",
+   "canvas 1440x900",
+   "trees 26160",
+   "drawCalls 97",
+   "triangles 1142093",
+   "antialias",
+   "shadows"
+  ],
+  "meanAbsDiff": 0.56,
+  "fracPixelsDiffOver24": 0.0045
+ },
+ "pip_laptop_day": [
+  {
+   "size": "corner",
+   "recover": "tap",
+   "window": [
+    448,
+    252,
+    2
+   ],
+   "chip": "3D view stopped · tap to reload",
+   "chipRect": [
+    8,
+    126,
+    249,
+    40
+   ],
+   "labelTruncated": false,
+   "tabChip": "3D view stopped · tap to reload",
+   "canvasVisibility": "hidden",
+   "ride_before_lost_back": [
+    [
+     "running",
+     1120532,
+     6396.2,
+     40,
+     "visible"
+    ],
+    [
+     "running",
+     1124199,
+     6425.4,
+     44,
+     "visible"
+    ],
+    [
+     "running",
+     1137315,
+     6546.8,
+     58,
+     "visible"
+    ]
+   ],
+   "back": {
+    "context": "live",
+    "current": true,
+    "lost": false,
+    "frames": 671,
+    "canvases": 1
+   },
+   "bandColoursBack": 18018
+  },
+  {
+   "size": "half",
+   "recover": "restore",
+   "window": [
+    637,
+    358,
+    2
+   ],
+   "chip": "3D view stopped · tap to reload",
+   "chipRect": [
+    9,
+    217,
+    280,
+    45
+   ],
+   "labelTruncated": false,
+   "tabChip": "3D view stopped · tap to reload",
+   "canvasVisibility": "hidden",
+   "ride_before_lost_back": [
+    [
+     "running",
+     1154564,
+     6687.8,
+     75,
+     "visible"
+    ],
+    [
+     "running",
+     1159331,
+     6727,
+     80,
+     "visible"
+    ],
+    [
+     "running",
+     1172663,
+     6835.7,
+     94,
+     "visible"
+    ]
+   ],
+   "back": {
+    "context": "live",
+    "current": true,
+    "lost": false,
+    "frames": 610,
+    "canvases": 1
+   },
+   "bandColoursBack": 36165
+  }
+ ]
+}
