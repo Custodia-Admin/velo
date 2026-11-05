@@ -536,6 +536,21 @@ describe('createSideCamSight: the first read, and crossing turned off', () => {
     expect(p.offsetM).toBeCloseTo(4.5, 9);
   });
 
+  it('a long frame (the tab back from the background) dollies out a quarter second, not all the way', () => {
+    const world: World = { right: profile(LUGANO.d193.cam), left: flat };
+    const r = rig(world, { allowSwitch: false });
+    expect(r.run(1500).offsetM).toBeCloseTo(4.5, 2);
+    world.right = flat;
+    // Ride on until the reads ask for the full offset again, the camera still in close.
+    for (let k = 0; k < 120 && r.sight.debug().targetFrac < 1; k++) r.run(16);
+    const before = r.sight.debug();
+    expect(before.targetFrac).toBe(1);
+    expect(before.frac!).toBeLessThan(0.7);
+    const p = r.run(0, 8, { dt: 5 });
+    const step = 1 - Math.exp(-0.25 / SIGHT_RELEASE_TAU_S);
+    expect(p.offsetM / BASE).toBeCloseTo(before.frac! + (1 - before.frac!) * step, 9);
+  });
+
   it('crossing turned off while the far side is read (the painted road drawn): no cut', () => {
     const world: World = { right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) };
     const r = rig(world);

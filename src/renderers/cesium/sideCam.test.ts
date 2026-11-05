@@ -374,6 +374,19 @@ describe('placeSideCam: where it reads, how high it stands', () => {
 });
 
 describe('meshTopHeight: only the photoreal mesh', () => {
+  it('two photoreal meshes shown (a remount mid-swap): the higher top counts', async () => {
+    const second = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
+    Object.defineProperty(second, 'show', { value: true, writable: true });
+    Object.defineProperty(second, 'getHeight', { value: vi.fn(() => GROUND + 3) });
+    vi.spyOn(Cesium.Cesium3DTileset, 'fromIonAssetId').mockResolvedValueOnce(second);
+    setIonToken('eyJ_test');
+    const low = await getPhotorealTileset();
+    const { scene } = await world(() => 7.5, { others: [low] });
+    expect(meshTopHeight(scene, LON, LAT)).toBeCloseTo(GROUND + 7.5, 6);
+    const { scene: s2 } = await world(() => 1, { others: [low] });
+    expect(meshTopHeight(s2, LON, LAT)).toBeCloseTo(GROUND + 3, 6);
+  });
+
   it('skips the other primitives the scene draws (no getHeight on them)', async () => {
     const rider = { show: true };
     const osm = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
