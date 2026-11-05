@@ -13,7 +13,20 @@ describe('StartGroundWatch: the ride starts on a plausible ground, not on a coar
     expect(w.ready).toBe(false);
   });
 
-  it('waits on a chord just outside the window (Lugano 355 m over 329 m, measured)', async () => {
+  // Chords measured on the owner's laptop while World Terrain refined (absolute heights, not
+  // offsets from START_PLAUSIBLE_M, so a wider window that would accept them fails here).
+  it.each([
+    { spot: 'Lugano shore', lon: 8.95, lat: 45.97, finest: 329.2, chord: 355.3 }, // 26.1 m over
+    { spot: 'Trasimeno shore', lon: 12.1, lat: 43.2, finest: 307.2, chord: 333.0 }, // 25.8 m over
+  ])('waits on the measured $spot chord ($chord m drawn over $finest m finest)', async ({ lon, lat, finest, chord }) => {
+    const w = new StartGroundWatch(async () => finest);
+    w.update(lon, lat, chord, chord, 0);
+    await flush();
+    for (let t = 0; t <= 5000; t += 100) w.update(lon, lat, chord, chord, t);
+    expect(w.ready).toBe(false);
+  });
+
+  it('waits on a chord just outside the window', async () => {
     const over = 329.2 + START_PLAUSIBLE_M + 0.5;
     const w = new StartGroundWatch(async () => 329.2);
     w.update(8.95, 45.97, over, over, 0);
