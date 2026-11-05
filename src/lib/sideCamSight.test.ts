@@ -978,16 +978,17 @@ describe('createSideCamSight: faces where the camera stands now (blockedAt)', ()
   });
 
   it('never further out in a frame than was cast clear in that frame (reads opening in steps, frames spent)', () => {
-    // Closed beyond 5 m for a second, then up to 7 m, then open; some frames spent before any cast.
+    // Closed beyond 5 m for a second, then up to 7 m (it settles at 6.75 m), then open; some frames
+    // spent before any cast. When the reads let it out further, that frame holds at what was cast.
     let frame = 0;
-    const spentFrames = (f: number) => (f >= 100 && f < 110) || (f >= 305 && f < 312);
+    const spentFrames = (f: number) => (f >= 100 && f < 110) || (f >= 605 && f < 612);
     const g = guardRig(() => undefined, { spent: () => spentFrames(frame) });
-    for (frame = 0; frame < 600; frame++) {
-      const seen = frame < 60 ? 5 : frame < 300 ? 7 : Infinity;
+    for (frame = 0; frame < 900; frame++) {
+      const seen = frame < 60 ? 5 : frame < 600 ? 7 : Infinity;
       g.step({ seenAt: (s) => s.offsetM <= seen });
     }
     let outs = 0;
-    for (let f = 1; f < 600; f++) {
+    for (let f = 1; f < 900; f++) {
       if (!(g.placed[f] > g.placed[f - 1] + 1e-12)) continue;
       outs++;
       // Out this frame: an out cast this frame cleared at least that far.
@@ -995,8 +996,8 @@ describe('createSideCamSight: faces where the camera stands now (blockedAt)', ()
       expect(spentFrames(f)).toBe(false);
       expect(Math.max(-Infinity, ...cleared)).toBeGreaterThanOrEqual(g.placed[f] - 1e-9);
     }
-    expect(outs).toBeGreaterThan(200);
-    expect(g.placed[599]).toBeGreaterThan(BASE - 0.2);
+    expect(outs).toBeGreaterThan(400);
+    expect(g.placed[899]).toBeGreaterThan(BASE - 0.2);
   });
 
   it('the way out is cast only as far as the reads let it go: a face beyond that is not in front of it', () => {
