@@ -51,12 +51,29 @@ export function isVideoFile(file: { name: string; type: string }): boolean {
   return isVideoName(file.name);
 }
 
-/**
- * A video by its name alone (the extensions the picker offers). For a file
- * Chrome refused to open: only its name is known, no type.
- */
+/** A video by its name alone (the extensions the picker offers). */
 export function isVideoName(name: string): boolean {
   return /\.(mp4|m4v|webm|mkv|mov|ogv)$/i.test(name);
+}
+
+/**
+ * Files that are never episodes: subtitles, notes, artwork, audio, archives.
+ * Chrome's picker keeps "All files", so a library remembered before PR #56
+ * can hold them.
+ */
+const NOT_VIDEO_NAME =
+  /\.(srt|vtt|ass|ssa|sub|idx|sup|smi|sami|ttml|dfxp|lrc|nfo|txt|md|pdf|json|xml|html?|url|log|ini|db|jpe?g|png|gif|webp|bmp|tiff?|heic|avif|svg|mp3|m4a|aac|flac|wav|opus|wma|zip|rar|7z|torrent)$/i;
+
+/**
+ * A remembered file Chrome refused to open, judged by its name (all that is
+ * known of it: no type, no size). It counts as a video unless its name says
+ * it is something else. pickVideos remembers a file when its TYPE says video
+ * too (.3gp, .f4v, .qt…), so a name test that knows only the picker's
+ * extensions let a refused episode go unseen: Continue started past it, or
+ * said everything was watched (review of PR #56 @b31487c).
+ */
+export function mayBeVideoName(name: string): boolean {
+  return !NOT_VIDEO_NAME.test(name);
 }
 
 export interface ResumeEntry {
@@ -435,9 +452,10 @@ export interface LibraryRead {
    */
   denied: boolean;
   /**
-   * The names of the remembered videos Chrome refused (a set of files; a
-   * refused folder has none to give). Only the name is known: a refused file
-   * can't be read, so it has no size. Absent when the reader can't tell.
+   * The names of the remembered files Chrome refused that may be videos
+   * (mayBeVideoName; a refused folder has none to give). Only the name is
+   * known: a refused file can't be read, so it has no type or size. Absent
+   * when the reader can't tell.
    */
   refused?: string[];
 }
@@ -468,8 +486,9 @@ export async function readLibrary(lib: RememberedLibrary, { ask }: { ask: boolea
     if (!(await allowed(h, { ask }))) {
       // Only a refused video counts. A subtitle or any other file picked with
       // Chrome's "All files" never plays, so refusing it must not block
-      // Continue (review of PR #48 @dfd7071, N1).
-      if (isVideoName(h.name)) refused.push(h.name);
+      // Continue (review of PR #48 @dfd7071, N1). A name that isn't known to
+      // be something else may be a video, and must block it.
+      if (mayBeVideoName(h.name)) refused.push(h.name);
       continue;
     }
     try {

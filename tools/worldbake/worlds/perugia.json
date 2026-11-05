@@ -25,5 +25,25 @@
   },
   "moods": ["clear-afternoon", "clear-noon", "golden-hour", "overcast", "valley-fog"],
   "defaultMood": "clear-afternoon",
-  "validation": { "seed": 43110, "samples": 50, "maxRmsM": 6 }
+  "validation": {
+    "sample_seed": 43110,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "aws-terrain-tiles",
+    "terrain_class": "standard",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.0972,
+    "floor_source": "none",
+    "floor_rms_m": 0,
+    "own_error_allowance_m": 6,
+    "bound_m": 6,
+    "registered_rms_m": 4.54,
+    "point_rms_m": 5.96,
+    "max_abs_registered_err_m": 17.51,
+    "pass": true
+  }
 }

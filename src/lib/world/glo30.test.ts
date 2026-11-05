@@ -28,7 +28,7 @@ import {
   glo90TileUrl,
 } from '../../../tools/worldbake/fetchGlo30.mjs';
 import { DEFAULT_DEM_SOURCE, DEM_SOURCES, demSourceOf } from '../../../tools/worldbake/demSource.mjs';
-import { CREDITS, MAX_BUNDLE_BROTLI_BYTES, checkBundleBudget, creditsFor, generatorFor } from '../../../tools/worldbake/bake.mjs';
+import { CREDITS, MAX_BUNDLE_BROTLI_BYTES, checkBundleBudget, creditsFor, generatorFor, recipeBundleBytes } from '../../../tools/worldbake/bake.mjs';
 
 const FIXTURES = fileURLToPath(new URL('../../../tools/worldbake/fixtures/', import.meta.url));
 const fixture = (name: string) => readFileSync(join(FIXTURES, name));
@@ -479,16 +479,26 @@ describe('worldbake: manifest generator and bundle budget', () => {
 
   it('writes the committed bundles\' generator block, key order included, for the default source', () => {
     for (const id of ['perugia', 'lugano']) {
-      const recipeBytes = read(`tools/worldbake/worlds/${id}.json`);
-      const recipe = JSON.parse(recipeBytes.toString('utf8'));
+      const recipe = JSON.parse(read(`tools/worldbake/worlds/${id}.json`).toString('utf8'));
       const shipped = JSON.parse(read(`public/worlds/${id}/manifest.json`).toString('utf8')).generator;
-      const gen = generatorFor(demSourceOf(recipe), recipe, recipeBytes, { source: 'unused', tiles: new Array(shipped.demTiles) });
+      const bundleBytes = recipeBundleBytes(recipe);
+      const gen = generatorFor(demSourceOf(recipe), recipe, bundleBytes, { source: 'unused', tiles: new Array(shipped.demTiles) });
       expect(Object.keys(gen)).toEqual(['tool', 'version', 'recipeSha256', 'osmDate', 'demSource', 'demZoom', 'demTiles']);
-      expect(gen.recipeSha256).toBe(sha(recipeBytes));
-      // recipeSha256 aside (a recipe edit re-bakes anyway), the shipped block is exactly what the helper writes.
-      expect(JSON.stringify({ ...gen, recipeSha256: '' })).toBe(JSON.stringify({ ...shipped, recipeSha256: '' }));
+      // recipeSha256 covers the recipe minus its P1.3 `validation` block, so the shipped bundle
+      // names the recipe that built it even after the bake writes its check back into the recipe.
+      expect(gen.recipeSha256).toBe(sha(bundleBytes));
+      expect(JSON.stringify(gen)).toBe(JSON.stringify(shipped));
       expect(gen.demZoom).toBe(recipe.dem.zoom);
     }
+  });
+
+  it('leaves the P1.3 validation block out of recipeSha256, and nothing else', () => {
+    const recipe = JSON.parse(read('tools/worldbake/worlds/perugia.json').toString('utf8'));
+    const bytes = recipeBundleBytes(recipe);
+    expect(recipeBundleBytes({ ...recipe, validation: { sample_seed: 1, pass: false } })).toEqual(bytes);
+    expect(JSON.parse(bytes.toString('utf8'))).not.toHaveProperty('validation');
+    expect(recipeBundleBytes({ ...recipe, osmDate: '2026-10-02T00:00:00Z' })).not.toEqual(bytes);
+    expect(recipeBundleBytes({ ...recipe, grid: { ...recipe.grid, cellSize: recipe.grid.cellSize + 1 } })).not.toEqual(bytes);
   });
 
   it('names the GLO-30 source and drops demZoom for a GLO-30 recipe', () => {

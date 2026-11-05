@@ -2,14 +2,20 @@
  * RideSetupWizard — "Build your own ride" on Home.
  *
  * Step 1: Pick route    (city search → generate, a scenic pick, GPX upload)
- * Step 2: Pair trainer  (optional; the Devices screen does the same)
+ * Step 2: Pair trainer  (optional; the Devices page's trainer row + a link to /devices)
  * Step 3: Pace partners (optional AI riders alongside)
  * CTA: Start ride (always enabled; defaults fill in if nothing picked)
+ *
+ * On-system per docs/design/UI-RULES.md (tokens only; checked by
+ * src/test/uiRules.test.ts): paper step cards with hairline sections, tiles
+ * styled like the pace partners, targets ≥ h-10, body copy ≥ text-sm.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  AlertCircle,
+  ArrowLeftRight,
   ArrowRight,
   Check,
   ChevronDown,
@@ -17,13 +23,12 @@ import {
   MapPin,
   Route as RouteIcon,
   Search,
-  Upload,
   X,
   Repeat,
-  Compass,
+  RotateCcw,
   Wifi,
   WifiOff,
-  Mountain,
+  type LucideIcon,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -34,20 +39,20 @@ import {
   RouteGenerationError,
   type GeneratedShape,
   type GenerationPhase,
+  type RouteGenerationCode,
 } from '@/lib/routeGenerator';
 import { useRideStore } from '@/stores/rideStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import type { Route } from '@/types';
 // Lazy: the scenic route catalog (@/lib/scenicRoutes) is fetched on first
 // mount of the route step + on demand inside handleStartRide. Keeps the
-// geometry off the critical bundle.
-
-interface FeaturedRoute {
-  route: Route;
-  title: string;
-}
-import { TrainerConnect } from '@/components/trainer/TrainerConnect';
+// geometry off the critical bundle (only its type is imported here).
+import type { ScenicRouteInfo } from '@/lib/scenicRoutes';
 import { GPXUploader } from '@/components/setup/GPXUploader';
 import { PacePartners } from '@/components/velo/PacePartners';
+import { scenicFigures } from '@/components/velo/ScenicRoutes';
+import { DISPLAY } from '@/components/velo/v2';
+import { TrainerRow } from '@/components/velo/TrainerPanel';
 import { RoutePreview } from '@/components/setup/RoutePreview';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -200,22 +205,19 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
   const setRoute = useRideStore((s) => s.setRoute);
   const requestFlyTo = useRideStore((s) => s.requestFlyTo);
   const currentRoute = useRideStore((s) => s.route);
+  const units = useSettingsStore((s) => s.units);
 
   // Featured Easy & Scenic rides — lazy-loaded so the route geometry stays
   // off the critical bundle. `null` means "still importing"; render skeleton
   // cards until the module resolves on first mount.
-  const [featuredRoutes, setFeaturedRoutes] = useState<FeaturedRoute[] | null>(null);
+  const [featuredRoutes, setFeaturedRoutes] = useState<ScenicRouteInfo[] | null>(null);
   useEffect(() => {
     let cancelled = false;
     import('@/lib/scenicRoutes')
       .then((m) => {
         if (!cancelled) {
-          setFeaturedRoutes(
-            // Closest first: Perugia, then the Ticino hometown rides.
-            m.homeFirstScenicRoutes()
-              .slice(0, 6)
-              .map((r) => ({ route: r.route, title: r.name })),
-          );
+          // Closest first: Perugia, then the Ticino hometown rides.
+          setFeaturedRoutes(m.homeFirstScenicRoutes().slice(0, 6));
         }
       })
       .catch(() => { if (!cancelled) setFeaturedRoutes([]); });
@@ -247,9 +249,6 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
 
   // Preview state — route is held here until the user commits with "Use this route".
   const [previewRoute, setPreviewRoute] = useState<Route | null>(null);
-
-  // GPX upload expansion
-  const [showGpx, setShowGpx] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const genAbortRef = useRef<AbortController | null>(null);
@@ -323,17 +322,15 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
             lengthKm,
             headingDeg,
             useSynthetic,
-            name:
-              shape === 'loop'
-                ? `${selected.shortName} · ${lengthKm} km loop`
-                : `${selected.shortName} · ${lengthKm} km out-and-back`,
+            // Renamed below by the length it really came out at.
+            name: selected.shortName,
             terrainProvider,
             signal: ctrl.signal,
             onPhase: (p) => { if (!ctrl.signal.aborted) setPhase(p); },
           },
         );
         if (ctrl.signal.aborted) return;
-        setPreviewRoute(route);
+        setPreviewRoute({ ...route, name: generatedRouteName(selected.shortName, shape, route.totalDistance) });
       } catch (err) {
         if (ctrl.signal.aborted) return;
         if (err instanceof RouteGenerationError) {
@@ -341,10 +338,7 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
           // Both osrm_no_route and osrm_network are recoverable with synthetic.
           // The unknown bucket also offers it — the user might just want to try.
           setGenError({
-            message:
-              err.code === 'osrm_no_route'
-                ? `No bike roads near ${selected.shortName}. Try a different location or use synthetic routing.`
-                : err.message,
+            message: generateErrorText(err.code, selected.shortName, err.message),
             allowSynthetic: !useSynthetic,
           });
         } else {
@@ -373,64 +367,71 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
     onRouteSelected();
   }, [previewRoute, setRoute, onRouteSelected]);
 
+  const searchId = useId();
+  const scenicId = useId();
+
   return (
     <div className="flex flex-col gap-4">
 
-      {/* City search */}
+      {/* City search → a generated route */}
       <div className="flex flex-col gap-2">
-        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Search any city or place
-        </div>
+        <label htmlFor={searchId} className="text-sm font-semibold text-foreground">
+          Search for a place
+        </label>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
+            id={searchId}
             type="search"
-            aria-label="Search for a place"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => results.length > 0 && setShowResults(true)}
-            placeholder='"Mont Ventoux", "Staunton VA", "Kyoto"…'
-            className="w-full rounded-lg border border-border bg-muted/35 pl-9 pr-9 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/55 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/40 transition-colors"
+            placeholder="Kyoto, Mont Ventoux…"
+            className="h-12 w-full rounded-md border border-border bg-card pl-10 pr-12 text-base text-foreground placeholder:text-muted-foreground"
             spellCheck={false}
             autoComplete="off"
           />
           {searching ? (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+            <Loader2 aria-hidden className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
           ) : query ? (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => {
                 setQuery('');
                 setResults([]);
                 setSelected(null);
                 setShowResults(false);
                 setPreviewRoute(null);
+                setGenError(null);
               }}
-              aria-label="Clear"
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60 inline-flex items-center justify-center transition-colors"
+              aria-label="Clear search"
+              className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground"
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
+              <X className="h-4 w-4" aria-hidden />
+            </Button>
           ) : null}
 
-          {/* Results dropdown */}
+          {/* Search results */}
           {showResults && results.length > 0 && (
             <ul
-              role="listbox"
-              className="absolute z-30 mt-1.5 max-h-64 w-full overflow-auto rounded-xl border border-border bg-card shadow-lg ring-1 ring-border/40 divide-y divide-border/40"
+              aria-label="Places found"
+              data-search-results
+              className="absolute z-30 mt-1 max-h-72 w-full divide-y divide-border overflow-auto rounded-lg border border-border bg-card shadow-md"
             >
               {results.map((r) => (
                 <li key={r.placeId}>
                   <button
                     type="button"
                     onClick={() => onPlaceSelect(r)}
-                    className="w-full text-left px-3 py-2.5 hover:bg-muted/50 focus:bg-muted/50 outline-none flex items-start gap-2 transition-colors"
+                    className="flex min-h-12 w-full items-start gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/60 focus-visible:bg-muted/60"
                   >
-                    <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm text-foreground truncate">{r.shortName}</span>
-                      <span className="text-xs text-muted-foreground truncate">{r.displayName}</span>
-                    </div>
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="text-sm font-semibold text-foreground">{r.shortName}</span>
+                      <span className="text-sm text-muted-foreground">{resultRegion(r, results)}</span>
+                    </span>
                   </button>
                 </li>
               ))}
@@ -438,104 +439,62 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
           )}
         </div>
 
-        {searchError && (
-          <div className="rounded-lg border border-destructive/35 bg-destructive/8 px-3 py-2 text-xs text-destructive">
-            {searchError}
-          </div>
-        )}
+        {searchError && <ErrorLine>{searchError}</ErrorLine>}
 
-        {/* Route generator panel */}
+        {/* Route generator for the picked place */}
         {selected && (
-          <div className="rounded-xl border border-border/70 bg-card/45 p-3.5 flex flex-col gap-3 animate-fadeUp">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-foreground truncate">{selected.shortName}</div>
-                <div className="text-xs text-muted-foreground truncate">{selected.displayName}</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelected(null);
-                  setQuery('');
-                  setPreviewRoute(null);
-                  setGenError(null);
-                }}
-                aria-label="Clear selection"
-                className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0"
-              >
-                <X className="h-4 w-4" />
-              </button>
+          // A borderless inset (no card in the card): everything for this
+          // place, down to its preview. The search field's clear button
+          // clears the place too, so there is one way to drop it.
+          <div className="mt-2 flex flex-col gap-4 rounded-md bg-muted/50 p-4 animate-fadeUp" data-route-generator>
+            <div>
+              <div className={cn(DISPLAY, 'text-xl text-foreground')}>{selected.shortName}</div>
+              <div className="text-sm text-muted-foreground">{placeRegion(selected)}</div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <ShapeButton active={shape === 'out-and-back'} onClick={() => setShape('out-and-back')} icon={<Repeat className="h-4 w-4" />} label="Out & back" />
-              <ShapeButton active={shape === 'loop'} onClick={() => setShape('loop')} icon={<RouteIcon className="h-4 w-4" />} label="Loop" />
+            <div role="group" aria-label="Route shape" className="grid grid-cols-2 gap-2">
+              <ShapeButton active={shape === 'out-and-back'} onClick={() => setShape('out-and-back')} icon={ArrowLeftRight} label="Out & back" />
+              <ShapeButton active={shape === 'loop'} onClick={() => setShape('loop')} icon={Repeat} label="Loop" />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Distance</span>
-                <span className="num font-semibold text-foreground">{lengthKm} km</span>
-              </div>
-              <input
-                type="range"
-                aria-label="Route distance in km"
-                min={2} max={80} step={1}
-                value={lengthKm}
-                onChange={(e) => setLengthKm(parseInt(e.target.value, 10))}
-                className="w-full"
-              />
-            </div>
+            <RangeRow
+              label="Target distance"
+              ariaLabel="Route distance in km"
+              value={lengthKm}
+              display={`${lengthKm} km`}
+              min={2}
+              max={80}
+              onChange={setLengthKm}
+            />
 
             {shape === 'out-and-back' && (
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground flex items-center gap-1"><Compass className="h-3 w-3" /> Heading</span>
-                  <span className="num font-semibold text-foreground">{headingDeg}°</span>
-                </div>
-                <input
-                  type="range"
-                  aria-label="Route heading in degrees"
-                  min={0} max={359} step={1}
-                  value={headingDeg}
-                  onChange={(e) => setHeadingDeg(parseInt(e.target.value, 10))}
-                  className="w-full"
-                />
-              </div>
+              <RangeRow
+                label="Heading"
+                ariaLabel="Route heading in degrees"
+                value={headingDeg}
+                display={`${headingDeg}° ${compassPoint(headingDeg)}`}
+                min={0}
+                max={359}
+                onChange={setHeadingDeg}
+              />
             )}
 
-            {genError && (
-              <div className="rounded-lg border border-destructive/35 bg-destructive/8 px-3 py-2 text-xs text-destructive flex flex-col gap-2">
-                <span>{genError.message}</span>
-                {genError.allowSynthetic && (
-                  <div>
-                    <Button variant="outline" size="sm" onClick={onUseSynthetic} disabled={generating}>
-                      Use synthetic routing instead
-                    </Button>
-                  </div>
-                )}
-              </div>
+            {genError && <ErrorLine>{genError.message}</ErrorLine>}
+
+            {/* Generate (one filled action: the preview's "Use this route" replaces it) */}
+            {(generating || !previewRoute) && (
+              <GenerateActions
+                generating={generating}
+                phaseLabel={phase ? PHASE_LABEL[phase] : null}
+                offerRoadFree={!generating && genError?.allowSynthetic === true}
+                onGenerate={onGenerate}
+                onRoadFree={onUseSynthetic}
+              />
             )}
+            <span role="status" aria-live="polite" className="sr-only">
+              {generating && phase ? PHASE_LABEL[phase] : ''}
+            </span>
 
-            {/* Generate button + phase progress */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button variant="default" onClick={onGenerate} disabled={generating} className="self-start">
-                {generating
-                  ? <><Loader2 className="h-4 w-4 animate-spin" /> {phase ? PHASE_LABEL[phase] : 'Generating…'}</>
-                  : <><RouteIcon className="h-4 w-4" /> Generate route</>}
-              </Button>
-              {generating && phase && (
-                <span
-                  role="status"
-                  aria-live="polite"
-                  className="text-[11px] text-muted-foreground"
-                >
-                  {PHASE_LABEL[phase]}
-                </span>
-              )}
-            </div>
-
-            {/* Preview card */}
             {previewRoute && !generating && (
               <RoutePreview
                 route={previewRoute}
@@ -548,124 +507,257 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
         )}
       </div>
 
-      {/* Divider */}
-      <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-border/50" />
-        <span className="text-2xs uppercase tracking-widest text-muted-foreground">or choose an easy scenic ride</span>
-        <div className="h-px flex-1 bg-border/50" />
-      </div>
-
-      {/* Featured iconic routes — 2-column grid. Skeleton cards stay in
-          place until the dynamic-imported catalog resolves. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {featuredRoutes === null
-          ? Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={`featured-skeleton-${i}`}
-                aria-hidden
-                className="flex items-start gap-3 rounded-xl border border-border/40 bg-card/20 px-3.5 py-3 animate-pulse"
-              >
-                <span className="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-muted/40" />
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="h-3 w-2/3 rounded bg-muted/40" />
-                  <div className="h-2.5 w-1/2 rounded bg-muted/30" />
-                </div>
-              </div>
-            ))
-          : featuredRoutes.map((r) => {
-              const distKm = r.route.totalDistance ? (r.route.totalDistance / 1000).toFixed(1) : '—';
-              const ascentM = r.route.ascent ? Math.round(r.route.ascent) : null;
-              const isSelected = currentRoute?.id === r.route.id;
-              return (
-                <button
-                  key={r.route.id}
-                  type="button"
-                  onClick={() => { setRoute(r.route); onRouteSelected(); }}
-                  className={cn(
-                    'flex items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition-all',
-                    isSelected
-                      ? 'border-primary/50 bg-primary/8 ring-1 ring-primary/25'
-                      : 'border-border/50 bg-card/30 hover:border-border/80 hover:bg-card/50',
-                  )}
+      {/* An easy scenic ride: the closest first */}
+      <div className="flex flex-col gap-3 border-t border-border pt-4">
+        <p id={scenicId} className="text-sm font-semibold text-foreground">
+          Or pick an easy scenic ride
+        </p>
+        <div role="group" aria-labelledby={scenicId} className="grid gap-2 sm:grid-cols-2">
+          {featuredRoutes === null
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={`featured-skeleton-${i}`}
+                  aria-hidden
+                  className="flex min-h-16 flex-col justify-center gap-2 rounded-md border border-border bg-card px-3 py-2 animate-pulse"
                 >
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-accent/10 text-primary">
-                    <Mountain className="h-4 w-4" />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-foreground truncate">{r.title}</div>
-                    <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground num">
-                      <span>{distKm} km</span>
-                      {ascentM && <><span className="opacity-40">·</span><span>{ascentM} m</span></>}
-                    </div>
-                  </div>
-                  {isSelected && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
-                </button>
-              );
-            })}
-      </div>
-
-      {/* Own route */}
-      <div className="flex flex-wrap items-center gap-3 pt-1">
-        <button
-          type="button"
-          onClick={() => setShowGpx((v) => !v)}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-        >
-          <Upload className="h-3.5 w-3.5" />
-          Upload GPX
-        </button>
-      </div>
-
-      {/* GPX uploader inline */}
-      {showGpx && (
-        <div className="rounded-xl border border-border/60 bg-muted/10 p-3 animate-fadeUp">
-          <GPXUploader />
+                  <span className="h-4 w-2/3 rounded-sm bg-muted" />
+                  <span className="h-3 w-1/2 rounded-sm bg-muted" />
+                </div>
+              ))
+            : featuredRoutes.map((info) => {
+                const isSelected = currentRoute?.id === info.route.id;
+                return (
+                  <button
+                    key={info.route.id}
+                    type="button"
+                    aria-pressed={isSelected}
+                    data-featured-route={info.route.id}
+                    onClick={() => { setRoute(info.route); onRouteSelected(); }}
+                    className={cn(
+                      'flex min-h-16 items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors duration-150',
+                      isSelected ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/40',
+                    )}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className={cn(DISPLAY, 'block text-lg text-foreground')}>{info.name}</span>
+                      <span className="num block text-sm text-muted-foreground">{scenicFigures(info, units)}</span>
+                    </span>
+                    {isSelected && <Check className="h-5 w-5 shrink-0 text-primary" aria-hidden />}
+                  </button>
+                );
+              })}
         </div>
-      )}
+      </div>
+
+      {/* A GPX of the rider's own */}
+      <div className="border-t border-border pt-4">
+        <GPXUploader />
+      </div>
     </div>
   );
 }
 
-// ─── ShapeButton helper ───────────────────────────────────────────────────────
+// ─── Route step helpers ───────────────────────────────────────────────────────
 
+/**
+ * A generated route's name, by the length it really came out at: the
+ * distance slider is a target (a 30 km ask can route at 36 km), so the name
+ * and the preview's figures agree. "Perugia · 36 km out-and-back".
+ */
+export function generatedRouteName(place: string, shape: GeneratedShape, totalDistanceM: number): string {
+  const km = Math.max(1, Math.round(totalDistanceM / 1000));
+  return `${place} · ${km} km ${shape === 'loop' ? 'loop' : 'out-and-back'}`;
+}
+
+/** "Perugia, Umbria, Italy" under a "Perugia" heading reads "Umbria, Italy". */
+export function placeRegion(place: Pick<GeocodeResult, 'shortName' | 'displayName'>): string {
+  const rest = place.displayName.split(',').slice(1).map((p) => p.trim()).filter(Boolean).join(', ');
+  return rest || place.displayName;
+}
+
+/**
+ * A search result's second line: its region, plus what the place is when
+ * another result reads the same. Nominatim returns Perugia the city and
+ * Perugia the county, both "Perugia, Umbria, Italy": "Umbria, Italy · city".
+ */
+export function resultRegion(
+  place: Pick<GeocodeResult, 'shortName' | 'displayName' | 'kind'>,
+  all: readonly Pick<GeocodeResult, 'displayName'>[],
+): string {
+  const region = placeRegion(place);
+  const twins = all.filter((r) => r.displayName === place.displayName).length > 1;
+  return twins && place.kind ? `${region} · ${place.kind}` : region;
+}
+
+/**
+ * Why a route didn't generate, in plain words (UI-RULES §6: no "synthetic
+ * routing"): both router failures can still draw the route without roads.
+ */
+export function generateErrorText(code: RouteGenerationCode, place: string, message: string): string {
+  if (code === 'osrm_no_route') return `No bike roads near ${place}. Try another place, or draw the route without roads.`;
+  if (code === 'osrm_network') return "Couldn't reach the bike router. Try again, or draw the route without roads.";
+  return message;
+}
+
+/**
+ * The generator's actions, one filled button (UI-RULES §7). Normally that is
+ * Generate route. After the bike router failed, it is the way that still
+ * works, drawing the route without roads, with Try again beside it (outline)
+ * for a router that was only out of reach.
+ */
+export function GenerateActions({
+  generating,
+  phaseLabel,
+  offerRoadFree,
+  onGenerate,
+  onRoadFree,
+}: {
+  generating: boolean;
+  phaseLabel: string | null;
+  offerRoadFree: boolean;
+  onGenerate: () => void;
+  onRoadFree: () => void;
+}) {
+  if (offerRoadFree) {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="primary" onClick={onRoadFree}>
+          <RouteIcon className="h-4 w-4" aria-hidden />
+          Draw it without roads
+        </Button>
+        <Button variant="outline" onClick={onGenerate}>
+          <RotateCcw className="h-4 w-4" aria-hidden />
+          Try again
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <Button variant="primary" onClick={onGenerate} disabled={generating} aria-busy={generating || undefined}>
+        {generating
+          ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {phaseLabel ?? 'Generating…'}</>
+          : <><RouteIcon className="h-4 w-4" aria-hidden /> Generate route</>}
+      </Button>
+    </div>
+  );
+}
+
+/** A plain error sentence (UI-RULES §8): icon + text, no red box. */
+function ErrorLine({ children }: { children: ReactNode }) {
+  return (
+    <p role="alert" className="flex items-start gap-1.5 text-sm text-destructive">
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+      <span>{children}</span>
+    </p>
+  );
+}
+
+/** Out & back / Loop: a two-way toggle, styled like the pace partner tiles. */
 function ShapeButton({
   active,
   onClick,
-  icon,
+  icon: Icon,
   label,
 }: {
   active: boolean;
   onClick: () => void;
-  icon: React.ReactNode;
+  icon: LucideIcon;
   label: string;
 }) {
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all duration-150',
-        active
-          ? 'border-primary/50 bg-primary/12 text-primary ring-1 ring-primary/20'
-          : 'border-border/70 bg-card/40 text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:border-border',
+        'inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold transition-colors duration-150',
+        active ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-foreground hover:border-primary/40',
       )}
     >
-      {icon}
+      <Icon className="h-4 w-4" aria-hidden />
       {label}
     </button>
   );
 }
 
+/** The 8-wind compass point of a heading in degrees: 0 → N, 100 → E, 225 → SW. */
+export function compassPoint(deg: number): string {
+  const points = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  return points[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+}
+
+/** A labelled slider with its value on the right; the slider itself is h-10 to touch. */
+function RangeRow({
+  label,
+  ariaLabel,
+  value,
+  display,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  ariaLabel: string;
+  value: number;
+  display: string;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      {/* As Home's comfort slider: the label strong, the value quiet. */}
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-semibold text-foreground">{label}</span>
+        <span className="num text-muted-foreground">{display}</span>
+      </div>
+      <input
+        type="range"
+        aria-label={ariaLabel}
+        aria-valuetext={display}
+        min={min}
+        max={max}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value, 10))}
+        // h-10 to touch; -my-2 keeps the drawn track close to its label.
+        className="-my-2 h-10 w-full"
+      />
+    </div>
+  );
+}
+
 // ─── Step 2: Trainer ──────────────────────────────────────────────────────────
 
+/**
+ * The Devices page's own trainer row (same pairing, reconnect and guide), as
+ * a hairline row of the step card, plus the way to the rest of /devices:
+ * handlebar controls, heart rate and the demo rider / ERG options.
+ */
 function TrainerStep() {
+  const navigate = useNavigate();
+  const connected = useRideStore((s) => s.connection === 'connected');
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground leading-relaxed">
-        Connect a smart trainer (FTMS) to receive real-time resistance from route gradients.
-        Skip this and Demo Mode will simulate power for you.
-      </p>
-      <TrainerConnect />
+    <div>
+      <div className="border-t border-border">
+        {/* The row pads sm:px-5; -mx-1 puts its glyph and action on the
+            step header's px-4 edges. */}
+        <div className="sm:-mx-1">
+          <TrainerRow />
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border px-4 py-2">
+        <p className="text-sm text-muted-foreground">
+          {/* The demo fallback is said by the row (no Bluetooth) and the Start row ("Demo mode"). */}
+          {connected
+            ? 'Handlebar controls, heart rate and ERG are on Devices.'
+            : 'Handlebar controls and heart rate pair on Devices.'}
+        </p>
+        <Button variant="textlink" className="px-0" onClick={() => navigate('/devices')}>
+          Open Devices
+        </Button>
+      </div>
     </div>
   );
 }
@@ -769,11 +861,7 @@ export function RideSetupWizard() {
           />
         </div>
 
-        {openStep === 2 && (
-          <div className="px-4 pb-4">
-            <TrainerStep />
-          </div>
-        )}
+        {openStep === 2 && <TrainerStep />}
       </div>
 
       {/* ── Step 3: Pace partners (collapsible) ── */}

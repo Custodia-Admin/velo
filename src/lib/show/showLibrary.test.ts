@@ -5,6 +5,7 @@ import {
   formatClock,
   isVideoFile,
   latestResume,
+  mayBeVideoName,
   resumePosition,
   saveResume,
   sortForPlayback,
@@ -59,6 +60,34 @@ describe('file helpers', () => {
     expect(isVideoFile({ name: 'x.bin', type: 'video/mp4' })).toBe(true);
     expect(isVideoFile({ name: 'x.MKV', type: '' })).toBe(true);
     expect(isVideoFile({ name: 'notes.txt', type: 'text/plain' })).toBe(false);
+    // Review of PR #56 @b31487c, Y8: a name that only CONTAINS a video
+    // extension is not a video.
+    expect(isVideoFile({ name: 'Show S01E01.mp4.srt', type: 'application/x-subrip' })).toBe(false);
+  });
+
+  // Review of PR #56 @b31487c, nit 1: a refused file is judged by its name
+  // alone, and anything pickVideos remembers (a video by type OR name) must
+  // count, so only names known to be something else are left out.
+  it('a refused file may be a video unless its name says it is something else', () => {
+    const videos = [
+      'Show S01E01.mp4', 'Show S01E01.MKV', 'a.webm', 'a.mov', 'a.m4v', 'a.ogv',
+      // Video by type only (Chrome on Linux): video/3gpp, video/mp4, video/quicktime, video/mp2t…
+      'a.3gp', 'a.3g2', 'a.f4v', 'a.lrv', 'a.qt', 'a.ts', 'a.m2ts', 'a.mts', 'a.mpg', 'a.mpeg', 'a.avi', 'a.wmv', 'a.flv', 'a.ogm',
+      // A release name with a subtitle tag in the middle is still the video.
+      'Show.S01E02.SUB.ITA.mkv', 'Show.S01E02.srt.free.3gp',
+      // No extension at all: nothing says it isn't a video, even when the
+      // name happens to end in a listed one's letters.
+      'README', 'Show S01E01 Prolog',
+    ];
+    for (const n of videos) expect(mayBeVideoName(n), n).toBe(true);
+    const others = [
+      'a.srt', 'a.SRT', 'a.vtt', 'a.ass', 'a.ssa', 'a.sub', 'a.idx', 'a.sup', 'a.smi', 'a.sami', 'a.ttml', 'a.dfxp', 'a.lrc',
+      'a.nfo', 'a.txt', 'a.md', 'a.pdf', 'a.json', 'a.xml', 'a.html', 'a.htm', 'a.url', 'a.log', 'desktop.ini', 'Thumbs.db',
+      'folder.jpg', 'poster.JPEG', 'fanart.png', 'a.gif', 'a.webp', 'a.bmp', 'a.tif', 'a.tiff', 'a.heic', 'a.avif', 'a.svg',
+      'theme.mp3', 'a.m4a', 'a.aac', 'a.flac', 'a.wav', 'a.opus', 'a.wma', 'a.zip', 'a.rar', 'a.7z', 'a.torrent',
+      'Show S01E01.mp4.srt',
+    ];
+    for (const n of others) expect(mayBeVideoName(n), n).toBe(false);
   });
 
   it('formats clock times', () => {
