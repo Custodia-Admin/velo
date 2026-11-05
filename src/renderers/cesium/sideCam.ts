@@ -22,6 +22,7 @@ import {
   drawnTopHeight,
   meshSegmentHit,
   meshTopHeight,
+  meshTopReadStats,
   sceneEle,
   sightRaysReadable,
   sightReadable,
@@ -114,6 +115,8 @@ export function placeSideCam(i: SideCamInput): CameraPose {
     // The globe, where it draws over the mesh: a height field, read as tops.
     return seenOverTops((x) => topAt(s.side, x, s.aheadM, false), s.offsetM, s.baseM, s.upM);
   };
+  // Tile geometry copied back from the GPU before this frame's reads.
+  const copied = meshTopReadStats()?.misses ?? 0;
   const placed = i.sight.update({
     nowMs: i.nowMs,
     dt: i.dt,
@@ -127,6 +130,7 @@ export function placeSideCam(i: SideCamInput): CameraPose {
     allowSwitch: i.mode === 'sideTracking' && !i.roadPainted,
     topAt: (side, offsetM, aheadM) => topAt(side, offsetM, aheadM, true),
     seenAt: sightRaysReadable(i.scene) ? seenAt : undefined,
+    spent: () => (meshTopReadStats()?.misses ?? 0) > copied,
   });
   const k = (placed.side === poseSide ? 1 : -1) * placed.offsetM;
   return poseLookingAtRider(ux * k, uy * k, off.z, i.pose.roll);

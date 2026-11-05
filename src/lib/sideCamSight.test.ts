@@ -782,6 +782,23 @@ describe('createSideCamSight with segment casts (seenAt)', () => {
     expect(far[1].aheadM).toBe(0);
   });
 
+  it('a read that copied tile geometry from the GPU (spent) is the last one that frame', () => {
+    // Lugano 2032 m: 6 spots. Spent after the 2nd: 2 this frame, the other 4 the next.
+    let n = 0;
+    const world: World = { right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) };
+    const c = sightRig(world, { spent: () => ++n === 2 });
+    c.step(8);
+    c.step(8);
+    c.step(8);
+    expect(c.perUpdate).toEqual([2, 4, 0]);
+    expect(c.sight.cuts()).toBe(1);
+    // Spent on every read: one a frame.
+    const d = sightRig(world, { spent: () => true });
+    for (let f = 0; f < 6; f++) d.step(8);
+    expect(d.perUpdate).toEqual([1, 1, 1, 1, 1, 1]);
+    expect(d.sight.cuts()).toBe(1);
+  });
+
   it('the reader changing kind mid-refresh starts the refresh over with the new one at once', () => {
     const world: World = { right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) };
     const c = sightRig(world);

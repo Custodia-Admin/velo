@@ -27,15 +27,19 @@ import {
 import { createSideCamSight, SIGHT_MIN_OFFSET_M, SIGHT_RAY_READS_PER_FRAME } from '@/lib/sideCamSight';
 import { placeSideCam, type SideCamInput } from '@/renderers/cesium/sideCam';
 
-/** Every segment the view casts through the mesh, in the order cast (a, b). */
-const casts = vi.hoisted(() => [] as Array<[{ x: number; y: number; z: number }, { x: number; y: number; z: number }]>);
+/** Every segment the view casts through the mesh, in the order cast (a, b, tile copies from the GPU it made). */
+const casts = vi.hoisted(
+  () => [] as Array<[{ x: number; y: number; z: number }, { x: number; y: number; z: number }, number]>,
+);
 vi.mock('@/lib/cesiumUtils', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/cesiumUtils')>();
   return {
     ...actual,
     meshSegmentHit: (scene: Cesium.Scene, a: Cesium.Cartesian3, b: Cesium.Cartesian3) => {
-      casts.push([Cesium.Cartesian3.clone(a), Cesium.Cartesian3.clone(b)]);
-      return actual.meshSegmentHit(scene, a, b);
+      const copies = actual.meshTopReadStats()?.misses ?? 0;
+      const hit = actual.meshSegmentHit(scene, a, b);
+      casts.push([Cesium.Cartesian3.clone(a), Cesium.Cartesian3.clone(b), (actual.meshTopReadStats()?.misses ?? 0) - copies]);
+      return hit;
     },
   };
 });
@@ -496,6 +500,45 @@ describe('placeSideCam (segment casts)', () => {
     const shown = await world((e) => (e > 5 ? undefined : 0), { globeShown: true, globe: (e) => (e > 5 ? 9 : 0) });
     const q = settle(input(shown.scene, createSideCamSight()));
     expect(q.offsetENU.x).toBeCloseTo(-SIDE_TRACK_OFFSET_M, 6);
+  });
+
+  it('a frame stops casting after the cast that first copied a tile back from the GPU', async () => {
+    const { scene, tileset } = await world(houseEast);
+    // The tiles' positions on the GPU only (WebGL 2: no CPU copy), each copy counted.
+    const ts = tileset as unknown as { _selectedTiles: FakeTile[] };
+    for (const t of ts._selectedTiles) {
+      for (const prim of t.content!._model.prims) {
+        const data = prim.attributes[0].typedArray!;
+        prim.attributes[0] = {
+          ...prim.attributes[0],
+          typedArray: undefined,
+          buffer: { isDestroyed: () => false, sizeInBytes: data.byteLength, getBufferData: (out: Float32Array) => out.set(data) },
+        };
+      }
+    }
+    clearMeshTopReads();
+    const sight = createSideCamSight();
+    const i = input(scene, sight);
+    const frames: Array<typeof casts> = [];
+    let p = i.pose;
+    for (let f = 0; f < 90; f++) {
+      const from = casts.length;
+      p = placeSideCam({ ...i, nowMs: i.nowMs + (f * 1000) / 60 });
+      frames.push(casts.slice(from));
+    }
+    const fromBars = ([a]: (typeof casts)[number]) => Math.abs(local(a).u - 1) < 1e-2;
+    // The first cast copies the tiles on its line: that frame asks one spot.
+    expect(frames[0].filter(fromBars)).toHaveLength(1);
+    expect(frames[0][0][2]).toBeGreaterThan(0);
+    // No spot is asked after a cast that copied, in the same frame...
+    for (const fc of frames) {
+      const k = fc.findIndex(([, , copies]) => copies > 0);
+      if (k >= 0) expect(fc.slice(k + 1).filter(fromBars)).toEqual([]);
+    }
+    // ...and with the tiles copied, up to four spots a frame.
+    expect(Math.max(...frames.map((fc) => fc.filter(fromBars).length))).toBe(SIGHT_RAY_READS_PER_FRAME);
+    // It still crosses the road.
+    expect(p.offsetENU.x).toBeCloseTo(-SIDE_TRACK_OFFSET_M, 6);
   });
 
   it('spots read a frame: at most SIGHT_RAY_READS_PER_FRAME, riding past a house front', async () => {

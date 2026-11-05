@@ -78,9 +78,12 @@ export const SIGHT_READS_PER_FRAME = 1;
 /**
  * With segment casts (`seenAt`: one cast from the bars to the camera spot and
  * one under it, lib/segmentHit) a spot costs about 0.1 ms once its tiles are
- * copied (p50 0.1 ms, p90 0.2 ms a cast on cat-bed's iGPU over 300 s on the
- * Lugano shore, t_ee2165b8; up to about 6 ms when a tile is first copied).
- * A whole side's spots fit in one frame.
+ * copied: p50 0.1 ms, p90 0.2 ms a cast on cat-bed's iGPU over 300 s on the
+ * Lugano shore, against 1.7-2.4 ms for Cesium3DTileset.pick / getHeight on
+ * the same segments (t_ee2165b8). A whole side's spots fit in one frame. A
+ * cast that first copies a tile back from the GPU takes up to 15 ms, so a
+ * frame's reads stop after the one that copied ({@link SightRequest.spent}):
+ * four of those in one frame made frames of 20-53 ms.
  */
 export const SIGHT_RAY_READS_PER_FRAME = 4;
 /**
@@ -236,6 +239,12 @@ export interface SightRequest {
    * along the line can't. `baseM` is the pose offset the spots are fractions of.
    */
   seenAt?: (spot: SightSpot) => boolean | undefined;
+  /**
+   * True once this frame's reads have copied tile geometry back from the GPU
+   * (the slow part of a read): the refresh takes no more reads this frame
+   * after the one that did.
+   */
+  spent?: () => boolean;
 }
 
 /** A spot a camera might stand at (see {@link SightRequest.seenAt}). */
@@ -343,6 +352,7 @@ export function createSideCamSight() {
       const at = beside ? (j.besideAt ?? req.distanceM) : j.at + j.lead;
       const v = ask(at - req.distanceM);
       j.tops.set(key, v);
+      if (req.spent?.()) budget = 0;
       return v;
     };
     const seenAt = req.seenAt;
