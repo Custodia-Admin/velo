@@ -27,6 +27,10 @@
  * (r3f left a canvas from another window at its buffer size: 1.5x the window
  * at DPR 2), the rider sits above the bar, and the bar's figures and Pause fit
  * even with the widest figures (review of PR #36 @bbe04db, D1/D2).
+ *
+ * The third test is photoreal (Cesium, a route outside every baked world) in
+ * the laptop's S window: the crop above the window and the ride's vertical
+ * field over it (PR #49 review N2, t_a67fb090).
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
@@ -824,5 +828,108 @@ test("at DPR 2 on a 1280-wide laptop screen the world fills the floating window 
     for (const px of g.figures) expect(px, at).toBeGreaterThanOrEqual(24);
     console.info(`show-mode DPR 2: ${size} window ${got.join('x')}: canvas ${g.canvas!.w}x${g.canvas!.h}, rider y ${rider.riderScreen![1]} above bar ${Math.round(g.barTop)}, bar row ${g.widest.need} of ${g.widest.clientW} px at the widest`);
   }
+  expect(await page.eval<string[]>('window.__errors')).toEqual([]);
+});
+
+/**
+ * Photoreal (Cesium) in the floating window, the laptop's S size (PR #49 review N2, t_a67fb090). The
+ * window crops a canvas taller than itself by twice the lens shift (renderers/cesium/hudLensCrop),
+ * and Cesium draws the ride's vertical field, 60° as the world renderer (lib/world/cameraFraming
+ * RIDE_FOV_Y_DEG): Cesium's own fov spans the longer side, which drew ~33° vertical on this screen,
+ * zoomed in ~2x, and the rider's wheels sat ~36 px behind the bar. The rider's pixels are measured
+ * by scripts/v2-build-shots/pip-photoreal.mjs; this pins the live frustum and the crop.
+ */
+test('photoreal in the floating window draws the ride field over a cropped canvas, rider above the bar', async ({ baseURL }) => {
+  test.setTimeout(480_000);
+  const { browser, page, consoleLines } = await startChrome(['--force-device-scale-factor=2', '--window-size=1280,720']);
+  // velo.debug.cesium: the photoreal scene handle (window.__veloCesium).
+  await page.cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `localStorage.setItem('velo.debug.cesium', '1');` });
+  await page.cdp.send('Page.navigate', { url: `${baseURL}/app` });
+  await poll(() => page.eval<string>('document.readyState'), (s) => s === 'complete', 30_000, 'Home to load');
+  const [availWidth, availHeight] = await page.eval<[number, number]>('[screen.availWidth, screen.availHeight]');
+  // Bellinzona–Locarno is outside every baked world: a photoreal ride (no token: OSM on the ellipsoid).
+  await page.click(
+    `(${visible('[data-scenic-route="scenic-magadino-plain"]')}) || (${button('Ride Bellinzona to Locarno')})`,
+    'the Bellinzona–Locarno route',
+  );
+  await poll(
+    () => page.eval<string | null>(`document.querySelector('[data-renderer]')?.getAttribute('data-renderer') ?? null`),
+    (v) => v === 'photoreal',
+    90_000,
+    'the photoreal ride',
+  );
+  await poll(() => page.probe(), (p) => (p?.distance ?? 0) > 5, 180_000, 'the ride to move');
+  const DEBUG = `(() => { const d = window.__veloRideDebug && window.__veloRideDebug(); return d && !d.destroyed && d.viewportPx ? d : null; })()`;
+  type Debug = { riderScreen: [number, number] | null; viewportPx: [number, number]; lensShiftPx: number; fovYDeg: number | null };
+  // The tab: the ride field, no crop.
+  const tab = await poll(() => page.eval<Debug | null>(DEBUG), (d) => d?.fovYDeg === 60, 30_000, 'the ride field in the tab');
+  expect(tab.lensShiftPx, JSON.stringify(tab)).toBe(0);
+  expect(tab.viewportPx).toEqual(await page.eval<[number, number]>('[innerWidth, innerHeight]'));
+
+  // Software GL draws the tab's 2560 px wide photoreal frame in seconds, and the
+  // click that opens the window needs its user activation: draw it at a quarter
+  // of the resolution (the frustum's aspect, so its field, is the same).
+  expect(await page.eval<boolean>(`(() => { const c = window.__veloCesium; if (c) c.viewer.resolutionScale = 0.25; return !!c; })()`)).toBe(true);
+  await floatTheRide(page, consoleLines);
+  const { targetInfos } = await browser.send<{ targetInfos: { targetId: string; openerId?: string }[] }>('Target.getTargets');
+  const pipTarget = targetInfos.find((t) => t.openerId === page.targetId)!;
+  const { windowId } = await browser.send<{ windowId: number }>('Browser.getWindowForTarget', { targetId: pipTarget.targetId });
+  const inner = () => page.eval<[number, number]>('[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]');
+  const asked = pipWindowSize('corner', { availWidth, availHeight });
+  await browser.send('Browser.setWindowBounds', { windowId, bounds: { left: 40, top: 40, width: asked.width, height: asked.height } });
+  await sleep(300);
+  const [iw, ih] = await inner();
+  await browser.send('Browser.setWindowBounds', {
+    windowId,
+    bounds: { width: asked.width + (asked.width - iw), height: asked.height + (asked.height - ih) },
+  });
+  const got = await poll(inner, ([w, h]) => Math.abs(w - asked.width) <= 2 && Math.abs(h - asked.height) <= 2, 5_000, `S ${asked.width}x${asked.height}`).catch(inner);
+  const read = () =>
+    page.eval<{
+      win: Debug | null;
+      inner: [number, number];
+      hudBottom: number;
+      container: { top: string; height: string } | null;
+      barTop: number;
+      topBottom: number;
+    }>(`(() => {
+      const w = documentPictureInPicture.window;
+      const d = w.document;
+      const root = d.querySelector('[data-testid="pip-ride"]');
+      const container = root?.querySelector('canvas')?.closest('.cesium-viewer')?.parentElement ?? null;
+      const bar = d.querySelector('[data-testid="journey-bar"]');
+      const shown = (e) => e.getBoundingClientRect().width > 0 && e.checkVisibility();
+      const top = root ? [...root.querySelectorAll('[role=radiogroup], [aria-label="Back to the Velo tab"], [data-testid=journey-next]')].filter(shown) : [];
+      return {
+        win: ${DEBUG},
+        inner: [w.innerWidth, w.innerHeight],
+        hudBottom: Number(root?.dataset.hudBottom),
+        container: container ? { top: container.style.top, height: container.style.height } : null,
+        barTop: bar ? Math.min(...[...bar.parentElement.children].filter(shown).map((e) => e.getBoundingClientRect().top)) : -1,
+        topBottom: Math.max(0, ...top.map((e) => e.getBoundingClientRect().bottom)),
+      };
+    })()`);
+  // A few slow frames for the crop to follow the window; then the rider point in the clear band
+  // (show mode's director picks the shot: chase, drone or orbit; all keep the rider in it).
+  const g = await poll(
+    read,
+    (v) =>
+      !!v.win?.riderScreen &&
+      v.win.viewportPx[0] === v.inner[0] &&
+      v.win.viewportPx[1] === v.inner[1] &&
+      v.win.lensShiftPx > 0 &&
+      v.win.riderScreen[1] > v.topBottom &&
+      v.win.riderScreen[1] < v.barTop,
+    90_000,
+    `the rider framed in the S window (${got.join('x')})`,
+  );
+  const at = JSON.stringify(g);
+  const shift = Math.round(Math.min(g.hudBottom, g.inner[1] * 0.5) / 2);
+  expect(g.win!.lensShiftPx, at).toBe(shift);
+  // The canvas reaches 2·shift above the window and ends at its bottom edge.
+  expect(g.container, at).toEqual({ top: `-${2 * shift}px`, height: `calc(100% + ${2 * shift}px)` });
+  // The window shows the ride's vertical field (the strip above it is extra).
+  expect(g.win!.fovYDeg, at).toBe(60);
+  console.info(`show-mode photoreal S ${g.inner.join('x')}: shift ${shift}, field ${g.win!.fovYDeg}°, rider y ${g.win!.riderScreen![1]} above bar ${Math.round(g.barTop)}`);
   expect(await page.eval<string[]>('window.__errors')).toEqual([]);
 });
