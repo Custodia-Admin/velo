@@ -61,8 +61,13 @@ another tab (Netflix, YouTube, anything) or another app on the TV
   corner, 22 px at half). Problems (trainer lost, …) show as one chip.
 - The bar covers a quarter of a small window, so the window tells the world
   view how much it covers (`data-hud-bottom`) and the camera shifts its lens
-  by half of that (`applyHudLensShift`): the rider sits in the clear part
-  above the bar. A lens shift, not a camera move.
+  by half of that (`lib/world/hudLens`): the rider sits in the clear part
+  above the bar. A lens shift, not a camera move. The world renderer sets a
+  view offset (`applyHudLensShift`); photoreal draws a canvas taller than the
+  window by twice the shift, reaching above its top edge
+  (`renderers/cesium/hudLensCrop`), because Cesium 1.141 loses
+  `PerspectiveFrustum.yOffset` on the frustum clone it renders from. Measured
+  with `scripts/v2-build-shots/pip-photoreal.mjs`.
 - The Velo tab shows "Your ride is in the floating window" and one action,
   **Bring the ride back**, plus the show strip. Only one world view exists at
   a time (one WebGL context).
