@@ -143,14 +143,14 @@ describe('ride auto-start: the start hold is wired in', () => {
     const r = renderer(() => false);
     AutoStartHost({ worldRenderer: r });
     vi.advanceTimersByTime(START_HOLD_MAX_MS - 500);
-    // The wizard's setRoute lands late: the store drops to 'idle', the effect re-runs.
+    // The store drops to 'idle' (staged: no store action does this today), the effect re-runs.
     useRideStore.setState({ rideState: 'idle' });
     AutoStartHost({ worldRenderer: r });
     vi.advanceTimersByTime(START_DELAY_MS);
     expect(running()).toBe(true);
   });
 
-  it("an idle store (the wizard's setRoute landed first) is re-set to the route's start, then started", () => {
+  it("an idle store with a route (guard: no store action leaves one) is re-set to the route's start, then started", () => {
     // rideFsm lets START leave 'idle' directly, so reaching 'running' alone doesn't show the
     // re-set; numbers left in the store do: the ride must start from 0 m, 0:00.
     useRideStore.setState({ rideState: 'idle', distance: 1_234, elapsedMs: 99_000 });
