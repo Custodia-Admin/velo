@@ -485,12 +485,18 @@ export async function clampCartesiansToScene(
  * Pass the riders' own entities in `exclude`: `scene.sampleHeight` hits any
  * geometry, so a stationary rider (paused) would otherwise sample the top of
  * its own helmet, step up onto it, and climb into the sky frame by frame.
+ *
+ * `under`: read the photoreal mesh from this height down instead of from the
+ * top, i.e. the highest surface at or under it (what is under a tree crown
+ * or a deck, see meshHeightAt). Only the CPU mesh read can look under
+ * something; without it (no WebGL 2, no mesh shown) the answer is undefined.
  */
 export function sampleGroundHeight(
   scene: Cesium.Scene,
   lon: number,
   lat: number,
   exclude?: object[],
+  under?: number,
 ): number | undefined {
   if (!onRealTerrain()) return undefined;
   const carto = Cesium.Cartographic.fromDegrees(lon, lat);
@@ -509,13 +515,13 @@ export function sampleGroundHeight(
         const p = prims.get(i) as Cesium.Cesium3DTileset;
         if (!isPhotorealTileset(p) || !p.show) continue;
         meshShown = true;
-        const h = meshHeightAt(p, carto, scene);
+        const h = meshHeightAt(p, carto, scene, under);
         if (h !== undefined && Number.isFinite(h) && (best === undefined || h > best)) best = h;
       }
       if (meshShown) return best;
     }
   }
-  if (!scene.sampleHeightSupported) return undefined;
+  if (under !== undefined || !scene.sampleHeightSupported) return undefined;
   return scene.sampleHeight(carto, exclude);
 }
 
@@ -530,18 +536,25 @@ type TilesetPick = (ray: Cesium.Ray, frameState: unknown, result?: Cesium.Cartes
  * where the road is drawn at 363.41 m (GPU pick and the main view's depth
  * agree), and the wheels sat 0.57 m in the road. Same tile walk otherwise:
  * the selected tiles nearest the ray's origin first, the first one hit wins.
+ *
+ * `under`: start the ray at this height instead (undefined without a tile
+ * pick). The pick culls back faces, so every hit is a surface facing up, and
+ * one read from under a tree crown is the ground below it, where the mesh has
+ * one: on the Cuyahoga towpath it does at about half the spots under the
+ * canopy, and under every road deck crossing it (I-271, Main Street).
  */
 export function meshHeightAt(
   tileset: Cesium.Cesium3DTileset,
   carto: Cesium.Cartographic,
   scene: Cesium.Scene,
+  under?: number,
 ): number | undefined {
   const pick = (tileset as unknown as { pick?: TilesetPick }).pick;
-  if (typeof pick !== 'function') return tileset.getHeight(carto, scene);
+  if (typeof pick !== 'function') return under === undefined ? tileset.getHeight(carto, scene) : undefined;
   const ellipsoid = (scene as { ellipsoid?: Cesium.Ellipsoid }).ellipsoid ?? Cesium.Ellipsoid.WGS84;
   // From as far out as getHeight starts (two Earth radii), down the normal.
   const origin = ellipsoid.cartographicToCartesian(
-    new Cesium.Cartographic(carto.longitude, carto.latitude, 2 * ellipsoid.maximumRadius),
+    new Cesium.Cartographic(carto.longitude, carto.latitude, under ?? 2 * ellipsoid.maximumRadius),
   );
   const down = Cesium.Cartesian3.negate(ellipsoid.geodeticSurfaceNormalCartographic(carto), new Cesium.Cartesian3());
   const hit = pick.call(tileset, new Cesium.Ray(origin, down), (scene as { frameState?: unknown }).frameState);
@@ -582,6 +595,17 @@ export function clearMeshTopReads(): void {
 /** Hits, copies, bytes and entries of the sight's tile geometry cache, for probes (null: no cache). */
 export function meshTopReadStats(): ReturnType<TileReadCache['stats']> | null {
   return meshTopReads ? meshTopReads.stats() : null;
+}
+
+/**
+ * Run `fn` with its photoreal mesh reads served from the same tile geometry
+ * cache as the sight's: the rider's ground sample reads one spot two to four
+ * times (the top, then under what stands over the road), all in the same
+ * tiles, and copying a tile back from the GPU is most of a read's cost.
+ */
+export function withMeshReadCache<T>(fn: () => T): T {
+  const reads = meshTopReadCache();
+  return reads ? reads.run(fn) : fn();
 }
 
 /**

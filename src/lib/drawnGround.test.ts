@@ -16,7 +16,9 @@ import { rideAgain } from '@/components/velo/FinishCard';
 import {
   createGroundSampler,
   createMeshRoadFilter,
+  DECK_RUN_M,
   followGround,
+  GLOBE_STANDIN_M,
   GROUND_SAMPLE_INTERVAL_MS,
   OVERHANG_GIVE_UP_M,
   OVERHANG_MIN_M,
@@ -42,7 +44,8 @@ async function photoreal(height: number | undefined, opts: { show?: boolean; til
   Object.defineProperty(fake, 'tilesLoaded', { value: opts.tilesLoaded ?? true, writable: true });
   // The mesh's height field (tests swap it with mockImplementation). The app
   // reads it down the local vertical (meshHeightAt → tileset.pick), so the
-  // fake's pick answers from it at the spot the ray goes through.
+  // fake's pick answers from it at the spot the ray goes through: one surface,
+  // missed by a ray that starts under it (a read under something).
   const getHeight = vi.fn((_c?: Cesium.Cartographic): number | undefined => height);
   Object.defineProperty(fake, 'getHeight', { value: getHeight });
   Object.defineProperty(fake, 'pick', {
@@ -50,7 +53,7 @@ async function photoreal(height: number | undefined, opts: { show?: boolean; til
       requireFrameState(frameState);
       const c = Cesium.Cartographic.fromCartesian(ray.origin);
       const h = getHeight(c);
-      return h === undefined ? undefined : Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h);
+      return h === undefined || h > c.height ? undefined : Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h);
     },
   });
   vi.spyOn(Cesium.Cesium3DTileset, 'fromIonAssetId').mockResolvedValue(fake);
@@ -164,6 +167,18 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
   const lon0 = -118.5;
   const at = (m: number) => 34 + m / 110_540;
   const HIGH = 1e9;
+  /**
+   * A mesh with one surface at each spot, read as tileset.pick reads it: from
+   * the top, or from `under` down (nothing if the surface is over that).
+   */
+  const oneSurface =
+    (h: (lat: number) => number | undefined) =>
+    (_lon: number, lat: number, under?: number): number | undefined => {
+      const v = h(lat);
+      return v === undefined || under === undefined || v <= under ? v : undefined;
+    };
+  /** One surface: `from` up to 1 m on, `to` past it. */
+  const step = (from: number, to: number) => oneSurface((lat) => (lat > at(1) ? to : from));
 
   it('a palm canopy over the path (10 m up, the path before it still low) is not the road', () => {
     const f = createMeshRoadFilter();
@@ -221,17 +236,18 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
 
   it('anything lower than the chase camera could pass under is ridden over (Lugano–Melide 5 km), moving or stopped', () => {
     const f = createMeshRoadFilter();
-    const readAt = (_lon: number, lat: number) => lugano5k(lat);
+    const readAt = oneSurface(lugano5k);
     expect([0, 2, 4, 4, 4].map((m) => f.next(lugano5k(at(m)), lon0, at(m), HIGH, readAt))).toEqual([326.0, 327.6, 331.2, 331.2, 331.2]);
     expect(f.status()).toBe('road');
     expect(f.next(lugano5k(at(10)), lon0, at(10), HIGH, readAt)).toBe(326.0); // and down again
-    // From the path, 3.9 m up in one step is ridden over; 4.1 m (a low road bridge's deck) is over the road.
+    // From the path, 3.9 m up in one step (nothing under it) is ridden over;
+    // 4.1 m (a low road bridge's deck) is over the road.
     const g = createMeshRoadFilter();
-    g.next(100, lon0, at(0), HIGH, () => 100);
-    expect(g.next(103.9, lon0, at(2), HIGH, () => 100)).toBe(103.9);
+    g.next(100, lon0, at(0), HIGH, step(100, 103.9));
+    expect(g.next(103.9, lon0, at(2), HIGH, step(100, 103.9))).toBe(103.9);
     const h = createMeshRoadFilter();
-    h.next(100, lon0, at(0), HIGH, () => 100);
-    expect(h.next(104.1, lon0, at(2), HIGH, () => 100)).toBe(100);
+    h.next(100, lon0, at(0), HIGH, step(100, 104.1));
+    expect(h.next(104.1, lon0, at(2), HIGH, step(100, 104.1))).toBe(100);
     expect(h.status()).toBe('overhang');
     expect(OVERHANG_MIN_M).toBe(4);
   });
@@ -242,11 +258,14 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
       lugano5k(Cesium.Math.toDegrees(c.latitude)),
     );
-    const { s } = scene(tileset, { height: 300 });
+    // The globe there as the rider's sampler reads it (hidden by the gate, its
+    // stale tiles 10 m over the path: cat-bed drill).
+    const { s } = scene(tileset, { height: 336.6, show: false });
     const sampler = createGroundSampler(s);
     sampler.sample(lon0, at(0), 330, 0);
-    sampler.sample(lon0, at(2), 330, GROUND_SAMPLE_INTERVAL_MS);
-    for (let i = 2; i < 6; i++) expect(sampler.sample(lon0, at(4), 330, i * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(331.2, 6);
+    sampler.sample(lon0, at(3), 330, GROUND_SAMPLE_INTERVAL_MS);
+    // (Off the step's own edge at 4 m, where a read under it could round onto either side.)
+    for (let i = 2; i < 6; i++) expect(sampler.sample(lon0, at(5), 330, i * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(331.2, 6);
   });
 
   // The mesh down the vertical along the route, every half metre, as the
@@ -568,13 +587,14 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
 
   it('the re-reads are bounded: two samples back at most, none further on under a deck', () => {
     // The mound read 9.8 m apart (4990.2 → 5000 m, 4.7 m up) is re-read every
-    // 0.98 m: 9 reads besides the road spot's, the most there are. Read
-    // 10.5 m apart, only the road spot is read again (the plain rule takes
-    // the mound a few metres on).
+    // 0.98 m: 9 reads besides the road spot's and one under the reading (for
+    // a surface the road goes on along under it), the most there are. Read
+    // 10.5 m apart, only the road spot is read again, and under the reading
+    // (the plain rule takes the mound a few metres on).
     const readAt = (_lon: number, lat: number) => lugano(metres(lat));
     for (const [from, reads, status] of [
-      [4990.2, 10, 'road'],
-      [4989.5, 1, 'overhang'],
+      [4990.2, 11, 'road'],
+      [4989.5, 2, 'overhang'],
     ] as const) {
       let n = 0;
       const f = createMeshRoadFilter();
@@ -583,9 +603,10 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
       expect(f.status(), `from ${from} m`).toBe(status);
       expect(n, `from ${from} m`).toBe(reads);
     }
-    // Under a deck 29 m up, from 9.5 m on, read every 6 m: only the spot where
-    // the road was last taken (6 m), as before. Its edge at 12 m is out of
-    // reach of six 2 m steps, so nothing on the way is read.
+    // Under a deck 29 m up, from 9.5 m on, read every 6 m: under the deck
+    // (nothing there) and the spot where the road was last taken (6 m). Its
+    // edge at 12 m is out of reach of six 2 m steps, so nothing on the way is
+    // read.
     const deck = (lat: number) => (lat > at(9.5) && lat < at(70) ? 189.3 : 160.2);
     const g = createMeshRoadFilter();
     const counts: number[] = [];
@@ -594,7 +615,7 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
       g.next(deck(at(m)), lon0, at(m), HIGH, (_lon, lat) => (n++, deck(lat)));
       counts.push(n);
     }
-    expect(counts).toEqual([0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]);
+    expect(counts).toEqual([0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0]);
     expect(OVERHANG_STEP_SPAN_M).toBe(10);
   });
 
@@ -610,11 +631,11 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
       return n;
     };
     // Seven 0.89 m steps of up to 1.77 m reach 12.4 m: a palm 12.9 m up is out
-    // of reach at once (only the road spot is read), 9 m up after two flat
-    // steps, 4.5 m up after five.
-    expect(reRead(112.9)).toBe(1);
-    expect(reRead(109)).toBe(1 + 2);
-    expect(reRead(104.5)).toBe(1 + 5);
+    // of reach at once (only under it and the road spot are read), 9 m up
+    // after two flat steps, 4.5 m up after five.
+    expect(reRead(112.9)).toBe(2);
+    expect(reRead(109)).toBe(2 + 2);
+    expect(reRead(104.5)).toBe(2 + 5);
   });
 
   it('a tile refined higher under the rider: the road spot alone decides, nothing on the way is read', () => {
@@ -625,7 +646,9 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     f.next(mesh(), lon0, at(0), HIGH, mesh);
     refined = true;
     expect(f.next(mesh(), lon0, at(6), HIGH, () => (n++, mesh()))).toBe(-28.1);
-    expect(n).toBe(1);
+    // Under the reading (nothing nearer the road), the road spot's top, and
+    // under it at the road (gone: the tile rose there): none on the way.
+    expect(n).toBe(3);
   });
 
   it('the sampler keeps the road under a canopy and the rider stays on it', async () => {
@@ -672,10 +695,11 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     expect(sampler.meshGround()).toBe(false);
     sampler.sample(lon, lat(0), 195, 0);
     expect(sampler.meshGround()).toBe(true);
-    // The I-80 deck 29 m over the towpath: mesh is there, the rider holds the road.
+    // The I-80 deck 29 m over the towpath, nothing drawn under it: the rider
+    // holds the road, and the globe (0.2 m off it) stands in for the ground.
     deck = true;
     expect(sampler.sample(lon, lat(2), 195, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(160.4, 6);
-    expect(sampler.meshGround()).toBe(true);
+    expect(sampler.meshGround()).toBe(false);
     deck = false;
     // A coarse tile 610 m up (the Cuyahoga start): not the ground.
     reading = 768.9;
@@ -692,6 +716,32 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     (tileset as unknown as { show: boolean }).show = false;
     sampler.sample(lon, lat(10), 195, 5 * GROUND_SAMPLE_INTERVAL_MS);
     expect(sampler.meshGround()).toBe(false);
+  });
+
+  it('held under a deck with nothing drawn under it: the globe stands in only where it is near the road', async () => {
+    setIonToken('eyJ_test');
+    for (const [globeH, standsIn] of [
+      [160.2 + GLOBE_STANDIN_M - 0.01, true],
+      [160.2 - GLOBE_STANDIN_M + 0.01, true],
+      // 26 m over the street (the Lugano shore): it would lift the rider.
+      [186.2, false],
+      [160.2 + GLOBE_STANDIN_M + 0.2, false],
+      [160.2 - GLOBE_STANDIN_M - 0.2, false],
+    ] as const) {
+      let deck = false;
+      const { tileset } = await photoreal(undefined);
+      (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
+        deck && Cesium.Math.toDegrees(c.latitude) > lat(1) ? 215.3 : 160.2,
+      );
+      const { s } = scene(tileset, { height: globeH, show: false });
+      const sampler = createGroundSampler(s);
+      sampler.sample(lon, lat(0), 160, 0);
+      expect(sampler.meshGround()).toBe(true);
+      deck = true;
+      // Hidden, the globe's height isn't drawn: the rider holds the road.
+      expect(sampler.sample(lon, lat(2), 160, GROUND_SAMPLE_INTERVAL_MS), `globe ${globeH}`).toBeCloseTo(160.2, 6);
+      expect(sampler.meshGround(), `globe ${globeH}`).toBe(!standsIn);
+    }
   });
 
   it("the root tile's chord far under the route is not mesh ground: the globe stays (Lugano–Melide start)", async () => {
@@ -727,7 +777,7 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     f.next(300, lon, lat(0), 400, none);
     expect(f.status()).toBe('road');
     expect(f.road()).toBe(300);
-    f.next(320, lon, lat(2), 400, () => 300);
+    f.next(320, lon, lat(2), 400, (_lon, l, under) => (l > lat(1) ? (under === undefined ? 320 : undefined) : 300));
     expect(f.status()).toBe('overhang');
     f.next(900, lon, lat(4), 400, none);
     expect(f.status()).toBe('coarse');
@@ -1033,5 +1083,292 @@ describe('groundSettled: the ride start waits for the ground under the rider', (
     setIonToken('eyJ_test');
     expect(groundSettled(scene(null, { height: 300, tilesLoaded: false }).s, true)).toBe(true);
     expect(groundSettled(scene(null, { height: 0 }, new Cesium.EllipsoidTerrainProvider()).s, true)).toBe(false);
+  });
+});
+
+describe('under what stands over the road: the rider rides the road under it (t_148e9796)', () => {
+  // Drill profiles from cat-bed: every up-facing surface down the vertical,
+  // top first, as the rider's tiles drew them, with the globe there (World
+  // Terrain as loaded) and the road (the surface that runs on; interpolated
+  // where none is drawn). Each row: metres along, globe, road, surfaces….
+  type Row = number[];
+  // Cuyahoga towpath 2930–3062 m: crowns 9–25 m over the towpath, the I-80 deck (2996–3014 m) with nothing drawn under it.
+  const cuyahoga3k: Row[] = [
+    [2930, 158.77, 160.96, 170.22, 160.96],
+    [2932, 158.82, 161.43, 171.99, 161.43],
+    [2934, 158.88, 161.43, 174.06],
+    [2936, 158.94, 160.9, 173.46, 160.9],
+    [2938, 159, 160.92, 173.75, 160.92],
+    [2940, 159.05, 161.62, 173.65, 161.62],
+    [2942, 159.11, 161.71, 173.95],
+    [2944, 159.18, 161.34, 173.1, 162.2],
+    [2946, 159.25, 161.47, 174.87, 161.47],
+    [2948, 159.32, 161.24, 177.09, 164.25, 161.24],
+    [2950, 159.39, 161.85, 182.32, 177.56, 161.85],
+    [2952, 159.46, 161.42, 182.99, 177.96, 161.42],
+    [2954, 159.53, 161.06, 183, 177.93, 161.06],
+    [2956, 159.61, 161.01, 176.58, 161.01],
+    [2958, 159.68, 160.96, 176.42, 160.96],
+    [2960, 159.75, 160.89, 175.8, 160.89],
+    [2962, 159.82, 160.94, 160.94],
+    [2964, 159.89, 160.99, 185.27, 179.79, 160.99],
+    [2966, 159.96, 160.97, 185.39, 160.97],
+    [2968, 160.03, 161.02, 184.77, 161.02],
+    [2970, 160.11, 161.09, 184.9, 170.49, 161.09],
+    [2972, 160.18, 161.33, 184.63, 161.77],
+    [2974, 160.25, 161.34, 186.55, 172.39],
+    [2976, 160.32, 161.34, 186.55],
+    [2978, 160.39, 161.34, 185.56],
+    [2980, 160.46, 161.35, 172.98],
+    [2982, 160.53, 161.35, 173.93],
+    [2984, 160.61, 161.35, 175.14],
+    [2986, 160.68, 161.36, 175],
+    [2988, 160.75, 161.36, 176.97],
+    [2990, 160.82, 161.37, 175.96],
+    [2992, 160.89, 161.37, 173.07],
+    [2994, 160.96, 161.37, 170.91],
+    [2996, 161.03, 161.38, 180.68, 170.82],
+    [2998, 161.11, 161.38, 182.98, 169.54],
+    [3000, 161.15, 161.38, 186.54],
+    [3002, 161.16, 161.39, 187.08],
+    [3004, 161.16, 161.39, 186.55, 182.66],
+    [3006, 161.16, 161.39, 185.22],
+    [3008, 161.16, 161.4, 189.48, 185.13],
+    [3010, 161.17, 161.4, 184],
+    [3012, 161.17, 161.41, 182.46, 171.72],
+    [3014, 161.17, 161.41, 184.78, 181.61, 171.15],
+    [3016, 161.17, 161.41, 177.8, 169.6],
+    [3018, 161.18, 161.31, 178.41, 169.82, 161.31],
+    [3020, 161.18, 161.02, 174.13, 165.24, 161.02],
+    [3022, 161.18, 161.04, 161.04],
+    [3024, 161.18, 161.18, 168.16, 161.18],
+    [3026, 161.19, 161.41, 168.11],
+    [3028, 161.19, 161.43, 172.41, 167.41],
+    [3030, 161.19, 161.45, 167.44],
+    [3032, 161.19, 161.46, 166.7, 161.92],
+    [3034, 161.2, 161.03, 161.03],
+    [3036, 161.2, 161.04, 181.03, 161.04],
+    [3038, 161.21, 161.04, 169.02, 161.04],
+    [3040, 161.23, 161.06, 161.06],
+    [3042, 161.26, 161.14, 161.14],
+    [3044, 161.28, 161.15, 161.15],
+    [3046, 161.3, 161.11, 161.11],
+    [3048, 161.32, 161.2, 161.2],
+    [3050, 161.35, 161.14, 161.14],
+    [3052, 161.37, 161.21, 172.32, 161.21],
+    [3054, 161.39, 161.29, 173.46, 161.29],
+    [3056, 161.41, 161.29, 183.78, 173.81, 161.29],
+    [3058, 161.43, 161.28, 187.44, 177.03, 161.28],
+    [3060, 161.46, 161.21, 187.07, 178.86, 176.43, 161.21],
+    [3062, 161.48, 161.04, 187.31, 175.05, 161.04],
+  ];
+
+  // Cuyahoga towpath 4980–5040 m: a crown 12 m up, then a canopy 2.3–3 m over the towpath (no bridge in OSM); the globe 2.5 m over it.
+  const cuyahoga5k: Row[] = [
+    [4980, 164.81, 162.11, 162.11],
+    [4982, 164.8, 162.13, 162.13],
+    [4984, 164.8, 162.16, 173.96, 162.16],
+    [4986, 164.8, 162.18, 174.13, 162.18],
+    [4988, 164.79, 162.2, 174.31, 162.2],
+    [4990, 164.79, 162.22, 175.07, 174.49, 162.22],
+    [4992, 164.79, 162.24, 174.22, 162.24],
+    [4994, 164.78, 162.26, 172.47, 162.26],
+    [4996, 164.78, 162.28, 170.72, 162.28],
+    [4998, 164.77, 162.31, 168.98, 162.31],
+    [5000, 164.77, 162.32, 167.31, 162.32],
+    [5002, 164.77, 162.33, 162.33],
+    [5004, 164.77, 162.35, 165.29, 162.35],
+    [5006, 164.77, 162.36, 165.26, 162.36],
+    [5008, 164.77, 162.38, 165.22, 162.38],
+    [5010, 164.77, 162.39, 165.19, 162.39],
+    [5012, 164.76, 162.4, 165.16, 162.4],
+    [5014, 164.76, 162.42, 165.12, 162.42],
+    [5016, 164.76, 162.43, 165.09, 162.43],
+    [5018, 164.76, 162.44, 165.06, 162.44],
+    [5020, 164.76, 162.46, 165.02, 162.46],
+    [5022, 164.76, 162.47, 164.99, 162.47],
+    [5024, 164.75, 162.49, 164.96, 162.49],
+    [5026, 164.75, 162.5, 164.92, 162.5],
+    [5028, 164.75, 162.5, 164.89, 162.5],
+    [5030, 164.75, 162.46, 164.86, 162.46],
+    [5032, 164.75, 162.45, 164.82, 162.45],
+    [5034, 164.75, 162.44, 164.79, 162.44],
+    [5036, 164.74, 162.43, 164.76, 162.43],
+    [5038, 164.74, 162.42, 164.72, 162.42],
+    [5040, 164.74, 162.41, 164.69, 162.41],
+  ];
+
+  // Chengdu 1203–1228 m, every metre: the ramp onto the bridge, up to 0.58 m per m, 5 m over the terrain at its top.
+  const chengduRamp: Row[] = [
+    [1203, 448.36, 444.88, 444.88],
+    [1204, 448.39, 444.99, 444.99],
+    [1205, 448.43, 445.22, 445.22],
+    [1206, 448.46, 445.5, 445.5],
+    [1207, 448.49, 445.8, 445.8],
+    [1208, 448.5, 446.08, 446.08],
+    [1209, 448.52, 446.37, 446.37],
+    [1210, 448.53, 446.65, 446.65],
+    [1211, 448.54, 446.93, 446.93],
+    [1212, 448.56, 447.22, 447.22],
+    [1213, 448.57, 447.71, 447.71],
+    [1214, 448.58, 448.28, 448.28],
+    [1215, 448.6, 448.86, 448.86],
+    [1216, 448.61, 449.44, 449.44],
+    [1217, 448.68, 450.02, 450.02],
+    [1218, 448.77, 450.61, 450.61],
+    [1219, 448.86, 451.19, 451.19],
+    [1220, 448.95, 451.76, 451.76],
+    [1221, 449.04, 452.26, 452.26],
+    [1222, 449.13, 452.68, 452.68],
+    [1223, 449.22, 453.07, 453.07],
+    [1224, 449.3, 453.46, 453.46],
+    [1225, 449.39, 453.85, 453.85],
+    [1226, 449.48, 454.17, 454.17],
+    [1227, 449.57, 454.48, 454.48],
+    [1228, 449.66, 454.79, 454.79],
+  ];
+
+  // Lugano–Melide 6940–7040 m: the causeway, one smooth deck 3–10 m over the lake (the globe).
+  const melide: Row[] = [
+    [6940, 317.23, 327.49, 327.49],
+    [6942, 317.23, 327.49, 327.49],
+    [6944, 317.23, 327.49, 327.49],
+    [6946, 317.23, 327.48, 327.48],
+    [6948, 317.23, 327.45, 327.45],
+    [6950, 317.23, 327.44, 327.44],
+    [6952, 317.23, 327.41, 327.41],
+    [6954, 317.23, 327.36, 327.36],
+    [6956, 317.23, 327.31, 327.31],
+    [6958, 317.23, 327.26, 327.26],
+    [6960, 317.23, 327.18, 327.18],
+    [6962, 317.23, 327.09, 327.09],
+    [6964, 317.23, 327, 327],
+    [6966, 317.23, 326.92, 326.92],
+    [6968, 317.22, 326.84, 326.84],
+    [6970, 317.22, 326.76, 326.76],
+    [6972, 317.22, 326.68, 326.68],
+    [6974, 317.22, 326.6, 326.6],
+    [6976, 317.22, 326.52, 326.52],
+    [6978, 317.22, 326.38, 326.38],
+    [6980, 317.22, 326.19, 326.19],
+    [6982, 317.22, 326, 326],
+    [6984, 317.22, 325.88, 325.88],
+    [6986, 317.22, 325.69, 325.69],
+    [6988, 317.23, 325.49, 325.49],
+    [6990, 317.25, 325.27, 325.27],
+    [6992, 317.28, 325.1, 325.1],
+    [6994, 317.3, 324.85, 324.85],
+    [6996, 317.32, 324.82, 324.82],
+    [6998, 317.35, 324.58, 324.58],
+    [7000, 317.37, 324.34, 324.34],
+    [7002, 317.4, 324.1, 324.1],
+    [7004, 317.42, 323.85, 323.85],
+    [7006, 317.45, 323.63, 323.63],
+    [7008, 317.47, 323.41, 323.41],
+    [7010, 317.5, 323.2, 323.2],
+    [7012, 317.52, 323, 323],
+    [7014, 317.55, 322.82, 322.82],
+    [7016, 317.57, 322.64, 322.64],
+    [7018, 317.59, 322.46, 322.46],
+    [7020, 317.62, 322.29, 322.29],
+    [7022, 317.64, 322.13, 322.13],
+    [7024, 317.67, 321.98, 321.98],
+    [7026, 317.69, 321.85, 321.85],
+    [7028, 317.72, 321.71, 321.71],
+    [7030, 317.74, 321.6, 321.6],
+    [7032, 317.77, 321.49, 321.49],
+    [7034, 317.79, 321.38, 321.38],
+    [7036, 317.82, 321.3, 321.3],
+    [7038, 317.84, 321.21, 321.21],
+    [7040, 317.87, 321.13, 321.13],
+  ];
+
+  const lonC = -81.5;
+  const atC = (m: number) => 41 + m / 110_540;
+  const metresC = (lat: number) => (lat - 41) * 110_540;
+
+  interface Read {
+    m: number;
+    /** What the rider stands on: the filter's road, else the globe. */
+    shown: number;
+    road: number;
+    globe: number;
+    /** The road is drawn here (one of the surfaces). */
+    drawn: boolean;
+    status: string;
+  }
+  /**
+   * The filter rolled along `rows` (`step` m apart) read every `spacing` m
+   * from `phase` on, as the sampler calls it: from a road read just before
+   * the first row, or from nothing (a jump: the probes, Ride again).
+   */
+  function ride(rows: Row[], step: number, spacing: number, phase: number, from: 'road' | 'jump'): Read[] {
+    const m0 = rows[0][0];
+    const row = (m: number) => rows[Math.max(0, Math.min(rows.length - 1, Math.round((m - m0) / step)))];
+    const readAt = (_lon: number, lat: number, under?: number) => {
+      const hits = row(metresC(lat)).slice(3);
+      return under === undefined ? hits[0] : hits.find((h) => h <= under);
+    };
+    const f = createMeshRoadFilter();
+    if (from === 'road') f.next(rows[0][2], lonC, atC(m0 - step), 1e9, () => rows[0][2], -Infinity, rows[0][2]);
+    const out: Read[] = [];
+    for (let m = m0 + phase; m <= rows[rows.length - 1][0]; m += spacing) {
+      const [, globe, road, ...hits] = row(m);
+      const got = f.next(hits[0], lonC, atC(m), 1e9, readAt, -Infinity, globe);
+      out.push({ m, shown: got ?? globe, road, globe, drawn: hits.some((h) => Math.abs(h - road) < 0.01), status: f.status() });
+    }
+    return out;
+  }
+  /** Every spacing 2–8 m the rows allow, at every phase. */
+  function everyRide(rows: Row[], step: number, from: 'road' | 'jump'): Read[][] {
+    const out: Read[][] = [];
+    for (let s = Math.max(2, step); s <= 8; s += step) for (let o = 0; o < s; o += step) out.push(ride(rows, step, s, o, from));
+    return out;
+  }
+  const worst = (reads: Read[], pick: (r: Read) => boolean = () => true) =>
+    reads.filter(pick).reduce((w, r) => (Math.abs(r.shown - r.road) > Math.abs(w) ? r.shown - r.road : w), 0);
+
+  it('Cuyahoga 3 km: under the crowns and the I-80 deck the rider rides the towpath, never what stands over it', () => {
+    for (const reads of everyRide(cuyahoga3k, 2, 'road')) {
+      const at = `read ${reads[1].m - reads[0].m} m apart from ${reads[0].m} m`;
+      // Where the towpath is drawn, on it; where it isn't (under the deck,
+      // under a crown with nothing under it), the road held, within 1 m.
+      expect(Math.abs(worst(reads, (r) => r.drawn)), at).toBeLessThanOrEqual(0.3);
+      expect(Math.abs(worst(reads)), at).toBeLessThan(1);
+    }
+  });
+
+  it('Cuyahoga 3 km from a jump: never on a crown or the deck; on the globe until the towpath is read, then on it', () => {
+    for (const reads of everyRide(cuyahoga3k, 2, 'jump')) {
+      const at = `read ${reads[1].m - reads[0].m} m apart from ${reads[0].m} m`;
+      for (const r of reads) expect(r.shown - r.road, `${at}, at ${r.m} m`).toBeLessThan(1);
+      const first = reads.findIndex((r) => r.status === 'road');
+      expect(first, at).toBeGreaterThanOrEqual(0);
+      expect(Math.abs(worst(reads.slice(first), (r) => r.drawn)), at).toBeLessThanOrEqual(0.3);
+    }
+  });
+
+  it('Cuyahoga 5 km: a crown and a low canopy over the towpath are passed under, rolled in or jumped in', () => {
+    for (const from of ['road', 'jump'] as const) {
+      for (const reads of everyRide(cuyahoga5k, 2, from)) expect(Math.abs(worst(reads)), `${from} ${reads[0].m}`).toBeLessThanOrEqual(0.3);
+    }
+  });
+
+  it('the ramp onto the Chengdu bridge (0.58 m per m, 5 m over the terrain) is ridden, read 2–8 m apart', () => {
+    for (const from of ['road', 'jump'] as const) {
+      for (const reads of everyRide(chengduRamp, 1, from)) expect(Math.abs(worst(reads)), `${from} ${reads[0].m}`).toBeLessThanOrEqual(0.3);
+    }
+  });
+
+  it('the Melide causeway from a jump: on the lake (the globe) until DECK_RUN_M of smooth deck is read, then on the deck', () => {
+    for (const reads of everyRide(melide, 2, 'jump')) {
+      const at = `read ${reads[1].m - reads[0].m} m apart from ${reads[0].m} m`;
+      const first = reads.findIndex((r) => r.status === 'road');
+      expect(reads[first].m - reads[0].m, at).toBeLessThanOrEqual(DECK_RUN_M + 8);
+      for (const r of reads.slice(0, first)) expect(r.shown, `${at}, at ${r.m} m`).toBe(r.globe);
+      expect(Math.abs(worst(reads.slice(first))), at).toBeLessThanOrEqual(0.3);
+    }
+    // Rolled on from the shore, the deck is the road throughout.
+    for (const reads of everyRide(melide, 2, 'road')) expect(Math.abs(worst(reads)), `road ${reads[0].m}`).toBeLessThanOrEqual(0.3);
   });
 });
