@@ -12,7 +12,6 @@ import { expect, test, type Page } from '@playwright/test';
 
 const INIT = `
   localStorage.removeItem('globeride.cesiumIonToken');
-  localStorage.setItem('globeride.onboarding.v2', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 2 }));
 `;
 
 async function hudNumbers(page: Page) {

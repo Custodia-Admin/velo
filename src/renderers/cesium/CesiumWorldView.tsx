@@ -37,7 +37,6 @@ import {
   onSceneSurface,
   sceneEle,
   setIonToken,
-  setActiveViewer,
   setupBaseImagery,
   type MoodId,
 } from '@/lib/cesiumUtils';
@@ -99,8 +98,7 @@ import {
   type SpectatorCollection,
 } from '@/lib/spectatorSystem';
 import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
-import { ProPelotonAvatars } from '@/components/ride/ProPelotonAvatars';
-import { waitForContainerSize } from '@/lib/landing/waitForContainerSize';
+import { waitForContainerSize } from '@/lib/waitForContainerSize';
 import {
   CHASE_FRAMING,
   chasePitchRad,
@@ -111,11 +109,6 @@ import {
   type CameraPose,
   type SideTrackCorridor,
 } from '@/lib/cesiumCameras';
-import {
-  createSegmentPortals,
-  type SegmentPortalHandle,
-} from '@/lib/strava/segmentPortals';
-import { mapSegmentsToRoute } from '@/lib/segmentOverlay';
 import {
   createRoadEntity,
   createRoadEdgeStripes,
@@ -270,8 +263,6 @@ export function CesiumWorldView({
   const appliedSceneRef = useRef<SceneWeather | null>(null);
   // Live polyline entity for outdoor GPS mode.
   const livePolylineEntityRef = useRef<Cesium.Entity | null>(null);
-  // Strava segment portal handles — rebuilt on route change, destroyed on cleanup.
-  const segmentPortalHandleRef = useRef<SegmentPortalHandle | null>(null);
   // ---- Road surface ----
   const roadEntityRef = useRef<RoadEntityHandle | null>(null);
   const roadEdgeStripesRef = useRef<EdgeStripesHandle | null>(null);
@@ -320,7 +311,6 @@ export function CesiumWorldView({
   const rideMode = useRideStore((s) => s.rideMode);
   const livePolyline = useRideStore((s) => s.livePolyline);
   const flyToTarget = useRideStore((s) => s.flyToTarget);
-  const loadedSegments = useRideStore((s) => s.loadedSegments);
   const searchPinRef = useRef<Cesium.Entity | null>(null);
   const theme = useThemeStore((s) => s.theme);
   const avatarColors = useSettingsStore((s) => s.avatar);
@@ -404,7 +394,6 @@ export function CesiumWorldView({
         contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
       });
       viewerRef.current = viewer;
-      setActiveViewer(viewer);
       // Assigned as soon as it arrives (its tiles stream over the next frames);
       // on a busy laptop an idle callback alone sat out its 2 s timeout.
       worldTerrain
@@ -625,8 +614,6 @@ export function CesiumWorldView({
       spectatorCollectionRef.current?.destroy();
       spectatorCollectionRef.current = null;
       spectatorDistancesRef.current = [];
-      segmentPortalHandleRef.current?.destroy();
-      segmentPortalHandleRef.current = null;
       // ---- Road surface cleanup ----
       roadEntityRef.current?.destroy();
       roadEntityRef.current = null;
@@ -636,7 +623,6 @@ export function CesiumWorldView({
       kmMarkersRef.current = null;
       climbArchesRef.current?.destroy();
       climbArchesRef.current = null;
-      setActiveViewer(null);
       if (viewer && !viewer.isDestroyed()) destroyCinematicEffects(viewer);
       if (viewer && !viewer.isDestroyed()) viewer.destroy();
       viewerRef.current = null;
@@ -759,10 +745,6 @@ export function CesiumWorldView({
     spectatorCollectionRef.current = null;
     spectatorDistancesRef.current = [];
     dryMaterialsRef.current = null;
-
-    // Tear down previous segment portals.
-    segmentPortalHandleRef.current?.destroy();
-    segmentPortalHandleRef.current = null;
 
     // ---- Road surface — tear down previous surface ----
     roadEntityRef.current?.destroy();
@@ -1428,29 +1410,6 @@ export function CesiumWorldView({
     // initial flyToBoundingSphere altitude (~7 km up, pitched -35°).
   }, [viewerReady]);
 
-  // ---- Strava segment portals — rebuild when loadedSegments changes ----
-  // Triggered by the background fetch completing after route load.
-  useEffect(() => {
-    const viewer = viewerRef.current;
-    if (!viewer || viewer.isDestroyed() || !route) return;
-
-    // Tear down previous portals before building new ones.
-    segmentPortalHandleRef.current?.destroy();
-    segmentPortalHandleRef.current = null;
-
-    if (loadedSegments.length === 0) return;
-
-    // Map the Strava segments onto the route (already done in the store, but
-    // we do a lightweight re-map here so the Cesium effect owns a clean copy).
-    const routeSegments = mapSegmentsToRoute(
-      loadedSegments.map((rs) => rs.segment),
-      route,
-    );
-    if (routeSegments.length === 0) return;
-
-    segmentPortalHandleRef.current = createSegmentPortals(viewer, routeSegments, route);
-  }, [loadedSegments, route]);
-
   // ---- Outdoor GPS live polyline ----
   // Update the live track entity each time the GPS polyline array grows.
   useEffect(() => {
@@ -1505,10 +1464,6 @@ export function CesiumWorldView({
       {/* Multi-rider peer avatars — rendered into the Cesium viewer once it is ready. */}
       {viewerReady && viewerRef.current && !viewerRef.current.isDestroyed() && (
         <MultiRiderPeers viewer={viewerRef.current} />
-      )}
-      {/* ---- Pro peloton ghosts ---- */}
-      {viewerReady && viewerRef.current && !viewerRef.current.isDestroyed() && (
-        <ProPelotonAvatars viewer={viewerRef.current} />
       )}
     </>
   );

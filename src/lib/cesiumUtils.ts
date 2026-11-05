@@ -1287,19 +1287,3 @@ export function julianDateForMood(lonDeg: number, hoursFromNoon: number): Cesium
 
   return Cesium.JulianDate.addHours(utcBase, targetUtcHr, new Cesium.JulianDate());
 }
-
-// ---- Active viewer registry -----------------------------------------------
-// Allows non-React code (RouteDrawer event handlers) to obtain the live
-// viewer instance without prop-drilling or a context provider.
-
-let _activeViewer: Cesium.Viewer | null = null;
-
-/** Called by CesiumViewer on mount to register itself. */
-export function setActiveViewer(v: Cesium.Viewer | null): void {
-  _activeViewer = v;
-}
-
-/** Returns the currently-mounted Cesium Viewer, or null if unmounted. */
-export function getActiveViewer(): Cesium.Viewer | null {
-  return _activeViewer;
-}

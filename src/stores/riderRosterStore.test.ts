@@ -24,11 +24,10 @@ describe('riderRosterStore', () => {
     expect(selectActiveRider(s).name).toBe('Federico');
   });
 
-  it('comfort defaults are easy with ERG off', () => {
+  it('comfort defaults are easy, Play mode off', () => {
     const d = comfortDefaults();
     expect(d.trainerDifficulty).toBeGreaterThanOrEqual(0.3);
     expect(d.trainerDifficulty).toBeLessThanOrEqual(0.4);
-    expect(d.ergEnabled).toBe(false);
     expect(d.playMode).toBe(false);
   });
 

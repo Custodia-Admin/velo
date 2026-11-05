@@ -25,11 +25,9 @@ import {
   getDb,
 } from '@/lib/db';
 import { saveRoute, listRoutes, countRoutes } from '@/lib/routeLibrary';
-import { saveWorkout, listWorkouts, countWorkouts } from '@/lib/workoutLibrary';
 import { saveRide, listRides, countRides, rideId } from '@/lib/rideHistory';
 import type { RideRecord } from '@/lib/rideHistory';
 import type { Route } from '@/types';
-import type { Workout } from '@/lib/workout';
 
 const route: Route = {
   id: 'route-1',
@@ -44,17 +42,6 @@ const route: Route = {
   minElevation: 700,
   maxElevation: 900,
   loadedAt: Date.now(),
-};
-
-const workout: Workout = {
-  id: 'workout-1',
-  name: 'Sweet Spot 2x20',
-  createdAt: Date.now(),
-  source: 'manual',
-  segments: [
-    { id: 's1', kind: 'warmup', durationSec: 600, target: { type: 'ftpPct', value: 0.55 } },
-    { id: 's2', kind: 'steady', durationSec: 1200, target: { type: 'ftpPct', value: 0.9 } },
-  ],
 };
 
 const ride: RideRecord = {
@@ -98,13 +85,6 @@ describe('cross-module CRUD on the same database (regression)', () => {
     expect(all.map((r) => r.id)).toContain('route-1');
   });
 
-  it('workoutLibrary persists and reads back on the same DB', async () => {
-    await saveWorkout(workout);
-    expect(await countWorkouts()).toBe(1);
-    const all = await listWorkouts();
-    expect(all.map((w) => w.id)).toContain('workout-1');
-  });
-
   it('rideHistory persists and reads back on the same DB', async () => {
     await saveRide(ride);
     expect(await countRides()).toBe(1);
@@ -112,9 +92,8 @@ describe('cross-module CRUD on the same database (regression)', () => {
     expect(all.map((r) => r.id)).toContain(ride.id);
   });
 
-  it('all three stores hold their data simultaneously (no module clobbered another)', async () => {
+  it('both stores hold their data simultaneously (no module clobbered another)', async () => {
     expect(await countRoutes()).toBe(1);
-    expect(await countWorkouts()).toBe(1);
     expect(await countRides()).toBe(1);
   });
 });

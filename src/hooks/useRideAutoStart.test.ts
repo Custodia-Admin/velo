@@ -172,6 +172,19 @@ describe('ride auto-start: the start hold is wired in', () => {
     expect(useRideStore.getState().rideState).toBe('paused');
   });
 
+  it('pace partners picked on Home ride along when the start re-sets an idle ride\'s route', async () => {
+    const { BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
+    useRideStore.getState().setPaceBots([createPaceBot('pace-steady', BOT_PRESETS[0])]);
+    // The wizard's setRoute landed before /ride's own and left 'idle'.
+    useRideStore.setState({ rideState: 'idle' });
+    AutoStartHost({ worldRenderer: renderer() });
+    vi.advanceTimersByTime(START_DELAY_MS + START_HOLD_POLL_MS);
+    expect(running()).toBe(true);
+    const bots = useRideStore.getState().paceBots;
+    expect(bots.map((b) => b.id)).toEqual(['pace-steady']);
+    expect(bots[0].state.distance).toBe(0);
+  });
+
   it('leaving the ride view cancels a held start', () => {
     AutoStartHost({ worldRenderer: renderer(() => false) });
     vi.advanceTimersByTime(1000);

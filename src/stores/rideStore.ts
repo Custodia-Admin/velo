@@ -16,11 +16,8 @@ import { setTrainerControlMode as setFtmsTrainerControlMode } from '@/lib/ftms';
 import type { Workout } from '@/lib/workout';
 import { computeDraftState, type DraftState } from '@/lib/drafting';
 import type { PaceBot } from '@/lib/paceBots';
-import { tickPaceBot } from '@/lib/paceBots';
+import { createPaceBot, tickPaceBot } from '@/lib/paceBots';
 import { gradientAt } from '@/lib/gradientCalculator';
-import type { RouteSegment } from '@/lib/segmentOverlay';
-import type { ProPelotonState } from '@/lib/proCycling/proPelotonSimulator';
-import { tickProPeloton } from '@/lib/proCycling/proPelotonSimulator';
 import {
   can,
   driveOf,
@@ -246,54 +243,15 @@ interface RideStoreState {
   // ---- ADDITIVE: Pace Bots ----
   /**
    * Active pace bot instances. Each carries its own personality + live state.
-   * Default: empty — bots are injected by the PaceBotsPanel before the ride starts.
+   * Default: empty. The rider picks them before the ride (Home → Build your
+   * own ride → Pace partners, velo/PacePartners). They stay picked when a
+   * route loads or the ride resets, and go back to the start line then.
    */
   paceBots: PaceBot[];
-  /** Replace the entire bot roster (called by PaceBotsPanel on selection). */
+  /** Replace the entire bot roster (called by PacePartners on selection). */
   setPaceBots: (bots: PaceBot[]) => void;
   /** Remove all bots (called on route clear or explicit disable). */
   clearPaceBots: () => void;
-
-  // ---- ADDITIVE: Pro Peloton Ghosts ----
-  /**
-   * Active pro peloton simulation state. Non-null when the user has opted into
-   * the pro peloton overlay for the current World Tour stage.
-   * Null during normal rides or when no stage results are available.
-   */
-  proPeloton: ProPelotonState | null;
-  /** Activate the pro peloton for the current stage. */
-  setProPeloton: (state: ProPelotonState) => void;
-  /** Deactivate and clear the pro peloton. */
-  clearProPeloton: () => void;
-
-  // ---- ADDITIVE: Strava Live Segments ----
-  /**
-   * RouteSegment objects mapped onto the loaded route. Populated after
-   * fetchSegmentsNearRoute resolves when Strava is connected.
-   * Empty array when Strava is not connected or no segments are near the route.
-   */
-  loadedSegments: RouteSegment[];
-  /**
-   * The segment the rider is currently traversing, or null when between segments.
-   * Set by useRideLoop when detectSegmentEntry fires.
-   */
-  activeSegment: RouteSegment | null;
-  /**
-   * The rider's route-distance when they entered the active segment.
-   * Used to compute distanceCovered = distance - segmentDistanceStarted.
-   */
-  segmentDistanceStarted: number;
-  /**
-   * Elapsed seconds since the rider entered the active segment.
-   * Accumulated each frame by useRideLoop while activeSegment is non-null.
-   */
-  segmentElapsedSec: number;
-  /** Set the full list of mapped route segments (called after fetch). */
-  setLoadedSegments: (segments: RouteSegment[]) => void;
-  /** Called when the rider enters a segment. */
-  enterSegment: (rs: RouteSegment, distanceNow: number) => void;
-  /** Called when the rider exits the active segment. */
-  exitSegment: () => void;
 
   // ---- Actions ----
   setRoute: (route: Route | null) => void;
@@ -432,6 +390,11 @@ function genToastId(): string {
   return `t-${Date.now().toString(36)}-${toastCounter}`;
 }
 
+/** The same pace partners, back at the start line (fresh live state). */
+function reseatPaceBots(bots: PaceBot[]): PaceBot[] {
+  return bots.length === 0 ? bots : bots.map((b) => createPaceBot(b.id, b));
+}
+
 export const useRideStore = create<RideStoreState>((set, get) => ({
   route: null,
   rideState: 'idle',
@@ -500,15 +463,6 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   workoutElapsedSec: 0,
   workoutTargetWatts: null,
 
-  // ---- ADDITIVE: Pro Peloton initial state ----
-  proPeloton: null,
-
-  // ---- ADDITIVE: Strava Live Segments initial state ----
-  loadedSegments: [],
-  activeSegment: null,
-  segmentDistanceStarted: 0,
-  segmentElapsedSec: 0,
-
   // ---- ADDITIVE: Workout actions ----
   loadWorkout: (workout) =>
     set({
@@ -539,30 +493,9 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   // ---- ADDITIVE: Multi-rider actions ----
   setMultiriderId: (id) => set({ multiriderId: id ?? undefined }),
 
-  // ---- ADDITIVE: Pro Peloton actions ----
-  setProPeloton: (state) => set({ proPeloton: state }),
-  clearProPeloton: () => set({ proPeloton: null }),
-
   // ---- ADDITIVE: Pace Bot actions ----
   setPaceBots: (bots) => set({ paceBots: bots }),
   clearPaceBots: () => set({ paceBots: [] }),
-
-  // ---- ADDITIVE: Strava Live Segment actions ----
-  setLoadedSegments: (segments) => set({ loadedSegments: segments }),
-
-  enterSegment: (rs, distanceNow) =>
-    set({
-      activeSegment: rs,
-      segmentDistanceStarted: distanceNow,
-      segmentElapsedSec: 0,
-    }),
-
-  exitSegment: () =>
-    set({
-      activeSegment: null,
-      segmentDistanceStarted: 0,
-      segmentElapsedSec: 0,
-    }),
 
   tickBots: (dt) =>
     set((st) => {
@@ -570,21 +503,12 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       const route = st.route;
       const riderDistance = st.distance;
 
-      // ---- Pace bots ----
-      const nextBots = st.paceBots.length > 0
-        ? st.paceBots.map((bot) => {
-            const grade = gradientAt(route, bot.state.distance);
-            const newState = tickPaceBot(bot, route, dt, riderDistance, grade);
-            return { ...bot, state: newState };
-          })
-        : st.paceBots;
-
-      // ---- Pro peloton ghosts ----
-      const nextProPeloton = st.proPeloton
-        ? tickProPeloton(st.proPeloton, dt, route.totalDistance)
-        : st.proPeloton;
-
-      return { paceBots: nextBots, proPeloton: nextProPeloton };
+      if (st.paceBots.length === 0) return st;
+      const paceBots = st.paceBots.map((bot) => {
+        const grade = gradientAt(route, bot.state.distance);
+        return { ...bot, state: tickPaceBot(bot, route, dt, riderDistance, grade) };
+      });
+      return { paceBots };
     }),
 
   bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
@@ -681,15 +605,8 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       // Clear any active replay when a new route is loaded normally
       replayData: null,
       replayIndex: 0,
-      // Clear bots so they re-seat at the new route's start when re-selected.
-      paceBots: [],
-      // Clear pro peloton — results are route-specific.
-      proPeloton: null,
-      // Clear segment overlays — they are route-specific.
-      loadedSegments: [],
-      activeSegment: null,
-      segmentDistanceStarted: 0,
-      segmentElapsedSec: 0,
+      // The rider's pace partners stay picked and go back to the start line.
+      paceBots: reseatPaceBots(st.paceBots),
     })),
 
   setMode: (mode) => {
@@ -873,12 +790,8 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       workoutRunning: false,
       workoutElapsedSec: 0,
       workoutTargetWatts: null,
-      // Reset active segment state (segments list persists for re-rides).
-      activeSegment: null,
-      segmentDistanceStarted: 0,
-      segmentElapsedSec: 0,
-      // Reset pro peloton to start so re-rides begin from distance 0.
-      proPeloton: null,
+      // Pace partners back to the start line for the re-ride.
+      paceBots: reseatPaceBots(get().paceBots),
     }),
 
   tick: (input) =>
@@ -935,11 +848,6 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         routeTotalDistance: st.route?.totalDistance ?? Number.POSITIVE_INFINITY,
       });
 
-      // Accumulate segment elapsed time while a segment is active.
-      const segmentElapsedSec = st.activeSegment !== null
-        ? st.segmentElapsedSec + input.dt
-        : st.segmentElapsedSec;
-
       return {
         ...st,
         rideState: newState,
@@ -961,7 +869,6 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         heartRate: input.heartRateNow ?? st.heartRate,
         samples: nextSamples,
         draft: newDraft,
-        segmentElapsedSec,
       };
     }),
 

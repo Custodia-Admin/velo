@@ -7,7 +7,7 @@
  * incoming rider's snapshot back into the live stores.
  *
  * Shared across riders (not swapped): units, graphics, audio, commentary,
- * voice, gestures, low-light HUD, Strava auto-upload.
+ * voice, gestures, low-light HUD.
  */
 
 import { create } from 'zustand';
@@ -31,11 +31,8 @@ export const PER_RIDER_KEYS = [
   'glassesId',
   'shoesId',
   'bottleId',
-  'coachGoal',
-  'coachPlan',
   'cameraMode',
   'trainerDifficulty',
-  'ergEnabled',
   'windFeel',
   'playMode',
 ] as const satisfies readonly (keyof RiderSettings)[];

@@ -121,18 +121,6 @@ export async function listRides(): Promise<RideRecord[]> {
   return all.reverse();
 }
 
-/** Load a single ride by id. Returns undefined if missing. */
-export async function getRide(id: string): Promise<RideRecord | undefined> {
-  const db = await getDb();
-  return db.get(RIDES_STORE, id);
-}
-
-/** Delete a ride. No-op if missing. */
-export async function deleteRide(id: string): Promise<void> {
-  const db = await getDb();
-  await db.delete(RIDES_STORE, id);
-}
-
 /** Total number of saved rides. */
 export async function countRides(): Promise<number> {
   const db = await getDb();

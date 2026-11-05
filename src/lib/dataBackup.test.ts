@@ -81,7 +81,7 @@ describe('dataBackup', () => {
 
   it('reports a local data inventory', async () => {
     await saveRoute(route, 'gpx');
-    window.sessionStorage.setItem('globeride.strava.refreshTokenOverride', 'token');
+    window.sessionStorage.setItem('globeride.test.session', 'value');
 
     const inventory = await getLocalDataInventory();
     expect(inventory.stores.routes.count).toBe(1);

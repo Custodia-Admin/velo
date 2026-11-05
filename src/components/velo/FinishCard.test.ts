@@ -99,7 +99,9 @@ describe('finish screen layout contract', () => {
   const src = readFileSync(resolve(__dirname, 'FinishCard.tsx'), 'utf8');
 
   it('is its own opaque full-screen page that fits the viewport (flex column, shrinking plate)', () => {
-    expect(src).toMatch(/fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background/);
+    // Opaque: `bg-background` with no `/NN` alpha suffix (`bg-background/60`
+    // would let the ride scene show through).
+    expect(src).toMatch(/fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background(?![/\w-])/);
     expect(src).toMatch(/flex min-h-0 flex-1 flex-col/);
     expect(src).toMatch(/aspect-4\/3 min-h-32 w-full sm:aspect-21\/9/);
     expect(src).not.toMatch(/max-h-finish-fit/);

@@ -128,42 +128,6 @@ describe('RouteErrorBoundary — structural contract', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 3. errorReporting.ts pure-JS helpers
-// ---------------------------------------------------------------------------
-
-// Read the source to verify structural contract without executing import.meta.
-const ER_SRC = readFileSync(
-  resolve(__dirname, '../lib/errorReporting.ts'),
-  'utf-8',
-);
-
-describe('errorReporting — structural contract', () => {
-  it('exports getAppVersion function', () => {
-    expect(ER_SRC).toContain('export function getAppVersion');
-  });
-
-  it('exports formatErrorForReport function', () => {
-    expect(ER_SRC).toContain('export function formatErrorForReport');
-  });
-
-  it('formatErrorForReport accepts (err, info, currentRoute?)', () => {
-    expect(ER_SRC).toMatch(/formatErrorForReport\s*\(\s*err:\s*Error,\s*info:\s*ErrorInfo/);
-  });
-
-  it('includes browser UA in the diagnostic output', () => {
-    expect(ER_SRC).toContain('navigator.userAgent');
-  });
-
-  it('includes the current route path in the diagnostic output', () => {
-    expect(ER_SRC).toContain('location.pathname');
-  });
-
-  it('includes component stack from ErrorInfo when available', () => {
-    expect(ER_SRC).toContain('componentStack');
-  });
-});
-
-// ---------------------------------------------------------------------------
 // 4. App.tsx integration — verify every route is wrapped
 // ---------------------------------------------------------------------------
 
@@ -177,36 +141,10 @@ describe('App.tsx — RouteErrorBoundary coverage', () => {
     expect(APP_SRC).toContain("import { RouteErrorBoundary }");
   });
 
-  it('wraps the Landing route', () => {
-    expect(APP_SRC).toMatch(/routeName="Landing"/);
-  });
-
-  it('wraps the Ride route', () => {
-    expect(APP_SRC).toMatch(/routeName="Ride"/);
-  });
-
-  it('wraps the Explore route', () => {
-    expect(APP_SRC).toMatch(/routeName="Explore"/);
-  });
-
-  it('wraps the Companion route', () => {
-    expect(APP_SRC).toMatch(/routeName="Companion"/);
-  });
-
-  it('wraps the Replay route', () => {
-    expect(APP_SRC).toMatch(/routeName="Replay"/);
-  });
-
-  it('wraps the Home (app) route', () => {
-    expect(APP_SRC).toMatch(/routeName="Home"/);
-  });
-
-  it('wraps the Workout Builder route', () => {
-    expect(APP_SRC).toMatch(/routeName="Workout Builder"/);
-  });
-
-  it('wraps the Draw route', () => {
-    expect(APP_SRC).toMatch(/routeName="Draw"/);
+  it('wraps every page route: Home, Devices and Ride', () => {
+    for (const name of ['Home', 'Devices', 'Ride']) {
+      expect(APP_SRC, name).toMatch(new RegExp(`routeName="${name}"`));
+    }
   });
 });
 

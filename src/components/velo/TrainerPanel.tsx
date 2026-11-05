@@ -4,19 +4,15 @@
  * TrainerRow is the Devices page row: the same lib calls as the legacy
  * TrainerConnect (chooser on a tap, one-tap reconnect of a granted trainer,
  * disconnect, troubleshooting guide), rendered from devicesView.trainerRow.
- * ErgSwitch / DemoRiderSwitch / TrainerModeSwitch are rows of the Devices
- * Options panel. TrainerPanel is the older Home card, kept while Home still
- * renders it. The optional handlebar controls pair separately and never
- * touch the trainer link.
+ * DemoRiderSwitch / TrainerModeSwitch are rows of the Devices Options panel.
+ * The optional handlebar controls pair separately and never touch the
+ * trainer link.
  */
 
 import { useCallback, useEffect, useId, useState } from 'react';
 import { Gauge } from 'lucide-react';
-import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { BluetoothTroubleshooter } from '@/components/trainer/BluetoothTroubleshooter';
 import { Switch } from '@/components/velo/Switch';
-import { LiveWeatherSwitch } from '@/components/velo/WeatherControls';
-import { ControllerPanel } from '@/components/velo/ControllerPanel';
 import { DeviceRow } from '@/components/velo/DeviceRow';
 import {
   stepForErrorCode,
@@ -33,7 +29,6 @@ import {
 } from '@/lib/bluetoothSupport';
 import { checkGrantedTrainer, reconnectGrantedTrainer, useTrainerReconnectStore } from '@/lib/trainerReconnect';
 import { useRideStore } from '@/stores/rideStore';
-import { useSettingsStore } from '@/stores/settingsStore';
 
 /** A settings row: label + hint on the left, a switch on the right. */
 export function SwitchRow({
@@ -61,23 +56,6 @@ export function SwitchRow({
       </div>
       <Switch checked={checked} onChange={onChange} labelledBy={labelId} describedBy={hintId} />
     </div>
-  );
-}
-
-export function ErgSwitch() {
-  const ergEnabled = useSettingsStore((s) => s.ergEnabled);
-  const setSettings = useSettingsStore((s) => s.setSettings);
-  return (
-    <SwitchRow
-      label="Fixed power (ERG) in workouts"
-      hint={
-        ergEnabled
-          ? 'Workouts hold the trainer at their target power.'
-          : 'Off: workout targets are a guide, the trainer follows the road.'
-      }
-      checked={ergEnabled}
-      onChange={(next) => setSettings({ ergEnabled: next })}
-    />
   );
 }
 
@@ -259,36 +237,5 @@ export function TrainerRow() {
         onRetryConnect={canPair ? () => void handleConnect() : undefined}
       />
     </>
-  );
-}
-
-/** Separator + handlebar controls; empty (no stray border) without Web Bluetooth. */
-function ControllerSlot() {
-  return (
-    <div className="border-t border-border pt-4 empty:hidden">
-      <ControllerPanel />
-    </div>
-  );
-}
-
-/** The older Home card (pairing + ERG + live weather + handlebars). */
-export function TrainerPanel() {
-  return (
-    <section
-      aria-labelledby="trainer-panel-title"
-      className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 sm:p-6"
-    >
-      <h2 id="trainer-panel-title" className="text-lg font-semibold text-foreground">
-        Trainer and weather
-      </h2>
-      <TrainerConnect />
-      <div className="border-t border-border pt-4">
-        <ErgSwitch />
-      </div>
-      <div className="border-t border-border pt-4">
-        <LiveWeatherSwitch />
-      </div>
-      <ControllerSlot />
-    </section>
   );
 }
