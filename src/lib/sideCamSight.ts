@@ -15,7 +15,12 @@
  * move in close) and the other side is wide open.
  *
  * Pure and engine-free: the Cesium view passes a `topAt` callback that reads
- * the drawn top (photoreal mesh, plus the globe where it draws over it).
+ * the drawn top (photoreal mesh, plus the globe where it draws over it), or a
+ * `seenAt` callback that casts segments through the mesh (t_ee2165b8): from
+ * the bars to a camera spot, and down through the air under it. A cast sees a
+ * thin hedge or post anywhere on the line, where three tops along it see only
+ * what stands at those three spots, and it tells a canopy over the line (the
+ * camera may stand under it) from a solid on it (it may not).
  */
 
 import { AIM_HEIGHT_M } from '@/lib/world/cameraFraming';
@@ -70,6 +75,21 @@ export const SIGHT_SWITCH_HOLD_MS = 8000;
  * the Lugano shore (PR #47 review), so a refresh is spread over frames.
  */
 export const SIGHT_READS_PER_FRAME = 1;
+/**
+ * With segment casts (`seenAt`: one cast from the bars to the camera spot and
+ * one under it, lib/segmentHit) a spot costs about 0.1 ms once its tiles are
+ * copied (p50 0.1 ms, p90 0.2 ms a cast on cat-bed's iGPU over 300 s on the
+ * Lugano shore, t_ee2165b8; up to about 6 ms when a tile is first copied).
+ * A whole side's spots fit in one frame.
+ */
+export const SIGHT_RAY_READS_PER_FRAME = 4;
+/**
+ * With segment casts the spots are re-read once the rider has ridden this far
+ * (m). A 3 m hedge 5-7 m out fitted between two reads 3 m apart and filled the
+ * frame (Lugano 427 / 461 m, PR #47); casts are cheap enough to read every
+ * metre.
+ */
+export const SIGHT_RAY_SAMPLE_MOVE_M = 1;
 
 const EPS = 1e-6;
 
@@ -82,11 +102,33 @@ function usableTop(t: number | undefined): number | undefined {
 }
 
 /**
+ * Does a camera at offset `d`, `upM` over the rider's ground, stand clear of
+ * what is drawn under it and see the rider's bars over everything drawn at the
+ * closer {@link SIGHT_FRACTIONS} spots of `baseM`? `topAt` is read lazily
+ * (under the camera first, then outwards in), unusable tops (none, not a
+ * number, a coarse chord over {@link SIGHT_TOP_MAX_M} away) count as nothing.
+ */
+export function seenOverTops(topAt: SideTop, d: number, baseM: number, upM: number): boolean {
+  const under = usableTop(topAt(d));
+  if (under !== undefined && under > upM - SIGHT_CAMERA_CLEAR_M) return false;
+  // The line to the bars is checked at the fraction spots only: the last
+  // resort spot is read when the camera gets there, never on the way.
+  for (const f of SIGHT_FRACTIONS) {
+    const x = f * baseM;
+    if (x >= d - EPS) continue;
+    const t = usableTop(topAt(x));
+    const line = AIM_HEIGHT_M + ((upM - AIM_HEIGHT_M) * x) / d;
+    if (t !== undefined && t > line - SIGHT_LINE_CLEAR_M) return false;
+  }
+  return true;
+}
+
+/**
  * The farthest candidate offset ({@link SIGHT_FRACTIONS} of `baseM`, not under
  * `minM`) from which a camera `upM` over the rider's ground stands clear of
  * what is drawn under it and sees the rider's bars over everything drawn at
- * the closer spots. Undefined when none does. `topAt` is called lazily, at
- * most once per spot.
+ * the closer spots ({@link seenOverTops}). Undefined when none does. `topAt`
+ * is called lazily, at most once per spot.
  */
 export function clearSightOffset(
   topAt: SideTop,
@@ -95,29 +137,38 @@ export function clearSightOffset(
   minM: number = SIGHT_MIN_OFFSET_M,
 ): number | undefined {
   if (!(baseM > 0) || !Number.isFinite(upM)) return undefined;
-  const spots = sightSpots(baseM, minM);
   const memo = new Map<number, number | undefined>();
   const top = (x: number) => {
-    if (!memo.has(x)) memo.set(x, usableTop(topAt(x)));
+    if (!memo.has(x)) memo.set(x, topAt(x));
     return memo.get(x);
   };
-  // The line to the bars is checked at the fraction spots only: the last
-  // resort spot is read when the camera gets there, never on the way.
-  const along = SIGHT_FRACTIONS.map((f) => f * baseM);
-  for (const d of spots) {
-    const under = top(d);
-    if (under !== undefined && under > upM - SIGHT_CAMERA_CLEAR_M) continue;
-    let seen = true;
-    for (const x of along) {
-      if (x >= d - EPS) continue;
-      const t = top(x);
-      const line = AIM_HEIGHT_M + ((upM - AIM_HEIGHT_M) * x) / d;
-      if (t !== undefined && t > line - SIGHT_LINE_CLEAR_M) {
-        seen = false;
-        break;
-      }
-    }
-    if (seen) return d;
+  for (const d of sightSpots(baseM, minM)) {
+    if (seenOverTops(top, d, baseM, upM)) return d;
+  }
+  return undefined;
+}
+
+/**
+ * Does a camera at an offset see the rider's bars with air under it? (from a
+ * segment cast; false: something drawn is in the way, undefined: can't tell,
+ * which counts as seen, as nothing drawn does for a top).
+ */
+export type SideSeen = (offsetM: number) => boolean | undefined;
+
+/**
+ * The farthest candidate offset ({@link sightSpots}) a camera `upM` over the
+ * rider's ground sees the rider from, asked spot by spot (`seen`, called
+ * lazily, farthest first). Undefined when none does.
+ */
+export function firstSeenOffset(
+  seen: SideSeen,
+  baseM: number,
+  upM: number,
+  minM: number = SIGHT_MIN_OFFSET_M,
+): number | undefined {
+  if (!(baseM > 0) || !Number.isFinite(upM)) return undefined;
+  for (const d of sightSpots(baseM, minM)) {
+    if (seen(d) !== false) return d;
   }
   return undefined;
 }
@@ -175,6 +226,25 @@ export interface SightRequest {
    * nothing drawn there).
    */
   topAt: (side: 1 | -1, offsetM: number, aheadM: number) => number | undefined;
+  /**
+   * Given, it is asked instead of `topAt`, one spot at a time: does a camera
+   * at an offset on a side, `aheadM` along the heading, `upM` over the
+   * rider's ground, see the rider's bars with air under it? (segment casts
+   * from the bars to the camera spot and under it, renderers/cesium/sideCam).
+   * A cast sees a thin hedge or post anywhere on the line, and tells a canopy
+   * over the line (seen) from a solid on it (not seen), which three tops
+   * along the line can't. `baseM` is the pose offset the spots are fractions of.
+   */
+  seenAt?: (spot: SightSpot) => boolean | undefined;
+}
+
+/** A spot a camera might stand at (see {@link SightRequest.seenAt}). */
+export interface SightSpot {
+  side: 1 | -1;
+  offsetM: number;
+  aheadM: number;
+  upM: number;
+  baseM: number;
 }
 
 export interface SightPlacement {
@@ -207,8 +277,10 @@ interface SightJob {
   upM: number;
   minM: number;
   allowSwitch: boolean;
+  /** The refresh asks `seenAt` (segment casts) rather than reading tops. */
+  rays: boolean;
   /** Spots read so far, keyed by side, ahead / beside and offset. */
-  tops: Map<string, number | undefined>;
+  tops: Map<string, number | boolean | undefined>;
   /** Route distance the other side was first read beside the rider at (m). */
   besideAt: number | undefined;
   /** The camera's own side has been read (and its read put in the history). */
@@ -230,7 +302,10 @@ const READS_SPENT = Symbol('sight reads spent');
  *
  * A refresh takes 3 reads on open ground and up to 12 when it has to move in
  * and look across the road; it takes at most {@link SIGHT_READS_PER_FRAME} of
- * them per frame and finishes over the next frames.
+ * them per frame and finishes over the next frames. With segment casts
+ * (`seenAt`) each spot is one read (1 on open ground, at most 12 as above),
+ * {@link SIGHT_RAY_READS_PER_FRAME} of them a frame, and a refresh is due
+ * every {@link SIGHT_RAY_SAMPLE_MOVE_M} ridden.
  */
 export function createSideCamSight() {
   let lastMs = -Infinity;
@@ -245,6 +320,8 @@ export function createSideCamSight() {
   let switchedAt = -Infinity;
   let switches = 0;
   let reads = 0;
+  /** The last refresh cast segments (seenAt) rather than reading tops. */
+  let rayReads = false;
   let job: SightJob | null = null;
 
   /**
@@ -253,27 +330,39 @@ export function createSideCamSight() {
    * set when it crossed the road.
    */
   function work(j: SightJob, req: SightRequest): { done: boolean; cut: boolean } {
-    let budget = SIGHT_READS_PER_FRAME;
+    let budget = j.rays ? SIGHT_RAY_READS_PER_FRAME : SIGHT_READS_PER_FRAME;
     // Spots at the lead stay where the refresh started them; the ones beside
     // the rider (for a cut) are where the rider was when they were first read.
+    const fetch = (s: 1 | -1, beside: boolean, x: number, ask: (aheadM: number) => number | boolean | undefined) => {
+      const key = `${s} ${beside ? 'beside' : 'lead'} ${x}`;
+      if (j.tops.has(key)) return j.tops.get(key);
+      if (budget <= 0) throw READS_SPENT;
+      budget--;
+      reads++;
+      if (beside) j.besideAt ??= req.distanceM;
+      const at = beside ? (j.besideAt ?? req.distanceM) : j.at + j.lead;
+      const v = ask(at - req.distanceM);
+      j.tops.set(key, v);
+      return v;
+    };
+    const seenAt = req.seenAt;
     const read = (s: 1 | -1, beside: boolean) =>
-      clearSightOffset(
-        (x) => {
-          const key = `${s} ${beside ? 'beside' : 'lead'} ${x}`;
-          if (j.tops.has(key)) return j.tops.get(key);
-          if (budget <= 0) throw READS_SPENT;
-          budget--;
-          reads++;
-          if (beside) j.besideAt ??= req.distanceM;
-          const at = beside ? (j.besideAt ?? req.distanceM) : j.at + j.lead;
-          const top = req.topAt(s, x, at - req.distanceM);
-          j.tops.set(key, top);
-          return top;
-        },
-        j.baseM,
-        j.upM,
-        j.minM,
-      );
+      j.rays && seenAt
+        ? firstSeenOffset(
+            (x) =>
+              fetch(s, beside, x, (aheadM) => seenAt({ side: s, offsetM: x, aheadM, upM: j.upM, baseM: j.baseM })) as
+                | boolean
+                | undefined,
+            j.baseM,
+            j.upM,
+            j.minM,
+          )
+        : clearSightOffset(
+            (x) => fetch(s, beside, x, (aheadM) => req.topAt(s, x, aheadM)) as number | undefined,
+            j.baseM,
+            j.upM,
+            j.minM,
+          );
     try {
       const full = j.baseM - EPS;
       if (!j.hereDone) {
@@ -339,14 +428,22 @@ export function createSideCamSight() {
       }
       // No crossing any more (the painted road is drawn now): the far side's reads are moot.
       if (job !== null && job.cross && !req.allowSwitch) job = null;
+      // The reader changed kind (casts came or went): start the refresh over with it.
+      const rays = req.seenAt !== undefined;
+      if (job !== null && job.rays !== rays) {
+        job = null;
+        lastMs = -Infinity;
+      }
+      const moveM = rays ? SIGHT_RAY_SAMPLE_MOVE_M : SIGHT_SAMPLE_MOVE_M;
       const due =
         req.nowMs - lastMs >= SIGHT_SAMPLE_MS ||
-        !(Math.abs(req.distanceM - lastDist) < SIGHT_SAMPLE_MOVE_M) ||
+        !(Math.abs(req.distanceM - lastDist) < moveM) ||
         !(Math.abs(req.baseM - lastBase) < SIGHT_BASE_MOVE_M);
       if (job === null && due) {
         lastMs = req.nowMs;
         lastDist = req.distanceM;
         lastBase = req.baseM;
+        rayReads = rays;
         job = {
           at: req.distanceM,
           lead: Math.max(0, req.leadM ?? 0),
@@ -355,6 +452,7 @@ export function createSideCamSight() {
           upM: req.upM,
           minM,
           allowSwitch: req.allowSwitch,
+          rays,
           tops: new Map(),
           besideAt: undefined,
           hereDone: false,
@@ -405,7 +503,7 @@ export function createSideCamSight() {
     },
     /** Read-only numbers for probes (__veloRideDebug().sideCam). */
     debug() {
-      return { side, frac, targetFrac, clear, switches, reads, ahead: history.length, pending: job !== null };
+      return { side, frac, targetFrac, clear, switches, reads, rays: rayReads, ahead: history.length, pending: job !== null };
     },
   };
 }

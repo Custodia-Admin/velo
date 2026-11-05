@@ -3,21 +3,44 @@
  *
  * The sideTracking and cinematic cameras stand 3-4 m up beside the road,
  * where the hillside, house fronts and palms are. Here the view's pose for
- * them is handed to lib/sideCamSight with a reader for the top of what is
- * drawn (photoreal mesh, plus the globe where it draws over the mesh), and
+ * them is handed to lib/sideCamSight with a reader for what is drawn, and
  * comes back moved in to where the camera sees the rider, or across the road.
+ *
+ * The reader casts segments through the mesh drawn this frame (t_ee2165b8):
+ * from the rider's bars to the camera spot, and from the spot down through the
+ * air the camera keeps under it. A thin hedge or post anywhere on the line is
+ * seen, and a canopy over the line is told from a solid on it. The globe,
+ * where it draws over the mesh, is read as tops. Without the model reader the
+ * casts walk the tiles with, the reader falls back to the top of what is drawn
+ * (photoreal mesh, plus the globe) at a few spots on the line (t_1ec01b75).
  */
-import type { Scene } from 'cesium';
+import * as Cesium from 'cesium';
 
 import type { CameraMode, CameraPose } from '@/lib/cesiumCameras';
 import { CORRIDOR_CLEARANCE_M, CORRIDOR_HALF_WIDTH_M, sideTrackSideFromPose } from '@/lib/cesiumCameras';
-import { drawnTopHeight, meshTopHeight, sceneEle, sightReadable } from '@/lib/cesiumUtils';
-import { createSideCamSight, poseLookingAtRider, SIGHT_MIN_OFFSET_M, sightLeadM } from '@/lib/sideCamSight';
+import {
+  drawnTopHeight,
+  meshSegmentHit,
+  meshTopHeight,
+  sceneEle,
+  sightRaysReadable,
+  sightReadable,
+} from '@/lib/cesiumUtils';
+import {
+  createSideCamSight,
+  poseLookingAtRider,
+  seenOverTops,
+  SIGHT_CAMERA_CLEAR_M,
+  SIGHT_MIN_OFFSET_M,
+  sightLeadM,
+  type SightSpot,
+} from '@/lib/sideCamSight';
+import { AIM_HEIGHT_M } from '@/lib/world/cameraFraming';
 
 export type SideCamSight = ReturnType<typeof createSideCamSight>;
 
 export interface SideCamInput {
-  scene: Scene;
+  scene: Cesium.Scene;
   sight: SideCamSight;
   mode: CameraMode;
   /** The mode's pose (offset from the rider's ground point). */
@@ -61,6 +84,36 @@ export function placeSideCam(i: SideCamInput): CameraPose {
   const fx = Math.sin(i.heading);
   const fy = Math.cos(i.heading);
   const expect = sceneEle(i.routeEle);
+  /** East / north metres from the rider of the spot `offsetM` out on a side, `aheadM` along the heading. */
+  const spotEN = (side: 1 | -1, offsetM: number, aheadM: number) => {
+    const k = side === poseSide ? offsetM : -offsetM;
+    return { e: fx * aheadM + ux * k, n: fy * aheadM + uy * k };
+  };
+  /** Top drawn at a spot (m over the rider's ground): the mesh read there (`withMesh`) and the globe where it draws over it. */
+  const topAt = (side: 1 | -1, offsetM: number, aheadM: number, withMesh: boolean) => {
+    const p = spotEN(side, offsetM, aheadM);
+    const lon = i.lon + p.e / mLon;
+    const lat = i.lat + p.n / M_PER_DEG_LAT;
+    const mesh = withMesh ? meshTopHeight(i.scene, lon, lat) : undefined;
+    const top = drawnTopHeight(i.scene, lon, lat, mesh, expect);
+    return top === undefined ? undefined : top - i.groundEle;
+  };
+  // Segment casts: east-north-up metres from the rider's ground point to world space.
+  let enu: Cesium.Matrix4 | undefined;
+  const world = (e: number, n: number, u: number) => {
+    enu ??= Cesium.Transforms.eastNorthUpToFixedFrame(Cesium.Cartesian3.fromDegrees(i.lon, i.lat, i.groundEle));
+    return Cesium.Matrix4.multiplyByPoint(enu, new Cesium.Cartesian3(e, n, u), new Cesium.Cartesian3());
+  };
+  const seenAt = (s: SightSpot): boolean => {
+    const bars = spotEN(s.side, 0, s.aheadM);
+    const cam = spotEN(s.side, s.offsetM, s.aheadM);
+    const camAt = world(cam.e, cam.n, s.upM);
+    // The line from the bars to the camera, then the air under the camera.
+    if (meshSegmentHit(i.scene, world(bars.e, bars.n, AIM_HEIGHT_M), camAt) !== undefined) return false;
+    if (meshSegmentHit(i.scene, camAt, world(cam.e, cam.n, s.upM - SIGHT_CAMERA_CLEAR_M)) !== undefined) return false;
+    // The globe, where it draws over the mesh: a height field, read as tops.
+    return seenOverTops((x) => topAt(s.side, x, s.aheadM, false), s.offsetM, s.baseM, s.upM);
+  };
   const placed = i.sight.update({
     nowMs: i.nowMs,
     dt: i.dt,
@@ -72,13 +125,8 @@ export function placeSideCam(i: SideCamInput): CameraPose {
     // With the painted road drawn the camera stays out of its corridor.
     minM: i.roadPainted ? CORRIDOR_HALF_WIDTH_M + CORRIDOR_CLEARANCE_M : SIGHT_MIN_OFFSET_M,
     allowSwitch: i.mode === 'sideTracking' && !i.roadPainted,
-    topAt: (side, offsetM, aheadM) => {
-      const k = side === poseSide ? offsetM : -offsetM;
-      const lon = i.lon + (fx * aheadM + ux * k) / mLon;
-      const lat = i.lat + (fy * aheadM + uy * k) / M_PER_DEG_LAT;
-      const top = drawnTopHeight(i.scene, lon, lat, meshTopHeight(i.scene, lon, lat), expect);
-      return top === undefined ? undefined : top - i.groundEle;
-    },
+    topAt: (side, offsetM, aheadM) => topAt(side, offsetM, aheadM, true),
+    seenAt: sightRaysReadable(i.scene) ? seenAt : undefined,
   });
   const k = (placed.side === poseSide ? 1 : -1) * placed.offsetM;
   return poseLookingAtRider(ux * k, uy * k, off.z, i.pose.roll);

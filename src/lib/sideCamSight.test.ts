@@ -12,10 +12,14 @@ import { computeCameraPose, riderAimPitchRad, SIDE_TRACK_OFFSET_M, SIDE_TRACK_UP
 import {
   clearSightOffset,
   createSideCamSight,
+  firstSeenOffset,
   poseLookingAtRider,
+  seenOverTops,
   SIGHT_LEAD_MAX_M,
   SIGHT_MIN_OFFSET_M,
   SIGHT_PULL_TAU_S,
+  SIGHT_RAY_READS_PER_FRAME,
+  SIGHT_RAY_SAMPLE_MOVE_M,
   SIGHT_RELEASE_TAU_S,
   SIGHT_SAMPLE_MOVE_M,
   SIGHT_SAMPLE_MS,
@@ -23,6 +27,7 @@ import {
   sightLeadM,
   sightSpots,
   type SightRequest,
+  type SightSpot,
 } from '@/lib/sideCamSight';
 
 const BASE = SIDE_TRACK_OFFSET_M; // 9 m
@@ -644,5 +649,167 @@ describe('createSideCamSight: starting over', () => {
 
   it('a camera height that is not a number reads nothing as clear', () => {
     expect(clearSightOffset(flat, BASE, Number.NaN)).toBeUndefined();
+  });
+});
+
+describe('seenOverTops / firstSeenOffset: one spot at a time', () => {
+  it('seenOverTops is clearSightOffset for one spot: air under the camera, the line over the closer spots', () => {
+    // A 2.5 m hedge at 6.75 m: hides the bars from 9 m, not from 6.75 m (it stands under it: no air).
+    const hedge = (x: number) => (Math.abs(x - 6.75) < 0.01 ? 2.5 : 0);
+    expect(seenOverTops(hedge, 9, BASE, UP)).toBe(false);
+    expect(seenOverTops(hedge, 6.75, BASE, UP)).toBe(false);
+    expect(seenOverTops(hedge, 4.5, BASE, UP)).toBe(true);
+    // Coarse chords and nothing drawn count as nothing.
+    expect(seenOverTops(() => 505.7, 9, BASE, UP)).toBe(true);
+    expect(seenOverTops(() => undefined, 9, BASE, UP)).toBe(true);
+    // Only the fraction spots closer than the camera are on the line: from
+    // 4.5 m, a wall at 6.75 m is behind it.
+    const read: number[] = [];
+    seenOverTops((x) => (read.push(x), 0), 4.5, BASE, UP);
+    expect(read).toEqual([4.5]);
+    read.length = 0;
+    seenOverTops((x) => (read.push(x), 0), BASE, BASE, UP);
+    expect(read).toEqual([9, 6.75, 4.5]);
+  });
+
+  it('firstSeenOffset: the farthest spot seen, asked farthest first and no further', () => {
+    const asked: number[] = [];
+    expect(firstSeenOffset((x) => (asked.push(x), x < 5), BASE, UP)).toBe(4.5);
+    expect(asked).toEqual([9, 6.75, 4.5]);
+    // Can't tell is seen (as nothing drawn).
+    expect(firstSeenOffset(() => undefined, BASE, UP)).toBe(BASE);
+    // Nowhere: undefined, after the road edge.
+    asked.length = 0;
+    expect(firstSeenOffset((x) => (asked.push(x), false), BASE, UP)).toBeUndefined();
+    expect(asked).toEqual([9, 6.75, 4.5, SIGHT_MIN_OFFSET_M]);
+    // The painted road's corridor as the closest offset.
+    expect(firstSeenOffset((x) => x < 5, BASE, UP, 4.5)).toBe(4.5);
+    // No offset, or a height that is not a number: nothing asked, nothing seen.
+    expect(firstSeenOffset(() => true, 0, UP)).toBeUndefined();
+    expect(firstSeenOffset(() => true, BASE, Number.NaN)).toBeUndefined();
+  });
+});
+
+describe('createSideCamSight with segment casts (seenAt)', () => {
+  /** seenAt over a top-profile world (the same rule as the tops, one read per spot). */
+  function sightRig(world: World, opts: Partial<SightRequest> = {}) {
+    const sight = createSideCamSight();
+    let t = 0;
+    let dist = 0;
+    let tops = 0;
+    const perUpdate: number[] = [];
+    const spots: Array<SightSpot & { frame: number }> = [];
+    const step = (mps: number, over: Partial<SightRequest> = {}) => {
+      const frame = perUpdate.length;
+      let seen = 0;
+      const req: SightRequest = {
+        nowMs: t,
+        dt: 1 / 60,
+        distanceM: dist,
+        side: 1,
+        baseM: BASE,
+        upM: UP,
+        allowSwitch: true,
+        topAt: () => {
+          tops++;
+          return 0;
+        },
+        seenAt: (s) => {
+          seen++;
+          spots.push({ ...s, frame });
+          const at = req.distanceM + s.aheadM;
+          const side = s.side === 1 ? world.right : world.left;
+          return seenOverTops((x) => side(x, at), s.offsetM, s.baseM, s.upM);
+        },
+        ...opts,
+        ...over,
+      };
+      const p = sight.update(req);
+      perUpdate.push(seen);
+      t += 1000 / 60;
+      dist += mps / 60;
+      return p;
+    };
+    return { sight, step, perUpdate, spots, tops: () => tops };
+  }
+
+  it('asks spot by spot, never reads a top: open ground is one cast a refresh', () => {
+    const c = sightRig({ right: flat, left: flat });
+    for (let f = 0; f < 123; f++) c.step(0);
+    // Standing still: a refresh every SIGHT_SAMPLE_MS (0, 400, 800, 1200, 1600, 2000 ms).
+    expect(c.perUpdate.reduce((a, b) => a + b, 0)).toBe(Math.floor(2033 / SIGHT_SAMPLE_MS) + 1);
+    expect(c.tops()).toBe(0);
+    expect(c.sight.debug()).toMatchObject({ rays: true, side: 1, frac: 1 });
+  });
+
+  it('re-reads every SIGHT_RAY_SAMPLE_MOVE_M ridden (a 3 m hedge fitted between reads 3 m apart)', () => {
+    expect(SIGHT_RAY_SAMPLE_MOVE_M).toBe(1);
+    const c = sightRig({ right: flat, left: flat });
+    // 20 m/s for 350 ms: 7 m, inside one refresh interval.
+    for (let f = 0; f < 21; f++) c.step(20);
+    const refreshes = c.perUpdate.filter((n) => n > 0).length;
+    expect(refreshes).toBeGreaterThanOrEqual(6);
+    expect(refreshes).toBeLessThanOrEqual(8);
+  });
+
+  it('hands each spot over with the lead, the camera height and the pose offset of its refresh', () => {
+    const c = sightRig({ right: profile(LUGANO.d193.cam), left: flat }, { leadM: 5.6, allowSwitch: false });
+    c.step(8);
+    expect(c.spots.map((s) => s.offsetM)).toEqual([9, 6.75, 4.5]);
+    for (const s of c.spots) expect(s).toMatchObject({ side: 1, aheadM: 5.6, upM: UP, baseM: BASE, frame: 0 });
+  });
+
+  it(`up to SIGHT_RAY_READS_PER_FRAME spots a frame: the closed side and the cut (Lugano 2032 m) in two frames`, () => {
+    expect(SIGHT_RAY_READS_PER_FRAME).toBe(4);
+    // Its own side closed (4 spots), the far side open ahead (1) and beside the rider (1).
+    const c = sightRig({ right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) });
+    const placed = [c.step(8), c.step(8), c.step(8)];
+    expect(c.perUpdate).toEqual([4, 2, 0]);
+    expect(placed[0]).toEqual({ side: 1, offsetM: BASE, clear: false });
+    expect(placed[1]).toEqual({ side: -1, offsetM: BASE, clear: true });
+    expect(c.sight.cuts()).toBe(1);
+    // On the second frame the far side is cast where the refresh started
+    // (ahead 0 then, 13 cm behind the rider now) and beside the rider.
+    const far = c.spots.filter((s) => s.side === -1);
+    expect(far.map((s) => s.frame)).toEqual([1, 1]);
+    expect(far[0].aheadM).toBeCloseTo(-8 / 60, 9);
+    expect(far[1].aheadM).toBe(0);
+  });
+
+  it('the reader changing kind mid-refresh starts the refresh over with the new one at once', () => {
+    const world: World = { right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) };
+    const c = sightRig(world);
+    c.step(8);
+    expect(c.sight.debug()).toMatchObject({ pending: true, rays: true });
+    // The casts go (no seenAt): the next frame reads tops for a fresh refresh.
+    let topReads = 0;
+    c.step(8, {
+      seenAt: undefined,
+      topAt: (side, x, ahead) => {
+        topReads++;
+        return side === 1 ? world.right(x, ahead) : world.left(x, ahead);
+      },
+    });
+    expect(topReads).toBe(1);
+    expect(c.sight.debug()).toMatchObject({ pending: true, rays: false });
+    // And back: the casts start over too.
+    c.step(8);
+    expect(c.perUpdate[2]).toBe(SIGHT_RAY_READS_PER_FRAME);
+    expect(c.sight.debug().rays).toBe(true);
+  });
+
+  it('a wall cast ahead holds the camera in until it has ridden past it, then out as a slow dolly', () => {
+    // 20-32 m along the road a wall from 5 m on its side; walled across the road from 3 m.
+    const world: World = {
+      right: (x, at) => (at >= 20 && at <= 32 && x >= 5 ? 12 : 0),
+      left: (x) => (x >= 3 ? 12 : 0),
+    };
+    const c = sightRig(world, { leadM: 5.6 });
+    const off: Array<[number, number]> = [];
+    for (let f = 0; f <= 60 * 8; f++) off.push([(8 * f) / 60, c.step(8).offsetM]);
+    const x = (n: number) => off.find(([m]) => m >= n)![1];
+    expect(x(10)).toBeCloseTo(BASE, 3);
+    for (let n = 20; n <= 32; n++) expect(x(n)).toBeCloseTo(4.5, 1);
+    expect(x(62)).toBeGreaterThan(BASE - 0.3);
   });
 });
