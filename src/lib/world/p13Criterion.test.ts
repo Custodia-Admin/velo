@@ -1,9 +1,10 @@
 /**
  * Blueprint §P1.3 v2 terrain accuracy criterion (tools/worldbake/p13Criterion.mjs):
  * the GLO-90 node rule, the terrain class, the bound, the pass rule, the
- * recipe/report `validation` block, and every committed world against it.
+ * recipe/report `validation` block, the bake's and validate.mjs's side
+ * effects, and every committed world against it.
  */
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -37,6 +38,10 @@ import {
 } from '../../../tools/worldbake/p13Criterion.mjs';
 import { DEM_SOURCES, demSourceOf } from '../../../tools/worldbake/demSource.mjs';
 import { nodeQueryPoints, openMeteoCacheKey, openMeteoUrl, samplePoints, validateHeightfield } from '../../../tools/worldbake/validateDem.mjs';
+import { finishBake, generatorFor, readRecipe } from '../../../tools/worldbake/bake.mjs';
+import { loadBakedWorld, validateBaked } from '../../../tools/worldbake/validate.mjs';
+import { buildHeightfield } from '../../../tools/worldbake/buildHeightfield.mjs';
+import { gzip, stableJson } from '../../../tools/worldbake/util.mjs';
 
 const repo = (rel: string) => fileURLToPath(new URL(`../../../${rel}`, import.meta.url));
 const readJson = (rel: string) => JSON.parse(readFileSync(repo(rel), 'utf8'));
@@ -47,6 +52,72 @@ const WORLDS = readdirSync(repo('tools/worldbake/worlds'))
 type Block = Record<string, unknown>;
 const NO_OVERRIDE = { sampleSeed: 1, override: null, overrideReason: null };
 const figures = { registeredRmsM: 5, pointRmsM: 7, maxAbsRegisteredErrM: 12 };
+
+// Open-Meteo answers come from the cache only: a network fetch fails at once
+// (`fatal` skips cachedFetch's retries), so no test reaches the live API.
+beforeAll(() => {
+  vi.stubGlobal('fetch', async () => {
+    throw Object.assign(new Error('network fetch in a unit test'), { fatal: true });
+  });
+});
+afterAll(() => vi.unstubAllGlobals());
+
+/** The synthetic world: 3 × 3 km at 15 m around 46° N 9° E. */
+const projection = createProjection({ type: 'tmerc', ellipsoid: 'WGS84', lat0: 46, lon0: 9, k0: 1 });
+const grid = { cols: 201, rows: 201, cellSize: 15, xMin: -1500, yMax: 1500 };
+const extent = { xMin: -1500, xMax: 1500, yMin: -1500, yMax: 1500 };
+const SEED = 4242;
+/** Heights z(x, y) in metres at every node of the synthetic grid. */
+function heights(z: (x: number, y: number) => number) {
+  const out = new Float64Array(grid.cols * grid.rows);
+  for (let r = 0; r < grid.rows; r++) for (let c = 0; c < grid.cols; c++) out[r * grid.cols + c] = z(grid.xMin + c * 15, grid.yMax - r * 15);
+  return out;
+}
+/** A heightfield of z(x, y) metres, quantised at 1/32 m. */
+function field(z: (x: number, y: number) => number) {
+  const data = Uint16Array.from(heights(z), (h) => Math.round(h * 32));
+  return new Heightfield({ ...grid, heightOffset: 0, heightScale: 1 / 32 }, data);
+}
+/**
+ * Cache Open-Meteo "answers" under `cacheDir`/open-meteo for the synthetic
+ * world's samples: the heightfield at each sample's GLO-90 node plus
+ * `err(i)`; the diagnostic node query answers `nodeShift` metres off that.
+ */
+function seedOpenMeteo(cacheDir: string, hf: Heightfield, err: (i: number) => number, nodeShift = 0) {
+  const pts = samplePoints({ projection, extent, sampleSeed: SEED });
+  const nodes = pts.map((p: { lat: number; lon: number }) => glo90Node(p.lat, p.lon));
+  const atNode = nodes.map((n: { lat: number; lon: number }) => hf.sampleHeight(...projection.forward(n.lat, n.lon)));
+  const answers = atNode.map((h: number, i: number) => h + err(i));
+  mkdirSync(join(cacheDir, 'open-meteo'), { recursive: true });
+  const put = (q: { lat: number; lon: number }[], elevation: number[]) => writeFileSync(join(cacheDir, 'open-meteo', openMeteoCacheKey(openMeteoUrl(q))), JSON.stringify({ elevation }));
+  put(pts, answers);
+  put(nodeQueryPoints(nodes), answers.map((a: number) => a + nodeShift));
+}
+const alternating = (m: number) => (i: number) => (i % 2 ? -m : m);
+/** 21.8°: every inner node steep, so the world is mountain (bound 6.24 m). */
+const steepRamp = (x: number) => 1000 + 0.4 * x;
+/** A recipe for the synthetic world, as a bake reads it. */
+function synthRecipe(validation: Block = { sample_seed: SEED }) {
+  return {
+    id: 'synth',
+    name: 'Synthetic',
+    origin: { lat: 46, lon: 9 },
+    grid,
+    dem: { zoom: 12 },
+    osmDate: '2026-10-01T00:00:00Z',
+    routes: [],
+    snap: { stepM: 10, coreCells: 1.5, falloffM: 40 },
+    validation,
+  };
+}
+const recipeText = (recipe: object) => `${JSON.stringify(recipe, null, 2)}\n`;
+function withTempDir<T>(fn: (dir: string) => T): T {
+  const dir = mkdtempSync(join(tmpdir(), 'p13-'));
+  const out = fn(dir);
+  if (out instanceof Promise) return out.finally(() => rmSync(dir, { recursive: true, force: true })) as T;
+  rmSync(dir, { recursive: true, force: true });
+  return out;
+}
 
 describe('P1.3 v2: bound', () => {
   it('derives 6.00 m standard and 6.24 m mountain from √(floor² + 6²)', () => {
@@ -184,6 +255,17 @@ describe('P1.3 v2: steep fraction (Horn 3×3)', () => {
     expect(steepFraction(tall)).toBeCloseTo(8 / 9, 12);
   });
 
+  it('weighs the centre row and column of the window twice and the corners once', () => {
+    // A 3×3 grid has one inner node, (1, 1). Raise one neighbour by Δ = 1.3 m (h = 1 m).
+    // On the centre row or column Horn gives |g| = 2Δ/8h = 0.325 → 18.0° (steep); an
+    // unweighted sum (×4/3, which keeps a plane's slope) gives Δ/6h = 0.217 → 12.2°.
+    // On a corner Horn gives hypot(Δ/8h, Δ/8h) = 0.230 → 12.9° (not steep); unweighted
+    // in x or in y alone it is hypot(Δ/6h, Δ/8h) = 0.271 → 15.2° (steep).
+    const raised = (col: number, row: number) => hf(3, 3, 1, (x, y) => (x === col && y === -row ? 1.3 : 0));
+    for (const [col, row] of [[2, 1], [0, 1], [1, 2], [1, 0]]) expect(steepFraction(raised(col, row)), `centre line (${col}, ${row})`).toBe(1);
+    for (const [col, row] of [[0, 0], [2, 0], [0, 2], [2, 2]]) expect(steepFraction(raised(col, row)), `corner (${col}, ${row})`).toBe(0);
+  });
+
   it('needs a 3×3 grid', () => {
     expect(() => steepFraction(hf(2, 5, 10, () => 0))).toThrow(RangeError);
   });
@@ -297,41 +379,21 @@ describe('P1.3 v2: validation block', () => {
 });
 
 describe('P1.3 v2: validateHeightfield on a synthetic world (cached answers, no network)', () => {
-  const projection = createProjection({ type: 'tmerc', ellipsoid: 'WGS84', lat0: 46, lon0: 9, k0: 1 });
-  const grid = { cols: 201, rows: 201, cellSize: 15, xMin: -1500, yMax: 1500 };
-  const extent = { xMin: -1500, xMax: 1500, yMin: -1500, yMax: 1500 };
-  /** A heightfield of z(x, y) metres, quantised at 1/32 m. */
-  function field(z: (x: number, y: number) => number) {
-    const data = new Uint16Array(grid.cols * grid.rows);
-    for (let r = 0; r < grid.rows; r++) for (let c = 0; c < grid.cols; c++) data[r * grid.cols + c] = Math.round(z(grid.xMin + c * 15, grid.yMax - r * 15) * 32);
-    return new Heightfield({ ...grid, heightOffset: 0, heightScale: 1 / 32 }, data);
-  }
   /**
    * Run the check with Open-Meteo "answering" the heightfield at each
    * sample's GLO-90 node plus `err(i)`; the diagnostic node query answers
    * `nodeShift` metres off that, to prove it never gates.
    */
   async function run(hf: Heightfield, err: (i: number) => number, nodeShift = 0) {
-    const dir = mkdtempSync(join(tmpdir(), 'p13-'));
-    try {
-      const recipe = { validation: { sample_seed: 4242 } };
-      const pts = samplePoints({ projection, extent, sampleSeed: 4242 });
-      const nodes = pts.map((p: { lat: number; lon: number }) => glo90Node(p.lat, p.lon));
-      const atNode = nodes.map((n: { lat: number; lon: number }) => hf.sampleHeight(...projection.forward(n.lat, n.lon)));
-      const answers = atNode.map((h: number, i: number) => h + err(i));
-      mkdirSync(join(dir, 'open-meteo'));
-      const put = (q: { lat: number; lon: number }[], elevation: number[]) => writeFileSync(join(dir, 'open-meteo', openMeteoCacheKey(openMeteoUrl(q))), JSON.stringify({ elevation }));
-      put(pts, answers);
-      put(nodeQueryPoints(nodes), answers.map((a: number) => a + nodeShift));
+    return withTempDir(async (dir) => {
+      seedOpenMeteo(dir, hf, err, nodeShift);
+      const recipe = { validation: { sample_seed: SEED } };
       return await validateHeightfield({ hf, projection, extent, recipe, demSource: 'copernicus-glo30', cacheDir: dir });
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    });
   }
-  const alternating = (m: number) => (i: number) => (i % 2 ? -m : m);
 
   it('gates a steep world on the node reading against the sample\'s answer, with the mountain bound', async () => {
-    const steep = field((x) => 1000 + 0.4 * x); // 21.8°, every inner node steep
+    const steep = field(steepRamp);
     const { block, report } = await run(steep, alternating(3), 100);
     expect(block).toMatchObject({ sample_seed: 4242, sample_count: 50, terrain_class: 'mountain', steep_fraction: 1, bound_m: 6.24, registered_rms_m: 3, max_abs_registered_err_m: 3, pass: true });
     // At the sample itself the slope adds the in-cell offset: reported, never gating.
@@ -363,6 +425,191 @@ describe('P1.3 v2: validateHeightfield on a synthetic world (cached answers, no 
     expect(pts.map((p: { lat: number; lon: number }) => [p.lat, p.lon])).toEqual(
       readJson('tools/worldbake/reports/lugano.json').validation.points.map((p: { lat: number; lon: number }) => [p.lat, p.lon]),
     );
+  });
+});
+
+describe('P1.3 v2: the bake reads the recipe first (readRecipe)', () => {
+  it('reads every committed recipe', () => {
+    for (const id of WORLDS) {
+      const { recipe, demSource } = readRecipe(repo(`tools/worldbake/worlds/${id}.json`));
+      expect(recipe.id).toBe(id);
+      expect(demSource).toBe(demSourceOf(recipe));
+    }
+  });
+
+  it('stops on a bad validation block before any download or output', () => {
+    withTempDir((dir) => {
+      const at = (validation?: Block) => {
+        const path = join(dir, 'w.json');
+        const { validation: _v, ...rest } = synthRecipe();
+        writeFileSync(path, recipeText(validation ? { ...rest, validation } : rest));
+        return () => readRecipe(path);
+      };
+      expect(at({ seed: 46059, samples: 50, maxRmsM: 6 })).toThrow(/v1 field: renamed to "sample_seed"/);
+      expect(at()).toThrow(/needs a "validation" object/);
+      expect(at({ sample_seed: 1, terrain_class_override: 'standard', terrain_class_override_reason: 'flat' })).toThrow(/never down to "standard"/);
+      expect(at({ sample_seed: 1 })()).toMatchObject({ demSource: 'aws-terrain-tiles', recipe: { id: 'synth' } });
+    });
+  });
+});
+
+describe('P1.3 v2: the bake\'s last step (finishBake)', () => {
+  const steep = field(steepRamp);
+  /** finishBake on the synthetic world in `dir`: recipe, report path and log lines. */
+  async function finish(dir: string, { validate = true, demSource = 'aws-terrain-tiles', err = alternating(6.25) } = {}) {
+    const recipePath = join(dir, 'worlds', 'synth.json');
+    mkdirSync(join(dir, 'worlds'));
+    const recipe = synthRecipe();
+    writeFileSync(recipePath, recipeText(recipe));
+    const cacheDir = join(dir, 'cache', 'synth');
+    if (validate) seedOpenMeteo(cacheDir, steep, err);
+    const reportPath = join(dir, 'reports', 'synth.json'); // the bake creates reports/
+    const timings: Record<string, number> = { dem: 1.5 };
+    const lines: string[] = [];
+    const written = await finishBake({
+      validate,
+      // Without the check `check` is never read: a run would throw on it.
+      check: validate ? { hf: steep, projection, extent, recipe, demSource, cacheDir } : null,
+      report: { world: 'synth', timingsS: timings, overpass: { osmDate: recipe.osmDate } },
+      timings,
+      t0: Date.now(),
+      reportPath,
+      recipePath,
+      log: (m: string) => lines.push(m),
+    });
+    return { written, recipe, recipePath, reportPath, lines };
+  }
+
+  it('records a FAIL and returns: the report and the recipe get the block', async () => {
+    await withTempDir(async (dir) => {
+      const { written, recipe, recipePath, reportPath, lines } = await finish(dir);
+      expect(written.validation).toMatchObject({ terrain_class: 'mountain', bound_m: 6.24, registered_rms_m: 6.25, pass: false });
+      expect(written.validation.points).toHaveLength(P13_SAMPLE_COUNT);
+      const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+      expect(report).toEqual(written);
+      expect(Object.keys(report)).toEqual(['world', 'timingsS', 'overpass', 'validation']);
+      expect(Object.keys(report.timingsS)).toEqual(['dem', 'validate', 'total']);
+      // P1.3.9: the block goes into the recipe, the rest of the recipe as it was.
+      const after = JSON.parse(readFileSync(recipePath, 'utf8'));
+      expect(Object.keys(after.validation)).toEqual(['sample_seed', ...VALIDATION_OUTPUT_KEYS]);
+      expect(after.validation).toEqual(Object.fromEntries(Object.keys(after.validation).map((k) => [k, written.validation[k]])));
+      expect({ ...after, validation: null }).toEqual({ ...recipe, validation: null });
+      expect(lines[0]).toMatch(/registered RMS 6\.25 m vs bound 6\.24 m → FAIL/);
+      expect(lines[1]).toMatch(/mountain worlds default to dem\.source "copernicus-glo30" \(blueprint §P1\.3\.8\); this one bakes from aws-terrain-tiles/);
+      expect(lines).toHaveLength(2);
+    });
+  });
+
+  it('records a PASS the same way, with no GLO-30 note for a world baked from GLO-30', async () => {
+    await withTempDir(async (dir) => {
+      const { written, recipePath, lines } = await finish(dir, { demSource: 'copernicus-glo30', err: alternating(2) });
+      expect(written.validation).toMatchObject({ dem_source: 'copernicus-glo30', registered_rms_m: 2, pass: true });
+      expect(JSON.parse(readFileSync(recipePath, 'utf8')).validation).toMatchObject({ registered_rms_m: 2, pass: true });
+      expect(lines).toEqual([expect.stringMatching(/→ PASS/)]);
+    });
+  });
+
+  it('without the check (--no-validate) writes a null validation and leaves the recipe alone', async () => {
+    await withTempDir(async (dir) => {
+      const { written, recipe, recipePath, reportPath, lines } = await finish(dir, { validate: false });
+      expect(written.validation).toBeNull();
+      expect(JSON.parse(readFileSync(reportPath, 'utf8'))).toEqual(written);
+      expect(Object.keys(written.timingsS)).toEqual(['dem', 'total']);
+      expect(readFileSync(recipePath, 'utf8')).toBe(recipeText(recipe));
+      expect(lines).toEqual([]);
+    });
+  });
+});
+
+describe('P1.3 v2: validate.mjs on a baked world', () => {
+  const read = (id: string) => readJson(`tools/worldbake/worlds/${id}.json`);
+
+  it('loads every committed bundle with the recipe that baked it', () => {
+    for (const id of WORLDS) {
+      const recipe = read(id);
+      const world = loadBakedWorld(repo(`public/worlds/${id}`), recipe);
+      expect(world.demSource, id).toBe(demSourceOf(recipe));
+      expect(world.hf.spec.cols, id).toBe(recipe.grid.cols);
+    }
+  });
+
+  it('refuses a stale bundle: a recipe edit outside validation needs a re-bake', () => {
+    const recipe = read('perugia');
+    const bundle = repo('public/worlds/perugia');
+    expect(() => loadBakedWorld(bundle, { ...recipe, osmDate: '2026-10-02T00:00:00Z' })).toThrow(/baked from another recipe .*: re-bake/);
+    expect(() => loadBakedWorld(bundle, { ...recipe, routes: recipe.routes.slice(1) })).toThrow(/: re-bake/);
+    expect(() => loadBakedWorld(bundle, { ...recipe, snap: { ...recipe.snap, falloffM: recipe.snap.falloffM + 1 } })).toThrow(/: re-bake/);
+  });
+
+  it('accepts a recipe whose only edit is inside validation', () => {
+    const recipe = read('perugia');
+    const bundle = repo('public/worlds/perugia');
+    const edits = [
+      { sample_seed: recipe.validation.sample_seed + 1 },
+      { ...recipe.validation, registered_rms_m: 99, pass: false },
+      { sample_seed: 1, terrain_class_override: 'mountain', terrain_class_override_reason: 'review' },
+    ];
+    for (const validation of edits) expect(() => loadBakedWorld(bundle, { ...recipe, validation })).not.toThrow();
+  });
+
+  it('writes the block on a FAIL and returns, never exiting', async () => {
+    await withTempDir(async (root) => {
+      // A synthetic world baked into `root`: bundle, recipe and report.
+      const recipe = synthRecipe();
+      const height = buildHeightfield({ grid, heights: heights(steepRamp) });
+      const bundle = join(root, 'public/worlds/synth');
+      mkdirSync(bundle, { recursive: true });
+      writeFileSync(join(bundle, 'height.bin.gz'), gzip(Buffer.from(height.bytes)));
+      writeFileSync(join(bundle, 'routes.json.gz'), gzip(stableJson({ version: 1, routes: [] })));
+      const manifest = {
+        id: 'synth',
+        projection: projection.params,
+        extent,
+        heightfield: { file: 'height.bin.gz', ...height.info },
+        layers: { routes: 'routes.json.gz' },
+        generator: generatorFor(demSourceOf(recipe), recipe, { tiles: [] }),
+      };
+      writeFileSync(join(bundle, 'manifest.json'), JSON.stringify(manifest));
+      for (const d of ['tools/worldbake/worlds', 'tools/worldbake/reports']) mkdirSync(join(root, d), { recursive: true });
+      const recipePath = join(root, 'tools/worldbake/worlds/synth.json');
+      const reportPath = join(root, 'tools/worldbake/reports/synth.json');
+      writeFileSync(recipePath, recipeText(recipe));
+      const reportText = `${JSON.stringify({ world: 'synth', validation: null }, null, 2)}\n`;
+      writeFileSync(reportPath, reportText);
+      const cache = join(root, 'cache');
+      seedOpenMeteo(join(cache, 'synth'), height.hf, alternating(6.25));
+
+      const exit = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
+        throw new Error(`process.exit(${code})`);
+      }) as never);
+      const exitCode = process.exitCode;
+      const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+      try {
+        // --no-write: the verdict only.
+        const dry = await validateBaked({ world: 'synth', root, cache, write: false });
+        expect(dry.block).toMatchObject({ registered_rms_m: 6.25, bound_m: 6.24, pass: false });
+        expect(readFileSync(recipePath, 'utf8')).toBe(recipeText(recipe));
+        expect(readFileSync(reportPath, 'utf8')).toBe(reportText);
+
+        const result = await validateBaked({ world: 'synth', root, cache, write: true });
+        expect(result).toEqual(dry);
+        // Exit 0 on FAIL: no exit call, no exit code set.
+        expect(exit).not.toHaveBeenCalled();
+        expect(process.exitCode).toBe(exitCode);
+        expect(log.mock.calls.flat().join('\n')).toMatch(/registered RMS 6\.25 m vs bound 6\.24 m → FAIL/);
+        expect(JSON.parse(readFileSync(recipePath, 'utf8')).validation).toEqual(result.block);
+        expect(JSON.parse(readFileSync(reportPath, 'utf8'))).toEqual({ world: 'synth', validation: result.report });
+
+        // An edit outside validation is refused before anything is written.
+        writeFileSync(recipePath, recipeText({ ...recipe, osmDate: '2026-10-02T00:00:00Z' }));
+        await expect(validateBaked({ world: 'synth', root, cache, write: true })).rejects.toThrow(/baked from another recipe .*: re-bake/);
+        expect(JSON.parse(readFileSync(recipePath, 'utf8')).validation).toEqual({ sample_seed: SEED });
+      } finally {
+        exit.mockRestore();
+        log.mockRestore();
+        process.exitCode = exitCode;
+      }
+    });
   });
 });
 
