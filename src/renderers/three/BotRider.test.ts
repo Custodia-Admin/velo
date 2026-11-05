@@ -132,7 +132,8 @@ describe('BotRider', () => {
       lateral.push(60 - drive(1 / 60)!.placement.worldY);
     }
     expect(lateral[0]).toBeCloseTo(2.4, 2);
-    expect(lateral[lateral.length - 1]).toBeCloseTo(0.65, 2);
+    // On the path partner 2 rides 1.8 m out: 0.9 m beyond partner 0's 0.9 m floor.
+    expect(lateral[lateral.length - 1]).toBeCloseTo(1.8, 2);
     for (let i = 1; i < lateral.length; i++) expect(Math.abs(lateral[i] - lateral[i - 1])).toBeLessThanOrEqual(PARTNER_SLOT_MAX_RATE_MPS / 60 + 0.002);
   });
 
@@ -149,9 +150,9 @@ describe('BotRider', () => {
     expect(60 - drive(1 / 60)!.placement.worldY).toBeCloseTo(1.2, 2);
     useRideStore.setState({ paceBots: [] });
     expect(drive(1 / 60)).toBeNull();
-    // Back 20 m on, on the path: straight into its clamp, not drifting in from 1.2 m.
+    // Back 20 m on, on the path: straight into its 0.9 m slot, not drifting in from 1.2 m.
     useRideStore.setState({ paceBots: rosterAt(bots, r, 210) });
-    expect(60 - drive(1 / 60)!.placement.worldY).toBeCloseTo(0.65, 2);
+    expect(60 - drive(1 / 60)!.placement.worldY).toBeCloseTo(0.9, 2);
   });
 
   it('stands the partner on the ground it is given (the drawn ground, like the rider)', () => {
