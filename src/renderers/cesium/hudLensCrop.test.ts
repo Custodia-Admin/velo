@@ -281,6 +281,10 @@ describe('applyHudLensCrop (before every frame)', () => {
     expect(applyHudLensCrop(view, state)).toBe(true);
     expect(deg(frameFovY())).toBeCloseTo(RIDE_FOV_Y_DEG, 9);
     expect(applyHudLensCrop(view, state)).toBe(false);
+    // A few px off (the window dragged): still exact.
+    reshape(1920, 1072);
+    expect(applyHudLensCrop(view, state)).toBe(true);
+    expect(deg(frameFovY())).toBeCloseTo(RIDE_FOV_Y_DEG, 9);
   });
 
   it('the floating window: crops once, resizes the canvas in the same frame, then holds', () => {
