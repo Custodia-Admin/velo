@@ -2,7 +2,8 @@
  * The ride view drives the globe gate every frame (a source pin: the view is
  * a 1,500-line Cesium component with no test harness). What each line buys:
  * - the gate reads the rider's mesh status, so the globe hides only over a
- *   loaded mesh road;
+ *   loaded mesh road, and where the rider is, so a jump (Ride again) brings
+ *   the globe back at once;
  * - it runs before the avatar samples the ground, so the rider measures the
  *   ground as it will be drawn this frame (never a frame under a globe that
  *   just came back);
@@ -19,9 +20,9 @@ import { describe, expect, it } from 'vitest';
 const SRC = readFileSync(resolve(__dirname, 'CesiumWorldView.tsx'), 'utf-8');
 
 describe('CesiumWorldView drives the globe gate', () => {
-  it('feeds it the rider mesh status and the tileset visibility, then draws what it says', () => {
+  it('feeds it the rider mesh status, the tileset visibility and the rider pose, then draws what it says', () => {
     expect(SRC).toContain(
-      'const globeShown = globeGateRef.current.update(nowMs, photorealShown, avatarRef.current.meshGround());',
+      'const globeShown = globeGateRef.current.update(nowMs, photorealShown, avatarRef.current.meshGround(), pose);',
     );
     expect(SRC).toContain('if (viewer.scene.globe.show !== globeShown) viewer.scene.globe.show = globeShown;');
   });

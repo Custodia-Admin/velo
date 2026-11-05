@@ -1069,10 +1069,11 @@ export function CesiumWorldView({
       // One drawn ground: once the photoreal mesh is the road under the rider
       // the globe is hidden (it drew coarse terrain up to 26 m over the real
       // street on the Lugano shore, and the rider rode it); it comes back
-      // where the mesh isn't the ground (renderers/cesium/globeGate). Decided
-      // from the rider's last ground reading, before this frame's, so the
-      // avatar below measures the ground as it will be drawn.
-      const globeShown = globeGateRef.current.update(nowMs, photorealShown, avatarRef.current.meshGround());
+      // where the mesh isn't the ground, and at once when the rider jumps
+      // (Ride again: renderers/cesium/globeGate). Decided from the rider's
+      // last ground reading, before this frame's, so the avatar below
+      // measures the ground as it will be drawn.
+      const globeShown = globeGateRef.current.update(nowMs, photorealShown, avatarRef.current.meshGround(), pose);
       if (viewer.scene.globe.show !== globeShown) viewer.scene.globe.show = globeShown;
       // The painted road (asphalt corridor, dashed centre line, edge stripes)
       // is a ground classification: over the mesh it paints whatever stands

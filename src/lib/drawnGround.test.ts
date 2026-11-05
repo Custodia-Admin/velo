@@ -11,15 +11,39 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Cesium from 'cesium';
 
-import { createGroundSampler, createMeshRoadFilter, followGround, GROUND_SAMPLE_INTERVAL_MS, OVERHANG_MIN_M } from '@/lib/avatar';
-import { drawnGroundHeight, getPhotorealTileset, groundSettled, sceneGroundHeight, setIonToken } from '@/lib/cesiumUtils';
+import {
+  createGroundSampler,
+  createMeshRoadFilter,
+  followGround,
+  GROUND_SAMPLE_INTERVAL_MS,
+  OVERHANG_GIVE_UP_M,
+  OVERHANG_MIN_M,
+} from '@/lib/avatar';
+import {
+  drawnGroundHeight,
+  getPhotorealTileset,
+  groundSettled,
+  sampleGroundHeight,
+  sceneGroundHeight,
+  setIonToken,
+} from '@/lib/cesiumUtils';
 
 async function photoreal(height: number | undefined, opts: { show?: boolean; tilesLoaded?: boolean } = {}) {
   const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
   Object.defineProperty(fake, 'show', { value: opts.show ?? true, writable: true });
   Object.defineProperty(fake, 'tilesLoaded', { value: opts.tilesLoaded ?? true, writable: true });
-  const getHeight = vi.fn(() => height);
+  // The mesh's height field (tests swap it with mockImplementation). The app
+  // reads it down the local vertical (meshHeightAt → tileset.pick), so the
+  // fake's pick answers from it at the spot the ray goes through.
+  const getHeight = vi.fn((_c?: Cesium.Cartographic): number | undefined => height);
   Object.defineProperty(fake, 'getHeight', { value: getHeight });
+  Object.defineProperty(fake, 'pick', {
+    value: (ray: Cesium.Ray) => {
+      const c = Cesium.Cartographic.fromCartesian(ray.origin);
+      const h = getHeight(c);
+      return h === undefined ? undefined : Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h);
+    },
+  });
   vi.spyOn(Cesium.Cesium3DTileset, 'fromIonAssetId').mockResolvedValue(fake);
   const tileset = await getPhotorealTileset();
   return { tileset, getHeight };
@@ -368,13 +392,128 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
       got.push(sampler.sample(lon, lat(2 * i), 305, i * GROUND_SAMPLE_INTERVAL_MS) as number);
       expect(sampler.meshGround()).toBe(true);
     });
-    expect(got).toEqual([362, 363.8, 365.6, 367.4]);
+    // (Read back through a ray hit: equal to the micrometre.)
+    [362, 363.8, 365.6, 367.4].forEach((h, i) => expect(got[i]).toBeCloseTo(h, 6));
   });
 
   it("groundSettled ignores a hidden globe's frozen load queue", () => {
     setIonToken('eyJ_test');
     expect(groundSettled(scene(null, { height: 300, tilesLoaded: false, show: false }).s)).toBe(true);
     expect(groundSettled(scene(null, { height: 300, tilesLoaded: false }).s)).toBe(false);
+  });
+});
+
+describe('a jump with the globe hidden: the old road is not the ground where the rider lands', () => {
+  // Lugano–Melide, measured (PR #40 review): the road at 940 m is 322.6 m
+  // (route 275.8 m). 2 km on, at 2940 m, the mesh is 363.4 m (route 303.3 m)
+  // and the hidden globe's stale tile reads 383.75 m. Ride again (or a placed
+  // rider) lands there before any mesh reading; holding 322.6 m put the rider
+  // 41 m under the mesh and the camera 38.5 m under the drawn top for a second.
+  const lon = 8.95;
+  const lat = (m: number) => 45.98 + m / 110_540;
+  const north = (c: Cesium.Cartographic, m: number) => Cesium.Math.toDegrees(c.latitude) > lat(m);
+
+  async function landing(at: number, meshThere: number | undefined, globeThere: number | undefined) {
+    setIonToken('eyJ_test');
+    const { tileset, getHeight } = await photoreal(undefined);
+    getHeight.mockImplementation((c?: Cesium.Cartographic) => (north(c!, at / 2) ? meshThere : 322.6));
+    const { s, globe } = scene(tileset, { height: 337.2, show: false });
+    globe.getHeight.mockImplementation(((c: Cesium.Cartographic) => (north(c, at / 2) ? globeThere : 337.2)) as () => number);
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(lon, lat(0), 275.8, 0)).toBeCloseTo(322.6, 6);
+    expect(sampler.meshGround()).toBe(true);
+    return sampler;
+  }
+
+  it('no mesh reading 2 km on: the globe decides, as at a fresh start, not the old road', async () => {
+    const sampler = await landing(2_000, undefined, 383.75);
+    const h = sampler.sample(lon, lat(2_000), 303.3, 16) as number;
+    expect(Math.abs(h - 322.6)).toBeGreaterThan(30);
+    expect(h).toBeCloseTo(383.75, 6);
+    expect(sampler.meshGround()).toBe(false);
+  });
+
+  it("a coarse globe chord there is not stood on either: the road, carried along the route's climb", async () => {
+    // A globe hidden for kilometres: one read 780 m under the road at Chengdu.
+    const chord = await landing(2_000, undefined, -349.9);
+    expect(chord.sample(lon, lat(2_000), 303.3, 16)).toBeCloseTo(322.6 + (303.3 - 275.8), 6);
+    expect(chord.meshGround()).toBe(false);
+    const none = await landing(2_000, undefined, undefined);
+    expect(none.sample(lon, lat(2_000), 303.3, 16)).toBeCloseTo(350.1, 6);
+  });
+
+  it("a coarse mesh reading there (the root tile's chord) doesn't bring back the old road", async () => {
+    const sampler = await landing(2_000, -27_979.09, 383.75);
+    expect(sampler.sample(lon, lat(2_000), 303.3, 16)).toBeCloseTo(383.75, 6);
+    expect(sampler.meshGround()).toBe(false);
+  });
+
+  it('a hole near the road still keeps it; from OVERHANG_GIVE_UP_M on the globe decides', async () => {
+    const sampler = await landing(100, undefined, 383.75);
+    expect(sampler.sample(lon, lat(OVERHANG_GIVE_UP_M - 1), 275.8, 16)).toBeCloseTo(322.6, 6);
+    expect(sampler.sample(lon, lat(OVERHANG_GIVE_UP_M + 0.5), 275.8, 16 + GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(383.75, 6);
+    expect(OVERHANG_GIVE_UP_M).toBe(100);
+  });
+
+  it('the road carried along the route bounds the ceiling there: a street 77 m over the old one is taken', async () => {
+    // Route 335.0 m there (59.2 m up), the mesh street 400 m, the hidden
+    // globe's stale tile 300 m. Bounded by the old road (322.6 + 60 m over
+    // the 335 m route) the street read as a coarse tile.
+    const sampler = await landing(2_000, 400, 300);
+    expect(sampler.sample(lon, lat(2_000), 335.0, 16)).toBeCloseTo(400, 6);
+    expect(sampler.meshGround()).toBe(true);
+  });
+});
+
+describe('the mesh is read straight down the vertical (Cesium3DTileset.getHeight leans up to 0.19°)', () => {
+  // Lugano–Melide 2940 m, measured on cat-bed: the road is drawn at 363.41 m
+  // (GPU pick and the main view's depth at the wheels agree), with a kerb
+  // about 0.5 m south and the mesh 362.8 m beyond it. getHeight's ray runs
+  // through the Earth's centre, so it crosses 363 m 1.21 m south of the spot:
+  // it read 362.84 m, and the wheels sat 0.57 m in the road.
+  const lon = 8.95;
+  const lat0 = 45.98;
+  const kerb = Cesium.Math.toRadians(lat0 - 0.5 / 110_540);
+
+  /** Where a downward ray crosses height h (it heads for the Earth's centre); none behind its origin. */
+  function crossing(ray: Cesium.Ray, h: number): Cesium.Cartesian3 | undefined {
+    const surface = Cesium.Cartesian3.magnitude(ray.origin) - 6_367_000;
+    let lo = surface - 50_000;
+    let hi = surface + 50_000;
+    for (let i = 0; i < 80; i++) {
+      const mid = (lo + hi) / 2;
+      if (Cesium.Cartographic.fromCartesian(Cesium.Ray.getPoint(ray, mid)).height > h) lo = mid;
+      else hi = mid;
+    }
+    return lo < 0 ? undefined : Cesium.Ray.getPoint(ray, (lo + hi) / 2);
+  }
+
+  async function kerbTileset() {
+    const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
+    Object.defineProperty(fake, 'show', { value: true, writable: true });
+    Object.defineProperty(fake, 'tilesLoaded', { value: true, writable: true });
+    // The road at 363.4 m north of the kerb, 362.8 m south of it. Only
+    // `pick` is faked: Cesium's own getHeight casts its ray through it.
+    Object.defineProperty(fake, 'pick', {
+      value: (ray: Cesium.Ray) => {
+        const top = crossing(ray, 363.4);
+        if (top && Cesium.Cartographic.fromCartesian(top).latitude >= kerb) return top;
+        return crossing(ray, 362.8);
+      },
+    });
+    vi.spyOn(Cesium.Cesium3DTileset, 'fromIonAssetId').mockResolvedValue(fake);
+    return getPhotorealTileset();
+  }
+
+  it("the rider stands on the road beside the kerb, where getHeight's leaning ray read past it", async () => {
+    setIonToken('eyJ_test');
+    const tileset = (await kerbTileset())!;
+    const { s } = scene(tileset, { height: 383.75, show: false });
+    expect(sampleGroundHeight(s, lon, lat0)).toBeCloseTo(363.4, 3);
+    expect(createGroundSampler(s).sample(lon, lat0, 303.3, 0)).toBeCloseTo(363.4, 3);
+    // Cesium's own reading through the same mesh lands past the kerb. (If an
+    // upgrade fixes getHeight, this flips, and meshHeightAt can go.)
+    expect(tileset.getHeight(Cesium.Cartographic.fromDegrees(lon, lat0), s)).toBeCloseTo(362.8, 3);
   });
 });
 

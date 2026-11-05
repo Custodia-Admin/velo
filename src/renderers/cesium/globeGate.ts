@@ -19,24 +19,41 @@
  * Both switches wait a little (hysteresis), so a reading that drops out for a
  * frame or two while tiles refine doesn't flip the ground under the rider:
  * the globe can be metres above the mesh, so every flip moves the rider.
+ * A rider that jumps (Ride again, a placed rider) gets the globe back at
+ * once: the mesh where it lands may not have streamed yet.
  */
 
 /** The mesh road has been under the rider this long before the globe hides (ms). */
 export const GLOBE_HIDE_AFTER_MS = 750;
 /** No mesh road under the rider for this long brings the globe back (ms). */
 export const GLOBE_SHOW_AFTER_MS = 1_000;
+/**
+ * A rider this far from where it was the frame before has jumped (m): Ride
+ * again puts it back on the start line, the probes place it. The mesh there
+ * may not have streamed yet, so the globe comes back at once, as at a fresh
+ * start, and hides again once the mesh is the road there.
+ */
+export const GLOBE_JUMP_M = 100;
 
 export class GlobeGate {
   /** Whether the globe is drawn. */
   shown = true;
   private since: number | null = null;
+  private lon = NaN;
+  private lat = NaN;
 
   /**
    * One frame. `meshShown`: the photoreal tileset is part of the scene;
-   * `meshGround`: its mesh is the road under the rider (avatar.meshGround).
-   * Returns whether the globe draws this frame.
+   * `meshGround`: its mesh is the road under the rider (avatar.meshGround);
+   * `rider`: where the rider is this frame. Returns whether the globe draws
+   * this frame.
    */
-  update(nowMs: number, meshShown: boolean, meshGround: boolean): boolean {
+  update(nowMs: number, meshShown: boolean, meshGround: boolean, rider?: { lon: number; lat: number }): boolean {
+    if (rider) {
+      if (metresBetween(rider.lon, rider.lat, this.lon, this.lat) >= GLOBE_JUMP_M) this.reset();
+      this.lon = rider.lon;
+      this.lat = rider.lat;
+    }
     if (!meshShown) {
       // Nothing else draws the ground: the globe, now.
       this.shown = true;
@@ -56,9 +73,15 @@ export class GlobeGate {
     return this.shown;
   }
 
-  /** Back to the globe (route change, no rider). */
+  /** Back to the globe (route change, no rider, a jump). */
   reset(): void {
     this.shown = true;
     this.since = null;
   }
+}
+
+/** Ground distance (m) between two spots a frame apart; 0 before the first. */
+function metresBetween(lon: number, lat: number, fromLon: number, fromLat: number): number {
+  if (Number.isNaN(fromLon)) return 0;
+  return Math.hypot((lon - fromLon) * 111_320 * Math.cos((lat * Math.PI) / 180), (lat - fromLat) * 110_540);
 }
