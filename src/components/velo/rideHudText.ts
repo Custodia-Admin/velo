@@ -74,13 +74,27 @@ export interface Landmark {
 }
 
 /**
- * The next landmark line in two parts, so a narrow line can shorten the place
- * and keep the distance whole (`NextLandmark`): "Rivotorto" + "in 900 m",
- * or "Climb 1" + "· 300 m to the top". Read as one line: `${name} ${distance}`.
+ * The next landmark line in parts, so a narrow line can shorten or drop the
+ * place and keep the distance whole (`NextLandmark`): "Rivotorto" + "in 900 m",
+ * or inside a climb "Climb 1" + "300 m to the top". Each part reads on its own
+ * ("300 m to the top" when there is no room for the climb's name), so the
+ * separator belongs to the name: read as one line with `landmarkLine`.
  */
 export interface NextLandmarkParts {
   name: string;
   distance: string;
+  /** Riding the climb `name`: the line reads "Climb 1 · 300 m to the top". */
+  inClimb: boolean;
+}
+
+/** What goes between the name and the distance: "Rivotorto in 900 m", "Climb 1 · 300 m to the top". */
+export function landmarkJoiner(next: NextLandmarkParts): string {
+  return next.inClimb ? ' · ' : ' ';
+}
+
+/** The whole line as one sentence. */
+export function landmarkLine(next: NextLandmarkParts): string {
+  return `${next.name}${landmarkJoiner(next)}${next.distance}`;
 }
 
 /**
@@ -89,8 +103,8 @@ export interface NextLandmarkParts {
  */
 export function nextLandmark(landmarks: readonly Landmark[], distanceM: number, units: Units): NextLandmarkParts | null {
   for (const l of landmarks) {
-    if (distanceM < l.startDistance) return { name: l.name, distance: `in ${formatLeft(l.startDistance - distanceM, units)}` };
-    if (distanceM < l.endDistance) return { name: l.name, distance: `· ${formatLeft(l.endDistance - distanceM, units)} to the top` };
+    if (distanceM < l.startDistance) return { name: l.name, distance: `in ${formatLeft(l.startDistance - distanceM, units)}`, inClimb: false };
+    if (distanceM < l.endDistance) return { name: l.name, distance: `${formatLeft(l.endDistance - distanceM, units)} to the top`, inClimb: true };
   }
   return null;
 }

@@ -36,15 +36,15 @@ function pickWithInput(): Promise<File[]> {
 }
 
 export async function pickVideos(): Promise<File[]> {
-  let files: File[];
-  if (canUseFilePicker()) {
-    const handles = await pickVideoHandles();
-    if (handles.length === 0) return [];
-    files = await Promise.all(handles.map((h) => h.getFile()));
-    void rememberHandles(handles);
-  } else {
-    files = await pickWithInput();
-  }
+  if (!canUseFilePicker()) return (await pickWithInput()).filter(isVideoFile);
+  const handles = await pickVideoHandles();
+  if (handles.length === 0) return [];
+  const files = await Promise.all(handles.map((h) => h.getFile()));
+  // Remember only the videos: a subtitle picked with Chrome's "All files" is
+  // not an episode, and Continue must never wait for it (review of PR #48
+  // @dfd7071, N1). A pick with no video keeps last time's library.
+  const videos = handles.filter((_, i) => isVideoFile(files[i]));
+  if (videos.length > 0) void rememberHandles(videos);
   return files.filter(isVideoFile);
 }
 

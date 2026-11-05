@@ -13,11 +13,13 @@
  * everything watched. When Chrome allows some of several files and refuses
  * the rest, it carries on only if the video it would start with full access
  * is one it can read; otherwise it says access was refused, never "watched
- * everything".
+ * everything". It asks Chrome about that video first (askPlannedFirst), since
+ * only the first ask after a restart is sure to have the click behind it.
  */
 
 import {
   fileKey,
+  isVideoName,
   lastWatched,
   nextUp,
   readLibrary,
@@ -97,6 +99,24 @@ function planFor(files: File[], file: File, next: NextUp): ContinuePlan {
   return { files, startKey, next: { ...next, index } };
 }
 
+/**
+ * The remembered files with the video Continue expects to start moved to the
+ * front, so it is the one Chrome asks about first. After a browser restart
+ * only the first permission request has the click's user activation; the rest
+ * are refused. Read in stored order, the click went to E01 (usually watched
+ * already) and E02, the one to carry on with, was refused. The handles' names
+ * are enough to plan (pickInLibrary keys names from last time's video and the
+ * saved positions); the real plan is still made from what Chrome allowed.
+ */
+function askPlannedFirst(lib: RememberedLibrary, storage?: Storage): RememberedLibrary {
+  if (lib.kind !== 'files') return lib;
+  const names = lib.handles.map((h) => h.name).filter(isVideoName);
+  const planned = pickInLibrary([], names, storage);
+  const at = planned ? lib.handles.findIndex((h) => h.name === planned.name) : -1;
+  if (at <= 0) return lib;
+  return { kind: 'files', handles: [lib.handles[at], ...lib.handles.slice(0, at), ...lib.handles.slice(at + 1)] };
+}
+
 export interface ContinueDeps {
   recall?: () => Promise<RememberedLibrary | null>;
   read?: (lib: RememberedLibrary, opts: { ask: boolean }) => Promise<LibraryRead>;
@@ -114,7 +134,7 @@ export async function continueLastShow({ ask }: { ask: boolean }, deps: Continue
   if (!lib) return { ok: false, reason: 'none', library: null };
   let read: LibraryRead;
   try {
-    read = await (deps.read ?? readLibrary)(lib, { ask });
+    read = await (deps.read ?? readLibrary)(askPlannedFirst(lib, deps.storage), { ask });
   } catch {
     // Reading the handles failed outright: they no longer point anywhere.
     return { ok: false, reason: 'missing', library: lib };

@@ -353,6 +353,109 @@ describe('several files, Chrome refuses some of them after a restart', () => {
     const again = await cont([refusedH('Show S01E01.mp4'), allowed('Show S01E02.mp4'), allowed('Show S01E03.mp4')]);
     expect(again.ok && again.plan).toMatchObject({ startKey: fileKey(ep('Show S01E02.mp4', 100)), next: { reason: 'continue' } });
   });
+
+  // Review of PR #48 @dfd7071, N2: the 'first' branch (nothing of this library
+  // watched) had no test, so starting the first READABLE file there survived.
+  it("nothing of this library watched yet and E01 refused: access refused, never E02", async () => {
+    // Last watched is a file from another library; no saved positions.
+    markWatched({ key: 'Other.mp4::5', name: 'Other.mp4', positionS: 10, durationS: 1500 }, 1, store);
+    const r = await cont([refusedH('Show S01E01.mp4'), allowed('Show S01E02.mp4'), allowed('Show S01E03.mp4')]);
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+    // Control: with E01 allowed too, Continue starts it from the beginning.
+    const all = await cont([allowed('Show S01E01.mp4'), allowed('Show S01E02.mp4'), allowed('Show S01E03.mp4')]);
+    expect(all.ok && all.plan).toMatchObject({ startKey: fileKey(ep('Show S01E01.mp4', 100)), next: { reason: 'first', positionS: 0 } });
+  });
+});
+
+// Review of PR #48 @dfd7071, N1: Chrome's picker keeps its "All files" option,
+// so a library of files can hold a subtitle. Refusing it must not block
+// Continue: only a refused video counts (readLibrary), and picks remember only
+// their videos (pickVideos.test.ts).
+describe('a refused file that is not a video', () => {
+  const noClick = () => new DOMException('User activation is required', 'SecurityError');
+  const srt = (name: string) => handle(name, { state: 'prompt', onAsk: noClick(), file: new File(['1'], name, { type: 'text/plain' }) });
+  const cont = (handles: ReturnType<typeof handle>[]) =>
+    continueLastShow(
+      { ask: true },
+      { recall: async () => ({ kind: 'files', handles }) as unknown as RememberedLibrary, read: readLibrary, storage: store },
+    );
+  const finished = (name: string) => markWatched({ key: fileKey(ep(name, 100)), name, positionS: 1500, durationS: 1500 }, 1, store);
+
+  it('E01 finished, its .srt refused, E02 readable: starts E02', async () => {
+    finished('Show S01E01.mp4');
+    const handles = [handle('Show S01E01.mp4'), srt('Show S01E01.srt'), handle('Show S01E02.mp4')];
+    const read = await readLibrary({ kind: 'files', handles } as unknown as RememberedLibrary, { ask: true });
+    expect(read).toMatchObject({ denied: false, refused: [] });
+    const r = await cont(handles);
+    expect(r.ok && r.plan.startKey).toBe(fileKey(ep('Show S01E02.mp4', 100)));
+  });
+
+  it('every video watched and only the .srt refused: watched everything', async () => {
+    finished('Show S01E02.mp4');
+    const r = await cont([handle('Show S01E01.mp4'), srt('Show S01E01.srt'), handle('Show S01E02.mp4')]);
+    expect(r).toMatchObject({ ok: false, reason: 'done' });
+  });
+
+  it('a refused video still blocks, whatever the case of its extension', async () => {
+    finished('Show S01E01.mp4');
+    const r = await cont([handle('Show S01E01.mp4'), srt('Show S01E01.srt'), handle('Show S01E02.MKV', { state: 'prompt', onAsk: noClick() }), handle('Show S01E03.mp4')]);
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+  });
+});
+
+// Review of PR #48 @dfd7071 (optional item): after a restart Chrome gives the
+// click's activation to the first permission request only, and throws for the
+// rest. Continue asks for the episode it plans to start first.
+describe('one click, one file allowed (after a browser restart)', () => {
+  /** Handles sharing one user activation: the first request is allowed, later ones throw. */
+  function oneClick() {
+    const asked: string[] = [];
+    let used = false;
+    const h = (name: string) => ({
+      ...handle(name, { state: 'prompt' }),
+      requestPermission: vi.fn(async () => {
+        asked.push(name);
+        if (used) throw new DOMException('User activation is required', 'SecurityError');
+        used = true;
+        return 'granted' as PermissionState;
+      }),
+    });
+    return { asked, h };
+  }
+  const cont = (handles: { name: string }[]) =>
+    continueLastShow(
+      { ask: true },
+      { recall: async () => ({ kind: 'files', handles }) as unknown as RememberedLibrary, read: readLibrary, storage: store },
+    );
+
+  it('E01 finished: asks for E02 first, and starts it', async () => {
+    markWatched({ key: fileKey(ep('Show S01E01.mp4', 100)), name: 'Show S01E01.mp4', positionS: 1500, durationS: 1500 }, 1, store);
+    const { asked, h } = oneClick();
+    const r = await cont([h('Show S01E01.mp4'), h('Show S01E02.mp4'), h('Show S01E03.mp4')]);
+    expect(asked[0]).toBe('Show S01E02.mp4');
+    expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E02.mp4', 100)), next: { reason: 'next' } });
+    // Only the one Chrome allowed plays.
+    expect(r.ok && r.plan.files.map((f) => f.name)).toEqual(['Show S01E02.mp4']);
+  });
+
+  it('E03 paused part-way: asks for E03 first, and carries on there', async () => {
+    saveResume({ key: fileKey(ep('Show S01E03.mp4', 100)), name: 'Show S01E03.mp4', positionS: 420, durationS: 1500 }, 2, store);
+    markWatched({ key: fileKey(ep('Show S01E03.mp4', 100)), name: 'Show S01E03.mp4', positionS: 420, durationS: 1500 }, 2, store);
+    const { asked, h } = oneClick();
+    const r = await cont([h('Show S01E01.mp4'), h('Show S01E02.mp4'), h('Show S01E03.mp4')]);
+    expect(asked[0]).toBe('Show S01E03.mp4');
+    expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E03.mp4', 100)), next: { reason: 'continue', positionS: 420 } });
+  });
+
+  it('never asks for a subtitle first, and still never skips a refused episode', async () => {
+    markWatched({ key: fileKey(ep('Show S01E01.mp4', 100)), name: 'Show S01E01.mp4', positionS: 1500, durationS: 1500 }, 1, store);
+    const { asked, h } = oneClick();
+    // The rider says no at the prompt for E02: E03 must not start.
+    const e02 = { ...h('Show S01E02.mp4'), requestPermission: vi.fn(async () => (asked.push('Show S01E02.mp4'), 'denied' as PermissionState)) };
+    const r = await cont([h('Show S01E01.mp4'), h('Show S01E01.srt'), e02, h('Show S01E03.mp4')]);
+    expect(asked[0]).toBe('Show S01E02.mp4');
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+  });
 });
 
 describe('remembered library records', () => {

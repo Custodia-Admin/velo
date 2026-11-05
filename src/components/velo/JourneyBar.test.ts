@@ -34,7 +34,7 @@ const numbers = {
   distanceUnit: 'km',
   distanceAria: 'Distance: 42.2 km',
   gradeText: '-12.5',
-  next: { name: 'Rivotorto', distance: 'in 900 m' },
+  next: { name: 'Rivotorto', distance: 'in 900 m', inClimb: false },
   progress: 0.4,
   action: { label: 'Pause ride', icon: Pause, run: () => undefined },
 };
@@ -67,7 +67,16 @@ describe('JourneyBar', () => {
     for (const line of lines) {
       expect(line.props.testId).toBe('journey-next');
       // No truncation around the line itself: NextLandmark decides what shortens.
-      expect(String(line.props.className)).not.toMatch(/\btruncate\b|text-ellipsis/);
+      expect(String(line.props.className)).not.toMatch(/\btruncate\b|text-ellipsis|overflow-/);
     }
+  });
+
+  // Review of PR #48 @dfd7071 (X6 survived every unit test): the bar's line takes
+  // what the figures and Pause leave (flex-1, may shrink below its text with
+  // min-w-0), so NextLandmark drops parts instead of pushing Pause out.
+  it("the bar's line takes the room the figures and Pause leave, whatever its text", () => {
+    const inBar = elements(JourneyBar({ numbers })).find((e) => e.type === NextLandmark);
+    expect(String(inBar?.props.className)).toMatch(/\bmin-w-0\b/);
+    expect(String(inBar?.props.className)).toMatch(/\bflex-1\b/);
   });
 });

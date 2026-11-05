@@ -287,6 +287,12 @@
     max-width: calc((100dvh - 16rem) * 16 / 9);
   }
 
+  /* Exactly one line of the element's own text (its line-height). The next
+     landmark's fit rows (NextLandmark): what wraps past it is never seen. */
+  .h-lh {
+    height: 1lh;
+  }
+
   /* No-token / imagery-fallback banner: floats centred above the ride
      transport bar (legacy offsets; the v2 ride root overrides them with
      .ride-hud-v2 .ride-banner-float above). Raw calc() lives here, not in
