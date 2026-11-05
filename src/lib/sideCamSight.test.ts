@@ -949,18 +949,54 @@ describe('createSideCamSight: faces where the camera stands now (blockedAt)', ()
       for (let f = 0; f < 10; f++) g.step();
       expect(g.placed.every((x) => Math.abs(x - BASE) < 1e-9)).toBe(true);
       expect(g.sight.debug().guards).toBe(0);
-      // Nor on the way back out (in to 7.6 m by a face for 10 frames, then only the odd answer).
+      // Nor on the way back out (in to 7.6 m by a face for 10 frames, then the odd answer on every
+      // cast, or on the casts out from the camera only).
       const ref = guardRig((s, a, b, f) => (f < 10 ? faceAt(8.1)(s, a, b) : undefined));
       const odd = guardRig((s, a, b, f) => (f < 10 ? faceAt(8.1)(s, a, b) : t));
+      const oddOut = guardRig((s, a, b, f) => (f < 10 ? faceAt(8.1)(s, a, b) : a.offsetM > 0 ? t : undefined));
       for (let f = 0; f < 6 * 60; f++) {
         ref.step();
         odd.step();
+        oddOut.step();
       }
       expect(odd.placed).toEqual(ref.placed);
+      expect(oddOut.placed).toEqual(ref.placed);
       expect(odd.sight.debug().guards).toBe(10);
+      expect(oddOut.sight.debug().guards).toBe(10);
     }
     expect(guardRig(() => 1).step().offsetM).toBeCloseTo(BASE - SIGHT_GUARD_MARGIN_M, 9);
     expect(guardRig(() => 0).step().offsetM).toBeCloseTo(BASE, 9);
+  });
+
+  it('easing out from the road edge with a face just beyond it: held at minM, not closer', () => {
+    // The reads close the side (the road edge, 3.5 m) for a second, then open it; a face 3.7 m out.
+    const g = guardRig((s, a, b, f) => (f >= 60 ? faceAt(3.7)(s, a, b) : undefined));
+    for (let f = 0; f < 60; f++) g.step({ seenAt: () => false, allowSwitch: false });
+    expect(g.placed[59]).toBeCloseTo(SIGHT_MIN_OFFSET_M, 6);
+    for (let f = 60; f < 60 + 4 * 60; f++) g.step({ allowSwitch: false });
+    for (const x of g.placed.slice(60)) expect(x).toBeCloseTo(SIGHT_MIN_OFFSET_M, 9);
+  });
+
+  it('never further out in a frame than was cast clear in that frame (reads opening in steps, frames spent)', () => {
+    // Closed beyond 5 m for a second, then up to 7 m, then open; some frames spent before any cast.
+    let frame = 0;
+    const spentFrames = (f: number) => (f >= 100 && f < 110) || (f >= 305 && f < 312);
+    const g = guardRig(() => undefined, { spent: () => spentFrames(frame) });
+    for (frame = 0; frame < 600; frame++) {
+      const seen = frame < 60 ? 5 : frame < 300 ? 7 : Infinity;
+      g.step({ seenAt: (s) => s.offsetM <= seen });
+    }
+    let outs = 0;
+    for (let f = 1; f < 600; f++) {
+      if (!(g.placed[f] > g.placed[f - 1] + 1e-12)) continue;
+      outs++;
+      // Out this frame: an out cast this frame cleared at least that far.
+      const cleared = g.askedIn(f).filter((a) => a.from.offsetM > 0).map((a) => a.to.offsetM);
+      expect(spentFrames(f)).toBe(false);
+      expect(Math.max(-Infinity, ...cleared)).toBeGreaterThanOrEqual(g.placed[f] - 1e-9);
+    }
+    expect(outs).toBeGreaterThan(200);
+    expect(g.placed[599]).toBeGreaterThan(BASE - 0.2);
   });
 
   it('the way out is cast only as far as the reads let it go: a face beyond that is not in front of it', () => {
@@ -995,9 +1031,10 @@ describe('createSideCamSight: faces where the camera stands now (blockedAt)', ()
   });
 
   it("a cut across the road this frame: the old side's face does not hold the camera on the new side", () => {
-    // Lugano 2032 m: its side closed, the other open; a face 8.1 m out on its own side only.
+    // Lugano 2032 m: its side closed, the other open.
     const world: World = { right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) };
-    const g = guardRig((s, a, b) => (s === 1 ? faceAt(8.1)(s, a, b) : undefined), {
+    // A face 0.9 of the way to the camera wherever it stands on its own side, the frame of the cut too.
+    const g = guardRig((s) => (s === 1 ? 0.9 : undefined), {
       seenAt: (s) => seenOverTops((x) => (s.side === 1 ? world.right : world.left)(x, 0), s.offsetM, s.baseM, s.upM),
     });
     for (let f = 0; f < 20; f++) g.step();

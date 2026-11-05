@@ -270,7 +270,9 @@ export interface SightRequest {
    * offset the reads said was clear). The camera then moves in at once to
    * stand {@link SIGHT_GUARD_MARGIN_M} in front of the face, not closer than
    * `minM` (a face closer to the rider than that is left to the reads), and
-   * goes back out no further than that while the face is there.
+   * goes back out no further than that while the face is there. Asked, it
+   * never goes further out in a frame than was cast clear in that frame (a
+   * frame spent, or a read that just let it out further: it holds).
    */
   blockedAt?: (side: 1 | -1, from: SightPoint, to: SightPoint) => number | undefined;
 }
@@ -473,8 +475,10 @@ export function createSideCamSight() {
       }
       // Where the camera stands now, beside the rider: a face on the line to
       // the bars, or on its way back out? Asked before the reads, so a tile
-      // copy it makes spends the frame.
+      // copy it makes spends the frame. It goes no further out than is cast
+      // clear this frame.
       let guardM = Infinity;
+      let faced = false;
       if (req.blockedAt) {
         const fraction = (t: number | undefined): t is number => t !== undefined && t >= 0 && t <= 1;
         const nowM = (frac ?? 1) * req.baseM;
@@ -482,11 +486,18 @@ export function createSideCamSight() {
         const t = req.blockedAt(side, { offsetM: 0, upM: AIM_HEIGHT_M }, cam);
         if (fraction(t)) {
           // A face closer to the rider than minM is left to the reads: moving in can't get in front of it.
-          if (t * nowM > minM) guardM = Math.max(minM, t * nowM - SIGHT_GUARD_MARGIN_M);
-        } else if (targetFrac * req.baseM > nowM + EPS && req.spent?.() !== true) {
+          if (t * nowM > minM) {
+            guardM = Math.max(minM, t * nowM - SIGHT_GUARD_MARGIN_M);
+            faced = true;
+          }
+        } else {
+          guardM = nowM;
           const outM = targetFrac * req.baseM;
-          const s = req.blockedAt(side, cam, { offsetM: outM, upM: req.upM });
-          if (fraction(s)) guardM = Math.max(minM, nowM + s * (outM - nowM) - SIGHT_GUARD_MARGIN_M);
+          if (outM > nowM + EPS && req.spent?.() !== true) {
+            const s = req.blockedAt(side, cam, { offsetM: outM, upM: req.upM });
+            faced = fraction(s);
+            guardM = fraction(s) ? Math.max(minM, nowM + s * (outM - nowM) - SIGHT_GUARD_MARGIN_M) : outM;
+          }
         }
       }
       // No crossing any more (the painted road is drawn now): the far side's reads are moot.
@@ -544,11 +555,12 @@ export function createSideCamSight() {
         const tau = targetFrac < frac ? SIGHT_PULL_TAU_S : SIGHT_RELEASE_TAU_S;
         frac += (targetFrac - frac) * (1 - Math.exp(-dt / tau));
       }
-      // In front of a face on the line, at once; out again at the release pace.
-      // A cut this frame put the camera on the other side, where it was read.
+      // In front of a face on the line, at once; out again at the release pace,
+      // no further than cast clear. A cut this frame put the camera on the
+      // other side, where it was read.
       if (!cut && guardM < (frac ?? 1) * req.baseM) {
         frac = guardM / req.baseM;
-        guards++;
+        if (faced) guards++;
       }
       // Until the first read is in, the pose's own offset.
       return { side, offsetM: (frac ?? 1) * req.baseM, clear };
