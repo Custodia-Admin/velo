@@ -9,6 +9,7 @@ import {
   aboutMinutes,
   chipTap,
   formatLeft,
+  LOW_BATTERY,
   nextLandmark,
   noticeMs,
   rideChip,
@@ -249,19 +250,38 @@ describe('the one ride chip (compact HUD: every device or error state in one pil
 
   it('the stopped view comes after every trainer problem and before controls, heart rate and notices', () => {
     const stopped = { ...ride, worldStopped: true };
-    // Trainer first: lost (with or without a grant), reconnecting, a failed pairing.
+    // Trainer first: lost (with or without a grant), reconnecting, connecting, a failed pairing.
     expect(rideChip({ ...stopped, connection: 'disconnected', mode: 'demo', trainerReconnectable: true, errorCode: 'reconnect-failed' }).action)
       .toBe('reconnectTrainer');
     expect(rideChip({ ...stopped, connection: 'disconnected', mode: 'demo', deviceName: null, errorCode: 'reconnect-failed' }).label)
       .toBe('Trainer lost · tap for devices');
     expect(rideChip({ ...stopped, connection: 'reconnecting', reconnectAttempt: 1, reconnectMaxAttempts: 5 }).label)
       .toBe('KICKR CORE lost · reconnecting 1 of 5');
+    expect(rideChip({ ...stopped, connection: 'connecting' }).label).toBe('Connecting to KICKR CORE…');
     expect(rideChip({ ...stopped, connection: 'error', deviceName: null }).label).toBe('Trainer not connected · tap for devices');
+    // ... with a low battery too (the battery is not what is wrong then).
+    expect(rideChip({ ...stopped, connection: 'reconnecting', battery: 15 }).action).toBe('devices');
+    expect(rideChip({ ...stopped, connection: 'connecting', battery: 15 }).action).toBe('devices');
     // Then the view, over everything else.
     expect(rideChip({ ...stopped, controls: 'locked' }).action).toBe('reloadWorld');
     expect(rideChip({ ...stopped, heartRate: 'error' }).action).toBe('reloadWorld');
     expect(rideChip({ ...stopped, notice: { title: 'Trainer reconnected', kind: 'success' } }).action).toBe('reloadWorld');
     expect(rideChip({ ...stopped, notice: { title: 'FTP test suggested', kind: 'info', actionLabel: 'Start' } }).action).toBe('reloadWorld');
+  });
+
+  it('a low trainer battery does not hide the stopped view: the tap reloads it, and the battery note comes back after', () => {
+    const v = rideChip({ ...ride, battery: 15, worldStopped: true });
+    expect(v).toMatchObject({ label: WORLD_STOPPED_LABEL, tone: 'warn', alert: true, action: 'reloadWorld' });
+    expect(rideChip({ ...ride, battery: LOW_BATTERY, worldStopped: true }).action).toBe('reloadWorld');
+    // The world is live again: the battery note, unchanged, opens devices.
+    const battery = rideChip({ ...ride, battery: 15 });
+    expect(battery).toMatchObject({ label: 'KICKR CORE · hills 35 % · battery 15 %', tone: 'warn', alert: true, action: 'devices' });
+    expect(battery.aria).toBe('Trainer connected: KICKR CORE 78C1, hills feel 35 percent, battery low at 15 percent');
+    // ... and it still holds the chip over controls, heart rate and notices.
+    expect(rideChip({ ...ride, battery: 15, controls: 'locked' }).label).toBe('KICKR CORE · hills 35 % · battery 15 %');
+    expect(rideChip({ ...ride, battery: 15, heartRate: 'error' }).label).toBe('KICKR CORE · hills 35 % · battery 15 %');
+    expect(rideChip({ ...ride, battery: 15, notice: { title: 'Voice control on', kind: 'info' } }).label)
+      .toBe('KICKR CORE · hills 35 % · battery 15 %');
   });
 
   it('handlebar controls that cannot deliver presses: a warning that opens devices; never-paired controls say nothing', () => {

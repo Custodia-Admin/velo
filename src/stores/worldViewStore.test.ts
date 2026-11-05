@@ -107,4 +107,28 @@ describe('worldViewStore', () => {
     expect(canvasKeyFor(store(), next)).toBe(0);
     expect(selectWorldStopped(store())).toBe(false);
   });
+
+  it('a fresh view starts live: the world lost in the tab, the rider opens the floating window', () => {
+    const tab = store().attach();
+    // The tab's canvas was lost, reloaded once (key 1), and lost again.
+    store().contextLost(tab, 0);
+    store().reload();
+    store().contextLost(tab, 1);
+    expect(store().view).toEqual({ id: tab, canvasKey: 1, stopped: true });
+
+    // The floating window's world view mounts, then the tab's unmounts.
+    const pip = store().attach();
+    expect(store().view).toEqual({ id: pip, canvasKey: 0, stopped: false });
+    store().detach(tab);
+    // Its canvas shows (not stopped: no chip, not hidden) under key 0.
+    expect(selectWorldStopped(store())).toBe(false);
+    expect(canvasKeyFor(store(), pip)).toBe(0);
+    expect(canvasKeyFor(store(), tab)).toBe(0);
+
+    // A loss on the window's first canvas counts, and a tap reloads it to key 1.
+    store().contextLost(pip, 0);
+    expect(selectWorldStopped(store())).toBe(true);
+    store().reload();
+    expect(store().view).toEqual({ id: pip, canvasKey: 1, stopped: false });
+  });
 });
