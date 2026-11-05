@@ -390,9 +390,13 @@ function genToastId(): string {
   return `t-${Date.now().toString(36)}-${toastCounter}`;
 }
 
-/** The same pace partners, back at the start line (fresh live state). */
-function reseatPaceBots(bots: PaceBot[]): PaceBot[] {
-  return bots.length === 0 ? bots : bots.map((b) => createPaceBot(b.id, b));
+/**
+ * The same pace partners, back at the start line (fresh live state). With a
+ * route they stand on its first point, so the renderers draw them beside the
+ * rider while the ride is 'ready', not at 0/0 until the first running tick.
+ */
+function reseatPaceBots(bots: PaceBot[], route: Route | null): PaceBot[] {
+  return bots.length === 0 ? bots : bots.map((b) => createPaceBot(b.id, b, route));
 }
 
 export const useRideStore = create<RideStoreState>((set, get) => ({
@@ -606,7 +610,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       replayData: null,
       replayIndex: 0,
       // The rider's pace partners stay picked and go back to the start line.
-      paceBots: reseatPaceBots(st.paceBots),
+      paceBots: reseatPaceBots(st.paceBots, route),
     })),
 
   setMode: (mode) => {
@@ -791,7 +795,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       workoutElapsedSec: 0,
       workoutTargetWatts: null,
       // Pace partners back to the start line for the re-ride.
-      paceBots: reseatPaceBots(get().paceBots),
+      paceBots: reseatPaceBots(get().paceBots, get().route),
     }),
 
   tick: (input) =>

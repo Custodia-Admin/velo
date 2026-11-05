@@ -83,6 +83,29 @@ describe('BOT_PRESETS', () => {
 // steady personality
 // ---------------------------------------------------------------------------
 
+describe('createPaceBot — where a new bot stands', () => {
+  const northbound: Route = {
+    ...flatRoute(),
+    points: [
+      { lat: 43.1, lon: 12.39, ele: 300, distance: 0 },
+      { lat: 43.109, lon: 12.39, ele: 300, distance: 1000 },
+    ],
+  };
+
+  it("with a route: on its first point, facing along it, standing still (tickPaceBot's distance-0 pose)", () => {
+    const bot = createPaceBot('pace-steady', BOT_PRESETS[0], northbound);
+    expect(bot.state).toMatchObject({ distance: 0, speed: 0, power: 0, lat: 43.1, lon: 12.39, ele: 300 });
+    expect(bot.state.heading).toBeCloseTo(0, 9);
+    // The same timers as an unplaced bot: seating changes position only.
+    expect(bot.state._effortCooldown).toBe(createPaceBot('pace-steady', BOT_PRESETS[0]).state._effortCooldown);
+  });
+
+  it('without a route: the unplaced 0/0 default', () => {
+    expect(createPaceBot('pace-steady', BOT_PRESETS[0]).state).toMatchObject({ distance: 0, lat: 0, lon: 0, ele: 0 });
+    expect(createPaceBot('pace-steady', BOT_PRESETS[0], null).state).toMatchObject({ lat: 0, lon: 0 });
+  });
+});
+
 describe('tickPaceBot — steady personality', () => {
   it('produces ~80% FTP on a flat section with rider at same distance', () => {
     const bot = createPaceBot('bot-steady', BOT_PRESETS[0]);

@@ -4,7 +4,7 @@
 
 import { haversine } from '@/lib/utils';
 
-export interface LatLon {
+interface LatLon {
   lat: number;
   lon: number;
 }
