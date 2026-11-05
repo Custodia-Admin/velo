@@ -1,0 +1,678 @@
+{
+ "after-1280": {
+  "0-riding": {
+   "chip": {
+    "aria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent, battery low at 15 percent",
+    "canvasVis": "visible",
+    "chip": "KICKR CORE \u00b7 hills 35 % \u00b7 battery 15 %",
+    "ctx": "live",
+    "display": "flex",
+    "frames": 221,
+    "hitIsChip": true,
+    "lost": false,
+    "overflowX": false,
+    "rect": [
+     222,
+     510,
+     300,
+     40
+    ],
+    "ride": [
+     "running",
+     2167,
+     14.8
+    ],
+    "sheetOpen": false,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 8.1,
+    "unionPct": 8.1
+   },
+   "minFont": 14,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 55220,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 837,
+     "x": 222,
+     "y": 558
+    },
+    {
+     "area": 11984,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 300,
+     "x": 222,
+     "y": 510
+    }
+   ]
+  },
+  "1-lost": {
+   "chip": {
+    "aria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+    "canvasVis": "hidden",
+    "chip": "3D view stopped \u00b7 tap to reload",
+    "ctx": "lost",
+    "display": "flex",
+    "frames": 236,
+    "hitIsChip": true,
+    "lost": true,
+    "overflowX": false,
+    "rect": [
+     222,
+     510,
+     258,
+     40
+    ],
+    "ride": [
+     "running",
+     5000,
+     34.2
+    ],
+    "sheetOpen": false,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 7.9,
+    "unionPct": 7.9
+   },
+   "minFont": 14,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 55220,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 837,
+     "x": 222,
+     "y": 558
+    },
+    {
+     "area": 10306,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 258,
+     "x": 222,
+     "y": 510
+    }
+   ]
+  },
+  "2-tapped": {
+   "chip": {
+    "aria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent, battery low at 15 percent",
+    "canvasVis": "visible",
+    "chip": "KICKR CORE \u00b7 hills 35 % \u00b7 battery 15 %",
+    "ctx": "live",
+    "display": "flex",
+    "frames": 149,
+    "hitIsChip": true,
+    "lost": false,
+    "overflowX": false,
+    "rect": [
+     222,
+     510,
+     300,
+     40
+    ],
+    "ride": [
+     "running",
+     7333,
+     50.1
+    ],
+    "sheetOpen": false,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 8.1,
+    "unionPct": 8.1
+   },
+   "minFont": 14,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 55220,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 837,
+     "x": 222,
+     "y": 558
+    },
+    {
+     "area": 11984,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 300,
+     "x": 222,
+     "y": 510
+    }
+   ]
+  },
+  "deviceRow": "Trainer \u00b7 KICKR CORE 78C1\nConnected \u00b7 the road sets the resistance\n15 %\nDisconnect",
+  "errors": [],
+  "recovered": true,
+  "tapped": [
+   351.0,
+   530.0
+  ]
+ },
+ "after-390": {
+  "0-riding": {
+   "chip": {
+    "aria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent, battery low at 15 percent",
+    "canvasVis": "visible",
+    "chip": "KICKR CORE \u00b7 hills 35 % \u00b7 battery 15 %",
+    "ctx": "live",
+    "display": "flex",
+    "frames": 217,
+    "hitIsChip": true,
+    "lost": false,
+    "overflowX": false,
+    "rect": [
+     12,
+     686,
+     300,
+     40
+    ],
+    "ride": [
+     "running",
+     2183,
+     14.9
+    ],
+    "sheetOpen": false,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 14.5,
+    "unionPct": 14.5
+   },
+   "minFont": 14,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    },
+    {
+     "area": 11984,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 300,
+     "x": 12,
+     "y": 686
+    }
+   ]
+  },
+  "1-lost": {
+   "chip": {
+    "aria": "The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.",
+    "canvasVis": "hidden",
+    "chip": "3D view stopped \u00b7 tap to reload",
+    "ctx": "lost",
+    "display": "flex",
+    "frames": 230,
+    "hitIsChip": true,
+    "lost": true,
+    "overflowX": false,
+    "rect": [
+     12,
+     686,
+     258,
+     40
+    ],
+    "ride": [
+     "running",
+     4967,
+     33.9
+    ],
+    "sheetOpen": false,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 14,
+    "unionPct": 14
+   },
+   "minFont": 14,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    },
+    {
+     "area": 10306,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 258,
+     "x": 12,
+     "y": 686
+    }
+   ]
+  },
+  "2-tapped": {
+   "chip": {
+    "aria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent, battery low at 15 percent",
+    "canvasVis": "visible",
+    "chip": "KICKR CORE \u00b7 hills 35 % \u00b7 battery 15 %",
+    "ctx": "live",
+    "display": "flex",
+    "frames": 148,
+    "hitIsChip": true,
+    "lost": false,
+    "overflowX": false,
+    "rect": [
+     12,
+     686,
+     300,
+     40
+    ],
+    "ride": [
+     "running",
+     7266,
+     49.7
+    ],
+    "sheetOpen": false,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 14.5,
+    "unionPct": 14.5
+   },
+   "minFont": 14,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    },
+    {
+     "area": 11984,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 300,
+     "x": 12,
+     "y": 686
+    }
+   ]
+  },
+  "deviceRow": "Trainer \u00b7 KICKR CORE 78C1\nConnected \u00b7 the road sets the resistance\n15 %\nDisconnect",
+  "errors": [],
+  "recovered": true,
+  "tapped": [
+   141.0,
+   706.0
+  ]
+ },
+ "before-1280": {
+  "0-riding": {
+   "chip": {
+    "aria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent, battery low at 15 percent",
+    "canvasVis": "visible",
+    "chip": "KICKR CORE \u00b7 hills 35 % \u00b7 battery 15 %",
+    "ctx": "live",
+    "display": "flex",
+    "frames": 158,
+    "hitIsChip": true,
+    "lost": false,
+    "overflowX": false,
+    "rect": [
+     222,
+     510,
+     300,
+     40
+    ],
+    "ride": [
+     "running",
+     2183,
+     14.9
+    ],
+    "sheetOpen": false,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 8.1,
+    "unionPct": 8.1
+   },
+   "minFont": 14,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 55220,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 837,
+     "x": 222,
+     "y": 558
+    },
+    {
+     "area": 11984,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 300,
+     "x": 222,
+     "y": 510
+    }
+   ]
+  },
+  "1-lost": {
+   "chip": {
+    "aria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent, battery low at 15 percent",
+    "canvasVis": "hidden",
+    "chip": "KICKR CORE \u00b7 hills 35 % \u00b7 battery 15 %",
+    "ctx": "lost",
+    "display": "flex",
+    "frames": 171,
+    "hitIsChip": true,
+    "lost": true,
+    "overflowX": false,
+    "rect": [
+     222,
+     510,
+     300,
+     40
+    ],
+    "ride": [
+     "running",
+     5166,
+     35.3
+    ],
+    "sheetOpen": false,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 8.1,
+    "unionPct": 8.1
+   },
+   "minFont": 14,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 55220,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 837,
+     "x": 222,
+     "y": 558
+    },
+    {
+     "area": 11984,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 300,
+     "x": 222,
+     "y": 510
+    }
+   ]
+  },
+  "2-tapped": {
+   "chip": {
+    "aria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent, battery low at 15 percent",
+    "canvasVis": "hidden",
+    "chip": "KICKR CORE \u00b7 hills 35 % \u00b7 battery 15 %",
+    "ctx": "lost",
+    "display": "flex",
+    "frames": 171,
+    "hitIsChip": true,
+    "lost": true,
+    "overflowX": false,
+    "rect": [
+     222,
+     510,
+     300,
+     40
+    ],
+    "ride": [
+     "running",
+     67364,
+     460.3
+    ],
+    "sheetOpen": true,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 27.9,
+    "unionPct": 27.9
+   },
+   "minFont": 12,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 164400,
+     "h": 428,
+     "name": "ride-devices-sheet",
+     "w": 384,
+     "x": 222,
+     "y": 74
+    },
+    {
+     "area": 55220,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 837,
+     "x": 222,
+     "y": 558
+    },
+    {
+     "area": 11984,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 300,
+     "x": 222,
+     "y": 510
+    }
+   ]
+  },
+  "deviceRow": "Trainer \u00b7 KICKR CORE 78C1\nConnected \u00b7 the road sets the resistance\n15 %\nDisconnect",
+  "errors": [],
+  "recovered": false,
+  "tapped": [
+   372.0,
+   530.0
+  ]
+ },
+ "before-390": {
+  "0-riding": {
+   "chip": {
+    "aria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent, battery low at 15 percent",
+    "canvasVis": "visible",
+    "chip": "KICKR CORE \u00b7 hills 35 % \u00b7 battery 15 %",
+    "ctx": "live",
+    "display": "flex",
+    "frames": 210,
+    "hitIsChip": true,
+    "lost": false,
+    "overflowX": false,
+    "rect": [
+     12,
+     686,
+     300,
+     40
+    ],
+    "ride": [
+     "running",
+     2183,
+     14.9
+    ],
+    "sheetOpen": false,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 14.5,
+    "unionPct": 14.5
+   },
+   "minFont": 14,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    },
+    {
+     "area": 11984,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 300,
+     "x": 12,
+     "y": 686
+    }
+   ]
+  },
+  "1-lost": {
+   "chip": {
+    "aria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent, battery low at 15 percent",
+    "canvasVis": "hidden",
+    "chip": "KICKR CORE \u00b7 hills 35 % \u00b7 battery 15 %",
+    "ctx": "lost",
+    "display": "flex",
+    "frames": 223,
+    "hitIsChip": true,
+    "lost": true,
+    "overflowX": false,
+    "rect": [
+     12,
+     686,
+     300,
+     40
+    ],
+    "ride": [
+     "running",
+     4983,
+     34.1
+    ],
+    "sheetOpen": false,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 14.5,
+    "unionPct": 14.5
+   },
+   "minFont": 14,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    },
+    {
+     "area": 11984,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 300,
+     "x": 12,
+     "y": 686
+    }
+   ]
+  },
+  "2-tapped": {
+   "chip": {
+    "aria": "Trainer connected: KICKR CORE 78C1, hills feel 35 percent, battery low at 15 percent",
+    "canvasVis": "hidden",
+    "chip": "KICKR CORE \u00b7 hills 35 % \u00b7 battery 15 %",
+    "ctx": "lost",
+    "display": "flex",
+    "frames": 223,
+    "hitIsChip": true,
+    "lost": true,
+    "overflowX": false,
+    "rect": [
+     12,
+     686,
+     300,
+     40
+    ],
+    "ride": [
+     "running",
+     67131,
+     458.7
+    ],
+    "sheetOpen": true,
+    "tone": "warn",
+    "truncated": false
+   },
+   "hud": {
+    "sumPct": 75.6,
+    "unionPct": 75.7
+   },
+   "minFont": 12,
+   "minTarget": 40,
+   "overflow": false,
+   "rects": [
+    {
+     "area": 200911,
+     "h": 549,
+     "name": "ride-devices-sheet",
+     "w": 366,
+     "x": 12,
+     "y": 129
+    },
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    },
+    {
+     "area": 11984,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 300,
+     "x": 12,
+     "y": 686
+    }
+   ]
+  },
+  "deviceRow": "Trainer \u00b7 KICKR CORE 78C1\nConnected \u00b7 the road sets the resistance\n15 %\nDisconnect",
+  "errors": [],
+  "recovered": false,
+  "tapped": [
+   162.0,
+   706.0
+  ]
+ }
+}
