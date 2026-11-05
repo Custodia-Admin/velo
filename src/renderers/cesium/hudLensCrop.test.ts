@@ -393,5 +393,6 @@ describe('CesiumWorldView wiring', () => {
     expect(src).toMatch(/riderScreen: px \? \[Math\.round\(px\.x\), Math\.round\(px\.y - cropTop\)\] : null/);
     expect(src).toMatch(/viewportPx: \[viewer\.canvas\.clientWidth, viewer\.canvas\.clientHeight - cropTop\]/);
     expect(src).toMatch(/lensShiftPx: cropTop \/ 2/);
+    expect(src).toMatch(/fovYDeg: viewFovYDeg\(viewer\.camera\.frustum, viewer\.canvas\.clientHeight, cropTop\)/);
   });
 });

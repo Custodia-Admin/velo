@@ -26,10 +26,11 @@
  * (before/after) in the file names.
  *
  * The check (exit 1 when it fails): at every size the whole rider, wheels
- * included, sits above the bar (the magenta box's bottom above the bar's top
- * edge; behind the bar the box stops at it). Both renderers draw the ride with
- * one vertical field (lib/world/cameraFraming RIDE_FOV_Y_DEG), so the shared
- * lens shift clears the bar in both. CHECK=0 only reports.
+ * included, sits above the bar: the magenta box's bottom, shot once more with
+ * the bar hidden (behind the bar the box would stop at its top edge), above
+ * the bar's top edge. Both renderers draw the ride with one vertical field
+ * (lib/world/cameraFraming RIDE_FOV_Y_DEG), so the shared lens shift clears
+ * the bar in both. CHECK=0 only reports.
  *
  * Also: the tab before floating (<out>/pipcesium-<layout>-tab.jpg, the same
  * box and point); SIZES_JSON='{"wide":[760,240]}' replaces the window sizes
@@ -357,22 +358,38 @@ async function run(theme) {
       const pixels = riderPixels(png, geometry.window[2]);
       toJpeg(png, png.replace(/\.png$/, '.jpg'));
       rmSync(png);
+      // The whole rider: the bar hidden for one shot (it stays in the layout,
+      // so the crop holds), else a rider behind the bar ends at its top edge.
+      const barShown = (v) => evalIn(page, `(() => { const b = documentPictureInPicture.window.document.querySelector('[data-testid=journey-bar]'); if (b) b.style.visibility = ${JSON.stringify(v ? '' : 'hidden')}; return !!b; })()`);
+      await barShown(false);
+      await sleep(1500);
+      const whole = await (async () => {
+        const shot = await pip.send('Page.captureScreenshot', { format: 'png' });
+        const p = join(OUT, `pipcesium-${LAYOUT}-${size}${suffix}-nobar.png`);
+        writeFileSync(p, Buffer.from(shot.data, 'base64'));
+        const px = riderPixels(p, geometry.window[2]);
+        rmSync(p);
+        return px;
+      })();
+      await barShown(true);
       const barTop = geometry.bar ? geometry.bar[1] : null;
       const verdict = {
         barTop,
         riderPointY: debug?.rider?.[1] ?? null,
         riderBoxBottom: pixels.box ? pixels.box[3] : null,
+        // The rider's wheels with the bar hidden.
+        wheelsY: whole.box ? whole.box[3] : null,
         pointAboveBar: debug?.rider && barTop !== null ? debug.rider[1] < barTop : null,
-        boxAboveBar: pixels.box && barTop !== null ? pixels.box[3] < barTop : null,
-        // Wheels to bar top, CSS px (> 0: clear of the bar).
-        wheelGap: pixels.box && barTop !== null ? Math.round((barTop - pixels.box[3]) * 10) / 10 : null,
+        boxAboveBar: whole.box && barTop !== null ? whole.box[3] < barTop : null,
+        // Wheels to bar top, CSS px (> 0: clear of the bar; < 0: that much behind it).
+        wheelGap: whole.box && barTop !== null ? Math.round((barTop - whole.box[3]) * 10) / 10 : null,
         clearBand: geometry.topControls && barTop !== null ? [geometry.topControls[1] + geometry.topControls[3], barTop] : null,
       };
       // The check: a drawn rider, wheels and all, above the bar.
-      if (!(pixels.n > 0 && verdict.boxAboveBar === true && verdict.pointAboveBar === true)) {
-        failures.push(`${LAYOUT} ${size}${suffix}: rider box bottom ${verdict.riderBoxBottom} / 1 m point ${verdict.riderPointY} vs bar top ${barTop} (magenta px ${pixels.n})`);
+      if (!(whole.n > 0 && verdict.boxAboveBar === true && verdict.pointAboveBar === true)) {
+        failures.push(`${LAYOUT} ${size}${suffix}: wheels at ${verdict.wheelsY} / 1 m point ${verdict.riderPointY} vs bar top ${barTop} (gap ${verdict.wheelGap}, magenta px ${whole.n})`);
       }
-      report.sizes[size] = { asked: [w, h], debug, geometry, pixels, verdict };
+      report.sizes[size] = { asked: [w, h], debug, geometry, pixels, whole, verdict };
       console.log(`  ${size} ${w}x${h}`, JSON.stringify({ window: geometry.window, renderer: geometry.renderer, hudBottom: geometry.hudBottom, containerTop: geometry.containerTop, canvas: geometry.canvas, buffer: geometry.buffer, debug, pixels, verdict }));
     }
     report.errors = await evalIn(page, 'window.__errors.slice(0, 10)');
