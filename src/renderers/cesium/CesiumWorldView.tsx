@@ -59,6 +59,8 @@ import type { RiderPose, WorldViewProps } from '@/lib/world/renderer';
 import { createCesiumWorldRenderer } from '@/renderers/cesium/cesiumWorldRenderer';
 import { GlobeGate } from '@/renderers/cesium/globeGate';
 import { StartGroundWatch } from '@/renderers/cesium/startGround';
+import { createSideCamSight } from '@/lib/sideCamSight';
+import { placeSideCam } from '@/renderers/cesium/sideCam';
 import {
   applyGraphicsQuality,
   recommendedGraphicsQuality,
@@ -216,6 +218,10 @@ export function CesiumWorldView({
   const cameraLiftRef = useRef(0);
   /** Last side the side-tracking camera used (+1 right / -1 left) — hysteresis. */
   const sideTrackSideRef = useRef<1 | -1>(1);
+  /** Keeps the side / orbit camera out of the mesh and in sight of the rider (lib/sideCamSight). */
+  const sideCamSightRef = useRef(createSideCamSight());
+  /** Cuts across the road seen so far (a cut drops the lift). */
+  const sideCamCutsRef = useRef(0);
   // The old single-colour polyline is replaced by gradient segments + markers.
   // Keep routePolylineRef so the searchPin effect can coexist unchanged.
   const routePolylineRef = useRef<Cesium.Entity | null>(null);
@@ -1172,6 +1178,9 @@ export function CesiumWorldView({
             groundEle,
             cameraHeight: viewer.camera.positionCartographic.height,
             camSide,
+            // Side / orbit camera sight (lib/sideCamSight): side, eased offset
+            // fraction, whether a clear spot was found, cuts and tile reads.
+            sideCam: sideCamSightRef.current.debug(),
             dist: state.distance,
             riderLonLat: [riderLon, riderLat],
             startGround: startGroundRef.current?.debug() ?? null,
@@ -1216,6 +1225,7 @@ export function CesiumWorldView({
             seedFollowCam(viewer.camera.positionWC, viewer.camera.heading, viewer.camera.pitch);
           }
           lastCamModeRef.current = currentMode;
+          sideCamSightRef.current.reset();
         }
 
         // Compute the live target pose for the current mode.
@@ -1224,15 +1234,39 @@ export function CesiumWorldView({
         // on curves the perpendicular offset can land inside it (full-frame
         // grey faceted render), so pass the route window and let the pose push
         // out or switch sides. The ref carries the last side (hysteresis).
+        // The corridor is only there while the painted road is drawn (where
+        // the globe is the ground); over the mesh nothing needs keeping out of.
+        const roadPainted = globeShown && roadEntityRef.current !== null;
         let corridor: SideTrackCorridor | undefined;
         if (currentMode === 'sideTracking') {
           corridor = {
-            points: r.points,
+            points: roadPainted ? r.points : [],
             riderDistanceM: pose.distance,
             preferredSide: sideTrackSideRef.current,
           };
         }
-        const targetPose = computeCameraPose(currentMode, riderPose, nowMs, cameraDistance, corridor);
+        let targetPose = computeCameraPose(currentMode, riderPose, nowMs, cameraDistance, corridor);
+        // Side / orbit shots stand 3-4 m up beside the road, where the
+        // hillside, house fronts and palms are. Over the mesh the camera moves
+        // in to where it sees the rider over what is drawn, or crosses the
+        // road to an open side; lifting it over the top of whatever is drawn
+        // put it on roofs (renderers/cesium/sideCam, t_1ec01b75).
+        targetPose = placeSideCam({
+          scene: viewer.scene,
+          sight: sideCamSightRef.current,
+          mode: currentMode,
+          pose: targetPose,
+          heading,
+          lon: sampled.lon,
+          lat: sampled.lat,
+          routeEle: sampled.ele,
+          groundEle,
+          speed: state.speed,
+          distanceM: pose.distance,
+          nowMs,
+          dt,
+          roadPainted,
+        });
         if (corridor) {
           sideTrackSideRef.current = sideTrackSideFromPose(targetPose, heading);
         }
@@ -1308,6 +1342,14 @@ export function CesiumWorldView({
                 sampled.ele,
                 nowMs,
               );
+              // A cut across the road leaves the old side's lift behind: at
+              // Santa Monica 1.5 km a 7 m lift over palm crowns, carried over,
+              // filmed the far side's crowns from above.
+              const cuts = sideCamSightRef.current.cuts();
+              if (cuts !== sideCamCutsRef.current) {
+                sideCamCutsRef.current = cuts;
+                cameraLiftRef.current = 0;
+              }
               const needed = ground === undefined ? 0 : Math.max(0, ground + CHASE_MIN_CLEARANCE_M - camCarto.height);
               const lift = Math.max(needed, cameraLiftRef.current * Math.exp(-1.5 * Math.min(dt, 0.1)));
               cameraLiftRef.current = lift;
