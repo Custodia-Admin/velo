@@ -164,7 +164,21 @@ describe('RideSetupWizard — pace partners', () => {
   });
 
   it('Start with a route already picked rides that route, partners and all', async () => {
-    const chosen = SCENIC_ROUTES[0].route;
+    // A route of the rider's own (GPX / city search), never one the auto-pick could draw.
+    const chosen: Route = {
+      id: 'my-gpx',
+      name: 'My loop',
+      points: [
+        { lat: 43.05, lon: 12.5, ele: 240, distance: 0 },
+        { lat: 43.05, lon: 12.51, ele: 250, distance: 800 },
+      ],
+      totalDistance: 800,
+      ascent: 10,
+      descent: 0,
+      minElevation: 240,
+      maxElevation: 250,
+      loadedAt: 0,
+    };
     useRideStore.getState().setRoute(chosen);
     pick(picked[1].id);
     const view = render();
