@@ -164,7 +164,7 @@ natively, without Node's web-stream wrapper.
   Heights come from the heightfield.
 - `routeFill` pieces are not OSM ways: each is a way the OSM snapshot lacks
   under a scenic route. The bake fits the drawn roads to every route so its
-  painted guide (centre line ± 0.25 m) lies on ONE drawn surface:
+  painted guide (centre line ± 0.29 m, its chevrons' reach) lies on ONE drawn surface:
   - where the paint leaves the road the route runs along (a path mapped a
     metre to the side, a corner the route cuts), the bake bends that road
     toward the route just far enough, easing back to its mapped line over

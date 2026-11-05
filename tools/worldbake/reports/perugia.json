@@ -5,10 +5,10 @@
     "dem": 0.5,
     "heightfield+routes": 0.1,
     "osm": 0.2,
-    "vectors": 7.6,
-    "write": 12.6,
+    "vectors": 7.7,
+    "write": 13.8,
     "validate": 0,
-    "total": 21
+    "total": 22.3
   },
   "sizes": {
     "height.bin.gz": {
@@ -17,9 +17,9 @@
       "brotli": 1802313
     },
     "roads.json.gz": {
-      "stored": 773684,
-      "content": 2071842,
-      "brotli": 533115
+      "stored": 773817,
+      "content": 2072117,
+      "brotli": 533439
     },
     "water.json.gz": {
       "stored": 27076,
@@ -49,23 +49,23 @@
     "manifest.json": {
       "stored": 44439,
       "content": 44439,
-      "brotli": 7491
+      "brotli": 7494
     }
   },
   "totals": {
-    "stored": 5817269,
-    "content": 11479716,
-    "brotli": 4581684
+    "stored": 5817402,
+    "content": 11479991,
+    "brotli": 4582011
   },
   "hashes": {
     "height.bin.gz": "61c641b85e6d1b7010b88642450a5def020ff313259a634fd8d87e56f4b1f550",
-    "roads.json.gz": "a038234cc00c85f1851ac8d90827134f519b5cda95a6f68a4ec4efd98f14ba87",
+    "roads.json.gz": "186a19172377be95ff69c2fd59534d31336d5d3a828066d333f063a3c87ada9d",
     "water.json.gz": "336e1fa7740ce2525f6f53ef7f2dc92f4143649a79f745244cd562006faf31b8",
     "landcover.json.gz": "bdf6cd0a665e6b828281ca1dfa88648c9715f5a2154c5e949bab40c702dfb0be",
     "buildings.bin.gz": "63536fb5bdde92f0630d1780ab143970e951d266e53fe5e9a28aea430595cc7e",
     "vegetation.bin.gz": "b226f342c23b7a7a28195c50200b32335631e2bebc686e21a70a9918e0a45ed1",
     "routes.json.gz": "327c5eef82e0e0d33ef2d7e45a92cf1ad8fb7de19950169b4f92450f203caa34",
-    "manifest.json": "c8e80a6ac361838e0dbea3dd62505297c4d9a8b221743274f6661ab39e784506"
+    "manifest.json": "5be40033f8be39e0a70554be4f6667419ba953e30c6ecc037c09c6b0dfb46e9b"
   },
   "routes": [
     {
@@ -82,9 +82,9 @@
       },
       "roadCoverage": {
         "mappedPct": 100,
-        "paintPctBefore": 92.17,
+        "paintPctBefore": 90.12,
         "paintPct": 100,
-        "easedM": 1841.3,
+        "easedM": 2299.8,
         "joinedM": 0,
         "tunnelM": 0
       }
@@ -103,9 +103,9 @@
       },
       "roadCoverage": {
         "mappedPct": 100,
-        "paintPctBefore": 97.58,
+        "paintPctBefore": 96.91,
         "paintPct": 100,
-        "easedM": 720.1,
+        "easedM": 869.7,
         "joinedM": 0,
         "tunnelM": 13
       }

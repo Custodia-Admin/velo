@@ -5,7 +5,7 @@
  * stretch whose centreline was off the mapped roads, padded 2 m into them: a
  * second coplanar surface beside the path, read on screen as a widened path
  * with a square step where each piece began. Now it bends the road the route
- * runs along just far enough to hold the whole guide (centre line ± 0.25 m)
+ * runs along just far enough to hold the whole guide (centre line ± 0.29 m)
  * on it, and adds a piece only where no road runs along the route at all (a
  * way the OSM snapshot lacks), joining the roads at its two ends like any
  * mapped junction and never alongside one.

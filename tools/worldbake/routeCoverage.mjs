@@ -25,12 +25,13 @@ import { here, simplifyLine } from './util.mjs';
 /** Extra reach past a road's half-width that still counts as on it, m. */
 export const COVERAGE_MARGIN_M = 1;
 /**
- * Half-width of the painted guide, m: its chevrons reach 0.24 m either side
- * of the centre line (src/renderers/three/materials/routeGuide.ts). The paint
- * is on a drawn road when the centreline and both points this far either side
- * of it are.
+ * Half-width of the painted guide, m: its chevron arms reach 0.24 m either
+ * side of the centre line and their strokes are 0.045 m half-wide
+ * (ROUTE_GUIDE in src/renderers/three/materials/routeGuide.ts; routeFit.test
+ * pins this to cover both). The paint is on a drawn road when the centreline
+ * and both points this far either side of it are.
  */
-export const ROUTE_PAINT_HALF_M = 0.25;
+export const ROUTE_PAINT_HALF_M = 0.29;
 /**
  * How far inside the road the bake puts the paint's edges, m: room for
  * rounding the eased road to the bundle's decimetres and simplifying it, so

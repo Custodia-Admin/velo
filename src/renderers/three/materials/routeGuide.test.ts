@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { ROUTE_GUIDE, ROUTE_PAINT_HSL, createRouteGuideMaterial, routePaintColor } from './routeGuide';
 import { ROUTE_WIDTH_M } from '../Roads';
+import { ROUTE_PAINT_HALF_M } from '../../../../tools/worldbake/routeCoverage.mjs';
 
 const css = readFileSync(fileURLToPath(new URL('../../../index.css', import.meta.url)), 'utf8');
 
@@ -23,6 +24,14 @@ describe('route guide paint', () => {
     expect(ROUTE_GUIDE.lineHalfM * 2).toBeLessThanOrEqual(0.15);
     // Chevrons are faint cues, never solid bars: well spaced along the route.
     expect(ROUTE_GUIDE.chevronEveryM).toBeGreaterThanOrEqual(5);
+  });
+
+  it('is no wider than the band the world bake keeps on a drawn road (routeCoverage ROUTE_PAINT_HALF_M)', () => {
+    // The bake bends a path under the route until the centre line ± this much
+    // lies on it; paint reaching past it could end up on grass.
+    const reach = Math.max(ROUTE_GUIDE.chevronHalfM + ROUTE_GUIDE.chevronStrokeM, ROUTE_GUIDE.lineHalfM);
+    expect(ROUTE_PAINT_HALF_M).toBeGreaterThanOrEqual(reach);
+    expect(ROUTE_PAINT_HALF_M).toBeLessThanOrEqual(reach + 0.01);
   });
 
   it('builds a transparent, depth-pulled material that discards off the paint', () => {

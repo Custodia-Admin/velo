@@ -5,10 +5,10 @@
     "dem": 0.7,
     "heightfield+routes": 0.1,
     "osm": 0.7,
-    "vectors": 46.4,
-    "write": 22.8,
+    "vectors": 47.9,
+    "write": 22.9,
     "validate": 0,
-    "total": 70.6
+    "total": 72.2
   },
   "sizes": {
     "height.bin.gz": {
@@ -17,9 +17,9 @@
       "brotli": 2246877
     },
     "roads.json.gz": {
-      "stored": 1943654,
-      "content": 4996297,
-      "brotli": 1244207
+      "stored": 1943663,
+      "content": 4996311,
+      "brotli": 1244614
     },
     "water.json.gz": {
       "stored": 285596,
@@ -49,23 +49,23 @@
     "manifest.json": {
       "stored": 135910,
       "content": 135910,
-      "brotli": 19040
+      "brotli": 19031
     }
   },
   "totals": {
-    "stored": 9462260,
-    "content": 19260146,
-    "brotli": 7117749
+    "stored": 9462269,
+    "content": 19260160,
+    "brotli": 7118147
   },
   "hashes": {
     "height.bin.gz": "03f447ed72c46b859d6858a5e6b9ab342ba4201f0c9be7326744a2b406380d74",
-    "roads.json.gz": "592071b81da598141d2b25efd01ee5e0f7b5ad6fa0050d57d2e6f4bd4517951f",
+    "roads.json.gz": "d8eaa3834f1238c54b26481274a276f9d711d24613db14aa32db3d00caf2ed08",
     "water.json.gz": "10108ff003ff77d8fc3d2311bd3e815e88fb20841d85a862f86bf9c444ce79fd",
     "landcover.json.gz": "70f13956230e1b1d15f5fa186cf24967c20c1d0edb0b1f6dc170a8613af27919",
     "buildings.bin.gz": "472f56394d46f8801ad9eb607d8dc4508a364a6f8ce0ac6b396d403f71adc59a",
     "vegetation.bin.gz": "4560365d3b98777974ec171f8c84def53746e6f7113419f2fb3f68b879a427c0",
     "routes.json.gz": "085d359a7d4f44e484f61b8a4f32e65525d52851e1277dd24c13edabfa25017b",
-    "manifest.json": "b6caddec82f174614218503c17e272eb6b1a1b7aac723ea7fa7811a2cfa5b242"
+    "manifest.json": "321b3a0ccb29d7e2d8bfdde13860f9d691ce7f68c54a2c3a4407398530574c00"
   },
   "routes": [
     {
@@ -103,9 +103,9 @@
       },
       "roadCoverage": {
         "mappedPct": 99.98,
-        "paintPctBefore": 97.81,
+        "paintPctBefore": 97.53,
         "paintPct": 100,
-        "easedM": 309.6,
+        "easedM": 347.9,
         "joinedM": 2.9,
         "tunnelM": 0
       }
