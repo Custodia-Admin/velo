@@ -654,6 +654,15 @@ describe('createSideCamSight: starting over', () => {
   });
 });
 
+describe('clearSightOffset reads each offset once', () => {
+  it('a 2.5 m hedge at 4.5 m: each spot and the fractions on the way to it, one read each', () => {
+    // It hides the bars from 9 and 6.75 m, stands under 4.5 m: the road edge.
+    const read: number[] = [];
+    expect(clearSightOffset((x) => (read.push(x), Math.abs(x - 4.5) < 0.01 ? 2.5 : 0), BASE, UP)).toBe(SIGHT_MIN_OFFSET_M);
+    expect([...read].sort((a, b) => a - b)).toEqual([SIGHT_MIN_OFFSET_M, 4.5, 6.75, 9]);
+  });
+});
+
 describe('seenOverTops / firstSeenOffset: one spot at a time', () => {
   it('seenOverTops is clearSightOffset for one spot: air under the camera, the line over the closer spots', () => {
     // A 2.5 m hedge at 6.75 m: hides the bars from 9 m, not from 6.75 m (it stands under it: no air).

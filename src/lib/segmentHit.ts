@@ -5,11 +5,13 @@
  * rider's bars to a camera spot is open. Cesium3DTileset.pick answers that
  * for an endless ray and only in the tile whose bounding sphere is nearest
  * the ray's origin, and its pickModel moves every vertex of a tile into world
- * space before testing it: about 2 ms a ray on cat-bed's iGPU, the same as a
- * height read. Here the segment is moved into the tile's own frame once
- * instead, and a triangle whose corners all lie on one side of the segment's
- * box is dropped before any cross product: about 0.1 ms a ray over the same
- * tiles, with the same hits (783 of 783 on the Lugano shore, t_ee2165b8).
+ * space before testing it: p50 1.7 ms, p90 3.8 ms a ray on cat-bed's iGPU on
+ * the Lugano shore, about a height read's cost (getHeight p50 1.9 ms). Here
+ * the segment is moved into the tile's own frame once instead, and a
+ * triangle whose corners all lie on one side of the segment's box is dropped
+ * before any cross product: p50 0.1 ms, p90 0.2 ms a ray over the same tiles,
+ * with the same answer as Cesium's own tile picks walked along the segment
+ * on 10494 of 10494 rays (Lugano and Santa Monica, t_ee2165b8).
  *
  * Like pickModel, triangles facing away from the segment's start are not
  * hits (backface culling): seen from the road, the walls, hedges, banks and

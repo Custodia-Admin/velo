@@ -46,6 +46,15 @@ describe('segmentTriangleHit', () => {
     expect(hit(wallFacingOrigin(5), [0, 0, 0], [5, 0, 0])).toBeCloseTo(1, 12);
   });
 
+  it('a big slanted face the endless line meets past the end, or behind the start: not a hit', () => {
+    // The plane x - y = 6 (vertical), corners all round the segments' boxes:
+    // the x axis meets it at x = 6.
+    const slab = { positions: [-4, -10, -5, 16, 10, -5, 6, 0, 5], indices: [0, 1, 2] };
+    expect(hit(slab, [0, 0, 0], [8, 0, 0], false)).toBeCloseTo(0.75, 12);
+    expect(hit(slab, [0, 0, 0], [4, 0, 0], false)).toBe(NO_HIT);
+    expect(hit(slab, [8, 0, 0], [12, 0, 0], false)).toBe(NO_HIT);
+  });
+
   it('passing beside or over the wall is not a hit; just inside its edge is', () => {
     expect(hit(wallFacingOrigin(5), [0, 1.01, 0], [10, 1.01, 0])).toBe(NO_HIT);
     expect(hit(wallFacingOrigin(5), [0, 0, 1.01], [10, 0, 1.01])).toBe(NO_HIT);
@@ -81,8 +90,17 @@ describe('segmentTriangleHit', () => {
   it('reads vertices with a stride over 3 and ignores a dangling index', () => {
     const w = wallFacingOrigin(5);
     const strided: number[] = [];
-    for (let v = 0; v < 4; v++) strided.push(...w.positions.slice(v * 3, v * 3 + 3), 99, 99);
+    for (let v = 0; v < 4; v++) strided.push(...w.positions.slice(v * 3, v * 3 + 3), 7, -7);
     expect(segmentTriangleHit(strided, 5, [...w.indices, 0], 0, 0, 0, 10, 0, 0)).toBeCloseTo(0.5, 12);
+    // Near each corner of the wall, and just past it.
+    // (Each triangle's corners listed from every starting corner: same winding.)
+    const turned = [1, 2, 0, 2, 3, 0];
+    for (const [y, z] of [[0.9, 0.9], [-0.9, 0.9], [-0.9, -0.9], [0.9, -0.9]]) {
+      for (const idx of [w.indices, turned]) {
+        expect(segmentTriangleHit(strided, 5, idx, 0, y, z, 10, y, z)).toBeCloseTo(0.5, 12);
+        expect(segmentTriangleHit(strided, 5, idx, 0, y * 1.2, z * 1.2, 10, y * 1.2, z * 1.2)).toBe(NO_HIT);
+      }
+    }
   });
 
   it('a degenerate (zero area) triangle is never a hit', () => {
