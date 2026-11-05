@@ -28,5 +28,25 @@
   },
   "moods": ["golden-hour", "clear-afternoon", "clear-noon", "overcast", "mediterranean-mist"],
   "defaultMood": "golden-hour",
-  "validation": { "seed": 46059, "samples": 50, "maxRmsM": 6 }
+  "validation": {
+    "sample_seed": 46059,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "aws-terrain-tiles",
+    "terrain_class": "mountain",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.5177,
+    "floor_source": "copernicus-glo30-cog/lugano-t_045a5081",
+    "floor_rms_m": 1.71,
+    "own_error_allowance_m": 6,
+    "bound_m": 6.24,
+    "registered_rms_m": 8.88,
+    "point_rms_m": 18.17,
+    "max_abs_registered_err_m": 29.52,
+    "pass": false
+  }
 }

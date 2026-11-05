@@ -75,12 +75,36 @@
     "moods": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
     "defaultMood": { "type": "string" },
     "validation": {
+      "description": "Blueprint §P1.3 v2 terrain accuracy check (tools/worldbake/p13Criterion.mjs, docs/worlds/WORLD-FORMAT.md \"Terrain accuracy check\"). The author sets sample_seed and, optionally, the mountain override; the bake writes every other field back on each validated bake, and a committed recipe must carry all of them.",
       "type": "object",
-      "required": ["seed", "samples", "maxRmsM"],
+      "required": ["sample_seed"],
+      "additionalProperties": false,
+      "dependentRequired": {
+        "terrain_class_override": ["terrain_class_override_reason"],
+        "terrain_class_override_reason": ["terrain_class_override"]
+      },
       "properties": {
-        "seed": { "type": "integer" },
-        "samples": { "type": "integer", "minimum": 1 },
-        "maxRmsM": { "type": "number" }
+        "sample_seed": { "type": "integer", "description": "Seed of the 50 sample points (author input)." },
+        "terrain_class_override": { "const": "mountain", "description": "Force the class up to mountain (author input). A recipe may never force standard." },
+        "terrain_class_override_reason": { "type": "string", "minLength": 1, "description": "Why the override is needed (author input, required with the override)." },
+        "criterion": { "const": "p1.3-v2-registered-rms" },
+        "reference": { "const": "open-meteo-elevation/copernicus-glo90" },
+        "registration": { "const": "glo90-nw-node" },
+        "sample_count": { "const": 50 },
+        "dem_source": { "enum": ["aws-terrain-tiles", "copernicus-glo30"] },
+        "terrain_class": { "enum": ["standard", "mountain"] },
+        "terrain_class_source": { "enum": ["auto", "override"] },
+        "slope_threshold_deg": { "const": 15 },
+        "steep_fraction_threshold": { "const": 0.2 },
+        "steep_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "floor_source": { "enum": ["none", "copernicus-glo30-cog/lugano-t_045a5081"] },
+        "floor_rms_m": { "enum": [0, 1.71] },
+        "own_error_allowance_m": { "const": 6 },
+        "bound_m": { "enum": [6, 6.24] },
+        "registered_rms_m": { "type": "number", "minimum": 0, "description": "Gating." },
+        "point_rms_m": { "type": "number", "minimum": 0, "description": "Reported only." },
+        "max_abs_registered_err_m": { "type": "number", "minimum": 0, "description": "Reported only." },
+        "pass": { "type": "boolean", "description": "registered_rms_m <= bound_m." }
       }
     }
   }

@@ -6828,7 +6828,7 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "92cc3279b44ac5a280f568ffaa09873891fc33244af0960a7c671211e98d6ee9",
+    "recipeSha256": "f0cca5ad81673553c29f3528afaa4dc254a9f7bbf67ad9a01fb6088fa98fb363",
     "osmDate": "2026-10-01T00:00:00Z",
     "demSource": "aws-terrain-tiles/terrarium",
     "demZoom": 13,
