@@ -4,6 +4,7 @@
  * the only source of the selection; the picker renders what this returns.
  */
 import { BOT_PRESETS, createPaceBot, type PaceBot, type Personality } from '@/lib/paceBots';
+import type { Route } from '@/types';
 
 /** How many partners can ride along at once. */
 export const MAX_PARTNERS = 3;
@@ -41,15 +42,16 @@ export function pickedPartnerIds(bots: readonly PaceBot[]): ReadonlySet<string> 
 }
 
 /**
- * The roster after tapping a partner: added (as a real PaceBot at the start
- * line) or removed. Adding past MAX_PARTNERS changes nothing. Riders already
- * picked keep their order and state.
+ * The roster after tapping a partner: added (as a real PaceBot, standing on
+ * `route`'s start line when one is loaded) or removed. Adding past
+ * MAX_PARTNERS changes nothing. Riders already picked keep their order and
+ * state.
  */
-export function togglePartner(bots: readonly PaceBot[], id: string): PaceBot[] {
+export function togglePartner(bots: readonly PaceBot[], id: string, route?: Route | null): PaceBot[] {
   if (bots.some((b) => b.id === id)) return bots.filter((b) => b.id !== id);
   const partner = PARTNERS.find((p) => p.id === id);
   if (!partner || bots.length >= MAX_PARTNERS) return [...bots];
-  return [...bots, createPaceBot(partner.id, partner.preset)];
+  return [...bots, createPaceBot(partner.id, partner.preset, route)];
 }
 
 /** The line under the picker: how many ride along, and why the rest are off at the cap. */

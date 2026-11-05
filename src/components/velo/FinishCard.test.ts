@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { powerSummary, rideAgain, secondaryStats } from '@/components/velo/FinishCard';
+import { nextScenicRoute, powerSummary, rideAgain, secondaryStats } from '@/components/velo/FinishCard';
 import { useRideStore } from '@/stores/rideStore';
 import type { Route, TelemetrySample } from '@/types';
 
@@ -59,6 +59,25 @@ describe('finish screen figures', () => {
       'IF',
       'TSS',
     ]);
+  });
+});
+
+describe('Tomorrow, maybe', () => {
+  // As it was when routes carried their own `area` field, before the
+  // destination manifests became the one source of where a route sits.
+  const TRASIMENO = 'scenic-trasimeno-shore';
+  const TIBER = 'scenic-perugia-tiber-park';
+  const ASSISI = 'scenic-assisi-valley';
+  const next = (id: string | undefined, day: number) => nextScenicRoute(id, new Date(2026, 10, day, 9))?.route.id;
+
+  it('offers the next home route in library order after a home ride', () => {
+    expect([TRASIMENO, TIBER, ASSISI].map((id) => next(id, 1))).toEqual([TIBER, ASSISI, TRASIMENO]);
+  });
+
+  it('offers tomorrow’s featured home route after any other ride', () => {
+    for (const id of [undefined, 'scenic-lugano-melide', 'scenic-hangzhou-west-lake', 'gpx-123']) {
+      expect([1, 2, 3, 4].map((day) => next(id, day)), String(id)).toEqual([ASSISI, TRASIMENO, TIBER, ASSISI]);
+    }
   });
 });
 

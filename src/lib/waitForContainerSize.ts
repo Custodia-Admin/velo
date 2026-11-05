@@ -14,7 +14,7 @@
  * unavailable (jsdom / SSR).
  */
 
-export interface WaitOptions {
+interface WaitOptions {
   /** Maximum milliseconds to wait before returning null. Default 5000. */
   timeoutMs?: number;
   /** Minimum width in pixels before resolving. Default 100. */
@@ -23,7 +23,7 @@ export interface WaitOptions {
   minHeight?: number;
 }
 
-export interface ContainerSize {
+interface ContainerSize {
   width: number;
   height: number;
 }

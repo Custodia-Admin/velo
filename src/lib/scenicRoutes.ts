@@ -11,32 +11,9 @@ import type { Route, RoutePoint } from '@/types';
 import type { MoodId } from '@/lib/cesiumUtils';
 import { haversine } from '@/lib/utils';
 import { SCENIC_ROUTE_GEOMETRY, type ScenicRouteGeometry } from '@/lib/scenicRouteData';
+import { destinationForRoute, type DestinationRole } from '@/lib/world/destinations';
 
-/**
- * Where a route sits relative to the household:
- * - near-home: around Perugia, where they live now
- * - hometown: Ticino and the Lombardy lakes, where Federico grew up
- * - further: European lakes and coast a trip away
- * - travels: places on the travel wishlist
- */
-export type ScenicArea = 'near-home' | 'hometown' | 'further' | 'travels';
 export type Scenery = 'lake' | 'coast' | 'valley' | 'alpine-lake' | 'river';
-
-export interface ScenicAreaInfo {
-  id: ScenicArea;
-  /** Home section heading. */
-  title: string;
-  /** Short line beside the heading. */
-  detail: string;
-}
-
-/** Home sections, in display order. Every area a route uses appears here. */
-export const SCENIC_AREAS: ScenicAreaInfo[] = [
-  { id: 'near-home', title: 'Near home', detail: 'Perugia and Umbria' },
-  { id: 'hometown', title: 'Hometown', detail: 'Ticino and the Lombardy lakes' },
-  { id: 'further', title: 'Further afield', detail: 'Alpine lakes, Garda and the Riviera' },
-  { id: 'travels', title: 'Travels', detail: 'China, the United States and Mexico' },
-];
 export type ScenicCharacter = 'flat' | 'gentle';
 
 export interface ScenicRouteInfo {
@@ -47,7 +24,6 @@ export interface ScenicRouteInfo {
   place: string;
   /** One sentence on what you'll see. */
   description: string;
-  area: ScenicArea;
   scenery: Scenery;
   /** Derived from the profile: flat, or gentle (a slow rise or small rollers). */
   character: ScenicCharacter;
@@ -63,21 +39,24 @@ interface ScenicMeta {
   name: string;
   place: string;
   description: string;
-  area: ScenicArea;
   scenery: Scenery;
   mood: MoodId;
 }
 
-/** Order matters: the home screen shows them in this order. */
+/**
+ * Library order. Today's ride rotates through the home routes in this order
+ * and the setup wizard lists routes in it; Home's sections follow the
+ * destination manifests (src/lib/world/destinations/*.json), which also say
+ * where each route sits for the household (`role`: home, hometown, wishlist).
+ */
 const SCENIC_META: ScenicMeta[] = [
-  // ── Near home: Perugia ──
+  // ── Perugia ──
   {
     id: 'scenic-trasimeno-shore',
     name: 'Lake Trasimeno shore',
     place: 'Umbria · Lago Trasimeno',
     description:
       'Castiglione del Lago to Passignano on the lakeside cycle path.',
-    area: 'near-home',
     scenery: 'lake',
     mood: 'golden-hour',
   },
@@ -87,7 +66,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Perugia · Tiber valley',
     description:
       'Ponte San Giovanni to Ponte Felcino, below the hill of Perugia.',
-    area: 'near-home',
     scenery: 'river',
     mood: 'clear-afternoon',
   },
@@ -97,18 +75,16 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Umbria · Valle Umbra',
     description:
       'A loop on the valley floor below Assisi: Santa Maria degli Angeli, Rivotorto and Bastia, out and home on different roads.',
-    area: 'near-home',
     scenery: 'valley',
     mood: 'clear-noon',
   },
-  // ── Hometown: Ticino and the Lombardy lakes ──
+  // ── Ticino and the Lombardy lakes ──
   {
     id: 'scenic-lugano-melide',
     name: 'Lugano lakefront to Melide',
     place: 'Ticino · Lake Lugano',
     description:
       "Lugano's lakefront promenade, Paradiso, then the shore road to Melide and out over the causeway with water on both sides.",
-    area: 'hometown',
     scenery: 'lake',
     mood: 'golden-hour',
   },
@@ -118,7 +94,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Ticino · Lago Maggiore',
     description:
       "From Locarno over Ascona's Collinetta and along the shore road toward Brissago, with the Brissago Islands just offshore.",
-    area: 'hometown',
     scenery: 'lake',
     mood: 'clear-afternoon',
   },
@@ -128,7 +103,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Ticino · Alpine valley',
     description:
       'Up the Maggia river from Ponte Brolla through stone villages to Cevio, granite walls and waterfalls on both sides.',
-    area: 'hometown',
     scenery: 'valley',
     mood: 'clear-noon',
   },
@@ -138,7 +112,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Ticino · Magadino plain',
     description:
       'From the castle town of Bellinzona across the flat Magadino plain to the head of Lago Maggiore.',
-    area: 'hometown',
     scenery: 'valley',
     mood: 'clear-afternoon',
   },
@@ -148,7 +121,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Lombardy · Lago di Varese',
     description:
       'The lakeside cycle path from Gavirate round the south shore to Schiranna, Monte Rosa on the skyline on a clear day.',
-    area: 'hometown',
     scenery: 'lake',
     mood: 'golden-hour',
   },
@@ -158,17 +130,16 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Lombardy · Lake Como',
     description:
       "Along Lake Como's western shore through Dongo to Gravedona, mountains dropping straight into the water.",
-    area: 'hometown',
     scenery: 'lake',
     mood: 'mediterranean-mist',
   },
+  // ── Alpine lakes, Garda and the Riviera ──
   {
     id: 'scenic-engadin-lakes',
     name: 'Engadin lakes',
     place: 'Graubünden · Upper Engadine',
     description:
       'Maloja to St. Moritz past the Sils and Silvaplana lakes at 1800 m, larch forest below and glaciers above.',
-    area: 'further',
     scenery: 'alpine-lake',
     mood: 'clear-noon',
   },
@@ -178,7 +149,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Vaud · Lake Geneva',
     description:
       'Below the Lavaux vineyard terraces through Vevey and Montreux to Chillon Castle, the Alps across the lake.',
-    area: 'further',
     scenery: 'lake',
     mood: 'golden-hour',
   },
@@ -188,7 +158,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Liguria · Mediterranean coast',
     description:
       'An old seaside railway turned cycle path, Ospedaletti through Sanremo to San Lorenzo al Mare, the sea beside you all the way.',
-    area: 'further',
     scenery: 'coast',
     mood: 'mediterranean-mist',
   },
@@ -198,7 +167,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Haute-Savoie · Lac d’Annecy',
     description:
       'The greenway along the west shore from Annecy to the end of the lake, turquoise water under the mountains.',
-    area: 'further',
     scenery: 'lake',
     mood: 'clear-afternoon',
   },
@@ -208,17 +176,15 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Veneto · Lake Garda',
     description:
       "The lakeside cycle path from Peschiera del Garda's harbour north along the east shore to Lazise.",
-    area: 'further',
     scenery: 'lake',
     mood: 'golden-hour',
   },
-  // ── Travels: the wishlist ──
+  // ── China, the United States and Mexico ──
   {
     id: 'scenic-chengdu-luxe-lakes',
     name: 'Luxe Lakes loop',
     place: 'Chengdu · Tianfu New Area',
     description: 'A loop on the roads and paths around the Luxe Lakes (Luhu), south of central Chengdu.',
-    area: 'travels',
     scenery: 'lake',
     mood: 'mediterranean-mist',
   },
@@ -228,7 +194,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Hangzhou · West Lake',
     description:
       'Round West Lake from the Broken Bridge along the north shore, the Yanggong causeway and Nanshan Road past Leifeng Pagoda.',
-    area: 'travels',
     scenery: 'lake',
     mood: 'mediterranean-mist',
   },
@@ -238,7 +203,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Ohio · Cuyahoga Valley',
     description:
       'The crushed-stone canal towpath through Cuyahoga Valley National Park from Station Road Bridge past Boston and Peninsula to Beaver Marsh.',
-    area: 'travels',
     scenery: 'river',
     mood: 'clear-afternoon',
   },
@@ -248,7 +212,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Ohio · Lake Erie',
     description:
       'The Lakefront Bikeway from Edgewater Park past downtown and the harbour to Gordon Park at East 72nd Street.',
-    area: 'travels',
     scenery: 'lake',
     mood: 'dusk-cool',
   },
@@ -258,7 +221,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'California · San Francisco Bay',
     description:
       'The Bay Trail from Point Isabel past Albany, César Chávez Park and the Berkeley Marina to the Emeryville shore.',
-    area: 'travels',
     scenery: 'coast',
     mood: 'golden-hour',
   },
@@ -268,7 +230,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'California · Pacific coast',
     description:
       'The beach bike path from Santa Monica Pier past Venice, round Marina del Rey and down The Strand to Hermosa Beach Pier.',
-    area: 'travels',
     scenery: 'coast',
     mood: 'clear-afternoon',
   },
@@ -278,7 +239,6 @@ const SCENIC_META: ScenicMeta[] = [
     place: 'Jalisco · Banderas Bay',
     description:
       'From the Zona Romántica through the old town beside the malecón and up the hotel-zone boulevard to Marina Vallarta.',
-    area: 'travels',
     scenery: 'coast',
     mood: 'golden-hour',
   },
@@ -372,12 +332,27 @@ export function scenicRouteById(id: string): ScenicRouteInfo | undefined {
   return SCENIC_ROUTES.find((r) => r.route.id === id);
 }
 
+/** Where a route sits for the household: its destination manifest's role. */
+export function scenicRole(routeId: string): DestinationRole | null {
+  return destinationForRoute(routeId)?.role ?? null;
+}
+
+/** The routes whose destination has this role, in library order. */
+export function scenicRoutesWithRole(role: DestinationRole): ScenicRouteInfo[] {
+  return SCENIC_ROUTES.filter((r) => scenicRole(r.route.id) === role);
+}
+
+/** Closest first: the home routes, then the hometown ones. */
+export function homeFirstScenicRoutes(): ScenicRouteInfo[] {
+  return [...scenicRoutesWithRole('home'), ...scenicRoutesWithRole('hometown')];
+}
+
 /**
- * "Today's ride": a near-home route that changes once a day, the same for
- * both riders so they can share a pick.
+ * "Today's ride": a home route that changes once a day, the same for both
+ * riders so they can share a pick.
  */
 export function todaysScenicRoute(now: Date = new Date()): ScenicRouteInfo {
-  const near = SCENIC_ROUTES.filter((r) => r.area === 'near-home');
+  const near = scenicRoutesWithRole('home');
   const pool = near.length > 0 ? near : SCENIC_ROUTES;
   const dayIndex = Math.floor(
     Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86_400_000,
@@ -385,8 +360,8 @@ export function todaysScenicRoute(now: Date = new Date()): ScenicRouteInfo {
   return pool[dayIndex % pool.length];
 }
 
-/** Random pick for "just start" flows. Defaults to near-home routes. */
+/** Random pick for "just start" flows: a home route. */
 export function randomScenicRoute(rand: () => number = Math.random): ScenicRouteInfo {
-  const near = SCENIC_ROUTES.filter((r) => r.area === 'near-home');
+  const near = scenicRoutesWithRole('home');
   return near[Math.floor(rand() * near.length) % near.length];
 }

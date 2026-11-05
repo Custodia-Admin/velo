@@ -362,8 +362,8 @@ SHA-256 goes into `manifest.generator.recipeSha256`.
 
 | `dem` | Source | Notes |
 | --- | --- | --- |
-| `{ "zoom": 13 }` (no `source`, or `"source": "aws-terrain-tiles"`) | AWS Terrain Tiles, terrarium PNGs (`fetchDem.mjs`). **The default.** | Web Mercator tiles at `zoom`; EU-DEM in Europe. Perugia uses it. |
-| `{ "source": "copernicus-glo30" }` | Copernicus DEM GLO-30 Public, 1″ Cloud Optimized GeoTIFFs (`fetchGlo30.mjs` + `geotiff.mjs`). Opt-in. | No `zoom` (the bake refuses one). The manifest gets `demSource: "copernicus-dem-30m/glo30-cog"`, no `demZoom`, and the `copernicus-glo30` credit in place of `terrain-tiles`. |
+| `{ "zoom": 13 }` (no `source`, or `"source": "aws-terrain-tiles"`) | AWS Terrain Tiles, terrarium PNGs (`fetchDem.mjs`). **The default.** | Web Mercator tiles at `zoom`; EU-DEM in Europe. Perugia and Lugano use it. |
+| `{ "source": "copernicus-glo30" }` | Copernicus DEM GLO-30 Public, 1″ Cloud Optimized GeoTIFFs (`fetchGlo30.mjs` + `geotiff.mjs`). Opt-in. | No `zoom` (the bake refuses one). The manifest gets `demSource: "copernicus-dem-30m/glo30-cog"`, no `demZoom`, and the `copernicus-glo30` credit (notice plus the licence's Art. 6(c) liability disclaimer, see [CREDITS.md](CREDITS.md)) in place of `terrain-tiles`. |
 
 Both sources give `buildHeightfield.sampleGrid` the same thing: a bilinear
 `sample(lat, lon)` on the source's pixel centres. Every grid node is projected
@@ -377,8 +377,10 @@ GLO-30 details, checked against the bucket and the tiles' own tags:
   `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_<N|S>dd_00_<E|W>ddd_00_DEM/Copernicus_DSM_COG_10_<N|S>dd_00_<E|W>ddd_00_DEM.tif`
   (e.g. `N46_00_E008_00` covers 46–47°N, 8–9°E). They are fetched whole over
   plain HTTPS (17–43 MB each). The bake takes only the tiles whose pixels a
-  bilinear read inside the world's bbox (+ 500 m) touches: 1 for Perugia, 4
-  for Lugano (it straddles 46°N and 9°E).
+  bilinear read inside the world's bbox (+ 500 m) touches: 1 for Perugia
+  (`N43_00_E012_00`) and 2 for Lugano (`N46_00_E008_00`, `N45_00_E008_00`:
+  the world crosses 46°N, and its east edge, 8.9925°E with the margin, stays
+  west of 9°E).
 - **Grid**: `GTRasterTypeGeoKey` is PixelIsPoint and the tiepoint is the
   tile's NW corner, so pixel centres sit on whole arc-seconds: row j at
   lat S+1 − j/3600, column i at lon W + i/C. The bucket's tiles drop the
@@ -389,12 +391,15 @@ GLO-30 details, checked against the bucket and the tiles' own tags:
   them against the tile's size and tiepoint, and interpolates each row with
   its own band's spacing, so it stays bilinear across tile seams and bands.
 - **Decoding** (`geotiff.mjs`, Node built-ins only): TIFF and BigTIFF IFDs in
-  either byte order; tile or strip offsets and byte counts; DEFLATE through
-  `zlib.inflateSync`; the floating-point predictor (3) undone row by row,
-  first the byte-wise horizontal differencing, then the byte-plane
-  de-interleave (most significant plane first); float32 samples; IFD 0 (full
-  resolution) of the COG. Blocks are inflated lazily, so a small world decodes
-  only the 1024² blocks it reads.
+  either byte order; tile or strip offsets and byte counts; uncompressed or
+  DEFLATE blocks (`zlib.inflateSync`); no predictor, or the floating-point
+  predictor (3) undone row by row, first the byte-wise horizontal
+  differencing, then the byte-plane de-interleave (most significant plane
+  first); float32 samples; the first full-resolution IFD (IFD 0 in a COG,
+  reduced-resolution overviews skipped). A tile that declares a nodata value
+  is refused, because void filling isn't implemented. Blocks are inflated
+  lazily, so a small world decodes only the 1024² blocks it reads. Each of
+  these paths has a tifffile-written fixture in `tools/worldbake/fixtures/`.
 - **Missing tiles**: the bucket has no tile over open ocean (HTTP 404), and
   those read 0 m. GLO-30 *Public* also lacks a few unreleased land tiles (e.g.
   `N40_00_E044_00`, Armenia), which 404 too. So each 404 is checked against the
@@ -415,7 +420,7 @@ Checks on cat-bed, 4 Nov 2026 (Node 26):
 | Check | Result |
 | --- | --- |
 | Decoder vs tifffile, full tiles N46_00_E008_00 and N45_00_E008_00 (3600² each) | bit-identical, every pixel |
-| Sampler vs tifffile + numpy bilinear (PixelIsPoint), 50 Lugano points over 4 tiles | max difference 3·10⁻¹⁰ m |
+| Sampler vs tifffile + numpy bilinear (PixelIsPoint), 50 points over 4 tiles (the pre-#32 Lugano experiment box) | max difference 3·10⁻¹⁰ m |
 | N52_00_E004_00 (2400 columns per degree) + N52_00_E003_00 (ocean) | identical to tifffile inside E004, 0 m over the sea; a warm-cache re-read with `fetch` disabled gives identical samples |
 | Default source: Perugia from the same cache, main vs this change | all 8 files byte-identical (and equal to the committed bundle) |
 | Perugia with `copernicus-glo30`, baked twice | byte-identical; 4.95 MB brotli (Terrain Tiles 4.58 MB); 24 s from cache |

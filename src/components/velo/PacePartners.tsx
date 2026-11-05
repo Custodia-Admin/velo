@@ -42,7 +42,10 @@ export function PacePartners({ className }: { className?: string }) {
               aria-pressed={on}
               disabled={!on && full}
               data-partner={p.id}
-              onClick={() => setPaceBots(togglePartner(useRideStore.getState().paceBots, p.id))}
+              onClick={() => {
+                const { paceBots: bots, route } = useRideStore.getState();
+                setPaceBots(togglePartner(bots, p.id, route));
+              }}
               className={cn(
                 'flex min-h-16 items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors duration-150',
                 'disabled:cursor-not-allowed disabled:opacity-60',
