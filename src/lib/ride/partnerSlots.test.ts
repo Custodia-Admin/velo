@@ -35,21 +35,25 @@ describe('partner slots', () => {
     expect([0, 1, 2].map((i) => partnerSlotM(i, wide))).toEqual([1.2, -1.2, 2.4]);
   });
 
-  it('clamps a slot to the road, keeping the wheels inside its edge', () => {
+  it('clamps a slot to the road, keeping the wheels 0.1 m inside its edge', () => {
+    expect(PARTNER_EDGE_MARGIN_M).toBe(0.1);
     // A 5 m road with the route line 0.26 m right of its centre (Tiber start).
     const span = { leftM: -2.76, rightM: 2.24 };
     expect(partnerSlotM(0, span)).toBeCloseTo(1.2, 9);
     expect(partnerSlotM(1, span)).toBeCloseTo(-1.2, 9);
-    expect(partnerSlotM(2, span)).toBeCloseTo(2.24 - PARTNER_EDGE_MARGIN_M, 9);
-    // A 1.5 m path: both sides shrink to the margin.
+    expect(partnerSlotM(2, span)).toBeCloseTo(2.14, 9);
+    // A 1.5 m path (most of the Tiber route): both partners 0.65 m off the line.
     const path = { leftM: -0.75, rightM: 0.75 };
-    expect(partnerSlotM(0, path)).toBeCloseTo(0.75 - PARTNER_EDGE_MARGIN_M, 9);
-    expect(partnerSlotM(1, path)).toBeCloseTo(-0.75 + PARTNER_EDGE_MARGIN_M, 9);
+    expect(partnerSlotM(0, path)).toBeCloseTo(0.65, 9);
+    expect(partnerSlotM(1, path)).toBeCloseTo(-0.65, 9);
+    // The line off-centre on the path: the near side shrinks, the far side holds.
+    expect(partnerSlotM(0, { leftM: -1.05, rightM: 0.45 })).toBeCloseTo(0.35, 9);
+    expect(partnerSlotM(1, { leftM: -1.05, rightM: 0.45 })).toBeCloseTo(-0.95, 9);
   });
 
   it('puts a partner on the middle of a road narrower than its margins', () => {
-    expect(partnerSlotM(0, { leftM: -0.1, rightM: 0.3 })).toBeCloseTo(0.1, 9);
-    expect(partnerSlotM(1, { leftM: -0.1, rightM: 0.3 })).toBeCloseTo(0.1, 9);
+    expect(partnerSlotM(0, { leftM: -0.05, rightM: 0.1 })).toBeCloseTo(0.025, 9);
+    expect(partnerSlotM(1, { leftM: -0.05, rightM: 0.1 })).toBeCloseTo(0.025, 9);
   });
 });
 

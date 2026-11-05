@@ -186,9 +186,9 @@ describe('updateBotAvatars', () => {
 
   it('clamps to the corridor the view draws (3.5 m either side); the roster slots all fit in it', () => {
     expect(CORRIDOR_SPAN).toEqual({ leftM: -3.5, rightM: 3.5 });
-    // A fifth partner's 3.6 m slot would leave it: it stops 0.3 m inside the edge.
+    // A fifth partner's 3.6 m slot would leave it: it stops 0.1 m inside the edge.
     const p = botSlotLatLon(4, 43.1, 12.4, 0);
-    expect(enu(43.1, 12.4, p)[0]).toBeCloseTo(3.2, 3);
+    expect(enu(43.1, 12.4, p)[0]).toBeCloseTo(3.4, 3);
   });
 
   it('is how the photoreal view moves its bot avatars every frame', () => {

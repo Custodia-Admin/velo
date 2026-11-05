@@ -92,7 +92,7 @@ export function driveRideFrame(frame: RideFrame, memo: RideDriverMemo, sceneWorl
 export interface BotDriverMemo {
   yaw: YawFilter;
   lean: number;
-  /** The last drawn-road search under the bot (roadSpan.roadSpanAt). */
+  /** The drawn road segments around the bot (roadSpan.roadSpanAt). */
   road?: RoadSpanMemo;
 }
 

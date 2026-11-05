@@ -13,7 +13,7 @@ import { routeFromGeometry } from '@/lib/scenicRoutes';
 import type { LoadedWorld, RoadsLayer } from '@/lib/world/loadWorld';
 import type { Route } from '@/types';
 import { createBotDriverMemo, createRideDriverMemo, driveRideFrame, placeBot } from './rideDriver';
-import { nearestRoadSegment, roadSpanAt, spanAcross } from './roadSpan';
+import { nearestRoadSegment, ROAD_GATHER_M, ROAD_SPAN_SNAP_M, roadSpanAt, spanAcross, type RoadSpanMemo } from './roadSpan';
 import { syntheticSceneWorld } from './syntheticWorld';
 import { createRideFrame, createSceneWorld, type SceneWorld } from './worldScene';
 
@@ -40,35 +40,61 @@ function routeThrough(world: SceneWorld, from: [number, number], to: [number, nu
 const seat = (r: Route, n: number) => BOT_PRESETS.slice(0, n).map((p, i) => createPaceBot(`b${i}`, p, r));
 
 describe('roadSpan', () => {
+  const EAST = Math.PI / 2;
+
   it('finds the ribbon under a point and measures it across the travel heading', () => {
     // The synthetic E–W road: 7 m wide along y = 0.
-    const seg = nearestRoadSegment(sw, 10, 1)!;
+    const seg = nearestRoadSegment(sw, 10, 1, EAST)!;
     expect(seg.halfWidth).toBe(3.5);
     // Eastbound, 1 m north of the centre = 1 m left of it: 4.5 m of road to the right.
-    const east = spanAcross(seg, 10, 1, Math.PI / 2);
+    const east = spanAcross(seg, 10, 1, EAST);
     expect(east.leftM).toBeCloseTo(-2.5, 6);
     expect(east.rightM).toBeCloseTo(4.5, 6);
     // Westbound, the same point is right of the centre.
-    const west = spanAcross(seg, 10, 1, -Math.PI / 2);
+    const west = spanAcross(seg, 10, 1, -EAST);
     expect(west.leftM).toBeCloseTo(-4.5, 6);
     expect(west.rightM).toBeCloseTo(2.5, 6);
+    expect(roadSpanAt(sw, 10, 1, -EAST)).toEqual(west);
   });
 
   it('knows no road off every drawn ribbon, in a tunnel or on steps', () => {
-    expect(nearestRoadSegment(sw, 0, 60)).toBeNull();
+    expect(roadSpanAt(sw, 0, 60, EAST)).toBeNull();
     // The synthetic tunnel (y = 150, x −300…−200) and steps (0,100)–(10,110) aren't drawn.
-    expect(nearestRoadSegment(sw, -250, 150)).toBeNull();
-    expect(nearestRoadSegment(sw, 5, 105)).toBeNull();
+    expect(nearestRoadSegment(sw, -250, 150, EAST)).toBeNull();
+    expect(nearestRoadSegment(sw, 5, 105, Math.PI / 4)).toBeNull();
   });
 
-  it('searches again once the point has moved on, and only then', () => {
-    const memo: Parameters<typeof roadSpanAt>[4] = {};
-    expect(roadSpanAt(sw, 10, 0, Math.PI / 2, memo)).not.toBeNull();
-    const first = memo.road;
-    roadSpanAt(sw, 11, 0, Math.PI / 2, memo);
+  it('takes the road running along the heading, never a side road crossing it', () => {
+    // A 7 m road along y = 0 and a 3 m side road along x = 0. Eastbound at
+    // (0.2, 1): the side road's centreline is 0.2 m away, the road's 1 m.
+    const cross = withRoads([
+      { cls: 0, width: 7, flags: 0, points: Float32Array.from([-390, 0, 390, 0]) },
+      { cls: 1, width: 3, flags: 0, points: Float32Array.from([0, -190, 0, 190]) },
+    ]);
+    expect(nearestRoadSegment(cross, 0.2, 1, EAST)!.halfWidth).toBe(3.5);
+    expect(roadSpanAt(cross, 0.2, 1, EAST)).toEqual({ leftM: expect.closeTo(-2.5, 6), rightM: expect.closeTo(4.5, 6) });
+    // Northbound on the side road, the main road is the crossing.
+    expect(nearestRoadSegment(cross, 0.2, 1, 0)!.halfWidth).toBe(1.5);
+    // Up to 45° off the heading still counts as along it; past that it is a crossing.
+    expect(nearestRoadSegment(cross, 0.2, 1, EAST - (40 * Math.PI) / 180)!.halfWidth).toBe(3.5);
+    expect(nearestRoadSegment(cross, 0.2, 1, EAST - (50 * Math.PI) / 180)!.halfWidth).toBe(1.5);
+  });
+
+  it('with a memo, gathers the segments around a partner once and again only before it leaves them', () => {
+    const memo: { road?: RoadSpanMemo } = {};
+    const at = (x: number, y: number) => roadSpanAt(sw, x, y, EAST, memo);
+    expect(at(-300, 1)).toEqual(roadSpanAt(sw, -300, 1, EAST));
+    const first = memo.road!;
+    expect(first.segs.length).toBeGreaterThan(0);
+    // Riding east along the road: the same gather serves the next 26 m.
+    for (let x = -300; x <= -300 + ROAD_GATHER_M - ROAD_SPAN_SNAP_M; x += 0.5) {
+      expect(at(x, 1)).toEqual(roadSpanAt(sw, x, 1, EAST));
+    }
     expect(memo.road).toBe(first);
-    // 60 m north of the road: off every ribbon now.
-    expect(roadSpanAt(sw, 10, 60, Math.PI / 2, memo)).toBeNull();
+    at(-300 + ROAD_GATHER_M - ROAD_SPAN_SNAP_M + 0.5, 1);
+    expect(memo.road).not.toBe(first);
+    // 60 m north of the road: nothing there.
+    expect(at(-270, 60)).toBeNull();
   });
 });
 
@@ -120,11 +146,26 @@ describe('placeBot', () => {
     const r = routeThrough(narrow, [-300, 0.5], [300, 0.5]);
     const at = seat(r, 3).map((b, i) => placeBot(narrow, r, b.state, i, createBotDriverMemo(), DT));
     expect(at[0].slotM).toBeCloseTo(1.2, 4);
-    expect(at[1].slotM).toBeCloseTo(-1 + PARTNER_EDGE_MARGIN_M, 4);
-    expect(at[2].slotM).toBeCloseTo(2 - PARTNER_EDGE_MARGIN_M, 4);
+    expect(at[1].slotM).toBeCloseTo(-0.9, 4);
+    expect(at[2].slotM).toBeCloseTo(1.9, 4);
     // Within the drawn ribbon (±1.5 m) less the margin; the spherical lane
     // shift and the ellipsoidal projection differ by ~0.1 %.
     for (const p of at) expect(Math.abs(p.placement.worldY)).toBeLessThanOrEqual(1.5 - PARTNER_EDGE_MARGIN_M + 0.01);
+  });
+
+  it('keeps its slot where a side road crosses the route (the Tiber start, 8.5 m in)', () => {
+    // A 1.5 m side path along x = 0 crossing a 7 m road along y = 0; the
+    // route runs east 1 m north of the road's centre, starting 0.5 m past
+    // the path. The path's centreline is nearer the start than the road's:
+    // measured across the heading it would leave 0.25 m right of the line.
+    const cross = withRoads([
+      { cls: 0, width: 7, flags: 0, points: Float32Array.from([-390, 0, 390, 0]) },
+      { cls: 2, width: 1.5, flags: 0, points: Float32Array.from([0, -190, 0, 190]) },
+    ]);
+    const r = routeThrough(cross, [0.5, 1], [300, 1]);
+    const at = seat(r, 2).map((b, i) => placeBot(cross, r, b.state, i, createBotDriverMemo(), DT));
+    expect(at[0].slotM).toBeCloseTo(1.2, 6);
+    expect(at[1].slotM).toBeCloseTo(-1.2, 6);
   });
 
   it('measures the slot across the FILTERED heading, not the raw route bearing', () => {

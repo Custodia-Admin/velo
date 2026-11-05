@@ -17,9 +17,11 @@ export const PARTNER_SLOT_STEP_M = 1.2;
 
 /**
  * How far a partner's wheels stay inside the edge of the road it rides on,
- * metres: the tyres, pedals and shadow stay on the drawn surface.
+ * metres: the tyre stays on the drawn surface. Kept small on purpose: on the
+ * 1.5 m paths most of the Tiber route rides, a 0.3 m margin left a partner
+ * level with the rider 0.45 m from them, elbow into elbow.
  */
-export const PARTNER_EDGE_MARGIN_M = 0.3;
+export const PARTNER_EDGE_MARGIN_M = 0.1;
 
 /**
  * The paved surface around a point on the route line, measured across the
