@@ -59,6 +59,9 @@ describe('roadSpan', () => {
 
   it('knows no road off every drawn ribbon, in a tunnel or on steps', () => {
     expect(roadSpanAt(sw, 0, 60, EAST)).toBeNull();
+    // Within 4 m of a centreline counts; 4.5 m off it (1 m outside the 7 m road) does not.
+    expect(roadSpanAt(sw, 10, 3.9, EAST)).not.toBeNull();
+    expect(roadSpanAt(sw, 10, 4.5, EAST)).toBeNull();
     // The synthetic tunnel (y = 150, x −300…−200) and steps (0,100)–(10,110) aren't drawn.
     expect(nearestRoadSegment(sw, -250, 150, EAST)).toBeNull();
     expect(nearestRoadSegment(sw, 5, 105, Math.PI / 4)).toBeNull();
@@ -95,6 +98,16 @@ describe('roadSpan', () => {
     expect(memo.road).not.toBe(first);
     // 60 m north of the road: nothing there.
     expect(at(-270, 60)).toBeNull();
+  });
+
+  it('with a memo, still finds the next segment of a road that was out of snap reach at the gather', () => {
+    // A road that bends 3° at x = −10: from (−30, 1) its second segment is 20 m away.
+    const bend = withRoads([{ cls: 0, width: 7, flags: 0, points: Float32Array.from([-390, 0, -10, 0, 390, 20]) }]);
+    const memo: { road?: RoadSpanMemo } = {};
+    roadSpanAt(bend, -30, 1, EAST, memo);
+    // At x = −5 only the second segment is within 4 m of the line point.
+    expect(roadSpanAt(bend, -5, 1.2, EAST, memo)).toEqual(roadSpanAt(bend, -5, 1.2, EAST));
+    expect(roadSpanAt(bend, -5, 1.2, EAST)).not.toBeNull();
   });
 });
 
