@@ -20,7 +20,10 @@
  * the bars to a camera spot, and down through the air under it. A cast sees a
  * thin hedge or post anywhere on the line, where three tops along it see only
  * what stands at those three spots, and it tells a canopy over the line (the
- * camera may stand under it) from a solid on it (it may not).
+ * camera may stand under it) from a solid on it (it may not). With casts the
+ * view also passes `blockedAt`: every frame a cast from the bars to where the
+ * camera stands now, and one out to where it is easing to; the camera moves
+ * in at once in front of a face the reads ahead missed.
  */
 
 import { AIM_HEIGHT_M } from '@/lib/world/cameraFraming';
@@ -93,6 +96,13 @@ export const SIGHT_RAY_READS_PER_FRAME = 4;
  * metre.
  */
 export const SIGHT_RAY_SAMPLE_MOVE_M = 1;
+/**
+ * The camera keeps this far (m, horizontally) in front of the first thing
+ * drawn on the line from the rider's bars to where it stands this frame
+ * ({@link SightRequest.blockedAt}). Closer, a face fills the frame: 0.1-0.7 m
+ * away at Lugano 1501 m and Santa Monica 1524 m.
+ */
+export const SIGHT_GUARD_MARGIN_M = 0.5;
 
 const EPS = 1e-6;
 
@@ -241,10 +251,34 @@ export interface SightRequest {
   seenAt?: (spot: SightSpot) => boolean | undefined;
   /**
    * True once this frame's reads have copied tile geometry back from the GPU
-   * (the slow part of a read): the refresh takes no more reads this frame
-   * after the one that did.
+   * (the slow part of a read): the refresh takes no more reads this frame.
    */
   spent?: () => boolean;
+  /**
+   * Given, it is asked once or twice a frame, before any read, about the
+   * segment `from` -> `to` across the road beside the rider now (both on
+   * `side`): how far along it (0..1) the first face drawn on it is, of either
+   * facing; undefined when it is clear. First from the rider's bars to where
+   * the camera stands; then, while the camera eases back out, from where it
+   * stands out to where the reads let it stand.
+   *
+   * The reads look 0.7 s ahead, a metre apart, at a few offsets, and see the
+   * faces turned to the road. A face turned to the camera (its back to the
+   * road), something between two reads, a finer tile than the one read, or
+   * an offset the camera passes on its way back out can still be right in
+   * front of it (Lugano 1501 m, Santa Monica 1524 m: the frame filled at an
+   * offset the reads said was clear). The camera then moves in at once to
+   * stand {@link SIGHT_GUARD_MARGIN_M} in front of the face, not closer than
+   * `minM` (a face closer to the rider than that is left to the reads), and
+   * goes back out no further than that while the face is there.
+   */
+  blockedAt?: (side: 1 | -1, from: SightPoint, to: SightPoint) => number | undefined;
+}
+
+/** A point across the road beside the rider: `offsetM` out on a side, `upM` over the rider's ground. */
+export interface SightPoint {
+  offsetM: number;
+  upM: number;
 }
 
 /** A spot a camera might stand at (see {@link SightRequest.seenAt}). */
@@ -329,6 +363,8 @@ export function createSideCamSight() {
   let switchedAt = -Infinity;
   let switches = 0;
   let reads = 0;
+  /** Frames the camera was moved in in front of a face on its line (blockedAt). */
+  let guards = 0;
   /** The last refresh cast segments (seenAt) rather than reading tops. */
   let rayReads = false;
   let job: SightJob | null = null;
@@ -345,14 +381,13 @@ export function createSideCamSight() {
     const fetch = (s: 1 | -1, beside: boolean, x: number, ask: (aheadM: number) => number | boolean | undefined) => {
       const key = `${s} ${beside ? 'beside' : 'lead'} ${x}`;
       if (j.tops.has(key)) return j.tops.get(key);
-      if (budget <= 0) throw READS_SPENT;
+      if (budget <= 0 || req.spent?.() === true) throw READS_SPENT;
       budget--;
       reads++;
       if (beside) j.besideAt ??= req.distanceM;
       const at = beside ? (j.besideAt ?? req.distanceM) : j.at + j.lead;
       const v = ask(at - req.distanceM);
       j.tops.set(key, v);
-      if (req.spent?.()) budget = 0;
       return v;
     };
     const seenAt = req.seenAt;
@@ -436,6 +471,24 @@ export function createSideCamSight() {
         }
         side = req.side;
       }
+      // Where the camera stands now, beside the rider: a face on the line to
+      // the bars, or on its way back out? Asked before the reads, so a tile
+      // copy it makes spends the frame.
+      let guardM = Infinity;
+      if (req.blockedAt) {
+        const fraction = (t: number | undefined): t is number => t !== undefined && t >= 0 && t <= 1;
+        const nowM = (frac ?? 1) * req.baseM;
+        const cam = { offsetM: nowM, upM: req.upM };
+        const t = req.blockedAt(side, { offsetM: 0, upM: AIM_HEIGHT_M }, cam);
+        if (fraction(t)) {
+          // A face closer to the rider than minM is left to the reads: moving in can't get in front of it.
+          if (t * nowM > minM) guardM = Math.max(minM, t * nowM - SIGHT_GUARD_MARGIN_M);
+        } else if (targetFrac * req.baseM > nowM + EPS && req.spent?.() !== true) {
+          const outM = targetFrac * req.baseM;
+          const s = req.blockedAt(side, cam, { offsetM: outM, upM: req.upM });
+          if (fraction(s)) guardM = Math.max(minM, nowM + s * (outM - nowM) - SIGHT_GUARD_MARGIN_M);
+        }
+      }
       // No crossing any more (the painted road is drawn now): the far side's reads are moot.
       if (job !== null && job.cross && !req.allowSwitch) job = null;
       // The reader changed kind (casts came or went): start the refresh over with it.
@@ -491,6 +544,12 @@ export function createSideCamSight() {
         const tau = targetFrac < frac ? SIGHT_PULL_TAU_S : SIGHT_RELEASE_TAU_S;
         frac += (targetFrac - frac) * (1 - Math.exp(-dt / tau));
       }
+      // In front of a face on the line, at once; out again at the release pace.
+      // A cut this frame put the camera on the other side, where it was read.
+      if (!cut && guardM < (frac ?? 1) * req.baseM) {
+        frac = guardM / req.baseM;
+        guards++;
+      }
       // Until the first read is in, the pose's own offset.
       return { side, offsetM: (frac ?? 1) * req.baseM, clear };
     },
@@ -513,7 +572,7 @@ export function createSideCamSight() {
     },
     /** Read-only numbers for probes (__veloRideDebug().sideCam). */
     debug() {
-      return { side, frac, targetFrac, clear, switches, reads, rays: rayReads, ahead: history.length, pending: job !== null };
+      return { side, frac, targetFrac, clear, switches, reads, rays: rayReads, guards, ahead: history.length, pending: job !== null };
     },
   };
 }

@@ -27,18 +27,23 @@ import {
 import { createSideCamSight, SIGHT_MIN_OFFSET_M, SIGHT_RAY_READS_PER_FRAME } from '@/lib/sideCamSight';
 import { placeSideCam, type SideCamInput } from '@/renderers/cesium/sideCam';
 
-/** Every segment the view casts through the mesh, in the order cast (a, b, tile copies from the GPU it made). */
+/** Every segment the view casts through the mesh, in the order cast (a, b, tile copies from the GPU it made, of either facing). */
 const casts = vi.hoisted(
-  () => [] as Array<[{ x: number; y: number; z: number }, { x: number; y: number; z: number }, number]>,
+  () => [] as Array<[{ x: number; y: number; z: number }, { x: number; y: number; z: number }, number, boolean]>,
 );
 vi.mock('@/lib/cesiumUtils', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/cesiumUtils')>();
   return {
     ...actual,
-    meshSegmentHit: (scene: Cesium.Scene, a: Cesium.Cartesian3, b: Cesium.Cartesian3) => {
+    meshSegmentHit: (scene: Cesium.Scene, a: Cesium.Cartesian3, b: Cesium.Cartesian3, bothSides?: boolean) => {
       const copies = actual.meshTopReadStats()?.misses ?? 0;
-      const hit = actual.meshSegmentHit(scene, a, b);
-      casts.push([Cesium.Cartesian3.clone(a), Cesium.Cartesian3.clone(b), (actual.meshTopReadStats()?.misses ?? 0) - copies]);
+      const hit = actual.meshSegmentHit(scene, a, b, bothSides);
+      casts.push([
+        Cesium.Cartesian3.clone(a),
+        Cesium.Cartesian3.clone(b),
+        (actual.meshTopReadStats()?.misses ?? 0) - copies,
+        bothSides === true,
+      ]);
       return hit;
     },
   };
@@ -283,9 +288,11 @@ function settle(i: SideCamInput, ms = 1500) {
   return p;
 }
 
-/** The camera spot (east / north) of every cast from the bars (1 m up) so far. */
+/** The camera spot (east / north) of every spot read from the bars (1 m up) so far: not the guard's casts (either facing). */
 const lineCastSpots = () =>
-  casts.filter(([a]) => Math.abs(local(a).u - 1) < 1e-2).map(([, b]) => local(b));
+  casts.filter(([a, , , both]) => !both && Math.abs(local(a).u - 1) < 1e-2).map(([, b]) => local(b));
+/** The guard's casts (either facing): from the bars to where the camera stands, and out to where it eases to. */
+const guardCasts = () => casts.filter(([, , , both]) => both).map(([a, b]) => [local(a), local(b)] as const);
 
 // A house front from 2.5 m east of the road, 12 m tall.
 const houseEast: Field = (e) => (e > 2.5 ? 12 : 0);
@@ -322,7 +329,7 @@ describe('placeSideCam (segment casts)', () => {
     const { scene } = await world((e, n) => (n > 4 && e > 2.5 ? 12 : 0));
     const p = settle(input(scene, createSideCamSight()));
     expect(p.offsetENU.x).toBeLessThan(0);
-    for (const [a, b] of casts.filter(([s]) => Math.abs(local(s).u - 1) < 1e-2)) {
+    for (const [a, b] of casts.filter(([s, , , both]) => !both && Math.abs(local(s).u - 1) < 1e-2)) {
       const la = local(a);
       const lb = local(b);
       // From the bars on the route line to the spot, both at the lead.
@@ -526,10 +533,14 @@ describe('placeSideCam (segment casts)', () => {
       p = placeSideCam({ ...i, nowMs: i.nowMs + (f * 1000) / 60 });
       frames.push(casts.slice(from));
     }
-    const fromBars = ([a]: (typeof casts)[number]) => Math.abs(local(a).u - 1) < 1e-2;
-    // The first cast copies the tiles on its line: that frame asks one spot.
-    expect(frames[0].filter(fromBars)).toHaveLength(1);
+    const fromBars = ([a, , , both]: (typeof casts)[number]) => !both && Math.abs(local(a).u - 1) < 1e-2;
+    // The frame's first cast is the guard's (the bars to where the camera
+    // stands, either facing); it copies the tiles on its line, so that frame
+    // asks no spot, and the next one asks one.
+    expect(frames[0][0][3]).toBe(true);
     expect(frames[0][0][2]).toBeGreaterThan(0);
+    expect(frames[0].filter(fromBars)).toHaveLength(0);
+    expect(frames[1].filter(fromBars).length).toBeGreaterThan(0);
     // No spot is asked after a cast that copied, in the same frame...
     for (const fc of frames) {
       const k = fc.findIndex(([, , copies]) => copies > 0);
@@ -555,6 +566,50 @@ describe('placeSideCam (segment casts)', () => {
     // Re-read about every metre (8 m/s: some 60 refreshes in 8 s).
     expect(sight.debug().rays).toBe(true);
     expect(perFrame.filter((k) => k > 0).length).toBeGreaterThan(50);
+  });
+
+  it('a face turned to the camera, between the spots read: in front of it as the rider passes (Lugano 1501 m)', async () => {
+    // A 0.5 m panel 8.4 m east, 30.2-30.7 m along the road, 5 m tall, its
+    // front to the camera (east) and its back to the road: the reads from the
+    // bars see its back and pass it; the camera at 9 m would film its front.
+    const panel = tile(
+      [primitive([8.4, 30.2, 0, 8.4, 30.7, 0, 8.4, 30.7, 5, 8.4, 30.2, 5], [0, 1, 2, 0, 2, 3])],
+      { e: 8.4, n: 30.45, u: 2.5, r: 2.6 },
+    );
+    const { scene } = await world(() => 0, { extra: [panel] });
+    const sight = createSideCamSight();
+    const ride: Array<[number, number]> = [];
+    for (let f = 0; f <= 60 * 8; f++) {
+      const n = (8 * f) / 60;
+      const p = placeSideCam(input(scene, sight, { lat: LAT + n / M_LAT, distanceM: n, nowMs: f * (1000 / 60), speed: 8 }));
+      ride.push([n, p.offsetENU.x]);
+    }
+    // Before it: the full offset. The reads never saw it.
+    for (const [n, x] of ride) if (n < 30) expect(x).toBeCloseTo(SIDE_TRACK_OFFSET_M, 6);
+    // Beside it (the test's metres per degree are 0.5 % off: 30.2 m is about 30.05 m here): 0.5 m in
+    // front of it, at once from the first frame it is on the line, not eased in.
+    const held = ride.filter(([, x]) => Math.abs(x - (8.4 - 0.5)) < 1e-6);
+    expect(held.length).toBeGreaterThan(2);
+    for (const [n] of held) {
+      expect(n).toBeGreaterThan(30);
+      expect(n).toBeLessThan(30.8);
+    }
+    const first = ride.findIndex(([, x]) => x < SIDE_TRACK_OFFSET_M - 1e-6);
+    expect(ride[first][1]).toBeCloseTo(8.4 - 0.5, 6);
+    // Past it, out again as a slow dolly.
+    expect(ride.find(([n]) => n > 31)![1]).toBeLessThan(8.1);
+    expect(ride[ride.length - 1][1]).toBeGreaterThan(SIDE_TRACK_OFFSET_M - 0.1);
+    expect(sight.debug().guards).toBe(held.length);
+    // The guard's casts run beside the rider: from the bars to the camera, and on out while it eases back.
+    const g = guardCasts();
+    expect(g.length).toBeGreaterThan(ride.length);
+    for (const [a, b] of g) {
+      expect(a.n).toBeCloseTo(b.n, 4);
+      expect(b.u).toBeCloseTo(SIDE_TRACK_UP_M, 2);
+    }
+    // Culled as the reads are, the panel is not on the line: the guard casts are of either facing.
+    expect(meshSegmentHit(scene, point(0, 30.4, 1), point(9, 30.4, SIDE_TRACK_UP_M))).toBeUndefined();
+    expect(meshSegmentHit(scene, point(0, 30.4, 1), point(9, 30.4, SIDE_TRACK_UP_M), true)).toBeCloseTo(8.4 / 9, 6);
   });
 });
 

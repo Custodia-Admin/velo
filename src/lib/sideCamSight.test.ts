@@ -8,6 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { AIM_HEIGHT_M } from '@/lib/world/cameraFraming';
 import { computeCameraPose, riderAimPitchRad, SIDE_TRACK_OFFSET_M, SIDE_TRACK_UP_M } from '@/lib/cesiumCameras';
 import {
   clearSightOffset,
@@ -15,6 +16,7 @@ import {
   firstSeenOffset,
   poseLookingAtRider,
   seenOverTops,
+  SIGHT_GUARD_MARGIN_M,
   SIGHT_LEAD_MAX_M,
   SIGHT_MIN_OFFSET_M,
   SIGHT_PULL_TAU_S,
@@ -26,6 +28,7 @@ import {
   SIGHT_SWITCH_HOLD_MS,
   sightLeadM,
   sightSpots,
+  type SightPoint,
   type SightRequest,
   type SightSpot,
 } from '@/lib/sideCamSight';
@@ -792,20 +795,23 @@ describe('createSideCamSight with segment casts (seenAt)', () => {
   });
 
   it('a read that copied tile geometry from the GPU (spent) is the last one that frame', () => {
-    // Lugano 2032 m: 6 spots. Spent after the 2nd: 2 this frame, the other 4 the next.
-    let n = 0;
+    // Lugano 2032 m: 6 spots. The first frame's 2nd read copied: 2 this frame, the other 4 the next.
     const world: World = { right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) };
-    const c = sightRig(world, { spent: () => ++n === 2 });
+    const c = sightRig(world, { spent: () => c.perUpdate.length === 0 && c.spots.length >= 2 });
     c.step(8);
     c.step(8);
     c.step(8);
     expect(c.perUpdate).toEqual([2, 4, 0]);
     expect(c.sight.cuts()).toBe(1);
-    // Spent on every read: one a frame.
-    const d = sightRig(world, { spent: () => true });
+    // Every read copies: one a frame.
+    const d = sightRig(world, { spent: () => d.spots.some((s) => s.frame === d.perUpdate.length) });
     for (let f = 0; f < 6; f++) d.step(8);
     expect(d.perUpdate).toEqual([1, 1, 1, 1, 1, 1]);
     expect(d.sight.cuts()).toBe(1);
+    // Spent before the first read (the guard's cast copied): no read that frame.
+    const e = sightRig(world, { spent: () => e.perUpdate.length < 3 });
+    for (let f = 0; f < 4; f++) e.step(8);
+    expect(e.perUpdate).toEqual([0, 0, 0, SIGHT_RAY_READS_PER_FRAME]);
   });
 
   it('the reader changing kind mid-refresh starts the refresh over with the new one at once', () => {
@@ -843,5 +849,156 @@ describe('createSideCamSight with segment casts (seenAt)', () => {
     expect(x(10)).toBeCloseTo(BASE, 3);
     for (let n = 20; n <= 32; n++) expect(x(n)).toBeCloseTo(4.5, 1);
     expect(x(62)).toBeGreaterThan(BASE - 0.3);
+  });
+});
+
+describe('createSideCamSight: faces where the camera stands now (blockedAt)', () => {
+  type Face = (side: 1 | -1, from: SightPoint, to: SightPoint, frame: number) => number | undefined;
+  /** A face standing `atM` out (of either facing), on any segment across the road that spans it. */
+  const faceAt = (atM: number) => (_side: 1 | -1, a: SightPoint, b: SightPoint) => {
+    if (a.offsetM === b.offsetM) return undefined;
+    const t = (atM - a.offsetM) / (b.offsetM - a.offsetM);
+    return t >= 0 && t <= 1 ? t : undefined;
+  };
+  /** Riding at 8 m/s, 60 fps; the reads say open unless told; returns what was placed and asked frame by frame. */
+  function guardRig(face: Face, opts: Partial<SightRequest> = {}) {
+    const sight = createSideCamSight();
+    const asked: Array<{ frame: number; side: 1 | -1; from: SightPoint; to: SightPoint }> = [];
+    const placed: number[] = [];
+    const sides: Array<1 | -1> = [];
+    const step = (over: Partial<SightRequest> = {}) => {
+      const frame = placed.length;
+      const p = sight.update({
+        nowMs: (frame * 1000) / 60,
+        dt: 1 / 60,
+        distanceM: (frame * 8) / 60,
+        side: 1,
+        baseM: BASE,
+        upM: UP,
+        allowSwitch: true,
+        topAt: () => 0,
+        seenAt: () => true,
+        blockedAt: (side, from, to) => {
+          asked.push({ frame, side, from, to });
+          return face(side, from, to, frame);
+        },
+        ...opts,
+        ...over,
+      });
+      placed.push(p.offsetM);
+      sides.push(p.side);
+      return p;
+    };
+    const askedIn = (frame: number) => asked.filter((a) => a.frame === frame);
+    return { sight, step, asked, askedIn, placed, sides };
+  }
+
+  it('moves in at once to stand SIGHT_GUARD_MARGIN_M in front of a face, holds there while it is there, then eases out', () => {
+    // A face 8.1 m out on frames 30-89; the reads say open all along.
+    const g = guardRig((s, a, b, f) => (f >= 30 && f < 90 ? faceAt(8.1)(s, a, b) : undefined));
+    for (let f = 0; f < 90; f++) g.step();
+    expect(g.placed[29]).toBeCloseTo(BASE, 9);
+    // In the frame it is first on the line, and held there (not crept out towards it and snapped back).
+    for (let f = 30; f < 90; f++) expect(g.placed[f]).toBeCloseTo(8.1 - SIGHT_GUARD_MARGIN_M, 9);
+    expect(g.sight.debug().guards).toBe(60);
+    // Gone: out again at the release pace, not at once.
+    g.step();
+    expect(g.placed[90]).toBeCloseTo(7.6 + (BASE - 7.6) * (1 - Math.exp(-1 / 60 / SIGHT_RELEASE_TAU_S)), 9);
+    for (let f = 91; f < 90 + 5 * 60; f++) g.step();
+    expect(g.placed[g.placed.length - 1]).toBeGreaterThan(BASE - 0.1);
+    expect(g.sight.debug().guards).toBe(60);
+  });
+
+  it('asked before the reads: from the bars to where the camera stands, and out to where it is easing to', () => {
+    const order: string[] = [];
+    const g = guardRig((s, a, b, f) => (order.push('cast'), f === 0 ? faceAt(8.1)(s, a, b) : undefined));
+    g.step({ seenAt: () => (order.push('read'), true) });
+    expect(order[0]).toBe('cast');
+    expect(order.slice(1)).toContain('read');
+    expect(g.askedIn(0)).toEqual([{ frame: 0, side: 1, from: { offsetM: 0, upM: AIM_HEIGHT_M }, to: { offsetM: BASE, upM: UP } }]);
+    // Moved in to 7.6 m, it eases back out: the bars to 7.6 m, then 7.6 m out to the 9 m the reads allow.
+    g.step();
+    expect(g.askedIn(1)).toHaveLength(2);
+    const [line, out] = g.askedIn(1);
+    expect(line.from).toEqual({ offsetM: 0, upM: AIM_HEIGHT_M });
+    expect(line.to.offsetM).toBeCloseTo(7.6, 9);
+    expect(line.to.upM).toBe(UP);
+    expect(out.from).toEqual(line.to);
+    expect(out.to).toEqual({ offsetM: BASE, upM: UP });
+    // On the left, the left.
+    const h = guardRig(() => undefined);
+    h.step({ side: -1 });
+    expect(h.asked[0].side).toBe(-1);
+  });
+
+  it('never closer than minM; a face closer to the rider than that is left to the reads', () => {
+    // 3.6 m out: 3.1 m is inside the 3.5 m road edge, so 3.5 m.
+    expect(guardRig(faceAt(3.6)).step().offsetM).toBeCloseTo(SIGHT_MIN_OFFSET_M, 9);
+    for (const at of [3.4, 2]) {
+      const b = guardRig(faceAt(at));
+      for (let f = 0; f < 30; f++) expect(b.step().offsetM).toBeCloseTo(BASE, 9);
+      expect(b.sight.debug().guards).toBe(0);
+    }
+    // The painted road's corridor as the closest offset (4.5 m).
+    expect(guardRig(faceAt(4.8), { minM: 4.5 }).step().offsetM).toBeCloseTo(4.5, 9);
+  });
+
+  it('nothing on the line, or not a fraction of it: nothing moves; the ends of the line count', () => {
+    for (const t of [undefined, -0.1, 1.2, Number.NaN]) {
+      const g = guardRig(() => t);
+      for (let f = 0; f < 10; f++) g.step();
+      expect(g.placed.every((x) => Math.abs(x - BASE) < 1e-9)).toBe(true);
+      expect(g.sight.debug().guards).toBe(0);
+    }
+    expect(guardRig(() => 1).step().offsetM).toBeCloseTo(BASE - SIGHT_GUARD_MARGIN_M, 9);
+    expect(guardRig(() => 0).step().offsetM).toBeCloseTo(BASE, 9);
+  });
+
+  it('easing back out it stops in front of a face on the way, where the reads let it go further (Lugano 1501 m)', () => {
+    // The reads close the side beyond 5 m for the first second (in to 4.5 m), then open it;
+    // from then on a face stands 7 m out, beyond the line from the bars to 4.5 m.
+    const g = guardRig((s, a, b, f) => (f >= 60 ? faceAt(7)(s, a, b) : undefined));
+    for (let f = 0; f < 60; f++) g.step({ seenAt: (s) => s.offsetM <= 5 });
+    expect(g.placed[59]).toBeCloseTo(4.5, 6);
+    for (let f = 60; f < 60 + 6 * 60; f++) g.step();
+    const after = g.placed.slice(60);
+    expect(Math.max(...after)).toBeLessThanOrEqual(7 - SIGHT_GUARD_MARGIN_M + 1e-9);
+    expect(after[after.length - 1]).toBeCloseTo(7 - SIGHT_GUARD_MARGIN_M, 9);
+    // Without the face it goes on out.
+    const free = guardRig(() => undefined);
+    for (let f = 0; f < 60; f++) free.step({ seenAt: (s) => s.offsetM <= 5 });
+    for (let f = 60; f < 60 + 6 * 60; f++) free.step();
+    expect(free.placed[free.placed.length - 1]).toBeGreaterThan(BASE - 0.1);
+  });
+
+  it("a cut across the road this frame: the old side's face does not hold the camera on the new side", () => {
+    // Lugano 2032 m: its side closed, the other open; a face 8.1 m out on its own side only.
+    const world: World = { right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) };
+    const g = guardRig((s, a, b) => (s === 1 ? faceAt(8.1)(s, a, b) : undefined), {
+      seenAt: (s) => seenOverTops((x) => (s.side === 1 ? world.right : world.left)(x, 0), s.offsetM, s.baseM, s.upM),
+    });
+    for (let f = 0; f < 20; f++) g.step();
+    const cutAt = g.sides.indexOf(-1);
+    expect(cutAt).toBeGreaterThan(0);
+    expect(g.sight.cuts()).toBe(1);
+    expect(g.placed[cutAt - 1]).toBeLessThan(BASE);
+    expect(g.placed[cutAt]).toBeCloseTo(BASE, 9);
+    expect(g.asked.filter((a) => a.frame > cutAt).every((a) => a.side === -1)).toBe(true);
+  });
+
+  it('the way-out cast waits for a frame whose first cast copied nothing (spent), and so do the reads', () => {
+    let spent = false;
+    let reads = 0;
+    const g = guardRig((s, a, b, f) => (f < 10 ? faceAt(8.1)(s, a, b) : undefined), {
+      spent: () => spent,
+      seenAt: () => (reads++, true),
+    });
+    for (let f = 0; f < 12; f++) g.step();
+    expect(g.askedIn(11)).toHaveLength(2);
+    spent = true;
+    const before = reads;
+    for (let f = 12; f < 40; f++) g.step();
+    for (let f = 12; f < 40; f++) expect(g.askedIn(f)).toHaveLength(1);
+    expect(reads).toBe(before);
   });
 });

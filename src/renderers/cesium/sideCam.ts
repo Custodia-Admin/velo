@@ -9,7 +9,10 @@
  * The reader casts segments through the mesh drawn this frame (t_ee2165b8):
  * from the rider's bars to the camera spot, and from the spot down through the
  * air the camera keeps under it. A thin hedge or post anywhere on the line is
- * seen, and a canopy over the line is told from a solid on it. The globe,
+ * seen, and a canopy over the line is told from a solid on it. Every frame one
+ * more cast, of either facing, runs from the bars to where the camera stands
+ * now (and one out to where it is easing to): a face the reads ahead missed
+ * moves it in at once. The globe,
  * where it draws over the mesh, is read as tops. Without the model reader the
  * casts walk the tiles with, the reader falls back to the top of what is drawn
  * (photoreal mesh, plus the globe) at a few spots on the line (t_1ec01b75).
@@ -34,6 +37,7 @@ import {
   SIGHT_CAMERA_CLEAR_M,
   SIGHT_MIN_OFFSET_M,
   sightLeadM,
+  type SightPoint,
   type SightSpot,
 } from '@/lib/sideCamSight';
 import { AIM_HEIGHT_M } from '@/lib/world/cameraFraming';
@@ -115,8 +119,15 @@ export function placeSideCam(i: SideCamInput): CameraPose {
     // The globe, where it draws over the mesh: a height field, read as tops.
     return seenOverTops((x) => topAt(s.side, x, s.aheadM, false), s.offsetM, s.baseM, s.upM);
   };
-  // Tile geometry copied back from the GPU before this frame's reads.
+  // Tile geometry copied back from the GPU before this frame's casts.
   const copied = meshTopReadStats()?.misses ?? 0;
+  const rays = sightRaysReadable(i.scene);
+  /** Where along a segment across the road beside the rider now the first face of either facing is. */
+  const blockedAt = (side: 1 | -1, from: SightPoint, to: SightPoint) => {
+    const a = spotEN(side, from.offsetM, 0);
+    const b = spotEN(side, to.offsetM, 0);
+    return meshSegmentHit(i.scene, world(a.e, a.n, from.upM), world(b.e, b.n, to.upM), true);
+  };
   const placed = i.sight.update({
     nowMs: i.nowMs,
     dt: i.dt,
@@ -129,7 +140,8 @@ export function placeSideCam(i: SideCamInput): CameraPose {
     minM: i.roadPainted ? CORRIDOR_HALF_WIDTH_M + CORRIDOR_CLEARANCE_M : SIGHT_MIN_OFFSET_M,
     allowSwitch: i.mode === 'sideTracking' && !i.roadPainted,
     topAt: (side, offsetM, aheadM) => topAt(side, offsetM, aheadM, true),
-    seenAt: sightRaysReadable(i.scene) ? seenAt : undefined,
+    seenAt: rays ? seenAt : undefined,
+    blockedAt: rays ? blockedAt : undefined,
     spent: () => (meshTopReadStats()?.misses ?? 0) > copied,
   });
   const k = (placed.side === poseSide ? 1 : -1) * placed.offsetM;

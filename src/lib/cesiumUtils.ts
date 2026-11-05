@@ -685,10 +685,17 @@ function mirrors(m: Cesium.Matrix4): boolean {
  * through is read, and the nearest hit over all of them wins
  * (Cesium3DTileset.pick stops at the first tile, sorted by sphere distance,
  * that the endless ray hits anywhere). Faces turned away from a are not hits,
- * as in Cesium's pickModel. The tile geometry copied back from the GPU is kept
- * for the next reads (lib/tileReadCache). Pure maths in lib/segmentHit.
+ * as in Cesium's pickModel, unless `bothSides`: then any face the segment
+ * crosses is (the camera sees the front of a face whose back the rider's
+ * bars see). The tile geometry copied back from the GPU is kept for the next
+ * reads (lib/tileReadCache). Pure maths in lib/segmentHit.
  */
-export function meshSegmentHit(scene: Cesium.Scene, a: Cesium.Cartesian3, b: Cesium.Cartesian3): number | undefined {
+export function meshSegmentHit(
+  scene: Cesium.Scene,
+  a: Cesium.Cartesian3,
+  b: Cesium.Cartesian3,
+  bothSides = false,
+): number | undefined {
   if (!isWebGL2(scene)) return undefined;
   const reader = segmentReader();
   const prims = (scene as { primitives?: Cesium.PrimitiveCollection }).primitives;
@@ -703,7 +710,7 @@ export function meshSegmentHit(scene: Cesium.Scene, a: Cesium.Cartesian3, b: Ces
   const castTile = (tile: TileLike) => {
     const model = tile.content?._model;
     if (!model || model._ready !== true || !meetsSphere(a, b, tile.contentBoundingVolume?.boundingSphere)) return;
-    const cull = model.backFaceCulling ?? true;
+    const cull = !bothSides && (model.backFaceCulling ?? true);
     reader.forEachPrimitive(model, undefined, (runtime, primitive, instances, computed) => {
       if (runtime.boundingSphere && instances.length === 1) {
         if (!meetsSphere(a, b, Cesium.BoundingSphere.transform(runtime.boundingSphere, computed, sc.sphere))) return;
