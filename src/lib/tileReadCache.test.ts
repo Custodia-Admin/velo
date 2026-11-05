@@ -105,9 +105,9 @@ describe('tileReadCacheFor', () => {
     expect(copies).toHaveLength(0);
     cache.run(() => h.readAttributeAsTypedArray(b));
     expect(copies).toHaveLength(1);
-    // One copy bigger than the whole budget is not kept.
+    // One copy bigger than the whole budget is not kept (and pushes nothing out).
     cache.run(() => h.readAttributeAsTypedArray(gpuSource(101)));
-    expect(cache.stats().bytes).toBeLessThanOrEqual(100);
+    expect(cache.stats()).toMatchObject({ bytes: 80, entries: 2 });
     expect(TILE_READ_CACHE_BYTES).toBe(16 * 1024 * 1024);
   });
 
