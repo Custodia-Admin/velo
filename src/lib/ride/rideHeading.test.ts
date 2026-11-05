@@ -126,6 +126,20 @@ describe('routeBearingAt', () => {
     expect(smoothHeadingAt(ell, 100.1) * DEG).toBeLessThan(50);
   });
 
+  it('measures the bearing in ground metres, not degrees (a NE segment at 43° N reads 45°)', () => {
+    const k = 111_195;
+    const ne = routeFromGeometry('ne', 'ne', {
+      distanceM: 141,
+      ascentM: 0,
+      maxGradePct: 0,
+      points: [
+        [43, 12, 0],
+        [43 + 100 / k, 12 + 100 / (k * Math.cos((43 * Math.PI) / 180)), 0],
+      ],
+    });
+    expect(routeBearingAt(ne, 50) * DEG).toBeCloseTo(45, 1);
+  });
+
   it('holds the last segment past either end, and falls back without one', () => {
     expect(routeBearingAt(ell, -5) * DEG).toBeCloseTo(0, 3);
     expect(routeBearingAt(ell, 250) * DEG).toBeCloseTo(90, 1);

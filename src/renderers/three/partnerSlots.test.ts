@@ -134,6 +134,14 @@ describe('roadSpan', () => {
     }
   });
 
+  it('of two ribbons under the point, takes the one the route follows (the nearest centreline)', () => {
+    // A 1.5 m cycle path mapped along y = 0 over the edge of a 7 m road
+    // centred 3 m south (y −6.5…0.5); the route rides the path.
+    const lane = withRoads([{ cls: 0, width: 7, flags: 0, points: Float32Array.from([-390, -3, 390, -3]) }, path(-390, 0, 390, 0)]);
+    expect(roadSegmentAt(lane, 0, 0, EAST)!.halfWidth).toBe(0.75);
+    expect(roadSpanAt(lane, 0, 0, EAST, EAST)).toEqual({ leftM: expect.closeTo(-0.75, 6), rightM: expect.closeTo(0.75, 6) });
+  });
+
   it('finds a wide road from a point far off its centreline', () => {
     // An 18 m road (the widest the bundles draw): 8 m north of its centre is still on it.
     const wide = withRoads([{ cls: 0, width: 18, flags: 0, points: Float32Array.from([-390, 0, 390, 0]) }]);
