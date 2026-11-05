@@ -19,7 +19,10 @@ async function photorealTileset(height: number | undefined) {
   const getHeight = vi.fn(() => height);
   Object.defineProperty(fake, 'getHeight', { value: getHeight });
   Object.defineProperty(fake, 'pick', {
-    value: (ray: Cesium.Ray) => {
+    value: (ray: Cesium.Ray, frameState: unknown) => {
+      // Like Cesium3DTileset.prototype.pick, which reads frameState.context
+      // first: without the scene's frameState every photoreal frame throws.
+      if (frameState !== FRAME_STATE) throw new TypeError("tileset.pick needs the scene's frameState");
       const c = Cesium.Cartographic.fromCartesian(ray.origin);
       const h = getHeight();
       return h === undefined ? undefined : Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h);
@@ -30,10 +33,14 @@ async function photorealTileset(height: number | undefined) {
   return { tileset, getHeight };
 }
 
+/** The fake scene's frameState (what the tile pick reads its GL context from). */
+const FRAME_STATE = { context: { webgl2: true } };
+
 function scene(tileset: Cesium.Cesium3DTileset | null, webgl2: boolean) {
   const sampleHeight = vi.fn(() => 999);
   const s = {
     context: { webgl2 },
+    frameState: webgl2 ? FRAME_STATE : { context: { webgl2 } },
     primitives: { length: tileset ? 1 : 0, get: () => tileset },
     sampleHeightSupported: true,
     sampleHeight,
