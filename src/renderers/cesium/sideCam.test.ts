@@ -358,6 +358,13 @@ describe('placeSideCam: where it reads, how high it stands', () => {
     expect(q.offsetENU.x).toBeCloseTo(-SIDE_TRACK_OFFSET_M, 6);
   });
 
+  it("a coarse mesh tile's chord far over the route is not the top; the globe drawn there is", async () => {
+    // 5 m out and beyond: a coarse photoreal tile reads 900 m up; the shown globe 9 m.
+    const { scene } = await world((e) => (e > 5 ? 900 : 0), { globeShown: true, globe: (e) => (e > 5 ? 9 : 0) });
+    const p = settle(input(scene, createSideCamSight(), { roadPainted: true }));
+    expect(p.offsetENU.x).toBeCloseTo(4.5, 2);
+  });
+
   it('one tile read a frame, riding past a house front', async () => {
     const { scene, getHeight } = await world((e, n) => (n >= 20 && n <= 32 && e > 5 ? 12 : e < -3 ? 12 : 0));
     const sight = createSideCamSight();
