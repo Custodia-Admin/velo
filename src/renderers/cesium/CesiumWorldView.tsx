@@ -71,7 +71,7 @@ import { shouldChaseCamUpdate } from '@/lib/chaseCamGuard';
 import { createLaneState, stepLane } from '@/lib/controllers/steerFeel';
 import { activeSteer } from '@/stores/controllerStore';
 import type { AvatarColors } from '@/lib/avatarConfig';
-import { placeBotAvatars } from './botAvatars';
+import { placeBotAvatars, updateBotAvatars } from './botAvatars';
 import {
   createWeatherSystem,
   type WeatherSystem,
@@ -1381,28 +1381,11 @@ export function CesiumWorldView({
       }
 
       // ---- Pace bot avatar updates ----
-      const bots = useRideStore.getState().paceBots;
-      const botAvatars = botAvatarsRef.current;
-      // If bot count matches the avatar array, update each one.
-      // Count mismatch can occur if bots are added after route load — we skip
-      // silently rather than crash; the user would need to re-select the route.
-      if (bots.length === botAvatars.length && bots.length > 0 && r) {
-        for (let i = 0; i < bots.length; i++) {
-          const bs = bots[i].state;
-          botAvatars[i].update({
-            lon: bs.lon,
-            lat: bs.lat,
-            ele: bs.ele,
-            heading: bs.heading,
-            speed: bs.speed,
-            // cadence: 0 → avatar estimates from speed (cadence ≈ speed / 0.12 rev/s * 60 rpm)
-            cadence: 0,
-            grade: 0,
-            dt,
-            riderPosition: 'hoods', // bots always ride hoods position
-          });
-        }
-      }
+      // Each partner in its lateral slot beside the line (botAvatars). A
+      // count mismatch can occur if bots are added after route load — the
+      // update skips silently rather than crash; the user would need to
+      // re-select the route.
+      if (r) updateBotAvatars(useRideStore.getState().paceBots, botAvatarsRef.current, dt);
 
       // ---- Ghost avatar updates ----
       const ghostsOn = useGhostStore.getState().ghostsEnabled;

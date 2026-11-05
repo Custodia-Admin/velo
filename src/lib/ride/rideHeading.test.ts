@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { headingAt } from '@/lib/gpxParser';
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
-import { HEADING_HALF_WINDOW_M, MAX_YAW_RATE, YawFilter, headingDelta, smoothHeadingAt } from './rideHeading';
+import { HEADING_HALF_WINDOW_M, MAX_YAW_RATE, YawFilter, headingDelta, routeBearingAt, smoothHeadingAt } from './rideHeading';
 
 const DEG = 180 / Math.PI;
 const ROUTES = ['scenic-perugia-tiber-park', 'scenic-assisi-valley'];
@@ -98,4 +98,52 @@ describe('YawFilter', () => {
       }
     });
   }
+});
+
+describe('routeBearingAt', () => {
+  /** An L: 100 m north, then 100 m east (points every 50 m). */
+  const ell = routeFromGeometry('l', 'l', {
+    distanceM: 200,
+    ascentM: 0,
+    maxGradePct: 0,
+    points: [
+      [43, 12, 0],
+      [43 + 50 / 111_195, 12, 0],
+      [43 + 100 / 111_195, 12, 0],
+      [43 + 100 / 111_195, 12 + 50 / (111_195 * Math.cos((43 * Math.PI) / 180)), 0],
+      [43 + 100 / 111_195, 12 + 100 / (111_195 * Math.cos((43 * Math.PI) / 180)), 0],
+    ],
+  });
+
+  it('is the direction of the route segment under the distance, with no chord to lag a corner', () => {
+    expect(routeBearingAt(ell, 10) * DEG).toBeCloseTo(0, 3);
+    expect(routeBearingAt(ell, 99.9) * DEG).toBeCloseTo(0, 3);
+    // From the corner on, the next segment: east.
+    expect(routeBearingAt(ell, 100.1) * DEG).toBeCloseTo(90, 1);
+    expect(routeBearingAt(ell, 199) * DEG).toBeCloseTo(90, 1);
+    // The ±4 m and ±12 m chords are only half way round there.
+    expect(headingAt(ell, 100.1) * DEG).toBeLessThan(50);
+    expect(smoothHeadingAt(ell, 100.1) * DEG).toBeLessThan(50);
+  });
+
+  it('measures the bearing in ground metres, not degrees (a NE segment at 43° N reads 45°)', () => {
+    const k = 111_195;
+    const ne = routeFromGeometry('ne', 'ne', {
+      distanceM: 141,
+      ascentM: 0,
+      maxGradePct: 0,
+      points: [
+        [43, 12, 0],
+        [43 + 100 / k, 12 + 100 / (k * Math.cos((43 * Math.PI) / 180)), 0],
+      ],
+    });
+    expect(routeBearingAt(ne, 50) * DEG).toBeCloseTo(45, 1);
+  });
+
+  it('holds the last segment past either end, and falls back without one', () => {
+    expect(routeBearingAt(ell, -5) * DEG).toBeCloseTo(0, 3);
+    expect(routeBearingAt(ell, 250) * DEG).toBeCloseTo(90, 1);
+    const dot = routeFromGeometry('p', 'p', { distanceM: 0, ascentM: 0, maxGradePct: 0, points: [[43, 12, 0]] });
+    expect(routeBearingAt(dot, 0, 1.25)).toBe(1.25);
+  });
 });

@@ -90,3 +90,21 @@ export class YawFilter {
     return this.heading;
   }
 }
+
+/**
+ * Compass bearing (radians clockwise from north) of the route segment under
+ * `distance`: the direction the route itself runs at that point, with no
+ * chord and no lag. At a vertex it is the segment that starts there. Falls
+ * back to `fallback` on a segment with no length.
+ */
+export function routeBearingAt(route: Route, distance: number, fallback = 0): number {
+  const pts = route.points;
+  if (pts.length < 2) return fallback;
+  const { index } = sampleRouteAtDistance(route, distance);
+  const a = pts[Math.min(index, pts.length - 2)];
+  const b = pts[Math.min(index, pts.length - 2) + 1];
+  const dEast = (b.lon - a.lon) * Math.cos((((a.lat + b.lat) / 2) * Math.PI) / 180);
+  const dNorth = b.lat - a.lat;
+  if (dEast === 0 && dNorth === 0) return fallback;
+  return Math.atan2(dEast, dNorth);
+}
