@@ -64,6 +64,89 @@ export function treeNearFadeKeep(distM: number): number {
   return t * t * (3 - 2 * t);
 }
 
+/**
+ * Skylight through the leaves. Leaves pass light: the sky reaches the eye
+ * through a crown's outer leaf layers, so its shaded sides and underside
+ * read deep green, not black. Without this term the dark palette × the crown
+ * AO × the irradiance a fragment turned away from the sky gets left the
+ * avenue crowns 6–11 m from the chase camera near-black at golden hour
+ * (Tiber park 8.9–9.4 km, sRGB ≈ (8,9,6)); on distant crowns the haze hid it.
+ *
+ * The term is the leaf colour at unit luminance × the sky's irradiance from
+ * straight up × this effective transmittance, on every side of the crown
+ * but its sky-facing top (`treeLeafTransmitWeight`). Unit luminance: every
+ * species gains the same brightness, so a pale autumn or olive crown doesn't
+ * glow and a dark cypress doesn't stay black. It follows the light (night
+ * stays dark) and goes in before the haze, like the rest of the lit colour.
+ * It only fills what the light leaves dark (`TREE_LEAF_TRANSMIT_KNEE`): a
+ * crown the sun or the sky already lights, as at noon, keeps its look.
+ */
+export const TREE_LEAF_TRANSMIT = 0.025;
+
+/**
+ * The skylight term fades out as the fragment's lit colour rises: all of it
+ * on a black fragment, none once the lit luminance reaches this many times
+ * the term's own. At ≥ 1.5 the result still rises with the lit colour, so no
+ * shading order flips.
+ */
+export const TREE_LEAF_TRANSMIT_KNEE = 2;
+
+/**
+ * Where on the crown the skylight term applies, by the fragment normal's
+ * world up component: all of it at or below `full` (underside, and most of
+ * a side-on face), none at or above `none` (the top, lit by the sky itself).
+ */
+export const TREE_LEAF_TRANSMIT_FACING = { full: -0.3, none: 0.6 } as const;
+
+/** Share of the skylight term a crown fragment gets by its normal's world up component (mirrors the shader). */
+export function treeLeafTransmitWeight(normalUp: number): number {
+  const { full, none } = TREE_LEAF_TRANSMIT_FACING;
+  const t = Math.min(1, Math.max(0, (normalUp - full) / (none - full)));
+  return 1 - t * t * (3 - 2 * t);
+}
+
+/** Luminance weights (linear Rec. 709) the skylight term normalises the leaf colour by. */
+export const TREE_LEAF_LUMA = [0.2126, 0.7152, 0.0722] as const;
+
+type Rgb = readonly [number, number, number];
+const lumaOf = (c: Rgb) => c[0] * TREE_LEAF_LUMA[0] + c[1] * TREE_LEAF_LUMA[1] + c[2] * TREE_LEAF_LUMA[2];
+
+/**
+ * The linear radiance the skylight term adds to a crown fragment (mirrors
+ * the shader): leaf colour `leaf` (after the clump variation), its species
+ * base colour `base` (sets the luminance it is normalised by), the sky
+ * irradiance from straight up `skyUp` (env + hemisphere, before three's ÷π),
+ * and the fragment's lit colour so far `lit` (black by default).
+ */
+export function treeLeafTransmit(leaf: Rgb, base: Rgb, skyUp: Rgb, normalUp: number, lit: Rgb = [0, 0, 0]): [number, number, number] {
+  const k = (TREE_LEAF_TRANSMIT * treeLeafTransmitWeight(normalUp)) / (Math.PI * Math.max(lumaOf(base), 1e-3));
+  const t: [number, number, number] = [leaf[0] * skyUp[0] * k, leaf[1] * skyUp[1] * k, leaf[2] * skyUp[2] * k];
+  const x = Math.min(1, Math.max(0, lumaOf(lit) / (TREE_LEAF_TRANSMIT_KNEE * lumaOf(t) + 1e-6)));
+  const keep = 1 - x * x * (3 - 2 * x);
+  return [t[0] * keep, t[1] * keep, t[2] * keep];
+}
+
+/** A GLSL float literal (always with a decimal point). */
+const glslFloat = (v: number) => (Number.isInteger(v) ? v.toFixed(1) : String(v));
+
+/** Lit stage (before the haze): skylight through the leaves (TREE_LEAF_TRANSMIT). */
+export const TREE_LEAF_TRANSMIT_GLSL = /* glsl */ `
+  {
+    vec3 upV = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+    vec3 skyUp = vec3(0.0);
+    #if defined( USE_ENVMAP ) && defined( ENVMAP_TYPE_CUBE_UV )
+      skyUp += getIBLIrradiance(upV);
+    #endif
+    #if NUM_HEMI_LIGHTS > 0
+      skyUp += getHemisphereLightIrradiance(hemisphereLights[0], upV);
+    #endif
+    float away = 1.0 - smoothstep(${glslFloat(TREE_LEAF_TRANSMIT_FACING.full)}, ${glslFloat(TREE_LEAF_TRANSMIT_FACING.none)}, dot(normalize(vNormal), upV));
+    vec3 leafSky = gLeafHue * skyUp * RECIPROCAL_PI * uLeafTransmit * away * vCrown;
+    vec3 lumaW = vec3(${TREE_LEAF_LUMA.join(', ')});
+    float knee = ${glslFloat(TREE_LEAF_TRANSMIT_KNEE)} * dot(leafSky, lumaW) + 1e-6;
+    gl_FragColor.rgb += leafSky * (1.0 - smoothstep(0.0, knee, dot(gl_FragColor.rgb, lumaW)));
+  }`;
+
 /** Fragment stage: dither-discard tree fragments in the camera's near volume. */
 export const TREE_NEAR_FADE_GLSL = /* glsl */ `
   {
@@ -134,10 +217,11 @@ export function createTreeMaterial(atmo: WorldAtmosphere, autumn: number, leafy 
     uDeciduous: { value: deciduous },
     uAutumn: { value: autumn },
     uNearFade: { value: new THREE.Vector2(TREE_NEAR_FADE.clearM, TREE_NEAR_FADE.solidM) },
+    uLeafTransmit: { value: TREE_LEAF_TRANSMIT },
   };
   mat.userData.uniforms = uniforms;
   return patchWorldMaterial(mat, atmo, {
-    key: leafy ? 'trees-leafy-v3' : 'trees-v3',
+    key: leafy ? 'trees-leafy-v4' : 'trees-v4',
     uniforms,
     vertexPars: TREE_VERTEX_PARS,
     vertexBegin: TREE_TRANSFORM,
@@ -147,11 +231,14 @@ uniform vec3 uPalette[${TREE_PALETTE.length}];
 uniform float uDeciduous[${TREE_PALETTE.length}];
 uniform float uAutumn;
 uniform vec2 uNearFade;
+uniform float uLeafTransmit;
 varying float vCrown;
 varying float vAo;
 varying float vPalette;
 varying float vSeed;
 varying vec3 vLeaf;
+// Leaf colour at unit luminance, for the skylight through the leaves (TREE_LEAF_TRANSMIT).
+vec3 gLeafHue = vec3(0.0);
 ${NOISE_GLSL}
 float leafHash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
 float leafNoise(vec3 p) {
@@ -202,6 +289,7 @@ ${TREE_NEAR_FADE_GLSL}
     float leaf = vNoise(vec2(vWPos.x * 1.6 + vWPos.y * 0.9, vWPos.z * 1.6 - vWPos.y * 0.7)) * 0.65
       + vNoise(vec2(vWPos.x * 4.1 - vWPos.y * 1.3, vWPos.z * 4.1 + vWPos.y * 1.1)) * 0.35;
     vec3 col = base * mix(1.0, 0.62 + 0.62 * leaf, vCrown * octF(0.8, pxM));
+    gLeafHue = col / max(dot(base, vec3(${TREE_LEAF_LUMA.join(', ')})), 1e-3);
     col *= vAo * vAo * 1.1;
     vec3 bark = vec3(0.07, 0.058, 0.045) * (0.8 + 0.4 * vNoise(vWPos.xz * 3.0 + vWPos.y * 9.0));
     diffuseColor.rgb = mix(bark * vAo, col, step(0.5, vCrown));
@@ -227,7 +315,8 @@ ${TREE_NEAR_FADE_GLSL}
     vec3 V = normalize(cameraPosition - vWPos);
     float back = pow(max(dot(-V, uSunDir), 0.0), 3.0);
     gl_FragColor.rgb += diffuseColor.rgb * gSunLit * (back * 0.45 + 0.05) * vCrown * vAo;
-  }`,
+  }
+${TREE_LEAF_TRANSMIT_GLSL}`,
   });
 }
 
