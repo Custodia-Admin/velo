@@ -167,6 +167,9 @@ describe('sightLeadM', () => {
   });
 });
 
+/** Long enough (ms at 60 fps) for the longest refresh: twelve reads, one a frame. */
+const REFRESH_MS = 220;
+
 type Side = (x: number, at: number) => number | undefined;
 type World = { right: Side; left: Side };
 
@@ -248,7 +251,8 @@ describe('createSideCamSight: moving in, crossing the road, easing', () => {
 
   it('crosses the road when its side is closed and the other is open (Lugano 2032 m): a cut', () => {
     const r = rig({ right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) });
-    const p = r.run(20);
+    // Ten reads (four on its side, three across ahead, three across beside), one a frame.
+    const p = r.run(REFRESH_MS);
     expect(p).toEqual({ side: -1, offsetM: BASE, clear: true });
     expect(r.sight.debug().switches).toBe(1);
   });
@@ -260,7 +264,7 @@ describe('createSideCamSight: moving in, crossing the road, easing', () => {
     expect(keep.run(1000).offsetM).toBeCloseTo(6.75, 1);
     // 193 m with the far side open: crosses.
     const cross = rig({ right: profile(LUGANO.d193.cam), left: flat });
-    expect(cross.run(20)).toEqual({ side: -1, offsetM: BASE, clear: true });
+    expect(cross.run(REFRESH_MS)).toEqual({ side: -1, offsetM: BASE, clear: true });
   });
 
   it('crossing is a cut: the moved-in camera stands at full offset across the road at once', () => {
@@ -295,7 +299,7 @@ describe('createSideCamSight: moving in, crossing the road, easing', () => {
   it('holds its new side for a while unless that side closes', () => {
     const world: World = { right: profile(LUGANO.d2032.cam), left: flat };
     const r = rig(world);
-    expect(r.run(20).side).toBe(-1);
+    expect(r.run(REFRESH_MS).side).toBe(-1);
     // The new side now needs moving in to half its offset; the old side is open.
     world.left = profile(LUGANO.d193.cam);
     world.right = flat;
@@ -307,7 +311,7 @@ describe('createSideCamSight: moving in, crossing the road, easing', () => {
     // Closed outright: crosses back at once.
     world.right = profile(LUGANO.d2032.cam);
     world.left = flat;
-    expect(r.run(SIGHT_SAMPLE_MS + 20).side).toBe(-1);
+    expect(r.run(SIGHT_SAMPLE_MS + REFRESH_MS).side).toBe(-1);
   });
 
   it('a wall read ahead holds the camera in until it has ridden past it', () => {
@@ -341,7 +345,10 @@ describe('createSideCamSight: moving in, crossing the road, easing', () => {
       left: (x, at) => (at < 2 ? hedge(x) : 0),
     };
     const r = rig(world, { leadM: 5.6 });
-    const p = r.run(100);
+    // A whole refresh (all eleven reads) with the rider still short of the hedge's end.
+    const p = r.run(REFRESH_MS);
+    expect(r.sight.debug().pending).toBe(false);
+    expect(r.dist()).toBeLessThan(2);
     expect(p.side).toBe(1);
     expect(r.sight.cuts()).toBe(0);
     // Ridden past the hedge's end, the other side is open beside the rider too: cut.
@@ -356,18 +363,21 @@ describe('createSideCamSight: moving in, crossing the road, easing', () => {
       left: (x, at) => (at >= 3 && x > 8 ? 9 : 0),
     };
     const r = rig(world, { leadM: 5.6 });
-    expect(r.run(100).side).toBe(1);
+    expect(r.run(REFRESH_MS).side).toBe(1);
+    expect(r.sight.debug().pending).toBe(false);
     expect(r.sight.cuts()).toBe(0);
   });
 
   it('a cut holds the camera at what it read beside the rider until it passes the lead', () => {
-    // Closed on its own side; across the road open ahead, half open beside the rider.
+    // Closed on its own side; across the road open ahead, half open beside the
+    // rider (for the first 3 m: the spots beside it are read a few frames into
+    // the refresh, where it has ridden to by then).
     const world: World = {
       right: profile(LUGANO.d2032.cam),
-      left: (x, at) => (at < 1 && x > 6 ? 9 : 0),
+      left: (x, at) => (at < 3 && x > 6 ? 9 : 0),
     };
     const r = rig(world, { leadM: 5.6 });
-    const p = r.run(16);
+    const p = r.run(REFRESH_MS);
     expect(p.side).toBe(-1);
     expect(p.offsetM).toBeCloseTo(0.5 * BASE, 9);
   });
@@ -402,11 +412,11 @@ describe('createSideCamSight: moving in, crossing the road, easing', () => {
     const world: World = { right: profile(LUGANO.d2032.cam), left: flat };
     const r = rig(world);
     expect(r.sight.cuts()).toBe(0);
-    r.run(100);
+    r.run(REFRESH_MS);
     expect(r.sight.cuts()).toBe(1);
     world.left = profile(LUGANO.d2032.cam);
     world.right = flat;
-    r.run(SIGHT_SAMPLE_MS + 20);
+    r.run(SIGHT_SAMPLE_MS + REFRESH_MS);
     expect(r.sight.cuts()).toBe(2);
   });
 
@@ -421,6 +431,174 @@ describe('createSideCamSight: moving in, crossing the road, easing', () => {
 
   it('a bank 4-9 m out (Lugano 1888 m): the road edge, or the open side', () => {
     const r = rig({ right: profile(LUGANO.d1888.cam), left: profile(LUGANO.d1888.other) });
-    expect(r.run(20)).toEqual({ side: -1, offsetM: BASE, clear: true });
+    expect(r.run(REFRESH_MS)).toEqual({ side: -1, offsetM: BASE, clear: true });
+  });
+});
+
+describe('createSideCamSight: one tile read a frame', () => {
+  /** A sight driven at 60 fps riding `mps`, counting the tile reads each update() takes. */
+  function counted(world: World, opts: Partial<SightRequest> = {}) {
+    const sight = createSideCamSight();
+    let t = 0;
+    let dist = 0;
+    let calls = 0;
+    const perUpdate: number[] = [];
+    const spots: Array<{ side: 1 | -1; x: number; at: number; frame: number }> = [];
+    const step = (mps: number, over: Partial<SightRequest> = {}) => {
+      calls = 0;
+      const frame = perUpdate.length;
+      const req: SightRequest = {
+        nowMs: t,
+        dt: 1 / 60,
+        distanceM: dist,
+        side: 1,
+        baseM: BASE,
+        upM: UP,
+        allowSwitch: true,
+        topAt: (side, x, ahead) => {
+          calls++;
+          const at = req.distanceM + ahead;
+          spots.push({ side, x, at, frame });
+          return side === 1 ? world.right(x, at) : world.left(x, at);
+        },
+        ...opts,
+        ...over,
+      };
+      const p = sight.update(req);
+      perUpdate.push(calls);
+      t += 1000 / 60;
+      dist += mps / 60;
+      return p;
+    };
+    return { sight, step, perUpdate, spots, dist: () => dist };
+  }
+
+  it('a refresh that needs ten reads takes ten frames, never two reads in one', () => {
+    // Its own side closed (4 reads), the far side open ahead (3) and beside the rider (3).
+    const c = counted({ right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) });
+    const placed = [];
+    for (let f = 0; f < 10; f++) placed.push(c.step(8));
+    expect(c.perUpdate).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+    // Held on its side at full offset while its spots and the far side's are
+    // read (closed from the fourth read on), then the cut on the tenth frame.
+    for (const p of placed.slice(0, 9)) expect(p).toMatchObject({ side: 1, offsetM: BASE });
+    expect(placed.slice(3, 9).map((p) => p.clear)).toEqual([false, false, false, false, false, false]);
+    expect(placed[9]).toEqual({ side: -1, offsetM: BASE, clear: true });
+    expect(c.sight.cuts()).toBe(1);
+    expect(c.sight.debug().pending).toBe(false);
+  });
+
+  it('riding past walls, hedges and open ground for 30 s: at most one read in any frame', () => {
+    const slope = profile(LUGANO.d193.cam);
+    const bank = profile(LUGANO.d1888.cam);
+    const c = counted({
+      right: (x, at) => (at % 60 < 15 ? slope(x) : at % 60 < 30 ? bank(x) : at % 60 < 40 ? (x >= 4 ? 26 : 0) : 0),
+      left: (x, at) => (at % 45 < 20 ? profile(LUGANO.d202.other)(x) : 0),
+    }, { leadM: 5.6 });
+    for (let f = 0; f < 30 * 60; f++) c.step(8);
+    expect(Math.max(...c.perUpdate)).toBe(1);
+    // Busy: it read in more than one frame in six, and crossed the road.
+    expect(c.perUpdate.filter((n) => n > 0).length).toBeGreaterThan(300);
+    expect(c.sight.cuts()).toBeGreaterThan(1);
+  });
+
+  it("a refresh's spots stay where it started, however far the rider rides meanwhile", () => {
+    // A 2.5 m hedge 4.5 m out across 20 cm of road, right where the refresh's
+    // lead puts its spots (5.6 m on); the rider rides 13 cm a frame.
+    const hedge = (x: number, at: number) => (at > 5.5 && at < 5.7 && Math.abs(x - 4.5) < 0.01 ? 2.5 : 0);
+    const c = counted({ right: hedge, left: flat }, { leadM: 5.6, allowSwitch: false });
+    let p = c.step(8);
+    for (let f = 0; f < 30; f++) p = c.step(8);
+    const first = c.spots.filter((s) => s.frame < 4);
+    expect(first.map((s) => s.x)).toEqual([9, 6.75, 4.5, 3.5]);
+    for (const s of first) expect(s.at).toBeCloseTo(5.6, 9);
+    // The hedge hides the bars from 9 m and 6.75 m and stands under 4.5 m: the road edge.
+    expect(p.offsetM).toBeCloseTo(SIGHT_MIN_OFFSET_M, 2);
+  });
+
+  it('the spots beside the rider for a cut are where it rides when they are read', () => {
+    const c = counted({ right: profile(LUGANO.d2032.cam), left: flat }, { leadM: 5.6 });
+    for (let f = 0; f < 12; f++) c.step(8);
+    const beside = c.spots.filter((s) => s.side === -1 && s.at < 5);
+    expect(beside.map((s) => s.x)).toEqual([9, 6.75, 4.5]);
+    // First read on frame 7, 0.93 m on; all three there.
+    expect(beside[0].frame).toBe(7);
+    for (const s of beside) expect(s.at).toBeCloseTo((7 * 8) / 60, 9);
+  });
+});
+
+describe('createSideCamSight: the first read, and crossing turned off', () => {
+  it('the first read is a snap, not a dolly in', () => {
+    // A slope from 6 m (Lugano 193 m): three reads say 4.5 m.
+    const r = rig({ right: profile(LUGANO.d193.cam), left: flat }, { allowSwitch: false });
+    const p = r.run(34);
+    expect(r.reads()).toBe(3);
+    expect(p.offsetM).toBeCloseTo(4.5, 9);
+  });
+
+  it('crossing turned off while the far side is read (the painted road drawn): no cut', () => {
+    const world: World = { right: profile(LUGANO.d2032.cam), left: profile(LUGANO.d2032.other) };
+    const r = rig(world);
+    // Five frames: its side read closed, the far side being read.
+    r.run(4 * (1000 / 60) - 1);
+    expect(r.sight.debug().pending).toBe(true);
+    const sides = [];
+    for (let k = 0; k < 20; k++) sides.push(r.run(0, 8, { allowSwitch: false }).side);
+    expect(sides.every((v) => v === 1)).toBe(true);
+    expect(r.sight.cuts()).toBe(0);
+  });
+});
+
+describe('createSideCamSight: starting over', () => {
+  it('the pose moving to a closed side re-reads at once, not at the next refresh', () => {
+    const world: World = { right: flat, left: profile(LUGANO.d2032.cam) };
+    const r = rig(world, { allowSwitch: false });
+    // Standing still: refreshes at 0, 400, 800, 1200 ms; this ends just after the last.
+    r.run(1220, 0);
+    expect(r.run(0, 0).offsetM).toBe(BASE);
+    // The left is closed: the road edge within 100 ms (four reads and the snap).
+    expect(r.run(100, 0, { side: -1 }).offsetM).toBeCloseTo(SIGHT_MIN_OFFSET_M, 6);
+  });
+
+  it('re-reads at once when the pose offset changes (the painted road pushes it out on a bend)', () => {
+    const r = rig({ right: flat, left: flat });
+    r.run(100, 0);
+    const before = r.reads();
+    // Standing still, 100 ms after the last refresh: only the offset change makes one due.
+    r.run(17, 0, { baseM: 11 });
+    expect(r.reads()).toBeGreaterThan(before);
+  });
+
+  it("the pose moving sides starts over on the new side's reads, at full offset at once", () => {
+    const r = rig({ right: profile(LUGANO.d193.cam), left: flat }, { allowSwitch: false });
+    expect(r.run(1500).offsetM).toBeCloseTo(4.5, 2);
+    // Four frames: three reads on the open side, the snap to them.
+    const p = r.run(60, 8, { side: -1 });
+    expect(p.side).toBe(-1);
+    expect(p.offsetM).toBeCloseTo(BASE, 6);
+  });
+
+  it('reset forgets the reads: open ground after it is full offset at once', () => {
+    const world: World = { right: profile(LUGANO.d193.cam), left: profile(LUGANO.d193.other) };
+    const r = rig(world, { allowSwitch: false });
+    expect(r.run(1500).offsetM).toBeCloseTo(4.5, 2);
+    r.sight.reset();
+    world.right = flat;
+    expect(r.run(60).offsetM).toBeCloseTo(BASE, 6);
+  });
+
+  it('reset forgets the hold after a cut: a moved-in camera crosses to an open side again', () => {
+    const world: World = { right: profile(LUGANO.d2032.cam), left: flat };
+    const r = rig(world);
+    expect(r.run(REFRESH_MS).side).toBe(-1);
+    r.sight.reset();
+    // After the reset the pose's side (right) needs moving in to half its offset; the left is open.
+    world.right = profile(LUGANO.d193.cam);
+    expect(r.run(REFRESH_MS).side).toBe(-1);
+    expect(r.sight.cuts()).toBe(2);
+  });
+
+  it('a camera height that is not a number reads nothing as clear', () => {
+    expect(clearSightOffset(flat, BASE, Number.NaN)).toBeUndefined();
   });
 });

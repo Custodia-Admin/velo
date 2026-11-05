@@ -213,7 +213,8 @@ export function CesiumWorldView({
   /** Last side the side-tracking camera used (+1 right / -1 left) — hysteresis. */
   const sideTrackSideRef = useRef<1 | -1>(1);
   /** Keeps the side / orbit camera out of the mesh and in sight of the rider (lib/sideCamSight). */
-  const sideCamSightRef = useRef(createSideCamSight());
+  const [sideCamSight] = useState(createSideCamSight);
+  const sideCamSightRef = useRef(sideCamSight);
   /** Cuts across the road seen so far (a cut drops the lift). */
   const sideCamCutsRef = useRef(0);
   // The old single-colour polyline is replaced by gradient segments + markers.

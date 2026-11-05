@@ -62,6 +62,14 @@ export const SIGHT_RELEASE_TAU_S = 1;
 export const SIGHT_SWITCH_CLOSE = 0.5;
 /** After crossing the road the camera stays on its new side this long (ms) unless that side closes completely. */
 export const SIGHT_SWITCH_HOLD_MS = 8000;
+/**
+ * Tile reads a refresh may take in one frame. Each read is a CPU ray pick that
+ * copies the hit tiles' vertex and index buffers back from the GPU
+ * (Cesium3DTileset.getHeight, about 7 ms each on an iGPU). Taken all in one
+ * frame, a refresh's 3-12 reads made 2-6 times as many frames over 50 ms on
+ * the Lugano shore (PR #47 review), so a refresh is spread over frames.
+ */
+export const SIGHT_READS_PER_FRAME = 1;
 
 const EPS = 1e-6;
 
@@ -186,11 +194,43 @@ interface SightRead {
 }
 
 /**
+ * A refresh in progress. Its spots stay where they were when it started (the
+ * route distance, the lead, the pose's offset and height), however far the
+ * rider rides while the reads are spread over frames.
+ */
+interface SightJob {
+  /** Route distance the refresh started at (m). */
+  at: number;
+  lead: number;
+  side: 1 | -1;
+  baseM: number;
+  upM: number;
+  minM: number;
+  allowSwitch: boolean;
+  /** Spots read so far, keyed by side, ahead / beside and offset. */
+  tops: Map<string, number | undefined>;
+  /** Route distance the other side was first read beside the rider at (m). */
+  besideAt: number | undefined;
+  /** The camera's own side has been read (and its read put in the history). */
+  hereDone: boolean;
+  here: number | undefined;
+  /** The other side is being read for a cut across the road. */
+  cross: boolean;
+}
+
+/** Thrown by a refresh's reader once this frame's reads are spent (caught in update). */
+const READS_SPENT = Symbol('sight reads spent');
+
+/**
  * Per-view state: refresh throttle, eased offset, the side it crossed to.
  * Each read stands for the stretch of road from where it was taken to the
  * next read; the camera stands at the nearest offset asked for over the
  * stretch from where it is now up to the lead, so a wall read ahead holds it
  * in until it has ridden past.
+ *
+ * A refresh takes 3 reads on open ground and up to 12 when it has to move in
+ * and look across the road; it takes at most {@link SIGHT_READS_PER_FRAME} of
+ * them per frame and finishes over the next frames.
  */
 export function createSideCamSight() {
   let lastMs = -Infinity;
@@ -205,6 +245,80 @@ export function createSideCamSight() {
   let switchedAt = -Infinity;
   let switches = 0;
   let reads = 0;
+  let job: SightJob | null = null;
+
+  /**
+   * Carry the refresh on with this frame's reads. True once it is done;
+   * false when the reads ran out first (it goes on next frame). `cut` is
+   * set when it crossed the road.
+   */
+  function work(j: SightJob, req: SightRequest): { done: boolean; cut: boolean } {
+    let budget = SIGHT_READS_PER_FRAME;
+    // Spots at the lead stay where the refresh started them; the ones beside
+    // the rider (for a cut) are where the rider was when they were first read.
+    const read = (s: 1 | -1, beside: boolean) =>
+      clearSightOffset(
+        (x) => {
+          const key = `${s} ${beside ? 'beside' : 'lead'} ${x}`;
+          if (j.tops.has(key)) return j.tops.get(key);
+          if (budget <= 0) throw READS_SPENT;
+          budget--;
+          reads++;
+          if (beside) j.besideAt ??= req.distanceM;
+          const at = beside ? (j.besideAt ?? req.distanceM) : j.at + j.lead;
+          const top = req.topAt(s, x, at - req.distanceM);
+          j.tops.set(key, top);
+          return top;
+        },
+        j.baseM,
+        j.upM,
+        j.minM,
+      );
+    try {
+      const full = j.baseM - EPS;
+      if (!j.hereDone) {
+        j.here = read(j.side, false);
+        j.hereDone = true;
+        clear = j.here !== undefined;
+        // Nothing clear: stand at the closest spot allowed (the road edge;
+        // walls and slopes rise away from the road), the lift does the rest.
+        const spots = sightSpots(j.baseM, j.minM);
+        const closest = spots.length ? spots[spots.length - 1] : j.baseM;
+        history.push({ at: j.at + j.lead, ms: req.nowMs, frac: (j.here ?? closest) / j.baseM });
+        // Crossing the road is a cut: do it when this side is closed, or when
+        // the camera had to move in close and the other side is wide open
+        // (on the Lugano shore that gave 19 cuts in 300 s, against 39 when any
+        // move-in crossed and 13 when only a closed side did, with twice the
+        // time spent close in).
+        const close = SIGHT_SWITCH_CLOSE * j.baseM + EPS;
+        const held = req.nowMs - switchedAt < SIGHT_SWITCH_HOLD_MS;
+        j.cross = j.allowSwitch && (j.here === undefined || (j.here <= close && !held));
+      }
+      if (!j.cross) return { done: true, cut: false };
+      const other = (j.side === 1 ? -1 : 1) as 1 | -1;
+      const there = read(other, false);
+      // The cut puts the camera across the road now, beside the rider,
+      // where the other side was never read: it must be open there too
+      // (Lugano 479 m: open ahead, a 3.5 m hedge beside, 4 flat frames).
+      const beside = there !== undefined && (j.here === undefined || there >= full) ? read(other, true) : undefined;
+      if (there === undefined || beside === undefined || (j.here !== undefined && beside < full)) {
+        return { done: true, cut: false };
+      }
+      side = other;
+      switchedAt = req.nowMs;
+      switches++;
+      clear = true;
+      history = [
+        { at: j.besideAt ?? j.at, ms: req.nowMs, frac: beside / j.baseM },
+        { at: j.at + j.lead, ms: req.nowMs, frac: there / j.baseM },
+      ];
+      return { done: true, cut: true };
+    } catch (e) {
+      if (e === READS_SPENT) return { done: false, cut: false };
+      throw e;
+    }
+  }
+
   return {
     update(req: SightRequest): SightPlacement {
       const minM = req.minM ?? SIGHT_MIN_OFFSET_M;
@@ -214,79 +328,63 @@ export function createSideCamSight() {
       // road's corridor rule), the pose decides the side.
       if (side === null || !req.allowSwitch || poseSideMoved) {
         if (side !== null && side !== req.side) {
+          // A new side: its spots were never read. Read them now and stand at
+          // the pose's offset until they are in.
           history = [];
           frac = null;
+          job = null;
+          lastMs = -Infinity;
         }
         side = req.side;
       }
-      let cut = false;
+      // No crossing any more (the painted road is drawn now): the far side's reads are moot.
+      if (job !== null && job.cross && !req.allowSwitch) job = null;
       const due =
         req.nowMs - lastMs >= SIGHT_SAMPLE_MS ||
         !(Math.abs(req.distanceM - lastDist) < SIGHT_SAMPLE_MOVE_M) ||
         !(Math.abs(req.baseM - lastBase) < SIGHT_BASE_MOVE_M);
-      if (due) {
+      if (job === null && due) {
         lastMs = req.nowMs;
         lastDist = req.distanceM;
         lastBase = req.baseM;
-        const lead = Math.max(0, req.leadM ?? 0);
-        const read = (s: 1 | -1, ahead: number) =>
-          clearSightOffset(
-            (x) => {
-              reads++;
-              return req.topAt(s, x, ahead);
-            },
-            req.baseM,
-            req.upM,
-            minM,
-          );
-        let here = read(side, lead);
-        let besideFrac: number | undefined;
-        // Crossing the road is a cut: do it when this side is closed, or when
-        // the camera had to move in close and the other side is wide open
-        // (on the Lugano shore that gave 19 cuts in 300 s, against 39 when any
-        // move-in crossed and 13 when only a closed side did, with twice the
-        // time spent close in).
-        const full = req.baseM - EPS;
-        const close = SIGHT_SWITCH_CLOSE * req.baseM + EPS;
-        const held = req.nowMs - switchedAt < SIGHT_SWITCH_HOLD_MS;
-        if (req.allowSwitch && (here === undefined || (here <= close && !held))) {
-          const other = (side === 1 ? -1 : 1) as 1 | -1;
-          const there = read(other, lead);
-          // The cut puts the camera across the road now, beside the rider,
-          // where the other side was never read: it must be open there too
-          // (Lugano 479 m: open ahead, a 3.5 m hedge beside, 4 flat frames).
-          const beside = there !== undefined && (here === undefined || there >= full) ? read(other, 0) : undefined;
-          if (beside !== undefined && (here === undefined || beside >= full)) {
-            side = other;
-            here = there;
-            besideFrac = beside / req.baseM;
-            switchedAt = req.nowMs;
-            switches++;
-            history = [];
-            cut = true;
-          }
-        }
-        clear = here !== undefined;
-        // Nothing clear: stand at the closest spot allowed (the road edge;
-        // walls and slopes rise away from the road), the lift does the rest.
-        const spots = sightSpots(req.baseM, minM);
-        const closest = spots.length ? spots[spots.length - 1] : req.baseM;
-        if (besideFrac !== undefined) history.push({ at: req.distanceM, ms: req.nowMs, frac: besideFrac });
-        history.push({ at: req.distanceM + lead, ms: req.nowMs, frac: (here ?? closest) / req.baseM });
+        job = {
+          at: req.distanceM,
+          lead: Math.max(0, req.leadM ?? 0),
+          side,
+          baseM: req.baseM,
+          upM: req.upM,
+          minM,
+          allowSwitch: req.allowSwitch,
+          tops: new Map(),
+          besideAt: undefined,
+          hereDone: false,
+          here: undefined,
+          cross: false,
+        };
+      }
+      let cut = false;
+      if (job !== null) {
+        const r = work(job, req);
+        cut = r.cut;
+        if (r.done) job = null;
       }
       // A read stands for the stretch from where it was taken to the next
       // one: drop it once the camera has passed the next read too.
       history = history.filter((r) => req.nowMs - r.ms <= SIGHT_READ_TTL_MS);
       while (history.length > 1 && history[1].at <= req.distanceM) history.shift();
       if (history.length) targetFrac = Math.min(...history.map((r) => r.frac));
+      // While the other side is being read for a cut the camera holds still:
+      // a dolly in cut short by a cut a few frames later only shakes the shot.
+      const crossing = job !== null && job.cross;
       const dt = Math.max(0, Math.min(req.dt, 0.25));
-      if (frac === null || cut) {
+      if (cut || (frac === null && history.length && !crossing)) {
         frac = targetFrac;
-      } else {
+      } else if (frac !== null && !crossing) {
         const tau = targetFrac < frac ? SIGHT_PULL_TAU_S : SIGHT_RELEASE_TAU_S;
         frac += (targetFrac - frac) * (1 - Math.exp(-dt / tau));
       }
-      return { side, offsetM: frac * req.baseM, clear };
+      // Until the first read is in, the pose's own offset.
+      return { side, offsetM: (frac ?? 1) * req.baseM, clear };
     },
     reset() {
       lastMs = -Infinity;
@@ -299,6 +397,7 @@ export function createSideCamSight() {
       frac = null;
       clear = true;
       switchedAt = -Infinity;
+      job = null;
     },
     /** Times the camera has cut across the road: the view drops the old side's lift on a new one. */
     cuts(): number {
@@ -306,7 +405,7 @@ export function createSideCamSight() {
     },
     /** Read-only numbers for probes (__veloRideDebug().sideCam). */
     debug() {
-      return { side, frac, targetFrac, clear, switches, reads, ahead: history.length };
+      return { side, frac, targetFrac, clear, switches, reads, ahead: history.length, pending: job !== null };
     },
   };
 }

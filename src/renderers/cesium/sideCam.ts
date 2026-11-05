@@ -11,7 +11,7 @@ import type { Scene } from 'cesium';
 
 import type { CameraMode, CameraPose } from '@/lib/cesiumCameras';
 import { CORRIDOR_CLEARANCE_M, CORRIDOR_HALF_WIDTH_M, sideTrackSideFromPose } from '@/lib/cesiumCameras';
-import { drawnGroundHeight, meshTopHeight, sceneEle, sightReadable } from '@/lib/cesiumUtils';
+import { drawnTopHeight, meshTopHeight, sceneEle, sightReadable } from '@/lib/cesiumUtils';
 import { createSideCamSight, poseLookingAtRider, SIGHT_MIN_OFFSET_M, sightLeadM } from '@/lib/sideCamSight';
 
 export type SideCamSight = ReturnType<typeof createSideCamSight>;
@@ -76,7 +76,7 @@ export function placeSideCam(i: SideCamInput): CameraPose {
       const k = side === poseSide ? offsetM : -offsetM;
       const lon = i.lon + (fx * aheadM + ux * k) / mLon;
       const lat = i.lat + (fy * aheadM + uy * k) / M_PER_DEG_LAT;
-      const top = drawnGroundHeight(i.scene, lon, lat, meshTopHeight(i.scene, lon, lat), expect);
+      const top = drawnTopHeight(i.scene, lon, lat, meshTopHeight(i.scene, lon, lat), expect);
       return top === undefined ? undefined : top - i.groundEle;
     },
   });

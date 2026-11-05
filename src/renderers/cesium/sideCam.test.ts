@@ -7,7 +7,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Cesium from 'cesium';
 
-import { computeCameraPose, SIDE_TRACK_OFFSET_M, SIDE_TRACK_UP_M, type CameraMode } from '@/lib/cesiumCameras';
+import {
+  computeCameraPose,
+  SIDE_TRACK_OFFSET_M,
+  SIDE_TRACK_UP_M,
+  sideTrackSideFromPose,
+  type CameraMode,
+} from '@/lib/cesiumCameras';
 import { getPhotorealTileset, meshTopHeight, setIonToken, sightReadable } from '@/lib/cesiumUtils';
 import { createSideCamSight, SIGHT_MIN_OFFSET_M } from '@/lib/sideCamSight';
 import { placeSideCam, type SideCamInput } from '@/renderers/cesium/sideCam';
@@ -28,7 +34,10 @@ function enu(c: Cesium.Cartographic) {
 
 type Field = (e: number, n: number) => number | undefined;
 
-async function world(mesh: Field, opts: { globe?: Field; globeShown?: boolean; webgl2?: boolean } = {}) {
+async function world(
+  mesh: Field,
+  opts: { globe?: Field; globeShown?: boolean; webgl2?: boolean; others?: unknown[] } = {},
+) {
   setIonToken('eyJ_test');
   const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
   Object.defineProperty(fake, 'show', { value: true, writable: true });
@@ -43,7 +52,11 @@ async function world(mesh: Field, opts: { globe?: Field; globeShown?: boolean; w
   const globeField = opts.globe ?? (() => -2);
   const scene = {
     context: { webgl2: opts.webgl2 ?? true },
-    primitives: { length: 1, get: () => tileset },
+    // Other primitives the scene draws (the rider, the painted road) come first.
+    primitives: {
+      length: (opts.others?.length ?? 0) + 1,
+      get: (i: number) => (i < (opts.others?.length ?? 0) ? opts.others![i] : tileset),
+    },
     globe: {
       show: opts.globeShown ?? false,
       translucency: { enabled: false },
@@ -227,5 +240,153 @@ describe('meshTopHeight / sightReadable', () => {
     expect(sightReadable(scene)).toBe(false);
     expect(meshTopHeight(scene, LON, LAT)).toBeUndefined();
     expect(getHeight).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Frames of the view's side feedback, as CesiumWorldView runs it: the placed
+ * pose's side becomes the corridor's preferred side, which places the next
+ * frame's pose, which goes through placeSideCam. The rider stands at 100 m.
+ * Returns the camera's offset to the right of the rider's heading per frame.
+ */
+function rideFrames(
+  scene: Cesium.Scene,
+  sight: ReturnType<typeof createSideCamSight>,
+  startSide: 1 | -1,
+  frames: number,
+  heading = 0,
+) {
+  let preferred = startSide;
+  const right: number[] = [];
+  const rider = { ...RIDER, heading };
+  for (let f = 0; f < frames; f++) {
+    const corridor = { points: [], riderDistanceM: 100, preferredSide: preferred };
+    const pose = computeCameraPose('sideTracking', rider, 0, undefined, corridor);
+    const placed = placeSideCam(input(scene, sight, { pose, heading, nowMs: 1000 + (f * 1000) / 60 }));
+    preferred = sideTrackSideFromPose(placed, heading);
+    right.push(placed.offsetENU.x * Math.cos(heading) - placed.offsetENU.y * Math.sin(heading));
+  }
+  return right;
+}
+
+/** Number of times a per-frame series changes sign. */
+const signFlips = (xs: number[]) => xs.slice(1).filter((x, k) => Math.sign(x) !== Math.sign(xs[k])).length;
+
+describe('placeSideCam in the view loop (the placed side is the next pose\'s side)', () => {
+  it('a house front on the right: one cut to the left, and it stays there frame after frame', async () => {
+    const { scene } = await world(houseEast);
+    const right = rideFrames(scene, createSideCamSight(), 1, 240);
+    const cut = right.findIndex((x) => x < 0);
+    expect(cut).toBeGreaterThan(0);
+    expect(cut).toBeLessThan(15);
+    for (const x of right.slice(0, cut)) expect(x).toBeCloseTo(SIDE_TRACK_OFFSET_M, 6);
+    for (const x of right.slice(cut)) expect(x).toBeCloseTo(-SIDE_TRACK_OFFSET_M, 6);
+    expect(signFlips(right)).toBe(1);
+  });
+
+  it('a pose starting on the left with a house front there: one cut to the right, kept', async () => {
+    const { scene } = await world((e) => (e < -2.5 ? 12 : 0));
+    const sight = createSideCamSight();
+    const right = rideFrames(scene, sight, -1, 240);
+    expect(right[0]).toBeCloseTo(-SIDE_TRACK_OFFSET_M, 6);
+    const cut = right.findIndex((x) => x > 0);
+    expect(cut).toBeGreaterThan(0);
+    for (const x of right.slice(cut)) expect(x).toBeCloseTo(SIDE_TRACK_OFFSET_M, 6);
+    expect(signFlips(right)).toBe(1);
+    expect(sight.cuts()).toBe(1);
+  });
+
+  it('a pose starting on the left on open ground stays on the left', async () => {
+    const { scene } = await world(() => 0);
+    const right = rideFrames(scene, createSideCamSight(), -1, 120);
+    for (const x of right) expect(x).toBeCloseTo(-SIDE_TRACK_OFFSET_M, 6);
+  });
+
+  it('riding east or west, the cut keeps the camera across the road from the house', async () => {
+    // Riding east the right side is south; riding west it is north.
+    const east = await world((e, n) => (n < -2.5 ? 12 : 0));
+    const r1 = rideFrames(east.scene, createSideCamSight(), 1, 120, Math.PI / 2);
+    expect(r1[r1.length - 1]).toBeCloseTo(-SIDE_TRACK_OFFSET_M, 6);
+    expect(signFlips(r1)).toBe(1);
+    const west = await world((e, n) => (n > 2.5 ? 12 : 0));
+    const r2 = rideFrames(west.scene, createSideCamSight(), 1, 120, -Math.PI / 2);
+    expect(r2[r2.length - 1]).toBeCloseTo(-SIDE_TRACK_OFFSET_M, 6);
+    expect(signFlips(r2)).toBe(1);
+  });
+});
+
+describe('placeSideCam: where it reads, how high it stands', () => {
+  it('riding east or west, the spots are read where the rider will be (ahead along the heading)', async () => {
+    // Riding east at 8 m/s: a house on the right (south) from 4 m ahead; reads 5.6 m on.
+    const east = await world((e, n) => (n < -2.5 && e > 4 ? 12 : 0));
+    const pe = settle(input(east.scene, createSideCamSight(), {
+      heading: Math.PI / 2,
+      pose: computeCameraPose('sideTracking', { ...RIDER, heading: Math.PI / 2 }, 0),
+    }));
+    expect(pe.offsetENU.y).toBeCloseTo(SIDE_TRACK_OFFSET_M, 6); // crossed to the north
+    const southReads = east.getHeight.mock.calls.map(([c]) => enu(c)).filter((c) => c.n < 0);
+    expect(southReads.length).toBeGreaterThan(0);
+    for (const c of southReads) expect(c.e).toBeCloseTo(5.6, 1);
+    // Riding west: a house on the right (north) from 4 m ahead (west).
+    const west = await world((e, n) => (n > 2.5 && e < -4 ? 12 : 0));
+    const pw = settle(input(west.scene, createSideCamSight(), {
+      heading: -Math.PI / 2,
+      pose: computeCameraPose('sideTracking', { ...RIDER, heading: -Math.PI / 2 }, 0),
+    }));
+    expect(pw.offsetENU.y).toBeCloseTo(-SIDE_TRACK_OFFSET_M, 6); // crossed to the south
+    const northReads = west.getHeight.mock.calls.map(([c]) => enu(c)).filter((c) => c.n > 0);
+    for (const c of northReads) expect(c.e).toBeCloseTo(-5.6, 1);
+  });
+
+  it('a 2.2 m garden wall under the camera spot: it moves in (the camera is 3.2 m up, not higher)', async () => {
+    // At 3.2 m the camera keeps 1.2 m of air only over tops up to 2.0 m.
+    const { scene } = await world((e) => (e > 8 ? 2.2 : 0));
+    const p = settle(input(scene, createSideCamSight()));
+    expect(p.offsetENU.x).toBeCloseTo(0.75 * SIDE_TRACK_OFFSET_M, 2);
+    expect(p.offsetENU.z).toBeCloseTo(SIDE_TRACK_UP_M, 6);
+  });
+
+  it('a hidden globe is not in the way where the mesh read misses', async () => {
+    // No mesh tile 5 m out and beyond (a hole, or not loaded); the hidden
+    // globe there is 9 m up (World Terrain over the shore).
+    const { scene } = await world((e) => (e > 5 ? undefined : 0), { globeShown: false, globe: () => 9 });
+    const p = settle(input(scene, createSideCamSight()));
+    expect(p.offsetENU.x).toBeCloseTo(SIDE_TRACK_OFFSET_M, 6);
+    // Shown, the same globe is: across the road (where it is the same 9 m) the camera can't go either.
+    const shown = await world((e) => (e > 5 ? undefined : 0), { globeShown: true, globe: (e) => (e > 5 ? 9 : 0) });
+    const q = settle(input(shown.scene, createSideCamSight()));
+    expect(q.offsetENU.x).toBeCloseTo(-SIDE_TRACK_OFFSET_M, 6);
+  });
+
+  it('one tile read a frame, riding past a house front', async () => {
+    const { scene, getHeight } = await world((e, n) => (n >= 20 && n <= 32 && e > 5 ? 12 : e < -3 ? 12 : 0));
+    const sight = createSideCamSight();
+    const perFrame: number[] = [];
+    for (let f = 0; f <= 60 * 8; f++) {
+      const n = (8 * f) / 60;
+      const before = getHeight.mock.calls.length;
+      placeSideCam(input(scene, sight, { lat: LAT + n / M_LAT, distanceM: n, nowMs: f * (1000 / 60), speed: 8 }));
+      perFrame.push(getHeight.mock.calls.length - before);
+    }
+    expect(Math.max(...perFrame)).toBe(1);
+    expect(perFrame.reduce((a, b) => a + b, 0)).toBeGreaterThan(40);
+  });
+});
+
+describe('meshTopHeight: only the photoreal mesh', () => {
+  it('skips the other primitives the scene draws (no getHeight on them)', async () => {
+    const rider = { show: true };
+    const osm = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
+    Object.defineProperty(osm, 'show', { value: true, writable: true });
+    const osmHeight = vi.fn(() => GROUND + 40);
+    Object.defineProperty(osm, 'getHeight', { value: osmHeight });
+    const { scene, getHeight } = await world(() => 7.5, { others: [rider, osm] });
+    expect(sightReadable(scene)).toBe(true);
+    expect(meshTopHeight(scene, LON, LAT)).toBeCloseTo(GROUND + 7.5, 6);
+    expect(getHeight).toHaveBeenCalledTimes(1);
+    expect(osmHeight).not.toHaveBeenCalled();
+    // Placed through it each frame: 7.5 m tops on both sides, the road edge.
+    const p = settle(input(scene, createSideCamSight()));
+    expect(p.offsetENU.x).toBeCloseTo(SIGHT_MIN_OFFSET_M, 2);
   });
 });

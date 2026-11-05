@@ -615,6 +615,31 @@ export function drawnGroundHeight(
   return terrain !== undefined && globeDrawnOpaque(globe) ? Math.max(sampled, terrain) : sampled;
 }
 
+/**
+ * Top of what is drawn at lon/lat for the side cameras' sight: the mesh top
+ * (`meshTop`, {@link meshTopHeight}) and the globe where it draws over it, as
+ * {@link drawnGroundHeight}. A hidden or see-through globe never stands in for
+ * a mesh read that missed: it is not drawn there (on the Lugano shore it sits
+ * up to 26 m over the street, so the camera moved in from a wall that isn't).
+ */
+export function drawnTopHeight(
+  scene: Cesium.Scene,
+  lon: number,
+  lat: number,
+  meshTop: number | undefined,
+  expectEle?: number,
+): number | undefined {
+  const globe = scene.globe as Cesium.Globe | undefined;
+  if (globe && !globeDrawnOpaque(globe)) {
+    const plausible =
+      meshTop !== undefined &&
+      Number.isFinite(meshTop) &&
+      (expectEle === undefined || Math.abs(meshTop - expectEle) <= MAX_COARSE_TILE_ERROR_M);
+    return plausible ? meshTop : undefined;
+  }
+  return drawnGroundHeight(scene, lon, lat, meshTop, expectEle);
+}
+
 /** The globe draws its terrain as an opaque surface (not hidden, not see-through). */
 function globeDrawnOpaque(globe: Cesium.Globe): boolean {
   if ((globe as { show?: boolean }).show === false) return false;
