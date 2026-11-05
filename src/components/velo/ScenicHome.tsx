@@ -12,6 +12,7 @@ import { SCENIC_ROUTES, scenicRouteById, todaysScenicRoute, type ScenicRouteInfo
 import { useRideStore } from '@/stores/rideStore';
 import { destinationLabel, homeSections, type DestinationSection } from '@/lib/world/destinations';
 import { useShowStore } from '@/stores/showStore';
+import { continueLastShow } from '@/lib/show/continueShow';
 import { pickVideos } from '@/lib/show/pickVideos';
 import { retryRouteWeather, useRoutesWeather } from '@/hooks/useLiveWeather';
 import {
@@ -36,13 +37,22 @@ export function useRideScenic(): (info: ScenicRouteInfo, opts?: { show?: boolean
 }
 
 /**
- * Journey + show: pick the videos first (one picker), then ride with them
- * playing. Cancelling the picker stays on Home.
+ * Journey + show: carry on with last time's videos (the next episode,
+ * re-opened without a picker; Chrome may ask once to allow access again),
+ * or pick the videos first (one picker), then ride with them playing.
+ * Cancelling the picker stays on Home.
  */
 export function useRideWithShow(): (info: ScenicRouteInfo) => void {
   const ride = useRideScenic();
   return (info) => {
     void (async () => {
+      const result = await continueLastShow({ ask: true }).catch(() => null);
+      if (result?.ok) {
+        const { plan } = result;
+        useShowStore.getState().loadFiles(plan.files, { startKey: plan.startKey });
+        ride(info, { show: true });
+        return;
+      }
       let files: File[] = [];
       try {
         files = await pickVideos();

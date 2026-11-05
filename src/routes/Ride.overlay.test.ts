@@ -59,3 +59,18 @@ describe('Ride HUD keeps blur off the live canvas (PR #16)', () => {
     expect(rideSrc).toContain('bg-scrim/20 pointer-events-none');
   });
 });
+
+describe('the floating ride window goes with the ride (journey mode)', () => {
+  // Review of PR #36 @bbe04db, P5/P6 (source pins, as the review allows for
+  // Ride.tsx): leaving the window open after show mode, the finish or the
+  // ride view left an empty picture-in-picture window over the rider's show.
+  it('closes when show mode ends or the ride finishes', () => {
+    expect(rideSrc).toMatch(
+      /useEffect\(\(\) => \{\s*if \(!showActive \|\| rideState === 'finished'\) closeRidePip\(\);\s*\}, \[showActive, rideState\]\);/,
+    );
+  });
+
+  it('closes when the ride view unmounts (leaving the ride while it floats)', () => {
+    expect(rideSrc).toMatch(/useEffect\(\(\) => \(\) => closeRidePip\(\), \[\]\);/);
+  });
+});

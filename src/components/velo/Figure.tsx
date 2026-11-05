@@ -1,8 +1,10 @@
 /**
  * One ride figure: a big tabular value, an optional small unit, and an
  * uppercase label (ride band, show strip, finish summary).
- * `major` = text-3xl (text-2xl below sm); `minor` = text-2xl. In-ride figures
- * never go below text-2xl (UI-RULES §5).
+ * `major` = text-3xl (text-2xl below sm); `minor` = text-2xl; `large` =
+ * text-3xl at every width (the floating ride window, whose own width is
+ * below sm at its corner size). In-ride figures never go below text-2xl
+ * (UI-RULES §5).
  *
  * `unitAsLabelBelowSm`: on phones the unit replaces the label ("24.6" over
  * "KM/H" instead of "24.6 km/h" over "SPEED"), so the compact ride band's
@@ -15,7 +17,7 @@ export interface FigureProps {
   value: string;
   unit?: string;
   label: string;
-  size?: 'major' | 'minor';
+  size?: 'major' | 'minor' | 'large';
   /** Full spoken value, e.g. "Speed: 24.6 km/h" (tests and screen readers). */
   ariaLabel?: string;
   unitAsLabelBelowSm?: boolean;
@@ -27,7 +29,10 @@ export function Figure({ value, unit, label, size = 'major', ariaLabel, unitAsLa
   return (
     <div className={cn('flex flex-col', className)} role={ariaLabel ? 'group' : undefined} aria-label={ariaLabel}>
       <span
-        className={cn('num whitespace-nowrap font-bold', size === 'major' ? 'text-2xl sm:text-3xl' : 'text-2xl')}
+        className={cn(
+          'num whitespace-nowrap font-bold',
+          size === 'major' ? 'text-2xl sm:text-3xl' : size === 'large' ? 'text-3xl' : 'text-2xl',
+        )}
         aria-hidden={ariaLabel ? true : undefined}
       >
         {value}

@@ -10,6 +10,8 @@ import { RideHud } from '@/components/velo/RideHud';
 import { GestureLegend } from '@/components/ride/GestureLegend';
 import { ShowCorner, ShowPanel } from '@/components/velo/ShowPanel';
 import { ShowHud } from '@/components/velo/ShowHud';
+import { RideFloatingNotice, ShowSurface, useRidePipWindow } from '@/components/velo/ShowSurface';
+import { closeRidePip } from '@/lib/show/pip';
 import { retainShowForRide, useShowStore } from '@/stores/showStore';
 import { useIdle } from '@/hooks/useIdle';
 import { cn } from '@/lib/utils';
@@ -102,6 +104,17 @@ export function Ride() {
   const showSource = useShowStore((s) => s.source);
   const dimmed = useIdle(showActive && showSource !== 'none' && rideState === 'running');
   const dimClass = cn('transition-opacity duration-300', dimmed && 'opacity-20');
+
+  // ---- Journey mode: the ride floating over other tabs ----
+  // While the picture-in-picture window is open the world draws there (one
+  // WebGL context at a time) and the tab shows a notice. The window closes
+  // with show mode, at the finish, and when the ride view goes.
+  const floatingWindow = useRidePipWindow();
+  const floating = floatingWindow !== null;
+  useEffect(() => {
+    if (!showActive || rideState === 'finished') closeRidePip();
+  }, [showActive, rideState]);
+  useEffect(() => () => closeRidePip(), []);
 
   // Ref for the main ride canvas container — used by gesture detection.
   const rideCanvasRef = useRef<HTMLDivElement>(null);
@@ -242,7 +255,10 @@ export function Ride() {
       ref={rideCanvasRef}
       className="hud-flat ride-hud-v2 fixed inset-0 w-screen h-screen overflow-hidden bg-background"
     >
-      <RideView ionToken={token} onRendererReady={setWorldRenderer} />
+      {!floating && <RideView ionToken={token} onRendererReady={setWorldRenderer} />}
+      <ShowSurface ionToken={token} onRendererReady={setWorldRenderer} />
+      {/* With a video of the rider's own playing, the tab keeps the video panel. */}
+      {floating && showSource !== 'files' && <RideFloatingNotice />}
 
       {/* No-token banner — subtle nudge offering the photoreal upgrade.
           Invisible when a token is already installed; dismissible per-session

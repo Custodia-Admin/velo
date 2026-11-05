@@ -239,6 +239,7 @@ Two modes, because streaming services cannot be embedded in a PWA (DRM/iframe):
 Cinematic director: shot list (chase, side dolly, drone orbit at landmarks, front, POV), change every 20–40 s with eased blends, suspended while the rider steers or brakes, landmark triggers from manifest POIs.
 AVC:
 - Director tests: never two cuts within 15 s, no cut during steering input, orbit only within 300 m of a POI, deterministic with a seeded RNG.
+  - Tie-break as built (PR #36): "no cut during steering input" wins over the 300 m radius. An orbit that reaches 300 m while the rider steers or brakes is held, and left at the first legal cut after the input settles (2 s, `INPUT_SETTLE_S`; `director.ts` header, test "with steering, an orbit outlives the radius only while the input holds the shot"). A cut mid-steer would swing the camera while the rider is aiming the bike.
 - PiP: Playwright test opens the PiP window (headed Chrome in CI job `show-mode`), asserts ride loop keeps ticking and FIT export records while the main tab is backgrounded.
 - Local video: reopening the app resumes the last file without a picker (manual check on the laptop, recorded in the PR).
 - TV layout at 1920×1080 passes the design gate; everything readable at 2 m (type ≥ 28 px equivalent for figures).

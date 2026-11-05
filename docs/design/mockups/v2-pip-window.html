@@ -1,0 +1,89 @@
+<!doctype html>
+<!--
+  Velo v2 journey mode — the floating ride window (Document Picture-in-Picture).
+  Mockup only (P2.3 design gate). This page IS the window's document: v2-pip.html
+  frames it at the corner / third / half sizes over another tab.
+  The window scales its own type with its width (html font-size
+  clamp(16px, 1.25vw + 10px, 22px)): 16 px at a 480 px corner, 18 px at a 640 px
+  third, 22 px at a 960 px half. Figures stay text-3xl (30 px at the corner).
+  Below 640 px the next landmark moves to a pill at the top left so the bar is one row.
+  ?theme=night, ?landmark=0 (no named place ahead), ?state=paused.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo ride</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="v2-kit.css" />
+<script src="v2-data.js"></script>
+<script src="v2-kit.js"></script>
+<style>
+  html { font-size: clamp(16px, calc(1.25vw + 10px), 22px); }
+  body { overflow: hidden; }
+  .world { position: fixed; inset: 0; overflow: hidden; background: hsl(var(--scrim)); }
+  .world img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .top { position: fixed; top: var(--s-2); right: var(--s-2); display: flex; gap: var(--s-2); }
+  .sizes { display: inline-flex; gap: var(--s-1); padding: 0; }
+  .sizes .btn[aria-checked='true'] { background: hsl(var(--hud-foreground) / 0.12); }
+  .bar { position: fixed; left: var(--s-2); right: var(--s-2); bottom: var(--s-2); padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4);
+         display: flex; align-items: center; gap: var(--s-6); overflow: hidden; }
+  .bar .figs { display: flex; gap: var(--s-6); flex: none; }
+  /* figures stay text-3xl in the window, whatever its width (30 px at the corner size) */
+  .bar .fig .v { font-size: var(--text-3xl); line-height: var(--lh-3xl); }
+  .bar .fig .v small { line-height: 1; }
+  .next { display: flex; align-items: center; gap: var(--s-1-5); min-width: 0; flex: 1; }
+  .next span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar .pause { margin-left: auto; }
+  .next.pill { display: none; position: fixed; top: var(--s-2); left: var(--s-2); height: var(--s-10); padding: 0 var(--s-3); max-width: calc(100vw - 13.5rem); }
+  @media (max-width: 639px) {
+    .bar .next { display: none; }
+    .next.pill { display: flex; }
+  }
+  /* journey progress: a thin track along the bar's top edge */
+  .progress { position: absolute; left: 0; right: 0; top: 0; height: var(--s-1); background: hsl(var(--hud-foreground) / 0.12); }
+  .progress span { display: block; height: 100%; width: 42%; background: hsl(var(--primary)); }
+  .paused { position: fixed; inset: 0; background: hsl(var(--scrim) / 0.2); }
+</style>
+</head>
+<body>
+<div class="world" aria-hidden="true"><img src="../screenshots/v2/thumbs/show-drone.jpg" alt="" /></div>
+<div class="paused" hidden></div>
+
+<div class="hud next pill t-sm"><i data-icon="flag"></i><span>Rivotorto in 900 m</span></div>
+
+<div class="top">
+  <div class="hud sizes" role="radiogroup" aria-label="Window size">
+    <button class="btn icon-only" role="radio" aria-checked="true" aria-label="Corner">S</button>
+    <button class="btn icon-only" role="radio" aria-checked="false" aria-label="Third of the screen">M</button>
+    <button class="btn icon-only" role="radio" aria-checked="false" aria-label="Half the screen">L</button>
+  </div>
+  <button class="btn hud icon-only" aria-label="Back to the Velo tab"><i data-icon="picture-in-picture-2" class="lg"></i></button>
+</div>
+
+<section class="hud bar" aria-label="Ride numbers">
+  <div class="progress" aria-hidden="true"><span></span></div>
+  <div class="figs">
+    <div class="fig"><span class="v">18:05</span><span class="l">Time</span></div>
+    <div class="fig"><span class="v">6.1<small>km</small></span><span class="l">Distance</span></div>
+    <div class="fig"><span class="v">0.4<small>%</small></span><span class="l">Grade</span></div>
+  </div>
+  <div class="next t-sm"><i data-icon="flag"></i><span>Rivotorto in 900 m</span></div>
+  <button class="btn hud icon-only pause" aria-label="Pause ride"><i data-icon="pause" class="lg"></i></button>
+</section>
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get('landmark') === '0') document.querySelectorAll('.next').forEach((n) => n.remove());
+  if (q.get('state') === 'paused') {
+    document.querySelector('.paused').hidden = false;
+    document.addEventListener('DOMContentLoaded', () => {
+      const b = document.querySelector('[aria-label="Pause ride"]');
+      b.setAttribute('aria-label', 'Resume ride');
+    });
+  }
+  const size = q.get('size') || 'corner';
+  const at = { corner: 0, third: 1, half: 2 }[size];
+  document.querySelectorAll('.sizes .btn').forEach((b, i) => b.setAttribute('aria-checked', String(i === at)));
+</script>
+</body>
+</html>

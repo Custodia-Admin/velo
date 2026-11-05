@@ -160,6 +160,13 @@
     font-size: 175%;
   }
 
+  /* The floating ride window (journey mode, lib/show/pip.ts) scales its own
+     type with its width: 16 px at the 480 px corner size, 18 px at a 640 px
+     third, 22 px at a 960 px half (docs/design/mockups/v2-pip-window.html). */
+  html[data-surface='pip'] {
+    font-size: clamp(16px, calc(1.25vw + 10px), 22px);
+  }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01', 'kern' 1;

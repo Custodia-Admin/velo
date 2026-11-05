@@ -1137,6 +1137,7 @@ export function CesiumWorldView({
         const currentMode = effectiveCameraMode(
           useSettingsStore.getState().cameraMode,
           useShowStore.getState(),
+          { routeId: r.id, distance: state.distance, speed: state.speed, steer: activeSteer() },
           nowMs,
         );
         const riderPose = {

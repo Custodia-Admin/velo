@@ -195,6 +195,8 @@ export class CameraRig {
    * Advance one frame toward `target`. `groundAt(x, z)` is the terrain height
    * under a point; the camera never goes below it plus MIN_CLEARANCE_M.
    * `anchor` is the point the framing is relative to (the rider).
+   * `blended`: the caller blends between modes itself (the show director's
+   * eased cut), so a mode change starts no glide of its own.
    */
   update(
     mode: WorldCameraMode,
@@ -202,8 +204,9 @@ export class CameraRig {
     dt: number,
     groundAt?: (x: number, z: number) => number,
     anchor?: Vec3,
+    opts?: { blended?: boolean },
   ): void {
-    if (this.mode !== null && mode !== this.mode) this.transitionLeftS = TRANSITION_S;
+    if (this.mode !== null && mode !== this.mode && !opts?.blended) this.transitionLeftS = TRANSITION_S;
     this.mode = mode;
     const ox = anchor?.x ?? 0;
     const oy = anchor?.y ?? 0;

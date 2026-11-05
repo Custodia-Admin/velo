@@ -31,7 +31,9 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import type { Route } from '@/types';
 
 import { Buildings, StreetLights } from './Buildings';
+import { fillContainer } from './canvasSize';
 import { ChaseCamera } from './ChaseCamera';
+import { sceneLandmarks } from './directorCamera';
 import { Ghosts } from './Ghosts';
 import { Landmarks } from './Landmarks';
 import { buildLandcoverCanvas } from './landcoverTexture';
@@ -290,7 +292,7 @@ function DebugHook({
   return null;
 }
 
-/** Everything inside the canvas for one world. Exported for tests (the ground and start-hold wiring). */
+/** Everything inside the canvas for one world. Exported for tests: what the scene hands its parts (landmarks, the ground, the start hold). */
 export function WorldScene({
   sceneWorld,
   route,
@@ -371,6 +373,8 @@ export function WorldScene({
     },
     [maps],
   );
+  // Named places the route passes (manifest POIs), for the show director's landmark orbits.
+  const directorLandmarks = useMemo(() => sceneLandmarks(route, sceneWorld), [route, sceneWorld]);
   return (
     <>
       <DprController quality={quality} onDpr={onDpr} />
@@ -385,7 +389,7 @@ export function WorldScene({
       <Vegetation sceneWorld={sceneWorld} quality={quality} atmo={atmo} stats={stats} />
       <Weather quality={quality} atmo={atmo} lightState={lightState} />
       <Landmarks sceneWorld={sceneWorld} quality={quality} />
-      <ChaseCamera frame={frame} heightfield={sceneWorld.heightfield} ground={ground} />
+      <ChaseCamera frame={frame} heightfield={sceneWorld.heightfield} landmarks={directorLandmarks} ground={ground} />
       <Ghosts sceneWorld={sceneWorld} route={route} ground={ground} />
       <Suspense fallback={null}>
         <LiveRider frame={frame} castShadow={quality.shadows} />
@@ -576,6 +580,8 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
             shadows={quality.shadows}
             dpr={dpr}
             frameloop="always"
+            // In the floating ride window r3f leaves the canvas's CSS size at its buffer size (canvasSize.ts).
+            onCreated={({ gl }) => fillContainer(gl.domElement)}
           >
             <WorldScene
               key={tier}
