@@ -34,18 +34,14 @@ export interface ContextLossHandlers {
  * that loss is not the rider's problem.
  */
 export function watchContextLoss(canvas: EventTarget, on: ContextLossHandlers): () => void {
-  let live = true;
   const lost = (e: Event) => {
     e.preventDefault();
-    if (live) on.lost();
+    on.lost();
   };
-  const restored = () => {
-    if (live) on.restored();
-  };
+  const restored = () => on.restored();
   canvas.addEventListener('webglcontextlost', lost, false);
   canvas.addEventListener('webglcontextrestored', restored, false);
   return () => {
-    live = false;
     canvas.removeEventListener('webglcontextlost', lost, false);
     canvas.removeEventListener('webglcontextrestored', restored, false);
   };

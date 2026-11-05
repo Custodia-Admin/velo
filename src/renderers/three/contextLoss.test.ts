@@ -73,7 +73,7 @@ describe('watchContextLoss', () => {
     const on = { lost: vi.fn(), restored: vi.fn() };
     const stop = watchContextLoss(canvas, on);
     stop();
-    lose(canvas);
+    expect(lose(canvas).defaultPrevented).toBe(false);
     restore(canvas);
     expect(on.lost).not.toHaveBeenCalled();
     expect(on.restored).not.toHaveBeenCalled();
@@ -100,7 +100,8 @@ describe('ContextLossWatch (inside <Canvas>)', () => {
     expect(canvasKeyFor(store(), id)).toBe(1);
 
     first.unmount();
-    lose(first.canvas); // r3f teardown: forceContextLoss() on the old canvas
+    // r3f teardown: forceContextLoss() on the old canvas. Nobody listens any more.
+    expect(lose(first.canvas).defaultPrevented).toBe(false);
     expect(selectWorldStopped(store())).toBe(false);
 
     const second = mountWatch(id, 1);

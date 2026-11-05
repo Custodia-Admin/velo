@@ -88,9 +88,13 @@ describe('worldViewStore', () => {
     expect(tab).not.toBe(pip);
     store().contextLost(pip, 0); // the window's document going away
     expect(selectWorldStopped(store())).toBe(false);
+    // The tab's own canvas moves on; the departing window's view keeps key 0 (no remount there).
+    store().contextLost(tab, 0);
+    store().reload();
+    expect(canvasKeyFor(store(), tab)).toBe(1);
+    expect(canvasKeyFor(store(), pip)).toBe(0);
     store().detach(pip);
     expect(store().view?.id).toBe(tab);
-    expect(canvasKeyFor(store(), pip)).toBe(0);
   });
 
   it('leaving the ride clears a stopped view (no stale chip on the next ride)', () => {
