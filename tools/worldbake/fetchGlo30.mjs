@@ -38,10 +38,21 @@ export const GLO30_URL_TEMPLATE = `${GLO30_BUCKET}/Copernicus_DSM_COG_10_{N|S}dd
 // Notice wording from the Copernicus DEM page (Copernicus Data Space Ecosystem,
 // "Licensing and citation guidelines"), the variant for adapted or modified
 // data: the bake resamples and quantises it.
+//
+// Art. 6(c) of the GLO-30 licence (License-COPDEM-30.pdf) also asks anyone who
+// distributes the data, modified or not, to put this sentence in the licence or
+// legal notice that covers the distribution. A GLO-30 bundle's manifest credit
+// is that notice (it travels with the bundle, and syncDestinations copies it
+// into src/lib/world/destinations/<id>.json), so the sentence sits in its
+// `licence` field, verbatim. The default credits don't change: creditsFor()
+// swaps this entry in for GLO-30 bundles only.
+export const GLO30_DISCLAIMER =
+  'The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30';
+
 export const GLO30_CREDIT = {
   id: 'copernicus-glo30',
   name: 'Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)',
-  licence: 'Copernicus DEM licence (GLO-30 Public, free for the general public, notice required)',
+  licence: `Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). ${GLO30_DISCLAIMER}.`,
   url: 'https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM',
   attribution:
     'produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved',
