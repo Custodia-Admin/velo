@@ -460,6 +460,8 @@ describe('bake: fit the drawn roads to a route (one surface under the guide)', (
     expect(p.slice(0, 2)).toEqual([40, 0]);
     expect(p.slice(-4)).toEqual([-3, -1, -3, -40]);
     expect(newOverlaps(roads, changedFrom(before, roads))).toEqual([]);
+    expect(fit.roadsEased).toBe(1);
+    expect(fit.maxShiftM).toBe(Math.round(hausdorff(metres(before.roads[0]), p) * 100) / 100);
     expect(fit.maxShiftM).toBeGreaterThan(0.2);
     expect(fit.maxShiftM).toBeLessThanOrEqual(ROUTE_EASE_CORNER_M);
 
@@ -483,12 +485,76 @@ describe('bake: fit the drawn roads to a route (one surface under the guide)', (
     ]);
     const before = clone(roads);
     const r = route('r', [[-40, 0], [-24, 0], [-20, -0.8], [-6, -0.8], [-2, 0], [0, 0], [40, 2]]);
-    easeRoadsOntoRoutes([r], roads);
+    const fit = easeRoadsOntoRoutes([r], roads);
+    expect(fit.roadsEased).toBe(2);
     expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
     const moved = changedFrom(before, roads);
     expect([...moved.keys()]).toEqual([0, 1]);
     expect(openedEnds(roads, moved)).toEqual([]);
     expect(newOverlaps(roads, moved)).toEqual([]);
+  });
+
+  it('bends only the road the route runs along: never two paths either side of it at once', () => {
+    // Paths 0.9 m north and 1.3 m south of the route's 28 m dip: its paint falls between them.
+    const roads = layer([
+      { c: CLS.path, p: dm([[-60, 0.9], [60, 0.9]]) },
+      { c: CLS.path, p: dm([[-60, -1.3], [60, -1.3]]) },
+    ]);
+    const before = clone(roads);
+    const r = route('r', [[-60, 0.9], [-20, 0.9], [-14, 0], [14, 0], [20, 0.9], [60, 0.9]]);
+    expect(routePaintCoverage([r], roads)[0].pct).toBeLessThan(100);
+    const fit = easeRoadsOntoRoutes([r], roads);
+    expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
+    expect([...changedFrom(before, roads).keys()]).toEqual([0]);
+    expect(fit.roadsEased).toBe(1);
+    expect(fit.maxShiftM).toBe(Math.round(hausdorff(metres(before.roads[0]), metres(roads.roads[0])) * 100) / 100);
+  });
+
+  it('a road ending on the side of another drags that side along when the route bends its end across it', () => {
+    // A path ends obliquely on another path's centre line; the route runs 0.9 m to its
+    // north-east and stops a metre short of the junction.
+    const roads = layer([
+      { c: CLS.path, p: dm([[-40, 0], [40, 0]]) },
+      { c: CLS.path, p: dm([[-20, 20], [0, 0]]) },
+    ]);
+    const before = clone(roads);
+    const off = 0.9 / Math.SQRT2;
+    const r = route('r', [[-20 + off, 20 + off], [-1 + off, 1 + off]]);
+    expect(routePaintCoverage([r], roads)[0].pct).toBeLessThan(100);
+    const fit = easeRoadsOntoRoutes([r], roads);
+    expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
+    const moved = changedFrom(before, roads);
+    expect([...moved.keys()]).toEqual([0, 1]);
+    expect(fit.roadsEased).toBe(2);
+    expect(openedEnds(roads, moved)).toEqual([]);
+  });
+
+  it('straightens a path that crosses the route at a slant: the nearer pull wins, so no bump (Locarno 2,066 m)', () => {
+    // A path crosses the route at 17°; the route runs straight along y = 0 for 16 m over it.
+    const roads = layer([{ c: CLS.path, p: dm([[-30, -9.2], [30, 9.2]]) }]);
+    const r = route('r', [[-8, 0], [8, 0]]);
+    easeRoadsOntoRoutes([r], roads);
+    expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
+    // Along the route the path climbs steadily from its south edge to its north one: it never
+    // turns back (a bump the next pass would have to patch around).
+    const p = metres(roads.roads[0]);
+    for (let i = 0; i + 3 < p.length; i += 2) {
+      expect(p[i + 2]).toBeGreaterThan(p[i]);
+      if (p[i + 2] > -9 && p[i] < 9) expect(p[i + 3], `at x ${p[i + 2]}`).toBeGreaterThanOrEqual(p[i + 1] - 0.01);
+    }
+  });
+
+  it('checks the paint edge to edge across the band: a 0.1 m crack between two roads under it counts', () => {
+    const roads = layer([
+      { c: CLS.path, p: dm([[-50, -0.6], [50, -0.6]]) },
+      { c: CLS.path, p: dm([[-50, 1], [50, 1]]) },
+    ]);
+    const r = route('r', [[-40, 0], [40, 0]]);
+    const c = routePaintCoverage([r], roads)[0];
+    expect(c.pct).toBe(0);
+    expect(c.misses[0].maxOffM).toBeGreaterThan(0.02);
+    easeRoadsOntoRoutes([r], roads);
+    expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
   });
 
   it('checks the paint every 0.1 m: a corner overhang shorter than a metre counts (Locarno 2,060 m), and the fit closes it', () => {
