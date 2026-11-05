@@ -6,6 +6,7 @@
  * - placeSideCam gets the drawn ground under the rider and the route ele;
  * - a mode change starts the sight state over;
  * - a cut across the road drops the lift the camera had on the old side;
+ * - a top over the camera is not lifted over while the sight's casts see the rider (a canopy);
  * - probes can read it (__veloRideDebug().sideCam).
  * placeSideCam itself is tested against a synthetic world in sideCam.test.ts.
  */
@@ -52,6 +53,12 @@ describe('CesiumWorldView places the side camera with sight of the rider', () =>
     ]) {
       expect(call).toContain(arg);
     }
+  });
+
+  it('does not lift the camera over a top above it while the sight\'s casts see the rider (a canopy)', () => {
+    const needed = SRC.slice(SRC.indexOf('const needed ='), SRC.indexOf('const lift = Math.max(needed'));
+    expect(needed).toContain('ground === undefined || (ground > camCarto.height && sideCamSightRef.current.castClear())');
+    expect(needed).toMatch(/\?\s*0\s*:\s*Math\.max\(0, ground \+ CHASE_MIN_CLEARANCE_M - camCarto\.height\);/);
   });
 
   it('drops the lift on a cut across the road, before this frame\'s lift is worked out', () => {

@@ -575,12 +575,21 @@ export function createSideCamSight() {
       targetFrac = 1;
       frac = null;
       clear = true;
+      rayReads = false;
       switchedAt = -Infinity;
       job = null;
     },
     /** Times the camera has cut across the road: the view drops the old side's lift on a new one. */
     cuts(): number {
       return switches;
+    },
+    /**
+     * The last refresh cast segments and found a spot that sees the rider's
+     * bars with air under the camera: a top drawn over the camera is then a
+     * canopy it stands under, not something to lift it over (the view's lift).
+     */
+    castClear(): boolean {
+      return rayReads && clear;
     },
     /** Read-only numbers for probes (__veloRideDebug().sideCam). */
     debug() {

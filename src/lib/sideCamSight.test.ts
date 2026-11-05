@@ -1063,3 +1063,44 @@ describe('createSideCamSight: faces where the camera stands now (blockedAt)', ()
     expect(reads).toBe(before);
   });
 });
+
+describe('castClear: the casts found a spot that sees the rider with air under the camera', () => {
+  const req = (over: Partial<SightRequest> = {}): SightRequest => ({
+    nowMs: 0,
+    dt: 1 / 60,
+    distanceM: 0,
+    side: 1,
+    baseM: BASE,
+    upM: UP,
+    allowSwitch: false,
+    topAt: () => 0,
+    ...over,
+  });
+
+  it('true after a cast refresh that found a clear spot; not with tops, not with nothing clear', () => {
+    const cast = createSideCamSight();
+    expect(cast.castClear()).toBe(false);
+    cast.update(req({ seenAt: () => true }));
+    expect(cast.castClear()).toBe(true);
+    // The same open ground read as tops: no casts.
+    const tops = createSideCamSight();
+    tops.update(req());
+    expect(tops.debug().clear).toBe(true);
+    expect(tops.castClear()).toBe(false);
+    // Cast, nothing clear (the road edge as the last resort).
+    const closed = createSideCamSight();
+    for (let f = 0; f < 3; f++) closed.update(req({ nowMs: (f * 1000) / 60, seenAt: () => false }));
+    expect(closed.debug()).toMatchObject({ rays: true, clear: false });
+    expect(closed.castClear()).toBe(false);
+  });
+
+  it('false again after a reset, until the next cast refresh', () => {
+    const s = createSideCamSight();
+    s.update(req({ seenAt: () => true }));
+    expect(s.castClear()).toBe(true);
+    s.reset();
+    expect(s.castClear()).toBe(false);
+    s.update(req({ nowMs: 1000, seenAt: () => true }));
+    expect(s.castClear()).toBe(true);
+  });
+});
