@@ -75,10 +75,12 @@ function render(destinations: readonly Destination[]) {
 /** Each credit id once, in first-seen order: what the disclosure lists for `destinations`. */
 const dedupedIds = (destinations: readonly Destination[]) => [...new Set(destinations.flatMap((d) => d.credits.map((c) => c.id)))];
 
+const HIDING_CLASSES = ['hidden', 'sr-only', 'invisible', 'opacity-0', 'text-transparent'];
+
 /**
  * Why `el` would not reach a sighted reader: a `hidden` or `aria-hidden` prop,
- * or a class that hides it (`hidden`, `sr-only`, `invisible`, under any variant
- * such as `sm:hidden`). Null when it shows.
+ * or a class that hides it (`hidden`, `sr-only`, `invisible`, `opacity-0`,
+ * `text-transparent`, under any variant such as `sm:hidden`). Null when it shows.
  */
 function hides(el: El): string | null {
   const { hidden, className } = el.props;
@@ -86,7 +88,7 @@ function hides(el: El): string | null {
   if (hidden !== undefined && hidden !== false) return 'hidden';
   if (aria !== undefined && aria !== false && aria !== 'false') return 'aria-hidden';
   const cls = typeof className === 'string'
-    ? className.split(/\s+/).find((c) => ['hidden', 'sr-only', 'invisible'].includes(c.split(':').pop()!.replace(/^!/, '')))
+    ? className.split(/\s+/).find((c) => HIDING_CLASSES.includes(c.split(':').pop()!.replace(/^!/, '')))
     : undefined;
   return cls ? `class "${cls}"` : null;
 }
@@ -198,6 +200,14 @@ describe('WorldCredits: a GLO-30 world carries the licence notice to the screen'
       for (const line of [credit.name, credit.attribution, credit.licence]) expect(seen.rowText).toContain(line);
     }
     expect(seen.rowText).toContain(GLO30_DISCLAIMER);
+  });
+
+  it('the visibility check itself flags every hiding class, under any variant, and nothing else', () => {
+    const el = (className: string) => ({ type: 'p', props: { className } }) as unknown as El;
+    for (const cls of HIDING_CLASSES) {
+      for (const variant of [cls, `sm:${cls}`, `group-open:!${cls}`]) expect(hides(el(`text-sm ${variant}`))).toBe(`class "${variant}"`);
+    }
+    for (const shown of ['opacity-50', 'text-foreground', 'block', 'hover:opacity-80']) expect(hides(el(shown))).toBeNull();
   });
 });
 

@@ -57,6 +57,32 @@ async function inViewport(control: Locator, what: string) {
   expect(onTop, `${what}: covered by another element`).toBe(true);
 }
 
+/**
+ * Home's two disclosures (Build your own ride, Map & terrain credits) keep
+ * their chevrons on the column edge, at the H1's x, while each summary's hover
+ * pill bleeds the same distance into the gutter (`-mx-2` out, `px-2` back in).
+ * Left edges from getBoundingClientRect, ±0.5 px.
+ */
+async function chevronsOnColumnEdge(page: Page, what: string) {
+  const selectors = {
+    h1: '#home-title',
+    buildChevron: '[data-build-your-own] > summary [aria-hidden]',
+    creditsChevron: '[data-world-credits] > summary [aria-hidden]',
+    buildSummary: '[data-build-your-own] > summary',
+    creditsSummary: '[data-world-credits] > summary',
+  };
+  for (const [name, sel] of Object.entries(selectors)) await expect(page.locator(sel), `${what}: one ${name}`).toHaveCount(1);
+  const x = await page.evaluate(
+    (sel) => Object.fromEntries(Object.entries(sel).map(([k, s]) => [k, document.querySelector(s)!.getBoundingClientRect().left])),
+    selectors,
+  );
+  const near = (a: number, b: number, label: string) => expect(Math.abs(a - b), `${what}: ${label} (${a} vs ${b})`).toBeLessThanOrEqual(0.5);
+  near(x.buildChevron, x.h1, 'Build your own ride chevron x = H1 x');
+  near(x.creditsChevron, x.h1, 'credits chevron x = H1 x');
+  near(x.buildSummary, x.creditsSummary, 'both summaries start at the same x');
+  expect(x.h1 - x.buildSummary, `${what}: Build your own ride pill bleeds into the gutter (${x.buildSummary} vs H1 ${x.h1})`).toBeGreaterThan(0.5);
+}
+
 /** Today's featured route or the Tiber grid card, whichever Home shows today. */
 async function rideTiber(page: Page) {
   const card = page.locator('[data-scenic-route="scenic-perugia-tiber-park"]');
@@ -79,6 +105,7 @@ test('1280×648: Home, Settings and Devices fit, key controls in view', async ({
   await inViewport(page.getByRole('button', { name: /^Devices/ }), 'Home: Devices');
   await inViewport(page.getByRole('button', { name: 'Open settings' }), 'Home: Settings');
   await inViewport(featured.locator('button[aria-label^="Ride "]:not([data-testid])'), "Home: Ride today's route");
+  await chevronsOnColumnEdge(page, 'Home 1280×648');
   await expect(page).toHaveTitle(/Velo/);
   await expect(page.getByText(/GlobeRide/)).toHaveCount(0);
 
@@ -94,6 +121,15 @@ test('1280×648: Home, Settings and Devices fit, key controls in view', async ({
   await noHorizontalOverflow(page);
   await inViewport(page.getByTestId('devices-ride'), 'Devices: Ride');
   await inViewport(page.getByTestId('device-trainer').getByRole('button').first(), 'Devices: trainer action');
+
+  // Home's column edge at the other gate viewports too. TV goes last: `?layout=tv` sticks for the session.
+  for (const [w, h, q] of [[1440, 900, ''], [390, 844, ''], [1920, 1080, '?layout=tv']] as const) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.goto(`/app${q}`);
+    await expect(page.getByTestId('featured-scenic-ride')).toBeVisible();
+    if (q) await expect(page.locator('html')).toHaveAttribute('data-layout', 'tv');
+    await chevronsOnColumnEdge(page, `Home ${w}×${h}${q ? ' TV' : ''}`);
+  }
 
   expect(errors).toEqual([]);
 });

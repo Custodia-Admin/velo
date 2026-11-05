@@ -9,6 +9,8 @@ import {
   aboutMinutes,
   chipTap,
   formatLeft,
+  landmarkJoiner,
+  landmarkLine,
   nextLandmark,
   noticeMs,
   rideChip,
@@ -64,16 +66,20 @@ describe('next landmark', () => {
     { name: 'Climb 1', startDistance: 2000, endDistance: 2600 },
     { name: 'Climb 2', startDistance: 5000, endDistance: 5400 },
   ];
-  const line = (n: ReturnType<typeof nextLandmark>) => (n ? `${n.name} ${n.distance}` : null);
+  const line = (n: ReturnType<typeof nextLandmark>) => (n ? landmarkLine(n) : null);
 
   it('names the next climb ahead with the distance to it', () => {
-    expect(nextLandmark(climbs, 800, 'metric')).toEqual({ name: 'Climb 1', distance: 'in 1.2 km' });
+    expect(nextLandmark(climbs, 800, 'metric')).toEqual({ name: 'Climb 1', distance: 'in 1.2 km', inClimb: false });
     expect(line(nextLandmark(climbs, 800, 'metric'))).toBe('Climb 1 in 1.2 km');
   });
 
-  it('inside a climb, says how far to the top', () => {
-    expect(nextLandmark(climbs, 2300, 'metric')).toEqual({ name: 'Climb 1', distance: '· 300 m to the top' });
+  // Review of PR #48 @dfd7071, N3: with no room for the name, the distance
+  // reads on its own ("300 m to the top", not "· 300 m to the top").
+  it('inside a climb, says how far to the top; the separator belongs to the name', () => {
+    expect(nextLandmark(climbs, 2300, 'metric')).toEqual({ name: 'Climb 1', distance: '300 m to the top', inClimb: true });
     expect(line(nextLandmark(climbs, 2300, 'metric'))).toBe('Climb 1 · 300 m to the top');
+    expect(landmarkJoiner({ name: 'Climb 1', distance: '300 m to the top', inClimb: true })).toBe(' · ');
+    expect(landmarkJoiner({ name: 'Rivotorto', distance: 'in 900 m', inClimb: false })).toBe(' ');
   });
 
   it('moves on after a climb and is silent past the last one (or with none)', () => {

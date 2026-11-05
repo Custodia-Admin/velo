@@ -1587,15 +1587,24 @@ export const OVERHANG_STEP_M = 1;
 export const OVERHANG_STEP_SPAN_M = 10;
 /**
  * Steepest a re-read step may rise (m per m): a ramp of ground the rider is
- * lifted along. On Lugano–Melide the route climbs an embankment at 4.93 km at
- * up to 1.46 and clips a mound at 5 km at up to 1.2; tree crown edges over
- * the Cuyahoga towpath rise 4 m within half a metre. Replayed over the mesh
- * along Lugano, Santa Monica, Cuyahoga and Trasimeno at every sample spacing
- * from 2 to 8 m and every phase, 2 rides every Lugano ramp and climbs no crown
- * that the filter used to leave over the road; 1.75 left the Lugano rider in
- * the embankment at one phase, 2.5 climbed Cuyahoga crowns. Per 1 m step this
- * is half of {@link OVERHANG_MIN_M}: whatever the re-read takes, a rider read
- * every metre would have been lifted onto too.
+ * lifted along. Per 1 m step this is half of {@link OVERHANG_MIN_M}, what the
+ * filter allows a rider read every metre. The bounds come from the mesh along
+ * the routes, read every half metre (linear in between):
+ * - ramps: on Lugano–Melide the route climbs an embankment at 4.93 km at up to
+ *   1.46 and clips a mound at 5 km at up to 1.2. Under 1.46 the rider stays in
+ *   the embankment;
+ * - crown edges: over the Cuyahoga towpath they rise 4 m within half a metre.
+ *   At 2.07 km, read 4–10 m short of one, 2.15 or more lets steps that split
+ *   the edge in two climb it, 4.2 m onto the crown.
+ * Tests pin both, and the rate itself (1.9 m per m ridden, 2.1 not).
+ *
+ * The re-read does lift the rider onto some crowns the filter alone left it
+ * under: ones whose near side slopes up gently, which a rider read every
+ * metre climbs too. Replayed over the mesh at every sample spacing from 2 to
+ * 8 m and every phase, with the road taken as the lowest reading within 50 m:
+ * none on Santa Monica (palms), Chengdu or Trasimeno; on Cuyahoga 1.5–4.5 km,
+ * 4–8 of ~6,000 samples per spacing at 5, 6 and 8 m put the rider more than
+ * 3 m over the towpath where the filter alone kept it within 3 m.
  */
 export const OVERHANG_STEP_GRADE = 2;
 
@@ -1709,7 +1718,17 @@ export function createMeshRoadFilter() {
  * {@link OVERHANG_STEP_GRADE}. Not for a gap of one step or less (nothing to
  * read in between) or over {@link OVERHANG_STEP_SPAN_M}. A spot with no
  * reading breaks the chain; so does a coarse one, as the chain only climbs a
- * few metres a step from the road and back to `reading`.
+ * few metres a step from the road and back to `reading`. A dip on the way
+ * counts: the next step is measured from it.
+ *
+ * Each read is a vertical tile pick, run in the frame that samples: 3.7–5.9 ms
+ * a pick on cat-bed (median of a burst of 10 picks a metre apart along the
+ * route at Cuyahoga 3 and 3.1 km and Lugano–Melide 5 km: 37–59 ms). The chain
+ * stops reading as soon as `reading` is out of reach of the steps left, which
+ * gives the same answer on every replayed sample and cuts Cuyahoga's re-reads
+ * by 50–70 % (27–50 a km instead of 81–162; a ramp is still read to its end).
+ * The worst sample still re-reads 8 times (Cuyahoga read 4 or 8 m apart):
+ * ~30–47 ms in one frame.
  */
 function climbsInSteps(
   from: number,
@@ -1726,6 +1745,9 @@ function climbsInSteps(
   const rise = OVERHANG_STEP_GRADE * (moved / steps);
   let h = from;
   for (let i = 1; i <= steps; i++) {
+    // Out of reach of the steps left even if each rose all it may: no read
+    // can make it a ramp (a deck, a crown far up).
+    if (reading > h + rise * (steps - i + 1)) return false;
     const r = i === steps ? reading : readAt(fromLon + ((lon - fromLon) * i) / steps, fromLat + ((lat - fromLat) * i) / steps);
     if (r === undefined || !Number.isFinite(r) || r > h + rise) return false;
     h = r;
