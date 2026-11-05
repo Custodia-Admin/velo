@@ -28,11 +28,13 @@ import type { RiderPose, WorldRenderer, WorldViewProps } from '@/lib/world/rende
 import { activeSteer } from '@/stores/controllerStore';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { canvasKeyFor, useWorldViewStore } from '@/stores/worldViewStore';
 import type { Route } from '@/types';
 
 import { Buildings, StreetLights } from './Buildings';
 import { fillContainer } from './canvasSize';
 import { ChaseCamera } from './ChaseCamera';
+import { ContextLossWatch } from './contextLoss';
 import { sceneLandmarks } from './directorCamera';
 import { Ghosts } from './Ghosts';
 import { Landmarks } from './Landmarks';
@@ -206,9 +208,11 @@ function DebugHook({
     }
     if (!import.meta.env.DEV && !opted) return;
     const w = window as unknown as { __veloThree?: unknown };
-    w.__veloThree = { scene, camera, gl };
+    const handle = { scene, camera, gl };
+    w.__veloThree = handle;
     return () => {
-      delete w.__veloThree;
+      // A remounted canvas (context loss) may have set its own handle already.
+      if (w.__veloThree === handle) delete w.__veloThree;
     };
   }, [scene, camera, gl]);
   const perfSnapshot = useCallback((): ScenePerf => {
@@ -239,13 +243,16 @@ function DebugHook({
   // The ?perf=1 overlay and window.__veloPerf read the same numbers as the Cesium view.
   useEffect(() => {
     exposeScenePerf(perfSnapshot);
-    return () => exposeScenePerf(null);
+    return () => {
+      const w = window as unknown as { __veloPerf?: unknown };
+      if (w.__veloPerf === perfSnapshot) exposeScenePerf(null);
+    };
   }, [perfSnapshot]);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const w = window as unknown as { __veloRideDebug?: () => object };
     const v = new THREE.Vector3();
-    w.__veloRideDebug = () => {
+    const debug = () => {
       const p = frame.placement;
       const hf = sceneWorld.heightfield;
       let riderScreen: [number, number] | null = null;
@@ -285,8 +292,9 @@ function DebugHook({
         ...meter.snapshot(),
       };
     };
+    w.__veloRideDebug = debug;
     return () => {
-      delete w.__veloRideDebug;
+      if (w.__veloRideDebug === debug) delete w.__veloRideDebug;
     };
   }, [sceneWorld, frame, meter, visibility, camera, gl, size, tier, info, lightState, stats]);
   return null;
@@ -325,14 +333,16 @@ export function WorldScene({
   );
   // The ride start holds until the chunk under the rider draws full detail.
   useEffect(() => {
-    groundReady.current = () => {
+    const ready = () => {
       const p = frame.placement;
       if (!frame.valid || !p) return false;
       const i = sceneWorld.locate(p.worldX, p.worldY);
       return i < 0 || visibility.near[i] === 1;
     };
+    groundReady.current = ready;
     return () => {
-      groundReady.current = () => true;
+      // A remounted canvas (context loss) may have installed its own check already.
+      if (groundReady.current === ready) groundReady.current = () => true;
     };
   }, [groundReady, frame, sceneWorld, visibility]);
   const atmo = useMemo(() => createAtmosphere(), []);
@@ -469,6 +479,21 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
   const onUnavailableRef = useRef(onUnavailable);
   onUnavailableRef.current = onUnavailable;
 
+  // WebGL context loss (stores/worldViewStore): this view owns the one slot
+  // while mounted. A lost context shows in the ride's status chip; a restore
+  // or the rider's tap bumps the canvas key, which remounts <Canvas> on a
+  // fresh context. The world bundle, the ride and its recording carry on.
+  const [viewId, setViewId] = useState(0);
+  useEffect(() => {
+    const id = useWorldViewStore.getState().attach();
+    setViewId(id);
+    return () => useWorldViewStore.getState().detach(id);
+  }, []);
+  const canvasKey = useWorldViewStore((s) => canvasKeyFor(s, viewId));
+  // A lost canvas is hidden until it remounts: Chrome paints a dead WebGL
+  // canvas white with a broken-image glyph; the plain ride background is calmer.
+  const contextLost = useWorldViewStore((s) => s.view !== null && s.view.id === viewId && s.view.stopped);
+
   useEffect(() => {
     if (!entry) {
       if (route) onUnavailableRef.current?.('no world bundle covers this route');
@@ -563,7 +588,12 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
 
   const status = failed ? 'error' : sceneWorld ? 'ready' : 'loading';
   return (
-    <div className="absolute inset-0 h-full w-full" data-world={entry?.id ?? ''} data-world-status={status}>
+    <div
+      className="absolute inset-0 h-full w-full"
+      data-world={entry?.id ?? ''}
+      data-world-status={status}
+      data-world-context={contextLost ? 'lost' : 'live'}
+    >
       {sceneWorld && route && !failed && (
         <WorldErrorBoundary
           onError={(e) => {
@@ -572,9 +602,10 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
           }}
         >
           <Canvas
-            // MSAA and the shadow map type are fixed at context creation.
-            key={`${quality.antialias}`}
-            className="absolute inset-0"
+            // MSAA and the shadow map type are fixed at context creation;
+            // a new canvasKey rebuilds the scene after a lost context.
+            key={`${quality.antialias}:${canvasKey}`}
+            className={contextLost ? 'absolute inset-0 invisible' : 'absolute inset-0'}
             gl={{ antialias: quality.antialias, powerPreference: 'high-performance', alpha: false, stencil: false }}
             camera={{ fov: 60, near: 0.4, far: quality.viewDistanceM * 1.05, position: [0, 500, 0] }}
             shadows={quality.shadows}
@@ -583,6 +614,7 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
             // In the floating ride window r3f leaves the canvas's CSS size at its buffer size (canvasSize.ts).
             onCreated={({ gl }) => fillContainer(gl.domElement)}
           >
+            <ContextLossWatch viewId={viewId} canvasKey={canvasKey} />
             <WorldScene
               key={tier}
               sceneWorld={sceneWorld}
