@@ -291,6 +291,20 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     expect(g.next(mesh(), lon0, at(0), HIGH, readAt)).toBe(-28.1);
   });
 
+  it('within the climb allowance too, a tile refined higher under the rider is taken, not refused as a climb onto something', () => {
+    // The road was taken on the terrain 12 m back (allowance 4.5 m). The tile
+    // there and here refines 4.4 m higher with nothing drawn under it: more
+    // than OVERHANG_MIN_M over the terrain the road was on, which no road
+    // climbs to in 12 m, but the spot it was taken at rose too (roseAt).
+    const f = createMeshRoadFilter();
+    let refined = false;
+    const readAt = oneSurface(() => (refined ? 164.4 : 160));
+    expect(f.next(160, lon0, at(0), HIGH, readAt, -Infinity, 160)).toBe(160);
+    refined = true;
+    expect(f.next(164.4, lon0, at(12), HIGH, readAt, -Infinity, 160)).toBe(164.4);
+    expect(f.status()).toBe('road');
+  });
+
   it('climbs, falls and holes: climbs and falls taken, a hole leaves the globe to decide but keeps the road', () => {
     const f = createMeshRoadFilter();
     const none = () => undefined;
@@ -1518,6 +1532,8 @@ describe('under what stands over the road: the rider rides the road under it (t_
     for (const reads of everyRide(melide, 2, 'jump')) {
       const at = `read ${reads[1].m - reads[0].m} m apart from ${reads[0].m} m`;
       const first = reads.findIndex((r) => r.status === 'road');
+      // From the first deck read, DECK_RUN_M of it before it is the road.
+      expect(reads[first].m - reads[0].m, at).toBeGreaterThanOrEqual(DECK_RUN_M);
       expect(reads[first].m - reads[0].m, at).toBeLessThanOrEqual(DECK_RUN_M + 8);
       for (const r of reads.slice(0, first)) expect(r.shown, `${at}, at ${r.m} m`).toBe(r.globe);
       expect(Math.abs(worst(reads.slice(first))), at).toBeLessThanOrEqual(0.3);
