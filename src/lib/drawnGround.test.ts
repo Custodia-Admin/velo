@@ -21,6 +21,7 @@ import {
   followGround,
   GLOBE_OVER_MESH_M,
   GLOBE_STANDIN_M,
+  GLOBE_STANDIN_UNDER_M,
   GROUND_SAMPLE_INTERVAL_MS,
   OVERHANG_GIVE_UP_M,
   OVERHANG_MIN_M,
@@ -42,6 +43,7 @@ import {
 import { createFinestTerrain } from '@/lib/finestTerrain';
 import { ridePose } from '@/lib/ride/rideSim';
 import { scenicRouteById } from '@/lib/scenicRoutes';
+import { GroundGate } from '@/renderers/cesium/globeGate';
 import { useRideStore } from '@/stores/rideStore';
 
 async function photoreal(height: number | undefined, opts: { show?: boolean; tilesLoaded?: boolean } = {}) {
@@ -822,15 +824,26 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     expect(sampler.ground()).toBe('globe');
   });
 
-  it('held under a deck with nothing drawn under it: the globe stands in only where it is near the road', async () => {
+  it('held under a deck with nothing drawn under it: the globe stands in only where it is near the road (up to 1.5 m over it, 2.5 m under it)', async () => {
     setIonToken('eyJ_test');
     for (const [globeH, standsIn] of [
       [160.2 + GLOBE_STANDIN_M - 0.01, true],
-      [160.2 - GLOBE_STANDIN_M + 0.01, true],
+      [160.2 + 1.4, true],
+      [160.2 - GLOBE_STANDIN_UNDER_M + 0.01, true],
+      // The Cuyahoga towpath held under crowns 1.3–2 m over the terrain
+      // (3.11–3.16, 4.08–4.10, 4.70–4.73 km): the rider sinks onto it.
+      [160.2 - 1.7, true],
+      [160.2 - 2.0, true],
+      // 4.73 km: 1.97 m under, with room for the next sample.
+      [160.2 - 2.2, true],
       // 26 m over the street (the Lugano shore): it would lift the rider.
       [186.2, false],
       [160.2 + GLOBE_STANDIN_M + 0.2, false],
-      [160.2 - GLOBE_STANDIN_M - 0.2, false],
+      [160.2 + 1.6, false],
+      [160.2 - GLOBE_STANDIN_UNDER_M - 0.2, false],
+      [160.2 - 2.7, false],
+      // A hidden globe's stale tile under the Lugano–Melide slab (7.59 km).
+      [160.2 - 4.4, false],
     ] as const) {
       let deck = false;
       const { tileset } = await photoreal(undefined);
@@ -920,6 +933,55 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     await flush();
     expect(sampler.sample(lon, lat(4), 322, 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(321.48, 6);
     expect(sampler.ground()).toBe('mesh');
+  });
+
+  it('held under crowns 1.3–1.7 m over the finest terrain (Cuyahoga 3.11–3.16 km): the globe stands in all the way, shows within the gate wait, and the rider stands on it', async () => {
+    setIonToken('eyJ_test');
+    // cat-bed roll (t_c92a4576): the towpath taken at 162.92 m, then crowns
+    // 180–190 m with nothing drawn under them for 60 m. The finest terrain
+    // under them alternates 1.32 / 1.72 m under the road held: with a 1.5 m
+    // bound both ways the stand-in flipped every sample, the gate's show
+    // wait never ran out, and the rider rode over a black void.
+    const road = 162.92;
+    const finestAt = (m: number) => (Math.round(m / 4) % 2 ? 161.2 : 161.6);
+    const metresOf = (la: number) => (la - 45.98) * 110_540;
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) => {
+      const m = metresOf(Cesium.Math.toDegrees(c.latitude));
+      return m < 2 ? road : m < 60 ? 180 + (Math.round(m) % 9) : 163.74;
+    });
+    // Hidden, the globe holds a stale coarse tile far under the road.
+    const { s, globe } = scene(tileset, { height: 158.0, show: false });
+    globe.getHeight.mockImplementation((c: Cesium.Cartographic) =>
+      globe.show ? finestAt(metresOf(Cesium.Math.toDegrees(c.latitude))) : 158.0,
+    );
+    const finest = createFinestTerrain(async (pts) => pts.map(([, la]) => finestAt(metresOf(la))));
+    const sampler = createGroundSampler(s, finest);
+    const gate = new GroundGate();
+    let t = 0;
+    const rows: { m: number; h: number | undefined; kind: string; shown: boolean }[] = [];
+    // 30 km/h: 4 m a sample, 480 ms apart, the gate run every frame between.
+    for (let m = 0; m <= 72; m += 4) {
+      const h = sampler.sample(lon, lat(m), 162, t);
+      rows.push({ m, h, kind: sampler.ground(), shown: globe.show });
+      for (let k = 0; k < 29; k++) {
+        t += 16.5;
+        globe.show = gate.update(t, true, sampler.ground()).globe;
+      }
+      t = Math.round(t / 480) * 480 + 480;
+      await flush();
+    }
+    // The first spot under the crowns waits for the finest (the stale tile is
+    // 4.9 m under the road); from then on the globe stands in at every spot.
+    for (const r of rows.filter((x) => x.m >= 8 && x.m < 60)) expect(r.kind, `${r.m} m`).toBe('standIn');
+    // Shown within the gate's wait (1 s) of the first stand-in, and kept.
+    for (const r of rows.filter((x) => x.m >= 20 && x.m < 60)) expect(r.shown, `${r.m} m`).toBe(true);
+    // On the drawn globe, 1.3–1.7 m under the road held, not over a void.
+    for (const r of rows.filter((x) => x.m >= 24 && x.m < 60)) expect(r.h, `${r.m} m`).toBeCloseTo(finestAt(r.m), 6);
+    // Out from under the crowns: the mesh road again.
+    const out = rows.find((x) => x.m === 64)!;
+    expect(out.kind).toBe('mesh');
+    expect(out.h).toBeCloseTo(163.74, 6);
   });
 
   it("the finest is only fetched while held under something, and comes from the scene's terrain provider", async () => {

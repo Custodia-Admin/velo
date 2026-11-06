@@ -2068,14 +2068,35 @@ function climbsInSteps(
 
 /**
  * Held under something with nothing drawn near the road under it, the globe
- * is drawn instead when its terrain there is within this of the road (m):
- * see createGroundSampler. The drawn ground is the higher of the two, so this
- * also bounds how far it can lift the rider. Its terrain is the finest the
- * globe has there (lib/finestTerrain), which it draws once shown, not the
- * tile a hidden globe last loaded (Lugano–Melide 7.6 km: 4.4 m under the road
- * or 2 m over it, the finest within 0.25 m).
+ * is drawn instead when its terrain there is at most this far OVER the road
+ * (m), and at most {@link GLOBE_STANDIN_UNDER_M} under it: see
+ * createGroundSampler. The drawn ground is the higher of the two, so this
+ * bounds how far it can lift the rider; a globe drawn over the road also
+ * buries the mesh street around it (26 m on the steep Lugano shore). Its
+ * terrain is the finest the globe has there (lib/finestTerrain), which it
+ * draws once shown, not the tile a hidden globe last loaded (Lugano–Melide
+ * 7.6 km: 4.4 m under the road or 2 m over it, the finest within 0.25 m).
  */
 export const GLOBE_STANDIN_M = 1.5;
+/**
+ * How far UNDER the road held the globe's terrain may be and still stand in
+ * for the ground (m). A globe under the road buries nothing (the mesh is
+ * drawn over it wherever the mesh has ground), and the rider stands on it, so
+ * this bounds how far the rider sinks under the road it held. Under the
+ * Cuyahoga crowns the towpath was held 1.3–2.0 m over the terrain (3.11–3.16,
+ * 4.08–4.10 and 4.70–4.73 km): at the symmetric 1.5 m bound the decision
+ * flipped from one sample to the next, the globe's one-second show wait
+ * (renderers/cesium/globeGate) never ran out, and the rider rode over a black
+ * void. Kept under the chase camera's height over the rider (1.9 m close,
+ * 2.6 m standard), so a camera behind a sunken rider stays over the road it
+ * held.
+ */
+export const GLOBE_STANDIN_UNDER_M = 2.5;
+
+/** Whether the globe's terrain `globe` stands in under the road held at `held` (see {@link GLOBE_STANDIN_M}). */
+export function globeStandsIn(globe: number | undefined, held: number | undefined): boolean {
+  return globe !== undefined && held !== undefined && globe <= held + GLOBE_STANDIN_M && globe >= held - GLOBE_STANDIN_UNDER_M;
+}
 
 /**
  * What the rider's last ground sample stood it on ({@link createGroundSampler}):
@@ -2201,22 +2222,26 @@ export function createGroundSampler(scene: Cesium.Scene, finest: FinestTerrain =
         // Under a structure with no road to go on from (a jump, the start)
         // the rider stands on the globe, so the globe stays drawn. Held under
         // one, the mesh drew nothing near the road under it (else the filter
-        // took that): where the bare terrain is within GLOBE_STANDIN_M of the
-        // road held, the globe is drawn to stand in for the ground (the
-        // towpath under the I-80 deck, Cuyahoga 2.98–3.01 km: the mesh has a
-        // hole there, the globe 0.2 m under the towpath). Where it is far off
-        // (26 m over the Lugano shore street) it would lift the rider, so the
-        // rider holds the road with the globe hidden. Near or far is judged
-        // by the finest terrain the globe has here, fetched (ahead) while the
-        // rider is held: what it draws once shown. A hidden globe's loaded
-        // tile is whatever coarse one it last loaded along the way: at
+        // took that): where the bare terrain is near the road held (at most
+        // GLOBE_STANDIN_M over it, GLOBE_STANDIN_UNDER_M under it), the globe
+        // is drawn to stand in for the ground (the towpath under the I-80
+        // deck, Cuyahoga 2.98–3.01 km: the mesh has a hole there, the globe
+        // 0.2 m under the towpath). Where it is far over the road (26 m over
+        // the Lugano shore street) it would lift the rider and bury the
+        // street, so the rider holds the road with the globe hidden. Under the
+        // road it lifts nothing: the rider sinks onto it, so it may be
+        // further off that way (the Cuyahoga towpath held 1.3–2 m over the
+        // terrain under the crowns at 3.1, 4.1 and 4.7 km). Near or far is
+        // judged by the finest terrain the globe has here, fetched (ahead)
+        // while the rider is held: what it draws once shown. A hidden globe's
+        // loaded tile is whatever coarse one it last loaded along the way: at
         // Lugano–Melide 7.6 km, under a 54 m slab with no ground drawn under
         // it, that read 4.4 m under the road (the finest 0.25 m), so the
         // rider rode on over a black void. Until the finest lands, the loaded
         // tile decides.
         if (status === 'overhang' && held !== undefined && !away) finest.want(lon, lat, fromLon, fromLat, nowMs);
         const globeHere = finest.near(lon, lat) ?? bare;
-        const standsIn = globeHere !== undefined && held !== undefined && Math.abs(globeHere - held) <= GLOBE_STANDIN_M;
+        const standsIn = globeStandsIn(globeHere, held);
         const onMesh = status === 'road' || (status === 'overhang' && held !== undefined && !away && !standsIn);
         // Not on the mesh road, but the mesh is there over the road: the
         // globe is drawn in its place, without the painted road (GroundKind).
