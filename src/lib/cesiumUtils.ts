@@ -858,12 +858,14 @@ function linearDet(m: Cesium.Matrix4): number {
  * bounding sphere to the ray's origin first: a coarse tile drawn along with
  * the fine ones has the biggest sphere, so from above it comes first, and its
  * surface can lie far under what is drawn over it. On the ramp onto the
- * Chengdu Luxe Lakes bridge (1.26 km) a level-11 tile 52 km across, drawn
- * for the distance, read 280–340 m under the ramp, and another tile 40 m
- * under it, which the rider took as the road: rider and camera fell under
- * the world for a second. Tiles are cast in the order the ray enters their
- * spheres, and none past the nearest hit so far (nothing in them can be
- * nearer). Each instance's triangles are crossed in its own frame
+ * Chengdu Luxe Lakes bridge (1.26 km) Cesium draws coarse tiles for the
+ * distance along with the ramp's own: a level-11 one (bounding sphere 52 km
+ * in radius) read 280–340 m under the ramp, a level-8 one (209 km) 54 m
+ * under it, and in the rides where the rider fell, one read 40 m under it,
+ * just over the plausible floor: the rider took that as the road, and rider
+ * and camera rode under the world for a second. Tiles are cast in the order
+ * the ray enters their spheres, and none past the nearest hit so far (nothing
+ * in them can be nearer). Each instance's triangles are crossed in its own frame
  * (lib/segmentHit rayTriangleHit), and the tile geometry copied back from
  * the GPU is kept for the next reads (lib/tileReadCache).
  */

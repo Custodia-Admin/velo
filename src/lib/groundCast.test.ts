@@ -622,10 +622,11 @@ describe('the ramp onto the Chengdu Luxe Lakes bridge (1.26 km), a coarse tile d
   // The ramp rises from 4 to 6 m over the bare terrain (World Terrain at
   // 453.5 m, the ramp 457–460 m), the route's own elevation 25 m over the
   // ground (479 m), so the plausible floor is 35 m under the ground. Along
-  // with the ramp's tiles Cesium draws a level-11 tile 52 km across for the
-  // distance, and its surface runs under the ramp: 280–340 m under it on
-  // cat-bed (t_5649bf24 logs), and in one ride in five 40 m under it, just
-  // over the floor. Its sphere is the biggest, so pick read it first: the
+  // with the ramp's tiles Cesium draws coarse ones for the distance (levels
+  // 8 and 11, bounding spheres 209 and 52 km in radius), and their surfaces
+  // run under the ramp: 54 and 280–340 m under it on cat-bed (t_5649bf24
+  // logs), and in the rides where the rider fell, 40 m under it, 0.6 m over
+  // the floor. Their spheres are the biggest, so pick read them first: the
   // rider took the fall, rode 40 m under the ramp for a second with nothing
   // drawn at its wheels, the camera under the world.
   const ramp: Field = (_e, n) => 4 + 0.05 * n;
