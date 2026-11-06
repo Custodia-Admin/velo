@@ -1817,15 +1817,13 @@ export type MeshRoadStatus = 'road' | 'overhang' | 'coarse' | 'none';
 
 /**
  * Reads the mesh at lon/lat: from the top (`under` undefined), or down the
- * vertical from `under`: an up-facing surface at or under it (undefined if
- * none, or if this reader can't look under anything). That is what
- * Cesium3DTileset.pick hits first from there: the first candidate tile with
- * any hit, nearest bounding sphere to the ray's origin first. A low origin is
- * inside every candidate's sphere (distance 0), so with tiles stacked there
- * the order falls back to the tileset's selection order, and the answer can
- * be a lower surface than the highest one at or under `under`. The filter
- * reads down from each surface it finds ({@link UNDER_READS}), so a surface
- * skipped that way is a candidate missed, never a surface over `under`.
+ * vertical from `under`: the highest up-facing surface at or under it, over
+ * every tile drawn there (undefined if none, or if this reader can't look
+ * under anything; cesiumUtils.meshHeightAt). Where the reader falls back on
+ * Cesium3DTileset.pick, the first tile with any hit answers instead, and that
+ * can be a lower surface; the filter reads down from each surface it finds
+ * ({@link UNDER_READS}), so a surface skipped that way is a candidate missed,
+ * never a surface over `under`.
  */
 export type MeshRead = (lon: number, lat: number, under?: number) => number | undefined;
 

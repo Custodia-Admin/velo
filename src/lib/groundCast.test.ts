@@ -1,11 +1,14 @@
 /**
  * The rider's ground on photoreal (meshHeightAt) is read with our own ray
  * cast through the tiles drawn this frame (meshRayCast, t_5b716f96) instead
- * of Cesium3DTileset.pick: same answer, without moving every tile vertex into
- * world space. The oracle here is Cesium's own code: the real
- * Cesium3DTileset.prototype.pick, Model3DTileContent.prototype.pick and
- * pickModel, run over the same fake tiles (only ModelReader.forEachPrimitive,
- * which walks a glTF scene graph, is faked).
+ * of Cesium3DTileset.pick, without moving every tile vertex into world space.
+ * Each tile is read as Cesium reads it, and the nearest hit over all of them
+ * answers (t_5649bf24): pick lets the first tile by bounding-sphere distance
+ * answer, which from above is the coarsest, and a coarse tile can be drawn
+ * along with the fine ones far under them. The oracle here is Cesium's own
+ * code: the real Cesium3DTileset.prototype.pick, Model3DTileContent.prototype
+ * .pick and pickModel, run over the same fake tiles one tile at a time (only
+ * ModelReader.forEachPrimitive, which walks a glTF scene graph, is faked).
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Cesium from 'cesium';
@@ -247,6 +250,36 @@ function cesiumHeight(tileset: Cesium.Cesium3DTileset, carto: Cesium.Cartographi
   return hit ? Cesium.Ellipsoid.WGS84.cartesianToCartographic(hit)?.height : undefined;
 }
 
+/**
+ * The nearest hit along `ray` over every selected tile, each read by Cesium's
+ * own pick with that tile alone selected (Cesium3DTileset.pick's sphere test,
+ * Model3DTileContent.pick / pickModel): the distance along the ray.
+ */
+function cesiumNearest(tileset: Cesium.Cesium3DTileset, ray: Cesium.Ray, fs: unknown): number | undefined {
+  const ts = tileset as unknown as { _selectedTiles: FakeTile[] };
+  const all = ts._selectedTiles;
+  let best: number | undefined;
+  try {
+    for (const t of all) {
+      ts._selectedTiles = [t];
+      const hit = Cesium.Cesium3DTileset.prototype.pick.call(tileset, ray, fs as never);
+      if (!hit) continue;
+      const d = Cesium.Cartesian3.distance(ray.origin, hit);
+      if (best === undefined || d < best) best = d;
+    }
+  } finally {
+    ts._selectedTiles = all;
+  }
+  return best;
+}
+
+/** cesiumNearest down meshHeightAt's vertical ray, as a height. */
+function cesiumNearestHeight(tileset: Cesium.Cesium3DTileset, carto: Cesium.Cartographic, fs: unknown): number | undefined {
+  const ray = verticalRay(carto);
+  const t = cesiumNearest(tileset, ray, fs);
+  return t === undefined ? undefined : Cesium.Ellipsoid.WGS84.cartesianToCartographic(Cesium.Ray.getPoint(ray, t))?.height;
+}
+
 let restoreWalk: (() => void) | null = null;
 
 afterEach(() => {
@@ -266,7 +299,7 @@ const street: Field = (e, n) => {
   return h;
 };
 
-describe("meshHeightAt casts its own ray with Cesium3DTileset.pick's answer", () => {
+describe("meshHeightAt casts its own ray: Cesium's per-tile pick, the nearest hit over every tile", () => {
   it('spot by spot over a street in tiles turned every which way, with decks, overlaps, mirrors and copies', async () => {
     const rnd = lcg(29_401);
     const turn = turnFrom(rnd);
@@ -278,7 +311,7 @@ describe("meshHeightAt casts its own ray with Cesium3DTileset.pick's answer", ()
       tile([primitive(quad(-4, 4, 30, 34, 5), FRAME)], { e: 0, n: 32, u: 5, r: 6 }),
       tile([primitive(quad(-4, 4, 20, 24, 7, true), FRAME)], { e: 0, n: 22, u: 7, r: 6 }),
       tile([primitive(quad(-4, 4, 44, 48, 9, true), FRAME)], { e: 0, n: 46, u: 9, r: 6 }, { backFaceCulling: false }),
-      // A coarse tile over part of the street (its sphere is nearer the ray's origin: it answers first).
+      // A coarse tile under part of the street (its sphere is nearer the ray's origin: pick lets it answer).
       tile([primitive(quad(-14, -6, 50, 58, -2), FRAME)], { e: 0, n: 30, u: 0, r: 60 }),
       // A ramp drawn mirrored, and a slab drawn twice (two instances).
       tile([primitive(quad(-12, -8, 2, 6, 4), FRAME)], { e: 10, n: 4, u: 4, r: 6 }, { transforms: [mirror] }),
@@ -288,9 +321,10 @@ describe("meshHeightAt casts its own ray with Cesium3DTileset.pick's answer", ()
     const before = meshGroundReadStats();
     let read = 0;
     let none = 0;
+    let notPicks = 0;
     for (let k = 0; k < 1500; k++) {
       const c = spot((rnd() - 0.5) * 34, -10 + rnd() * 84);
-      const want = cesiumHeight(tileset, c, fs);
+      const want = cesiumNearestHeight(tileset, c, fs);
       const got = meshHeightAt(tileset, c, scene);
       if (want === undefined) {
         none++;
@@ -298,16 +332,19 @@ describe("meshHeightAt casts its own ray with Cesium3DTileset.pick's answer", ()
       } else {
         read++;
         expect(Math.abs(got! - want)).toBeLessThan(1e-6);
+        if (Math.abs(got! - cesiumHeight(tileset, c, fs)!) > 0.5) notPicks++;
       }
     }
     expect(read).toBeGreaterThan(1200);
     expect(none).toBeGreaterThan(20);
+    // Over the coarse tile's quad, pick reads it, 3–4 m under the street drawn over it.
+    expect(notPicks).toBeGreaterThan(20);
     expect(picks).not.toHaveBeenCalled();
     expect(meshGroundReadStats().casts - before.casts).toBe(1500);
     expect(meshGroundReadStats().picks).toBe(before.picks);
   });
 
-  it('a ray that starts low (inside a tile, under a deck or a crown) gets pick\'s answer too', async () => {
+  it('a ray that starts low (inside a tile, under a deck or a crown) gets the nearest hit under it too', async () => {
     // Reads that start under what stands over the road (PR #76's `under`) go through the same cast.
     const rnd = lcg(76_148);
     const tiles = [
@@ -315,11 +352,13 @@ describe("meshHeightAt casts its own ray with Cesium3DTileset.pick's answer", ()
       tile([primitive(quad(-4, 4, 0, 30, 5), FRAME)], { e: 0, n: 15, u: 5, r: 16 }),
       tile([primitive(quad(-4, 4, 4, 26, 9, true), FRAME)], { e: 0, n: 15, u: 9, r: 16 }),
       tile([primitive(quad(-14, -6, 2, 10, 3), FRAME)], { e: 0, n: 15, u: 0, r: 40 }),
+      tile([primitive(quad(-12, 12, 12, 20, -2), FRAME)], { e: 0, n: 16, u: -2, r: 40 }),
     ];
     const { tileset, fs } = await world(tiles);
     const ell = Cesium.Ellipsoid.WGS84;
     let hits = 0;
     let misses = 0;
+    let notPicks = 0;
     for (let k = 0; k < 800; k++) {
       const c = spot((rnd() - 0.5) * 34, -10 + rnd() * 52);
       const from = GROUND - 3 + rnd() * 16;
@@ -327,31 +366,53 @@ describe("meshHeightAt casts its own ray with Cesium3DTileset.pick's answer", ()
         ell.cartographicToCartesian(new Cesium.Cartographic(c.longitude, c.latitude, from)),
         Cesium.Cartesian3.negate(ell.geodeticSurfaceNormalCartographic(c), new Cesium.Cartesian3()),
       );
-      const theirs = Cesium.Cesium3DTileset.prototype.pick.call(tileset, ray, fs as never);
+      const theirs = cesiumNearest(tileset, ray, fs);
       const ours = meshRayCast(tileset, ray, fs);
-      if (!theirs) {
+      if (theirs === undefined) {
         misses++;
         expect(ours).toBeUndefined();
       } else {
         hits++;
-        expect(Math.abs(ours! - Cesium.Cartesian3.distance(ray.origin, theirs))).toBeLessThan(1e-6);
+        expect(Math.abs(ours! - theirs)).toBeLessThan(1e-6);
+        const pick = Cesium.Cesium3DTileset.prototype.pick.call(tileset, ray, fs as never);
+        if (!pick || Math.abs(Cesium.Cartesian3.distance(ray.origin, pick) - theirs) > 0.5) notPicks++;
       }
     }
     expect(hits).toBeGreaterThan(400);
     expect(misses).toBeGreaterThan(50);
+    // From inside both coarse spheres (distance 0 to every one), pick's order is the selection's.
+    expect(notPicks).toBeGreaterThan(20);
   });
 
-  it('the first tile by sphere distance with any hit answers, not the highest hit (a coarse tile over a fine one)', async () => {
+  it('the nearest hit over every tile answers, not the first tile by sphere distance (a coarse tile drawn under a fine one)', async () => {
     const fine = tile([primitive(quad(-4, 4, -4, 4, 1), FRAME)], { e: 0, n: 0, u: 1, r: 6 });
     const coarse = tile([primitive(quad(-2, 2, -2, 2, -3), FRAME)], { e: 0, n: 0, u: 0, r: 40 });
-    const { scene, tileset, fs } = await world([fine, coarse]);
-    // Inside the coarse tile's quad: the coarse ground, 4 m under the fine one.
-    expect(meshHeightAt(tileset, spot(0.5, 0.5), scene)).toBeCloseTo(GROUND - 3, 3);
-    expect(cesiumHeight(tileset, spot(0.5, 0.5), fs)).toBeCloseTo(GROUND - 3, 3);
-    // Outside it: the coarse tile has nothing on the ray, so the fine tile answers.
-    expect(meshHeightAt(tileset, spot(3, 3), scene)).toBeCloseTo(GROUND + 1, 3);
-    (tileset as unknown as { _selectedTiles: FakeTile[] })._selectedTiles = [fine];
+    const { scene, tileset, fs } = await world([coarse, fine]);
+    // Inside the coarse tile's quad: the fine ground over it (pick reads the coarse one, 4 m under it).
     expect(meshHeightAt(tileset, spot(0.5, 0.5), scene)).toBeCloseTo(GROUND + 1, 3);
+    expect(cesiumHeight(tileset, spot(0.5, 0.5), fs)).toBeCloseTo(GROUND - 3, 3);
+    expect(meshHeightAt(tileset, spot(3, 3), scene)).toBeCloseTo(GROUND + 1, 3);
+    // In either order, and a coarse tile drawn OVER the fine one answers: it is what is drawn there.
+    const ts = tileset as unknown as { _selectedTiles: FakeTile[] };
+    ts._selectedTiles = [fine, coarse];
+    expect(meshHeightAt(tileset, spot(0.5, 0.5), scene)).toBeCloseTo(GROUND + 1, 3);
+    const over = tile([primitive(quad(-2, 2, -2, 2, 3), FRAME)], { e: 0, n: 0, u: 0, r: 40 });
+    ts._selectedTiles = [fine, over];
+    expect(meshHeightAt(tileset, spot(0.5, 0.5), scene)).toBeCloseTo(GROUND + 3, 3);
+    expect(meshHeightAt(tileset, spot(3, 3), scene)).toBeCloseTo(GROUND + 1, 3);
+  });
+
+  it('no tile is read whose sphere the ray enters past the nearest hit so far', async () => {
+    const reads = vi.spyOn(reader, 'readAttributeAsTypedArray');
+    const ground = tile([primitive(quad(-4, 4, -4, 4, 0), FRAME)], { e: 0, n: 0, u: 0, r: 6 });
+    // A tile whose sphere lies wholly under the ground: the ray enters it 24 m past the hit.
+    const deep = tile([primitive(quad(-4, 4, -4, 4, -30), FRAME)], { e: 0, n: 0, u: -30, r: 6 });
+    // One the ray enters before the hit (its sphere reaches 3 m over the ground): read, and nothing nearer in it.
+    const beside = tile([primitive(quad(-1, 1, 20, 22, -1), FRAME)], { e: 0, n: 3, u: 0, r: 6 });
+    const { scene, tileset } = await world([deep, beside, ground]);
+    clearMeshTopReads();
+    expect(meshHeightAt(tileset, spot(0, 0), scene)).toBeCloseTo(GROUND, 3);
+    expect(reads).toHaveBeenCalledTimes(2);
   });
 
   it("a tile's nearest face answers: a deck over the road from above, its underside not, unless drawn both sides", async () => {
@@ -554,5 +615,50 @@ describe('the kerb at Lugano–Melide 2940 m, read through tile geometry', () =>
     // Cesium's own reading through the same triangles lands past the kerb.
     // (If an upgrade fixes getHeight, this flips, and meshHeightAt's ray could be getHeight's.)
     expect(tileset.getHeight(Cesium.Cartographic.fromDegrees(LON, LAT), scene)).toBeCloseTo(362.8, 3);
+  });
+});
+
+describe('the ramp onto the Chengdu Luxe Lakes bridge (1.26 km), a coarse tile drawn under it', () => {
+  // The ramp rises from 4 to 6 m over the bare terrain (World Terrain at
+  // 453.5 m, the ramp 457–460 m), the route's own elevation 25 m over the
+  // ground (479 m), so the plausible floor is 35 m under the ground. Along
+  // with the ramp's tiles Cesium draws a level-11 tile 52 km across for the
+  // distance, and its surface runs under the ramp: 280–340 m under it on
+  // cat-bed (t_5649bf24 logs), and in one ride in five 40 m under it, just
+  // over the floor. Its sphere is the biggest, so pick read it first: the
+  // rider took the fall, rode 40 m under the ramp for a second with nothing
+  // drawn at its wheels, the camera under the world.
+  const ramp: Field = (_e, n) => 4 + 0.05 * n;
+  const ride = async (coarseUnder: number) => {
+    const tiles = [
+      tile([primitive(quad(-30, 30, 10, 30, coarseUnder), FRAME)], { e: 0, n: 0, u: coarseUnder, r: 5000 }),
+      ...fieldTiles(ramp, -8, 8, -8, 48, turnFrom(lcg(1_260))),
+    ];
+    const { scene, picks } = await world(tiles);
+    (scene.globe as unknown as { getHeight: () => number }).getHeight = () => GROUND;
+    const sampler = createGroundSampler(scene);
+    const out: Array<{ n: number; got: number | undefined; want: number; ground: string }> = [];
+    // Off the tiles' 0.5 m grid lines (a ray down a shared edge can miss both triangles).
+    for (let n = 0.27; n <= 40; n += 4) {
+      const c = spot(0.3, n);
+      const got = sampler.sample(Cesium.Math.toDegrees(c.longitude), Cesium.Math.toDegrees(c.latitude), GROUND + 25, n * 75);
+      out.push({ n, got, want: GROUND + ramp(0.3, n)!, ground: sampler.ground() });
+    }
+    expect(picks).not.toHaveBeenCalled();
+    return out;
+  };
+
+  it('40 m under the ramp (over the floor): the rider rides the ramp, not the fall', async () => {
+    for (const s of await ride(-34)) {
+      expect(s.got! - s.want, `n ${s.n}`).toBeCloseTo(0, 2);
+      expect(s.ground, `n ${s.n}`).toBe('mesh');
+    }
+  });
+
+  it('290 m under it (under the floor): the ramp is still the ground, not a coarse reading the globe stands in for', async () => {
+    for (const s of await ride(-290)) {
+      expect(s.got! - s.want, `n ${s.n}`).toBeCloseTo(0, 2);
+      expect(s.ground, `n ${s.n}`).toBe('mesh');
+    }
   });
 });

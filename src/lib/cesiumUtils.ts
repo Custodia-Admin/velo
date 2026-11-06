@@ -491,11 +491,10 @@ export async function clampCartesiansToScene(
  * its own helmet, step up onto it, and climb into the sky frame by frame.
  *
  * `under`: read the photoreal mesh down from this height instead of from the
- * top: an up-facing surface at or under it, what Cesium3DTileset.pick hits
- * first from there (see meshHeightAt; under a tree crown or a deck, the
- * ground below it where the mesh draws one). Only the CPU mesh read can look
- * under something; without it (no WebGL 2, no mesh shown) the answer is
- * undefined.
+ * top: the highest up-facing surface at or under it (see meshHeightAt; under
+ * a tree crown or a deck, the ground below it where the mesh draws one). Only
+ * the CPU mesh read can look under something; without it (no WebGL 2, no
+ * mesh shown) the answer is undefined.
  */
 export function sampleGroundHeight(
   scene: Cesium.Scene,
@@ -552,26 +551,25 @@ type TilesetPick = (ray: Cesium.Ray, frameState: unknown, result?: Cesium.Cartes
  * leaves the vertical by up to 0.19°, so at 363 m it crosses the mesh 1.2 m
  * towards the equator. On a kerb at Lugano–Melide 2940 m that read 362.84 m
  * where the road is drawn at 363.41 m (GPU pick and the main view's depth
- * agree), and the wheels sat 0.57 m in the road. Same tile walk otherwise:
- * the selected tiles nearest the ray's origin first, the first one hit wins.
+ * agree), and the wheels sat 0.57 m in the road. The tiles read are the
+ * same: the ones selected this frame whose sphere the ray meets.
  *
- * The walk is Cesium3DTileset.pick's, but each tile's triangles are crossed
- * in the tile's own frame ({@link meshRayCast}): Cesium's pickModel moves
- * every vertex of every tile under the ray into world space and tests every
- * triangle, 1.7 ms a pick at p50 and 3.8 ms at p90 on cat-bed's iGPU even
- * with the tile geometry already copied, and the rider reads its ground
- * about nine times a second. Tileset.pick stays the fallback (no model
- * reader, a frame Cesium would project or exaggerate).
+ * Each tile's triangles are crossed in the tile's own frame
+ * ({@link meshRayCast}): Cesium's pickModel moves every vertex of every tile
+ * under the ray into world space and tests every triangle, 1.7 ms a pick at
+ * p50 and 3.8 ms at p90 on cat-bed's iGPU even with the tile geometry already
+ * copied, and the rider reads its ground about nine times a second. The
+ * nearest hit over all of them answers, not pick's first tile with any hit
+ * (a coarse tile drawn under the fine ones, see meshRayCast). Tileset.pick
+ * stays the fallback (no model reader, a frame Cesium would project or
+ * exaggerate).
  *
  * `under`: start the ray at this height instead (undefined without a tile
  * pick). The pick culls back faces, so every hit is a surface facing up, and
  * one read from under a tree crown is a surface below it, the ground where
  * the mesh draws one: on the Cuyahoga towpath it does at about half the
  * spots under the canopy, and under every road deck crossing it (I-271, Main
- * Street). Not always the highest surface under `under`: the first tile hit
- * wins, nearest bounding sphere to the origin first, and a low origin is
- * inside every candidate tile's sphere, so with tiles stacked there the
- * tileset's selection order decides which one answers.
+ * Street). The highest such surface at or under `under`, over every tile.
  */
 export function meshHeightAt(
   tileset: Cesium.Cesium3DTileset,
@@ -843,20 +841,29 @@ function linearDet(m: Cesium.Matrix4): number {
 }
 
 /**
- * Cesium3DTileset.pick(ray, frameState) for the tiles `tileset` draws this
- * frame, without moving any tile into world space: where the ray first meets
- * the mesh, as the distance along it (the ray's direction is a unit vector),
- * undefined when it meets nothing, or null when this frame or this Cesium
- * can't be cast the way pick would (no model reader or selected tiles,
- * WebGL 1, a 2D / Columbus view or morph, vertical exaggeration): then call
- * pick itself.
+ * Where the ray first meets the mesh `tileset` draws this frame, as the
+ * distance along it (the ray's direction is a unit vector), without moving
+ * any tile into world space; undefined when it meets nothing, or null when
+ * this frame or this Cesium can't be cast the way Cesium3DTileset.pick
+ * would (no model reader or selected tiles, WebGL 1, a 2D / Columbus view or
+ * morph, vertical exaggeration): then call pick itself.
  *
- * The walk is pick's (Cesium 1.141): the selected tiles whose bounding
- * sphere the ray meets, nearest sphere to the ray's origin first, and the
- * FIRST tile with any hit answers with its nearest hit (Model3DTileContent /
- * pickModel: a ready content and model, each primitive's own sphere when it
- * has one instance, faces turned away culled unless the model draws both
- * sides). Each instance's triangles are crossed in its own frame
+ * Each tile is read as pick reads it (Cesium 1.141 Model3DTileContent /
+ * pickModel: the selected tiles whose bounding sphere the ray meets, a ready
+ * content and model, each primitive's own sphere when it has one instance,
+ * faces turned away culled unless the model draws both sides, the tile's
+ * nearest hit), and the nearest hit over every tile answers: the surface
+ * drawn first along the ray, what the GPU's pick and the depth buffer see.
+ * Not pick's walk, where the first tile with any hit answers, nearest
+ * bounding sphere to the ray's origin first: a coarse tile drawn along with
+ * the fine ones has the biggest sphere, so from above it comes first, and its
+ * surface can lie far under what is drawn over it. On the ramp onto the
+ * Chengdu Luxe Lakes bridge (1.26 km) a level-11 tile 52 km across, drawn
+ * for the distance, read 280–340 m under the ramp, and another tile 40 m
+ * under it, which the rider took as the road: rider and camera fell under
+ * the world for a second. Tiles are cast in the order the ray enters their
+ * spheres, and none past the nearest hit so far (nothing in them can be
+ * nearer). Each instance's triangles are crossed in its own frame
  * (lib/segmentHit rayTriangleHit), and the tile geometry copied back from
  * the GPU is kept for the next reads (lib/tileReadCache).
  */
@@ -882,13 +889,13 @@ export function meshRayCast(tileset: Cesium.Cesium3DTileset, ray: Cesium.Ray, fr
     span: new Cesium.Interval(),
   });
   type Content = NonNullable<TileLike['content']>;
-  const candidates: Array<{ content: Content; dist: number }> = [];
+  const candidates: Array<{ content: Content; enter: number }> = [];
   for (const tile of tiles) {
     const sphere = tile.contentBoundingVolume?.boundingSphere;
     if (!sphere || !tile.content || !Cesium.IntersectionTests.raySphere(ray, sphere, sc.span)) continue;
-    candidates.push({ content: tile.content, dist: Cesium.BoundingSphere.distanceSquaredTo(sphere, ray.origin) });
+    candidates.push({ content: tile.content, enter: sc.span.start });
   }
-  candidates.sort((a, b) => a.dist - b.dist);
+  candidates.sort((a, b) => a.enter - b.enter);
   const castTile = (content: Content): number => {
     const model = content._model;
     if (!model) {
@@ -923,13 +930,15 @@ export function meshRayCast(tileset: Cesium.Cesium3DTileset, ray: Cesium.Ray, fr
   };
   let hit: number | undefined;
   const cast = () => {
-    for (const { content } of candidates) {
+    let best = NO_HIT;
+    for (const { content, enter } of candidates) {
+      // The ray enters this sphere (and every later one) past the nearest
+      // hit so far: nothing in it can be nearer.
+      if (enter >= best) break;
       const t = castTile(content);
-      if (t !== NO_HIT) {
-        hit = t;
-        return;
-      }
+      if (t < best) best = t;
     }
+    hit = best === NO_HIT ? undefined : best;
   };
   const reads = meshTopReadCache();
   if (reads) reads.run(cast);
