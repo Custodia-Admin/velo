@@ -638,6 +638,14 @@ describe('CesiumScene: the viewer canvas and its WebGL context', () => {
     await flush();
     expect(report.lost).not.toHaveBeenCalled();
     expect(warn.mock.calls.filter((c) => /stopped rendering/.test(String(c[0])))).toEqual([]);
+    // The watch is still armed: a real stop after it reports.
+    viewer.scene.preRender.addEventListener(() => {
+      throw new Error('a real stop');
+    });
+    expect(viewer.cesiumWidget.frame()).toBe(false);
+    await flush();
+    expect(report.lost).toHaveBeenCalledTimes(1);
+    expect(report.lost).toHaveBeenCalledWith(1);
   });
 
   it('WebXR turning the loop off on purpose is not a stop, nor is a throw while it is off; the watch works again after XR', async () => {

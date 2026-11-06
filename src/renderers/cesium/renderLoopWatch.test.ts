@@ -101,7 +101,7 @@ describe('watchRenderLoop', () => {
     expect(stopped).toHaveBeenCalledTimes(1);
   });
 
-  it('a throw from outside the loop while it runs on is not a stop', async () => {
+  it('a throw from outside the loop while it runs on is not a stop, and leaves the watch armed', async () => {
     const w = new Widget();
     const stopped = vi.fn();
     watchRenderLoop(w, stopped);
@@ -112,6 +112,28 @@ describe('watchRenderLoop', () => {
     await microtasks();
     expect(w.useDefaultRenderLoop).toBe(true);
     expect(stopped).not.toHaveBeenCalled();
+    w.resizeBody = () => undefined;
+    w.frameBody = () => {
+      throw new Error('a real stop');
+    };
+    expect(w.loop()).toBe(false);
+    await microtasks();
+    expect(stopped).toHaveBeenCalledTimes(1);
+  });
+
+  it('each stop of a restarted loop reports', async () => {
+    const w = new Widget();
+    const stopped = vi.fn();
+    watchRenderLoop(w, stopped);
+    w.frameBody = () => {
+      throw new Error('stop');
+    };
+    expect(w.loop()).toBe(false);
+    await microtasks();
+    w.useDefaultRenderLoop = true;
+    expect(w.loop()).toBe(false);
+    await microtasks();
+    expect(stopped).toHaveBeenCalledTimes(2);
   });
 
   it('the loop turned off on purpose (WebXR), and a throw while it is off, are not stops', async () => {
