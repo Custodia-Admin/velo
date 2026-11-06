@@ -22,13 +22,28 @@
  * A jump (Ride again) waits too: a globe drawn again at once shows coarse
  * tiles for a second, over the rider (5.7 m over the wheels at the
  * Lugano–Melide start, by the main view's depth).
+ *
+ * Not where the globe stands in under tree crowns or a deck over the road the
+ * rider holds, with its finest terrain known to be at or under that road
+ * ('standIn', lib/avatar GroundKind): nothing is drawn under the rider until
+ * the globe is, so the wait showed as a black void under the wheels at every
+ * stand-in onset (Cuyahoga towpath 2–6 km at 30 km/h: 22 of them, about a
+ * second each, a fifth to two fifths of the frame black). Drawn at once, it
+ * buries nothing (the mesh draws over it), it lowers the rider by at most
+ * GLOBE_STANDIN_UNDER_M, and it is no jump: in the cat-bed rides along those
+ * 4 km it was never drawn over the wheels. Under something with no road held
+ * (a jump, the start), with the finest terrain still on its way, or with it
+ * over the road held, where it buries the street around it ('under'), it
+ * waits as before.
  */
 import type { GroundKind } from '@/lib/avatar';
 
 /** The mesh road has been under the rider this long before the globe hides (ms). */
 export const GLOBE_HIDE_AFTER_MS = 750;
-/** No mesh road under the rider for this long brings the globe back (ms). */
+/** No mesh road under the rider for this long brings the globe back (ms)… */
 export const GLOBE_SHOW_AFTER_MS = 1_000;
+/** …and this long where it stands in under something over the road held ('standIn', ms). */
+export const GLOBE_STANDIN_SHOW_AFTER_MS = 0;
 
 export class GlobeGate {
   /** Whether the globe is drawn. */
@@ -37,10 +52,11 @@ export class GlobeGate {
 
   /**
    * One frame. `meshShown`: the photoreal tileset is part of the scene;
-   * `meshGround`: its mesh is the road under the rider (avatar.meshGround).
+   * `meshGround`: its mesh is the road under the rider (avatar.meshGround);
+   * `showAfterMs`: how long without it brings the globe back.
    * Returns whether the globe draws this frame.
    */
-  update(nowMs: number, meshShown: boolean, meshGround: boolean): boolean {
+  update(nowMs: number, meshShown: boolean, meshGround: boolean, showAfterMs = GLOBE_SHOW_AFTER_MS): boolean {
     if (!meshShown) {
       // Nothing else draws the ground: the globe, now.
       this.shown = true;
@@ -53,7 +69,7 @@ export class GlobeGate {
       return this.shown;
     }
     this.since ??= nowMs;
-    if (nowMs - this.since >= (want ? GLOBE_SHOW_AFTER_MS : GLOBE_HIDE_AFTER_MS)) {
+    if (nowMs - this.since >= (want ? showAfterMs : GLOBE_HIDE_AFTER_MS)) {
       this.shown = want;
       this.since = null;
     }
@@ -78,15 +94,15 @@ export interface GroundDraw {
  * stripes), from what the rider stands on (avatar.ground, lib/avatar
  * GroundKind):
  * - the globe is drawn whenever the mesh isn't the road under the rider
- *   ({@link GlobeGate});
+ *   ({@link GlobeGate}), at once where it stands in for the ground under
+ *   something over the road held ('standIn': {@link GLOBE_STANDIN_SHOW_AFTER_MS});
  * - the painted road only where the globe IS the ground ('globe': no mesh
  *   road there at all), not where it is drawn to stand in for a ground the
- *   mesh doesn't draw under something over the road ('standIn'). The painted
- *   road is a ground classification: it paints whatever stands in its
+ *   mesh doesn't draw under something over the road ('standIn', 'under'). The
+ *   painted road is a ground classification: it paints whatever stands in its
  *   footprint, the globe and the mesh alike, so under tree crowns or a deck it
  *   ran up the trunks, the piers and the deck (Cuyahoga towpath under I-80).
- * The road's own wait is the same as the globe's, so it is never drawn
- * without the globe under it.
+ * The road waits at least as long as the globe, and is drawn only with it.
  */
 export class GroundGate {
   private readonly globe = new GlobeGate();
@@ -94,7 +110,12 @@ export class GroundGate {
 
   /** One frame. `meshShown`: the photoreal tileset is part of the scene. */
   update(nowMs: number, meshShown: boolean, ground: GroundKind): GroundDraw {
-    const globe = this.globe.update(nowMs, meshShown, ground === 'mesh');
+    const globe = this.globe.update(
+      nowMs,
+      meshShown,
+      ground === 'mesh',
+      ground === 'standIn' ? GLOBE_STANDIN_SHOW_AFTER_MS : GLOBE_SHOW_AFTER_MS,
+    );
     const road = this.paint.update(nowMs, meshShown, ground !== 'globe');
     return { globe, road: globe && road };
   }
