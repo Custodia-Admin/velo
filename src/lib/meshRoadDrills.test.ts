@@ -181,6 +181,42 @@ describe('the mesh road filter on drilled stretches: each rule that moved the dr
     onTheRoad([...rides('cuyahoga6380', [3, 4, 5, 6, 7, 8]), { at: 'read 2 m apart from 6381 m', reads: ride(rows, 2, 1) }], 6411, 6422);
   });
 
+  it('Cuyahoga 6.39–6.41 km: a crown layer 2.8 m over a bush taken from under a crown is measured from the towpath', () => {
+    // At 6394 m a bush 2 m over the towpath is read from under a crown and
+    // taken, steeper than a road climbs (unproven). 2 m on, a crown layer
+    // 2.8 m over the bush and 5 m over the towpath and its terrain, with
+    // nothing under it: within OVERHANG_MIN_M of the bush and its terrain,
+    // so measured from the bush it was ridden for 16 m. (Read 2 m apart, the
+    // bush itself is still held, 2–4 m over the towpath, as before.)
+    let judged = 0;
+    for (const { at: where, reads } of rides('cuyahoga6380', EVERY)) {
+      for (const r of reads) {
+        if (r.m < 6394 || r.m > 6410) continue;
+        judged++;
+        expect(r.shown - r.road, `${where}, at ${r.m} m (${r.status})`).toBeLessThan(5);
+      }
+    }
+    expect(judged).toBeGreaterThan(0);
+  });
+
+  it('Cuyahoga 4.21–4.22 km: from a road taken steeply under a crown, a fall back down the road is ridden', () => {
+    // At 4.214 km the towpath (168.9 m, a boardwalk over the terrain) is
+    // read from under a crown 3.9 m over the road held, steeper than a road
+    // climbs: taken, unproven. It falls 0.25 m every 2 m after that; a fall
+    // from the road held is never a climb onto something, however high it
+    // is over the road before the climb. (Where the boardwalk is not taken
+    // yet, the rider is held on the towpath under it, as before.)
+    let judged = 0;
+    for (const { at: where, reads } of rides('cuyahoga4196', EVERY)) {
+      for (const r of reads) {
+        if (r.m < 4214 || r.m > 4224) continue;
+        judged++;
+        expect(r.shown - r.road, `${where}, at ${r.m} m (${r.status})`).toBeLessThanOrEqual(0.3);
+      }
+    }
+    expect(judged).toBeGreaterThan(0);
+  });
+
   it('Cuyahoga 4.69–4.77 km: an edge of a crown found under it is no road to climb onto the crown from', () => {
     // At 4695–4696 m the mesh closes a crown down onto the towpath: read
     // there from under the crown, its edge (1.7 m over the towpath, 1.3 m a
