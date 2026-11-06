@@ -9,6 +9,7 @@ import type { Route } from '@/types';
 import {
   GRADE_EMA_ALPHA,
   MAX_STEP_S,
+  heldRiderPose,
   initialRideSimState,
   ridePose,
   step,
@@ -54,6 +55,18 @@ function deepFreeze<T>(o: T): T {
   }
   return o;
 }
+
+describe('heldRiderPose (the place(m) probe hooks of both renderers)', () => {
+  it('stands on the route line facing the route 12 m ahead, at the grade to it, rolling at 8 m/s', () => {
+    const p = heldRiderPose(route, 1000);
+    const a = sampleRouteAtDistance(route, 1000);
+    expect([p.lat, p.lon, p.ele]).toEqual([a.lat, a.lon, a.ele]);
+    // The route heads north-east (45°) and climbs 6 % there.
+    expect((p.heading * 180) / Math.PI).toBeCloseTo(45, 1);
+    expect(Math.abs(p.grade - 6)).toBeLessThan(0.1);
+    expect(p).toMatchObject({ speed: 8, distance: 1000, laneOffsetM: 0 });
+  });
+});
 
 describe('rideSim.step — purity', () => {
   it('never mutates its inputs and returns the same result for the same inputs', () => {

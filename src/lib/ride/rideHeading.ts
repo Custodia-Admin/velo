@@ -92,6 +92,21 @@ export class YawFilter {
 }
 
 /**
+ * One frame of the heading the rider is drawn at and the cameras aim by, in
+ * every renderer: the wide chord at `distance` (or an outside driver's own
+ * heading, `overrideHeading`) through `yaw`.
+ */
+export function stepDrawnHeading(
+  yaw: YawFilter,
+  route: Route,
+  distance: number,
+  dt: number,
+  overrideHeading?: number,
+): number {
+  return yaw.step(overrideHeading ?? smoothHeadingAt(route, distance), distance, dt);
+}
+
+/**
  * Compass bearing (radians clockwise from north) of the route segment under
  * `distance`: the direction the route itself runs at that point, with no
  * chord and no lag. At a vertex it is the segment that starts there. Falls

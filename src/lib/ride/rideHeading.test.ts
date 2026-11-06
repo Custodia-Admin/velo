@@ -3,7 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { headingAt } from '@/lib/gpxParser';
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
-import { HEADING_HALF_WINDOW_M, MAX_YAW_RATE, YawFilter, headingDelta, routeBearingAt, smoothHeadingAt } from './rideHeading';
+import {
+  HEADING_HALF_WINDOW_M,
+  MAX_YAW_RATE,
+  YawFilter,
+  headingDelta,
+  routeBearingAt,
+  smoothHeadingAt,
+  stepDrawnHeading,
+} from './rideHeading';
 
 const DEG = 180 / Math.PI;
 const ROUTES = ['scenic-perugia-tiber-park', 'scenic-assisi-valley'];
@@ -98,6 +106,21 @@ describe('YawFilter', () => {
       }
     });
   }
+});
+
+describe('stepDrawnHeading (every renderer draws the rider and aims its cameras with it)', () => {
+  it('steps the filter toward the wide chord, or toward an outside driver\'s own heading', () => {
+    const r = route('scenic-perugia-tiber-park');
+    const a = new YawFilter();
+    const b = new YawFilter();
+    for (let d = 9600; d < 9760; d += 0.2) {
+      expect(stepDrawnHeading(a, r, d, 1 / 60)).toBe(b.step(smoothHeadingAt(r, d), d, 1 / 60));
+    }
+    const c = new YawFilter();
+    stepDrawnHeading(c, r, 100, 1 / 60, 1.25);
+    expect(c.heading).toBe(1.25);
+    expect(stepDrawnHeading(c, r, 100.2, 1 / 60, 1.25)).toBe(1.25);
+  });
 });
 
 describe('routeBearingAt', () => {

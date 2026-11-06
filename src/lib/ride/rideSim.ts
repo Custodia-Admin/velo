@@ -93,6 +93,29 @@ export function ridePose(
 }
 
 /**
+ * The pose the renderers' `place(m)` probe hooks hold the rider at (reference
+ * shots, renderer comparisons): on the route line at `distance`, facing the
+ * route point 12 m ahead, rolling at 8 m/s. Both renderers hold this one pose,
+ * so a held rider is framed from the same spot in each.
+ */
+export function heldRiderPose(route: Route, distance: number): RiderPose {
+  const a = sampleRouteAtDistance(route, distance);
+  const b = sampleRouteAtDistance(route, distance + 12);
+  const dy = (b.lat - a.lat) * 111_320;
+  const dx = (b.lon - a.lon) * 111_320 * Math.cos((a.lat * Math.PI) / 180);
+  return {
+    lat: a.lat,
+    lon: a.lon,
+    ele: a.ele,
+    heading: Math.atan2(dx, dy),
+    grade: ((b.ele - a.ele) / 12) * 100,
+    speed: 8,
+    distance,
+    laneOffsetM: 0,
+  };
+}
+
+/**
  * Advance the ride by one step. Only a `running` ride moves; any other state
  * returns the same state and the pose where the rider stands.
  */

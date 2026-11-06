@@ -16,6 +16,8 @@ import { NO_HIT, segmentMeetsSphere, segmentTriangleHit } from '@/lib/segmentHit
 import { tileReadCacheFor, type TileReadCache } from '@/lib/tileReadCache';
 import type { Route } from '@/types';
 import type { SkyConfig } from '@/lib/skyAndClouds';
+import { ChaseCamSmoother, chaseCamTarget, lookAtHeadingPitch, type CameraPose } from '@/lib/cesiumCameras';
+import type { ChaseFraming } from '@/lib/world/cameraFraming';
 
 // Re-export SkyConfig so consumers can import it from this canonical module.
 export type { SkyConfig };
@@ -1025,12 +1027,14 @@ export function fallbackSceneEle(scene: Cesium.Scene, ele: number): number {
 
 /** Tuning for the trailing follow camera. */
 export interface FollowCamOptions {
-  /** Metres the camera trails behind the rider. */
-  backMeters: number;
-  /** Metres the camera sits above the rider. */
-  upMeters: number;
-  /** Camera pitch in degrees (-90 = straight down). */
-  pitchDeg: number;
+  /**
+   * The rider's drawn heading, radians clockwise from north: the filtered
+   * heading (lib/ride/rideHeading) the avatar is drawn at, as in the world
+   * renderer. The camera trails along it.
+   */
+  heading: number;
+  /** Chase framing for the camera-distance setting (back, up, look-ahead). */
+  framing: ChaseFraming;
   /**
    * Keep the camera at least this far above the terrain under it (m). A
    * camera 2–3 m up trails into a climb behind the rider on descents.
@@ -1040,20 +1044,19 @@ export interface FollowCamOptions {
 
 // Eased follow-cam state, held across frames so the camera glides rather
 // than snapping. Cleared by resetFollowCam() on route change / ride restart.
-// The offset is kept in the rider's local east-north-up frame: easing a
-// world position instead makes the camera lag v/k metres behind its target
-// (3–5 m at riding speed), so a close camera would breathe with speed.
-let lastOffset: Cesium.Cartesian3 | null = null;
+// The camera and its look point are smoothed relative to the rider (in the
+// rider's local east-north-up frame): easing a world position instead makes
+// the camera lag v/k metres behind its target (3–5 m at riding speed), so a
+// close camera would breathe with speed.
+const followCam = new ChaseCamSmoother();
 let seededWorldPos: Cesium.Cartesian3 | null = null;
-let lastHeading: number | null = null;
-let lastPitch: number | null = null;
+let seededHeading = 0;
+let seededPitch = 0;
 
 /** Clear eased follow-cam state — call on route change or ride (re)start. */
 export function resetFollowCam(): void {
-  lastOffset = null;
+  followCam.reset();
   seededWorldPos = null;
-  lastHeading = null;
-  lastPitch = null;
 }
 
 /**
@@ -1063,17 +1066,8 @@ export function resetFollowCam(): void {
  */
 export function seedFollowCam(position: Cesium.Cartesian3, heading: number, pitch: number): void {
   seededWorldPos = Cesium.Cartesian3.clone(position, new Cesium.Cartesian3());
-  lastOffset = null;
-  lastHeading = heading;
-  lastPitch = pitch;
-}
-
-/** Shortest signed angular delta a→b, radians, in (-π, π]. */
-function angleDelta(a: number, b: number): number {
-  let d = (b - a) % (Math.PI * 2);
-  if (d > Math.PI) d -= Math.PI * 2;
-  if (d < -Math.PI) d += Math.PI * 2;
-  return d;
+  seededHeading = heading;
+  seededPitch = pitch;
 }
 
 let camScratchCache: {
@@ -1082,7 +1076,7 @@ let camScratchCache: {
   current: Cesium.Cartesian3;
   next: Cesium.Cartesian3;
   localNext: Cesium.Cartesian3;
-  target: Cesium.Cartesian3;
+  offset: Cesium.Cartesian3;
   camPos: Cesium.Cartesian3;
 } | null = null;
 
@@ -1094,21 +1088,25 @@ function camScratch() {
     current: new Cesium.Cartesian3(),
     next: new Cesium.Cartesian3(),
     localNext: new Cesium.Cartesian3(),
-    target: new Cesium.Cartesian3(),
+    offset: new Cesium.Cartesian3(),
     camPos: new Cesium.Cartesian3(),
   };
   return camScratchCache;
 }
 
 /**
- * Place the camera trailing the rider along their heading, easing toward the
- * target each frame so motion stays smooth and cinematic instead of snapping.
+ * Place the chase camera behind the rider the way the world renderer's chase
+ * rig does (lib/cesiumCameras `chaseCamTarget`): trailing along the rider's
+ * drawn heading, looking at the point `lookAheadM` ahead turned half the bend
+ * toward the route (≤12°), at the route point's height + 1 m. Camera and look
+ * point ease toward that target relative to the rider each frame.
  *
  * @param viewer Cesium viewer.
- * @param currentDeg Rider's current lat/lon/ele.
- * @param nextDeg A point ahead of the rider, used to derive heading + corner look-ahead.
- * @param opts Trailing distance / height / pitch.
+ * @param currentDeg The rider's ground contact (lat/lon, drawn ground height).
+ * @param nextDeg The route point `opts.framing.lookAheadM` ahead, at the same ground.
+ * @param opts Heading, framing and terrain clearance.
  * @param dt Seconds since the previous frame — keeps easing framerate-independent.
+ * @returns The pose applied, rider-relative (for a transition into another mode).
  */
 export function applyFollowCam(
   viewer: Cesium.Viewer,
@@ -1116,72 +1114,45 @@ export function applyFollowCam(
   nextDeg: { lat: number; lon: number; ele: number },
   opts: FollowCamOptions,
   dt: number,
-): void {
+): CameraPose {
   const s = camScratch();
   const current = Cesium.Cartesian3.fromDegrees(currentDeg.lon, currentDeg.lat, currentDeg.ele, undefined, s.current);
   const next = Cesium.Cartesian3.fromDegrees(nextDeg.lon, nextDeg.lat, nextDeg.ele, undefined, s.next);
 
-  // Transform the "next" point into the rider's local ENU frame so we can
-  // derive heading from a simple atan2 in flat XY.
+  // The rider's local ENU frame (x east, y north, z up): the route point
+  // ahead and the camera live in it.
   const enu = Cesium.Transforms.eastNorthUpToFixedFrame(current, undefined, s.enu);
   const inv = Cesium.Matrix4.inverseTransformation(enu, s.inv);
   const localNext = Cesium.Matrix4.multiplyByPoint(inv, next, s.localNext);
-  // ENU: x=east, y=north. Heading = bearing from north, clockwise.
-  const targetHeading = Math.atan2(localNext.x, localNext.y);
 
-  // Framerate-independent easing: blend = 1 - e^(-k·dt).
-  const clampedDt = Math.min(Math.max(dt, 0), 0.1);
-  const offBlend = 1 - Math.exp(-3.0 * clampedDt);
-  const rotBlend = 1 - Math.exp(-2.5 * clampedDt);
-
-  const heading =
-    lastHeading === null
-      ? targetHeading
-      : lastHeading + angleDelta(lastHeading, targetHeading) * rotBlend;
-
-  // Target offset in the rider's frame, trailing along the eased heading so
-  // corners swing the camera round instead of cutting across.
-  const target = s.target;
-  target.x = -Math.sin(heading) * opts.backMeters;
-  target.y = -Math.cos(heading) * opts.backMeters;
-  target.z = opts.upMeters;
-
-  if (lastOffset === null) {
-    // First frame, or handing back from another mode: start from where the
-    // camera is (seed) or right at the target.
-    lastOffset = seededWorldPos
-      ? Cesium.Matrix4.multiplyByPoint(inv, seededWorldPos, new Cesium.Cartesian3())
-      : Cesium.Cartesian3.clone(target, new Cesium.Cartesian3());
+  if (seededWorldPos) {
+    const local = Cesium.Matrix4.multiplyByPoint(inv, seededWorldPos, new Cesium.Cartesian3());
+    followCam.seed({ x: local.x, y: local.y, z: local.z }, seededHeading, seededPitch);
     seededWorldPos = null;
-  } else {
-    Cesium.Cartesian3.lerp(lastOffset, target, offBlend, lastOffset);
   }
+  followCam.step(chaseCamTarget(opts.heading, localNext, opts.framing), Math.min(Math.max(dt, 0), 0.1));
 
-  const camPos = Cesium.Matrix4.multiplyByPoint(enu, lastOffset, s.camPos);
-  let pitchDeg = opts.pitchDeg;
+  const eye = followCam.position;
+  s.offset.x = eye.x;
+  s.offset.y = eye.y;
+  s.offset.z = eye.z;
+  const camPos = Cesium.Matrix4.multiplyByPoint(enu, s.offset, s.camPos);
 
   // Terrain clearance under the camera: a camera 2–3 m up trails into the
-  // slope behind the rider on a descent.
+  // slope behind the rider on a descent. A lifted camera still looks at the
+  // same point, so the rider stays framed.
   const minClear = opts.minClearanceMeters ?? 0;
-  if (minClear > 0) {
-    const lift = liftAboveTerrain(viewer.scene, camPos, currentDeg.ele, minClear);
-    if (lift > 0) {
-      // Look down a little more so the rider stays framed.
-      const back = Math.max(1, Math.hypot(lastOffset.x, lastOffset.y));
-      pitchDeg -= Cesium.Math.toDegrees(Math.atan2(lift, back));
-    }
-  }
-
-  const targetPitch = Cesium.Math.toRadians(pitchDeg);
-  const pitch =
-    lastPitch === null ? targetPitch : lastPitch + (targetPitch - lastPitch) * rotBlend;
-  lastHeading = heading;
-  lastPitch = pitch;
+  const lift = minClear > 0 ? liftAboveTerrain(viewer.scene, camPos, currentDeg.ele, minClear) : 0;
+  const from = { x: eye.x, y: eye.y, z: eye.z + lift };
+  // Heading/pitch are relative to the camera's own ENU frame; a few metres
+  // from the rider it differs from the rider's by microradians.
+  const { heading, pitch } = lookAtHeadingPitch(from, followCam.look);
 
   viewer.camera.setView({
     destination: camPos,
     orientation: { heading, pitch, roll: 0 },
   });
+  return { offsetENU: from, heading, pitch, roll: 0 };
 }
 
 /**
