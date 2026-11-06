@@ -254,19 +254,36 @@ interface RigDynamics {
 // 1.36 m) drew the photoreal rider 22–55 px shorter than the world rider at
 // the same camera (src/renderers/riderFraming.test.ts holds them together).
 
-const WHEEL_R = 0.34;
-const REAR_HUB = v3(0, -0.5, WHEEL_R);
-const FRONT_HUB = v3(0, 0.5, WHEEL_R);
-const BB = v3(0, -0.09, 0.27); // bottom bracket / crank centre
+/**
+ * The landmarks shared with the GLB's RIG (body-local [forward, up], metres):
+ * tests pin each to scripts/gen-rider-glb.mjs.
+ */
+export const AVATAR_RIG = {
+  wheelRadius: 0.34,
+  /** Hubs ahead of / behind the origin. */
+  halfWheelbase: 0.5,
+  bb: [-0.09, 0.27] as const,
+  crankLength: 0.1725,
+  hip: [-0.27, 1.05] as const,
+  thigh: 0.46,
+  /** Knee to pedal: the GLB's shin (0.46 m) plus its ankle over the pedal. */
+  shin: 0.53,
+  /** Helmet shell centre (the road shell's top is 0.105 m above it). */
+  helmet: [0.30, 1.545] as const,
+};
+
+const WHEEL_R = AVATAR_RIG.wheelRadius;
+const REAR_HUB = v3(0, -AVATAR_RIG.halfWheelbase, WHEEL_R);
+const FRONT_HUB = v3(0, AVATAR_RIG.halfWheelbase, WHEEL_R);
+const BB = v3(0, AVATAR_RIG.bb[0], AVATAR_RIG.bb[1]); // bottom bracket / crank centre
 const HEAD_TOP = v3(0, 0.37, 0.86); // top of the head tube (the stem starts here)
 const HEAD_BOTTOM = v3(0, 0.41, 0.70); // bottom of the head tube (fork + down tube)
 const SADDLE_J = v3(0, -0.246, 0.797); // seat-tube / top-tube junction
 const SADDLE = v3(0, -0.277, 0.97);
 const BAR = v3(0, 0.48, 0.90); // stem end, bar tops
-const CRANK_R = 0.1725;
-const THIGH_L = 0.46;
-/** Knee to pedal: the GLB's shin (0.46 m) plus the ankle over the pedal. */
-const SHIN_L = 0.53;
+const CRANK_R = AVATAR_RIG.crankLength;
+const THIGH_L = AVATAR_RIG.thigh;
+const SHIN_L = AVATAR_RIG.shin;
 
 // Derived geometry constants reused by multiple detail parts
 const SEATPOST_TOP = v3(0, -0.287, 0.945);
@@ -277,8 +294,8 @@ const HOOD_LEFT  = v3(-0.21, 0.46, 0.86);
 const HOOD_RIGHT = v3( 0.21, 0.46, 0.86);
 
 // Hip / shoulder landmarks
-const HIP_Y = -0.27;
-const HIP_Z = 1.05;
+const HIP_Y = AVATAR_RIG.hip[0];
+const HIP_Z = AVATAR_RIG.hip[1];
 const HIP_LEFT   = v3(-0.1, HIP_Y, HIP_Z);
 const HIP_RIGHT  = v3( 0.1, HIP_Y, HIP_Z);
 const KNEE_LEFT  = v3(-0.1, -0.12, 0.66);   // nominal resting knee (overridden by IK)
@@ -300,7 +317,7 @@ const ELBOW_RIGHT    = v3( 0.205, 0.37, 1.13);
 const FOREARM_L = 0.25;
 
 /** Helmet shell centre (the GLB's: top 1.645 m with the road shell's 0.105 m). */
-const HELMET_C = v3(0, 0.30, 1.545);
+const HELMET_C = v3(0, AVATAR_RIG.helmet[0], AVATAR_RIG.helmet[1]);
 /** Head centre, under the shell. */
 const HEAD_C = v3(0, 0.32, 1.48);
 /** A point HELMET_C + (0, dy, dz): helmet details keep their place on the shell. */

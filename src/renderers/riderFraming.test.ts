@@ -18,7 +18,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 
 import type { RiderPosition } from '@/lib/physics';
-import { avatarSurfacePoints } from '@/lib/avatar';
+import { AVATAR_RIG, avatarSurfacePoints } from '@/lib/avatar';
 import { computeCameraPose } from '@/lib/cesiumCameras';
 import { CHASE_FRAMING, RIDE_FOV_Y_DEG, type CameraDistance } from '@/lib/world/cameraFraming';
 import { cameraTarget } from './three/chaseRig';
@@ -150,6 +150,41 @@ describe('rider framing: photoreal draws the rider where the world renderer does
   let glb: P3[];
   beforeAll(async () => {
     glb = await glbPoints();
+  });
+
+  it('the Cesium avatar shares the GLB rig: wheels, bottom bracket, cranks, hips, legs', async () => {
+    const { RIG } = (await import('../../scripts/gen-rider-glb.mjs')) as {
+      RIG: {
+        wheelRadius: number;
+        rearAxle: number[];
+        frontAxle: number[];
+        bb: number[];
+        crankLength: number;
+        hip: number[];
+        thigh: number;
+        shin: number;
+        ankleAbovePedal: number;
+      };
+    };
+    expect(AVATAR_RIG.wheelRadius).toBe(RIG.wheelRadius);
+    expect(AVATAR_RIG.halfWheelbase).toBe(RIG.frontAxle[0]);
+    expect(-AVATAR_RIG.halfWheelbase).toBe(RIG.rearAxle[0]);
+    expect([...AVATAR_RIG.bb]).toEqual(RIG.bb);
+    expect(AVATAR_RIG.crankLength).toBe(RIG.crankLength);
+    expect([...AVATAR_RIG.hip]).toEqual(RIG.hip);
+    expect(AVATAR_RIG.thigh).toBe(RIG.thigh);
+    // The avatar's shin runs knee → pedal: the GLB's shin plus its ankle over the pedal.
+    expect(AVATAR_RIG.shin).toBeCloseTo(RIG.shin + RIG.ankleAbovePedal, 6);
+  });
+
+  it('the legs reach the pedals all the way round (the knee IK never clamps)', () => {
+    const { bb, crankLength, hip, thigh, shin } = AVATAR_RIG;
+    for (let i = 0; i < 72; i++) {
+      const a = (i / 72) * Math.PI * 2;
+      const reach = Math.hypot(bb[0] + Math.sin(a) * crankLength - hip[0], bb[1] - Math.cos(a) * crankLength - hip[1]);
+      expect(reach).toBeLessThan(thigh + shin - 0.005);
+      expect(reach).toBeGreaterThan(Math.abs(thigh - shin) + 0.005);
+    }
   });
 
   it('the two models stand on the same ground and reach the same height', () => {
