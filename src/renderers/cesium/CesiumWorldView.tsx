@@ -132,6 +132,7 @@ import { shouldRenderOnDemand } from '@/lib/perf/renderMode';
 import { useMultiriderStore } from '@/stores/multiriderStore';
 import { canvasKeyFor, useWorldViewStore } from '@/stores/worldViewStore';
 import { watchContextLoss } from '@/renderers/contextLoss';
+import { watchRenderLoop } from '@/renderers/cesium/renderLoopWatch';
 
 function cesiumDebugOptedIn(): boolean {
   if (typeof window === 'undefined') return false;
@@ -303,7 +304,7 @@ export function CesiumScene({
   const photorealPromiseRef = useRef<Promise<Cesium.Cesium3DTileset> | null>(null);
   const removeTickRef = useRef<(() => void) | null>(null);
   const detachPerfRef = useRef<(() => void) | null>(null);
-  /** Stops the watches on the viewer: its canvas's WebGL context (renderers/contextLoss) and scene.renderError. */
+  /** Stops the watches on the viewer: its canvas's WebGL context (renderers/contextLoss), scene.renderError and its render loop (renderLoopWatch). */
   const stopContextWatchRef = useRef<(() => void) | null>(null);
   // Adaptive quality governor — steps scene cost down when real frames run
   // over budget (see lib/perf/perfGovernor). Recreated on quality-tier change.
@@ -483,10 +484,11 @@ export function CesiumScene({
           contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
           // No "Rendering has stopped" / "Error constructing CesiumWidget"
           // panel: the ride's status chip says the view stopped (renderError
-          // below). Cesium's panel also adds a window 'resize' listener that
-          // only its OK button removes; inside the hidden dead view nobody
-          // clicks it, so the listener kept every torn-down viewer (its
-          // canvas and WebGL context) alive after the remount.
+          // and the render-loop watch below). Cesium's panel also adds a
+          // window 'resize' listener that only its OK button removes; inside
+          // the hidden dead view nobody clicks it, so the listener kept every
+          // torn-down viewer (its canvas and WebGL context) alive after the
+          // remount.
           showRenderLoopErrors: false,
         });
       } catch (err) {
@@ -507,16 +509,30 @@ export function CesiumScene({
       });
       // Any other error inside a frame stops Cesium's render loop for good
       // as well (its widget turns the default loop off): the same chip, and
-      // a tap builds a new Viewer. Logged once; XR keeps calling render().
+      // a tap builds a new Viewer. Two ways in, one warning per viewer:
+      // - scene.renderError: what Scene's own tryAndCatchError catches (a
+      //   primitive's update, the draw passes). It also fires for XR's own
+      //   scene.render() calls, so every raise reports.
+      // - watchRenderLoop: a throw that escapes the widget's render() or
+      //   resize() and switches the loop off. That is the scene's
+      //   preUpdate/postUpdate/preRender/postRender listeners (the rider,
+      //   the chase camera, partners, ghosts, the lens crop, scenePerf),
+      //   clock.onTick and initializeFrame, none of which raise renderError.
+      //   WebXR turning the loop off on purpose is not a stop.
       let renderStopped = false;
-      const stopRenderErrors = viewer.scene.renderError.addEventListener((_scene: Cesium.Scene, error: unknown) => {
+      const stoppedRendering = (error: unknown) => {
         if (!renderStopped) console.warn('[velo] the photoreal view stopped rendering:', error);
         renderStopped = true;
         context.lost(canvasKey);
-      });
+      };
+      const stopRenderErrors = viewer.scene.renderError.addEventListener((_scene: Cesium.Scene, error: unknown) =>
+        stoppedRendering(error),
+      );
+      const stopLoopWatch = watchRenderLoop(viewer.cesiumWidget, stoppedRendering);
       stopContextWatchRef.current = () => {
         stopContextWatch();
         stopRenderErrors();
+        stopLoopWatch();
       };
       // In the floating ride window the bar covers the bottom of the picture
       // (data-hud-bottom): draw a taller canvas cropped by the window, so the

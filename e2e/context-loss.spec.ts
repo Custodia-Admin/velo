@@ -15,7 +15,9 @@
  * On photoreal, a frame that throws with the context intact (Cesium's
  * scene.renderError stops its render loop for good) gets the same chip and
  * tap (card t_b2730be0), and Cesium's own error panel never exists, not even
- * hidden in the dead view.
+ * hidden in the dead view. So does a throw from a scene.preRender listener,
+ * where the ride's per-frame code runs: Cesium raises no renderError for it,
+ * its render loop just stops (card t_0342cba8).
  */
 import { expect, test, type Page } from '@playwright/test';
 
@@ -116,9 +118,9 @@ async function worldVariety(page: Page): Promise<number> {
 /**
  * The ride clock never stopped: running at every sample; time, distance and
  * the recorded samples never went back, and moved on across each dead window
- * (samples 1-2 and 4-5 bracket the two).
+ * (by default samples 1-2 and 4-5 bracket the two).
  */
-function expectClockNeverStopped(clock: RideProbe[]) {
+function expectClockNeverStopped(clock: RideProbe[], deadWindows: ReadonlyArray<readonly [number, number]> = [[1, 2], [4, 5]]) {
   for (const [i, s] of clock.entries()) {
     expect(s.rideState, `sample ${i}`).toBe('running');
     if (i === 0) continue;
@@ -126,7 +128,7 @@ function expectClockNeverStopped(clock: RideProbe[]) {
     expect(s.distance, `distance at sample ${i}`).toBeGreaterThanOrEqual(clock[i - 1].distance);
     expect(s.samples, `recorded samples at sample ${i}`).toBeGreaterThanOrEqual(clock[i - 1].samples);
   }
-  for (const [a, b] of [[1, 2], [4, 5]] as const) {
+  for (const [a, b] of deadWindows) {
     expect(clock[b].elapsedMs - clock[a].elapsedMs, `ride time while dead (${a}-${b})`).toBeGreaterThan(2_000);
     expect(clock[b].distance, `distance while dead (${a}-${b})`).toBeGreaterThan(clock[a].distance);
   }
@@ -202,7 +204,11 @@ type CesiumProbe = {
   viewer: {
     canvas: HTMLCanvasElement;
     isDestroyed: () => boolean;
-    scene: { frameState: { frameNumber: number }; primitives: { add: (p: object) => unknown } };
+    scene: {
+      frameState: { frameNumber: number };
+      primitives: { add: (p: object) => unknown };
+      preRender: { addEventListener: (fn: () => void) => unknown };
+    };
   };
 };
 
@@ -258,9 +264,25 @@ const throwInAFrame = (page: Page, tag: string) =>
     });
   }, tag);
 
-test('the photoreal view after a lost WebGL context: the chip, the ride carries on, a new viewer draws (restore, then tap; then a frame that throws, tap)', async ({ page }) => {
-  // Three viewer rebuilds on software GL.
-  test.setTimeout(540_000);
+/**
+ * A scene.preRender listener that throws, where the ride's own per-frame code
+ * runs (the rider, the chase camera, partners, ghosts). Cesium raises it
+ * outside its tryAndCatchError: no renderError, the throw escapes
+ * scene.render() and the widget's default render loop catches it and stops
+ * for good. Tags the canvas.
+ */
+const throwInPreRender = (page: Page, tag: string) =>
+  page.evaluate((t) => {
+    const v = (window as unknown as { __veloCesium: CesiumProbe }).__veloCesium.viewer;
+    v.canvas.dataset.e2eCanvas = t;
+    v.scene.preRender.addEventListener(() => {
+      throw new Error('e2e: a preRender listener throws');
+    });
+  }, tag);
+
+test('the photoreal view after a lost WebGL context: the chip, the ride carries on, a new viewer draws (restore, then tap; then a frame that throws, tap; then a preRender listener that throws, tap)', async ({ page }) => {
+  // Four viewer rebuilds on software GL.
+  test.setTimeout(660_000);
   const pageErrors: string[] = [];
   page.on('pageerror', (err) => pageErrors.push(String(err)));
   await page.addInitScript(INIT);
@@ -337,6 +359,29 @@ test('the photoreal view after a lost WebGL context: the chip, the ride carries 
   await expect.poll(() => worldVariety(page), { message: 'the world draws again after a frame threw', timeout: 90_000 }).toBeGreaterThan(300);
   clock.push(await ride(page));
 
-  expectClockNeverStopped(clock);
+  // ---- 4. The ride's own per-frame code throws (a preRender listener): no
+  // renderError, Cesium's render loop catches it and stops. The same chip and tap ----
+  await throwInPreRender(page, 'fourth');
+  await expect(chip).toHaveText(CHIP);
+  await expect(chip).toBeVisible();
+  await expect(world).toHaveAttribute('data-world-context', 'lost');
+  await expect(world).toHaveCSS('visibility', 'hidden');
+  expect(await viewerState(page)).toMatchObject({ lost: false, tagged: 'fourth', errorPanels: 0, errorPanelsInDom: 0 });
+  // The ride carries on while the world is dead.
+  clock.push(await ride(page));
+  await rideOn(page, 2_000);
+  clock.push(await ride(page));
+  expect(await viewerState(page), 'still no error box, nor one hidden in the dead view').toMatchObject({ errorPanels: 0, errorPanelsInDom: 0 });
+  await chip.click();
+  await expect(world).toHaveAttribute('data-world-context', 'live');
+  await expect(chip).not.toHaveText(CHIP);
+  await expect.poll(async () => viewerState(page), { timeout: 60_000 }).toMatchObject({ count: 1, current: true, lost: false, tagged: null });
+  await expect.poll(async () => (await viewerState(page)).frames, { timeout: 120_000 }).toBeGreaterThan(10);
+  await expect.poll(() => worldVariety(page), { message: 'the world draws again after a preRender listener threw', timeout: 90_000 }).toBeGreaterThan(300);
+  expect((await viewerState(page)).errorPanelsInDom).toBe(0);
+  clock.push(await ride(page));
+
+  // Samples 1-2, 4-5 and 8-9 bracket the three dead windows the ride rode through.
+  expectClockNeverStopped(clock, [[1, 2], [4, 5], [8, 9]]);
   expect(pageErrors).toEqual([]);
 });
