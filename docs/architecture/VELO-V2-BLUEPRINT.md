@@ -275,6 +275,8 @@ Every output field is mandatory in both the recipe and the report; a missing fie
 
 First results under v2 (2026-11-05, cat-bed; the bundles re-baked from cache are byte-identical to the committed ones apart from `recipeSha256`): Perugia `standard` (steep 0.0972), registered 4.54 m ≤ 6.00 m → **PASS** (point 5.96 m, as under v1). Lugano `mountain` (steep 0.5177), registered 8.88 m > 6.24 m → **FAIL** (point 18.17 m). In quadrature that is an own error of √(8.88² − 1.71²) = 8.71 m against the 6.00 m allowance; card t_49b58e90 re-bakes Lugano from GLO-30.
 
+Lugano re-baked from Copernicus GLO-30 (2026-11-06, card t_49b58e90, same samples and cache): `mountain` (steep 0.5503), registered **1.81 m ≤ 6.24 m → PASS** (bias −0.05 m, max 7.49 m; point 19.47 m, reported only), an own error of √(1.81² − 1.71²) = 0.59 m. On the shipped extent's samples raw GLO-30 at the node scores 2.41 m; the 1.71 m floor was measured on the pre-#32 extent's draws (docs/worlds/WORLD-FORMAT.md § "Lugano").
+
 **P1.4 three.js renderer v0.** (L, depends on P1.2, P1.3)
 Files: `src/renderers/three/{ThreeWorldView,Terrain,Roads,Rider,ChaseCamera,Sky}.tsx`, `materials/toonTerrain.ts`, `quality.ts`; `package.json` deps (three, r3f, drei, postprocessing, @react-three/test-renderer).
 Scope: chunked terrain mesh from heightfield (e.g. 8×8 chunks, 2 LODs), road ribbons with the real width class, route line, rider (reuse `lib/avatar*` colourways on a stylized GLTF under `public/models/`), chase cam driven by `rideSim`, lane steering from `controllerStore`, sky gradient + sun by time of day, fog.

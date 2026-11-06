@@ -159,6 +159,11 @@ describe('WorldCredits: a GLO-30 world carries the licence notice to the screen'
     expect(glo30).toBeDefined();
   });
 
+  it('is the Lugano that ships: the committed destination already carries the GLO-30 credit (re-bake t_49b58e90)', () => {
+    expect(validateDestination(readJson(join(DEST_DIR, 'lugano.json')), 'lugano.json')).toEqual(lugano);
+    expect(DESTINATIONS.find((d) => d.id === 'lugano')?.credits).toEqual(lugano.credits);
+  });
+
   it('renders the Art. 6(c) liability sentence and the 6(b) notice as text', () => {
     expect(glo30!.text).toContain(GLO30_DISCLAIMER);
     expect(glo30!.text).toContain(
