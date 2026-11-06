@@ -23,6 +23,7 @@ import { ChaseCamSmoother, chaseCamTarget, computeCameraPose, lookAtHeadingPitch
 import {
   CAMERA_GLIDE_S,
   CHASE_FRAMING,
+  chaseAimHeading,
   MAX_AIM_OFFSET_RAD,
   RIDE_FOV_Y_DEG,
   type CameraDistance,
@@ -345,6 +346,14 @@ describe('chase aim: photoreal frames a bend and a slope as the world rig does',
     expect(Math.atan2(look(60).x, look(60).y)).toBeCloseTo(MAX_AIM_OFFSET_RAD, 9);
     expect(Math.hypot(look(60).x, look(60).y)).toBeCloseTo(f.lookAheadM, 9);
     expect(look(0, 0.08).z).toBeCloseTo(0.08 * f.lookAheadM + 1, 9);
+    // Riding south, a bend across ±180° turns the short way round (−20° here, not +340°).
+    for (const [heading, bearing] of [
+      [-3.0, 3.1],
+      [3.0, -3.1],
+    ]) {
+      const bend = Math.atan2(Math.sin(bearing - heading), Math.cos(bearing - heading));
+      expect(chaseAimHeading(heading, Math.sin(bearing) * 14, Math.cos(bearing) * 14)).toBeCloseTo(heading + bend / 2, 9);
+    }
     // The camera stays square behind the drawn heading whatever the bend.
     const t = chaseCamTarget(0.7, { x: 9, y: -3, z: 2 }, f);
     expect(t.position.x).toBeCloseTo(-Math.sin(0.7) * f.backM, 9);
@@ -379,6 +388,18 @@ describe('chase aim: photoreal frames a bend and a slope as the world rig does',
       worst = Math.max(worst, Math.hypot(p.x - wPos[0], p.y - wPos[1], p.z - wPos[2]), Math.hypot(l.x - wLook[0], l.y - wLook[1], l.z - wLook[2]));
     }
     expect(worst).toBeLessThan(1e-9);
+  });
+
+  it('ignores a non-finite target (an unset pose) and keeps the last framing', () => {
+    const f = CHASE_FRAMING.standard;
+    const smoother = new ChaseCamSmoother();
+    const target = chaseCamTarget(0.5, { x: Math.sin(0.5) * f.lookAheadM, y: Math.cos(0.5) * f.lookAheadM, z: 0 }, f);
+    smoother.step(target, 1 / 60);
+    const before = { position: { ...smoother.position }, look: { ...smoother.look } };
+    smoother.step(chaseCamTarget(NaN, { x: 0, y: 14, z: 0 }, f), 1 / 60);
+    smoother.step({ position: target.position, look: { x: Infinity, y: 0, z: 0 } }, 1 / 60);
+    expect(smoother.position).toEqual(before.position);
+    expect(smoother.look).toEqual(before.look);
   });
 
   it('a handover from another camera starts where that camera is and glides in', () => {
