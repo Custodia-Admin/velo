@@ -14,6 +14,7 @@ import * as Cesium from 'cesium';
 import { rideAgain } from '@/components/velo/FinishCard';
 
 import {
+  createAvatar,
   createGroundSampler,
   createMeshRoadFilter,
   DECK_RUN_M,
@@ -29,6 +30,7 @@ import {
   UNDER_BARE_M,
 } from '@/lib/avatar';
 import {
+  clearMeshTopReads,
   drawnGroundHeight,
   getPhotorealTileset,
   groundSettled,
@@ -1540,7 +1542,7 @@ describe('under what stands over the road: the rider rides the road under it (t_
    * does down one stack: the highest surface at or under the ray's origin, so
    * a ray started under a crown reaches the ground under it.
    */
-  async function stacked(column: (m: number) => number[]) {
+  async function stacked(column: (m: number) => number[], onPick?: () => void) {
     const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
     Object.defineProperty(fake, 'show', { value: true, writable: true });
     Object.defineProperty(fake, 'tilesLoaded', { value: true, writable: true });
@@ -1549,6 +1551,7 @@ describe('under what stands over the road: the rider rides the road under it (t_
     Object.defineProperty(fake, 'pick', {
       value: (ray: Cesium.Ray, frameState: unknown) => {
         requireFrameState(frameState);
+        onPick?.();
         const c = Cesium.Cartographic.fromCartesian(ray.origin);
         const h = stack(c).find((x) => x <= c.height);
         return h === undefined ? undefined : Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h);
@@ -1582,6 +1585,53 @@ describe('under what stands over the road: the rider rides the road under it (t_
     }
   });
 
+  it("one sample's reads copy the tile from the GPU once (withMeshReadCache); reads outside a sample copy it every time", async () => {
+    setIonToken('eyJ_test');
+    // Cesium's tile pick copies each tile's geometry back from the GPU
+    // (pickModel -> ModelReader -> Buffer.getBufferData; WebGL 2 keeps no CPU
+    // copy). Under a crown one sample reads the mesh several times (the top,
+    // then down from under it): the copies are kept for those reads.
+    let copies = 0;
+    let picks = 0;
+    const indices = {
+      count: 3,
+      indexDatatype: Cesium.IndexDatatype.UNSIGNED_SHORT,
+      buffer: {
+        isDestroyed: () => false,
+        getBufferData: (out: Uint16Array) => {
+          copies++;
+          out.set([0, 1, 2]);
+        },
+      },
+    };
+    const reader = (Cesium as unknown as { ModelReader: { readIndicesAsTypedArray: (i: unknown) => Uint16Array } }).ModelReader;
+    const towpath = (m: number) => 160 + 0.05 * m;
+    const tileset = await stacked(
+      (m) => (m > 1 ? [towpath(m) + 15, towpath(m)] : [towpath(m)]),
+      () => {
+        picks++;
+        expect([...reader.readIndicesAsTypedArray(indices)]).toEqual([0, 1, 2]);
+      },
+    );
+    const { s, globe } = scene(tileset, { height: undefined, show: false });
+    (globe.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (c: Cesium.Cartographic) => towpath(metresC(Cesium.Math.toDegrees(c.latitude))) - 0.6,
+    );
+    clearMeshTopReads();
+    const sampler = createGroundSampler(s);
+    sampler.sample(lonC, atC(0), 160, 0);
+    expect(copies).toBe(1);
+    const before = picks;
+    expect(sampler.sample(lonC, atC(4), 160, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(towpath(4), 6);
+    // Under the crown: the top and at least one read from under it, one copy kept.
+    expect(picks - before).toBeGreaterThan(1);
+    expect(copies).toBe(1);
+    // Outside a sample's reads nothing is served from the copies.
+    reader.readIndicesAsTypedArray(indices);
+    expect(copies).toBe(2);
+    clearMeshTopReads();
+  });
+
   it('a fresh start under a structure with nothing drawn under it: the globe stands in (no painted road), not the top', async () => {
     setIonToken('eyJ_test');
     // A crown 15 m over the towpath with no ground drawn under it, the globe
@@ -1597,6 +1647,26 @@ describe('under what stands over the road: the rider rides the road under it (t_
     const open = createGroundSampler(scene(bare, { height: 160.4 }).s);
     open.sample(lonC, atC(0), 160, 0);
     expect(open.ground()).toBe('globe');
+  });
+
+  it('the avatar hands the ride view what its sampler stood it on: a stand-in, not only "not the mesh"', async () => {
+    setIonToken('eyJ_test');
+    // CesiumWorldView's ground gate reads avatar.ground(): were it only
+    // meshGround() (mesh or globe), the painted road would come back under
+    // the crown with the globe.
+    const tileset = await stacked(() => [175.4]);
+    const { s } = scene(tileset, { height: 160.4 });
+    const primitives = new Cesium.PrimitiveCollection({ destroyPrimitives: false });
+    primitives.add(tileset);
+    (s as unknown as { primitives: Cesium.PrimitiveCollection }).primitives = primitives;
+    const a = createAvatar({ isDestroyed: () => false, scene: s } as unknown as Cesium.Viewer);
+    try {
+      a.update({ lon: lonC, lat: atC(0), ele: 160, heading: 0, speed: 0, cadence: 0, grade: 0, dt: 1 / 60 });
+      expect(a.ground()).toBe('standIn');
+      expect(a.meshGround()).toBe(false);
+    } finally {
+      a.dispose();
+    }
   });
 
   it('only a surface within UNDER_BARE_M of the bare terrain is taken from under something; with no terrain, none', () => {
