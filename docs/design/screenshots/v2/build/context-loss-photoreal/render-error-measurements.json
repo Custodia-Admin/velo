@@ -1,0 +1,185 @@
+{
+ "what": "A frame that throws on the photoreal view (a primitive whose update() throws; Cesium raises scene.renderError and stops its render loop, the WebGL context stays). Token-free production builds, route scenic-magadino-plain, real Intel Arc GPU (Vulkan), card t_b2730be0.",
+ "main": {
+  "build": "503b3a2 (index-DEMh_pWj.js)",
+  "1440": {
+   "chipShownAfterS": null,
+   "stopped": {
+    "chip": "Demo ride \u00b7 no trainer",
+    "chipTone": "calm",
+    "chipRect": {
+     "x": 302,
+     "y": 762,
+     "w": 195,
+     "h": 40
+    },
+    "worldContext": "live",
+    "worldVisibility": "visible",
+    "contextLost": false,
+    "errorPanels": 1,
+    "errorPanelsVisible": 1,
+    "renderLoop": false
+   }
+  },
+  "1280": {
+   "chipShownAfterS": null,
+   "stopped": {
+    "chip": "Demo ride \u00b7 no trainer",
+    "chipTone": "calm",
+    "chipRect": {
+     "x": 222,
+     "y": 510,
+     "w": 195,
+     "h": 40
+    },
+    "worldContext": "live",
+    "worldVisibility": "visible",
+    "contextLost": false,
+    "errorPanels": 1,
+    "errorPanelsVisible": 1,
+    "renderLoop": false
+   }
+  },
+  "390": {
+   "chipShownAfterS": null,
+   "stopped": {
+    "chip": "Demo ride \u00b7 no trainer",
+    "chipTone": "calm",
+    "chipRect": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0
+    },
+    "worldContext": "live",
+    "worldVisibility": "visible",
+    "contextLost": false,
+    "errorPanels": 1,
+    "errorPanelsVisible": 1,
+    "renderLoop": false
+   }
+  }
+ },
+ "pr": {
+  "build": "index-D_AZXvTP.js",
+  "1440": {
+   "chipShownAfterS": 0.26,
+   "viewLiveAfterTapS": 0.47,
+   "newViewerDrawingAfterS": 0.97,
+   "stopped": {
+    "chip": "3D view stopped \u00b7 tap to reload",
+    "chipTone": "warn",
+    "chipRect": {
+     "x": 305,
+     "y": 762,
+     "w": 258,
+     "h": 40
+    },
+    "worldContext": "lost",
+    "worldVisibility": "hidden",
+    "contextLost": false,
+    "errorPanels": 0,
+    "errorPanelsVisible": 0,
+    "renderLoop": false
+   },
+   "back": {
+    "chip": "Demo ride \u00b7 no trainer",
+    "worldContext": "live",
+    "contextLost": false,
+    "errorPanels": 0,
+    "variety": 20661
+   }
+  },
+  "1280": {
+   "chipShownAfterS": 0.01,
+   "viewLiveAfterTapS": 0.31,
+   "newViewerDrawingAfterS": 1.13,
+   "stopped": {
+    "chip": "3D view stopped \u00b7 tap to reload",
+    "chipTone": "warn",
+    "chipRect": {
+     "x": 225,
+     "y": 510,
+     "w": 258,
+     "h": 40
+    },
+    "worldContext": "lost",
+    "worldVisibility": "hidden",
+    "contextLost": false,
+    "errorPanels": 0,
+    "errorPanelsVisible": 0,
+    "renderLoop": false
+   },
+   "back": {
+    "chip": "Demo ride \u00b7 no trainer",
+    "worldContext": "live",
+    "contextLost": false,
+    "errorPanels": 0,
+    "variety": 26094
+   }
+  },
+  "390": {
+   "chipShownAfterS": 0.01,
+   "viewLiveAfterTapS": 0.48,
+   "newViewerDrawingAfterS": 0.8,
+   "stopped": {
+    "chip": "3D view stopped \u00b7 tap to reload",
+    "chipTone": "warn",
+    "chipRect": {
+     "x": 12,
+     "y": 686,
+     "w": 258,
+     "h": 40
+    },
+    "worldContext": "lost",
+    "worldVisibility": "hidden",
+    "contextLost": false,
+    "errorPanels": 0,
+    "errorPanelsVisible": 0,
+    "renderLoop": false
+   },
+   "back": {
+    "chip": "Demo ride \u00b7 no trainer",
+    "worldContext": "live",
+    "contextLost": false,
+    "errorPanels": 0,
+    "variety": 16861
+   }
+  }
+ },
+ "stress": {
+  "what": "4 real context losses (loseContext; restore, tap, restore, tap), forced GC after each (stress.py from the PR #66 review)",
+  "main_016f638_review": {
+   "windowResizeListeners": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "consoleErrors": "one 'Rendering has stopped' per loss"
+  },
+  "pr": {
+   "windowResizeListeners": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "errorPanelsInDom": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "consoleErrors": 0,
+   "pageErrors": 0,
+   "oldCanvasesStillAlive": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "note": "Old viewers' canvases are still reachable after GC through Cesium's per-context index-buffer cache on the shared regular-grid index arrays (GlobeSurfaceTile._createVertexArrayForMesh), as on main for every ride re-entry; out of scope for this card."
+  }
+ }
+}

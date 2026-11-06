@@ -133,6 +133,7 @@ import { shouldRenderOnDemand } from '@/lib/perf/renderMode';
 import { useMultiriderStore } from '@/stores/multiriderStore';
 import { canvasKeyFor, useWorldViewStore } from '@/stores/worldViewStore';
 import { watchContextLoss } from '@/renderers/contextLoss';
+import { watchRenderLoop } from '@/renderers/cesium/renderLoopWatch';
 
 function cesiumDebugOptedIn(): boolean {
   if (typeof window === 'undefined') return false;
@@ -204,7 +205,7 @@ type CesiumWorldViewProps = WorldViewProps & {
  * owner's current key, so a torn-down viewer's late events are ignored).
  */
 export interface ViewerContextReport {
-  /** The context is gone, or no viewer could be built: the world is frozen. */
+  /** The context is gone, a frame threw (the render loop stopped), or no viewer could be built: the world is frozen. */
   lost: (canvasKey: number) => void;
   /** The browser gave the context back: build the viewer again. */
   restored: (canvasKey: number) => void;
@@ -243,8 +244,7 @@ export function CesiumWorldView(props: CesiumWorldViewProps) {
   }, []);
   const canvasKey = useWorldViewStore((s) => canvasKeyFor(s, viewId));
   // A lost view is hidden until it remounts: a dead WebGL canvas paints white
-  // (with a broken-image glyph) and Cesium may put its "Rendering has
-  // stopped" panel over it; the plain ride background is calmer.
+  // (with a broken-image glyph); the plain ride background is calmer.
   const contextLost = useWorldViewStore((s) => s.view !== null && s.view.id === viewId && s.view.stopped);
   const [report] = useState<ViewerContextReport>(() => ({
     lost: (key) => {
@@ -305,7 +305,7 @@ export function CesiumScene({
   const photorealPromiseRef = useRef<Promise<Cesium.Cesium3DTileset> | null>(null);
   const removeTickRef = useRef<(() => void) | null>(null);
   const detachPerfRef = useRef<(() => void) | null>(null);
-  /** Stops the watch on the viewer canvas's WebGL context (renderers/contextLoss). */
+  /** Stops the watches on the viewer: its canvas's WebGL context (renderers/contextLoss), scene.renderError and its render loop (renderLoopWatch). */
   const stopContextWatchRef = useRef<(() => void) | null>(null);
   // Adaptive quality governor — steps scene cost down when real frames run
   // over budget (see lib/perf/perfGovernor). Recreated on quality-tier change.
@@ -483,6 +483,14 @@ export function CesiumScene({
           // this canvas. xrCompatible is a valid WebGL context attribute (WebXR
           // spec) but isn't typed in Cesium's WebGLOptions — cast to satisfy tsc.
           contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
+          // No "Rendering has stopped" / "Error constructing CesiumWidget"
+          // panel: the ride's status chip says the view stopped (renderError
+          // and the render-loop watch below). Cesium's panel also adds a
+          // window 'resize' listener that only its OK button removes; inside
+          // the hidden dead view nobody clicks it, so the listener kept every
+          // torn-down viewer (its canvas and WebGL context) alive after the
+          // remount.
+          showRenderLoopErrors: false,
         });
       } catch (err) {
         // No WebGL context to be had right now (the GPU process is still
@@ -496,10 +504,37 @@ export function CesiumScene({
       // A lost context freezes the canvas for good (Cesium never restores
       // one): report it, so the chip shows and a restore or a tap remounts
       // this scene on a new Viewer. Stopped first thing in the cleanup.
-      stopContextWatchRef.current = watchContextLoss(viewer.scene.canvas, {
+      const stopContextWatch = watchContextLoss(viewer.scene.canvas, {
         lost: () => context.lost(canvasKey),
         restored: () => context.restored(canvasKey),
       });
+      // Any other error inside a frame stops Cesium's render loop for good
+      // as well (its widget turns the default loop off): the same chip, and
+      // a tap builds a new Viewer. Two ways in, one warning per viewer:
+      // - scene.renderError: what Scene's own tryAndCatchError catches (a
+      //   primitive's update, the draw passes). It also fires for XR's own
+      //   scene.render() calls, so every raise reports.
+      // - watchRenderLoop: a throw that escapes the widget's render() or
+      //   resize() and switches the loop off. That is the scene's
+      //   preUpdate/postUpdate/preRender/postRender listeners (the rider,
+      //   the chase camera, partners, ghosts, the lens crop, scenePerf),
+      //   clock.onTick and initializeFrame, none of which raise renderError.
+      //   WebXR turning the loop off on purpose is not a stop.
+      let renderStopped = false;
+      const stoppedRendering = (error: unknown) => {
+        if (!renderStopped) console.warn('[velo] the photoreal view stopped rendering:', error);
+        renderStopped = true;
+        context.lost(canvasKey);
+      };
+      const stopRenderErrors = viewer.scene.renderError.addEventListener((_scene: Cesium.Scene, error: unknown) =>
+        stoppedRendering(error),
+      );
+      const stopLoopWatch = watchRenderLoop(viewer.cesiumWidget, stoppedRendering);
+      stopContextWatchRef.current = () => {
+        stopContextWatch();
+        stopRenderErrors();
+        stopLoopWatch();
+      };
       // The ride camera's lens (hudLensCrop): the vertical field both
       // renderers share (Cesium's own fov spans the canvas's longer side), and
       // in the floating ride window, where the bar covers the bottom of the

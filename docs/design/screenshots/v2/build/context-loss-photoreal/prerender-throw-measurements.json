@@ -1,0 +1,247 @@
+{
+ "what": "A throw from a scene.preRender listener on the photoreal view (where the ride's per-frame code runs: rider, chase camera, partners, ghosts). Cesium raises preRender outside its tryAndCatchError, so no scene.renderError: the throw escapes scene.render() and the widget's default render loop catches it and stops. The WebGL context stays. Token-free production builds, route scenic-magadino-plain, real Intel Arc GPU (Vulkan), card t_0342cba8. Probe: ~/.hermes/handoffs/velo/t_0342cba8/probe.py LOSS=preRender.",
+ "main": {
+  "build": "9340f35 (index-CwoZKY8X.js)",
+  "1440": {
+   "chipShownAfterS": null,
+   "stopped": {
+    "chip": "Demo ride · no trainer",
+    "chipTone": "calm",
+    "chipRect": {
+     "x": 302,
+     "y": 762,
+     "w": 195,
+     "h": 40
+    },
+    "worldContext": "live",
+    "worldVisibility": "visible",
+    "contextLost": false,
+    "errorPanels": 1,
+    "errorPanelsVisible": 1,
+    "renderLoop": false
+   },
+   "framesWhileStopped": [
+    222,
+    224
+   ]
+  },
+  "1280": {
+   "chipShownAfterS": null,
+   "stopped": {
+    "chip": "Demo ride · no trainer",
+    "chipTone": "calm",
+    "chipRect": {
+     "x": 222,
+     "y": 510,
+     "w": 195,
+     "h": 40
+    },
+    "worldContext": "live",
+    "worldVisibility": "visible",
+    "contextLost": false,
+    "errorPanels": 1,
+    "errorPanelsVisible": 1,
+    "renderLoop": false
+   },
+   "framesWhileStopped": [
+    213,
+    215
+   ]
+  },
+  "390": {
+   "chipShownAfterS": null,
+   "stopped": {
+    "chip": "Demo ride · no trainer",
+    "chipTone": "calm",
+    "chipRect": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0
+    },
+    "worldContext": "live",
+    "worldVisibility": "visible",
+    "contextLost": false,
+    "errorPanels": 1,
+    "errorPanelsVisible": 1,
+    "renderLoop": false
+   },
+   "framesWhileStopped": [
+    191,
+    193
+   ]
+  }
+ },
+ "head": {
+  "build": "d505c65 (index-CMGYQjSl.js)",
+  "1440": {
+   "chipShownAfterS": 0.01,
+   "stopped": {
+    "chip": "3D view stopped · tap to reload",
+    "chipTone": "warn",
+    "chipRect": {
+     "x": 305,
+     "y": 762,
+     "w": 258,
+     "h": 40
+    },
+    "worldContext": "lost",
+    "worldVisibility": "hidden",
+    "contextLost": false,
+    "errorPanels": 0,
+    "errorPanelsVisible": 0,
+    "renderLoop": false
+   },
+   "afterTap": {
+    "liveAfterS": 0.56,
+    "newViewerDrawingAfterS": 1.87,
+    "chip": "Demo ride · no trainer",
+    "worldContext": "live",
+    "frame": 118,
+    "variety": 20664,
+    "errorPanels": 0
+   },
+   "rideClockWorstPlateauMs": 306,
+   "pageErrors": []
+  },
+  "1280": {
+   "chipShownAfterS": 0.02,
+   "stopped": {
+    "chip": "3D view stopped · tap to reload",
+    "chipTone": "warn",
+    "chipRect": {
+     "x": 225,
+     "y": 510,
+     "w": 258,
+     "h": 40
+    },
+    "worldContext": "lost",
+    "worldVisibility": "hidden",
+    "contextLost": false,
+    "errorPanels": 0,
+    "errorPanelsVisible": 0,
+    "renderLoop": false
+   },
+   "afterTap": {
+    "liveAfterS": 1.24,
+    "newViewerDrawingAfterS": 2.06,
+    "chip": "Demo ride · no trainer",
+    "worldContext": "live",
+    "frame": 170,
+    "variety": 26487,
+    "errorPanels": 0
+   },
+   "rideClockWorstPlateauMs": 500,
+   "pageErrors": []
+  },
+  "390": {
+   "chipShownAfterS": 0.27,
+   "stopped": {
+    "chip": "3D view stopped · tap to reload",
+    "chipTone": "warn",
+    "chipRect": {
+     "x": 12,
+     "y": 686,
+     "w": 258,
+     "h": 40
+    },
+    "worldContext": "lost",
+    "worldVisibility": "hidden",
+    "contextLost": false,
+    "errorPanels": 0,
+    "errorPanelsVisible": 0,
+    "renderLoop": false
+   },
+   "afterTap": {
+    "liveAfterS": 0.24,
+    "newViewerDrawingAfterS": 1.94,
+    "chip": "Demo ride · no trainer",
+    "worldContext": "live",
+    "frame": 193,
+    "variety": 16101,
+    "errorPanels": 0
+   },
+   "rideClockWorstPlateauMs": 750,
+   "pageErrors": []
+  },
+  "otherHooks1440": {
+   "preUpdate": {
+    "chipShownAfterS": 0.01,
+    "chip": "3D view stopped · tap to reload",
+    "worldContext": "lost",
+    "renderLoop": false,
+    "errorPanels": 0,
+    "afterTap": {
+     "chip": "Demo ride · no trainer",
+     "worldContext": "live",
+     "frame": 104,
+     "variety": 19907
+    },
+    "pageErrors": []
+   },
+   "postRender": {
+    "chipShownAfterS": 0.05,
+    "chip": "3D view stopped · tap to reload",
+    "worldContext": "lost",
+    "renderLoop": false,
+    "errorPanels": 0,
+    "afterTap": {
+     "chip": "Demo ride · no trainer",
+     "worldContext": "live",
+     "frame": 103,
+     "variety": 19854
+    },
+    "pageErrors": []
+   },
+   "onTick": {
+    "chipShownAfterS": 0.01,
+    "chip": "3D view stopped · tap to reload",
+    "worldContext": "lost",
+    "renderLoop": false,
+    "errorPanels": 0,
+    "afterTap": {
+     "chip": "Demo ride · no trainer",
+     "worldContext": "live",
+     "frame": 99,
+     "variety": 19876
+    },
+    "pageErrors": []
+   },
+   "throw": {
+    "chipShownAfterS": 0.02,
+    "chip": "3D view stopped · tap to reload",
+    "worldContext": "lost",
+    "renderLoop": false,
+    "errorPanels": 0,
+    "afterTap": {
+     "chip": "Demo ride · no trainer",
+     "worldContext": "live",
+     "frame": 70,
+     "variety": 20198
+    },
+    "pageErrors": []
+   },
+   "note": "throw = a primitive whose update() throws (the scene.renderError path from t_b2730be0), for comparison."
+  }
+ },
+ "hudAreaSumPct": {
+  "1440": {
+   "riding": 5.8,
+   "stoppedChip": 5,
+   "afterTap": 5.8,
+   "budget": 15.0
+  },
+  "1280": {
+   "riding": 9,
+   "stoppedChip": 7.8,
+   "afterTap": 9,
+   "budget": 15.0
+  },
+  "390": {
+   "riding": 14.5,
+   "stoppedChip": 14,
+   "afterTap": 14.5,
+   "budget": 15.0
+  }
+ }
+}

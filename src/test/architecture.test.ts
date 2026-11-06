@@ -106,6 +106,23 @@ function engineImportsReachable(
   return hits;
 }
 
+/** Every local module `entries` reach through the edges `follow` keeps (repo-relative). */
+function reachable(entries: string[], follow: (r: ImportRef) => boolean): string[] {
+  const seen = new Set<string>();
+  const queue = [...entries];
+  while (queue.length) {
+    const f = queue.shift()!;
+    if (seen.has(f)) continue;
+    seen.add(f);
+    for (const r of importsOf(f)) {
+      if (!follow(r)) continue;
+      const next = resolveLocal(f, r.spec);
+      if (next) queue.push(next);
+    }
+  }
+  return [...seen].map(rel);
+}
+
 function filesUnder(dir: string): string[] {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
@@ -183,22 +200,6 @@ describe('world renderer (three.js) is token-free', () => {
   const staticValue = (r: ImportRef) => !r.typeOnly && !r.dynamic;
   const threeFiles = filesUnder(path.join(SRC, 'renderers/three')).filter((f) => !isTest(f));
 
-  const reachable = (entries: string[], follow: (r: ImportRef) => boolean) => {
-    const seen = new Set<string>();
-    const queue = [...entries];
-    while (queue.length) {
-      const f = queue.shift()!;
-      if (seen.has(f)) continue;
-      seen.add(f);
-      for (const r of importsOf(f)) {
-        if (!follow(r)) continue;
-        const next = resolveLocal(f, r.spec);
-        if (next) queue.push(next);
-      }
-    }
-    return [...seen].map(rel);
-  };
-
   it('no renderers/three file reaches Cesium code (static or dynamic value imports)', () => {
     expect(threeFiles.length).toBeGreaterThan(5);
     const hits = engineImportsReachable(threeFiles, value).filter((h) => /imports 'cesium/.test(h));
@@ -222,6 +223,38 @@ describe('world renderer (three.js) is token-free', () => {
       const hits = engineImportsReachable([path.join(SRC, entry)], staticValue);
       expect(hits.filter((h) => /imports '(three|@react-three|postprocessing)/.test(h))).toEqual([]);
     }
+  });
+});
+
+describe('photoreal renderer (Cesium) and the shared renderer modules are three.js-free', () => {
+  // Value imports (static or import()) are what ships; `import type` is erased.
+  const value = (r: ImportRef) => !r.typeOnly;
+  const THREE_HIT = /imports '(three|@react-three\/|postprocessing)/;
+  const cesiumFiles = filesUnder(path.join(SRC, 'renderers/cesium')).filter((f) => !isTest(f));
+  // Modules beside the renderer folders are bundled into BOTH renderer
+  // chunks (renderers/contextLoss: the WebGL context watch). The registry is
+  // the one exception: it reaches each renderer through import() by design.
+  const sharedFiles = fs
+    .readdirSync(path.join(SRC, 'renderers'), { withFileTypes: true })
+    .filter((d) => d.isFile() && /\.(ts|tsx)$/.test(d.name))
+    .map((d) => path.join(SRC, 'renderers', d.name))
+    .filter((f) => !isTest(f) && rel(f) !== 'src/renderers/registry.ts');
+
+  it('the shared modules reach no engine at all (neither Cesium nor three.js), in any value import', () => {
+    expect(sharedFiles.map(rel)).toContain('src/renderers/contextLoss.ts');
+    expect(engineImportsReachable(sharedFiles, value)).toEqual([]);
+  });
+
+  it('no renderers/cesium file reaches three.js, react-three or postprocessing (static or dynamic value imports)', () => {
+    expect(cesiumFiles.map(rel)).toContain('src/renderers/cesium/CesiumWorldView.tsx');
+    expect(cesiumFiles.length).toBeGreaterThan(5);
+    const hits = engineImportsReachable(cesiumFiles, value).filter((h) => THREE_HIT.test(h));
+    expect(hits).toEqual([]);
+  });
+
+  it('nor any three.js-side app module (renderers/three)', () => {
+    const bad = reachable([...cesiumFiles, ...sharedFiles], value).filter((f) => f.startsWith('src/renderers/three/'));
+    expect(bad).toEqual([]);
   });
 });
 
