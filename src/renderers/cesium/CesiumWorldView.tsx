@@ -1264,6 +1264,8 @@ export function CesiumScene({
         // refinement no longer matters (its tiles stop updating anyway).
         startGroundRef.current.update(sampled.lon, sampled.lat, drawn, groundEle, nowMs, !globeShown);
       }
+      // The route point ahead, on the drawn ground: the chase camera looks at it + 1 m
+      // (the world rig's rule; the world lays its road on this same route profile).
       const aheadAtGround = { ...ahead, ele: groundEle + (ahead.ele - sampled.ele) };
       if (typeof window !== 'undefined') {
         // Read-only numbers for the slow-network regression check (no viewer handle).

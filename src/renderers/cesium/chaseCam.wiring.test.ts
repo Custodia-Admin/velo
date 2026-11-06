@@ -7,7 +7,8 @@
  *   route bearing; the avatar, its lane offset and every camera use it, so the
  *   chase camera sits square behind the rider in a bend;
  * - the route point the camera looks toward is `lookAheadM` ahead (10 m at
- *   close, 14 m standard), not a fixed 15 m;
+ *   close, 14 m standard), not a fixed 15 m, at its route-profile height
+ *   from the drawn ground under the rider;
  * - applyFollowCam gets that heading and framing (half-bend aim, look at the
  *   point ahead + 1 m, chaseCamTarget), and what it applied is the pose a
  *   mode change starts from;
@@ -41,6 +42,7 @@ describe('CesiumWorldView aims the chase camera like the world renderer', () => 
     expect(SRC).toMatch(
       /const aheadPose = ridePose\(r, Math\.min\(r\.totalDistance, pose\.distance \+ framing\.lookAheadM\), \{\s*laneOffsetM: pose\.laneOffsetM,\s*offsetHeading: heading,/,
     );
+    // …at its height on the route profile from the drawn ground under the rider (the world's road is that profile).
     expect(SRC).toContain('const aheadAtGround = { ...ahead, ele: groundEle + (ahead.ele - sampled.ele) };');
   });
 
