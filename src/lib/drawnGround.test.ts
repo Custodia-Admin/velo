@@ -200,6 +200,24 @@ describe('the rider stands on the drawn ground over the photoreal mesh', () => {
     expect(getHeight).toHaveBeenCalledTimes(calls + 1);
   });
 
+  it("groundSampledAt is when the sample behind ground() was taken, not the latest call (the globe gate hides only on a sample)", async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photoreal(306.2);
+    const { s } = scene(tileset, { height: 305 });
+    const sampler = createGroundSampler(s);
+    expect(sampler.groundSampledAt()).toBe(-Infinity);
+    sampler.sample(12.1, 43.2, 259, 1000);
+    expect(sampler.ground()).toBe('mesh');
+    expect(sampler.groundSampledAt()).toBe(1000);
+    // The frames between samples reuse the reading, and its time.
+    for (const t of [1016, 1033, 1100, 1000 + GROUND_SAMPLE_INTERVAL_MS - 1]) {
+      sampler.sample(12.10001, 43.2, 259, t);
+      expect(sampler.groundSampledAt(), `${t}`).toBe(1000);
+    }
+    sampler.sample(12.10002, 43.2, 259, 1000 + GROUND_SAMPLE_INTERVAL_MS + 3);
+    expect(sampler.groundSampledAt()).toBe(1000 + GROUND_SAMPLE_INTERVAL_MS + 3);
+  });
+
   it('on the globe over a coarse mesh reading, the mesh is read every frame: a finer tile landing over the globe is stood on at once', async () => {
     // Santa Monica start, photoreal at the ride's 60° field (t_a67fb090): a
     // coarse tile read 11 m under the drawn globe, the street landed 4.2 m
@@ -2283,6 +2301,30 @@ describe('under what stands over the road: the rider rides the road under it (t_
       a.update({ lon: lonC, lat: atC(0), ele: 160, heading: 0, speed: 0, cadence: 0, grade: 0, dt: 1 / 60 });
       expect(a.ground()).toBe('under');
       expect(a.meshGround()).toBe(false);
+    } finally {
+      a.dispose();
+    }
+  });
+
+  it('the avatar hands the ride view when that sample was taken: the frames between samples keep its time', async () => {
+    setIonToken('eyJ_test');
+    const tileset = await stacked(() => [175.4]);
+    const { s } = scene(tileset, { height: 160.4 });
+    const primitives = new Cesium.PrimitiveCollection({ destroyPrimitives: false });
+    primitives.add(tileset);
+    (s as unknown as { primitives: Cesium.PrimitiveCollection }).primitives = primitives;
+    const now = vi.spyOn(performance, 'now');
+    const a = createAvatar({ isDestroyed: () => false, scene: s } as unknown as Cesium.Viewer);
+    const at = (ms: number) => {
+      now.mockReturnValue(ms);
+      a.update({ lon: lonC, lat: atC(0), ele: 160, heading: 0, speed: 0, cadence: 0, grade: 0, dt: 1 / 60 });
+      return a.groundSampledAt();
+    };
+    try {
+      expect(at(5_000)).toBe(5_000);
+      expect(at(5_017)).toBe(5_000);
+      expect(at(5_000 + GROUND_SAMPLE_INTERVAL_MS - 1)).toBe(5_000);
+      expect(at(5_000 + GROUND_SAMPLE_INTERVAL_MS + 9)).toBe(5_000 + GROUND_SAMPLE_INTERVAL_MS + 9);
     } finally {
       a.dispose();
     }

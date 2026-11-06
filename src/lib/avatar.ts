@@ -171,6 +171,11 @@ export interface Avatar {
    * painted road follow (renderers/cesium/globeGate GroundGate).
    */
   ground: () => GroundKind;
+  /**
+   * When the sample behind {@link Avatar.ground} was taken (performance.now()
+   * ms): the globe hides only on a sample (renderers/cesium/globeGate).
+   */
+  groundSampledAt: () => number;
   setColors: (c: AvatarColors) => void;
   dispose: () => void;
   /** Internal: current skin color including effort tint. Set by setAvatarEffortLevel. */
@@ -1604,6 +1609,7 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     groundEle: () => smoothedEle,
     meshGround: () => groundSampler.meshGround(),
     ground: () => groundSampler.ground(),
+    groundSampledAt: () => groundSampler.groundSampledAt(),
     setColors,
     dispose,
     _effortLevel: 0,
@@ -2420,6 +2426,10 @@ export function createGroundSampler(scene: Cesium.Scene, finest: FinestTerrain =
     /** What the last sample stood the rider on (see {@link GroundKind}). */
     ground(): GroundKind {
       return ground;
+    },
+    /** When that sample was taken (`nowMs` of the call that took it; -Infinity before the first). */
+    groundSampledAt(): number {
+      return lastMs;
     },
   };
 }

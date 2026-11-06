@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import type { GroundKind } from '@/lib/avatar';
+import { GROUND_SAMPLE_INTERVAL_MS, type GroundKind } from '@/lib/avatar';
 import {
   GLOBE_HIDE_AFTER_MS,
   GLOBE_SHOW_AFTER_MS,
@@ -60,6 +60,23 @@ describe('GlobeGate', () => {
     expect(g.update(20_000, true, false, 300)).toBe(false);
     expect(g.update(20_299, true, false, 300)).toBe(false);
     expect(g.update(20_300, true, false, 300)).toBe(true);
+  });
+
+  it('the hide waits for a mesh sample taken the hide wait after the first: frames on an older reading keep the globe', () => {
+    const g = new GlobeGate();
+    // Samples at 0, 262 and 524 ms (each on the first frame 250 ms on).
+    expect(g.update(17, true, true, GLOBE_SHOW_AFTER_MS, 0)).toBe(true);
+    expect(g.update(17 + GLOBE_HIDE_AFTER_MS, true, true, GLOBE_SHOW_AFTER_MS, 524)).toBe(true);
+    expect(g.update(17 + GLOBE_HIDE_AFTER_MS + 33, true, true, GLOBE_SHOW_AFTER_MS, 524)).toBe(true);
+    // The fourth sample, 786 ms after the first, still on the mesh road.
+    expect(g.update(803, true, true, GLOBE_SHOW_AFTER_MS, 786)).toBe(false);
+  });
+
+  it('nor sooner than the hide wait on the frame clock, however old the first reading (a reset under a reading from before)', () => {
+    const g = new GlobeGate();
+    expect(g.update(10_000, true, true, GLOBE_SHOW_AFTER_MS, 9_800)).toBe(true);
+    expect(g.update(10_000 + GLOBE_HIDE_AFTER_MS - 1, true, true, GLOBE_SHOW_AFTER_MS, 9_800 + GLOBE_HIDE_AFTER_MS)).toBe(true);
+    expect(g.update(10_000 + GLOBE_HIDE_AFTER_MS, true, true, GLOBE_SHOW_AFTER_MS, 9_800 + GLOBE_HIDE_AFTER_MS)).toBe(false);
   });
 
   it('a hidden tileset (camera over 5 km, no token, mobile) brings the globe back at once', () => {
@@ -226,5 +243,136 @@ describe('GroundGate: the globe, and the painted road only where the globe is th
     hold(g, t, 2_000, 'standIn');
     g.reset();
     expect(g.update(t + 3_000, true, 'standIn')).toEqual({ globe: true, road: true });
+  });
+});
+
+/**
+ * The ground the gate reads comes from a sample every 250 ms, each on the
+ * first frame after that (lib/avatar createGroundSampler), and the gate runs
+ * before the frame's sample (CesiumWorldView). With frame jitter the samples
+ * drift later than a timer on the frame clock: timed on it alone, a mesh run
+ * of three samples between stand-ins (a crown edge on the Cuyahoga towpath)
+ * hid the globe a frame or three before the fourth sample said 'standIn',
+ * and the globe was drawn again on the next frame: 5–36 ms drop-outs in every
+ * cat-bed ride, up to a quarter of the frame black.
+ */
+describe('GroundGate on the sample cadence: the globe hides only on a sample', () => {
+  const PROFILES = {
+    // 60 fps with jitter: 5 % of frames take two vsyncs.
+    jittered: (rnd: () => number) => (rnd() < 0.05 ? 33.3 : 14 + rnd() * 5.3),
+    // A loaded machine: 25–40 ms frames, 10 % of them 67 ms.
+    loaded: (rnd: () => number) => (rnd() < 0.1 ? 66.7 : 25 + rnd() * 15),
+  };
+  const PHASES = [0, 1, 2, 3, 4, 5, 6, 7];
+
+  interface Frame {
+    t: number;
+    globe: boolean;
+    /** The same frames through the gate on the frame clock alone (sample time not passed). */
+    frameClock: boolean;
+    ground: GroundKind;
+    sampledAt: number;
+    /** When the mesh run behind this reading began (its first mesh sample). */
+    runFrom: number;
+  }
+
+  /**
+   * One ride over the sample kinds: on the mesh road long enough that the globe
+   * is hidden, stand-ins, `n` mesh samples, stand-ins again.
+   */
+  const ride = (n: number, phase: number, frameMs: (rnd: () => number) => number) => {
+    let seed = 11 + phase * 7919 + n;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const kinds: GroundKind[] = [
+      ...Array<GroundKind>(8).fill('mesh'),
+      ...Array<GroundKind>(4).fill('standIn'),
+      ...Array<GroundKind>(n).fill('mesh'),
+      ...Array<GroundKind>(6).fill('standIn'),
+    ];
+    const gate = new GroundGate();
+    const frameClock = new GroundGate();
+    const frames: Frame[] = [];
+    const samples: number[] = [];
+    let t = 1_000 + phase * 2.1;
+    let ground: GroundKind = 'globe';
+    let sampledAt = -Infinity;
+    let runFrom = NaN;
+    for (let i = 0; i <= kinds.length; ) {
+      t += frameMs(rnd);
+      frames.push({
+        t,
+        globe: gate.update(t, true, ground, sampledAt).globe,
+        frameClock: frameClock.update(t, true, ground).globe,
+        ground,
+        sampledAt,
+        runFrom,
+      });
+      if (t - sampledAt >= GROUND_SAMPLE_INTERVAL_MS) {
+        if (i === kinds.length) break;
+        if (kinds[i] === 'mesh' && ground !== 'mesh') runFrom = t;
+        ground = kinds[i++];
+        sampledAt = t;
+        samples.push(t);
+      }
+    }
+    return { frames, samples, run: samples[12], after: samples[12 + n] };
+  };
+  /** The frames where the globe went from drawn to hidden. */
+  const hides = (frames: Frame[], key: 'globe' | 'frameClock' = 'globe') =>
+    frames.filter((f, k) => k > 0 && frames[k - 1][key] && !f[key]);
+
+  it('every hide is on a mesh sample taken the hide wait or more after the run began', () => {
+    for (const [name, frameMs] of Object.entries(PROFILES)) {
+      for (const n of [1, 2, 3, 4, 5, 6]) {
+        for (const phase of PHASES) {
+          const { frames } = ride(n, phase, frameMs);
+          const at = `${name} run ${n} phase ${phase}`;
+          expect(hides(frames).length, at).toBeGreaterThan(0);
+          for (const f of hides(frames)) {
+            expect(f.ground, at).toBe('mesh');
+            expect(f.sampledAt - f.runFrom, at).toBeGreaterThanOrEqual(GLOBE_HIDE_AFTER_MS);
+          }
+        }
+      }
+    }
+  });
+
+  it('a mesh run of one to three samples between stand-ins never hides the drawn globe', () => {
+    for (const [name, frameMs] of Object.entries(PROFILES)) {
+      for (const n of [1, 2, 3]) {
+        for (const phase of PHASES) {
+          const { frames, samples } = ride(n, phase, frameMs);
+          // Drawn on the first frame after the first stand-in sample, and kept.
+          const drawn = frames.filter((f) => f.t > samples[8]);
+          expect(
+            drawn.filter((f) => !f.globe).map((f) => Math.round(f.t - samples[8])),
+            `${name} run ${n} phase ${phase}`,
+          ).toEqual([]);
+        }
+      }
+    }
+  });
+
+  it('a run of four mesh samples or more still hides it, within a second of its first sample and at most a sample later than on the frame clock', () => {
+    for (const [name, frameMs] of Object.entries(PROFILES)) {
+      for (const n of [4, 5, 6]) {
+        for (const phase of PHASES) {
+          const { frames, run, after } = ride(n, phase, frameMs);
+          const at = `${name} run ${n} phase ${phase}`;
+          const hide = hides(frames).find((f) => f.t > run);
+          const frameClockHide = hides(frames, 'frameClock').find((f) => f.t > run);
+          expect(hide, at).toBeDefined();
+          expect(frameClockHide, at).toBeDefined();
+          expect(hide!.t - run, at).toBeLessThanOrEqual(GLOBE_HIDE_AFTER_MS + GROUND_SAMPLE_INTERVAL_MS + 70);
+          if (name === 'jittered') expect(hide!.t - run, at).toBeLessThanOrEqual(1_000);
+          expect(hide!.t, at).toBeGreaterThanOrEqual(frameClockHide!.t);
+          expect(hide!.t - frameClockHide!.t, at).toBeLessThanOrEqual(GROUND_SAMPLE_INTERVAL_MS);
+          // Hidden until the next stand-in sample, then drawn on the frame after it.
+          const span = frames.filter((f) => f.t >= hide!.t && f.t <= after);
+          expect(span.every((f) => !f.globe), at).toBe(true);
+          expect(frames.filter((f) => f.t > after).every((f) => f.globe), at).toBe(true);
+        }
+      }
+    }
   });
 });

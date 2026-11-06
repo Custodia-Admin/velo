@@ -1261,8 +1261,15 @@ export function CesiumScene({
       // street on the Lugano shore, and the rider rode it); it comes back
       // where the mesh isn't the ground (renderers/cesium/globeGate). Decided
       // from the rider's last ground reading, before this frame's, so the
-      // avatar below measures the ground as it will be drawn.
-      const groundDraw = groundGateRef.current.update(nowMs, photorealShown, avatarRef.current.ground());
+      // avatar below measures the ground as it will be drawn. The globe hides
+      // only on a sample (its time, not this frame's: a hide timed on the
+      // frame clock came a frame or three before a sample that drew it again).
+      const groundDraw = groundGateRef.current.update(
+        nowMs,
+        photorealShown,
+        avatarRef.current.ground(),
+        avatarRef.current.groundSampledAt(),
+      );
       const globeShown = groundDraw.globe;
       if (viewer.scene.globe.show !== globeShown) viewer.scene.globe.show = globeShown;
       // The painted road (asphalt corridor, dashed centre line, edge stripes)

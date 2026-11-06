@@ -49,29 +49,58 @@ export class GlobeGate {
   /** Whether the globe is drawn. */
   shown = true;
   private since: number | null = null;
+  /** When the first sample of the mesh run behind a pending hide was taken. */
+  private sinceSample: number | null = null;
 
   /**
    * One frame. `meshShown`: the photoreal tileset is part of the scene;
    * `meshGround`: its mesh is the road under the rider (avatar.meshGround);
-   * `showAfterMs`: how long without it brings the globe back.
+   * `showAfterMs`: how long without it brings the globe back; `sampledAtMs`:
+   * when the ground sample this reading comes from was taken (same clock as
+   * `nowMs`; by default every frame is a sample).
    * Returns whether the globe draws this frame.
+   *
+   * The hide waits for a sample: one taken {@link GLOBE_HIDE_AFTER_MS} or
+   * more after the mesh run's first one, still on the mesh road. The ground
+   * is sampled every 250 ms (lib/avatar GROUND_SAMPLE_INTERVAL_MS), each on
+   * the first frame after that, so with frame jitter the samples drift later
+   * than a timer on this frame clock. Timed on the frame clock alone, a run of
+   * three mesh samples hid the globe a frame or three before the fourth
+   * sample, and when that one said 'standIn' the globe was drawn again on the
+   * next frame: 5–36 ms drop-outs at the crown edges, up to a quarter of the
+   * frame black (Cuyahoga towpath 3.97 and 4.12 km). Confirmed by a sample, a
+   * hide lasts at least until the next sample. It never comes sooner than the
+   * frame-clock wait either, and at most one sample interval later.
    */
-  update(nowMs: number, meshShown: boolean, meshGround: boolean, showAfterMs = GLOBE_SHOW_AFTER_MS): boolean {
+  update(
+    nowMs: number,
+    meshShown: boolean,
+    meshGround: boolean,
+    showAfterMs = GLOBE_SHOW_AFTER_MS,
+    sampledAtMs = nowMs,
+  ): boolean {
     if (!meshShown) {
       // Nothing else draws the ground: the globe, now.
       this.shown = true;
       this.since = null;
+      this.sinceSample = null;
       return true;
     }
     const want = !meshGround;
     if (want === this.shown) {
       this.since = null;
+      this.sinceSample = null;
       return this.shown;
     }
     this.since ??= nowMs;
-    if (nowMs - this.since >= (want ? showAfterMs : GLOBE_HIDE_AFTER_MS)) {
+    if (!want) this.sinceSample ??= sampledAtMs;
+    const due = want
+      ? nowMs - this.since >= showAfterMs
+      : nowMs - this.since >= GLOBE_HIDE_AFTER_MS && sampledAtMs - (this.sinceSample as number) >= GLOBE_HIDE_AFTER_MS;
+    if (due) {
       this.shown = want;
       this.since = null;
+      this.sinceSample = null;
     }
     return this.shown;
   }
@@ -80,6 +109,7 @@ export class GlobeGate {
   reset(): void {
     this.shown = true;
     this.since = null;
+    this.sinceSample = null;
   }
 }
 
@@ -108,13 +138,19 @@ export class GroundGate {
   private readonly globe = new GlobeGate();
   private readonly paint = new GlobeGate();
 
-  /** One frame. `meshShown`: the photoreal tileset is part of the scene. */
-  update(nowMs: number, meshShown: boolean, ground: GroundKind): GroundDraw {
+  /**
+   * One frame. `meshShown`: the photoreal tileset is part of the scene;
+   * `sampledAtMs`: when the sample behind `ground` was taken
+   * (avatar.groundSampledAt): the globe hides only on a sample
+   * ({@link GlobeGate.update}).
+   */
+  update(nowMs: number, meshShown: boolean, ground: GroundKind, sampledAtMs = nowMs): GroundDraw {
     const globe = this.globe.update(
       nowMs,
       meshShown,
       ground === 'mesh',
       ground === 'standIn' ? GLOBE_STANDIN_SHOW_AFTER_MS : GLOBE_SHOW_AFTER_MS,
+      sampledAtMs,
     );
     const road = this.paint.update(nowMs, meshShown, ground !== 'globe');
     return { globe, road: globe && road };
