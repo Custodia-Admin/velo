@@ -21,10 +21,9 @@ export interface RideAutoStartInput {
  * fly-in to the chase pose mid-transition), START_DELAY_MS have passed (the
  * rider sees the route and the chase angle for a beat), and the renderer's
  * ground under the rider is ready or the start hold ran out
- * (lib/ride/startHold). Fires once per ride view, from 'idle' or 'ready'
- * (the wizard's setRoute sometimes lands before /ride's own and leaves
- * 'idle'); the hold's clock starts with the first renderer and survives the
- * re-runs those state changes cause.
+ * (lib/ride/startHold). Fires once per ride view, from 'ready' (or 'idle');
+ * the hold's clock starts with the first renderer and survives the re-runs
+ * state changes cause.
  */
 export function useRideAutoStart({ wantsAutoStart, worldRenderer, route, rideMode, rideState }: RideAutoStartInput): void {
   const consumedRef = useRef(false);
@@ -45,8 +44,10 @@ export function useRideAutoStart({ wantsAutoStart, worldRenderer, route, rideMod
       }
       consumedRef.current = true;
       const st = useRideStore.getState();
-      // Re-set the route so rideState transitions ready (setRoute handles
-      // this idempotently — same route ref still resets to 'ready').
+      // A loaded route should already be 'ready': setRoute, reset and
+      // prepare all end there, and no store action leaves a route in 'idle'.
+      // If a store ever is 'idle' with a route, re-set it (same route ref →
+      // 'ready', clean slate) before starting.
       if (st.route && st.rideState !== 'ready' && st.rideState !== 'running') {
         st.setRoute(st.route);
       }

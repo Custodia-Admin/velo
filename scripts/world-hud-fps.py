@@ -76,7 +76,7 @@ with sync_playwright() as p:
              "gpu": page.evaluate("""() => { const gl = document.createElement('canvas').getContext('webgl2');
                  const e = gl.getExtension('WEBGL_debug_renderer_info'); return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); }"""),
              "dpr": page.evaluate("() => window.__veloRideDebug().dpr"),
-             "noTokenBanner": page.get_by_text("Add a free Cesium ion token").count()}
+             "noTokenBanner": page.get_by_test_id("photoreal-notice").count()}
         set_mode(page, "hud"); time.sleep(0.5)
         r["backdropHud"] = page.evaluate(BACKDROP)
         page.screenshot(path=f"{out}/{q}-hud.png")

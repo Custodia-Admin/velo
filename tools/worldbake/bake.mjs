@@ -2,10 +2,18 @@
 // Velo world bake: `node tools/worldbake/bake.mjs <world> [options]`
 //
 //   --clean            delete this world's cached downloads first (clean-cache bake)
-//   --no-validate      skip the Open-Meteo heightfield check
-//   --out <dir>        output dir (default public/worlds/<world>)
+//   --no-validate      skip the P1.3 heightfield check (Open-Meteo); the report's
+//                      `validation` is then null, and the recipe keeps its
+//                      previous `validation` block untouched
+//   --out <dir>        bundle dir (default public/worlds/<world>); see below
 //   --cache <dir>      download cache (default tools/worldbake/cache, env WORLDBAKE_CACHE)
 //   --no-docs          don't rewrite this world's block in docs/worlds/CREDITS.md
+//
+// `--out` only moves the bundle. In the tree it runs from, the bake still
+// rewrites tools/worldbake/reports/<world>.json, the recipe's `validation`
+// block (tools/worldbake/worlds/<world>.json, unless --no-validate) and the
+// world's block in docs/worlds/CREDITS.md (unless --no-docs). To bake for
+// comparison without touching a working tree, bake from a `git archive` copy.
 //
 // The heightfield comes from the recipe's `dem.source`: AWS Terrain Tiles by
 // default (`dem.zoom`), or Copernicus GLO-30 COGs with "copernicus-glo30"
@@ -15,9 +23,14 @@
 // manifest.json). OSM queries are pinned to the recipe's osmDate, so a clean
 // cache re-downloads the same data. Runs on the bake host (cat-bed), not the
 // laptop: see docs/worlds/WORLD-FORMAT.md "Baking".
+//
+// The P1.3 check (validateDem.mjs, blueprint §P1.3 v2) writes its block back
+// into the recipe's `validation` and into the report. `validation` never
+// shapes the bundle, so it is left out of `generator.recipeSha256`: writing
+// the block back doesn't change the next bake's bytes.
 
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { createProjection } from '../../src/lib/world/projection.ts';
 import { decodeHeightDeltas } from '../../src/lib/world/heightfield.ts';
@@ -30,7 +43,8 @@ import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
-import { validateHeightfield } from './validateDem.mjs';
+import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
+import { P13_SAMPLE_COUNT, validationInputs } from './p13Criterion.mjs';
 import { syncDestinations } from './syncDestinations.mjs';
 import { brotliSize, ensureDir, gzip, here, sha256, stableJson, writeFileAtomic } from './util.mjs';
 
@@ -101,15 +115,27 @@ export function creditsFor(demSource) {
 }
 
 /**
+ * The recipe bytes `generator.recipeSha256` hashes: the parsed recipe without
+ * its `validation` block (the P1.3 check's seed and results never touch the
+ * bundle, and the bake writes its results back into the recipe).
+ */
+export function recipeBundleBytes(recipe) {
+  const { validation: _validation, ...rest } = recipe;
+  return stableJson(rest);
+}
+
+/**
  * `manifest.generator` for a bake from `demSource`. The key order is part of
  * the manifest's bytes: the default source keeps `demSource` + `demZoom`
  * where they always were, GLO-30 names its source and has no zoom.
+ * `recipeSha256` hashes `recipeBundleBytes(recipe)`, computed here so no
+ * caller can hash the raw recipe file (which carries `validation`).
  */
-export function generatorFor(demSource, recipe, recipeBytes, dem) {
+export function generatorFor(demSource, recipe, dem) {
   return {
     tool: 'velo-worldbake',
     version: TOOL_VERSION,
-    recipeSha256: sha256(recipeBytes),
+    recipeSha256: sha256(recipeBundleBytes(recipe)),
     osmDate: recipe.osmDate,
     ...(demSource === GLO30_DEM_SOURCE ? { demSource: dem.source } : { demSource: DEM_SOURCE, demZoom: recipe.dem.zoom }),
     demTiles: dem.tiles.length,
@@ -119,6 +145,49 @@ export function generatorFor(demSource, recipe, recipeBytes, dem) {
 /** Stop the bake when the bundle (every file, brotli 11) is over the budget. */
 export function checkBundleBudget(totals) {
   if (totals.brotli > MAX_BUNDLE_BROTLI_BYTES) throw new Error(`bundle is ${(totals.brotli / 1e6).toFixed(2)} MB brotli, over the ${MAX_BUNDLE_BROTLI_BYTES / 1e6} MB budget`);
+}
+
+/**
+ * Read a recipe and check what would stop the bake late: its DEM source and
+ * its P1.3 `validation` inputs. A bad block (a v1 field, a missing seed, an
+ * override down to standard) throws here, before any download or output.
+ */
+export function readRecipe(recipePath) {
+  const recipe = JSON.parse(readFileSync(recipePath, 'utf8'));
+  const demSource = demSourceOf(recipe);
+  validationInputs(recipe.validation); // a bad P1.3 block stops the bake before any download
+  return { recipe, demSource };
+}
+
+/**
+ * The bake's last step, after the bundle is on disk (blueprint §P1.3.9).
+ * With `validate`, run the P1.3 check (`check` = validateHeightfield's
+ * arguments) and log its verdict; a FAIL is logged and recorded, it never
+ * stops the bake. Then write the report to `reportPath` with `validation` =
+ * the check's report, or null without the check, and write the check's block
+ * into the recipe at `recipePath`; without the check the recipe keeps its
+ * previous block. `report` is the report without `validation`; `timings`
+ * (its `timingsS`) gains `validate` and `total` (since `t0`). Returns the
+ * written report.
+ */
+export async function finishBake({ validate, check, report, timings, t0, reportPath, recipePath, log }) {
+  let validation = null;
+  if (validate) {
+    const t = Date.now();
+    validation = await validateHeightfield(check);
+    timings.validate = round((Date.now() - t) / 1000, 1);
+    log(describeValidation(validation));
+    if (validation.block.terrain_class === 'mountain' && check.demSource !== GLO30_DEM_SOURCE) {
+      log(`validate: mountain worlds default to dem.source "${GLO30_DEM_SOURCE}" (blueprint §P1.3.8); this one bakes from ${check.demSource}`);
+    }
+  }
+  timings.total = round((Date.now() - t0) / 1000, 1);
+  const written = { ...report, validation: validation?.report ?? null };
+  ensureDir(dirname(reportPath));
+  writeFileSync(reportPath, `${JSON.stringify(written, null, 2)}\n`);
+  // P1.3.9: the block also goes into the recipe (outputs overwritten every bake).
+  if (validation) writeValidation({ recipePath, block: validation.block });
+  return written;
 }
 
 /** Lat/lon bbox of the extent (edges walked every 100 m), rounded outward to 1e-5°. */
@@ -153,9 +222,7 @@ export async function bake(opts) {
   const log = (msg) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1).padStart(6)} s] ${msg}`);
 
   const recipePath = join(ROOT, 'tools/worldbake/worlds', `${opts.world}.json`);
-  const recipeBytes = readFileSync(recipePath);
-  const recipe = JSON.parse(recipeBytes.toString('utf8'));
-  const demSource = demSourceOf(recipe);
+  const { recipe, demSource } = readRecipe(recipePath);
   const glo30 = demSource === GLO30_DEM_SOURCE;
   const outDir = resolve(opts.out ?? join(ROOT, 'public/worlds', recipe.id));
   const cacheDir = resolve(opts.cache ?? join(ROOT, 'tools/worldbake/cache'), recipe.id);
@@ -334,7 +401,7 @@ export async function bake(opts) {
       carvedNodes: carve.carvedNodes,
     },
     credits: creditsFor(demSource),
-    generator: generatorFor(demSource, recipe, recipeBytes, dem),
+    generator: generatorFor(demSource, recipe, dem),
   };
   validateManifest(JSON.parse(JSON.stringify(manifest)));
   const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
@@ -349,18 +416,10 @@ export async function bake(opts) {
   log(`bundle: ${(totals.stored / 1e6).toFixed(2)} MB gzip as shipped, ${(totals.brotli / 1e6).toFixed(2)} MB brotli, ${(totals.content / 1e6).toFixed(2)} MB raw`);
   checkBundleBudget(totals);
 
-  // 5. Validation against an independent DEM (not part of the bundle).
-  let validation = null;
-  if (opts.validate) {
-    t = Date.now();
-    const core = recipe.snap.coreCells * g.cellSize + recipe.snap.falloffM;
-    const mask = (x, y) => snapped.routes.some((r) => r.x.some((rx, i) => Math.hypot(rx - x, r.y[i] - y) < core));
-    validation = await validateHeightfield({ hf: height.hf, projection, extent, recipe, cacheDir, routeMask: mask });
-    lap('validate', t);
-    log(`validate: RMS ${validation.rmsM} m vs Open-Meteo over ${validation.samples} points (bias ${validation.meanBiasM} m, max ${validation.maxAbsM} m) → ${validation.pass ? 'PASS' : 'FAIL'}; at the GLO-90 nodes ${validation.registered.rmsM} m (bias ${validation.registered.meanBiasM} m)`);
-  }
-  timings.total = round((Date.now() - t0) / 1000, 1);
-
+  // 5. P1.3 check against an independent DEM (not part of the bundle), then
+  // the report and the recipe's `validation` (finishBake).
+  const core = recipe.snap.coreCells * g.cellSize + recipe.snap.falloffM;
+  const routeMask = (x, y) => snapped.routes.some((r) => r.x.some((rx, i) => Math.hypot(rx - x, r.y[i] - y) < core));
   const report = {
     world: recipe.id,
     bakedWith: `node ${process.version}`,
@@ -376,17 +435,23 @@ export async function bake(opts) {
     demTiles: dem.tiles,
     ...(glo30 ? { demMissingTiles: dem.missing } : {}),
     overpass: { url: OVERPASS_URL, osmDate: recipe.osmDate, queries: osm.queries },
-    validation,
   };
-  const reportDir = join(ROOT, 'tools/worldbake/reports');
-  ensureDir(reportDir);
-  writeFileSync(join(reportDir, `${recipe.id}.json`), `${JSON.stringify(report, null, 2)}\n`);
+  const written = await finishBake({
+    validate: opts.validate,
+    check: { hf: height.hf, projection, extent, recipe, demSource, cacheDir, routeMask },
+    report,
+    timings,
+    t0,
+    reportPath: join(ROOT, 'tools/worldbake/reports', `${recipe.id}.json`),
+    recipePath,
+    log,
+  });
   if (opts.docs) writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 });
   // The destination that links this world mirrors its bbox, routes, moods,
   // towns and credits (src/lib/world/destinations/*.json).
   if (!opts.out) syncDestinations({ log });
   log(`done in ${timings.total} s → ${outDir}`);
-  return report;
+  return written;
 }
 
 /** Rewrite this world's generated block in docs/worlds/CREDITS.md. */
@@ -406,7 +471,7 @@ function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 }) 
       : `- Elevation: ${dem.tiles.length} Terrain Tiles (terrarium) at zoom ${dem.zoom}, \`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png\`: ${tiles}.`,
     `- OpenStreetMap: Overpass API (\`${OVERPASS_URL}\`), data as of ${recipe.osmDate} (attic query), layers ${Object.keys(osm.queries).join(', ')} over the bounding box above. Queries are recorded in \`tools/worldbake/reports/${recipe.id}.json\`.`,
     `- Routes: ${manifest.routes.map((r) => `\`${r.id}\``).join(', ')} from \`src/lib/scenicRouteData.ts\` (OSRM bike geometry + Copernicus GLO-90 profile via Open-Meteo).`,
-    `- Validation: ${recipe.validation.samples} seeded Open-Meteo elevation samples (Copernicus GLO-90), not shipped.`,
+    `- Validation: ${P13_SAMPLE_COUNT} seeded Open-Meteo elevation samples (Copernicus GLO-90), not shipped.`,
     end,
   ].join('\n');
   let doc = readFileSync(path, 'utf8');

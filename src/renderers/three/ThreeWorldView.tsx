@@ -20,7 +20,7 @@ import { EMPTY_TILES, FrameStats } from '@/lib/perf/frameStats';
 import { exposeScenePerf, IDLE_GAP_MS, PUBLISH_MS, publishScenePerf, type ScenePerf } from '@/lib/perf/scenePerf';
 import { sampleRouteAtDistance } from '@/lib/gpxParser';
 import { scenicRouteById } from '@/lib/scenicRoutes';
-import { chaseFraming } from '@/lib/world/cameraFraming';
+import { chaseFraming, RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
 import { worldForRoute, worldUrl, type WorldCatalogEntry } from '@/lib/world/catalog';
 import { loadWorld, type LoadedWorld } from '@/lib/world/loadWorld';
 import { TIME_PRESETS, type TimePreset, type WorldLightInput } from '@/lib/world/moods';
@@ -607,7 +607,7 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
             key={`${quality.antialias}:${canvasKey}`}
             className={contextLost ? 'absolute inset-0 invisible' : 'absolute inset-0'}
             gl={{ antialias: quality.antialias, powerPreference: 'high-performance', alpha: false, stencil: false }}
-            camera={{ fov: 60, near: 0.4, far: quality.viewDistanceM * 1.05, position: [0, 500, 0] }}
+            camera={{ fov: RIDE_FOV_Y_DEG, near: 0.4, far: quality.viewDistanceM * 1.05, position: [0, 500, 0] }}
             shadows={quality.shadows}
             dpr={dpr}
             frameloop="always"

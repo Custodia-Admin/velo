@@ -10,7 +10,11 @@ import { join, relative, resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '../..');
 const CHECKED_DIRS = ['src/components/velo'];
-const CHECKED_FILES: string[] = [];
+const CHECKED_FILES: string[] = [
+  'src/components/setup/RideSetupWizard.tsx',
+  'src/components/setup/GPXUploader.tsx',
+  'src/components/setup/RoutePreview.tsx',
+];
 
 const PALETTE =
   'slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose';

@@ -32,7 +32,8 @@ function distanceText(meters: number, units: UnitSystem): string {
     : `${(meters / 1000).toFixed(1)} km`;
 }
 
-function figures(info: ScenicRouteInfo, units: UnitSystem): string {
+/** A route's figures line, as every scenic surface shows it: "10.9 km · flat · about 35 min". */
+export function scenicFigures(info: ScenicRouteInfo, units: UnitSystem): string {
   return `${distanceText(info.route.totalDistance, units)} · ${characterText(info)} · about ${info.estMinutes} min`;
 }
 
@@ -89,7 +90,7 @@ export function FeaturedScenicRide({
         </h2>
         <span className="text-sm text-muted-foreground">{info.description}</span>
         <RouteProfile route={info.route} className="mt-1 h-8" />
-        <span className="num text-base font-semibold text-foreground">{figures(info, units)}</span>
+        <span className="num text-base font-semibold text-foreground">{scenicFigures(info, units)}</span>
         <WeatherLine entry={weather} prefix="Now" onRetry={onRetryWeather} />
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <Button
@@ -142,7 +143,7 @@ function ScenicRouteTile({
   place?: TilePlace;
 }) {
   const units = useSettingsStore((s) => s.units);
-  const text = figures(info, units);
+  const text = scenicFigures(info, units);
   const posters = postersFor(info.route.id);
   const hasWorld = worldForRoute(info.route) !== null;
   const weatherText =

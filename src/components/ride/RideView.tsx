@@ -68,6 +68,10 @@ export function RideView({
   onReadyRef.current = onRendererReady;
 
   const handleReady = useCallback((renderer: WorldRenderer) => {
+    // A view can hand over a new renderer while it stays mounted (the
+    // photoreal view builds a new Cesium Viewer after a lost WebGL context):
+    // the one it replaces is done.
+    if (rendererRef.current && rendererRef.current !== renderer) rendererRef.current.dispose();
     rendererRef.current = renderer;
     onReadyRef.current?.(renderer);
   }, []);

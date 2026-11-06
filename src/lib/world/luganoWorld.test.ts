@@ -49,17 +49,18 @@ describe('Lugano world bundle', () => {
     expect(world.heightfield.spec.rows).toBeLessThanOrEqual(2048);
   });
 
-  it('records the Open-Meteo heightfield check, point and node-registered', () => {
-    // The P1.3 criterion (point RMS ≤ 6 m) is not reachable on Ticino's slopes
-    // by any 30 m DEM; docs/worlds/WORLD-FORMAT.md ("Lugano") has the evidence.
-    // These bounds catch a regression in the terrain, not the criterion.
+  it('records the P1.3 v2 check: mountain, both figures, registered against the 6.24 m bound', () => {
+    // EU-DEM fails the mountain bound (blueprint §P1.3 v2; t_49b58e90 re-bakes
+    // from GLO-30). These bounds catch a regression in the terrain, not the gate.
     const { validation } = JSON.parse(readFileSync(REPORT, 'utf8')) as {
-      validation: { samples: number; rmsM: number; registered: { rmsM: number; meanBiasM: number } };
+      validation: { sample_count: number; terrain_class: string; bound_m: number; registered_rms_m: number; point_rms_m: number; diagnostics: { registered_mean_bias_m: number } };
     };
-    expect(validation.samples).toBe(50);
-    expect(validation.registered.rmsM).toBeLessThanOrEqual(10);
-    expect(Math.abs(validation.registered.meanBiasM)).toBeLessThan(3);
-    expect(validation.rmsM).toBeLessThanOrEqual(20);
+    expect(validation.sample_count).toBe(50);
+    expect(validation.terrain_class).toBe('mountain');
+    expect(validation.bound_m).toBe(6.24);
+    expect(validation.registered_rms_m).toBeLessThanOrEqual(10);
+    expect(Math.abs(validation.diagnostics.registered_mean_bias_m)).toBeLessThan(3);
+    expect(validation.point_rms_m).toBeLessThanOrEqual(20);
   });
 
   it('covers Lugano and Locarno with plausible terrain and lakes', () => {

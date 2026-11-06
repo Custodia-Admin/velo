@@ -19,8 +19,8 @@
 
 import {
   fileKey,
-  isVideoName,
   lastWatched,
+  mayBeVideoName,
   nextUp,
   readLibrary,
   recallLibrary,
@@ -110,7 +110,9 @@ function planFor(files: File[], file: File, next: NextUp): ContinuePlan {
  */
 function askPlannedFirst(lib: RememberedLibrary, storage?: Storage): RememberedLibrary {
   if (lib.kind !== 'files') return lib;
-  const names = lib.handles.map((h) => h.name).filter(isVideoName);
+  // The same test readLibrary uses for a refused file, so the episode asked
+  // for first is the one a refusal would block on.
+  const names = lib.handles.map((h) => h.name).filter(mayBeVideoName);
   const planned = pickInLibrary([], names, storage);
   const at = planned ? lib.handles.findIndex((h) => h.name === planned.name) : -1;
   if (at <= 0) return lib;

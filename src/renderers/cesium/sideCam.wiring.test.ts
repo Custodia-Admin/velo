@@ -18,7 +18,7 @@ const SRC = readFileSync(resolve(__dirname, 'CesiumWorldView.tsx'), 'utf-8');
 
 describe('CesiumWorldView places the side camera with sight of the rider', () => {
   it('keeps the corridor rule for while the painted road is drawn', () => {
-    expect(SRC).toContain('const roadPainted = globeShown && roadEntityRef.current !== null;');
+    expect(SRC).toContain('const roadPainted = groundDraw.road && roadEntityRef.current !== null;');
     expect(SRC).toContain('points: roadPainted ? r.points : [],');
   });
 
@@ -81,7 +81,7 @@ describe('CesiumWorldView places the side camera with sight of the rider', () =>
   it('starts the sight state over on a mode change, and shows it to probes', () => {
     expect(SRC).toMatch(/lastCamModeRef\.current = currentMode;\s*sideCamSightRef\.current\.reset\(\);/);
     expect(SRC).toContain('sideCam: sideCamSightRef.current.debug(),');
-    expect(SRC).toContain('sideCamTileReads: meshTopReadStats(),');
+    expect(SRC).toContain('meshTileReads: meshTopReadStats(),');
     expect(SRC).toContain('groundReads: meshGroundReadStats(),');
     expect(SRC).toContain('return ts ? meshHeightAt(ts, Cesium.Cartographic.fromDegrees(lon, lat), viewer.scene) : undefined;');
   });

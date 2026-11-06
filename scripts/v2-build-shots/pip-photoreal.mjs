@@ -24,6 +24,19 @@
  * edge, both in the window's CSS px. Writes <out>/pipcesium-<layout>-<size>.jpg
  * and <out>/pipcesium-<layout>.json. THEMES=day,night. TAG names a build
  * (before/after) in the file names.
+ *
+ * The check (exit 1 when it fails): at every size the whole rider, wheels
+ * included, sits above the bar: the magenta box's bottom, shot once more with
+ * the bar hidden (behind the bar the box would stop at its top edge), above
+ * the bar's top edge. Both renderers draw the ride with one vertical field
+ * (lib/world/cameraFraming RIDE_FOV_Y_DEG), so the shared lens shift clears
+ * the bar in both. CHECK=0 only reports.
+ *
+ * Also: the tab before floating (<out>/pipcesium-<layout>-tab.jpg, the same
+ * box and point); SIZES_JSON='{"wide":[760,240]}' replaces the window sizes
+ * (drag-resized windows); RENDERER=world draws the same route with the world
+ * renderer instead (ROUTE must be inside a baked world, e.g. lugano-melide),
+ * so both renderers can be compared at one spot.
  */
 import { spawn, execFileSync } from 'node:child_process';
 import { once } from 'node:events';
@@ -48,6 +61,11 @@ const LAYOUTS = {
 };
 const L = LAYOUTS[LAYOUT];
 if (!L) throw new Error(`LAYOUT must be one of ${Object.keys(LAYOUTS).join(', ')}`);
+if (process.env.SIZES_JSON) L.sizes = JSON.parse(process.env.SIZES_JSON);
+const RENDERER = process.env.RENDERER ?? 'photoreal';
+if (!['photoreal', 'world'].includes(RENDERER)) throw new Error('RENDERER must be photoreal or world');
+const CHECK = process.env.CHECK !== '0';
+const failures = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 class Cdp {
@@ -170,9 +188,17 @@ function init(theme) {
   globalThis.Date = PinnedDate;
 })();
 localStorage.setItem('velo.debug.cesium', '1');
+localStorage.setItem('velo.debug.three', '1');
 localStorage.setItem('globeride.onboarding.v2', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 2 }));
 localStorage.setItem('globeride.theme', ${JSON.stringify(theme === 'night' ? 'dark' : 'light')});
 localStorage.removeItem('globeride.cesiumIonToken');
+(() => {
+  let cur = {};
+  try { cur = JSON.parse(localStorage.getItem('globeride.settings.v1') || '{}'); } catch {}
+  cur.state = Object.assign(cur.state || {}, { renderer: ${JSON.stringify(RENDERER)} });
+  cur.version = cur.version ?? 1;
+  localStorage.setItem('globeride.settings.v1', JSON.stringify(cur));
+})();
 window.__errors = [];
 window.addEventListener('error', (e) => window.__errors.push(String(e.message)));
 window.addEventListener('unhandledrejection', (e) => window.__errors.push(String(e.reason)));
@@ -200,10 +226,12 @@ const STAGE = `(async () => {
   const M = '#ff00ff';
   if (s.avatar.wheel !== M) s.setSettings({ avatar: { frame: M, wheel: M, kit: M, skin: M, helmet: M, accent: M } });
   window.__veloCesium?.place(${DIST});
-  return { cesium: !!window.__veloCesium, mode: useSettingsStore.getState().cameraMode };
+  window.__veloWorldLight?.place(${DIST});
+  window.__veloWorldLight?.set({ time: 'noon', weather: 'clear' });
+  return { cesium: !!window.__veloCesium, world: !!window.__veloWorldLight, mode: useSettingsStore.getState().cameraMode };
 })()`;
 
-const DEBUG = `(() => { if (!document.querySelector('[data-renderer=photoreal]') && !documentPictureInPicture.window?.document.querySelector('[data-renderer=photoreal]')) return { notPhotoreal: true }; const d = window.__veloRideDebug && window.__veloRideDebug(); return d && !d.destroyed ? { rider: d.riderScreen, viewport: d.viewportPx, lensShiftPx: d.lensShiftPx ?? null, riderHeightPx: d.riderHeightPx, dist: Math.round(d.dist) } : null; })()`;
+const DEBUG = `(() => { const want = ${JSON.stringify(RENDERER)}; if (!document.querySelector('[data-renderer=' + want + ']') && !documentPictureInPicture.window?.document.querySelector('[data-renderer=' + want + ']')) return { notRenderer: want }; const d = window.__veloRideDebug && window.__veloRideDebug(); return d && !d.destroyed ? { rider: d.riderScreen, viewport: d.viewportPx ?? d.canvas ?? null, lensShiftPx: d.lensShiftPx ?? null, riderHeightPx: d.riderHeightPx ?? null, fovYDeg: d.fovYDeg ?? null, dist: Math.round(d.dist ?? d.distance ?? 0) } : null; })()`;
 
 async function settle(page, h) {
   let last = null;
@@ -270,12 +298,22 @@ async function run(theme) {
       if (!el) return null; el.click(); return el.dataset.scenicRoute; })()`), (v) => !!v, 60_000, 'a photoreal route tile');
     console.log('  route', report.route);
     report.tabRenderer = await poll(() => evalIn(page, `document.querySelector('[data-renderer]')?.getAttribute('data-renderer') ?? null`), (v) => !!v, 120_000, 'renderer');
-    if (report.tabRenderer !== 'photoreal') throw new Error(`${report.route} renders with ${report.tabRenderer}, not photoreal`);
+    if (report.tabRenderer !== RENDERER) throw new Error(`${report.route} renders with ${report.tabRenderer}, not ${RENDERER}`);
     await poll(() => evalIn(page, `(() => { const f = window.__veloRideState; return f ? f().distance : 0; })()`), (d) => d > 3, 240_000, 'the ride to move');
     // The tab's own ride view, before floating: no crop there.
     await evalIn(page, STAGE);
-    await sleep(8000);
+    const [tabW, tabH] = await evalIn(page, '[innerWidth, innerHeight]');
+    await settle(page, tabH);
     report.tab = { debug: await evalIn(page, DEBUG), container: await evalIn(page, `(() => { const c = document.querySelector('canvas')?.closest('.cesium-viewer')?.parentElement; if (!c) return null; const b = c.getBoundingClientRect(); return { rect: [b.x, b.y, b.width, b.height], top: c.style.top, inner: [innerWidth, innerHeight] }; })()`) };
+    {
+      const { data } = await page.send('Page.captureScreenshot', { format: 'png' });
+      const png = join(OUT, `pipcesium-${LAYOUT}-tab${suffix}.png`);
+      writeFileSync(png, Buffer.from(data, 'base64'));
+      report.tab.pixels = riderPixels(png, report.screen[2]);
+      report.tab.size = [tabW, tabH];
+      toJpeg(png, png.replace(/\.png$/, '.jpg'));
+      rmSync(png);
+    }
     console.log('  tab', JSON.stringify(report.tab));
     await poll(async () => {
       if (!(await evalIn(page, `!!(${button('Watch a show while you ride')})`))) await jsClick(page, button(/^Show ride details/), 'ride details');
@@ -297,7 +335,7 @@ async function run(theme) {
     await poll(() => evalIn(page, `documentPictureInPicture.window.document.querySelector('[data-testid=pip-ride] canvas') ? 1 : 0`), (v) => v === 1, 180_000, 'the world in the window');
     const [screenW, screenH] = await evalIn(page, '[screen.width, screen.height]');
     for (const [size, [w, h]] of Object.entries(L.sizes).filter(([k]) => !process.env.ONLY_SIZES || process.env.ONLY_SIZES.split(',').includes(k))) {
-      await jsClick(pip, `document.querySelector('[data-pip-size=${size}]')`, `size ${size}`).catch(() => {});
+      if (['corner', 'third', 'half'].includes(size)) await jsClick(pip, `document.querySelector('[data-pip-size=${size}]')`, `size ${size}`).catch(() => {});
       await sleep(2000);
       await browser.send('Browser.setWindowBounds', { windowId, bounds: { left: screenW - w - 40, top: screenH - h - 80 } });
       const inner = () => evalIn(page, '[documentPictureInPicture.window.innerWidth, documentPictureInPicture.window.innerHeight]');
@@ -320,16 +358,38 @@ async function run(theme) {
       const pixels = riderPixels(png, geometry.window[2]);
       toJpeg(png, png.replace(/\.png$/, '.jpg'));
       rmSync(png);
+      // The whole rider: the bar hidden for one shot (it stays in the layout,
+      // so the crop holds), else a rider behind the bar ends at its top edge.
+      const barShown = (v) => evalIn(page, `(() => { const b = documentPictureInPicture.window.document.querySelector('[data-testid=journey-bar]'); if (b) b.style.visibility = ${JSON.stringify(v ? '' : 'hidden')}; return !!b; })()`);
+      await barShown(false);
+      await sleep(1500);
+      const whole = await (async () => {
+        const shot = await pip.send('Page.captureScreenshot', { format: 'png' });
+        const p = join(OUT, `pipcesium-${LAYOUT}-${size}${suffix}-nobar.png`);
+        writeFileSync(p, Buffer.from(shot.data, 'base64'));
+        const px = riderPixels(p, geometry.window[2]);
+        rmSync(p);
+        return px;
+      })();
+      await barShown(true);
       const barTop = geometry.bar ? geometry.bar[1] : null;
       const verdict = {
         barTop,
         riderPointY: debug?.rider?.[1] ?? null,
         riderBoxBottom: pixels.box ? pixels.box[3] : null,
+        // The rider's wheels with the bar hidden.
+        wheelsY: whole.box ? whole.box[3] : null,
         pointAboveBar: debug?.rider && barTop !== null ? debug.rider[1] < barTop : null,
-        boxAboveBar: pixels.box && barTop !== null ? pixels.box[3] < barTop : null,
+        boxAboveBar: whole.box && barTop !== null ? whole.box[3] < barTop : null,
+        // Wheels to bar top, CSS px (> 0: clear of the bar; < 0: that much behind it).
+        wheelGap: whole.box && barTop !== null ? Math.round((barTop - whole.box[3]) * 10) / 10 : null,
         clearBand: geometry.topControls && barTop !== null ? [geometry.topControls[1] + geometry.topControls[3], barTop] : null,
       };
-      report.sizes[size] = { asked: [w, h], debug, geometry, pixels, verdict };
+      // The check: a drawn rider, wheels and all, above the bar.
+      if (!(whole.n > 0 && verdict.boxAboveBar === true && verdict.pointAboveBar === true)) {
+        failures.push(`${LAYOUT} ${size}${suffix}: wheels at ${verdict.wheelsY} / 1 m point ${verdict.riderPointY} vs bar top ${barTop} (gap ${verdict.wheelGap}, magenta px ${whole.n})`);
+      }
+      report.sizes[size] = { asked: [w, h], debug, geometry, pixels, whole, verdict };
       console.log(`  ${size} ${w}x${h}`, JSON.stringify({ window: geometry.window, renderer: geometry.renderer, hudBottom: geometry.hudBottom, containerTop: geometry.containerTop, canvas: geometry.canvas, buffer: geometry.buffer, debug, pixels, verdict }));
     }
     report.errors = await evalIn(page, 'window.__errors.slice(0, 10)');
@@ -351,6 +411,12 @@ async function run(theme) {
 }
 
 for (const theme of THEMES) {
-  console.log(`== ${LAYOUT} ${theme} ${BASE}`);
+  console.log(`== ${LAYOUT} ${theme} ${RENDERER} ${BASE}`);
   await run(theme);
+}
+if (failures.length) {
+  console.log(`FAIL: the rider is not clear of the bar at ${failures.length} size(s):\n  ${failures.join('\n  ')}`);
+  if (CHECK) process.exitCode = 1;
+} else {
+  console.log('PASS: the rider, wheels included, is above the bar at every size');
 }

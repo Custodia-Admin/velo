@@ -14,20 +14,27 @@ import * as Cesium from 'cesium';
 import { rideAgain } from '@/components/velo/FinishCard';
 
 import {
+  createAvatar,
   createGroundSampler,
   createMeshRoadFilter,
+  DECK_RUN_M,
   followGround,
+  GLOBE_OVER_MESH_M,
+  GLOBE_STANDIN_M,
   GROUND_SAMPLE_INTERVAL_MS,
   OVERHANG_GIVE_UP_M,
   OVERHANG_MIN_M,
   OVERHANG_STEP_GRADE,
   OVERHANG_STEP_M,
   OVERHANG_STEP_SPAN_M,
+  UNDER_BARE_M,
 } from '@/lib/avatar';
 import {
+  clearMeshTopReads,
   drawnGroundHeight,
   getPhotorealTileset,
   groundSettled,
+  liftAboveTerrain,
   sampleGroundHeight,
   sceneGroundHeight,
   setIonToken,
@@ -42,7 +49,8 @@ async function photoreal(height: number | undefined, opts: { show?: boolean; til
   Object.defineProperty(fake, 'tilesLoaded', { value: opts.tilesLoaded ?? true, writable: true });
   // The mesh's height field (tests swap it with mockImplementation). The app
   // reads it down the local vertical (meshHeightAt → tileset.pick), so the
-  // fake's pick answers from it at the spot the ray goes through.
+  // fake's pick answers from it at the spot the ray goes through: one surface,
+  // missed by a ray that starts under it (a read under something).
   const getHeight = vi.fn((_c?: Cesium.Cartographic): number | undefined => height);
   Object.defineProperty(fake, 'getHeight', { value: getHeight });
   Object.defineProperty(fake, 'pick', {
@@ -50,7 +58,7 @@ async function photoreal(height: number | undefined, opts: { show?: boolean; til
       requireFrameState(frameState);
       const c = Cesium.Cartographic.fromCartesian(ray.origin);
       const h = getHeight(c);
-      return h === undefined ? undefined : Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h);
+      return h === undefined || h > c.height ? undefined : Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h);
     },
   });
   vi.spyOn(Cesium.Cesium3DTileset, 'fromIonAssetId').mockResolvedValue(fake);
@@ -75,6 +83,11 @@ interface GlobeOpts {
   show?: boolean;
   translucent?: boolean;
   tilesLoaded?: boolean;
+  /**
+   * The globe tile drawn last frame at the spot (Globe.pick): undefined for no
+   * rendered tile there; leave the key out for a globe without `pick`.
+   */
+  drawn?: number | undefined;
 }
 
 function scene(tileset: Cesium.Cesium3DTileset | null, g: GlobeOpts, terrain: object = { worldTerrain: true }) {
@@ -83,6 +96,12 @@ function scene(tileset: Cesium.Cesium3DTileset | null, g: GlobeOpts, terrain: ob
     translucency: { enabled: g.translucent ?? false },
     tilesLoaded: g.tilesLoaded ?? true,
     getHeight: vi.fn(() => g.height),
+  } as {
+    show: boolean;
+    translucency: { enabled: boolean };
+    tilesLoaded: boolean;
+    getHeight: ReturnType<typeof vi.fn>;
+    pick?: ReturnType<typeof vi.fn>;
   };
   const s = {
     context: FRAME_STATE.context,
@@ -93,6 +112,20 @@ function scene(tileset: Cesium.Cesium3DTileset | null, g: GlobeOpts, terrain: ob
     globe,
     terrainProvider: terrain,
   } as unknown as Cesium.Scene;
+  if ('drawn' in g) {
+    // Cesium's Globe.pick(ray, scene, result) reads scene.mode and the
+    // rendered tiles; the fake answers only a ray straight down the local
+    // vertical, where it crosses the drawn height.
+    globe.pick = vi.fn((ray: Cesium.Ray, sc: unknown) => {
+      if (sc !== s) throw new TypeError('globe.pick needs the scene');
+      const top = Cesium.Cartographic.fromCartesian(ray.origin);
+      const down = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormalCartographic(top);
+      if (g.drawn === undefined || Cesium.Cartesian3.dot(down, ray.direction) > -0.999999) return undefined;
+      // A ray starting under the drawn surface never crosses it.
+      if (g.drawn >= top.height) return undefined;
+      return Cesium.Cartesian3.fromRadians(top.longitude, top.latitude, g.drawn);
+    });
+  }
   return { s, globe };
 }
 
@@ -138,24 +171,218 @@ describe('the rider stands on the drawn ground over the photoreal mesh', () => {
     expect(drawnGroundHeight(flat, 12.1, 43.2, undefined, 259)).toBe(0);
   });
 
-  it("the avatar's throttled sampler reuses the mesh reading but reads the globe fresh every frame", async () => {
+  it("the avatar's throttled sampler reuses the mesh reading while the mesh is the ground; the globe is read fresh every frame", async () => {
     setIonToken('eyJ_test');
     const { tileset, getHeight } = await photoreal(306.2);
-    const g: GlobeOpts = { height: 309.2 };
+    const g: GlobeOpts = { height: 305 };
     const { s, globe } = scene(tileset, g);
     globe.getHeight.mockImplementation(() => g.height);
     const sampler = createGroundSampler(s);
-    expect(sampler.sample(12.1, 43.2, 259, 1000)).toBeCloseTo(309.2, 6);
-    // Next frame, a metre on: the globe rose, the mesh sample is reused.
-    g.height = 309.9;
-    expect(sampler.sample(12.10001, 43.2, 259, 1016)).toBeCloseTo(309.9, 6);
+    expect(sampler.sample(12.1, 43.2, 259, 1000)).toBeCloseTo(306.2, 6);
+    // Next frame, a metre on: the globe rose but stays under the mesh, the mesh sample is reused.
+    g.height = 305.9;
+    expect(sampler.sample(12.10001, 43.2, 259, 1016)).toBeCloseTo(306.2, 6);
     expect(getHeight).toHaveBeenCalledTimes(1);
-    // The globe dips under the mesh: the (cached) mesh is the ground again.
+    // The globe rises over the mesh: it is the ground at once (read fresh).
+    g.height = 309.9;
+    expect(sampler.sample(12.10002, 43.2, 259, 1032)).toBeCloseTo(309.9, 6);
+    // Under the mesh again: the mesh, sampled again after the interval.
     g.height = 305;
-    expect(sampler.sample(12.10002, 43.2, 259, 1032)).toBeCloseTo(306.2, 6);
-    // After the interval the mesh is sampled again.
-    sampler.sample(12.10003, 43.2, 259, 1032 + GROUND_SAMPLE_INTERVAL_MS);
+    sampler.sample(12.10003, 43.2, 259, 1048);
+    const calls = getHeight.mock.calls.length;
+    expect(sampler.sample(12.10004, 43.2, 259, 1064)).toBeCloseTo(306.2, 6);
+    expect(getHeight).toHaveBeenCalledTimes(calls);
+    sampler.sample(12.10005, 43.2, 259, 1048 + GROUND_SAMPLE_INTERVAL_MS);
+    expect(getHeight).toHaveBeenCalledTimes(calls + 1);
+  });
+
+  it('on the globe over a coarse mesh reading, the mesh is read every frame: a finer tile landing over the globe is stood on at once', async () => {
+    // Santa Monica start, photoreal at the ride's 60° field (t_a67fb090): a
+    // coarse tile read 11 m under the drawn globe, the street landed 4.2 m
+    // over it a few frames later, and the throttled sampler kept the rider on
+    // the globe, under the street, for 150–290 ms (camera under the road).
+    setIonToken('eyJ_test');
+    const { tileset, getHeight } = await photoreal(295.0);
+    const g: GlobeOpts = { height: 306.0 };
+    const { s, globe } = scene(tileset, g);
+    globe.getHeight.mockImplementation(() => g.height);
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(12.1, 43.2, 259, 1000)).toBeCloseTo(306.0, 6);
+    expect(sampler.meshGround()).toBe(true);
+    // The street's tile lands, one frame and a metre on.
+    getHeight.mockImplementation(() => 310.2);
+    expect(sampler.sample(12.10001, 43.2, 259, 1016)).toBeCloseTo(310.2, 6);
+    // On the mesh now: its reading is reused until the interval.
+    const calls = getHeight.mock.calls.length;
+    expect(sampler.sample(12.10002, 43.2, 259, 1032)).toBeCloseTo(310.2, 6);
+    expect(getHeight).toHaveBeenCalledTimes(calls);
+  });
+
+  it('on the globe over the mesh, a globe within GLOBE_OVER_MESH_M of the reading keeps the throttle', async () => {
+    setIonToken('eyJ_test');
+    const { tileset, getHeight } = await photoreal(306.2);
+    const g: GlobeOpts = { height: 306.2 + GLOBE_OVER_MESH_M - 0.01 };
+    const { s, globe } = scene(tileset, g);
+    globe.getHeight.mockImplementation(() => g.height);
+    const sampler = createGroundSampler(s);
+    sampler.sample(12.1, 43.2, 259, 1000);
+    sampler.sample(12.10001, 43.2, 259, 1016);
+    expect(getHeight).toHaveBeenCalledTimes(1);
+    g.height = 306.2 + GLOBE_OVER_MESH_M + 0.01;
+    sampler.sample(12.10002, 43.2, 259, 1032);
     expect(getHeight).toHaveBeenCalledTimes(2);
+  });
+
+  it('a hidden globe over the mesh reading is not stood on: the mesh reading keeps the throttle', async () => {
+    // Once the mesh is the road under the rider, renderers/cesium/globeGate
+    // hides the globe (globe.show = false). Its tiles still read 3.7 m over
+    // the mesh here, but nothing draws them: the mesh is the ground, and its
+    // reading (a tile pick each) is reused until the interval, not taken
+    // every frame as while the globe is drawn over it.
+    setIonToken('eyJ_test');
+    const { tileset, getHeight } = await photoreal(306.2);
+    const g: GlobeOpts = { height: 309.9, show: false };
+    const { s, globe } = scene(tileset, g);
+    globe.getHeight.mockImplementation(() => g.height);
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(12.1, 43.2, 259, 1000)).toBeCloseTo(306.2, 6);
+    expect(sampler.meshGround()).toBe(true);
+    expect(getHeight).toHaveBeenCalledTimes(1);
+    // 36 km/h, 60 fps (0.16 m a frame): every frame inside the interval reuses the reading.
+    const lonAt = (frame: number) => 12.1 + frame * 2e-6;
+    let frame = 1;
+    for (; 1000 + 16 * frame < 1000 + GROUND_SAMPLE_INTERVAL_MS; frame++) {
+      expect(sampler.sample(lonAt(frame), 43.2, 259, 1000 + 16 * frame)).toBeCloseTo(306.2, 6);
+    }
+    expect(frame).toBeGreaterThan(10);
+    expect(getHeight).toHaveBeenCalledTimes(1);
+    // The interval is up: read again, once.
+    sampler.sample(lonAt(frame), 43.2, 259, 1000 + GROUND_SAMPLE_INTERVAL_MS);
+    sampler.sample(lonAt(frame + 1), 43.2, 259, 1016 + GROUND_SAMPLE_INTERVAL_MS);
+    expect(getHeight).toHaveBeenCalledTimes(2);
+    // The same globe drawn again: it is the ground, and the mesh is read every frame.
+    globe.show = true;
+    expect(sampler.sample(lonAt(frame + 2), 43.2, 259, 1032 + GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(309.9, 6);
+    expect(sampler.sample(lonAt(frame + 3), 43.2, 259, 1048 + GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(309.9, 6);
+    expect(getHeight).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe("the globe as drawn, not its deepest loaded tile (Santa Monica start, t_b6dbd3d2)", () => {
+  // Measured per frame at the Santa Monica start (1280×648 @2, cat-bed, main
+  // and PR #74): no photoreal tile under the rider yet, the globe drew a
+  // level-14 tile at -32.15 m while globe.getHeight read the level-15 tile
+  // loaded under it at -33.70 m. The rider stood on getHeight for 4 frames,
+  // 1.1-1.4 m under the ground the camera saw, which hid its wheels.
+  const lon = -118.4972;
+  const lat = 34.0089;
+  const ROUTE_ELE = 3;
+
+  it('the rider stands on the drawn tile, over the finer one loaded under it', async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photoreal(undefined);
+    const g: GlobeOpts = { height: -33.7, drawn: -32.15 };
+    const { s, globe } = scene(tileset, g);
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(lon, lat, ROUTE_ELE, 1000)).toBeCloseTo(-32.15, 6);
+    expect(globe.pick).toHaveBeenCalled();
+    // The globe refines there: the level-15 tile is drawn, and stood on.
+    g.drawn = -33.69;
+    expect(sampler.sample(lon, lat, ROUTE_ELE, 1016)).toBeCloseTo(-33.69, 6);
+    expect(sampler.meshGround()).toBe(false);
+  });
+
+  it('the drawn globe over the mesh is the ground; a mesh over it still wins', async () => {
+    setIonToken('eyJ_test');
+    const { s } = scene(null, { height: -33.7, drawn: -32.15 });
+    expect(drawnGroundHeight(s, lon, lat, -32.6, ROUTE_ELE)).toBeCloseTo(-32.15, 6);
+    expect(drawnGroundHeight(s, lon, lat, -31.9, ROUTE_ELE)).toBeCloseTo(-31.9, 6);
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.15, 6);
+  });
+
+  it('no rendered tile under the spot: the loaded tiles decide (getHeight)', () => {
+    setIonToken('eyJ_test');
+    const { s, globe } = scene(null, { height: -33.7, drawn: undefined });
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-33.7, 6);
+    expect(globe.pick).toHaveBeenCalledTimes(1);
+  });
+
+  it('high ground: the drawn tile on a 2,100 m pass is found from above it', () => {
+    setIonToken('eyJ_test');
+    const { s } = scene(null, { height: 2098.6, drawn: 2100.2 });
+    expect(drawnGroundHeight(s, 9.65, 46.45, undefined, 2101)).toBeCloseTo(2100.2, 6);
+  });
+
+  it("a hidden globe's rendered tiles are stale: getHeight decides, the pick is never run", () => {
+    setIonToken('eyJ_test');
+    const { s, globe } = scene(null, { height: -33.7, drawn: -25.12, show: false });
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-33.7, 6);
+    expect(globe.pick).not.toHaveBeenCalled();
+  });
+
+  it("a drawn tile far off the ground (a coarse tile's chord) is not stood on: the loaded tiles decide", () => {
+    setIonToken('eyJ_test');
+    // Measured: a drawn level-4 tile at -821 m over a loaded level-8 one at -25 m.
+    const { s } = scene(null, { height: -25.15, drawn: -821.27 });
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-25.15, 6);
+    expect(drawnGroundHeight(s, lon, lat, -32.4, ROUTE_ELE)).toBeCloseTo(-25.15, 6);
+    const cam = Cesium.Cartesian3.fromDegrees(lon, lat, -24.1);
+    expect(liftAboveTerrain(s, cam, -25.15, 1.5)).toBeCloseTo(0.45, 6);
+  });
+
+  it('a drawn tile under the loaded one is about to refine: the rider waits on the loaded one, never sinks', () => {
+    setIonToken('eyJ_test');
+    // A chord within the 800 m bound of the route, 275 m under the loaded tile.
+    const g: GlobeOpts = { height: -25.15, drawn: -300 };
+    const { s } = scene(null, g);
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-25.15, 6);
+    // Measured at the Lake Trasimeno start: level 11 drawn at 386.64 m, level
+    // 12 loaded at 387.95 m and drawn the next frame. On the drawn tile the
+    // rider was 1.31 m under the ground for that frame.
+    g.height = 387.95;
+    g.drawn = 386.64;
+    expect(drawnGroundHeight(s, 12.1, 43.13, undefined, 388)).toBeCloseTo(387.95, 6);
+    g.drawn = 387.95;
+    expect(drawnGroundHeight(s, 12.1, 43.13, undefined, 388)).toBeCloseTo(387.95, 6);
+    // Over the loaded tile the drawn one wins, however far (the start's 26 m step).
+    g.height = -32.14;
+    g.drawn = -5.87;
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-5.87, 6);
+  });
+
+  it('a loaded reading that is a chord leaves the drawn tile', () => {
+    setIonToken('eyJ_test');
+    const g: GlobeOpts = { height: -2400, drawn: -32.2 };
+    const { s } = scene(null, g);
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.2, 6);
+    // A chord over the route (a coarse tile spanning a valley) isn't the higher ground either.
+    g.height = ROUTE_ELE + 900;
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.2, 6);
+  });
+
+  it('a drawn chord over the route leaves the loaded tile, for the rider and the camera', () => {
+    setIonToken('eyJ_test');
+    const { s } = scene(null, { height: -32.2, drawn: ROUTE_ELE + 900 });
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.2, 6);
+    // liftAboveTerrain's bound is 60 m from the rider's ground.
+    const t = scene(null, { height: -32.2, drawn: -32.2 + 75 });
+    const cam = Cesium.Cartesian3.fromDegrees(lon, lat, -31.7);
+    expect(liftAboveTerrain(t.s, cam, -32.2, 1.5)).toBeCloseTo(1.0, 6);
+  });
+
+  it('the chase camera keeps its clearance over the drawn tile, not the finer one under it', async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photoreal(undefined);
+    const { s } = scene(tileset, { height: -33.7, drawn: -32.15 });
+    // 2.6 m over getHeight's tile, 1.05 m over the drawn one.
+    const cam = Cesium.Cartesian3.fromDegrees(lon, lat, -31.1);
+    const lift = liftAboveTerrain(s, cam, -32.15, 1.5);
+    expect(lift).toBeCloseTo(0.45, 6);
+    expect(Cesium.Cartographic.fromCartesian(cam).height).toBeCloseTo(-30.65, 6);
+    // …and over a finer loaded tile higher than the drawn one, drawn next frame (Trasimeno).
+    const t = scene(tileset, { height: 387.95, drawn: 386.64 });
+    const cam2 = Cesium.Cartesian3.fromDegrees(12.1, 43.13, 388.5);
+    expect(liftAboveTerrain(t.s, cam2, 387.95, 1.5)).toBeCloseTo(0.95, 6);
   });
 });
 
@@ -164,6 +391,18 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
   const lon0 = -118.5;
   const at = (m: number) => 34 + m / 110_540;
   const HIGH = 1e9;
+  /**
+   * A mesh with one surface at each spot, read as tileset.pick reads it: from
+   * the top, or from `under` down (nothing if the surface is over that).
+   */
+  const oneSurface =
+    (h: (lat: number) => number | undefined) =>
+    (_lon: number, lat: number, under?: number): number | undefined => {
+      const v = h(lat);
+      return v === undefined || under === undefined || v <= under ? v : undefined;
+    };
+  /** One surface: `from` up to 1 m on, `to` past it. */
+  const step = (from: number, to: number) => oneSurface((lat) => (lat > at(1) ? to : from));
 
   it('a palm canopy over the path (10 m up, the path before it still low) is not the road', () => {
     const f = createMeshRoadFilter();
@@ -196,6 +435,20 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     expect(g.next(mesh(), lon0, at(0), HIGH, readAt)).toBe(-28.1);
   });
 
+  it('within the climb allowance too, a tile refined higher under the rider is taken, not refused as a climb onto something', () => {
+    // The road was taken on the terrain 12 m back (allowance 4.5 m). The tile
+    // there and here refines 4.4 m higher with nothing drawn under it: more
+    // than OVERHANG_MIN_M over the terrain the road was on, which no road
+    // climbs to in 12 m, but the spot it was taken at rose too (roseAt).
+    const f = createMeshRoadFilter();
+    let refined = false;
+    const readAt = oneSurface(() => (refined ? 164.4 : 160));
+    expect(f.next(160, lon0, at(0), HIGH, readAt, -Infinity, 160)).toBe(160);
+    refined = true;
+    expect(f.next(164.4, lon0, at(12), HIGH, readAt, -Infinity, 160)).toBe(164.4);
+    expect(f.status()).toBe('road');
+  });
+
   it('climbs, falls and holes: climbs and falls taken, a hole leaves the globe to decide but keeps the road', () => {
     const f = createMeshRoadFilter();
     const none = () => undefined;
@@ -221,17 +474,18 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
 
   it('anything lower than the chase camera could pass under is ridden over (Lugano–Melide 5 km), moving or stopped', () => {
     const f = createMeshRoadFilter();
-    const readAt = (_lon: number, lat: number) => lugano5k(lat);
+    const readAt = oneSurface(lugano5k);
     expect([0, 2, 4, 4, 4].map((m) => f.next(lugano5k(at(m)), lon0, at(m), HIGH, readAt))).toEqual([326.0, 327.6, 331.2, 331.2, 331.2]);
     expect(f.status()).toBe('road');
     expect(f.next(lugano5k(at(10)), lon0, at(10), HIGH, readAt)).toBe(326.0); // and down again
-    // From the path, 3.9 m up in one step is ridden over; 4.1 m (a low road bridge's deck) is over the road.
+    // From the path, 3.9 m up in one step (nothing under it) is ridden over;
+    // 4.1 m (a low road bridge's deck) is over the road.
     const g = createMeshRoadFilter();
-    g.next(100, lon0, at(0), HIGH, () => 100);
-    expect(g.next(103.9, lon0, at(2), HIGH, () => 100)).toBe(103.9);
+    g.next(100, lon0, at(0), HIGH, step(100, 103.9));
+    expect(g.next(103.9, lon0, at(2), HIGH, step(100, 103.9))).toBe(103.9);
     const h = createMeshRoadFilter();
-    h.next(100, lon0, at(0), HIGH, () => 100);
-    expect(h.next(104.1, lon0, at(2), HIGH, () => 100)).toBe(100);
+    h.next(100, lon0, at(0), HIGH, step(100, 104.1));
+    expect(h.next(104.1, lon0, at(2), HIGH, step(100, 104.1))).toBe(100);
     expect(h.status()).toBe('overhang');
     expect(OVERHANG_MIN_M).toBe(4);
   });
@@ -242,11 +496,14 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
       lugano5k(Cesium.Math.toDegrees(c.latitude)),
     );
-    const { s } = scene(tileset, { height: 300 });
+    // The globe there as the rider's sampler reads it (hidden by the gate, its
+    // stale tiles 10 m over the path: cat-bed drill).
+    const { s } = scene(tileset, { height: 336.6, show: false });
     const sampler = createGroundSampler(s);
     sampler.sample(lon0, at(0), 330, 0);
-    sampler.sample(lon0, at(2), 330, GROUND_SAMPLE_INTERVAL_MS);
-    for (let i = 2; i < 6; i++) expect(sampler.sample(lon0, at(4), 330, i * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(331.2, 6);
+    sampler.sample(lon0, at(3), 330, GROUND_SAMPLE_INTERVAL_MS);
+    // (Off the step's own edge at 4 m, where a read under it could round onto either side.)
+    for (let i = 2; i < 6; i++) expect(sampler.sample(lon0, at(5), 330, i * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(331.2, 6);
   });
 
   // The mesh down the vertical along the route, every half metre, as the
@@ -568,13 +825,14 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
 
   it('the re-reads are bounded: two samples back at most, none further on under a deck', () => {
     // The mound read 9.8 m apart (4990.2 → 5000 m, 4.7 m up) is re-read every
-    // 0.98 m: 9 reads besides the road spot's, the most there are. Read
-    // 10.5 m apart, only the road spot is read again (the plain rule takes
-    // the mound a few metres on).
+    // 0.98 m: 9 reads besides the road spot's and one under the reading (for
+    // a surface the road goes on along under it), the most there are. Read
+    // 10.5 m apart, only the road spot is read again, and under the reading
+    // (the plain rule takes the mound a few metres on).
     const readAt = (_lon: number, lat: number) => lugano(metres(lat));
     for (const [from, reads, status] of [
-      [4990.2, 10, 'road'],
-      [4989.5, 1, 'overhang'],
+      [4990.2, 11, 'road'],
+      [4989.5, 2, 'overhang'],
     ] as const) {
       let n = 0;
       const f = createMeshRoadFilter();
@@ -583,9 +841,10 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
       expect(f.status(), `from ${from} m`).toBe(status);
       expect(n, `from ${from} m`).toBe(reads);
     }
-    // Under a deck 29 m up, from 9.5 m on, read every 6 m: only the spot where
-    // the road was last taken (6 m), as before. Its edge at 12 m is out of
-    // reach of six 2 m steps, so nothing on the way is read.
+    // Under a deck 29 m up, from 9.5 m on, read every 6 m: under the deck
+    // (nothing there) and the spot where the road was last taken (6 m). Its
+    // edge at 12 m is out of reach of six 2 m steps, so nothing on the way is
+    // read.
     const deck = (lat: number) => (lat > at(9.5) && lat < at(70) ? 189.3 : 160.2);
     const g = createMeshRoadFilter();
     const counts: number[] = [];
@@ -594,7 +853,7 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
       g.next(deck(at(m)), lon0, at(m), HIGH, (_lon, lat) => (n++, deck(lat)));
       counts.push(n);
     }
-    expect(counts).toEqual([0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]);
+    expect(counts).toEqual([0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0]);
     expect(OVERHANG_STEP_SPAN_M).toBe(10);
   });
 
@@ -610,11 +869,11 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
       return n;
     };
     // Seven 0.89 m steps of up to 1.77 m reach 12.4 m: a palm 12.9 m up is out
-    // of reach at once (only the road spot is read), 9 m up after two flat
-    // steps, 4.5 m up after five.
-    expect(reRead(112.9)).toBe(1);
-    expect(reRead(109)).toBe(1 + 2);
-    expect(reRead(104.5)).toBe(1 + 5);
+    // of reach at once (only under it and the road spot are read), 9 m up
+    // after two flat steps, 4.5 m up after five.
+    expect(reRead(112.9)).toBe(2);
+    expect(reRead(109)).toBe(2 + 2);
+    expect(reRead(104.5)).toBe(2 + 5);
   });
 
   it('a tile refined higher under the rider: the road spot alone decides, nothing on the way is read', () => {
@@ -625,7 +884,9 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     f.next(mesh(), lon0, at(0), HIGH, mesh);
     refined = true;
     expect(f.next(mesh(), lon0, at(6), HIGH, () => (n++, mesh()))).toBe(-28.1);
-    expect(n).toBe(1);
+    // Under the reading (nothing nearer the road), the road spot's top, and
+    // under it at the road (gone: the tile rose there): none on the way.
+    expect(n).toBe(3);
   });
 
   it('the sampler keeps the road under a canopy and the rider stays on it', async () => {
@@ -670,28 +931,71 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     const { s } = scene(tileset, { height: 160.4 });
     const sampler = createGroundSampler(s);
     expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('globe');
     sampler.sample(lon, lat(0), 195, 0);
     expect(sampler.meshGround()).toBe(true);
-    // The I-80 deck 29 m over the towpath: mesh is there, the rider holds the road.
+    expect(sampler.ground()).toBe('mesh');
+    // The I-80 deck 29 m over the towpath, nothing drawn under it: the rider
+    // holds the road, and the globe (0.2 m off it) stands in for the ground,
+    // without the painted road (it would paint the deck and its piers).
     deck = true;
     expect(sampler.sample(lon, lat(2), 195, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(160.4, 6);
-    expect(sampler.meshGround()).toBe(true);
+    expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('standIn');
     deck = false;
     // A coarse tile 610 m up (the Cuyahoga start): not the ground.
     reading = 768.9;
     sampler.sample(lon, lat(4), 195, 2 * GROUND_SAMPLE_INTERVAL_MS);
     expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('globe');
     // No tile under the rider.
     reading = undefined;
     sampler.sample(lon, lat(6), 195, 3 * GROUND_SAMPLE_INTERVAL_MS);
     expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('globe');
     // Tileset hidden (camera over 5 km): the globe is the ground.
     reading = 160.2;
     sampler.sample(lon, lat(8), 195, 4 * GROUND_SAMPLE_INTERVAL_MS);
     expect(sampler.meshGround()).toBe(true);
+    expect(sampler.ground()).toBe('mesh');
     (tileset as unknown as { show: boolean }).show = false;
     sampler.sample(lon, lat(10), 195, 5 * GROUND_SAMPLE_INTERVAL_MS);
     expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('globe');
+  });
+
+  it('held under a deck with nothing drawn under it: the globe stands in only where it is near the road', async () => {
+    setIonToken('eyJ_test');
+    for (const [globeH, standsIn] of [
+      [160.2 + GLOBE_STANDIN_M - 0.01, true],
+      [160.2 - GLOBE_STANDIN_M + 0.01, true],
+      // 26 m over the street (the Lugano shore): it would lift the rider.
+      [186.2, false],
+      [160.2 + GLOBE_STANDIN_M + 0.2, false],
+      [160.2 - GLOBE_STANDIN_M - 0.2, false],
+    ] as const) {
+      let deck = false;
+      const { tileset } = await photoreal(undefined);
+      (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
+        deck && Cesium.Math.toDegrees(c.latitude) > lat(1) ? 215.3 : 160.2,
+      );
+      const { s, globe } = scene(tileset, { height: globeH, show: false });
+      const sampler = createGroundSampler(s);
+      sampler.sample(lon, lat(0), 160, 0);
+      expect(sampler.meshGround()).toBe(true);
+      deck = true;
+      // Hidden, the globe's height isn't drawn: the rider holds the road.
+      expect(sampler.sample(lon, lat(2), 160, GROUND_SAMPLE_INTERVAL_MS), `globe ${globeH}`).toBeCloseTo(160.2, 6);
+      expect(sampler.meshGround(), `globe ${globeH}`).toBe(!standsIn);
+      expect(sampler.ground(), `globe ${globeH}`).toBe(standsIn ? 'standIn' : 'mesh');
+      // Drawn (the gate shows it a second later), it is the ground where it
+      // stands in: the rider on it, not floating over it on the road held.
+      globe.show = true;
+      expect(sampler.sample(lon, lat(4), 160, 2 * GROUND_SAMPLE_INTERVAL_MS), `globe ${globeH} drawn`).toBeCloseTo(
+        standsIn ? globeH : Math.max(160.2, globeH),
+        6,
+      );
+    }
   });
 
   it("the root tile's chord far under the route is not mesh ground: the globe stays (Lugano–Melide start)", async () => {
@@ -727,7 +1031,7 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     f.next(300, lon, lat(0), 400, none);
     expect(f.status()).toBe('road');
     expect(f.road()).toBe(300);
-    f.next(320, lon, lat(2), 400, () => 300);
+    f.next(320, lon, lat(2), 400, (_lon, l, under) => (l > lat(1) ? (under === undefined ? 320 : undefined) : 300));
     expect(f.status()).toBe('overhang');
     f.next(900, lon, lat(4), 400, none);
     expect(f.status()).toBe('coarse');
@@ -1033,5 +1337,516 @@ describe('groundSettled: the ride start waits for the ground under the rider', (
     setIonToken('eyJ_test');
     expect(groundSettled(scene(null, { height: 300, tilesLoaded: false }).s, true)).toBe(true);
     expect(groundSettled(scene(null, { height: 0 }, new Cesium.EllipsoidTerrainProvider()).s, true)).toBe(false);
+  });
+});
+
+describe('under what stands over the road: the rider rides the road under it (t_148e9796)', () => {
+  // Drill profiles from cat-bed: every up-facing surface down the vertical,
+  // top first, as the rider's tiles drew them, with the globe there (World
+  // Terrain as loaded) and the road (the surface that runs on; interpolated
+  // where none is drawn). Each row: metres along, globe, road, surfaces….
+  type Row = number[];
+  // Cuyahoga towpath 2930–3062 m: crowns 9–25 m over the towpath, the I-80 deck (2996–3014 m) with nothing drawn under it.
+  const cuyahoga3k: Row[] = [
+    [2930, 158.77, 160.96, 170.22, 160.96],
+    [2932, 158.82, 161.43, 171.99, 161.43],
+    [2934, 158.88, 161.43, 174.06],
+    [2936, 158.94, 160.9, 173.46, 160.9],
+    [2938, 159, 160.92, 173.75, 160.92],
+    [2940, 159.05, 161.62, 173.65, 161.62],
+    [2942, 159.11, 161.71, 173.95],
+    [2944, 159.18, 161.34, 173.1, 162.2],
+    [2946, 159.25, 161.47, 174.87, 161.47],
+    [2948, 159.32, 161.24, 177.09, 164.25, 161.24],
+    [2950, 159.39, 161.85, 182.32, 177.56, 161.85],
+    [2952, 159.46, 161.42, 182.99, 177.96, 161.42],
+    [2954, 159.53, 161.06, 183, 177.93, 161.06],
+    [2956, 159.61, 161.01, 176.58, 161.01],
+    [2958, 159.68, 160.96, 176.42, 160.96],
+    [2960, 159.75, 160.89, 175.8, 160.89],
+    [2962, 159.82, 160.94, 160.94],
+    [2964, 159.89, 160.99, 185.27, 179.79, 160.99],
+    [2966, 159.96, 160.97, 185.39, 160.97],
+    [2968, 160.03, 161.02, 184.77, 161.02],
+    [2970, 160.11, 161.09, 184.9, 170.49, 161.09],
+    [2972, 160.18, 161.33, 184.63, 161.77],
+    [2974, 160.25, 161.34, 186.55, 172.39],
+    [2976, 160.32, 161.34, 186.55],
+    [2978, 160.39, 161.34, 185.56],
+    [2980, 160.46, 161.35, 172.98],
+    [2982, 160.53, 161.35, 173.93],
+    [2984, 160.61, 161.35, 175.14],
+    [2986, 160.68, 161.36, 175],
+    [2988, 160.75, 161.36, 176.97],
+    [2990, 160.82, 161.37, 175.96],
+    [2992, 160.89, 161.37, 173.07],
+    [2994, 160.96, 161.37, 170.91],
+    [2996, 161.03, 161.38, 180.68, 170.82],
+    [2998, 161.11, 161.38, 182.98, 169.54],
+    [3000, 161.15, 161.38, 186.54],
+    [3002, 161.16, 161.39, 187.08],
+    [3004, 161.16, 161.39, 186.55, 182.66],
+    [3006, 161.16, 161.39, 185.22],
+    [3008, 161.16, 161.4, 189.48, 185.13],
+    [3010, 161.17, 161.4, 184],
+    [3012, 161.17, 161.41, 182.46, 171.72],
+    [3014, 161.17, 161.41, 184.78, 181.61, 171.15],
+    [3016, 161.17, 161.41, 177.8, 169.6],
+    [3018, 161.18, 161.31, 178.41, 169.82, 161.31],
+    [3020, 161.18, 161.02, 174.13, 165.24, 161.02],
+    [3022, 161.18, 161.04, 161.04],
+    [3024, 161.18, 161.18, 168.16, 161.18],
+    [3026, 161.19, 161.41, 168.11],
+    [3028, 161.19, 161.43, 172.41, 167.41],
+    [3030, 161.19, 161.45, 167.44],
+    [3032, 161.19, 161.46, 166.7, 161.92],
+    [3034, 161.2, 161.03, 161.03],
+    [3036, 161.2, 161.04, 181.03, 161.04],
+    [3038, 161.21, 161.04, 169.02, 161.04],
+    [3040, 161.23, 161.06, 161.06],
+    [3042, 161.26, 161.14, 161.14],
+    [3044, 161.28, 161.15, 161.15],
+    [3046, 161.3, 161.11, 161.11],
+    [3048, 161.32, 161.2, 161.2],
+    [3050, 161.35, 161.14, 161.14],
+    [3052, 161.37, 161.21, 172.32, 161.21],
+    [3054, 161.39, 161.29, 173.46, 161.29],
+    [3056, 161.41, 161.29, 183.78, 173.81, 161.29],
+    [3058, 161.43, 161.28, 187.44, 177.03, 161.28],
+    [3060, 161.46, 161.21, 187.07, 178.86, 176.43, 161.21],
+    [3062, 161.48, 161.04, 187.31, 175.05, 161.04],
+  ];
+
+  // Cuyahoga towpath 4980–5040 m: a crown 12 m up, then a canopy 2.3–3 m over the towpath (no bridge in OSM); the globe 2.5 m over it.
+  const cuyahoga5k: Row[] = [
+    [4980, 164.81, 162.11, 162.11],
+    [4982, 164.8, 162.13, 162.13],
+    [4984, 164.8, 162.16, 173.96, 162.16],
+    [4986, 164.8, 162.18, 174.13, 162.18],
+    [4988, 164.79, 162.2, 174.31, 162.2],
+    [4990, 164.79, 162.22, 175.07, 174.49, 162.22],
+    [4992, 164.79, 162.24, 174.22, 162.24],
+    [4994, 164.78, 162.26, 172.47, 162.26],
+    [4996, 164.78, 162.28, 170.72, 162.28],
+    [4998, 164.77, 162.31, 168.98, 162.31],
+    [5000, 164.77, 162.32, 167.31, 162.32],
+    [5002, 164.77, 162.33, 162.33],
+    [5004, 164.77, 162.35, 165.29, 162.35],
+    [5006, 164.77, 162.36, 165.26, 162.36],
+    [5008, 164.77, 162.38, 165.22, 162.38],
+    [5010, 164.77, 162.39, 165.19, 162.39],
+    [5012, 164.76, 162.4, 165.16, 162.4],
+    [5014, 164.76, 162.42, 165.12, 162.42],
+    [5016, 164.76, 162.43, 165.09, 162.43],
+    [5018, 164.76, 162.44, 165.06, 162.44],
+    [5020, 164.76, 162.46, 165.02, 162.46],
+    [5022, 164.76, 162.47, 164.99, 162.47],
+    [5024, 164.75, 162.49, 164.96, 162.49],
+    [5026, 164.75, 162.5, 164.92, 162.5],
+    [5028, 164.75, 162.5, 164.89, 162.5],
+    [5030, 164.75, 162.46, 164.86, 162.46],
+    [5032, 164.75, 162.45, 164.82, 162.45],
+    [5034, 164.75, 162.44, 164.79, 162.44],
+    [5036, 164.74, 162.43, 164.76, 162.43],
+    [5038, 164.74, 162.42, 164.72, 162.42],
+    [5040, 164.74, 162.41, 164.69, 162.41],
+  ];
+
+  // Chengdu 1203–1228 m, every metre: the ramp onto the bridge, up to 0.58 m per m, 5 m over the terrain at its top.
+  const chengduRamp: Row[] = [
+    [1203, 448.36, 444.88, 444.88],
+    [1204, 448.39, 444.99, 444.99],
+    [1205, 448.43, 445.22, 445.22],
+    [1206, 448.46, 445.5, 445.5],
+    [1207, 448.49, 445.8, 445.8],
+    [1208, 448.5, 446.08, 446.08],
+    [1209, 448.52, 446.37, 446.37],
+    [1210, 448.53, 446.65, 446.65],
+    [1211, 448.54, 446.93, 446.93],
+    [1212, 448.56, 447.22, 447.22],
+    [1213, 448.57, 447.71, 447.71],
+    [1214, 448.58, 448.28, 448.28],
+    [1215, 448.6, 448.86, 448.86],
+    [1216, 448.61, 449.44, 449.44],
+    [1217, 448.68, 450.02, 450.02],
+    [1218, 448.77, 450.61, 450.61],
+    [1219, 448.86, 451.19, 451.19],
+    [1220, 448.95, 451.76, 451.76],
+    [1221, 449.04, 452.26, 452.26],
+    [1222, 449.13, 452.68, 452.68],
+    [1223, 449.22, 453.07, 453.07],
+    [1224, 449.3, 453.46, 453.46],
+    [1225, 449.39, 453.85, 453.85],
+    [1226, 449.48, 454.17, 454.17],
+    [1227, 449.57, 454.48, 454.48],
+    [1228, 449.66, 454.79, 454.79],
+  ];
+
+  // Lugano–Melide 6940–7040 m: the causeway, one smooth deck 3–10 m over the lake (the globe).
+  const melide: Row[] = [
+    [6940, 317.23, 327.49, 327.49],
+    [6942, 317.23, 327.49, 327.49],
+    [6944, 317.23, 327.49, 327.49],
+    [6946, 317.23, 327.48, 327.48],
+    [6948, 317.23, 327.45, 327.45],
+    [6950, 317.23, 327.44, 327.44],
+    [6952, 317.23, 327.41, 327.41],
+    [6954, 317.23, 327.36, 327.36],
+    [6956, 317.23, 327.31, 327.31],
+    [6958, 317.23, 327.26, 327.26],
+    [6960, 317.23, 327.18, 327.18],
+    [6962, 317.23, 327.09, 327.09],
+    [6964, 317.23, 327, 327],
+    [6966, 317.23, 326.92, 326.92],
+    [6968, 317.22, 326.84, 326.84],
+    [6970, 317.22, 326.76, 326.76],
+    [6972, 317.22, 326.68, 326.68],
+    [6974, 317.22, 326.6, 326.6],
+    [6976, 317.22, 326.52, 326.52],
+    [6978, 317.22, 326.38, 326.38],
+    [6980, 317.22, 326.19, 326.19],
+    [6982, 317.22, 326, 326],
+    [6984, 317.22, 325.88, 325.88],
+    [6986, 317.22, 325.69, 325.69],
+    [6988, 317.23, 325.49, 325.49],
+    [6990, 317.25, 325.27, 325.27],
+    [6992, 317.28, 325.1, 325.1],
+    [6994, 317.3, 324.85, 324.85],
+    [6996, 317.32, 324.82, 324.82],
+    [6998, 317.35, 324.58, 324.58],
+    [7000, 317.37, 324.34, 324.34],
+    [7002, 317.4, 324.1, 324.1],
+    [7004, 317.42, 323.85, 323.85],
+    [7006, 317.45, 323.63, 323.63],
+    [7008, 317.47, 323.41, 323.41],
+    [7010, 317.5, 323.2, 323.2],
+    [7012, 317.52, 323, 323],
+    [7014, 317.55, 322.82, 322.82],
+    [7016, 317.57, 322.64, 322.64],
+    [7018, 317.59, 322.46, 322.46],
+    [7020, 317.62, 322.29, 322.29],
+    [7022, 317.64, 322.13, 322.13],
+    [7024, 317.67, 321.98, 321.98],
+    [7026, 317.69, 321.85, 321.85],
+    [7028, 317.72, 321.71, 321.71],
+    [7030, 317.74, 321.6, 321.6],
+    [7032, 317.77, 321.49, 321.49],
+    [7034, 317.79, 321.38, 321.38],
+    [7036, 317.82, 321.3, 321.3],
+    [7038, 317.84, 321.21, 321.21],
+    [7040, 317.87, 321.13, 321.13],
+  ];
+
+  // Lugano–Melide 4920–4970 m, every metre: the road onto the embankment (up to
+  // 1.3 m per m, 8 m up), and under it a second layer of the same tile, flat at
+  // 327.5 m, with nothing facing down between (drilled with back-face culling
+  // off). The globe (coarse World Terrain on the steep shore) is 9–11 m over both.
+  const lugano4900: Row[] = [
+    [4920, 338.41, 328.76, 328.76, 327.72],
+    [4921, 338.35, 328.7, 328.7, 327.7],
+    [4922, 338.33, 328.64, 328.64, 327.68],
+    [4923, 338.31, 328.61, 328.61, 327.67],
+    [4924, 338.3, 328.6, 328.6, 327.67],
+    [4925, 338.28, 328.58, 328.58, 327.66],
+    [4926, 338.26, 328.55, 328.55, 327.66],
+    [4927, 338.23, 328.53, 328.53, 327.65],
+    [4928, 338.19, 328.53, 328.53, 327.64],
+    [4929, 338.15, 328.53, 328.53, 327.63],
+    [4930, 338.12, 328.52, 328.52, 327.62],
+    [4931, 338.08, 328.52, 328.52, 327.61],
+    [4932, 338.05, 328.52, 328.52, 327.6],
+    [4933, 338.01, 328.92, 328.92, 327.59],
+    [4934, 337.97, 330, 330, 327.58],
+    [4935, 337.9, 331.19, 331.19, 327.56],
+    [4936, 337.83, 332.53, 332.53, 327.55],
+    [4937, 337.76, 333.95, 333.95, 327.53],
+    [4938, 337.69, 335.22, 335.22, 327.51],
+    [4939, 337.62, 335.6, 335.6, 327.5],
+    [4940, 337.55, 335.74, 335.74, 327.49],
+    [4941, 337.48, 335.87, 335.87, 327.47],
+    [4942, 337.41, 336.19, 336.19, 327.46],
+    [4943, 337.34, 335.95, 335.95, 327.39],
+    [4944, 337.28, 335.6, 335.6, 327.32],
+    [4945, 337.21, 335.26, 335.26, 327.29],
+    [4946, 337.14, 334.93, 334.93, 327.28],
+    [4947, 337.07, 334.57, 334.57, 334.48, 327.27],
+    [4948, 337, 334.43, 334.43, 327.25],
+    [4949, 336.93, 334.36, 334.36, 327.25],
+    [4950, 336.86, 334.08, 334.08, 327.23],
+    [4951, 336.79, 333.55, 333.55, 327.22],
+    [4952, 336.72, 332.88, 332.88, 327.21],
+    [4953, 336.65, 332.24, 332.24, 327.2],
+    [4954, 336.58, 331.61, 331.61, 327.19],
+    [4955, 336.53, 330.98, 330.98, 327.18],
+    [4956, 336.53, 330.54, 330.54, 327.15],
+    [4957, 336.53, 330.11, 330.11, 327.12],
+    [4958, 336.53, 329.67, 329.67, 327.09],
+    [4959, 336.54, 329.23, 329.23, 327.06],
+    [4960, 336.54, 328.8, 328.8, 327.02],
+    [4961, 336.54, 328.36, 328.36, 326.99],
+    [4962, 336.54, 327.92, 327.92, 326.95],
+    [4963, 336.54, 327.88, 327.88, 326.78],
+    [4964, 336.54, 328.03, 328.03, 326.76],
+    [4965, 336.54, 328.18, 328.18, 326.74],
+    [4966, 336.55, 328.33, 328.33, 326.73],
+    [4967, 336.55, 328.48, 328.48, 326.71],
+    [4968, 336.55, 328.63, 328.63, 326.67],
+    [4969, 336.55, 328.77, 328.77, 326.61],
+    [4970, 336.55, 328.92, 328.92, 326.55],
+  ];
+
+  const lonC = -81.5;
+  const atC = (m: number) => 41 + m / 110_540;
+  const metresC = (lat: number) => (lat - 41) * 110_540;
+
+  interface Read {
+    m: number;
+    /** What the rider stands on: the filter's road, else the globe. */
+    shown: number;
+    road: number;
+    globe: number;
+    /** The road is drawn here (one of the surfaces). */
+    drawn: boolean;
+    status: string;
+  }
+  /**
+   * The filter rolled along `rows` (`step` m apart) read every `spacing` m
+   * from `phase` on, as the sampler calls it: from a road read just before
+   * the first row, or from nothing (a jump: the probes, Ride again).
+   */
+  function ride(rows: Row[], step: number, spacing: number, phase: number, from: 'road' | 'jump'): Read[] {
+    const m0 = rows[0][0];
+    const row = (m: number) => rows[Math.max(0, Math.min(rows.length - 1, Math.round((m - m0) / step)))];
+    const readAt = (_lon: number, lat: number, under?: number) => {
+      const hits = row(metresC(lat)).slice(3);
+      return under === undefined ? hits[0] : hits.find((h) => h <= under);
+    };
+    const f = createMeshRoadFilter();
+    if (from === 'road') f.next(rows[0][2], lonC, atC(m0 - step), 1e9, () => rows[0][2], -Infinity, rows[0][2]);
+    const out: Read[] = [];
+    for (let m = m0 + phase; m <= rows[rows.length - 1][0]; m += spacing) {
+      const [, globe, road, ...hits] = row(m);
+      const got = f.next(hits[0], lonC, atC(m), 1e9, readAt, -Infinity, globe);
+      out.push({ m, shown: got ?? globe, road, globe, drawn: hits.some((h) => Math.abs(h - road) < 0.01), status: f.status() });
+    }
+    return out;
+  }
+  /** Every spacing 2–8 m the rows allow, at every phase. */
+  function everyRide(rows: Row[], step: number, from: 'road' | 'jump'): Read[][] {
+    const out: Read[][] = [];
+    for (let s = Math.max(2, step); s <= 8; s += step) for (let o = 0; o < s; o += step) out.push(ride(rows, step, s, o, from));
+    return out;
+  }
+  const worst = (reads: Read[], pick: (r: Read) => boolean = () => true) =>
+    reads.filter(pick).reduce((w, r) => (Math.abs(r.shown - r.road) > Math.abs(w) ? r.shown - r.road : w), 0);
+
+  it('Cuyahoga 3 km: under the crowns and the I-80 deck the rider rides the towpath, never what stands over it', () => {
+    for (const reads of everyRide(cuyahoga3k, 2, 'road')) {
+      const at = `read ${reads[1].m - reads[0].m} m apart from ${reads[0].m} m`;
+      // Where the towpath is drawn, on it; where it isn't (under the deck,
+      // under a crown with nothing under it), the road held, within 1 m.
+      expect(Math.abs(worst(reads, (r) => r.drawn)), at).toBeLessThanOrEqual(0.3);
+      expect(Math.abs(worst(reads)), at).toBeLessThan(1);
+    }
+  });
+
+  it('Cuyahoga 3 km from a jump: never on a crown or the deck; on the globe until the towpath is read, then on it', () => {
+    for (const reads of everyRide(cuyahoga3k, 2, 'jump')) {
+      const at = `read ${reads[1].m - reads[0].m} m apart from ${reads[0].m} m`;
+      for (const r of reads) expect(r.shown - r.road, `${at}, at ${r.m} m`).toBeLessThan(1);
+      const first = reads.findIndex((r) => r.status === 'road');
+      expect(first, at).toBeGreaterThanOrEqual(0);
+      expect(Math.abs(worst(reads.slice(first), (r) => r.drawn)), at).toBeLessThanOrEqual(0.3);
+    }
+  });
+
+  it('Cuyahoga 5 km: a crown and a low canopy over the towpath are passed under, rolled in or jumped in', () => {
+    for (const from of ['road', 'jump'] as const) {
+      for (const reads of everyRide(cuyahoga5k, 2, from)) expect(Math.abs(worst(reads)), `${from} ${reads[0].m}`).toBeLessThanOrEqual(0.3);
+    }
+  });
+
+  it('the ramp onto the Chengdu bridge (0.58 m per m, 5 m over the terrain) is ridden, read 2–8 m apart', () => {
+    for (const from of ['road', 'jump'] as const) {
+      for (const reads of everyRide(chengduRamp, 1, from)) expect(Math.abs(worst(reads)), `${from} ${reads[0].m}`).toBeLessThanOrEqual(0.3);
+    }
+  });
+
+  it('the Melide causeway from a jump: on the lake (the globe) until DECK_RUN_M of smooth deck is read, then on the deck', () => {
+    for (const reads of everyRide(melide, 2, 'jump')) {
+      const at = `read ${reads[1].m - reads[0].m} m apart from ${reads[0].m} m`;
+      const first = reads.findIndex((r) => r.status === 'road');
+      // From the first deck read, DECK_RUN_M of it before it is the road.
+      expect(reads[first].m - reads[0].m, at).toBeGreaterThanOrEqual(DECK_RUN_M);
+      expect(reads[first].m - reads[0].m, at).toBeLessThanOrEqual(DECK_RUN_M + 8);
+      for (const r of reads.slice(0, first)) expect(r.shown, `${at}, at ${r.m} m`).toBe(r.globe);
+      expect(Math.abs(worst(reads.slice(first))), at).toBeLessThanOrEqual(0.3);
+    }
+    // Rolled on from the shore, the deck is the road throughout.
+    for (const reads of everyRide(melide, 2, 'road')) expect(Math.abs(worst(reads)), `road ${reads[0].m}`).toBeLessThanOrEqual(0.3);
+  });
+  it('Lugano–Melide 4.93 km: the rider rides the road onto the embankment, never the layer under it (read 2–8 m apart, rolled in or jumped in)', () => {
+    // Taken as "the road under something" (the first look-under did, from
+    // 4934 m on), that layer put the rider up to 8.7 m inside the embankment:
+    // on cat-bed the camera saw no sky and the wheels 2.27 m inside the mesh.
+    for (const from of ['road', 'jump'] as const) {
+      for (const reads of everyRide(lugano4900, 1, from)) {
+        expect(Math.abs(worst(reads)), `${from} read ${reads[1].m - reads[0].m} m apart from ${reads[0].m} m`).toBeLessThanOrEqual(0.3);
+      }
+    }
+  });
+
+  /**
+   * A photoreal tileset with a stack of up-facing surfaces under each spot
+   * (top first, by metres along). Its pick answers as Cesium3DTileset.pick
+   * does down one stack: the highest surface at or under the ray's origin, so
+   * a ray started under a crown reaches the ground under it.
+   */
+  async function stacked(column: (m: number) => number[], onPick?: () => void) {
+    const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
+    Object.defineProperty(fake, 'show', { value: true, writable: true });
+    Object.defineProperty(fake, 'tilesLoaded', { value: true, writable: true });
+    const stack = (c: Cesium.Cartographic) => column(metresC(Cesium.Math.toDegrees(c.latitude)));
+    Object.defineProperty(fake, 'getHeight', { value: (c: Cesium.Cartographic) => stack(c)[0] });
+    Object.defineProperty(fake, 'pick', {
+      value: (ray: Cesium.Ray, frameState: unknown) => {
+        requireFrameState(frameState);
+        onPick?.();
+        const c = Cesium.Cartographic.fromCartesian(ray.origin);
+        const h = stack(c).find((x) => x <= c.height);
+        return h === undefined ? undefined : Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h);
+      },
+    });
+    vi.spyOn(Cesium.Cesium3DTileset, 'fromIonAssetId').mockResolvedValue(fake);
+    return (await getPhotorealTileset())!;
+  }
+
+  it('through the real reads (sampler → sampleGroundHeight → meshHeightAt → pick): under a crown the rider takes the towpath, on the mesh', async () => {
+    setIonToken('eyJ_test');
+    // The towpath climbs 5 cm a metre; from 1 m on a crown stands 15 m over
+    // it. The globe (World Terrain) is 0.6 m under the towpath, within
+    // GLOBE_STANDIN_M: were the towpath not read from under the crown, the
+    // globe would stand in for it (meshGround false) and the rider would
+    // hold the road it last took.
+    const towpath = (m: number) => 160 + 0.05 * m;
+    const tileset = await stacked((m) => (m > 1 ? [towpath(m) + 15, towpath(m)] : [towpath(m)]));
+    const { s, globe } = scene(tileset, { height: undefined, show: false });
+    (globe.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (c: Cesium.Cartographic) => towpath(metresC(Cesium.Math.toDegrees(c.latitude))) - 0.6,
+    );
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(lonC, atC(0), 160, 0)).toBeCloseTo(towpath(0), 6);
+    expect(sampler.ground()).toBe('mesh');
+    for (let i = 1; i <= 12; i++) {
+      const m = 2 * i;
+      expect(sampler.sample(lonC, atC(m), 160, i * GROUND_SAMPLE_INTERVAL_MS), `${m} m`).toBeCloseTo(towpath(m), 6);
+      expect(sampler.meshGround(), `${m} m`).toBe(true);
+      expect(sampler.ground(), `${m} m`).toBe('mesh');
+    }
+  });
+
+  it("one sample's reads copy the tile from the GPU once (withMeshReadCache); reads outside a sample copy it every time", async () => {
+    setIonToken('eyJ_test');
+    // Cesium's tile pick copies each tile's geometry back from the GPU
+    // (pickModel -> ModelReader -> Buffer.getBufferData; WebGL 2 keeps no CPU
+    // copy). Under a crown one sample reads the mesh several times (the top,
+    // then down from under it): the copies are kept for those reads.
+    let copies = 0;
+    let picks = 0;
+    const indices = {
+      count: 3,
+      indexDatatype: Cesium.IndexDatatype.UNSIGNED_SHORT,
+      buffer: {
+        isDestroyed: () => false,
+        getBufferData: (out: Uint16Array) => {
+          copies++;
+          out.set([0, 1, 2]);
+        },
+      },
+    };
+    const reader = (Cesium as unknown as { ModelReader: { readIndicesAsTypedArray: (i: unknown) => Uint16Array } }).ModelReader;
+    const towpath = (m: number) => 160 + 0.05 * m;
+    const tileset = await stacked(
+      (m) => (m > 1 ? [towpath(m) + 15, towpath(m)] : [towpath(m)]),
+      () => {
+        picks++;
+        expect([...reader.readIndicesAsTypedArray(indices)]).toEqual([0, 1, 2]);
+      },
+    );
+    const { s, globe } = scene(tileset, { height: undefined, show: false });
+    (globe.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (c: Cesium.Cartographic) => towpath(metresC(Cesium.Math.toDegrees(c.latitude))) - 0.6,
+    );
+    clearMeshTopReads();
+    const sampler = createGroundSampler(s);
+    sampler.sample(lonC, atC(0), 160, 0);
+    expect(copies).toBe(1);
+    const before = picks;
+    expect(sampler.sample(lonC, atC(4), 160, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(towpath(4), 6);
+    // Under the crown: the top and at least one read from under it, one copy kept.
+    expect(picks - before).toBeGreaterThan(1);
+    expect(copies).toBe(1);
+    // Outside a sample's reads nothing is served from the copies.
+    reader.readIndicesAsTypedArray(indices);
+    expect(copies).toBe(2);
+    clearMeshTopReads();
+  });
+
+  it('a fresh start under a structure with nothing drawn under it: the globe stands in (no painted road), not the top', async () => {
+    setIonToken('eyJ_test');
+    // A crown 15 m over the towpath with no ground drawn under it, the globe
+    // at the towpath: no road to go on from, so the rider stands on the globe.
+    const tileset = await stacked(() => [175.4]);
+    const { s } = scene(tileset, { height: 160.4 });
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(lonC, atC(0), 160, 0)).toBeCloseTo(160.4, 6);
+    expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('standIn');
+    // With the tile gone, no mesh at all: the globe is the ground.
+    const bare = await stacked(() => []);
+    const open = createGroundSampler(scene(bare, { height: 160.4 }).s);
+    open.sample(lonC, atC(0), 160, 0);
+    expect(open.ground()).toBe('globe');
+  });
+
+  it('the avatar hands the ride view what its sampler stood it on: a stand-in, not only "not the mesh"', async () => {
+    setIonToken('eyJ_test');
+    // CesiumWorldView's ground gate reads avatar.ground(): were it only
+    // meshGround() (mesh or globe), the painted road would come back under
+    // the crown with the globe.
+    const tileset = await stacked(() => [175.4]);
+    const { s } = scene(tileset, { height: 160.4 });
+    const primitives = new Cesium.PrimitiveCollection({ destroyPrimitives: false });
+    primitives.add(tileset);
+    (s as unknown as { primitives: Cesium.PrimitiveCollection }).primitives = primitives;
+    const a = createAvatar({ isDestroyed: () => false, scene: s } as unknown as Cesium.Viewer);
+    try {
+      a.update({ lon: lonC, lat: atC(0), ele: 160, heading: 0, speed: 0, cadence: 0, grade: 0, dt: 1 / 60 });
+      expect(a.ground()).toBe('standIn');
+      expect(a.meshGround()).toBe(false);
+    } finally {
+      a.dispose();
+    }
+  });
+
+  it('only a surface within UNDER_BARE_M of the bare terrain is taken from under something; with no terrain, none', () => {
+    // A crown 14 m over the towpath, the towpath drawn under it (Cuyahoga 2748 m).
+    const readAt = (_lon: number, lat: number, under?: number) => {
+      const hits = lat > atC(1) ? [175, 160.9] : [160.9];
+      return under === undefined ? hits[0] : hits.find((h) => h <= under);
+    };
+    for (const [bare, taken] of [
+      [160.4, true],
+      [160.9 + UNDER_BARE_M - 0.01, true],
+      [160.9 + UNDER_BARE_M + 0.01, false],
+      [undefined, false],
+    ] as const) {
+      const f = createMeshRoadFilter();
+      f.next(160.9, lonC, atC(0), 1e9, readAt, -Infinity, bare);
+      // Held or taken, the rider stays on the towpath height; only the status
+      // says whether the mesh road was read there (the globe gate goes by it).
+      expect(f.next(175, lonC, atC(4), 1e9, readAt, -Infinity, bare), `bare ${bare}`).toBe(160.9);
+      expect(f.status(), `bare ${bare}`).toBe(taken ? 'road' : 'overhang');
+    }
   });
 });

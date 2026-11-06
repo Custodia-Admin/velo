@@ -37,6 +37,15 @@ export interface ChaseFraming {
 /** Height of the aim point above the road: roughly the rider's hips. */
 export const AIM_HEIGHT_M = 1.0;
 
+/**
+ * Vertical field of view of the ride camera, degrees, in every renderer and
+ * every window shape. The three.js renderer's `fov` is vertical; Cesium's
+ * spans the canvas's longer side, so photoreal converts it
+ * (renderers/cesium/hudLensCrop `cesiumFov`). With the same framing, both
+ * renderers then draw the rider the same size in the same place.
+ */
+export const RIDE_FOV_Y_DEG = 60;
+
 export const CHASE_FRAMING: Readonly<Record<CameraDistance, ChaseFraming>> = {
   close: { backM: 4.5, upM: 1.9, lookAheadM: 10 },
   standard: { backM: 7, upM: 2.6, lookAheadM: 14 },

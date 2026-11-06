@@ -106,7 +106,6 @@ describe('status chip', () => {
     battery: null,
     reconnectAttempt: 0,
     reconnectMaxAttempts: 0,
-    replay: false,
   };
 
   it('connected trainer: name and how hard the hills feel, primary dot, quiet on phones', () => {
@@ -151,9 +150,8 @@ describe('status chip', () => {
     expect(v).toMatchObject({ tone: 'calm', alert: false });
   });
 
-  it('outdoor and replay rides say so', () => {
+  it('outdoor rides say so', () => {
     expect(statusChip({ ...base, mode: 'outdoor', connection: 'disconnected' }).label).toBe('Outdoor · GPS');
-    expect(statusChip({ ...base, replay: true }).label).toBe('Replay');
   });
 });
 
@@ -168,7 +166,6 @@ describe('the one ride chip (compact HUD: every device or error state in one pil
     battery: null,
     reconnectAttempt: 0,
     reconnectMaxAttempts: 0,
-    replay: false,
     trainerReconnectable: false,
     errorCode: null,
     controls: 'live',
@@ -212,9 +209,8 @@ describe('the one ride chip (compact HUD: every device or error state in one pil
     // It holds the chip over a notice (the bridge's "Couldn't reconnect" toast) and over calm states.
     expect(rideChip({ ...lostNoGrant, notice: { title: "Couldn't reconnect after several attempts", kind: 'error' } }).label)
       .toBe('Trainer lost · tap for devices');
-    // ... but not on outdoor or replay rides, which have no trainer.
+    // ... but not on outdoor rides, which have no trainer.
     expect(rideChip({ ...lostNoGrant, mode: 'outdoor' }).label).toBe('Outdoor · GPS');
-    expect(rideChip({ ...lostNoGrant, replay: true }).label).toBe('Replay');
     // Once the trainer is back (connected clears the error code), the calm line returns.
     expect(rideChip({ ...ride }).alert).toBe(false);
   });
@@ -249,7 +245,7 @@ describe('the one ride chip (compact HUD: every device or error state in one pil
     expect(v.label).toBe(WORLD_STOPPED_LABEL);
     // The screen-reader sentence says it in full, and that the ride carries on.
     expect(v.aria).toBe('The 3D view stopped. Tap to reload the view. Your ride keeps going and recording.');
-    // Demo rides, outdoor rides and replays too: the world view is the same.
+    // Demo and outdoor rides too: the world view is the same.
     expect(rideChip({ ...ride, connection: 'disconnected', mode: 'demo', deviceName: null, worldStopped: true }).action).toBe('reloadWorld');
     expect(rideChip({ ...ride, mode: 'outdoor', worldStopped: true }).action).toBe('reloadWorld');
   });

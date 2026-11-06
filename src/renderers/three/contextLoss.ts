@@ -7,7 +7,8 @@
  * stays frozen while the ride, its HUD and the recording carry on. The view
  * remounts its <Canvas> under a new key when the browser restores the context
  * or the rider taps the chip, so react-three-fiber rebuilds the scene on a
- * fresh context (ThreeWorldView).
+ * fresh context (ThreeWorldView). The listener itself is shared with the
+ * photoreal renderer (renderers/contextLoss.ts).
  */
 
 import { useEffect } from 'react';
@@ -15,37 +16,7 @@ import { useThree } from '@react-three/fiber';
 
 import { useWorldViewStore } from '@/stores/worldViewStore';
 
-export interface ContextLossHandlers {
-  /** The context is gone: the canvas is frozen. */
-  lost: () => void;
-  /** The browser gave the context back (only after a cancelled loss). */
-  restored: () => void;
-}
-
-/**
- * Listens for `webglcontextlost` / `webglcontextrestored` on a canvas.
- *
- * The loss is cancelled (preventDefault) so the browser may restore the
- * context later: without that, Chrome never fires `webglcontextrestored`.
- * three.js cancels it too, but the recovery must not depend on that.
- *
- * Neither handler fires once the returned stop function has run:
- * react-three-fiber forces the context loss of a canvas it unmounts, and
- * that loss is not the rider's problem.
- */
-export function watchContextLoss(canvas: EventTarget, on: ContextLossHandlers): () => void {
-  const lost = (e: Event) => {
-    e.preventDefault();
-    on.lost();
-  };
-  const restored = () => on.restored();
-  canvas.addEventListener('webglcontextlost', lost, false);
-  canvas.addEventListener('webglcontextrestored', restored, false);
-  return () => {
-    canvas.removeEventListener('webglcontextlost', lost, false);
-    canvas.removeEventListener('webglcontextrestored', restored, false);
-  };
-}
+import { watchContextLoss } from '@/renderers/contextLoss';
 
 /**
  * Inside <Canvas>: reports this canvas (`canvasKey` of world view `viewId`)

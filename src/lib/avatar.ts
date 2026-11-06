@@ -6,6 +6,7 @@ import {
   sampleGroundHeight,
   sceneEle,
   sceneGroundHeight,
+  withMeshReadCache,
 } from '@/lib/cesiumUtils';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { RiderPosition } from '@/lib/physics';
@@ -163,6 +164,11 @@ export interface Avatar {
    * False on the globe, with no mesh tile, or with only a coarse floating tile.
    */
   meshGround: () => boolean;
+  /**
+   * What the rider stands on (see {@link GroundKind}): what the globe and the
+   * painted road follow (renderers/cesium/globeGate GroundGate).
+   */
+  ground: () => GroundKind;
   setColors: (c: AvatarColors) => void;
   dispose: () => void;
   /** Internal: current skin color including effort tint. Set by setAvatarEffortLevel. */
@@ -1525,6 +1531,7 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     update,
     groundEle: () => smoothedEle,
     meshGround: () => groundSampler.meshGround(),
+    ground: () => groundSampler.ground(),
     setColors,
     dispose,
     _effortLevel: 0,
@@ -1537,6 +1544,11 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
 export const GROUND_SAMPLE_INTERVAL_MS = 250;
 /** …or as soon as the rider has moved this far (m) since the last sample. */
 export const GROUND_SAMPLE_MOVE_M = 5;
+/**
+ * …or every frame while the drawn globe is more than this (m) over the mesh
+ * reading: the rider stands on the globe, not on the mesh (createGroundSampler).
+ */
+export const GLOBE_OVER_MESH_M = 0.25;
 
 /**
  * The avatar's ground height one frame on: up at once (a rider eased up onto
@@ -1567,12 +1579,13 @@ export const OVERHANG_GRADE = 0.25;
 /** Past this much travel from the last road spot a higher reading is taken anyway. */
 export const OVERHANG_GIVE_UP_M = 100;
 /**
- * Nothing lower than this over the road is ridden under: the chase camera
- * sits 2.5 m over the road, so it would be inside it. A rise up to this much
- * is ridden over, whatever its grade (Lugano–Melide at 5 km: the route comes
- * off the lakeside path onto the road edge 3.6 m up for a few metres; held
- * under it, the rider and the camera were inside the mesh, the frame 60 %
- * dark wall).
+ * Nothing lower than this over the road is ridden under, unless the mesh has
+ * a surface under it nearer the road (a crown's edge over the towpath): the
+ * chase camera sits 2.5 m over the road, so held under a solid step it would
+ * be inside it. A rise up to this much with nothing under it is ridden over,
+ * whatever its grade (Lugano–Melide at 5 km: the route comes off the
+ * lakeside path onto the road edge 3.6 m up for a few metres; held under it,
+ * the rider and the camera were inside the mesh, the frame 60 % dark wall).
  */
 export const OVERHANG_MIN_M = 4;
 /**
@@ -1608,6 +1621,110 @@ export const OVERHANG_STEP_SPAN_M = 10;
  */
 export const OVERHANG_STEP_GRADE = 2;
 
+/**
+ * How far under a surface the next read down starts (m): a mesh read from
+ * `under` ({@link sampleGroundHeight}) answers an up-facing surface at or
+ * under where it starts (see {@link MeshRead}), so the next read starts just
+ * under the last one found.
+ */
+export const UNDER_GAP_M = 0.05;
+/**
+ * Most reads down one vertical to find the road under what stands over it.
+ * The first starts at the highest the road can be, so the crowns or the deck
+ * above are skipped in one read; on the Cuyahoga towpath the ground is the
+ * first or second surface under that (up to six surfaces down the vertical).
+ */
+export const UNDER_READS = 3;
+/**
+ * Under something over the road, the road is looked for within
+ * {@link OVERHANG_MIN_M} of the last road spot, or {@link OVERHANG_RISE_M}
+ * plus this grade times the distance since if more: a steep path's climb
+ * (the Cuyahoga towpath climbs 6 m in 40 m under the crowns and the railway
+ * at 9.4 km). Not the filter's own {@link OVERHANG_GRADE}: 40 m on under
+ * crowns with no ground drawn under them, that would reach a lower crown
+ * 10.5 m over the towpath (Cuyahoga 3011 m).
+ */
+export const UNDER_GRADE = 0.15;
+/**
+ * Only something at least this far over a surface is ridden under (m): a
+ * rider is ~1.8 m tall. Two copies of the road a few centimetres to half a
+ * metre apart (tiles of two levels overlapping, Cuyahoga 4.74 km) are one
+ * road, and the top one is the one drawn.
+ */
+export const UNDER_CLEARANCE_M = 2;
+/**
+ * A rise over the last road spot of more than this between two readings is
+ * looked under (m): the read every 250 ms is 2 m apart at 30 km/h, so a crown
+ * sloping up from the towpath (Cuyahoga 10.55 km: 0.48 m per m for 35 m)
+ * rises under {@link OVERHANG_RISE_M} each time.
+ */
+export const UNDER_RISE_M = 0.5;
+/**
+ * A surface read under what stands over the road is the road only if it is
+ * at most this far under the bare terrain (the globe's World Terrain, m).
+ * The towpath under the Cuyahoga crowns is within ±3 m of it (p5–p95 over
+ * 11.5 km), the Santa Monica Strand under its palms 4 m under it. One tile
+ * can also draw a second layer under the road with nothing facing down
+ * between (Lugano–Melide 4.29, 4.51 and 4.93 km: 1–8 m under the road, flat
+ * while the road climbs onto the embankment); ridden as "the road under
+ * something" it put the rider up to 8 m inside the mesh. There the bare
+ * terrain is 10–20 m over both layers (coarse World Terrain on the steep
+ * shore), so nothing is looked under and the rider rides what is drawn on
+ * top, as before. With no terrain to go by, nothing is looked under either.
+ */
+export const UNDER_BARE_M = 5;
+/**
+ * Steepest a road climbs over {@link CLIMB_SPAN_M} (m per m). A steeper rise
+ * with a road under it that climbs no steeper is something over that road.
+ * Only checked where the mesh has a surface {@link UNDER_CLEARANCE_M} under
+ * the top: an embankment or a mound the route climbs (Lugano–Melide 4.93 and
+ * 5 km, up to 1.46 m per m) is solid, with nothing under it.
+ */
+export const CLIMB_GRADE = 0.3;
+/**
+ * A climb that looks like nothing a road climbs to (createMeshRoadFilter's
+ * `climbsOnto`) is still a road's ramp if, read again every metre from the
+ * last road spot, no step rises more than this (m per m): the mesh draws the
+ * ramps onto the Chengdu bridges at 1.21 and 9.52 km at up to 0.58 m per m.
+ * A crown's edge rises more within a metre.
+ */
+export const RAMP_GRADE = 0.75;
+/** How far back the road taken is remembered for {@link CLIMB_GRADE} (m). */
+export const CLIMB_SPAN_M = 20;
+/**
+ * A reading more than this over the bare terrain is on a structure (m): a
+ * tree crown or a deck. With no road to go on from (the first reading, a
+ * jump, {@link OVERHANG_GIVE_UP_M} under something) the road is the ground
+ * under it near the terrain where the mesh has one, and nothing here
+ * otherwise; nor is a structure the road a rider held near the terrain climbs
+ * to. Over the Cuyahoga towpath the crowns stand 9–32 m over the globe's
+ * terrain and the towpath within ±3 m of it (p5–p95 over 11.5 km).
+ */
+export const STRUCTURE_M = 6;
+/**
+ * Over the bare terrain by more than this, it is the terrain reading that is
+ * suspect, not the mesh (m): a hidden globe's stale coarse tile can sit 60 m
+ * under a street, while the crowns and decks over the Cuyahoga towpath stand
+ * at most 32 m over the terrain. The reading is then judged as before this
+ * filter knew the terrain.
+ */
+export const STRUCTURE_MAX_M = 40;
+/**
+ * With no road to go on from, structure tops read one after another along the
+ * route (at most {@link DECK_GAP_M} apart, each within {@link DECK_STEP_M}
+ * plus {@link DECK_GRADE} times the distance of the last) for this far are a
+ * deck the route runs on (m): the Melide causeway is one smooth surface 8–10 m
+ * over the lake for 800 m. Crown tops over the Cuyahoga towpath jump metres
+ * from one reading to the next, and the I-80 deck overhead is 15 m across.
+ */
+export const DECK_RUN_M = 30;
+/** Farthest apart two readings of one deck run may be (m). */
+export const DECK_GAP_M = 12;
+/** Most a deck run's top may step between two readings (m)… */
+export const DECK_STEP_M = 0.5;
+/** …plus this grade times the distance between them. */
+export const DECK_GRADE = 0.1;
+
 function metresBetween(lon: number, lat: number, fromLon: number, fromLat: number): number {
   if (Number.isNaN(fromLon)) return Infinity;
   return Math.hypot((lon - fromLon) * 111_320 * Math.cos((lat * Math.PI) / 180), (lat - fromLat) * 110_540);
@@ -1615,9 +1732,10 @@ function metresBetween(lon: number, lat: number, fromLon: number, fromLat: numbe
 
 /**
  * What the last mesh reading under a rider was ({@link createMeshRoadFilter}):
- * - 'road': the mesh road, taken;
- * - 'overhang': mesh is there, but something stands over the road (canopy,
- *   viaduct deck); the rider keeps the road it has;
+ * - 'road': the mesh road, taken (the top, or a surface under a crown or a
+ *   deck that the road goes on along);
+ * - 'overhang': mesh is there, but only over the road (canopy, deck), with
+ *   no surface near the road under it; the rider keeps the road it has;
  * - 'coarse': only a coarse tile far over or under the ground (one sat 610 m
  *   up for ~4 s at the Cuyahoga start, the root tile's chord 28 km under the
  *   Lugano shore); not the road;
@@ -1626,14 +1744,41 @@ function metresBetween(lon: number, lat: number, fromLon: number, fromLat: numbe
 export type MeshRoadStatus = 'road' | 'overhang' | 'coarse' | 'none';
 
 /**
+ * Reads the mesh at lon/lat: from the top (`under` undefined), or down the
+ * vertical from `under`: an up-facing surface at or under it (undefined if
+ * none, or if this reader can't look under anything). That is what
+ * Cesium3DTileset.pick hits first from there: the first candidate tile with
+ * any hit, nearest bounding sphere to the ray's origin first. A low origin is
+ * inside every candidate's sphere (distance 0), so with tiles stacked there
+ * the order falls back to the tileset's selection order, and the answer can
+ * be a lower surface than the highest one at or under `under`. The filter
+ * reads down from each surface it finds ({@link UNDER_READS}), so a surface
+ * skipped that way is a candidate missed, never a surface over `under`.
+ */
+export type MeshRead = (lon: number, lat: number, under?: number) => number | undefined;
+
+/**
  * Which photoreal mesh readings are the road. A vertical ray reads the TOP
- * of whatever is there: a palm canopy 10 m over the Santa Monica Strand, the
- * I-80 viaduct 29 m over the Cuyahoga towpath, a coarse tile 600 m up. The
- * road is continuous, so a reading more than {@link OVERHANG_MIN_M} over the
- * last road spot, and rising faster than a road climbs, is the road only if
- * the mesh at that last road spot rose too (a tile refined under the rider);
- * otherwise it is over the road and the rider keeps the road it has. Lower
- * rises are ridden over. Falls are always taken (the rider eases down).
+ * of whatever is there: a palm canopy 10 m over the Santa Monica Strand, tree
+ * crowns 10–30 m over the Cuyahoga towpath, a road deck 28 m over it (I-271),
+ * a coarse tile 600 m up. The road is continuous, so:
+ * - a reading within a road's climb of the last road spot is the road, but a
+ *   rise of more than {@link OVERHANG_RISE_M} is looked under once: a surface
+ *   under it nearer the road (the towpath under a crown's edge) is the road;
+ * - a higher reading is over the road: the mesh is read down from the highest
+ *   the road can be, and the surface nearest the road within a climb of it is
+ *   the road (the towpath under the crowns, where the mesh has it: about half
+ *   the spots on the Cuyahoga towpath). With none, the reading is the road
+ *   only if the mesh at that last road spot rose too (a tile refined under
+ *   the rider) or it is a ramp (below); otherwise the rider keeps the road it
+ *   has ('overhang');
+ * - with no road to go on from, a reading over the bare terrain is looked
+ *   under for the ground near the terrain.
+ * A surface found under something is the road only within
+ * {@link UNDER_BARE_M} of the bare terrain: a tile can draw a second layer
+ * under the road with nothing between (Lugano–Melide 4.93 km), and where the
+ * terrain can't tell them apart the top is ridden, as before.
+ * Falls are always taken (the rider eases down).
  *
  * A rise refused across a gap longer than {@link OVERHANG_STEP_M} is read
  * again every metre on the way, and it is the road if it is a ramp: no step
@@ -1647,19 +1792,45 @@ export function createMeshRoadFilter() {
   let baseLon = NaN;
   let baseLat = NaN;
   let status: MeshRoadStatus = 'none';
+  /** The bare terrain where the road was last taken (undefined if unknown). */
+  let baseBare: number | undefined;
+  /** Road spots taken within {@link CLIMB_SPAN_M} of the last one. */
+  let recent: { h: number; lon: number; lat: number }[] = [];
+  let bareNow: number | undefined;
+  /** With no road to go on from: the smooth run of structure tops read so far. */
+  let deck: { h: number; lon: number; lat: number; fromLon: number; fromLat: number } | undefined;
+  const take = (h: number, lon: number, lat: number) => {
+    base = h;
+    baseLon = lon;
+    baseLat = lat;
+    baseBare = bareNow;
+    status = 'road';
+    deck = undefined;
+    recent = recent.filter((r) => metresBetween(lon, lat, r.lon, r.lat) < CLIMB_SPAN_M);
+    recent.push({ h, lon, lat });
+    return h;
+  };
+  /** Whether h at lon/lat climbs from a road spot taken nearby steeper than a road. */
+  const tooSteep = (h: number, lon: number, lat: number) =>
+    recent.some((r) => {
+      const d = metresBetween(lon, lat, r.lon, r.lat);
+      return d < CLIMB_SPAN_M && h - r.h > Math.max(OVERHANG_RISE_M, CLIMB_GRADE * d);
+    });
   return {
     /**
      * The road height from one reading (undefined: no mesh road here, the
      * globe decides). `ceiling` / `floor`: highest / lowest plausible road
-     * height here; `readAt(lon, lat)` re-reads the mesh now at another spot.
+     * height here; `readAt` re-reads the mesh now (at another spot, or under
+     * something); `terrain`: the bare terrain here (the globe), if known.
      */
     next(
       reading: number | undefined,
       lon: number,
       lat: number,
       ceiling: number,
-      readAt: (lon: number, lat: number) => number | undefined,
+      readMesh: MeshRead,
       floor = -Infinity,
+      terrain?: number,
     ): number | undefined {
       if (reading === undefined || !Number.isFinite(reading)) {
         status = 'none';
@@ -1669,26 +1840,110 @@ export function createMeshRoadFilter() {
         status = 'coarse';
         return base;
       }
+      // One reading's checks can ask for the same spot twice (a ramp re-read
+      // at two grades): each spot is read once.
+      const reads = new Map<string, number | undefined>();
+      const readAt: MeshRead = (lo, la, under) => {
+        const key = `${lo},${la},${under}`;
+        if (!reads.has(key)) reads.set(key, readMesh(lo, la, under));
+        return reads.get(key);
+      };
+      const top = reading;
+      const usable = (h: number | undefined): h is number =>
+        h !== undefined && Number.isFinite(h) && h >= floor && h <= ceiling;
+      const bare = terrain !== undefined && Number.isFinite(terrain) ? terrain : undefined;
+      bareNow = bare;
+      const onStructure = (h: number) => bare !== undefined && h > bare + STRUCTURE_M && h <= bare + STRUCTURE_MAX_M;
       const moved = metresBetween(lon, lat, baseLon, baseLat);
-      const climbs =
-        base === undefined ||
-        moved >= OVERHANG_GIVE_UP_M ||
-        reading <= base + Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + OVERHANG_GRADE * moved);
-      if (!climbs) {
-        const atBase = readAt(baseLon, baseLat);
-        if (
-          (atBase === undefined || atBase <= (base as number) + OVERHANG_RISE_M) &&
-          !climbsInSteps(base as number, baseLon, baseLat, reading, lon, lat, moved, readAt)
-        ) {
+      if (base === undefined || moved >= OVERHANG_GIVE_UP_M) {
+        // No road to go on from. A crown or a deck over the terrain isn't the
+        // road where the mesh has ground under it near the terrain; high over
+        // it with none, it is the road only once it runs on smooth along the
+        // route like a deck the route crosses on (the Melide causeway, 8–10 m
+        // over the lake): crown tops jump metres from one reading to the next,
+        // and a deck overhead is crossed in a few readings (I-80 at Cuyahoga
+        // 3 km).
+        recent = [];
+        if (bare !== undefined && top > bare + OVERHANG_RISE_M) {
+          const from = Math.min(top - UNDER_CLEARANCE_M, bare + OVERHANG_MIN_M);
+          const under = surfaceNear(readAt, lon, lat, from, bare, OVERHANG_MIN_M, usable);
+          if (under !== undefined && Math.abs(under - bare) < top - bare) return take(under, lon, lat);
+        }
+        if (onStructure(top)) {
+          const step = deck ? metresBetween(lon, lat, deck.lon, deck.lat) : Infinity;
+          if (deck && step <= DECK_GAP_M && Math.abs(top - deck.h) <= DECK_STEP_M + DECK_GRADE * step) {
+            // A rider standing still runs along nothing: it stands on the
+            // globe until it rides on (a crown read again at the same spot is
+            // the same top, so standing still proves no deck).
+            if (metresBetween(lon, lat, deck.fromLon, deck.fromLat) >= DECK_RUN_M) return take(top, lon, lat);
+            deck = { ...deck, h: top, lon, lat };
+          } else {
+            deck = { h: top, lon, lat, fromLon: lon, fromLat: lat };
+          }
           status = 'overhang';
           return base;
         }
+        return take(top, lon, lat);
       }
-      base = reading;
-      baseLon = lon;
-      baseLat = lat;
-      status = 'road';
-      return reading;
+      const from = base;
+      // Climbing onto something no road climbs to: from near the terrain onto
+      // a structure faster than a road climbs (a crown in steps under
+      // OVERHANG_MIN_M), or more than OVERHANG_MIN_M over the terrain the
+      // road was on, within reach only because the rider has been held a
+      // while (the allowance grows with the distance; bushes 4–8 m over the
+      // towpath at Cuyahoga 1.2 km, no ground drawn under them). Only from a
+      // road taken near that terrain: a coarse globe chord 40 m over the
+      // Lugano–Melide shore road (2.74 km) is no terrain to measure from. A
+      // ramp is no such climb: read every metre from the road, it rises
+      // RAMP_GRADE or less each metre (the Chengdu ramps at 1.21 and 9.52 km
+      // leave the terrain at up to 0.58 m per m).
+      const climbsOnto = (h: number) =>
+        ((onStructure(h) && !onStructure(from) && tooSteep(h, lon, lat)) ||
+          (h > from + OVERHANG_MIN_M &&
+            bare !== undefined &&
+            baseBare !== undefined &&
+            Math.abs(from - baseBare) <= STRUCTURE_M &&
+            h - bare > from - baseBare + OVERHANG_MIN_M)) &&
+        !climbsInSteps(from, baseLon, baseLat, h, lon, lat, moved, readAt, RAMP_GRADE);
+      // Looked under only near the bare terrain (UNDER_BARE_M).
+      const nearBare = (h: number) => bare !== undefined && h >= bare - UNDER_BARE_M;
+      const allow = Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + OVERHANG_GRADE * moved);
+      if (top <= base + allow) {
+        let road = top;
+        if (top > base + UNDER_RISE_M) {
+          // A rise: something over the road it goes on under? The road under
+          // it is nearer the last road spot, or climbs like a road where the
+          // top climbs steeper (a crown sloping up from the towpath). Read
+          // down to the surface nearest the road: under the I-80 viaduct
+          // (Cuyahoga 3020 m) a bush 4 m over the towpath is the first one.
+          const under = surfaceNear(readAt, lon, lat, top - UNDER_CLEARANCE_M, base, allow, usable, nearBare);
+          if (
+            usable(under) &&
+            (Math.abs(under - base) < top - base ||
+              (under >= base - allow && tooSteep(top, lon, lat) && !tooSteep(under, lon, lat)))
+          ) {
+            road = under;
+          }
+        }
+        if (climbsOnto(road) && !roseAt(readAt, base, baseLon, baseLat)) {
+          status = 'overhang';
+          return base;
+        }
+        return take(road, lon, lat);
+      }
+      // Over the road: the road goes on under it where the mesh has it, read
+      // down from the highest it can have climbed to.
+      const near = Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + UNDER_GRADE * moved);
+      const under = surfaceNear(readAt, lon, lat, Math.min(base + near, top - UNDER_CLEARANCE_M), base, near, usable, nearBare);
+      if (under !== undefined && !climbsOnto(under)) return take(under, lon, lat);
+      if (
+        roseAt(readAt, base, baseLon, baseLat) ||
+        (climbsInSteps(base, baseLon, baseLat, top, lon, lat, moved, readAt) && !climbsOnto(top))
+      ) {
+        return take(top, lon, lat);
+      }
+      status = 'overhang';
+      return base;
     },
     /** The last road height taken (undefined before the first). */
     road(): number | undefined {
@@ -1707,8 +1962,61 @@ export function createMeshRoadFilter() {
       baseLon = NaN;
       baseLat = NaN;
       status = 'none';
+      recent = [];
+      baseBare = undefined;
+      deck = undefined;
     },
   };
+}
+
+/**
+ * Down the vertical at lon/lat from `from`, the up-facing surface nearest
+ * `near` within `within` of it that `ok` accepts (undefined if none). At most
+ * {@link UNDER_READS} reads, each from {@link UNDER_GAP_M} under the last
+ * surface; it stops at the first surface at or under `near` (anything further
+ * down is further from it) or past `near - within`. A reader that can't look
+ * under anything answers no surface, or the top (over `from`): none.
+ */
+function surfaceNear(
+  readAt: MeshRead,
+  lon: number,
+  lat: number,
+  from: number,
+  near: number,
+  within: number,
+  usable: (h: number | undefined) => h is number,
+  ok: (h: number) => boolean = () => true,
+): number | undefined {
+  let best: number | undefined;
+  let top = from;
+  for (let i = 0; i < UNDER_READS; i++) {
+    const h = readAt(lon, lat, top);
+    if (h === undefined || !Number.isFinite(h) || h > top || h < near - within) break;
+    if (
+      usable(h) &&
+      Math.abs(h - near) <= within &&
+      (best === undefined || Math.abs(h - near) < Math.abs(best - near)) &&
+      ok(h)
+    ) {
+      best = h;
+    }
+    if (h <= near) break;
+    top = h - UNDER_GAP_M;
+  }
+  return best;
+}
+
+/**
+ * Whether the mesh at the last road spot rose over the road taken there (a
+ * tile refined under the rider): its top is higher, and the road is no longer
+ * drawn there under it. A crown over the towpath where the road was taken
+ * from under it is still a crown, not a refined tile.
+ */
+function roseAt(readAt: MeshRead, base: number, baseLon: number, baseLat: number): boolean {
+  const top = readAt(baseLon, baseLat);
+  if (top === undefined || top <= base + OVERHANG_RISE_M) return false;
+  const still = readAt(baseLon, baseLat, base + OVERHANG_RISE_M);
+  return !(still !== undefined && Number.isFinite(still) && Math.abs(still - base) <= OVERHANG_RISE_M);
 }
 
 /**
@@ -1739,10 +2047,11 @@ function climbsInSteps(
   lat: number,
   moved: number,
   readAt: (lon: number, lat: number) => number | undefined,
+  grade = OVERHANG_STEP_GRADE,
 ): boolean {
   if (!(moved > OVERHANG_STEP_M && moved <= OVERHANG_STEP_SPAN_M)) return false;
   const steps = Math.ceil(moved / OVERHANG_STEP_M);
-  const rise = OVERHANG_STEP_GRADE * (moved / steps);
+  const rise = grade * (moved / steps);
   let h = from;
   for (let i = 1; i <= steps; i++) {
     // Out of reach of the steps left even if each rose all it may: no read
@@ -1754,6 +2063,31 @@ function climbsInSteps(
   }
   return true;
 }
+
+/**
+ * Held under something with nothing drawn near the road under it, the globe
+ * is drawn instead when its terrain there is within this of the road (m):
+ * see createGroundSampler. The drawn ground is the higher of the two, so this
+ * also bounds how far it can lift the rider.
+ */
+export const GLOBE_STANDIN_M = 1.5;
+
+/**
+ * What the rider's last ground sample stood it on ({@link createGroundSampler}):
+ * - 'mesh': the photoreal mesh road (or the road held under something over it,
+ *   with the globe hidden);
+ * - 'standIn': the mesh is there, but only over the road (tree crowns, a deck)
+ *   with nothing drawn near the road under it, so the globe is drawn under it
+ *   in the mesh's place: held there with the globe's terrain near the road, or
+ *   under a structure with no road to go on from (a jump, the start);
+ * - 'globe': no mesh road here (no tile, a coarse one, the mesh not shown):
+ *   the globe is the ground.
+ * The globe is drawn for both of the last two; the painted road only for
+ * 'globe' (renderers/cesium/globeGate GroundGate): it is a ground
+ * classification, so with the mesh there it paints the crowns, piers and the
+ * deck in its footprint.
+ */
+export type GroundKind = 'mesh' | 'standIn' | 'globe';
 
 /**
  * Throttled {@link sceneGroundHeight}.
@@ -1785,25 +2119,43 @@ export function createGroundSampler(scene: Cesium.Scene) {
   let lastLon = NaN;
   let lastLat = NaN;
   let last: number | undefined;
-  let onMesh = false;
+  let ground: GroundKind = 'globe';
   /** The route's elevation where the road was last taken. */
   let roadEle = 0;
   const road = createMeshRoadFilter();
-  const meshAt = (lon: number, lat: number) =>
-    withRidersHidden(() => sampleGroundHeight(scene, lon, lat, groundSampleExclusions()));
+  const meshAt: MeshRead = (lon, lat, under) =>
+    withRidersHidden(() => sampleGroundHeight(scene, lon, lat, groundSampleExclusions(), under));
   return {
     sample(lon: number, lat: number, ele: number, nowMs: number): number | undefined {
       const expect = sceneEle(ele);
       if (!photorealGroundShown(scene)) {
         last = undefined;
-        onMesh = false;
+        ground = 'globe';
         road.reset();
         return sceneGroundHeight(scene, lon, lat, undefined, expect, { terrainOnly: true });
       }
       const movedM = metresBetween(lon, lat, lastLon, lastLat);
       // No mesh road under the rider yet: look again every frame, so a tile
-      // that loads over the globe is stood on at once (as before).
-      if (last === undefined || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M) {
+      // that loads over the globe is stood on at once (as before). The same
+      // while the rider stands on the drawn globe over a mesh reading under
+      // it: a coarse tile, which a finer one replaces any frame (at the Santa
+      // Monica start one read 11 m under the globe, then the street landed
+      // 4 m over it and the rider stood under it until the next sample, with
+      // the camera under the road). Once a reading is the road (or something
+      // over it), it lasts until the mesh is the ground or, 750 ms on, the
+      // globe gate hides the globe (renderers/cesium/globeGate), which then no
+      // longer counts as drawn. While the readings are only coarse tiles
+      // (createMeshRoadFilter's 'coarse': the last road is held), it has no
+      // bound: meshGround stays false, so the gate keeps the globe drawn, and
+      // the mesh is read every frame for as long as that lasts, as with no
+      // mesh road at all. Not while the mesh there is only something over
+      // the road (its reads look under it, several a sample): at the usual
+      // pace.
+      const drawn = drawnGroundHeight(scene, lon, lat, last, expect);
+      const onGlobe = last !== undefined && drawn !== undefined && drawn > last + GLOBE_OVER_MESH_M;
+      const waiting = road.status() !== 'overhang' && (last === undefined || onGlobe);
+      const fresh = waiting || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M;
+      if (fresh) {
         lastMs = nowMs;
         lastLon = lon;
         lastLat = lat;
@@ -1818,10 +2170,42 @@ export function createGroundSampler(scene: Cesium.Scene) {
         // It also bounds the ceiling: a hidden globe's tiles stop refining,
         // and with them the terrain reading here.
         const floor = heldHere !== undefined ? Math.max(terrain, heldHere) : terrain;
-        last = road.next(meshAt(lon, lat), lon, lat, floor + MESH_OVER_TERRAIN_MAX_M, meshAt, expect - MESH_UNDER_ROUTE_MAX_M);
+        // The bare terrain here (World Terrain as loaded), unless a chord (far
+        // from the route, or far under the road carried here): what a crown
+        // or a deck is told apart from with no road to go on from.
+        const bare =
+          globe !== undefined &&
+          Number.isFinite(globe) &&
+          Math.abs(globe - expect) <= MESH_UNDER_ROUTE_MAX_M &&
+          (heldHere === undefined || globe >= heldHere - MESH_UNDER_ROUTE_MAX_M)
+            ? globe
+            : undefined;
+        // Every read of this sample is in the same few tiles: copied back
+        // from the GPU once (cesiumUtils.withMeshReadCache).
+        last = withMeshReadCache(() =>
+          road.next(meshAt(lon, lat), lon, lat, floor + MESH_OVER_TERRAIN_MAX_M, meshAt, expect - MESH_UNDER_ROUTE_MAX_M, bare),
+        );
         const status = road.status();
         if (status === 'road') roadEle = expect;
-        onMesh = status === 'road' || status === 'overhang';
+        // Under a structure with no road to go on from (a jump, the start)
+        // the rider stands on the globe, so the globe stays drawn. Held under
+        // one, the mesh drew nothing near the road under it (else the filter
+        // took that): where the bare terrain is within GLOBE_STANDIN_M of the
+        // road held, the globe is drawn to stand in for the ground (the
+        // towpath under the I-80 deck, Cuyahoga 2.98–3.01 km: the mesh has a
+        // hole there, the globe 0.2 m under the towpath). Where it is far off
+        // (26 m over the Lugano shore street) it would lift the rider, so the
+        // rider holds the road with the globe hidden.
+        const standsIn = bare !== undefined && held !== undefined && Math.abs(bare - held) <= GLOBE_STANDIN_M;
+        const onMesh = status === 'road' || (status === 'overhang' && held !== undefined && !away && !standsIn);
+        // Not on the mesh road, but the mesh is there over the road: the
+        // globe is drawn in its place, without the painted road (GroundKind).
+        ground = onMesh ? 'mesh' : status === 'overhang' ? 'standIn' : 'globe';
+        // Where the globe stands in, the rider stands on it once it is drawn
+        // (below: held while it is still hidden), not on the road held over
+        // it: under the I-80 deck the globe was drawn 0.75 m under the road
+        // held, and the rider floated over it.
+        if (status === 'overhang' && standsIn && !away) last = undefined;
         if (away && status !== 'road') {
           // Somewhere else and no mesh road yet: the globe's terrain decides,
           // as at a fresh start, drawn or not. Holding the old road here kept
@@ -1843,11 +2227,15 @@ export function createGroundSampler(scene: Cesium.Scene) {
       }
       // The mesh reading is reused between samples; the globe (drawn over the
       // mesh wherever its terrain is higher) is read fresh every call.
-      return drawnGroundHeight(scene, lon, lat, last, expect);
+      return fresh ? drawnGroundHeight(scene, lon, lat, last, expect) : drawn;
     },
     /** The photoreal mesh is loaded at road level under the last spot sampled. */
     meshGround(): boolean {
-      return onMesh;
+      return ground === 'mesh';
+    },
+    /** What the last sample stood the rider on (see {@link GroundKind}). */
+    ground(): GroundKind {
+      return ground;
     },
   };
 }

@@ -58,13 +58,14 @@ import {
 import { createAvatar, createGroundSampler, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { ridePose } from '@/lib/ride/rideSim';
+import { RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
 import type { RiderPose, WorldViewProps } from '@/lib/world/renderer';
 import { createCesiumWorldRenderer } from '@/renderers/cesium/cesiumWorldRenderer';
-import { GlobeGate } from '@/renderers/cesium/globeGate';
+import { GroundGate } from '@/renderers/cesium/globeGate';
 import { StartGroundWatch } from '@/renderers/cesium/startGround';
 import { createSideCamSight } from '@/lib/sideCamSight';
 import { placeSideCam } from '@/renderers/cesium/sideCam';
-import { applyHudLensCrop, lensCropState, type LensCropState } from '@/renderers/cesium/hudLensCrop';
+import { applyHudLensCrop, lensCropState, viewFovYDeg, type LensCropState } from '@/renderers/cesium/hudLensCrop';
 import {
   applyGraphicsQuality,
   recommendedGraphicsQuality,
@@ -132,6 +133,9 @@ import { attachScenePerf } from '@/lib/perf/scenePerf';
 import { createPerfGovernor, type PerfGovernor } from '@/lib/perf/perfGovernor';
 import { shouldRenderOnDemand } from '@/lib/perf/renderMode';
 import { useMultiriderStore } from '@/stores/multiriderStore';
+import { canvasKeyFor, useWorldViewStore } from '@/stores/worldViewStore';
+import { watchContextLoss } from '@/renderers/contextLoss';
+import { watchRenderLoop } from '@/renderers/cesium/renderLoopWatch';
 
 function cesiumDebugOptedIn(): boolean {
   if (typeof window === 'undefined') return false;
@@ -189,6 +193,26 @@ const cameraGroundSamplers = new WeakMap<Cesium.Scene, ReturnType<typeof createG
 /** The chase camera never dips closer than this to the terrain under it (m). */
 const CHASE_MIN_CLEARANCE_M = 1.2;
 
+type CesiumWorldViewProps = WorldViewProps & {
+  /**
+   * Called once the Cesium.Viewer is fully constructed (legacy hook; new
+   * callers use `onReady`, whose WorldRenderer carries the viewer as `native`).
+   */
+  onViewerReady?: (viewer: Cesium.Viewer) => void;
+};
+
+/**
+ * What a viewer reports about its WebGL context, for the canvas key it was
+ * built under (stores/worldViewStore counts a report only for the slot
+ * owner's current key, so a torn-down viewer's late events are ignored).
+ */
+export interface ViewerContextReport {
+  /** The context is gone, a frame threw (the render loop stopped), or no viewer could be built: the world is frozen. */
+  lost: (canvasKey: number) => void;
+  /** The browser gave the context back: build the viewer again. */
+  restored: (canvasKey: number) => void;
+}
+
 /**
  * The photoreal renderer ('photoreal' behind lib/world/renderer.ts): Cesium
  * globe + terrain + OSM buildings + the route polyline + a multi-part bike
@@ -196,19 +220,67 @@ const CHASE_MIN_CLEARANCE_M = 1.2;
  * follows the avatar when riding, and frames the entire route when idle so
  * the user can preview before clicking Start.
  *
+ * A lost WebGL context (a GPU reset, a driver update, Chrome's GPU watchdog
+ * or its cap on live contexts; card t_771036a6): Cesium has no restore path
+ * of its own, so this view owns the world-view slot (stores/worldViewStore)
+ * while mounted. The ride's status chip says "3D view stopped · tap to
+ * reload" and the dead view is hidden; a browser restore or the rider's tap
+ * bumps the canvas key, which remounts CesiumScene on a new Viewer, and that
+ * Viewer's WorldRenderer goes to the ride view through `onReady` again. The
+ * ride loop, its clock and the recording never depend on the viewer.
+ *
  * Opt-in and lazy: only src/renderers/registry.ts imports this module, via
  * import(), so the Cesium chunk loads only when this renderer draws.
  */
-export function CesiumWorldView({
+export function CesiumWorldView(props: CesiumWorldViewProps) {
+  const [viewId, setViewId] = useState(0);
+  // The id the viewer's reports go to: set in the attach effect itself, so a
+  // viewer that fails to build right after mount still reaches the slot. (A
+  // report after the view left is ignored: detach cleared the slot.)
+  const viewIdRef = useRef(0);
+  useEffect(() => {
+    const id = useWorldViewStore.getState().attach();
+    viewIdRef.current = id;
+    setViewId(id);
+    return () => useWorldViewStore.getState().detach(id);
+  }, []);
+  const canvasKey = useWorldViewStore((s) => canvasKeyFor(s, viewId));
+  // A lost view is hidden until it remounts: a dead WebGL canvas paints white
+  // (with a broken-image glyph); the plain ride background is calmer.
+  const contextLost = useWorldViewStore((s) => s.view !== null && s.view.id === viewId && s.view.stopped);
+  const [report] = useState<ViewerContextReport>(() => ({
+    lost: (key) => {
+      if (viewIdRef.current) useWorldViewStore.getState().contextLost(viewIdRef.current, key);
+    },
+    restored: (key) => {
+      if (viewIdRef.current) useWorldViewStore.getState().contextRestored(viewIdRef.current, key);
+    },
+  }));
+  return (
+    <div
+      className={contextLost ? 'absolute inset-0 invisible' : 'absolute inset-0'}
+      data-world-context={contextLost ? 'lost' : 'live'}
+    >
+      <CesiumScene key={canvasKey} {...props} canvasKey={canvasKey} context={report} />
+    </div>
+  );
+}
+
+/**
+ * One Cesium Viewer and everything drawn in it. CesiumWorldView remounts it
+ * (a new `key` = `canvasKey`) to rebuild the world on a fresh WebGL context.
+ */
+export function CesiumScene({
   ionToken,
   onReady,
   onViewerReady,
-}: WorldViewProps & {
-  /**
-   * Called once the Cesium.Viewer is fully constructed (legacy hook; new
-   * callers use `onReady`, whose WorldRenderer carries the viewer as `native`).
-   */
-  onViewerReady?: (viewer: Cesium.Viewer) => void;
+  canvasKey,
+  context,
+}: CesiumWorldViewProps & {
+  /** The key this scene is mounted under (its reports carry it). */
+  canvasKey: number;
+  /** Where the viewer's canvas reports its WebGL context. */
+  context: ViewerContextReport;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
@@ -235,6 +307,8 @@ export function CesiumWorldView({
   const photorealPromiseRef = useRef<Promise<Cesium.Cesium3DTileset> | null>(null);
   const removeTickRef = useRef<(() => void) | null>(null);
   const detachPerfRef = useRef<(() => void) | null>(null);
+  /** Stops the watches on the viewer: its canvas's WebGL context (renderers/contextLoss), scene.renderError and its render loop (renderLoopWatch). */
+  const stopContextWatchRef = useRef<(() => void) | null>(null);
   // Adaptive quality governor — steps scene cost down when real frames run
   // over budget (see lib/perf/perfGovernor). Recreated on quality-tier change.
   const perfGovernorRef = useRef<PerfGovernor | null>(null);
@@ -304,8 +378,11 @@ export function CesiumWorldView({
   const startGroundRef = useRef<StartGroundWatch | null>(null);
   /** The crop that frames the rider above the floating window's bar (hudLensCrop); none in the tab. */
   const lensCropRef = useRef<LensCropState | null>(null);
-  /** Is the globe drawn, or is the photoreal mesh the one ground (renderers/cesium/globeGate)? */
-  const globeGateRef = useRef(new GlobeGate());
+  /**
+   * Is the globe drawn, or is the photoreal mesh the one ground, and is the
+   * painted road drawn on it (renderers/cesium/globeGate)?
+   */
+  const groundGateRef = useRef(new GroundGate());
   // WorldRenderer.setMood: a pinned mood; null = route mood + live weather.
   const [moodOverride, setMoodOverride] = useState<MoodId | null>(null);
 
@@ -386,37 +463,97 @@ export function CesiumWorldView({
       await waitForContainerSize(container);
       if (bootstrapCancelled || !containerRef.current) return;
 
-      const viewer = new Cesium.Viewer(container, {
-        timeline: false,
-        animation: false,
-        baseLayerPicker: false,
-        fullscreenButton: false,
-        geocoder: false,
-        homeButton: false,
-        infoBox: false,
-        sceneModePicker: false,
-        selectionIndicator: false,
-        navigationHelpButton: false,
-        navigationInstructionsInitiallyVisible: false,
-        // No default base layer: setupBaseImagery() below adds exactly one
-        // (Bing via ion with its stall watchdog, or OSM without a token).
-        // The Viewer's own default is the same Bing layer, so keeping it
-        // stacked two opaque copies — every imagery tile fetched, decoded,
-        // uploaded and sampled twice.
-        baseLayer: false,
-        // Mark the WebGL context as XR-compatible so that
-        // navigator.xr.requestSession('immersive-vr' | 'immersive-ar') can use
-        // this canvas. xrCompatible is a valid WebGL context attribute (WebXR
-        // spec) but isn't typed in Cesium's WebGLOptions — cast to satisfy tsc.
-        contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
-      });
+      let viewer: Cesium.Viewer;
+      try {
+        viewer = new Cesium.Viewer(container, {
+          timeline: false,
+          animation: false,
+          baseLayerPicker: false,
+          fullscreenButton: false,
+          geocoder: false,
+          homeButton: false,
+          infoBox: false,
+          sceneModePicker: false,
+          selectionIndicator: false,
+          navigationHelpButton: false,
+          navigationInstructionsInitiallyVisible: false,
+          // No default base layer: setupBaseImagery() below adds exactly one
+          // (Bing via ion with its stall watchdog, or OSM without a token).
+          // The Viewer's own default is the same Bing layer, so keeping it
+          // stacked two opaque copies — every imagery tile fetched, decoded,
+          // uploaded and sampled twice.
+          baseLayer: false,
+          // Mark the WebGL context as XR-compatible so that
+          // navigator.xr.requestSession('immersive-vr' | 'immersive-ar') can use
+          // this canvas. xrCompatible is a valid WebGL context attribute (WebXR
+          // spec) but isn't typed in Cesium's WebGLOptions — cast to satisfy tsc.
+          contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
+          // No "Rendering has stopped" / "Error constructing CesiumWidget"
+          // panel: the ride's status chip says the view stopped (renderError
+          // and the render-loop watch below). Cesium's panel also adds a
+          // window 'resize' listener that only its OK button removes; inside
+          // the hidden dead view nobody clicks it, so the listener kept every
+          // torn-down viewer (its canvas and WebGL context) alive after the
+          // remount.
+          showRenderLoopErrors: false,
+        });
+      } catch (err) {
+        // No WebGL context to be had right now (the GPU process is still
+        // down, or Chrome blocked WebGL after repeated crashes): the view
+        // stays stopped, so the chip stays up and a tap tries again.
+        console.warn('[velo] the photoreal view could not start:', err);
+        context.lost(canvasKey);
+        return;
+      }
       viewerRef.current = viewer;
-      // In the floating ride window the bar covers the bottom of the picture
-      // (data-hud-bottom): draw a taller canvas cropped by the window, so the
-      // rider sits in the clear band above the bar (hudLensCrop). Checked
-      // before every frame, ahead of its camera and canvas size.
-      const lensView = { container, camera: viewer.camera, resize: () => viewer.resize() };
-      const lensCrop = lensCropState(lensView);
+      // A lost context freezes the canvas for good (Cesium never restores
+      // one): report it, so the chip shows and a restore or a tap remounts
+      // this scene on a new Viewer. Stopped first thing in the cleanup.
+      const stopContextWatch = watchContextLoss(viewer.scene.canvas, {
+        lost: () => context.lost(canvasKey),
+        restored: () => context.restored(canvasKey),
+      });
+      // Any other error inside a frame stops Cesium's render loop for good
+      // as well (its widget turns the default loop off): the same chip, and
+      // a tap builds a new Viewer. Two ways in, one warning per viewer:
+      // - scene.renderError: what Scene's own tryAndCatchError catches (a
+      //   primitive's update, the draw passes). It also fires for XR's own
+      //   scene.render() calls, so every raise reports.
+      // - watchRenderLoop: a throw that escapes the widget's render() or
+      //   resize() and switches the loop off. That is the scene's
+      //   preUpdate/postUpdate/preRender/postRender listeners (the rider,
+      //   the chase camera, partners, ghosts, the lens crop, scenePerf),
+      //   clock.onTick and initializeFrame, none of which raise renderError.
+      //   WebXR turning the loop off on purpose is not a stop.
+      let renderStopped = false;
+      const stoppedRendering = (error: unknown) => {
+        if (!renderStopped) console.warn('[velo] the photoreal view stopped rendering:', error);
+        renderStopped = true;
+        context.lost(canvasKey);
+      };
+      const stopRenderErrors = viewer.scene.renderError.addEventListener((_scene: Cesium.Scene, error: unknown) =>
+        stoppedRendering(error),
+      );
+      const stopLoopWatch = watchRenderLoop(viewer.cesiumWidget, stoppedRendering);
+      stopContextWatchRef.current = () => {
+        stopContextWatch();
+        stopRenderErrors();
+        stopLoopWatch();
+      };
+      // The ride camera's lens (hudLensCrop): the vertical field both
+      // renderers share (Cesium's own fov spans the canvas's longer side), and
+      // in the floating ride window, where the bar covers the bottom of the
+      // picture (data-hud-bottom), a taller canvas cropped by the window, so
+      // the rider sits in the clear band above the bar. Checked before every
+      // frame, ahead of its camera and canvas size. A WebXR session sets its
+      // own projection off the default render loop (lib/webxr).
+      const lensView = {
+        container,
+        camera: viewer.camera,
+        resize: () => viewer.resize(),
+        ownsFrustum: () => viewer.useDefaultRenderLoop,
+      };
+      const lensCrop = lensCropState(Cesium.Math.toRadians(RIDE_FOV_Y_DEG));
       lensCropRef.current = lensCrop;
       viewer.scene.preUpdate.addEventListener(() => {
         applyHudLensCrop(lensView, lensCrop);
@@ -442,7 +579,7 @@ export function CesiumWorldView({
             const ts = tilesetRef.current;
             return ts ? meshHeightAt(ts, Cesium.Cartographic.fromDegrees(lon, lat), viewer.scene) : undefined;
           },
-          globeGate: globeGateRef.current,
+          groundGate: groundGateRef.current,
           place: (distanceM: number | null) => {
             const r = useRideStore.getState().route;
             riderOverrideRef.current = distanceM === null || !r ? null : ridePose(r, distanceM);
@@ -585,6 +722,9 @@ export function CesiumWorldView({
       // Signal the async init to bail out if it hasn't constructed the viewer
       // yet (e.g. unmount before waitForContainerSize resolves).
       bootstrapCancelled = true;
+      // Tearing the viewer down is not a loss the rider needs to hear about.
+      stopContextWatchRef.current?.();
+      stopContextWatchRef.current = null;
       ro.disconnect();
       if (typeof window !== 'undefined') delete (window as unknown as { __veloCesium?: unknown }).__veloCesium;
 
@@ -792,7 +932,7 @@ export function CesiumWorldView({
     climbArchesRef.current = null;
 
     // A new route starts on the globe until the mesh under the new rider loads.
-    globeGateRef.current.reset();
+    groundGateRef.current.reset();
     if (!viewer.isDestroyed()) viewer.scene.globe.show = true;
 
     if (!route) return;
@@ -1071,7 +1211,7 @@ export function CesiumWorldView({
       const state = useRideStore.getState();
       const r = state.route;
       if (!r || !avatarRef.current) {
-        globeGateRef.current.reset();
+        groundGateRef.current.reset();
         viewer.scene.globe.show = true;
         return;
       }
@@ -1103,18 +1243,20 @@ export function CesiumWorldView({
       // where the mesh isn't the ground (renderers/cesium/globeGate). Decided
       // from the rider's last ground reading, before this frame's, so the
       // avatar below measures the ground as it will be drawn.
-      const globeShown = globeGateRef.current.update(nowMs, photorealShown, avatarRef.current.meshGround());
+      const groundDraw = groundGateRef.current.update(nowMs, photorealShown, avatarRef.current.ground());
+      const globeShown = groundDraw.globe;
       if (viewer.scene.globe.show !== globeShown) viewer.scene.globe.show = globeShown;
       // The painted road (asphalt corridor, dashed centre line, edge stripes)
       // is a ground classification: over the mesh it paints whatever stands
       // in its footprint (walls, trees, the hillside: the grey slabs on the
       // Lugano shore), a second road over the street the mesh already draws.
-      // It shows only where the globe is the ground.
+      // It shows only where the globe is the ground, not where the globe
+      // stands in under crowns or a deck (it ran up the piers and trunks).
       const road = roadEntityRef.current;
-      if (road && road.entity.show !== globeShown) {
-        road.entity.show = globeShown;
-        road.centerline.show = globeShown;
-        for (const stripe of roadEdgeStripesRef.current?.entities ?? []) stripe.show = globeShown;
+      if (road && road.entity.show !== groundDraw.road) {
+        road.entity.show = groundDraw.road;
+        road.centerline.show = groundDraw.road;
+        for (const stripe of roadEdgeStripesRef.current?.entities ?? []) stripe.show = groundDraw.road;
       }
 
       avatarRef.current.update({
@@ -1186,7 +1328,9 @@ export function CesiumWorldView({
             // Side / orbit camera sight (lib/sideCamSight): side, eased offset
             // fraction, whether a clear spot was found, cuts and tile reads.
             sideCam: sideCamSightRef.current.debug(),
-            sideCamTileReads: meshTopReadStats(),
+            // The tile geometry cache (lib/tileReadCache) shared by the
+            // sight's reads and the rider's ground reads.
+            meshTileReads: meshTopReadStats(),
             // The rider's photoreal ground reads (meshHeightAt): own casts, pick fallbacks, ms.
             groundReads: meshGroundReadStats(),
             dist: state.distance,
@@ -1194,10 +1338,14 @@ export function CesiumWorldView({
             startGround: startGroundRef.current?.debug() ?? null,
             globeShown: viewer.scene.globe.show,
             meshGround: avatarRef.current?.meshGround() ?? false,
+            ground: avatarRef.current?.ground() ?? null,
+            roadPainted: roadEntityRef.current?.entity.show ?? null,
             riderScreen: px ? [Math.round(px.x), Math.round(px.y - cropTop)] : null,
             riderHeightPx: head && foot ? Math.round(Math.hypot(head.x - foot.x, head.y - foot.y)) : null,
             viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight - cropTop],
             lensShiftPx: cropTop / 2,
+            // The view's vertical field of view (the canvas's, less the strip above the view).
+            fovYDeg: viewFovYDeg(viewer.camera.frustum, viewer.canvas.clientHeight, cropTop),
           };
         };
       }
@@ -1246,7 +1394,7 @@ export function CesiumWorldView({
         // out or switch sides. The ref carries the last side (hysteresis).
         // The corridor is only there while the painted road is drawn (where
         // the globe is the ground); over the mesh nothing needs keeping out of.
-        const roadPainted = globeShown && roadEntityRef.current !== null;
+        const roadPainted = groundDraw.road && roadEntityRef.current !== null;
         let corridor: SideTrackCorridor | undefined;
         if (currentMode === 'sideTracking') {
           corridor = {

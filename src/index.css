@@ -184,11 +184,20 @@
     outline-offset: 2px;
   }
 
-  /* Styled range inputs */
-  input[type='range'] {
+  /* Styled range inputs. :where() keeps this at zero specificity, so a
+     height utility on the slider (h-10: a 40 px touch target, UI-RULES §5)
+     wins; the native track is drawn at the same thickness either way. */
+  :where(input[type='range']) {
     accent-color: hsl(var(--primary));
     height: 0.375rem;
     cursor: pointer;
+  }
+
+  /* Search fields draw their own h-10 clear button (Build your own ride):
+     no second, tiny native one beside it. */
+  input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
   }
 }
 
@@ -262,15 +271,6 @@
   .w-show-m { width: 42vw; }
   .w-show-l { width: min(55vw, (53vh - 2rem) * 16 / 9); }
   .max-h-show-fit { max-height: calc(100vh - 10rem); }
-  /* Compact ride HUD (owner-directed revision, 2 Nov 2026): the no-token
-     banner floats above the ride band and the status chip (band 4.125rem +
-     chip 2.5rem + gaps on sm+; two-row phone band 5.5rem + an alert chip
-     below sm), instead of the legacy transport bar offsets in
-     .ride-banner-float. It hides while the ride details are open. */
-  .ride-hud-v2 .ride-banner-float { bottom: calc(max(env(safe-area-inset-bottom), 1.5rem) + 8rem); }
-  @media (max-width: 639.98px) {
-    .ride-hud-v2 .ride-banner-float { bottom: calc(max(env(safe-area-inset-bottom), 0.75rem) + 10.75rem); }
-  }
   /* v2 utilities: devices + finish (add rules below this line) */
   /* Devices page at lg: device panels | Ride + pairing tips (7fr / 4fr),
      the right column's Ride row sized to its content. */
@@ -291,24 +291,6 @@
      landmark's fit rows (NextLandmark): what wraps past it is never seen. */
   .h-lh {
     height: 1lh;
-  }
-
-  /* No-token / imagery-fallback banner: floats centred above the ride
-     transport bar (legacy offsets; the v2 ride root overrides them with
-     .ride-hud-v2 .ride-banner-float above). Raw calc() lives here, not in
-     TSX (UI-RULES §2). */
-  .ride-banner-float {
-    position: absolute;
-    z-index: 3;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: calc(max(env(safe-area-inset-bottom), 1.25rem) + 4.5rem);
-    max-width: min(28rem, calc(100vw - 1.5rem));
-  }
-  @media (max-width: 639.98px) {
-    .ride-banner-float {
-      bottom: calc(max(env(safe-area-inset-bottom), 1.25rem) + 7.75rem);
-    }
   }
 
   /* -------------------------------------------------------------------

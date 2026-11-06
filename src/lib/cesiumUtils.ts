@@ -161,7 +161,7 @@ const OSM_TILE_URL = 'https://tile.openstreetmap.org/';
 /**
  * Custom DOM event dispatched on `window` whenever the photoreal Bing path
  * silently stalls and we fall back to OSM at runtime. Consumed by
- * NoTokenBanner (or any future status surface) so the user sees a soft
+ * the photoreal notice (velo/PhotorealNotice, or any future status surface) so the user sees a soft
  * "photoreal unavailable" notice instead of just a downgraded-looking globe.
  */
 export { IMAGERY_FALLBACK_EVENT };
@@ -486,12 +486,20 @@ export async function clampCartesiansToScene(
  * Pass the riders' own entities in `exclude`: `scene.sampleHeight` hits any
  * geometry, so a stationary rider (paused) would otherwise sample the top of
  * its own helmet, step up onto it, and climb into the sky frame by frame.
+ *
+ * `under`: read the photoreal mesh down from this height instead of from the
+ * top: an up-facing surface at or under it, what Cesium3DTileset.pick hits
+ * first from there (see meshHeightAt; under a tree crown or a deck, the
+ * ground below it where the mesh draws one). Only the CPU mesh read can look
+ * under something; without it (no WebGL 2, no mesh shown) the answer is
+ * undefined.
  */
 export function sampleGroundHeight(
   scene: Cesium.Scene,
   lon: number,
   lat: number,
   exclude?: object[],
+  under?: number,
 ): number | undefined {
   if (!onRealTerrain()) return undefined;
   const carto = Cesium.Cartographic.fromDegrees(lon, lat);
@@ -510,13 +518,13 @@ export function sampleGroundHeight(
         const p = prims.get(i) as Cesium.Cesium3DTileset;
         if (!isPhotorealTileset(p) || !p.show) continue;
         meshShown = true;
-        const h = meshHeightAt(p, carto, scene);
+        const h = meshHeightAt(p, carto, scene, under);
         if (h !== undefined && Number.isFinite(h) && (best === undefined || h > best)) best = h;
       }
       if (meshShown) return best;
     }
   }
-  if (!scene.sampleHeightSupported) return undefined;
+  if (under !== undefined || !scene.sampleHeightSupported) return undefined;
   return scene.sampleHeight(carto, exclude);
 }
 
@@ -551,19 +559,30 @@ type TilesetPick = (ray: Cesium.Ray, frameState: unknown, result?: Cesium.Cartes
  * with the tile geometry already copied, and the rider reads its ground
  * about nine times a second. Tileset.pick stays the fallback (no model
  * reader, a frame Cesium would project or exaggerate).
+ *
+ * `under`: start the ray at this height instead (undefined without a tile
+ * pick). The pick culls back faces, so every hit is a surface facing up, and
+ * one read from under a tree crown is a surface below it, the ground where
+ * the mesh draws one: on the Cuyahoga towpath it does at about half the
+ * spots under the canopy, and under every road deck crossing it (I-271, Main
+ * Street). Not always the highest surface under `under`: the first tile hit
+ * wins, nearest bounding sphere to the origin first, and a low origin is
+ * inside every candidate tile's sphere, so with tiles stacked there the
+ * tileset's selection order decides which one answers.
  */
 export function meshHeightAt(
   tileset: Cesium.Cesium3DTileset,
   carto: Cesium.Cartographic,
   scene: Cesium.Scene,
+  under?: number,
 ): number | undefined {
   const pick = (tileset as unknown as { pick?: TilesetPick }).pick;
-  if (typeof pick !== 'function') return tileset.getHeight(carto, scene);
+  if (typeof pick !== 'function') return under === undefined ? tileset.getHeight(carto, scene) : undefined;
   const start = now();
   const ellipsoid = (scene as { ellipsoid?: Cesium.Ellipsoid }).ellipsoid ?? Cesium.Ellipsoid.WGS84;
   // From as far out as getHeight starts (two Earth radii), down the normal.
   const origin = ellipsoid.cartographicToCartesian(
-    new Cesium.Cartographic(carto.longitude, carto.latitude, 2 * ellipsoid.maximumRadius),
+    new Cesium.Cartographic(carto.longitude, carto.latitude, under ?? 2 * ellipsoid.maximumRadius),
   );
   const down = Cesium.Cartesian3.negate(ellipsoid.geodeticSurfaceNormalCartographic(carto), new Cesium.Cartesian3());
   const ray = new Cesium.Ray(origin, down);
@@ -596,8 +615,9 @@ export function sightReadable(scene: Cesium.Scene): boolean {
 }
 
 /**
- * Tile geometry copies the sight's reads reuse (lib/tileReadCache), on
- * Cesium's private ModelReader; null when this Cesium has no such reads.
+ * Tile geometry copies the sight's reads and the rider's ground reads reuse
+ * (lib/tileReadCache), on Cesium's private ModelReader; null when this Cesium
+ * has no such reads.
  */
 let meshTopReads: TileReadCache | null | undefined;
 function meshTopReadCache(): TileReadCache | null {
@@ -607,14 +627,28 @@ function meshTopReadCache(): TileReadCache | null {
   return meshTopReads;
 }
 
-/** Drop the tile geometry the sight's reads kept (the view that read it is gone). */
+/** Drop the tile geometry the mesh reads kept (the view that read it is gone). */
 export function clearMeshTopReads(): void {
   meshTopReads?.clear();
 }
 
-/** Hits, copies, bytes and entries of the sight's tile geometry cache, for probes (null: no cache). */
+/**
+ * Hits, copies, bytes and entries of the tile geometry cache the sight's and
+ * the rider's ground reads share, for probes (null: no cache).
+ */
 export function meshTopReadStats(): ReturnType<TileReadCache['stats']> | null {
   return meshTopReads ? meshTopReads.stats() : null;
+}
+
+/**
+ * Run `fn` with its photoreal mesh reads served from the same tile geometry
+ * cache as the sight's: the rider's ground sample reads one spot two to four
+ * times (the top, then under what stands over the road), all in the same
+ * tiles, and copying a tile back from the GPU is most of a read's cost.
+ */
+export function withMeshReadCache<T>(fn: () => T): T {
+  const reads = meshTopReadCache();
+  return reads ? reads.run(fn) : fn();
 }
 
 /**
@@ -954,7 +988,7 @@ export function drawnGroundHeight(
   if (isFlatGlobe(scene)) return plausible(sampled) ? sampled : 0;
   const globe = scene.globe as Cesium.Globe | undefined;
   if (!globe || typeof globe.getHeight !== 'function') return plausible(sampled) ? sampled : undefined;
-  const h = globe.getHeight(Cesium.Cartographic.fromDegrees(lon, lat));
+  const h = globeDrawnHeight(scene, globe, Cesium.Cartographic.fromDegrees(lon, lat), plausible);
   // Same chord error on coarse World Terrain tiles while they stream in.
   const terrain = plausible(h) ? h : undefined;
   if (!plausible(sampled)) return terrain;
@@ -985,6 +1019,60 @@ export function drawnTopHeight(
   }
   return drawnGroundHeight(scene, lon, lat, meshTop, expectEle);
 }
+
+/**
+ * Height of the globe's terrain under `carto`: the higher of the tile it
+ * DREW last frame (Globe.pick) and the deepest tile LOADED there
+ * (Globe.getHeight).
+ *
+ * getHeight alone isn't the ground the camera sees: while World Terrain
+ * streams in, the globe often draws a coarser tile than the deepest loaded
+ * one (it refines a tile only once its screen-space error asks for it and the
+ * children it needs have loaded; a tile loaded for an earlier view stays
+ * loaded). At the Santa Monica start the drawn tile sat over getHeight's by
+ * 0.4–1.6 m (level 14 over 15) for up to 7 frames, by 7 m (level 8 over 14)
+ * and by 26 m (level 10/11 over 13/14): the rider stood on getHeight, under
+ * the ground the camera saw, often with the camera under it too
+ * (t_b6dbd3d2).
+ *
+ * The drawn tile alone isn't either: it is the last frame's (the avatar is
+ * placed before the frame selects its tiles: Cesium updates primitives before
+ * the globe), and the globe refines to the loaded tile, often the very next
+ * frame. Standing on a drawn tile lower than the loaded one put the rider
+ * 1.3 m under for that frame at the Lake Trasimeno start (level 11 refined to
+ * 12), and a coarse tile's chord can lie hundreds of metres under (a level-4
+ * tile 796 m under the level-8 one at Santa Monica). So the higher wins: the
+ * rider floats over a lower drawn tile until it refines, as before, and is
+ * never under one drawn over the loaded tile. A coarser tile drawn over both
+ * for the first time is still stood on one frame late.
+ *
+ * Readings that fail `accept` (coarse chords far off the route) are dropped;
+ * with no rendered tile under the spot (off screen, before the first frame)
+ * or the globe hidden (its rendered tiles stop updating), getHeight decides.
+ */
+export function globeDrawnHeight(
+  scene: Cesium.Scene,
+  globe: Cesium.Globe,
+  carto: Cesium.Cartographic,
+  accept: (h: number) => boolean = () => true,
+): number | undefined {
+  const loaded = globe.getHeight(carto);
+  if ((globe as { show?: boolean }).show === false || typeof globe.pick !== 'function') return loaded;
+  const ellipsoid = (scene as { ellipsoid?: Cesium.Ellipsoid }).ellipsoid ?? Cesium.Ellipsoid.WGS84;
+  const s = (drawnScratch ??= { ray: new Cesium.Ray(), hit: new Cesium.Cartesian3(), high: new Cesium.Cartographic() });
+  // Straight down the local vertical, from as far out as meshHeightAt starts.
+  s.high.longitude = carto.longitude;
+  s.high.latitude = carto.latitude;
+  s.high.height = 2 * ellipsoid.maximumRadius;
+  ellipsoid.cartographicToCartesian(s.high, s.ray.origin);
+  Cesium.Cartesian3.negate(ellipsoid.geodeticSurfaceNormalCartographic(carto, s.ray.direction), s.ray.direction);
+  const hit = globe.pick(s.ray, scene, s.hit);
+  const drawn = hit ? ellipsoid.cartesianToCartographic(hit)?.height : undefined;
+  const ok = (h: number | undefined): h is number => h !== undefined && Number.isFinite(h) && accept(h);
+  if (!ok(drawn)) return loaded;
+  return ok(loaded) ? Math.max(drawn, loaded) : drawn;
+}
+let drawnScratch: { ray: Cesium.Ray; hit: Cesium.Cartesian3; high: Cesium.Cartographic } | null = null;
 
 /** The globe draws its terrain as an opaque surface (not hidden, not see-through). */
 function globeDrawnOpaque(globe: Cesium.Globe): boolean {
@@ -1231,7 +1319,9 @@ export function liftAboveTerrain(
   liftScratch ??= new Cesium.Cartographic();
   const carto = Cesium.Cartographic.fromCartesian(camPos, undefined, liftScratch);
   if (!carto) return 0;
-  const ground = globe.getHeight(carto);
+  // The terrain as drawn: a camera over getHeight's finer tile can still be
+  // under the coarser one drawn there, and see it from below.
+  const ground = globeDrawnHeight(scene, globe, carto, (h) => Math.abs(h - riderEle) < 60);
   if (ground === undefined || !Number.isFinite(ground) || Math.abs(ground - riderEle) >= 60) return 0;
   const lift = ground + minClear - carto.height;
   if (lift <= 0) return 0;

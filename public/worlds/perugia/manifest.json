@@ -2130,7 +2130,7 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "b83c39f003fcf85c81cbf8eec9b423cc15852afeadfe86af4a66647ac854bbdb",
+    "recipeSha256": "f12855d9d6de3688167be0e8c68c16745092a69d4d3cf8922707cd3988bc90f5",
     "osmDate": "2026-10-01T00:00:00Z",
     "demSource": "aws-terrain-tiles/terrarium",
     "demZoom": 13,

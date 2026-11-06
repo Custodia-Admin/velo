@@ -143,14 +143,14 @@ describe('ride auto-start: the start hold is wired in', () => {
     const r = renderer(() => false);
     AutoStartHost({ worldRenderer: r });
     vi.advanceTimersByTime(START_HOLD_MAX_MS - 500);
-    // The wizard's setRoute lands late: the store drops to 'idle', the effect re-runs.
+    // The store drops to 'idle' (staged: no store action does this today), the effect re-runs.
     useRideStore.setState({ rideState: 'idle' });
     AutoStartHost({ worldRenderer: r });
     vi.advanceTimersByTime(START_DELAY_MS);
     expect(running()).toBe(true);
   });
 
-  it("an idle store (the wizard's setRoute landed first) is re-set to the route's start, then started", () => {
+  it("an idle store with a route (guard: no store action leaves one) is re-set to the route's start, then started", () => {
     // rideFsm lets START leave 'idle' directly, so reaching 'running' alone doesn't show the
     // re-set; numbers left in the store do: the ride must start from 0 m, 0:00.
     useRideStore.setState({ rideState: 'idle', distance: 1_234, elapsedMs: 99_000 });
@@ -214,6 +214,30 @@ describe('ride auto-start: the start hold is wired in', () => {
     unmount();
     vi.advanceTimersByTime(30_000);
     expect(running()).toBe(false);
+  });
+
+  it('a rebuilt renderer (the photoreal view after a lost WebGL context) keeps the hold clock and never starts the ride again', () => {
+    // Lost during the hold: the view remounts on a new Viewer, a fresh renderer
+    // whose ground is not ready yet. The cap still counts from the first paint.
+    AutoStartHost({ worldRenderer: renderer(() => false) });
+    vi.advanceTimersByTime(START_HOLD_MAX_MS - 400);
+    AutoStartHost({ worldRenderer: renderer(() => false) });
+    vi.advanceTimersByTime(400 + START_HOLD_POLL_MS);
+    expect(running()).toBe(true);
+    // Lost again mid-ride: the next renderer leaves the ride where it is (no
+    // re-set to the route's start, no second start).
+    useRideStore.setState({ distance: 1_500, elapsedMs: 240_000 });
+    AutoStartHost({ worldRenderer: renderer(() => true) });
+    vi.advanceTimersByTime(30_000);
+    const s = useRideStore.getState();
+    expect(s.rideState).toBe('running');
+    expect(s.distance).toBe(1_500);
+    expect(s.elapsedMs).toBe(240_000);
+    // ...and a paused ride stays paused.
+    useRideStore.getState().pause();
+    AutoStartHost({ worldRenderer: renderer(() => true), rideState: 'paused' });
+    vi.advanceTimersByTime(30_000);
+    expect(useRideStore.getState().rideState).toBe('paused');
   });
 
   it('Ride.tsx drives its auto-start through the hook with the renderer and the autoStart flag', () => {

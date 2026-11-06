@@ -23,6 +23,7 @@
  * tiles for a second, over the rider (5.7 m over the wheels at the
  * Lugano–Melide start, by the main view's depth).
  */
+import type { GroundKind } from '@/lib/avatar';
 
 /** The mesh road has been under the rider this long before the globe hides (ms). */
 export const GLOBE_HIDE_AFTER_MS = 750;
@@ -63,5 +64,44 @@ export class GlobeGate {
   reset(): void {
     this.shown = true;
     this.since = null;
+  }
+}
+
+/** What the ride view draws this frame: the globe, and the painted road on it. */
+export interface GroundDraw {
+  globe: boolean;
+  road: boolean;
+}
+
+/**
+ * The globe and the painted road (asphalt corridor, dashed centre line, edge
+ * stripes), from what the rider stands on (avatar.ground, lib/avatar
+ * GroundKind):
+ * - the globe is drawn whenever the mesh isn't the road under the rider
+ *   ({@link GlobeGate});
+ * - the painted road only where the globe IS the ground ('globe': no mesh
+ *   road there at all), not where it is drawn to stand in for a ground the
+ *   mesh doesn't draw under something over the road ('standIn'). The painted
+ *   road is a ground classification: it paints whatever stands in its
+ *   footprint, the globe and the mesh alike, so under tree crowns or a deck it
+ *   ran up the trunks, the piers and the deck (Cuyahoga towpath under I-80).
+ * The road's own wait is the same as the globe's, so it is never drawn
+ * without the globe under it.
+ */
+export class GroundGate {
+  private readonly globe = new GlobeGate();
+  private readonly paint = new GlobeGate();
+
+  /** One frame. `meshShown`: the photoreal tileset is part of the scene. */
+  update(nowMs: number, meshShown: boolean, ground: GroundKind): GroundDraw {
+    const globe = this.globe.update(nowMs, meshShown, ground === 'mesh');
+    const road = this.paint.update(nowMs, meshShown, ground !== 'globe');
+    return { globe, road: globe && road };
+  }
+
+  /** Back to the globe and its painted road (route change, no rider). */
+  reset(): void {
+    this.globe.reset();
+    this.paint.reset();
   }
 }

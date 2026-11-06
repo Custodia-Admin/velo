@@ -1,7 +1,8 @@
 /**
  * The world canvas's context-loss watch (renderers/three/contextLoss.ts,
  * card t_14ea510a): the loss is cancelled so the browser may restore it, the
- * store hears about it, and a restore remounts the canvas. The in-canvas
+ * store hears about it, and a restore remounts the canvas. The shared
+ * listener itself is tested in renderers/contextLoss.test.ts. The in-canvas
  * component is called as a plain function (useEffect runs at once, its
  * cleanup is kept; useThree hands it a fake renderer whose canvas is a plain
  * EventTarget), so no WebGL context is needed.
@@ -29,7 +30,7 @@ vi.mock('@react-three/fiber', async (orig) => ({
   useThree: <T,>(selector: (s: { gl: typeof h.gl }) => T) => selector({ gl: h.gl }),
 }));
 
-import { ContextLossWatch, watchContextLoss } from './contextLoss';
+import { ContextLossWatch } from './contextLoss';
 import { canvasKeyFor, selectWorldStopped, useWorldViewStore } from '@/stores/worldViewStore';
 
 const lose = (canvas: EventTarget) => {
@@ -53,31 +54,6 @@ function mountWatch(viewId: number, canvasKey: number) {
 afterEach(() => {
   for (const c of h.cleanups.splice(0)) c();
   useWorldViewStore.setState({ view: null });
-});
-
-describe('watchContextLoss', () => {
-  it('cancels the loss (so the browser may restore it) and reports it; reports the restore', () => {
-    const canvas = new EventTarget();
-    const on = { lost: vi.fn(), restored: vi.fn() };
-    watchContextLoss(canvas, on);
-    const e = lose(canvas);
-    expect(e.defaultPrevented).toBe(true);
-    expect(on.lost).toHaveBeenCalledTimes(1);
-    expect(on.restored).not.toHaveBeenCalled();
-    restore(canvas);
-    expect(on.restored).toHaveBeenCalledTimes(1);
-  });
-
-  it('says nothing once stopped: the loss r3f forces on a canvas it unmounts is not reported', () => {
-    const canvas = new EventTarget();
-    const on = { lost: vi.fn(), restored: vi.fn() };
-    const stop = watchContextLoss(canvas, on);
-    stop();
-    expect(lose(canvas).defaultPrevented).toBe(false);
-    restore(canvas);
-    expect(on.lost).not.toHaveBeenCalled();
-    expect(on.restored).not.toHaveBeenCalled();
-  });
 });
 
 describe('ContextLossWatch (inside <Canvas>)', () => {

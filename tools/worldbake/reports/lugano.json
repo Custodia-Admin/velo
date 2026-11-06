@@ -2,13 +2,13 @@
   "world": "lugano",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 0.8,
+    "dem": 0.6,
     "heightfield+routes": 0.1,
-    "osm": 0.7,
-    "vectors": 55.2,
-    "write": 28.3,
-    "validate": 0,
-    "total": 85.2
+    "osm": 0.6,
+    "vectors": 43.6,
+    "write": 21.1,
+    "validate": 0.1,
+    "total": 66.1
   },
   "sizes": {
     "height.bin.gz": {
@@ -49,13 +49,13 @@
     "manifest.json": {
       "stored": 135910,
       "content": 135910,
-      "brotli": 19018
+      "brotli": 19027
     }
   },
   "totals": {
     "stored": 9462277,
     "content": 19260172,
-    "brotli": 7118511
+    "brotli": 7118520
   },
   "hashes": {
     "height.bin.gz": "03f447ed72c46b859d6858a5e6b9ab342ba4201f0c9be7326744a2b406380d74",
@@ -65,7 +65,7 @@
     "buildings.bin.gz": "472f56394d46f8801ad9eb607d8dc4508a364a6f8ce0ac6b396d403f71adc59a",
     "vegetation.bin.gz": "4560365d3b98777974ec171f8c84def53746e6f7113419f2fb3f68b879a427c0",
     "routes.json.gz": "085d359a7d4f44e484f61b8a4f32e65525d52851e1277dd24c13edabfa25017b",
-    "manifest.json": "59e0d7af044fd72c6429256881d63d9e4d67a89216d80890c4cfeff500314a22"
+    "manifest.json": "7e5b7560dc79aca135afcb7cf9f01a745ff9b0994613b0f84becf3e7db4aaa32"
   },
   "routes": [
     {
@@ -324,25 +324,40 @@
     }
   },
   "validation": {
-    "reference": "Copernicus GLO-90 via api.open-meteo.com/v1/elevation",
-    "seed": 46059,
-    "samples": 50,
-    "rmsM": 18.17,
-    "meanBiasM": 1.76,
-    "maxAbsM": 57.63,
+    "sample_seed": 46059,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "aws-terrain-tiles",
+    "terrain_class": "mountain",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.5177,
+    "floor_source": "copernicus-glo30-cog/lugano-t_045a5081",
+    "floor_rms_m": 1.71,
+    "own_error_allowance_m": 6,
+    "bound_m": 6.24,
+    "registered_rms_m": 8.88,
+    "point_rms_m": 18.17,
+    "max_abs_registered_err_m": 29.52,
     "pass": false,
-    "registered": {
-      "method": "GLO-90 node at the north-west corner of each sample’s 3″ cell",
-      "rmsM": 9.12,
-      "meanBiasM": -1.58,
-      "maxAbsM": 29.52
+    "diagnostics": {
+      "note": "not gating (blueprint §P1.3.4)",
+      "registered_mean_bias_m": -1.79,
+      "point_mean_bias_m": 1.76,
+      "point_max_abs_err_m": 57.63,
+      "node_answer_mismatches": 0
     },
     "points": [
       {
         "lat": 46.17213,
         "lon": 8.97123,
-        "heightfield": 209.82,
         "openMeteo": 212,
+        "heightfield": 209.82,
+        "nodeLat": 46.1725,
+        "nodeLon": 8.97083333,
         "nodeHeightfield": 209.86,
         "nodeOpenMeteo": 212,
         "onRouteCorridor": false
@@ -350,8 +365,10 @@
       {
         "lat": 45.95619,
         "lon": 8.93352,
-        "heightfield": 630.76,
         "openMeteo": 636,
+        "heightfield": 630.76,
+        "nodeLat": 45.95666667,
+        "nodeLon": 8.93333333,
         "nodeHeightfield": 630.86,
         "nodeOpenMeteo": 636,
         "onRouteCorridor": false
@@ -359,8 +376,10 @@
       {
         "lat": 46.13402,
         "lon": 8.92819,
-        "heightfield": 781.28,
         "openMeteo": 759,
+        "heightfield": 781.28,
+        "nodeLat": 46.13416667,
+        "nodeLon": 8.9275,
         "nodeHeightfield": 747.38,
         "nodeOpenMeteo": 759,
         "onRouteCorridor": false
@@ -368,8 +387,10 @@
       {
         "lat": 46.0697,
         "lon": 8.93937,
-        "heightfield": 389.72,
         "openMeteo": 377,
+        "heightfield": 389.72,
+        "nodeLat": 46.07,
+        "nodeLon": 8.93916667,
         "nodeHeightfield": 384.67,
         "nodeOpenMeteo": 377,
         "onRouteCorridor": false
@@ -377,8 +398,10 @@
       {
         "lat": 46.17635,
         "lon": 8.95293,
-        "heightfield": 273.25,
         "openMeteo": 293,
+        "heightfield": 273.25,
+        "nodeLat": 46.17666667,
+        "nodeLon": 8.9525,
         "nodeHeightfield": 300.91,
         "nodeOpenMeteo": 293,
         "onRouteCorridor": false
@@ -386,8 +409,10 @@
       {
         "lat": 45.94093,
         "lon": 8.75786,
-        "heightfield": 408.39,
         "openMeteo": 391,
+        "heightfield": 408.39,
+        "nodeLat": 45.94166667,
+        "nodeLon": 8.7575,
         "nodeHeightfield": 384.94,
         "nodeOpenMeteo": 391,
         "onRouteCorridor": false
@@ -395,8 +420,10 @@
       {
         "lat": 45.94131,
         "lon": 8.76303,
-        "heightfield": 350.07,
         "openMeteo": 357,
+        "heightfield": 350.07,
+        "nodeLat": 45.94166667,
+        "nodeLon": 8.7625,
         "nodeHeightfield": 349.73,
         "nodeOpenMeteo": 357,
         "onRouteCorridor": false
@@ -404,8 +431,10 @@
       {
         "lat": 46.00221,
         "lon": 8.91038,
-        "heightfield": 275.43,
         "openMeteo": 275,
+        "heightfield": 275.43,
+        "nodeLat": 46.0025,
+        "nodeLon": 8.91,
         "nodeHeightfield": 275.4,
         "nodeOpenMeteo": 275,
         "onRouteCorridor": false
@@ -413,8 +442,10 @@
       {
         "lat": 46.06898,
         "lon": 8.96886,
-        "heightfield": 539.72,
         "openMeteo": 533,
+        "heightfield": 539.72,
+        "nodeLat": 46.06916667,
+        "nodeLon": 8.96833333,
         "nodeHeightfield": 536.78,
         "nodeOpenMeteo": 533,
         "onRouteCorridor": false
@@ -422,8 +453,10 @@
       {
         "lat": 46.07545,
         "lon": 8.97584,
-        "heightfield": 777.42,
         "openMeteo": 775,
+        "heightfield": 777.42,
+        "nodeLat": 46.07583333,
+        "nodeLon": 8.97583333,
         "nodeHeightfield": 777.69,
         "nodeOpenMeteo": 775,
         "onRouteCorridor": false
@@ -431,8 +464,10 @@
       {
         "lat": 46.16821,
         "lon": 8.97953,
-        "heightfield": 211.01,
         "openMeteo": 213,
+        "heightfield": 211.01,
+        "nodeLat": 46.16833333,
+        "nodeLon": 8.97916667,
         "nodeHeightfield": 210.85,
         "nodeOpenMeteo": 213,
         "onRouteCorridor": false
@@ -440,8 +475,10 @@
       {
         "lat": 46.15119,
         "lon": 8.78091,
-        "heightfield": 199.71,
         "openMeteo": 201,
+        "heightfield": 199.71,
+        "nodeLat": 46.15166667,
+        "nodeLon": 8.78083333,
         "nodeHeightfield": 199.6,
         "nodeOpenMeteo": 201,
         "onRouteCorridor": false
@@ -449,8 +486,10 @@
       {
         "lat": 45.97904,
         "lon": 8.82868,
-        "heightfield": 693.02,
         "openMeteo": 707,
+        "heightfield": 693.02,
+        "nodeLat": 45.97916667,
+        "nodeLon": 8.82833333,
         "nodeHeightfield": 691.6,
         "nodeOpenMeteo": 707,
         "onRouteCorridor": false
@@ -458,8 +497,10 @@
       {
         "lat": 46.14682,
         "lon": 8.94056,
-        "heightfield": 303.87,
         "openMeteo": 267,
+        "heightfield": 303.87,
+        "nodeLat": 46.1475,
+        "nodeLon": 8.94,
         "nodeHeightfield": 255.89,
         "nodeOpenMeteo": 267,
         "onRouteCorridor": false
@@ -467,8 +508,10 @@
       {
         "lat": 46.14099,
         "lon": 8.93271,
-        "heightfield": 631.75,
         "openMeteo": 588,
+        "heightfield": 631.75,
+        "nodeLat": 46.14166667,
+        "nodeLon": 8.9325,
         "nodeHeightfield": 582.91,
         "nodeOpenMeteo": 588,
         "onRouteCorridor": false
@@ -476,8 +519,10 @@
       {
         "lat": 46.1148,
         "lon": 8.91291,
-        "heightfield": 733.89,
         "openMeteo": 726,
+        "heightfield": 733.89,
+        "nodeLat": 46.115,
+        "nodeLon": 8.9125,
         "nodeHeightfield": 739.05,
         "nodeOpenMeteo": 726,
         "onRouteCorridor": false
@@ -485,17 +530,21 @@
       {
         "lat": 45.9675,
         "lon": 8.8405,
-        "heightfield": 491.44,
         "openMeteo": 507,
-        "nodeHeightfield": 508.24,
-        "nodeOpenMeteo": 493,
+        "heightfield": 491.44,
+        "nodeLat": 45.96833333,
+        "nodeLon": 8.84,
+        "nodeHeightfield": 511.65,
+        "nodeOpenMeteo": 507,
         "onRouteCorridor": false
       },
       {
         "lat": 46.03203,
         "lon": 8.72878,
-        "heightfield": 190,
         "openMeteo": 193,
+        "heightfield": 190,
+        "nodeLat": 46.0325,
+        "nodeLon": 8.72833333,
         "nodeHeightfield": 190,
         "nodeOpenMeteo": 193,
         "onRouteCorridor": false
@@ -503,8 +552,10 @@
       {
         "lat": 46.13994,
         "lon": 8.76428,
-        "heightfield": 190,
         "openMeteo": 193,
+        "heightfield": 190,
+        "nodeLat": 46.14,
+        "nodeLon": 8.76416667,
         "nodeHeightfield": 190,
         "nodeOpenMeteo": 193,
         "onRouteCorridor": false
@@ -512,8 +563,10 @@
       {
         "lat": 46.03438,
         "lon": 8.91053,
-        "heightfield": 599.66,
         "openMeteo": 632,
+        "heightfield": 599.66,
+        "nodeLat": 46.035,
+        "nodeLon": 8.91,
         "nodeHeightfield": 631.02,
         "nodeOpenMeteo": 632,
         "onRouteCorridor": false
@@ -521,8 +574,10 @@
       {
         "lat": 46.09492,
         "lon": 8.98146,
-        "heightfield": 1073,
         "openMeteo": 1034,
+        "heightfield": 1073,
+        "nodeLat": 46.095,
+        "nodeLon": 8.98083333,
         "nodeHeightfield": 1049.13,
         "nodeOpenMeteo": 1034,
         "onRouteCorridor": false
@@ -530,8 +585,10 @@
       {
         "lat": 46.17623,
         "lon": 8.80695,
-        "heightfield": 267.74,
         "openMeteo": 271,
+        "heightfield": 267.74,
+        "nodeLat": 46.17666667,
+        "nodeLon": 8.80666667,
         "nodeHeightfield": 279.32,
         "nodeOpenMeteo": 271,
         "onRouteCorridor": false
@@ -539,8 +596,10 @@
       {
         "lat": 45.98094,
         "lon": 8.8988,
-        "heightfield": 270,
         "openMeteo": 270,
+        "heightfield": 270,
+        "nodeLat": 45.98166667,
+        "nodeLon": 8.89833333,
         "nodeHeightfield": 270,
         "nodeOpenMeteo": 270,
         "onRouteCorridor": false
@@ -548,8 +607,10 @@
       {
         "lat": 45.99904,
         "lon": 8.93892,
-        "heightfield": 376.13,
         "openMeteo": 385,
+        "heightfield": 376.13,
+        "nodeLat": 45.99916667,
+        "nodeLon": 8.93833333,
         "nodeHeightfield": 385.59,
         "nodeOpenMeteo": 385,
         "onRouteCorridor": false
@@ -557,8 +618,10 @@
       {
         "lat": 45.95695,
         "lon": 8.90851,
-        "heightfield": 466.19,
         "openMeteo": 477,
+        "heightfield": 466.19,
+        "nodeLat": 45.9575,
+        "nodeLon": 8.90833333,
         "nodeHeightfield": 471.2,
         "nodeOpenMeteo": 477,
         "onRouteCorridor": false
@@ -566,8 +629,10 @@
       {
         "lat": 46.00221,
         "lon": 8.77259,
-        "heightfield": 378.38,
         "openMeteo": 383,
+        "heightfield": 378.38,
+        "nodeLat": 46.0025,
+        "nodeLon": 8.7725,
         "nodeHeightfield": 380.34,
         "nodeOpenMeteo": 383,
         "onRouteCorridor": false
@@ -575,8 +640,10 @@
       {
         "lat": 46.03179,
         "lon": 8.98516,
-        "heightfield": 570.38,
         "openMeteo": 555,
+        "heightfield": 570.38,
+        "nodeLat": 46.0325,
+        "nodeLon": 8.985,
         "nodeHeightfield": 551.25,
         "nodeOpenMeteo": 555,
         "onRouteCorridor": false
@@ -584,8 +651,10 @@
       {
         "lat": 46.00066,
         "lon": 8.70582,
-        "heightfield": 190,
         "openMeteo": 193,
+        "heightfield": 190,
+        "nodeLat": 46.00083333,
+        "nodeLon": 8.705,
         "nodeHeightfield": 190,
         "nodeOpenMeteo": 193,
         "onRouteCorridor": false
@@ -593,8 +662,10 @@
       {
         "lat": 46.08056,
         "lon": 8.93543,
-        "heightfield": 615.66,
         "openMeteo": 615,
+        "heightfield": 615.66,
+        "nodeLat": 46.08083333,
+        "nodeLon": 8.935,
         "nodeHeightfield": 621.88,
         "nodeOpenMeteo": 615,
         "onRouteCorridor": false
@@ -602,8 +673,10 @@
       {
         "lat": 46.03046,
         "lon": 8.97864,
-        "heightfield": 413.05,
         "openMeteo": 409,
+        "heightfield": 413.05,
+        "nodeLat": 46.03083333,
+        "nodeLon": 8.97833333,
         "nodeHeightfield": 406.46,
         "nodeOpenMeteo": 409,
         "onRouteCorridor": false
@@ -611,8 +684,10 @@
       {
         "lat": 46.02302,
         "lon": 8.73539,
-        "heightfield": 190,
         "openMeteo": 193,
+        "heightfield": 190,
+        "nodeLat": 46.02333333,
+        "nodeLon": 8.735,
         "nodeHeightfield": 190,
         "nodeOpenMeteo": 193,
         "onRouteCorridor": false
@@ -620,8 +695,10 @@
       {
         "lat": 45.9988,
         "lon": 8.94429,
-        "heightfield": 322.08,
         "openMeteo": 329,
+        "heightfield": 322.08,
+        "nodeLat": 45.99916667,
+        "nodeLon": 8.94416667,
         "nodeHeightfield": 326.88,
         "nodeOpenMeteo": 329,
         "onRouteCorridor": false
@@ -629,8 +706,10 @@
       {
         "lat": 46.10549,
         "lon": 8.95204,
-        "heightfield": 830.47,
         "openMeteo": 820,
+        "heightfield": 830.47,
+        "nodeLat": 46.10583333,
+        "nodeLon": 8.95166667,
         "nodeHeightfield": 807.51,
         "nodeOpenMeteo": 820,
         "onRouteCorridor": false
@@ -638,8 +717,10 @@
       {
         "lat": 46.04223,
         "lon": 8.71093,
-        "heightfield": 190,
         "openMeteo": 193,
+        "heightfield": 190,
+        "nodeLat": 46.0425,
+        "nodeLon": 8.71083333,
         "nodeHeightfield": 190,
         "nodeOpenMeteo": 193,
         "onRouteCorridor": false
@@ -647,8 +728,10 @@
       {
         "lat": 45.95172,
         "lon": 8.95864,
-        "heightfield": 270,
         "openMeteo": 270,
+        "heightfield": 270,
+        "nodeLat": 45.9525,
+        "nodeLon": 8.95833333,
         "nodeHeightfield": 270,
         "nodeOpenMeteo": 270,
         "onRouteCorridor": false
@@ -656,8 +739,10 @@
       {
         "lat": 45.9983,
         "lon": 8.78934,
-        "heightfield": 409.12,
         "openMeteo": 406,
+        "heightfield": 409.12,
+        "nodeLat": 45.99833333,
+        "nodeLon": 8.78916667,
         "nodeHeightfield": 409.42,
         "nodeOpenMeteo": 406,
         "onRouteCorridor": false
@@ -665,8 +750,10 @@
       {
         "lat": 46.11595,
         "lon": 8.97587,
-        "heightfield": 701.13,
         "openMeteo": 673,
+        "heightfield": 701.13,
+        "nodeLat": 46.11666667,
+        "nodeLon": 8.97583333,
         "nodeHeightfield": 680.36,
         "nodeOpenMeteo": 673,
         "onRouteCorridor": false
@@ -674,8 +761,10 @@
       {
         "lat": 46.00844,
         "lon": 8.79176,
-        "heightfield": 513.37,
         "openMeteo": 571,
+        "heightfield": 513.37,
+        "nodeLat": 46.00916667,
+        "nodeLon": 8.79166667,
         "nodeHeightfield": 552.49,
         "nodeOpenMeteo": 571,
         "onRouteCorridor": false
@@ -683,8 +772,10 @@
       {
         "lat": 46.11281,
         "lon": 8.88639,
-        "heightfield": 1557.14,
         "openMeteo": 1533,
+        "heightfield": 1557.14,
+        "nodeLat": 46.11333333,
+        "nodeLon": 8.88583333,
         "nodeHeightfield": 1503.48,
         "nodeOpenMeteo": 1533,
         "onRouteCorridor": false
@@ -692,8 +783,10 @@
       {
         "lat": 46.05174,
         "lon": 8.74863,
-        "heightfield": 648.77,
         "openMeteo": 682,
+        "heightfield": 648.77,
+        "nodeLat": 46.0525,
+        "nodeLon": 8.74833333,
         "nodeHeightfield": 687.02,
         "nodeOpenMeteo": 682,
         "onRouteCorridor": false
@@ -701,8 +794,10 @@
       {
         "lat": 45.94457,
         "lon": 8.70333,
-        "heightfield": 697.34,
         "openMeteo": 677,
+        "heightfield": 697.34,
+        "nodeLat": 45.945,
+        "nodeLon": 8.7025,
         "nodeHeightfield": 647.59,
         "nodeOpenMeteo": 677,
         "onRouteCorridor": false
@@ -710,8 +805,10 @@
       {
         "lat": 45.94836,
         "lon": 8.96179,
-        "heightfield": 270,
         "openMeteo": 270,
+        "heightfield": 270,
+        "nodeLat": 45.94916667,
+        "nodeLon": 8.96166667,
         "nodeHeightfield": 270,
         "nodeOpenMeteo": 270,
         "onRouteCorridor": false
@@ -719,8 +816,10 @@
       {
         "lat": 46.11528,
         "lon": 8.74399,
-        "heightfield": 190,
         "openMeteo": 193,
+        "heightfield": 190,
+        "nodeLat": 46.11583333,
+        "nodeLon": 8.74333333,
         "nodeHeightfield": 190,
         "nodeOpenMeteo": 193,
         "onRouteCorridor": false
@@ -728,8 +827,10 @@
       {
         "lat": 46.17635,
         "lon": 8.78219,
-        "heightfield": 505.5,
         "openMeteo": 521,
+        "heightfield": 505.5,
+        "nodeLat": 46.17666667,
+        "nodeLon": 8.78166667,
         "nodeHeightfield": 520.8,
         "nodeOpenMeteo": 521,
         "onRouteCorridor": false
@@ -737,8 +838,10 @@
       {
         "lat": 46.15667,
         "lon": 8.93458,
-        "heightfield": 201.49,
         "openMeteo": 203,
+        "heightfield": 201.49,
+        "nodeLat": 46.1575,
+        "nodeLon": 8.93416667,
         "nodeHeightfield": 200.81,
         "nodeOpenMeteo": 203,
         "onRouteCorridor": false
@@ -746,8 +849,10 @@
       {
         "lat": 46.11761,
         "lon": 8.86762,
-        "heightfield": 1562.11,
         "openMeteo": 1525,
+        "heightfield": 1562.11,
+        "nodeLat": 46.11833333,
+        "nodeLon": 8.8675,
         "nodeHeightfield": 1535.19,
         "nodeOpenMeteo": 1525,
         "onRouteCorridor": false
@@ -755,8 +860,10 @@
       {
         "lat": 46.11169,
         "lon": 8.9415,
-        "heightfield": 534.92,
         "openMeteo": 530,
+        "heightfield": 534.92,
+        "nodeLat": 46.1125,
+        "nodeLon": 8.94083333,
         "nodeHeightfield": 535.23,
         "nodeOpenMeteo": 530,
         "onRouteCorridor": false
@@ -764,8 +871,10 @@
       {
         "lat": 46.11271,
         "lon": 8.76995,
-        "heightfield": 188.72,
         "openMeteo": 193,
+        "heightfield": 188.72,
+        "nodeLat": 46.11333333,
+        "nodeLon": 8.76916667,
         "nodeHeightfield": 190,
         "nodeOpenMeteo": 193,
         "onRouteCorridor": false
@@ -773,8 +882,10 @@
       {
         "lat": 46.08647,
         "lon": 8.87137,
-        "heightfield": 1625.15,
         "openMeteo": 1617,
+        "heightfield": 1625.15,
+        "nodeLat": 46.08666667,
+        "nodeLon": 8.87083333,
         "nodeHeightfield": 1620.12,
         "nodeOpenMeteo": 1617,
         "onRouteCorridor": false
@@ -782,8 +893,10 @@
       {
         "lat": 46.1774,
         "lon": 8.72019,
-        "heightfield": 279.83,
         "openMeteo": 274,
+        "heightfield": 279.83,
+        "nodeLat": 46.1775,
+        "nodeLon": 8.72,
         "nodeHeightfield": 277.78,
         "nodeOpenMeteo": 274,
         "onRouteCorridor": false

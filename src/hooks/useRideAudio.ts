@@ -7,7 +7,7 @@
  *   • Starts the ProceduralRideAudioEngine (chain noise, road rumble, brake squeal,
  *     gear-shift clicks) when rideState becomes 'running' and rideAudioEnabled is true.
  *   • Updates both engines each animation frame.
- *   • Plays chimes on workout-segment transitions and ride finish.
+ *   • Plays a chime on ride finish.
  *   • Fades to silence on pause; resumes on unpause.
  *   • Tears down cleanly when the component unmounts.
  *
@@ -44,8 +44,6 @@ export function useRideAudio(): void {
     return procEngineRef.current;
   }
 
-  // Track previous workout-segment index so we can detect transitions.
-  const prevSegmentRef = useRef<number>(-1);
   // Track whether a finish chime has been played for this ride session.
   const finishChimeFiredRef = useRef(false);
   // Track whether the ambient engine is currently started (to avoid double-start).
@@ -78,7 +76,6 @@ export function useRideAudio(): void {
       if (!audio.enabled && engineRunningRef.current) {
         engine.stop();
         engineRunningRef.current = false;
-        prevSegmentRef.current = -1;
         finishChimeFiredRef.current = false;
         return;
       }
@@ -118,26 +115,6 @@ export function useRideAudio(): void {
 
       if (ride.rideState !== 'running') return;
 
-      // ── Workout-segment change detection ──────────────────────────────────
-      if (ride.activeWorkout && ride.workoutRunning) {
-        const elapsed  = ride.workoutElapsedSec;
-        const segments = ride.activeWorkout.segments;
-        let cursor = 0;
-        let currentSegIdx = 0;
-        for (let i = 0; i < segments.length; i++) {
-          cursor += segments[i].durationSec;
-          if (elapsed < cursor) {
-            currentSegIdx = i;
-            break;
-          }
-          currentSegIdx = i;
-        }
-        if (prevSegmentRef.current !== -1 && currentSegIdx !== prevSegmentRef.current) {
-          engine.playSegmentChime();
-        }
-        prevSegmentRef.current = currentSegIdx;
-      }
-
       // ── Update ambient / effort layers ────────────────────────────────────
       engine.update({
         speedMs:  ride.speed,
@@ -165,7 +142,6 @@ export function useRideAudio(): void {
       cancelAnimationFrame(rafId);
       engine.stop();
       engineRunningRef.current = false;
-      prevSegmentRef.current = -1;
       finishChimeFiredRef.current = false;
 
       // Tear down procedural engine.

@@ -182,10 +182,98 @@ Files: `tools/worldbake/*`, `tools/worldbake/worlds/perugia.json`,
 Bbox: ~14×14 km around Perugia covering the p2e home routes.
 AVC:
 - `node tools/worldbake/bake.mjs perugia` runs on the laptop in < 10 min from a clean cache, deterministic (same inputs → byte-identical outputs; hashes in `manifest.json`).
-- Bundle ≤ 8 MB brotli; heightfield RMS error vs 50 random Open-Meteo samples ≤ 6 m.
+- Bundle ≤ 8 MB brotli; the heightfield passes the P1.3 terrain accuracy criterion (v2, below): registered RMS against 50 seeded Open-Meteo samples ≤ the bound for its terrain class (6.00 m standard, 6.24 m mountain). *(v1 read "heightfield RMS error vs 50 random Open-Meteo samples ≤ 6 m"; amended 2026-11-04, see "P1.3 terrain accuracy criterion (v2)".)*
 - Every p2e Perugia route lies on the heightfield: `snapRoutes` reports max vertical gap 0 after snapping; grade series vs the p2e smoothed profile differs by ≤ 1 % mean absolute.
 - Loader tests: corrupt/missing files fail with a typed error; progress events emitted; decode of a 2048² heightfield ≤ 300 ms on the laptop (vitest bench, recorded once, not a recurring benchmark).
 - Credits file lists every source with licence text and the exact tile ids/bbox used.
+
+#### P1.3 terrain accuracy criterion (v2)
+
+> **Amendment, 2026-11-04 (card t_20471c47).** Replaces v1's "heightfield RMS
+> error vs 50 random Open-Meteo samples ≤ 6 m", which no 30 m DEM can meet on
+> alpine slopes (Lugano, card t_5a07c68a). Architect ruling: card t_f639e915
+> (accept with modifications). The ruling set the mountain floor at 6.53 m;
+> card t_045a5081 showed that figure came from reading the PixelIsPoint GLO-30
+> tiles as PixelIsArea, and the coordinator ruling of 2026-11-04 23:40 CEST
+> kept the formula and replaced the floor with the corrected 1.71 m (mountain
+> bound 8.87 m → 6.24 m). Encoded 2026-11-05 (card t_549dba84):
+> `tools/worldbake/p13Criterion.mjs`, `validateDem.mjs`, `validate.mjs`;
+> fields in `docs/worlds/WORLD-FORMAT.md` "Terrain accuracy check".
+> One deliberate difference from the ruling's text: P1.3.8 keeps the
+> existing id `aws-terrain-tiles` for the Terrain Tiles source instead of the
+> ruling's `eu-dem-terrain-tiles`. It is the id the code, the recipe schema
+> and `dem_source` already use, and Terrain Tiles is EU-DEM only inside Europe.
+
+**P1.3.1 Purpose.** The baked heightfield must reproduce its source terrain through the bake pipeline (projection, node registration, vertical datum, tiling, resampling). P1.3 checks this against an independently served reference. It does not certify the DEM's absolute accuracy; that is the DEM provider's.
+
+**P1.3.2 Reference and samples.** 50 sample points drawn uniformly at random over the world's playable extent with the fixed seed recorded in `validation.sample_seed` (the v1 seed and sampling protocol are retained: mulberry32, x then y per point, inverse-projected, rounded to 1e-5°). For each sample the reference elevation is the Open-Meteo elevation API's answer for the sample, which is the value of one Copernicus GLO-90 node, without interpolation.
+
+**P1.3.3 Registration.** Because the reference is a node value, the heightfield is compared at that node, not at the query point. The node is selected by rule `glo90-nw-node`, the north-west corner of the half-open 3″ cell (lat [S, N) × lon [W, E)) holding the sample: with Δ = 3″ (the GLO-90 spacing in latitude, and in longitude below 50°; all current worlds are below 50°, and the bake refuses a sample poleward of it until the wider longitude bands of the Copernicus DEM Product Handbook are added and checked against Open-Meteo),
+`lon_node = ⌊lon / Δ⌋ · Δ`, `lat_node = (⌊lat / Δ⌋ + 1) · Δ`.
+Off a node row this is the ruling's `⌈lat / Δ⌉ · Δ`; on a row it takes the next node north, which is what Open-Meteo answers there (Lugano sample 45.9675, 8.8405) and the rule the floor was measured with. The heightfield value at the node is read by bilinear interpolation of the baked heightfield. This rule and the floor in P1.3.6 are a pair, measured together; changing one requires re-measuring the other.
+
+**P1.3.4 Metrics.** Over the 50 samples:
+- `registered_rms_m` = RMS of (heightfield at the node − reference). **Gating.**
+- `point_rms_m` = RMS of (heightfield at the query point − reference). **Reported only.** It is inflated by nearest-node snapping on any slope and must never be used as a pass/fail figure.
+- `max_abs_registered_err_m` = largest |heightfield at the node − reference|. **Reported only** (useful for spotting tile seams and datum errors).
+
+All figures are rounded half-up to 2 decimals.
+
+**P1.3.5 Terrain class.** Computed from the baked heightfield over the playable extent: slope per node in degrees by the Horn 3×3 operator on the heightfield's native grid with the cell spacing in metres, over every node with a full 3×3 window (the u16 heightfield has no no-data value); `steep_fraction` = fraction of those nodes with slope ≥ 15°, recorded to 4 decimals.
+- `mountain` if `steep_fraction ≥ 0.20`, else `standard`.
+- Derivation: nearest-node snapping on the 3″ grid displaces the reference by ≈33 m radial RMS at mid-latitudes (cells ≈93 m × 64 m at 46° N); on a 15° slope that is ≈8.7 m of vertical disagreement on its own, above the 6 m intent. With 20 % of cells in that regime, a heightfield within 5 m RMS of its source everywhere still fails a 6 m point criterion (0.2·(8.7² + 5²) + 0.8·5² = 40.1 → 6.3 m).
+- A recipe may force the class up with `validation.terrain_class_override: "mountain"` and a non-empty `validation.terrain_class_override_reason`; it may not force `standard`. The bake records the computed `steep_fraction` and the effective class either way (`terrain_class_source` is `override` only when the override changed the class). Overrides are reviewed in the PR like any other recipe change.
+
+**P1.3.6 Floor.** Copernicus GLO-30, read from the official COGs as PixelIsPoint (their `GTRasterTypeGeoKey`) at the same sample points and registered by `glo90-nw-node`, scores **1.71 m** registered RMS against the reference (bias −0.02 m, max 3.9 m; Lugano 50-sample set, seed 46059; card t_045a5081, repro `~/.hermes/handoffs/velo/t_045a5081/xcheck.{mjs,py}` on the laptop, copies under `cat-bed:~/velo-bake/t_045a5081-x/`). This is the best a 30 m-class DEM scores on mountain terrain under this procedure. It is a blueprint constant:
+- `mountain`: `floor_rms_m = 1.71`, `floor_source = "copernicus-glo30-cog/lugano-t_045a5081"`.
+- `standard`: `floor_rms_m = 0.00`, `floor_source = "none"` (the true floor on gentle terrain is small and is deliberately not credited).
+
+The floor is never re-measured per world inside the gate. Re-deriving it requires a card with the measurement and an amendment to this section. (The ruling's 6.53 m came from the t_5a07c68a prototype reading the tiles half a pixel north-west.)
+
+**P1.3.7 Bound and pass rule.** `own_error_allowance_m = 6.00` (the heightfield's permitted error against its source terrain; the v1 intent, unchanged).
+`bound_m = √(floor_rms_m² + own_error_allowance_m²)`, rounded half-up to 2 decimals, computed in code from the two constants:
+- `standard`: **6.00 m**
+- `mountain`: **6.24 m** (√(1.71² + 6.00²) = 6.239)
+
+**PASS iff `registered_rms_m ≤ bound_m`** (both at 2 decimals). Nothing else gates. The quadrature form follows from the independence of the two error sources (the floor, GLO-30 against GLO-90 through this registration, and the heightfield's own error against its source).
+
+**P1.3.8 DEM source.** `dem.source` accepts `"aws-terrain-tiles"` (Terrain Tiles, EU-DEM in Europe; the default when `source` is absent, and the default for `standard` worlds) and `"copernicus-glo30"` (the default for `mountain` worlds; the bake logs a note when a mountain world bakes from another source). GLO-30 heights are used as delivered (orthometric, EGM2008); no geoid or datum shift is applied. The source is a default, not part of the gate: a world baked from any source that meets P1.3.7 passes.
+
+**P1.3.9 Reporting.** The bake writes the `validation` block of P1.3.10 into the recipe and into `tools/worldbake/reports/<world>.json` (the report adds non-gating diagnostics and the 50 per-point rows), and the PR description quotes it. `node tools/worldbake/validate.mjs <world>` re-runs the check on an already baked world and writes the same block. A `point_rms_m` above `bound_m` is not a failure and must not be presented as one.
+
+**P1.3.10 Recipe `validation` block** (normative; schema `tools/worldbake/recipe.schema.json`):
+
+```jsonc
+"validation": {
+  // author inputs (set in the recipe before baking)
+  "sample_seed": 46059,                    // int, required; the v1 seed is kept
+  "terrain_class_override": "mountain",    // optional; only "mountain" is accepted, anything else is a bake error
+  "terrain_class_override_reason": "...",  // string, required iff the override is present; non-empty
+  // bake outputs (written by tools/worldbake; overwritten on every validated bake)
+  "criterion": "p1.3-v2-registered-rms",
+  "reference": "open-meteo-elevation/copernicus-glo90",
+  "registration": "glo90-nw-node",
+  "sample_count": 50,
+  "dem_source": "aws-terrain-tiles",       // mirrors the recipe's dem.source
+  "terrain_class": "mountain",             // "mountain" | "standard"
+  "terrain_class_source": "auto",          // "auto" | "override"
+  "slope_threshold_deg": 15,
+  "steep_fraction_threshold": 0.2,
+  "steep_fraction": 0.5177,                // always the computed value, 4 dp
+  "floor_source": "copernicus-glo30-cog/lugano-t_045a5081",  // or "none"
+  "floor_rms_m": 1.71,                     // 1.71 (mountain) | 0 (standard)
+  "own_error_allowance_m": 6,
+  "bound_m": 6.24,                         // √(floor_rms_m² + own_error_allowance_m²), 2 dp
+  "registered_rms_m": 8.88,                // GATING, 2 dp
+  "point_rms_m": 18.17,                    // reported only
+  "max_abs_registered_err_m": 29.52,       // reported only
+  "pass": false                            // registered_rms_m <= bound_m
+}
+```
+
+Every output field is mandatory in both the recipe and the report; a missing field is a validation error (`p13Criterion.test.ts` checks every committed world). `bound_m`, `floor_rms_m`, `floor_source`, `own_error_allowance_m`, `slope_threshold_deg` and `steep_fraction_threshold` come from constants in code, never from the recipe. `validation` is left out of `manifest.generator.recipeSha256`, so writing it back never changes a bundle.
+
+First results under v2 (2026-11-05, cat-bed; the bundles re-baked from cache are byte-identical to the committed ones apart from `recipeSha256`): Perugia `standard` (steep 0.0972), registered 4.54 m ≤ 6.00 m → **PASS** (point 5.96 m, as under v1). Lugano `mountain` (steep 0.5177), registered 8.88 m > 6.24 m → **FAIL** (point 18.17 m). In quadrature that is an own error of √(8.88² − 1.71²) = 8.71 m against the 6.00 m allowance; card t_49b58e90 re-bakes Lugano from GLO-30.
 
 **P1.4 three.js renderer v0.** (L, depends on P1.2, P1.3)
 Files: `src/renderers/three/{ThreeWorldView,Terrain,Roads,Rider,ChaseCamera,Sky}.tsx`, `materials/toonTerrain.ts`, `quality.ts`; `package.json` deps (three, r3f, drei, postprocessing, @react-three/test-renderer).

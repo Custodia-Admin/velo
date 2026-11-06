@@ -71,8 +71,12 @@ another tab (Netflix, YouTube, anything) or another app on the TV
   view offset (`applyHudLensShift`); photoreal draws a canvas taller than the
   window by twice the shift, reaching above its top edge
   (`renderers/cesium/hudLensCrop`), because Cesium 1.141 loses
-  `PerspectiveFrustum.yOffset` on the frustum clone it renders from. Measured
-  with `scripts/v2-build-shots/pip-photoreal.mjs`.
+  `PerspectiveFrustum.yOffset` on the frustum clone it renders from. Both
+  renderers draw the same vertical field, 60° (`RIDE_FOV_Y_DEG`; Cesium's own
+  fov spans the longer side, so photoreal converts it), so the same shift
+  clears the bar, wheels included, in both. Measured (and checked: exit 1
+  when the wheels are behind the bar) with
+  `scripts/v2-build-shots/pip-photoreal.mjs`.
 - The Velo tab shows "Your ride is in the floating window" and one action,
   **Bring the ride back**, plus the show strip. Only one world view exists at
   a time (one WebGL context).

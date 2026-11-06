@@ -12,7 +12,9 @@
  *     above the band.
  *   - the devices sheet, in the details' place while the chip has it open.
  *   - opt-in ride modes that are on (play).
- *   - the status chip, right above the band's start.
+ *   - the chip lane, right above the band: the status chip at its start,
+ *     and while the chip is calm the photoreal notice at its end (no-token
+ *     pitch or imagery fallback; photoreal rides, collapsed HUD only).
  *   - the ride band: Exit (sm+), the six figures, Pause / Finish and the
  *     one details toggle.
  *
@@ -24,23 +26,33 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useRideHudStore } from '@/stores/rideHudStore';
+import { PhotorealNoticeView, type PhotorealNoticeState } from './PhotorealNotice';
 import { RideChip } from './RideChip';
 import { RideDevicesSheet } from './RideDevicesSheet';
 import { RideMap } from './RideMap';
 import { RideRoutePanel } from './RideRoutePanel';
 import { RideStrip } from './RideStrip';
-import { RideTools, type RideToolsProps } from './RideTools';
+import { RideSettingsHost, RideTools, type RideToolsProps } from './RideTools';
 
 export interface RideHudProps extends RideToolsProps {
   /** Opt-in ride modes that are on (workout, segments, play): always shown. */
   modes?: ReactNode;
+  /** The photoreal notice (usePhotorealNotice), null on world rides. */
+  notice?: PhotorealNoticeState | null;
   className?: string;
 }
 
 export function RideHud(props: RideHudProps) {
   const expanded = useRideHudStore((s) => s.expanded);
   const devicesOpen = useRideHudStore((s) => s.devicesOpen);
-  return <RideHudLayout {...props} expanded={expanded} devicesOpen={devicesOpen} />;
+  return (
+    <>
+      <RideHudLayout {...props} expanded={expanded} devicesOpen={devicesOpen} />
+      {/* Settings for 'globeride:open-settings' (the photoreal notice), with
+          the details closed too: the tools' own menu is inside them. */}
+      <RideSettingsHost />
+    </>
+  );
 }
 
 /** The column for a given details / devices state (RideHud reads the store). */
@@ -48,9 +60,14 @@ export function RideHudLayout({
   expanded,
   devicesOpen,
   modes,
+  notice,
   className,
   ...tools
 }: RideHudProps & { expanded: boolean; devicesOpen: boolean }) {
+  // The notice rides in the chip lane, collapsed HUD only: with the details
+  // or the devices sheet open the rider is busy there (and Settings is one
+  // of the ride tools).
+  const quiet = notice && !expanded && !devicesOpen ? <PhotorealNoticeView {...notice} /> : null;
   return (
     <div
       className={cn(
@@ -72,7 +89,9 @@ export function RideHudLayout({
           expanded && <RideDetails {...tools} />
         )}
         {modes && <div className="flex shrink-0 flex-col gap-2 empty:hidden sm:w-80">{modes}</div>}
-        <RideChip className="shrink-0 self-start" />
+        {/* The chip lane spans the band while it holds the notice: chip at
+            the band's left end, notice at its right end, the rider between. */}
+        <RideChip className={quiet ? 'shrink-0 self-stretch' : 'shrink-0 self-start'} aside={quiet} />
         <RideStrip onExit={tools.onExit} className="shrink-0 sm:self-stretch" />
       </div>
     </div>

@@ -11,12 +11,17 @@
  *   judged against the lagging filtered heading), so partners swapped
  *   sides, merged and jumped up to 3.8 m in one frame; and nothing pinned
  *   that the slot is drawn across the FILTERED heading.
+ * - Card t_c4c293dc: on 1.5 m paths (most of the Tiber route) the clamp
+ *   alone drew a partner level with the rider 0.13–0.65 m from them, and
+ *   partners 0 and 2 inside each other. Past the clamp a partner now rides
+ *   the verge, 0.9 m from the line and from the partner inside it.
  */
 import { describe, expect, it } from 'vitest';
 
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { BOT_PRESETS, createPaceBot } from '@/lib/paceBots';
-import { PARTNER_EDGE_MARGIN_M, PARTNER_SLOT_MAX_RATE_MPS } from '@/lib/ride/partnerSlots';
+import { PARTNER_EDGE_MARGIN_M, PARTNER_SLOT_FLOOR_M, PARTNER_SLOT_MAX_RATE_MPS } from '@/lib/ride/partnerSlots';
+import { YAW_SNAP_M } from '@/lib/ride/rideHeading';
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import type { LoadedWorld, RoadsLayer } from '@/lib/world/loadWorld';
 import type { Route } from '@/types';
@@ -249,18 +254,42 @@ describe('placeBot', () => {
     }
   });
 
-  it('clamps a slot to the drawn ribbon so a partner never rides off it', () => {
-    // A 3 m track along y = 0, with the route 0.5 m north of its centre:
-    // 2.0 m of road right of the line, 1.0 m left of it.
-    const narrow = withRoads([{ cls: 1, width: 3, flags: 0, points: Float32Array.from([-390, 0, 390, 0]) }]);
-    const r = routeThrough(narrow, [-300, 0.5], [300, 0.5]);
-    const at = seat(r, 3).map((b, i) => placeBot(narrow, r, b.state, i, createBotDriverMemo(), DT));
+  it('clamps a slot to the drawn ribbon where it leaves room, so the partner stays on it', () => {
+    // A 3.5 m track along y = 0, with the route 0.5 m north of its centre:
+    // 2.25 m of road right of the line, 1.25 m left of it.
+    const track = withRoads([{ cls: 1, width: 3.5, flags: 0, points: Float32Array.from([-390, 0, 390, 0]) }]);
+    const r = routeThrough(track, [-300, 0.5], [300, 0.5]);
+    const at = seat(r, 3).map((b, i) => placeBot(track, r, b.state, i, createBotDriverMemo(), DT));
     expect(at[0].slotM).toBeCloseTo(1.2, 4);
-    expect(at[1].slotM).toBeCloseTo(-0.9, 4);
-    expect(at[2].slotM).toBeCloseTo(1.9, 4);
-    // Within the drawn ribbon (±1.5 m) less the margin; the spherical lane
+    expect(at[1].slotM).toBeCloseTo(-1.15, 4);
+    expect(at[2].slotM).toBeCloseTo(2.15, 4);
+    // Within the drawn ribbon (±1.75 m) less the margin; the spherical lane
     // shift and the ellipsoidal projection differ by ~0.1 %.
-    for (const p of at) expect(Math.abs(p.placement.worldY)).toBeLessThanOrEqual(1.5 - PARTNER_EDGE_MARGIN_M + 0.01);
+    for (const p of at) expect(Math.abs(p.placement.worldY)).toBeLessThanOrEqual(1.75 - PARTNER_EDGE_MARGIN_M + 0.01);
+  });
+
+  it('rides the verge where a 1.5 m path cannot seat a partner 0.9 m from the rider and the partner inside it', () => {
+    // A 1.5 m path along y = 0 with the route 0.3 m north of its centre
+    // (Tiber's paths run 0.2–0.4 m off it): 1.05 m of path right of the
+    // line, 0.45 m left. The clamp alone drew partner 1 0.35 m from the
+    // rider and partner 2 on partner 0.
+    const narrow = withRoads([path(-390, 0, 390, 0)]);
+    const r = routeThrough(narrow, [-300, 0.3], [300, 0.3]);
+    const frame = createRideFrame();
+    driveRideFrame(frame, createRideDriverMemo(), narrow, {
+      route: r, distance: 0, speed: 0, grade: 0, cadence: 0, power: 0, rideState: 'ready',
+      steer: 0, override: null, lookAheadM: 12, dt: DT, timeS: 0,
+    });
+    const rider = frame.placement!.position;
+    const at = seat(r, 3).map((b, i) => placeBot(narrow, r, b.state, i, createBotDriverMemo(), DT));
+    // Partner 0 keeps its clamp on the path; 1 and 2 ride the verge.
+    expect(at.map((p) => p.slotM)).toEqual([expect.closeTo(0.95, 4), expect.closeTo(-PARTNER_SLOT_FLOOR_M, 4), expect.closeTo(1.85, 4)]);
+    expect(Math.abs(at[0].placement.worldY)).toBeLessThanOrEqual(0.75 - PARTNER_EDGE_MARGIN_M + 0.01);
+    const pos = at.map((p) => p.placement.position);
+    for (const p of pos) expect(Math.hypot(p.x - rider.x, p.z - rider.z)).toBeGreaterThanOrEqual(PARTNER_SLOT_FLOOR_M - 0.01);
+    for (let i = 0; i < pos.length; i++) {
+      for (let j = i + 1; j < pos.length; j++) expect(Math.hypot(pos[i].x - pos[j].x, pos[i].z - pos[j].z)).toBeGreaterThanOrEqual(PARTNER_SLOT_FLOOR_M - 0.01);
+    }
   });
 
   it('keeps its slot where a side road crosses the route (the Tiber start, 8.5 m in)', () => {
@@ -299,11 +328,11 @@ describe('placeBot', () => {
     const narrows = withRoads([{ cls: 0, width: 7, flags: 0, points: Float32Array.from([-390, 0, 0, 0]) }, path(0, 0, 390, 0)]);
     const r = routeThrough(narrows, [-200, 0], [300, 0]);
     expect(PARTNER_SLOT_MAX_RATE_MPS).toBe(2.5);
-    for (const [i, wide, narrow] of [[0, 1.2, 0.65], [1, -1.2, -0.65], [2, 2.4, 0.65]]) {
+    for (const [i, wide, narrow] of [[0, 1.2, 0.9], [1, -1.2, -0.9], [2, 2.4, 1.8]]) {
       const frames = ride(narrows, r, i, 150, 260);
       expect(frames[0].slotM).toBeCloseTo(wide, 9);
       expect(maxStep(frames)).toBeLessThanOrEqual(PARTNER_SLOT_MAX_RATE_MPS * DT + 1e-9);
-      // On the path from x = 3.5 (past the road's end cap); 1.5 s later the partner is in its clamp.
+      // On the path from x = 3.5 (past the road's end cap); 1.5 s later the partner is in its narrow slot.
       const settled = frames.filter((f) => f.lineX > 3.5 + 8 * 1.5);
       expect(settled.length).toBeGreaterThan(60);
       for (const f of settled) expect(f.slotM).toBeCloseTo(narrow, 2);
@@ -312,15 +341,58 @@ describe('placeBot', () => {
     }
   });
 
+  it('seats a partner in its new clamp on the first frame after a jump of more than 40 m (a seek, Ride again), and eases one of 40 m', () => {
+    // A 1.5 m path along y = 0 up to x = 0, then a 7 m road. The route runs
+    // east from x = −200 (distance d is at x = d − 200): on the path the
+    // slots are 0.9, −0.9 and 1.8 m, the road leaves them at 1.2, −1.2 and 2.4 m.
+    // Review of PR #55 @fc70772 (Z9): placeBot passing a frozen distance to
+    // stepPartnerSlot left every jump eased in from the old slot for ~1 s.
+    const world = withRoads([path(-390, 0, 0, 0), { cls: 0, width: 7, flags: 0, points: Float32Array.from([0, 0, 390, 0]) }]);
+    const r = routeThrough(world, [-200, 0], [300, 0]);
+    expect(YAW_SNAP_M).toBe(40);
+    const cap = PARTNER_SLOT_MAX_RATE_MPS * DT + 1e-9;
+    const narrow = [0.9, -0.9, 1.8];
+    const wide = [1.2, -1.2, 2.4];
+    for (const i of [0, 1, 2]) {
+      // One memo for the whole ride, as Rider.tsx keeps one per partner.
+      const memo = createBotDriverMemo();
+      const at = (d: number) => {
+        const p = sampleRouteAtDistance(r, d);
+        return placeBot(world, r, { distance: d, speed: 8, heading: headingAt(r, d), lat: p.lat, lon: p.lon }, i, memo, DT).slotM;
+      };
+      for (const f of ride(world, r, i, 100, 120, 8, memo)) expect(f.slotM).toBeCloseTo(narrow[i], 4);
+      // Forward 180 m from the path onto the road (a seek): the road's slot at once.
+      expect(at(300)).toBeCloseTo(wide[i], 9);
+      for (const f of ride(world, r, i, 300, 320, 8, memo)) expect(f.slotM).toBeCloseTo(wide[i], 9);
+      // Back to the start from the road (Ride again, −320 m): the path's clamp at once.
+      expect(at(0)).toBeCloseTo(narrow[i], 4);
+      // Back 50 m from the road (x = 40) onto the path (x = −10): a backward seek.
+      expect(at(250)).toBeCloseTo(wide[i], 9);
+      expect(at(240)).toBeCloseTo(wide[i], 9);
+      expect(at(190)).toBeCloseTo(narrow[i], 4);
+      // A jump of exactly 40 m from the path onto the road is no seek: the
+      // partner drifts over at no more than 2.5 m/s and settles in 1.5 s.
+      const before = at(170);
+      expect(before).toBeCloseTo(narrow[i], 4);
+      const first = at(210);
+      expect(Math.abs(first - before)).toBeLessThanOrEqual(cap);
+      expect((first - before) * Math.sign(wide[i] - narrow[i])).toBeGreaterThan(0);
+      const frames = ride(world, r, i, 210 + 8 * DT, 240, 8, memo);
+      expect(Math.abs(frames[0].slotM - first)).toBeLessThanOrEqual(cap);
+      expect(maxStep(frames)).toBeLessThanOrEqual(cap);
+      for (const f of frames.filter((f) => f.d > 210 + 8 * 1.5)) expect(f.slotM).toBeCloseTo(wide[i], 2);
+    }
+  });
+
   it("keeps the clamp through a sharp bend in a narrow path: the ribbon follows the route's bearing, not the lagging heading", () => {
     // A 1.5 m path east to (0, 0), then turning 120° right (SSW); the route
-    // rides its centreline. The drawn heading trails the corner by up to
-    // ~65° here, so judged against it the path would drop out for ~4 m and
-    // the slot would drift toward its unclamped 1.2 m, off the path.
+    // rides its centreline, so the slots are ±0.9 m. The drawn heading
+    // trails the corner by up to ~65° here, so judged against it the path
+    // would drop out for ~4 m and the slot would drift toward its unclamped 1.2 m.
     const dir = 210 * DEG;
     const corner = withRoads([path(-200, 0, 0, 0, 180 * Math.sin(dir), 180 * Math.cos(dir))]);
     const r = routeVia(corner, [-200, 0], [0, 0], [150 * Math.sin(dir), 150 * Math.cos(dir)]);
-    for (const [i, slot] of [[0, 0.65], [1, -0.65]]) {
+    for (const [i, slot] of [[0, 0.9], [1, -0.9]]) {
       const frames = ride(corner, r, i, 150, 260);
       for (const f of frames) expect(f.slotM).toBeCloseTo(slot, 4);
     }
@@ -335,18 +407,23 @@ describe('placeBot', () => {
     // the route's.
     const ew = withRoads([path(-390, 0, 390, 0)]);
     const r = routeVia(ew, [-200, 0.5], [100, 0.5], [-200, 0.5]);
-    const eastbound = [1.15, -0.15, 1.15];
-    const westbound = [0.15, -1.15, 0.15];
+    // On the narrow side the partner is floored at 0.9 m; partner 2 rides
+    // 0.9 m beyond partner 0.
+    const eastbound = [1.15, -0.9, 2.05];
+    const westbound = [0.9, -1.15, 1.8];
+    const all: Frame[][] = [];
     for (const i of [0, 1, 2]) {
       const frames = ride(ew, r, i, 250, 380);
+      all.push(frames);
       let early = 0;
       let late = 0;
       for (const f of frames) {
         const ox = f.x - f.lineX;
         const oy = f.y - f.lineY;
         const len = Math.hypot(ox, oy);
-        // The offset is the slot, across the drawn heading: perpendicular to it.
-        expect(len).toBeCloseTo(Math.abs(f.slotM), 2);
+        // The offset is the slot, across the drawn heading: perpendicular to
+        // it (the spherical lane shift and the projection differ by < 0.5 %).
+        expect(Math.abs(len - Math.abs(f.slotM))).toBeLessThanOrEqual(0.005 * Math.max(1, len));
         expect(Math.abs(ox * Math.sin(f.heading) + oy * Math.cos(f.heading))).toBeLessThanOrEqual(0.01 * Math.max(1, len));
         // Past the turn (300 m) with the drawn heading still within 45° of
         // east, the partner keeps its eastbound clamp: the span is read
@@ -361,12 +438,15 @@ describe('placeBot', () => {
           late++;
           expect(f.slotM).toBeCloseTo(westbound[i], 2);
         }
-        // Never off the paved width by more than the sideways sweep of
-        // the eased slot while the heading pivots (0.1 m at most here).
-        expect(Math.abs(f.y)).toBeLessThanOrEqual(0.75 + 0.1);
+        // Never nearer the line than the floor, even while the heading pivots.
+        expect(Math.abs(f.slotM)).toBeGreaterThanOrEqual(PARTNER_SLOT_FLOOR_M - 1e-9);
       }
       expect(early).toBeGreaterThan(10);
       expect(late).toBeGreaterThan(300);
+    }
+    // Partners 0 and 2 share a side: 0.9 m apart or more on every frame of the turn.
+    for (let k = 0; k < all[0].length; k++) {
+      expect(Math.hypot(all[0][k].x - all[2][k].x, all[0][k].y - all[2][k].y)).toBeGreaterThanOrEqual(PARTNER_SLOT_FLOOR_M - 0.01);
     }
   });
 });

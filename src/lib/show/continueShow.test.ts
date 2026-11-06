@@ -401,25 +401,115 @@ describe('a refused file that is not a video', () => {
     const r = await cont([handle('Show S01E01.mp4'), srt('Show S01E01.srt'), handle('Show S01E02.MKV', { state: 'prompt', onAsk: noClick() }), handle('Show S01E03.mp4')]);
     expect(r).toMatchObject({ ok: false, reason: 'denied' });
   });
+
+  // Review of PR #56 @b31487c, Y8: a name that only CONTAINS a video extension.
+  it('a refused "Show S01E01.mp4.srt" is not a video: never blocks Continue', async () => {
+    finished('Show S01E01.mp4');
+    const handles = [handle('Show S01E01.mp4'), srt('Show S01E01.mp4.srt'), handle('Show S01E02.mp4')];
+    const read = await readLibrary({ kind: 'files', handles } as unknown as RememberedLibrary, { ask: true });
+    expect(read).toMatchObject({ denied: false, refused: [] });
+    const r = await cont(handles);
+    expect(r.ok && r.plan.startKey).toBe(fileKey(ep('Show S01E02.mp4', 100)));
+  });
+
+  it('a readable "Show S01E01.mp4.srt" never joins the playlist', async () => {
+    finished('Show S01E01.mp4');
+    const sub = handle('Show S01E01.mp4.srt', { file: new File(['1'], 'Show S01E01.mp4.srt', { type: 'application/x-subrip' }) });
+    const r = await cont([handle('Show S01E01.mp4'), sub, handle('Show S01E02.mp4')]);
+    expect(r.ok && r.plan.files.map((f) => f.name)).toEqual(['Show S01E01.mp4', 'Show S01E02.mp4']);
+  });
+
+  it('a library remembered before PR #56 with artwork and notes refused: still carries on', async () => {
+    finished('Show S01E01.mp4');
+    const r = await cont([handle('Show S01E01.mp4'), srt('folder.jpg'), srt('Show.nfo'), srt('Show S01E01.SRT'), handle('Show S01E02.mp4')]);
+    expect(r.ok && r.plan.startKey).toBe(fileKey(ep('Show S01E02.mp4', 100)));
+  });
+
+  it('a refused release name with a subtitle tag in the middle is the video: it blocks', async () => {
+    finished('Show.S01E01.SUB.ITA.mkv');
+    const r = await cont([
+      handle('Show.S01E01.SUB.ITA.mkv'),
+      handle('Show.S01E02.SUB.ITA.mkv', { state: 'prompt', onAsk: noClick() }),
+      handle('Show.S01E03.SUB.ITA.mkv'),
+    ]);
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+  });
+});
+
+// Review of PR #56 @b31487c, nit 1: pickVideos remembers a file when its TYPE
+// says video (isVideoFile), so Chrome's video/3gpp, video/mp4 or
+// video/quicktime files (.3gp, .f4v, .lrv, .qt) are remembered episodes. A
+// refused one used to be judged by the picker's extensions alone and dropped:
+// Continue started past it (P4) or said everything was watched (P5).
+describe('a refused video that is a video by its type only', () => {
+  const noClick = () => new DOMException('User activation is required', 'SecurityError');
+  const typed = (name: string, type: string) => new File([new Uint8Array(100)], name, { type });
+  const allowedT = (name: string, type: string) => handle(name, { file: typed(name, type) });
+  const refusedT = (name: string, type: string) => handle(name, { state: 'prompt', onAsk: noClick(), file: typed(name, type) });
+  const cont = (handles: ReturnType<typeof handle>[]) =>
+    continueLastShow(
+      { ask: true },
+      { recall: async () => ({ kind: 'files', handles }) as unknown as RememberedLibrary, read: readLibrary, storage: store },
+    );
+  const finished = (name: string) => markWatched({ key: fileKey(ep(name, 100)), name, positionS: 1500, durationS: 1500 }, 1, store);
+
+  it('P4: nothing of this library watched, E01.3gp refused, E02.3gp readable: access refused, never E02', async () => {
+    markWatched({ key: 'Other.mp4::5', name: 'Other.mp4', positionS: 10, durationS: 1500 }, 1, store);
+    const r = await cont([refusedT('Show S01E01.3gp', 'video/3gpp'), allowedT('Show S01E02.3gp', 'video/3gpp')]);
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+    // Control: with E01 allowed too, Continue starts it.
+    const all = await cont([allowedT('Show S01E01.3gp', 'video/3gpp'), allowedT('Show S01E02.3gp', 'video/3gpp')]);
+    expect(all.ok && all.plan).toMatchObject({ startKey: fileKey(ep('Show S01E01.3gp', 100)), next: { reason: 'first' } });
+  });
+
+  it('P5: E01.f4v finished, E02.f4v refused: access refused, never "watched everything"', async () => {
+    finished('Show S01E01.f4v');
+    const r = await cont([allowedT('Show S01E01.f4v', 'video/mp4'), refusedT('Show S01E02.f4v', 'video/mp4')]);
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+    // Control: with E02 allowed, Continue starts it.
+    const all = await cont([allowedT('Show S01E01.f4v', 'video/mp4'), allowedT('Show S01E02.f4v', 'video/mp4')]);
+    expect(all.ok && all.plan.startKey).toBe(fileKey(ep('Show S01E02.f4v', 100)));
+  });
+
+  it('.qt and .lrv: E01 finished, E02 refused, E03 readable: never skips E02', async () => {
+    finished('Show S01E01.qt');
+    const r = await cont([
+      allowedT('Show S01E01.qt', 'video/quicktime'),
+      refusedT('Show S01E02.qt', 'video/quicktime'),
+      allowedT('Show S01E03.qt', 'video/quicktime'),
+    ]);
+    expect(r).toMatchObject({ ok: false, reason: 'denied' });
+    const lrv = await cont([allowedT('Show S01E01.qt', 'video/quicktime'), refusedT('Show S01E02.lrv', 'video/mp4')]);
+    expect(lrv).toMatchObject({ ok: false, reason: 'denied' });
+  });
 });
 
 // Review of PR #48 @dfd7071 (optional item): after a restart Chrome gives the
 // click's activation to the first permission request only, and throws for the
 // rest. Continue asks for the episode it plans to start first.
 describe('one click, one file allowed (after a browser restart)', () => {
-  /** Handles sharing one user activation: the first request is allowed, later ones throw. */
+  /**
+   * Handles sharing one user activation: the first request is allowed, later
+   * ones throw. Like Chrome, a handle reads 'granted' once allowed, so a
+   * handle asked for twice is read twice (review of PR #56 @b31487c, Y2).
+   */
   function oneClick() {
     const asked: string[] = [];
     let used = false;
-    const h = (name: string) => ({
-      ...handle(name, { state: 'prompt' }),
-      requestPermission: vi.fn(async () => {
-        asked.push(name);
-        if (used) throw new DOMException('User activation is required', 'SecurityError');
-        used = true;
-        return 'granted' as PermissionState;
-      }),
-    });
+    const h = (name: string, file?: File) => {
+      let granted = false;
+      return {
+        ...handle(name, { state: 'prompt', file }),
+        queryPermission: vi.fn(async () => (granted ? 'granted' : 'prompt') as PermissionState),
+        requestPermission: vi.fn(async () => {
+          asked.push(name);
+          if (used) throw new DOMException('User activation is required', 'SecurityError');
+          used = true;
+          granted = true;
+          return 'granted' as PermissionState;
+        }),
+      };
+    };
     return { asked, h };
   }
   const cont = (handles: { name: string }[]) =>
@@ -427,6 +517,8 @@ describe('one click, one file allowed (after a browser restart)', () => {
       { ask: true },
       { recall: async () => ({ kind: 'files', handles }) as unknown as RememberedLibrary, read: readLibrary, storage: store },
     );
+  /** Each episode once in what will play. */
+  const once = (files: File[]) => expect(new Set(files.map((f) => f.name)).size).toBe(files.length);
 
   it('E01 finished: asks for E02 first, and starts it', async () => {
     markWatched({ key: fileKey(ep('Show S01E01.mp4', 100)), name: 'Show S01E01.mp4', positionS: 1500, durationS: 1500 }, 1, store);
@@ -434,8 +526,10 @@ describe('one click, one file allowed (after a browser restart)', () => {
     const r = await cont([h('Show S01E01.mp4'), h('Show S01E02.mp4'), h('Show S01E03.mp4')]);
     expect(asked[0]).toBe('Show S01E02.mp4');
     expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E02.mp4', 100)), next: { reason: 'next' } });
-    // Only the one Chrome allowed plays.
+    // Only the one Chrome allowed plays, once.
     expect(r.ok && r.plan.files.map((f) => f.name)).toEqual(['Show S01E02.mp4']);
+    // Chrome is asked once per file.
+    expect([...asked].sort()).toEqual(['Show S01E01.mp4', 'Show S01E02.mp4', 'Show S01E03.mp4']);
   });
 
   it('E03 paused part-way: asks for E03 first, and carries on there', async () => {
@@ -445,6 +539,19 @@ describe('one click, one file allowed (after a browser restart)', () => {
     const r = await cont([h('Show S01E01.mp4'), h('Show S01E02.mp4'), h('Show S01E03.mp4')]);
     expect(asked[0]).toBe('Show S01E03.mp4');
     expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E03.mp4', 100)), next: { reason: 'continue', positionS: 420 } });
+    if (r.ok) once(r.plan.files);
+  });
+
+  // Review of PR #56 @b31487c, nit 1: the episode asked for first is planned
+  // with the same name test as a refusal, so a video by type only counts.
+  it('a video by its type only (.3gp): asks for E02 first, and starts it', async () => {
+    markWatched({ key: fileKey(ep('Show S01E01.3gp', 100)), name: 'Show S01E01.3gp', positionS: 1500, durationS: 1500 }, 1, store);
+    const { asked, h } = oneClick();
+    const g = (name: string) => h(name, new File([new Uint8Array(100)], name, { type: 'video/3gpp' }));
+    const r = await cont([g('Show S01E01.3gp'), g('Show S01E02.3gp'), g('Show S01E03.3gp')]);
+    expect(asked[0]).toBe('Show S01E02.3gp');
+    expect(r.ok && r.plan.files.map((f) => f.name)).toEqual(['Show S01E02.3gp']);
+    expect(r.ok && r.plan.startKey).toBe(fileKey(ep('Show S01E02.3gp', 100)));
   });
 
   it('never asks for a subtitle first, and still never skips a refused episode', async () => {
@@ -455,6 +562,67 @@ describe('one click, one file allowed (after a browser restart)', () => {
     const r = await cont([h('Show S01E01.mp4'), h('Show S01E01.srt'), e02, h('Show S01E03.mp4')]);
     expect(asked[0]).toBe('Show S01E02.mp4');
     expect(r).toMatchObject({ ok: false, reason: 'denied' });
+  });
+
+  // Review of PR #63 @e14ff81, N2 (probes R1/R2): a library remembered before
+  // PR #56 can hold release sidecars. One sorting at the planned spot took the
+  // click's only grant, and the episode was refused: 3 clicks to start E02.
+  it('a sidecar audio track (.mka) beside the next episode: one click asks for E02 and starts it', async () => {
+    markWatched({ key: fileKey(ep('Show S01E01.mkv', 100)), name: 'Show S01E01.mkv', positionS: 1500, durationS: 1500 }, 1, store);
+    const { asked, h } = oneClick();
+    const mka = h('Show S01E02.mka', new File([new Uint8Array(100)], 'Show S01E02.mka', { type: 'audio/x-matroska' }));
+    const r = await cont([h('Show S01E01.mkv'), mka, h('Show S01E02.mkv'), h('Show S01E03.mkv')]);
+    expect(asked[0]).toBe('Show S01E02.mkv');
+    expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E02.mkv', 100)), next: { reason: 'next' } });
+    expect(r.ok && r.plan.files.map((f) => f.name)).toEqual(['Show S01E02.mkv']);
+  });
+
+  it("nothing watched and a folder.ico sorting first: one click asks for E01 and starts it", async () => {
+    const { asked, h } = oneClick();
+    const ico = h('folder.ico', new File([new Uint8Array(100)], 'folder.ico', { type: 'image/vnd.microsoft.icon' }));
+    const r = await cont([ico, h('Show S01E01.mkv'), h('Show S01E02.mkv')]);
+    expect(asked[0]).toBe('Show S01E01.mkv');
+    expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E01.mkv', 100)), next: { reason: 'first' } });
+  });
+});
+
+// Review of PR #63 @e14ff81, N1: a file Chrome let us READ is kept by its type
+// or name (isVideoFile), not by mayBeVideoName, the refused-file test: that one
+// says yes to anything not known to be something else. A readable README or
+// audio track from an older library, or from a show folder, would join the
+// playlist, and README sorts before "Show …", so a 'first' start would open it.
+describe('a readable file that is not a video never plays', () => {
+  const typed = (name: string, type: string) => new File([new Uint8Array(100)], name, { type });
+  const strays = () => [typed('README', ''), typed('Show S01E01.mka', 'audio/x-matroska')];
+  const episodes = () => [ep('Show S01E02.mp4', 100), ep('Show S01E01.mp4', 100)];
+
+  it('files: README and an .mka beside the episodes, nothing watched: plays the episodes from E01', async () => {
+    const handles = [...strays(), ...episodes()].map((f) => handle(f.name, { file: f }));
+    const r = await continueLastShow(
+      { ask: true },
+      { recall: async () => ({ kind: 'files', handles }) as unknown as RememberedLibrary, read: readLibrary, storage: store },
+    );
+    expect(r.ok && r.plan.files.map((f) => f.name)).toEqual(['Show S01E01.mp4', 'Show S01E02.mp4']);
+    expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E01.mp4', 100)), next: { reason: 'first', index: 0 } });
+  });
+
+  it('folder: README and an .mka in the show folder, nothing watched: plays the episodes from E01', async () => {
+    const files = [...strays(), ...episodes()];
+    const dir = {
+      kind: 'directory',
+      name: 'Show S01',
+      queryPermission: vi.fn(async () => 'granted'),
+      requestPermission: vi.fn(async () => 'granted'),
+      values: async function* () {
+        for (const f of files) yield { kind: 'file', name: f.name, getFile: async () => f };
+      },
+    };
+    const r = await continueLastShow(
+      { ask: false },
+      { recall: async () => ({ kind: 'folder', dir }) as unknown as RememberedLibrary, read: readLibrary, storage: store },
+    );
+    expect(r.ok && r.plan.files.map((f) => f.name)).toEqual(['Show S01E01.mp4', 'Show S01E02.mp4']);
+    expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E01.mp4', 100)), next: { reason: 'first', index: 0 } });
   });
 });
 

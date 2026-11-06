@@ -269,10 +269,19 @@ export interface SightRequest {
    * front of it (Lugano 1501 m, Santa Monica 1524 m: the frame filled at an
    * offset the reads said was clear). The camera then moves in at once to
    * stand {@link SIGHT_GUARD_MARGIN_M} in front of the face, not closer than
-   * `minM` (a face closer to the rider than that is left to the reads), and
-   * goes back out no further than that while the face is there. Asked, it
+   * `minM`, and goes back out no further than that while the face is there.
+   * A face closer to the rider than `minM` can't be got in front of: the
+   * camera holds where it stands (never further out), castClear() is false
+   * so the view's lift can act, and where crossing is allowed a refresh
+   * looks across the road for a cut to a wide-open side. Asked, it
    * never goes further out in a frame than was cast clear in that frame (a
    * frame spent, or a read that just let it out further: it holds).
+   *
+   * It is also asked once before every cut across the road, about the other
+   * side: from the bars to where the camera lands beside the rider. A face
+   * on that line, and there is no cut. Under the drawn surface the reads
+   * find both sides open (every face over the bars is turned away from
+   * them), and the camera would only hold behind a face on the new side.
    */
   blockedAt?: (side: 1 | -1, from: SightPoint, to: SightPoint) => number | undefined;
 }
@@ -306,6 +315,12 @@ interface SightRead {
   ms: number;
   /** Offset to stand at, as a fraction of the pose offset. */
   frac: number;
+  /**
+   * Segment casts found a spot there that sees the rider's bars with air
+   * under the camera (false: tops were read, or nothing was clear and the
+   * camera stands at the road edge as the last resort).
+   */
+  seen: boolean;
 }
 
 /**
@@ -331,6 +346,14 @@ interface SightJob {
   /** The camera's own side has been read (and its read put in the history). */
   hereDone: boolean;
   here: number | undefined;
+  /**
+   * When the refresh started, a face stood on the line from the bars to the
+   * camera closer to the rider than `minM` ({@link SightRequest.blockedAt}):
+   * where it stands the camera can't see the rider, and moving in can't get
+   * in front of the face. It may cut to a wide-open other side, as when it
+   * has had to move in close.
+   */
+  blockedHere: boolean;
   /** The other side is being read for a cut across the road. */
   cross: boolean;
 }
@@ -364,11 +387,19 @@ export function createSideCamSight() {
   let clear = true;
   let switchedAt = -Infinity;
   let switches = 0;
+  /** Cuts the reads allowed that a face on the new side's line from the bars (blockedAt) refused. */
+  let refused = 0;
   let reads = 0;
   /** Frames the camera was moved in in front of a face on its line (blockedAt). */
   let guards = 0;
   /** The last refresh cast segments (seenAt) rather than reading tops. */
   let rayReads = false;
+  /**
+   * This frame the guard found a face on the line from the bars to where the
+   * camera stands, closer to the rider than minM: the camera can't see the
+   * rider and moving in can't help (castClear is false, the view's lift acts).
+   */
+  let lineFaced = false;
   let job: SightJob | null = null;
 
   /**
@@ -420,15 +451,22 @@ export function createSideCamSight() {
         // walls and slopes rise away from the road), the lift does the rest.
         const spots = sightSpots(j.baseM, j.minM);
         const closest = spots.length ? spots[spots.length - 1] : j.baseM;
-        history.push({ at: j.at + j.lead, ms: req.nowMs, frac: (j.here ?? closest) / j.baseM });
+        history.push({
+          at: j.at + j.lead,
+          ms: req.nowMs,
+          frac: (j.here ?? closest) / j.baseM,
+          seen: j.rays && j.here !== undefined,
+        });
         // Crossing the road is a cut: do it when this side is closed, or when
         // the camera had to move in close and the other side is wide open
         // (on the Lugano shore that gave 19 cuts in 300 s, against 39 when any
         // move-in crossed and 13 when only a closed side did, with twice the
-        // time spent close in).
+        // time spent close in). A face closer to the rider than minM on the
+        // line where the camera stands counts as moving in close: the reads
+        // ahead missed it, and the camera can't get in front of it.
         const close = SIGHT_SWITCH_CLOSE * j.baseM + EPS;
         const held = req.nowMs - switchedAt < SIGHT_SWITCH_HOLD_MS;
-        j.cross = j.allowSwitch && (j.here === undefined || (j.here <= close && !held));
+        j.cross = j.allowSwitch && (j.here === undefined || ((j.here <= close || j.blockedHere) && !held));
       }
       if (!j.cross) return { done: true, cut: false };
       const other = (j.side === 1 ? -1 : 1) as 1 | -1;
@@ -440,13 +478,29 @@ export function createSideCamSight() {
       if (there === undefined || beside === undefined || (j.here !== undefined && beside < full)) {
         return { done: true, cut: false };
       }
+      // The reads are culled casts: they see the faces turned to the road.
+      // With the rider's bars under the drawn surface (t_b6dbd3d2: 0.5-2 m
+      // under a tile) every face over them is turned away, so the reads find
+      // both sides open while the guard, which casts either facing, faces on
+      // both. So before the cut, the line from the bars to where the camera
+      // lands is cast as the guard casts it: a face on it, and no cut (the
+      // camera would only hold behind it on the new side). A frame spent
+      // casts it next frame.
+      if (req.blockedAt) {
+        if (req.spent?.() === true) throw READS_SPENT;
+        const t = req.blockedAt(other, { offsetM: 0, upM: AIM_HEIGHT_M }, { offsetM: beside, upM: j.upM });
+        if (typeof t === 'number' && t >= 0 && t <= 1) {
+          refused++;
+          return { done: true, cut: false };
+        }
+      }
       side = other;
       switchedAt = req.nowMs;
       switches++;
       clear = true;
       history = [
-        { at: j.besideAt ?? j.at, ms: req.nowMs, frac: beside / j.baseM },
-        { at: j.at + j.lead, ms: req.nowMs, frac: there / j.baseM },
+        { at: j.besideAt ?? j.at, ms: req.nowMs, frac: beside / j.baseM, seen: j.rays },
+        { at: j.at + j.lead, ms: req.nowMs, frac: there / j.baseM, seen: j.rays },
       ];
       return { done: true, cut: true };
     } catch (e) {
@@ -479,16 +533,25 @@ export function createSideCamSight() {
       // clear this frame.
       let guardM = Infinity;
       let faced = false;
+      const wasFaced = lineFaced;
+      lineFaced = false;
       if (req.blockedAt) {
         const fraction = (t: number | undefined): t is number => t !== undefined && t >= 0 && t <= 1;
         const nowM = (frac ?? 1) * req.baseM;
         const cam = { offsetM: nowM, upM: req.upM };
         const t = req.blockedAt(side, { offsetM: 0, upM: AIM_HEIGHT_M }, cam);
         if (fraction(t)) {
-          // A face closer to the rider than minM is left to the reads: moving in can't get in front of it.
           if (t * nowM > minM) {
             guardM = Math.max(minM, t * nowM - SIGHT_GUARD_MARGIN_M);
             faced = true;
+          } else {
+            // A face closer to the rider than minM: moving in can't get in
+            // front of it. Hold (easing out only puts more of the face in the
+            // frame: Santa Monica 1525 m, the camera at 3.9 m easing out, a
+            // face 0.3 m in front of it on the aim line), count the sight as
+            // not clear (the view's lift acts) and look across the road.
+            guardM = nowM;
+            lineFaced = true;
           }
         } else {
           guardM = nowM;
@@ -509,7 +572,10 @@ export function createSideCamSight() {
         lastMs = -Infinity;
       }
       const moveM = rays ? SIGHT_RAY_SAMPLE_MOVE_M : SIGHT_SAMPLE_MOVE_M;
+      // A face under minM just came onto the line: refresh now, so a cut
+      // across the road can come at once where crossing is allowed.
       const due =
+        (lineFaced && !wasFaced && req.allowSwitch) ||
         req.nowMs - lastMs >= SIGHT_SAMPLE_MS ||
         !(Math.abs(req.distanceM - lastDist) < moveM) ||
         !(Math.abs(req.baseM - lastBase) < SIGHT_BASE_MOVE_M);
@@ -531,6 +597,7 @@ export function createSideCamSight() {
           besideAt: undefined,
           hereDone: false,
           here: undefined,
+          blockedHere: lineFaced,
           cross: false,
         };
       }
@@ -540,6 +607,8 @@ export function createSideCamSight() {
         cut = r.cut;
         if (r.done) job = null;
       }
+      // The face was on the side it cut away from.
+      if (cut) lineFaced = false;
       // A read stands for the stretch from where it was taken to the next
       // one: drop it once the camera has passed the next read too.
       history = history.filter((r) => req.nowMs - r.ms <= SIGHT_READ_TTL_MS);
@@ -576,6 +645,7 @@ export function createSideCamSight() {
       frac = null;
       clear = true;
       rayReads = false;
+      lineFaced = false;
       switchedAt = -Infinity;
       job = null;
     },
@@ -584,16 +654,36 @@ export function createSideCamSight() {
       return switches;
     },
     /**
-     * The last refresh cast segments and found a spot that sees the rider's
-     * bars with air under the camera: a top drawn over the camera is then a
-     * canopy it stands under, not something to lift it over (the view's lift).
+     * The casts see the rider's bars with air under the camera from where it
+     * stands: every read it stands on, from beside the rider out to the lead
+     * (the camera stands at the closest offset any of them asked for), found
+     * a clear spot, the last refresh cast segments, and no face closer to the
+     * rider than minM is on the line from the bars this frame. A top drawn
+     * over the camera is then a canopy it stands under, not something to lift
+     * it over (the view's lift). The newest read alone looks 0.7 s ahead: at
+     * the end of a closed stretch it said clear while the camera still stood
+     * at the road edge on it, and the lift, its last resort there, was
+     * dropped.
      */
     castClear(): boolean {
-      return rayReads && clear;
+      return rayReads && !lineFaced && history.length > 0 && history.every((r) => r.seen);
     },
     /** Read-only numbers for probes (__veloRideDebug().sideCam). */
     debug() {
-      return { side, frac, targetFrac, clear, switches, reads, rays: rayReads, guards, ahead: history.length, pending: job !== null };
+      return {
+        side,
+        frac,
+        targetFrac,
+        clear,
+        switches,
+        refused,
+        reads,
+        rays: rayReads,
+        guards,
+        lineFaced,
+        ahead: history.length,
+        pending: job !== null,
+      };
     },
   };
 }

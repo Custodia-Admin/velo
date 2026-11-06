@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { selectRideFsm, useRideStore } from '@/stores/rideStore';
 import { IllegalRideTransition } from '@/lib/ride/rideFsm';
-import type { ParsedFit } from '@/lib/fitParser';
 import type { Route } from '@/types';
 
 const route: Route = {
@@ -19,7 +18,6 @@ const route: Route = {
   loadedAt: 0,
 };
 
-const fit = { route, samples: [] } as unknown as ParsedFit;
 const initial = useRideStore.getState();
 const fsm = () => selectRideFsm(useRideStore.getState());
 
@@ -67,7 +65,7 @@ describe('rideStore delegates lifecycle transitions to the ride FSM', () => {
     expect(useRideStore.getState().rideMode).toBe('trainer');
   });
 
-  it('finish is idempotent once finished (route end + workout/replay loop in one frame)', () => {
+  it('finish is idempotent once finished (route end + a Finish request)', () => {
     const st = useRideStore.getState();
     st.setRoute(route);
     st.start();
@@ -96,17 +94,14 @@ describe('rideStore delegates lifecycle transitions to the ride FSM', () => {
     expect(useRideStore.getState().rideMode).toBe('trainer');
   });
 
-  it('trainer ↔ demo and the workout engine may swap mid-ride', () => {
+  it('trainer ↔ demo may swap mid-ride', () => {
     const st = useRideStore.getState();
     st.setRoute(route);
     st.start();
     useRideStore.getState().setMode('demo');
     expect(fsm()).toMatchObject({ phase: 'riding', source: 'demo' });
     useRideStore.getState().setMode('trainer');
-    useRideStore.getState().setWorkoutRunning(true);
-    expect(fsm()).toMatchObject({ phase: 'riding', source: 'workout' });
-    useRideStore.getState().setWorkoutRunning(false);
-    expect(fsm().source).toBe('trainer');
+    expect(fsm()).toMatchObject({ phase: 'riding', source: 'trainer' });
   });
 
   it('auto-reconnect failing mid-ride falls back to demo without ending the ride', () => {
@@ -123,30 +118,20 @@ describe('rideStore delegates lifecycle transitions to the ride FSM', () => {
     expect(useRideStore.getState().rideState).toBe('running');
   });
 
-  it('replays enter ready/replay from any phase and leave through the FSM', () => {
-    const st = useRideStore.getState();
-    st.setRoute(route);
-    st.start();
-    useRideStore.getState().loadReplay(fit);
-    expect(fsm()).toMatchObject({ phase: 'ready', source: 'replay' });
-    // setMode while a replay is loaded doesn't change the source.
-    useRideStore.getState().setMode('demo');
-    expect(fsm().source).toBe('replay');
-    useRideStore.getState().clearReplay();
-    expect(fsm()).toMatchObject({ phase: 'ready', source: 'demo' });
-
-    useRideStore.getState().loadReplay(fit);
-    useRideStore.getState().setRoute(null);
-    expect(fsm()).toMatchObject({ phase: 'idle', source: 'demo' });
-    expect(useRideStore.getState().replayData).toBeNull();
-  });
-
-  it('clearReplay without a replay is a reset', () => {
-    const st = useRideStore.getState();
-    st.setRoute(route);
-    st.start();
-    useRideStore.getState().clearReplay();
-    expect(useRideStore.getState().rideState).toBe('ready');
+  it('loading or clearing a route abandons a ride in any phase', () => {
+    for (const phase of ['ready', 'running', 'paused', 'finished'] as const) {
+      useRideStore.setState(initial, true);
+      const st = useRideStore.getState();
+      st.setRoute(route);
+      if (phase !== 'ready') st.start();
+      if (phase === 'paused') useRideStore.getState().pause();
+      if (phase === 'finished') useRideStore.getState().finish();
+      expect(useRideStore.getState().rideState).toBe(phase);
+      useRideStore.getState().setRoute(route);
+      expect(fsm().phase).toBe('ready');
+      useRideStore.getState().setRoute(null);
+      expect(fsm().phase).toBe('idle');
+    }
   });
 
   it('prepare re-arms a finished ride', () => {

@@ -14,6 +14,7 @@ import type { TelemetrySample } from '@/types';
 import { getDb, RIDES_STORE } from '@/lib/db';
 import type { RideMetrics } from '@/lib/metrics';
 
+/** Every ride saved today is 'route'; 'workout' and 'replay' are on rides saved by older builds. */
 export type RideSource = 'route' | 'workout' | 'replay';
 
 /** A completed ride record stored in IndexedDB. */

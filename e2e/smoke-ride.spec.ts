@@ -3,8 +3,8 @@
  *
  * Home → Perugia scenic route → /ride: Velo's own three.js world renderer
  * draws (no Cesium code is even downloaded), the rider moves on the baked
- * terrain, the HUD moves, no token-upgrade banner shows (a world ride needs
- * no token), nothing blocks the top bar, nothing talks to cesium.com, and no
+ * terrain, the HUD moves, no photoreal notice shows (a world ride needs no
+ * token), nothing blocks the top bar, nothing talks to cesium.com, and no
  * page error is thrown. Runs against
  * the production build with no VITE_CESIUM_ION_TOKEN.
  */
@@ -114,8 +114,8 @@ test('token-free smoke ride: Home → Perugia route → riding in the world rend
   expect(Math.abs(b!.riderGroundGap!)).toBeLessThan(0.05);
   expect(b!.cameraClearance).toBeGreaterThan(0.5);
 
-  // A world ride needs no token: no photoreal upgrade banner.
-  await expect(page.getByText('Add a free Cesium ion token')).toHaveCount(0);
+  // A world ride needs no token: no photoreal notice.
+  await expect(page.getByTestId('photoreal-notice')).toHaveCount(0);
 
   // Nothing blocks the top bar.
   const exitHit = await page.evaluate(() => {
@@ -153,7 +153,7 @@ test('a hometown route rides the Lugano world (P2.2), no cesium.com traffic', as
   const b = await worldDebug(page);
   expect(Math.abs(b!.riderGroundGap!)).toBeLessThan(0.05);
   expect(b!.cameraClearance).toBeGreaterThan(0.5);
-  await expect(page.getByText('Add a free Cesium ion token')).toHaveCount(0);
+  await expect(page.getByTestId('photoreal-notice')).toHaveCount(0);
 
   expect(cesiumRequests).toEqual([]);
   expect(pageErrors).toEqual([]);
@@ -177,10 +177,99 @@ test('a route outside every baked world rides photoreal (OSM fallback with no to
   await expect(view).toHaveAttribute('data-renderer-preferred', 'world');
   await expect(view).toHaveAttribute('data-renderer', 'photoreal');
   // The photoreal ride still offers the token upgrade.
-  await expect(page.getByText('Add a free Cesium ion token').first()).toBeVisible();
+  await expect(page.getByText('Free token for photoreal Earth').first()).toBeVisible();
   await expect
     .poll(async () => Number(((await hudNumbers(page)).speed ?? '').match(/[\d.]+/)?.[0] ?? 0), { timeout: 60_000 })
     .toBeGreaterThan(5);
+
+  // The photoreal notice (card t_375b203d) is one h-10 line in the chip lane:
+  // at 1440 at the band's right end (the chip holds the left end), at 390
+  // alone at the lane's start. Never over the rider; at 390 the ride UI
+  // stays within the owner's 15 % (the old floating banner wrapped into a
+  // 204x134 column over the rider: 19.2 %).
+  const layout = () =>
+    page.evaluate(() => {
+      const rect = (el: Element | null) => {
+        if (!el || !el.getClientRects().length || getComputedStyle(el).display === 'none') return null;
+        const r = el.getBoundingClientRect();
+        return { x: r.x, y: r.y, w: r.width, h: r.height };
+      };
+      const notice = document.querySelector('[data-testid=photoreal-notice]');
+      const text = notice?.querySelector('[data-notice-text]');
+      const range = document.createRange();
+      if (text) range.selectNodeContents(text);
+      const lines = text ? new Set([...range.getClientRects()].map((q) => Math.round(q.top))).size : 0;
+      const d = (window as unknown as { __veloRideDebug?: () => { riderScreen?: [number, number]; riderHeightPx?: number } })
+        .__veloRideDebug?.();
+      const hpx = d?.riderHeightPx ?? 0;
+      const rider = d?.riderScreen
+        ? { x: d.riderScreen[0] - 0.3 * hpx, y: d.riderScreen[1] + hpx / 1.7 - hpx, w: 0.6 * hpx, h: hpx }
+        : null;
+      return {
+        vw: innerWidth,
+        vh: innerHeight,
+        notice: rect(notice),
+        lines,
+        chip: rect(document.querySelector('[data-testid=ride-status-chip]')),
+        strip: rect(document.querySelector('[data-testid=ride-strip]')),
+        rider,
+      };
+    });
+  type Box = { x: number; y: number; w: number; h: number };
+  const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+  const wide = await layout();
+  expect(wide.notice).not.toBeNull();
+  expect(wide.notice!.h).toBe(40);
+  expect(wide.lines).toBe(1);
+  expect(Math.abs(wide.notice!.x + wide.notice!.w - (wide.strip!.x + wide.strip!.w))).toBeLessThanOrEqual(1);
+  expect(wide.notice!.y).toBe(wide.chip!.y);
+  expect(wide.rider).not.toBeNull();
+  expect(overlaps(wide.notice!, wide.rider!), JSON.stringify({ notice: wide.notice, rider: wide.rider })).toBe(false);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => (await layout()).strip?.w ?? 0).toBeLessThan(390);
+  // The rider box is projected through Cesium's camera, and the camera takes
+  // the new box only at the next rendering update: viewer.resize() (from the
+  // render loop or the view's ResizeObserver) sizes the drawing buffer and
+  // the frustum, then the next frame sets the lens and the chase camera.
+  // Under SwiftShader that update can land a second after the DOM has
+  // reflowed. Until then the 1440x900 frustum is projected into the 390x844
+  // box and the stretched rider reads ~275 px tall down to y ~759, over the
+  // notice, instead of ~172 px down to y ~632 (card t_dad0597d). A steady
+  // riderScreen proves nothing (no frame, no change). So measure once the
+  // canvas has the reflowed box's aspect and a frame has been drawn at it.
+  const resizedToBox = () =>
+    page.evaluate(() => {
+      const c = document.querySelector<HTMLCanvasElement>('[data-renderer] .cesium-widget canvas');
+      if (!c || !c.height || !c.clientHeight) return false;
+      const box = c.clientWidth / c.clientHeight;
+      return Math.abs(c.width / c.height - box) <= 0.02 * box;
+    });
+  await expect.poll(resizedToBox, { timeout: 60_000 }).toBe(true);
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  const phone = await layout();
+  expect(phone.notice!.h).toBe(40);
+  expect(phone.lines).toBe(1);
+  expect(phone.notice!.x).toBe(phone.strip!.x);
+  expect(phone.notice!.y + phone.notice!.h).toBeLessThanOrEqual(phone.strip!.y);
+  expect(phone.chip).toBeNull(); // calm: the chip hides on phones, the notice has the lane
+  expect(phone.rider).not.toBeNull();
+  expect(overlaps(phone.notice!, phone.rider!), JSON.stringify({ notice: phone.notice, rider: phone.rider })).toBe(false);
+  const area = (b: Box | null) => (b ? b.w * b.h : 0);
+  expect((area(phone.notice) + area(phone.strip)) / (phone.vw * phone.vh)).toBeLessThanOrEqual(0.15);
+
+  // Settings stays one tap away with the HUD collapsed (on main the link
+  // opened nothing), on the Visual tab; Escape closes it without pausing.
+  await page.getByRole('button', { name: 'Add a free Cesium ion token for photoreal Earth. Opens Settings.' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('tab', { selected: true })).toHaveText(/visual/i);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { __veloRideState: () => { rideState: string } }).__veloRideState().rideState)).toBe('running');
+  // × hides it for the session.
+  await page.getByRole('button', { name: 'Dismiss photoreal upgrade banner' }).click();
+  await expect(page.getByTestId('photoreal-notice')).toHaveCount(0);
 
   expect(cesiumRequests).toEqual([]);
   expect(pageErrors).toEqual([]);
