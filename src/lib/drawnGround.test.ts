@@ -36,6 +36,7 @@ import {
   groundSettled,
   sampleGroundHeight,
   sceneGroundHeight,
+  sceneFinestTerrain,
   setIonToken,
 } from '@/lib/cesiumUtils';
 import { createFinestTerrain } from '@/lib/finestTerrain';
@@ -954,6 +955,30 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     expect(tiles.every((t) => t.startsWith('14/'))).toBe(true);
     sampler.sample(lon, lat(12), 322, 5 * GROUND_SAMPLE_INTERVAL_MS);
     expect(sampler.ground()).toBe('standIn');
+  });
+
+  it('a new terrain provider on the scene: heights fetched from the old one are not used', async () => {
+    setIonToken('eyJ_test');
+    const provider = (h: number) => ({
+      availability: { computeMaximumLevelAtPosition: () => 14 },
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      requestTileGeometry: () => Promise.resolve({ interpolateHeight: () => h }),
+      loadTileDataAvailability: () => undefined,
+    });
+    const s = { terrainProvider: provider(321.26) } as unknown as Cesium.Scene;
+    const finest = sceneFinestTerrain(s);
+    finest.want(lon, lat(0), NaN, NaN, 0);
+    await flush();
+    expect(finest.near(lon, lat(0))).toBeCloseTo(321.26, 6);
+    (s as unknown as { terrainProvider: object }).terrainProvider = provider(347.5);
+    expect(finest.near(lon, lat(0))).toBeUndefined();
+    finest.want(lon, lat(0), NaN, NaN, 10);
+    await flush();
+    expect(finest.near(lon, lat(0))).toBeCloseTo(347.5, 6);
+    // The flat globe has no finest terrain.
+    (s as unknown as { terrainProvider: object }).terrainProvider = new Cesium.EllipsoidTerrainProvider();
+    finest.want(lon, lat(0), NaN, NaN, 20);
+    expect(finest.near(lon, lat(0))).toBeUndefined();
   });
 
   it("the root tile's chord far under the route is not mesh ground: the globe stays (Lugano–Melide start)", async () => {
