@@ -59,7 +59,7 @@ import { ridePose } from '@/lib/ride/rideSim';
 import { RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
 import type { RiderPose, WorldViewProps } from '@/lib/world/renderer';
 import { createCesiumWorldRenderer } from '@/renderers/cesium/cesiumWorldRenderer';
-import { GlobeGate } from '@/renderers/cesium/globeGate';
+import { GroundGate } from '@/renderers/cesium/globeGate';
 import { StartGroundWatch } from '@/renderers/cesium/startGround';
 import { createSideCamSight } from '@/lib/sideCamSight';
 import { placeSideCam } from '@/renderers/cesium/sideCam';
@@ -376,8 +376,11 @@ export function CesiumScene({
   const startGroundRef = useRef<StartGroundWatch | null>(null);
   /** The crop that frames the rider above the floating window's bar (hudLensCrop); none in the tab. */
   const lensCropRef = useRef<LensCropState | null>(null);
-  /** Is the globe drawn, or is the photoreal mesh the one ground (renderers/cesium/globeGate)? */
-  const globeGateRef = useRef(new GlobeGate());
+  /**
+   * Is the globe drawn, or is the photoreal mesh the one ground, and is the
+   * painted road drawn on it (renderers/cesium/globeGate)?
+   */
+  const groundGateRef = useRef(new GroundGate());
   // WorldRenderer.setMood: a pinned mood; null = route mood + live weather.
   const [moodOverride, setMoodOverride] = useState<MoodId | null>(null);
 
@@ -569,7 +572,7 @@ export function CesiumScene({
           viewer,
           Cesium,
           photoreal: () => tilesetRef.current,
-          globeGate: globeGateRef.current,
+          groundGate: groundGateRef.current,
           place: (distanceM: number | null) => {
             const r = useRideStore.getState().route;
             riderOverrideRef.current = distanceM === null || !r ? null : ridePose(r, distanceM);
@@ -922,7 +925,7 @@ export function CesiumScene({
     climbArchesRef.current = null;
 
     // A new route starts on the globe until the mesh under the new rider loads.
-    globeGateRef.current.reset();
+    groundGateRef.current.reset();
     if (!viewer.isDestroyed()) viewer.scene.globe.show = true;
 
     if (!route) return;
@@ -1201,7 +1204,7 @@ export function CesiumScene({
       const state = useRideStore.getState();
       const r = state.route;
       if (!r || !avatarRef.current) {
-        globeGateRef.current.reset();
+        groundGateRef.current.reset();
         viewer.scene.globe.show = true;
         return;
       }
@@ -1233,18 +1236,20 @@ export function CesiumScene({
       // where the mesh isn't the ground (renderers/cesium/globeGate). Decided
       // from the rider's last ground reading, before this frame's, so the
       // avatar below measures the ground as it will be drawn.
-      const globeShown = globeGateRef.current.update(nowMs, photorealShown, avatarRef.current.meshGround());
+      const groundDraw = groundGateRef.current.update(nowMs, photorealShown, avatarRef.current.ground());
+      const globeShown = groundDraw.globe;
       if (viewer.scene.globe.show !== globeShown) viewer.scene.globe.show = globeShown;
       // The painted road (asphalt corridor, dashed centre line, edge stripes)
       // is a ground classification: over the mesh it paints whatever stands
       // in its footprint (walls, trees, the hillside: the grey slabs on the
       // Lugano shore), a second road over the street the mesh already draws.
-      // It shows only where the globe is the ground.
+      // It shows only where the globe is the ground, not where the globe
+      // stands in under crowns or a deck (it ran up the piers and trunks).
       const road = roadEntityRef.current;
-      if (road && road.entity.show !== globeShown) {
-        road.entity.show = globeShown;
-        road.centerline.show = globeShown;
-        for (const stripe of roadEdgeStripesRef.current?.entities ?? []) stripe.show = globeShown;
+      if (road && road.entity.show !== groundDraw.road) {
+        road.entity.show = groundDraw.road;
+        road.centerline.show = groundDraw.road;
+        for (const stripe of roadEdgeStripesRef.current?.entities ?? []) stripe.show = groundDraw.road;
       }
 
       avatarRef.current.update({
@@ -1316,12 +1321,16 @@ export function CesiumScene({
             // Side / orbit camera sight (lib/sideCamSight): side, eased offset
             // fraction, whether a clear spot was found, cuts and tile reads.
             sideCam: sideCamSightRef.current.debug(),
-            sideCamTileReads: meshTopReadStats(),
+            // The tile geometry cache (lib/tileReadCache) shared by the
+            // sight's reads and the rider's ground reads.
+            meshTileReads: meshTopReadStats(),
             dist: state.distance,
             riderLonLat: [riderLon, riderLat],
             startGround: startGroundRef.current?.debug() ?? null,
             globeShown: viewer.scene.globe.show,
             meshGround: avatarRef.current?.meshGround() ?? false,
+            ground: avatarRef.current?.ground() ?? null,
+            roadPainted: roadEntityRef.current?.entity.show ?? null,
             riderScreen: px ? [Math.round(px.x), Math.round(px.y - cropTop)] : null,
             riderHeightPx: head && foot ? Math.round(Math.hypot(head.x - foot.x, head.y - foot.y)) : null,
             viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight - cropTop],
@@ -1376,7 +1385,7 @@ export function CesiumScene({
         // out or switch sides. The ref carries the last side (hysteresis).
         // The corridor is only there while the painted road is drawn (where
         // the globe is the ground); over the mesh nothing needs keeping out of.
-        const roadPainted = globeShown && roadEntityRef.current !== null;
+        const roadPainted = groundDraw.road && roadEntityRef.current !== null;
         let corridor: SideTrackCorridor | undefined;
         if (currentMode === 'sideTracking') {
           corridor = {
