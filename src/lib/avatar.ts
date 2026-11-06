@@ -5,10 +5,12 @@ import {
   photorealGroundShown,
   sampleGroundHeight,
   sceneEle,
+  sceneFinestTerrain,
   sceneGroundHeight,
   withMeshReadCache,
 } from '@/lib/cesiumUtils';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
+import type { FinestTerrain } from '@/lib/finestTerrain';
 import type { RiderPosition } from '@/lib/physics';
 
 export type { AvatarColors } from '@/lib/avatarConfig';
@@ -2068,7 +2070,10 @@ function climbsInSteps(
  * Held under something with nothing drawn near the road under it, the globe
  * is drawn instead when its terrain there is within this of the road (m):
  * see createGroundSampler. The drawn ground is the higher of the two, so this
- * also bounds how far it can lift the rider.
+ * also bounds how far it can lift the rider. Its terrain is the finest the
+ * globe has there (lib/finestTerrain), which it draws once shown, not the
+ * tile a hidden globe last loaded (Lugano–Melide 7.6 km: 4.4 m under the road
+ * or 2 m over it, the finest within 0.25 m).
  */
 export const GLOBE_STANDIN_M = 1.5;
 
@@ -2113,8 +2118,12 @@ export type GroundKind = 'mesh' | 'standIn' | 'globe';
  * another road, so a missing reading there is a fresh start: the globe's
  * terrain decides, drawn or not, until the mesh road there is read (the gate
  * brings the globe back if none turns up).
+ *
+ * `finest`: the finest terrain heights fetched along the way (default: the
+ * scene's terrain provider, cesiumUtils sceneFinestTerrain), for the globe
+ * stand-in ({@link GLOBE_STANDIN_M}).
  */
-export function createGroundSampler(scene: Cesium.Scene) {
+export function createGroundSampler(scene: Cesium.Scene, finest: FinestTerrain = sceneFinestTerrain(scene)) {
   let lastMs = -Infinity;
   let lastLon = NaN;
   let lastLat = NaN;
@@ -2156,6 +2165,8 @@ export function createGroundSampler(scene: Cesium.Scene) {
       const waiting = road.status() !== 'overhang' && (last === undefined || onGlobe);
       const fresh = waiting || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M;
       if (fresh) {
+        const fromLon = lastLon;
+        const fromLat = lastLat;
         lastMs = nowMs;
         lastLon = lon;
         lastLat = lat;
@@ -2195,8 +2206,17 @@ export function createGroundSampler(scene: Cesium.Scene) {
         // towpath under the I-80 deck, Cuyahoga 2.98–3.01 km: the mesh has a
         // hole there, the globe 0.2 m under the towpath). Where it is far off
         // (26 m over the Lugano shore street) it would lift the rider, so the
-        // rider holds the road with the globe hidden.
-        const standsIn = bare !== undefined && held !== undefined && Math.abs(bare - held) <= GLOBE_STANDIN_M;
+        // rider holds the road with the globe hidden. Near or far is judged
+        // by the finest terrain the globe has here, fetched (ahead) while the
+        // rider is held: what it draws once shown. A hidden globe's loaded
+        // tile is whatever coarse one it last loaded along the way: at
+        // Lugano–Melide 7.6 km, under a 54 m slab with no ground drawn under
+        // it, that read 4.4 m under the road (the finest 0.25 m), so the
+        // rider rode on over a black void. Until the finest lands, the loaded
+        // tile decides.
+        if (status === 'overhang' && held !== undefined && !away) finest.want(lon, lat, fromLon, fromLat, nowMs);
+        const globeHere = finest.near(lon, lat) ?? bare;
+        const standsIn = globeHere !== undefined && held !== undefined && Math.abs(globeHere - held) <= GLOBE_STANDIN_M;
         const onMesh = status === 'road' || (status === 'overhang' && held !== undefined && !away && !standsIn);
         // Not on the mesh road, but the mesh is there over the road: the
         // globe is drawn in its place, without the painted road (GroundKind).
