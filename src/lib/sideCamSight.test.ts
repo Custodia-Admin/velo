@@ -1124,9 +1124,11 @@ describe('createSideCamSight: faces where the camera stands now (blockedAt)', ()
     expect(g.sight.cuts()).toBe(1);
     // On the new side, clear at once: the face was on the side it left.
     expect(g.sight.castClear()).toBe(true);
-    // Within the hold after a cut, a face under minM on the new side too does not cut back: it holds.
-    const back = guardRig((s, a, b, f) => (f >= 30 ? faceAt(3.4)(s, a, b) : undefined));
+    // Within the hold after a cut, a face under minM on the new side too (from the frame after the
+    // cut) does not cut back: it holds.
+    const back = guardRig((s, a, b, f) => (f >= (s === 1 ? 30 : 31) ? faceAt(3.4)(s, a, b) : undefined));
     for (let f = 0; f < 100; f++) back.step();
+    expect(back.sight.cuts()).toBe(1);
     const reads = back.sight.debug().reads;
     for (let f = 100; f < 160; f++) back.step();
     // A refresh every metre ridden as usual (8 m here, one cast each), not one every frame the face is there.
@@ -1143,6 +1145,87 @@ describe('createSideCamSight: faces where the camera stands now (blockedAt)', ()
     for (let f = 0; f < 120; f++) partly.step();
     expect(partly.sight.cuts()).toBe(0);
     expect(partly.sides.every((s) => s === 1)).toBe(true);
+  });
+
+  it('under the drawn surface (the reads open on both sides, the guard faced on both): no cut, it holds (t_b6dbd3d2)', () => {
+    // The rider's bars under a tile from frame 30: every cast from them meets its underside 0.3 m out,
+    // which only a cast of either facing sees. The reads (culled) find both sides open all along.
+    const g = guardRig((s, a, b, f) => (f >= 30 ? faceAt(0.3)(s, a, b) : undefined));
+    for (let f = 0; f < 30; f++) g.step();
+    g.step();
+    // The forced refresh read the other side open and cast its line from the bars before the cut:
+    // to where the camera would land beside the rider, of either facing.
+    expect(g.askedIn(30).filter((a) => a.side === -1)).toEqual([
+      { frame: 30, side: -1, from: { offsetM: 0, upM: AIM_HEIGHT_M }, to: { offsetM: BASE, upM: UP } },
+    ]);
+    expect(g.sides[30]).toBe(1);
+    // 30 s, past three 8 s holds: never across the road, held at full offset, not clear.
+    for (let f = 31; f < 30 * 60; f++) g.step();
+    expect(g.sight.cuts()).toBe(0);
+    expect(g.sides.every((s) => s === 1)).toBe(true);
+    for (const x of g.placed.slice(30)) expect(x).toBeCloseTo(BASE, 9);
+    expect(g.sight.castClear()).toBe(false);
+    expect(g.sight.debug()).toMatchObject({ lineFaced: true, switches: 0 });
+    expect(g.sight.debug().refused).toBeGreaterThan(0);
+    // A face on its own side only: the cut goes ahead (the cast across the road is clear).
+    const one = guardRig((s, a, b, f) => (f >= 30 && s === 1 ? faceAt(0.3)(s, a, b) : undefined));
+    for (let f = 0; f < 31; f++) one.step();
+    expect(one.sides[30]).toBe(-1);
+    expect(one.sight.debug().refused).toBe(0);
+  });
+
+  it('the cast across the road before a cut: only a fraction of the line counts, and it is cast where the camera lands', () => {
+    // Its own side closed by the reads (the road edge), the other side open ahead and beside the
+    // rider out to 7 m (6.75 m): a cut to 6.75 m.
+    const seenAt = (s: SightSpot) => s.side === -1 && s.offsetM <= 7;
+    // A face 8 m out across the road: beyond where the camera lands, so not in front of it.
+    const beyond = guardRig((s, a, b) => (s === -1 ? faceAt(8)(s, a, b) : undefined), { seenAt });
+    // Its own side's four spots take the first frame's reads; the other side and the cut, the second.
+    beyond.step();
+    beyond.step();
+    expect(beyond.sides).toEqual([1, -1]);
+    expect(beyond.placed[1]).toBeCloseTo(0.75 * BASE, 9);
+    expect(beyond.asked.filter((a) => a.side === -1)[0].to).toEqual({ offsetM: 0.75 * BASE, upM: UP });
+    // A face 6 m out across the road: on the line, no cut.
+    const on = guardRig((s, a, b) => (s === -1 ? faceAt(6)(s, a, b) : undefined), { seenAt });
+    on.step();
+    on.step();
+    expect(on.sides).toEqual([1, 1]);
+    expect(on.sight.debug()).toMatchObject({ switches: 0, refused: 1 });
+    // Not a fraction of the line (or not a number): nothing on it, the cut goes ahead; its ends count.
+    for (const t of [undefined, -0.1, 1.2, Number.NaN, 0, 1]) {
+      const g = guardRig((s) => (s === -1 ? t : undefined), { seenAt });
+      g.step();
+      g.step();
+      expect(g.sides[1]).toBe(t === 0 || t === 1 ? 1 : -1);
+    }
+  });
+
+  it('the cast across the road before a cut waits for a frame not spent; the reads are not taken again', () => {
+    // A face under minM on its own side from frame 30 (the forced refresh): its side, then the other
+    // side ahead and beside the rider, are read; that frame is spent after the third read.
+    let frame = 0;
+    let readsIn = 0;
+    const g = guardRig((s, a, b, f) => (f >= 30 && s === 1 ? faceAt(3.4)(s, a, b) : undefined), {
+      seenAt: () => (readsIn++, true),
+      spent: () => frame === 30 && readsIn >= 3,
+    });
+    const perFrame: number[] = [];
+    for (frame = 0; frame < 32; frame++) {
+      readsIn = 0;
+      g.step();
+      perFrame.push(readsIn);
+    }
+    // Frame 30: three reads, no cast across the road, no cut, held still.
+    expect(perFrame[30]).toBe(3);
+    expect(g.askedIn(30).some((a) => a.side === -1)).toBe(false);
+    expect(g.sides[30]).toBe(1);
+    expect(g.placed[30]).toBeCloseTo(g.placed[29], 9);
+    // Frame 31: the cast across the road, no read, and the cut.
+    expect(perFrame[31]).toBe(0);
+    expect(g.askedIn(31).filter((a) => a.side === -1)).toHaveLength(1);
+    expect(g.sides[31]).toBe(-1);
+    expect(g.sight.cuts()).toBe(1);
   });
 });
 

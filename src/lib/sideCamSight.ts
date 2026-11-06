@@ -276,6 +276,12 @@ export interface SightRequest {
    * looks across the road for a cut to a wide-open side. Asked, it
    * never goes further out in a frame than was cast clear in that frame (a
    * frame spent, or a read that just let it out further: it holds).
+   *
+   * It is also asked once before every cut across the road, about the other
+   * side: from the bars to where the camera lands beside the rider. A face
+   * on that line, and there is no cut. Under the drawn surface the reads
+   * find both sides open (every face over the bars is turned away from
+   * them), and the camera would only hold behind a face on the new side.
    */
   blockedAt?: (side: 1 | -1, from: SightPoint, to: SightPoint) => number | undefined;
 }
@@ -381,6 +387,8 @@ export function createSideCamSight() {
   let clear = true;
   let switchedAt = -Infinity;
   let switches = 0;
+  /** Cuts the reads allowed that a face on the new side's line from the bars (blockedAt) refused. */
+  let refused = 0;
   let reads = 0;
   /** Frames the camera was moved in in front of a face on its line (blockedAt). */
   let guards = 0;
@@ -469,6 +477,22 @@ export function createSideCamSight() {
       const beside = there !== undefined && (j.here === undefined || there >= full) ? read(other, true) : undefined;
       if (there === undefined || beside === undefined || (j.here !== undefined && beside < full)) {
         return { done: true, cut: false };
+      }
+      // The reads are culled casts: they see the faces turned to the road.
+      // With the rider's bars under the drawn surface (t_b6dbd3d2: 0.5-2 m
+      // under a tile) every face over them is turned away, so the reads find
+      // both sides open while the guard, which casts either facing, faces on
+      // both. So before the cut, the line from the bars to where the camera
+      // lands is cast as the guard casts it: a face on it, and no cut (the
+      // camera would only hold behind it on the new side). A frame spent
+      // casts it next frame.
+      if (req.blockedAt) {
+        if (req.spent?.() === true) throw READS_SPENT;
+        const t = req.blockedAt(other, { offsetM: 0, upM: AIM_HEIGHT_M }, { offsetM: beside, upM: j.upM });
+        if (typeof t === 'number' && t >= 0 && t <= 1) {
+          refused++;
+          return { done: true, cut: false };
+        }
       }
       side = other;
       switchedAt = req.nowMs;
@@ -652,6 +676,7 @@ export function createSideCamSight() {
         targetFrac,
         clear,
         switches,
+        refused,
         reads,
         rays: rayReads,
         guards,
