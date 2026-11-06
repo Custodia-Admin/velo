@@ -27,6 +27,7 @@ import {
 } from '@/lib/avatar';
 import {
   drawnGroundHeight,
+  DRAWN_UNDER_LOADED_MAX_M,
   getPhotorealTileset,
   groundSettled,
   liftAboveTerrain,
@@ -322,6 +323,27 @@ describe("the globe as drawn, not its deepest loaded tile (Santa Monica start, t
     expect(drawnGroundHeight(s, lon, lat, -32.4, ROUTE_ELE)).toBeCloseTo(-25.15, 6);
     const cam = Cesium.Cartesian3.fromDegrees(lon, lat, -24.1);
     expect(liftAboveTerrain(s, cam, -25.15, 1.5)).toBeCloseTo(0.45, 6);
+  });
+
+  it('a drawn tile far under the loaded one is a chord about to refine: the rider does not sink onto it', () => {
+    setIonToken('eyJ_test');
+    // Within the 800 m chord bound of the route, but 275 m under the loaded tile.
+    const g: GlobeOpts = { height: -25.15, drawn: -300 };
+    const { s } = scene(null, g);
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-25.15, 6);
+    // Up to DRAWN_UNDER_LOADED_MAX_M under, the drawn tile is the ground:
+    // measured, a level-15 tile drawn 1.14 m under the level-16 one loaded.
+    g.height = -32.55;
+    g.drawn = -33.69;
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-33.69, 6);
+    g.drawn = -32.55 - DRAWN_UNDER_LOADED_MAX_M + 0.01;
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(g.drawn, 6);
+    g.drawn = -32.55 - DRAWN_UNDER_LOADED_MAX_M - 0.01;
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.55, 6);
+    // Over the loaded tile there is no such limit (the start's 26 m step).
+    g.height = -32.14;
+    g.drawn = -5.87;
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-5.87, 6);
   });
 
   it('the chase camera keeps its clearance over the drawn tile, not the finer one under it', async () => {

@@ -799,7 +799,18 @@ export function drawnGroundHeight(
   if (isFlatGlobe(scene)) return plausible(sampled) ? sampled : 0;
   const globe = scene.globe as Cesium.Globe | undefined;
   if (!globe || typeof globe.getHeight !== 'function') return plausible(sampled) ? sampled : undefined;
-  const h = globeDrawnHeight(scene, globe, Cesium.Cartographic.fromDegrees(lon, lat), plausible);
+  const carto = Cesium.Cartographic.fromDegrees(lon, lat);
+  const loaded = globe.getHeight(carto);
+  // The drawn tile is stood on unless it lies far under the loaded one: then
+  // it is a coarse tile's chord about to refine (a level-4 tile 796 m under
+  // the level-8 one at the Santa Monica start), and the rider, easing down
+  // onto it, would sink for as long as it is drawn.
+  const h = globeDrawnHeight(
+    scene,
+    globe,
+    carto,
+    (d) => plausible(d) && !(plausible(loaded) && d < loaded - DRAWN_UNDER_LOADED_MAX_M),
+  );
   // Same chord error on coarse World Terrain tiles while they stream in.
   const terrain = plausible(h) ? h : undefined;
   if (!plausible(sampled)) return terrain;
@@ -919,6 +930,13 @@ export function worldTerrainPending(scene: Cesium.Scene): boolean {
 
 /** Larger gaps between loaded-tile height and route height are coarse-tile chord error. */
 const MAX_COARSE_TILE_ERROR_M = 800;
+/**
+ * Furthest the globe's drawn tile may lie under its deepest loaded one and
+ * still be stood on. Neighbouring levels differ by up to ~1.2 m at the Santa
+ * Monica start (a level-15 tile drawn 1.14 m under the level-16 one loaded);
+ * a coarse tile's chord, about to refine, can be hundreds of metres under.
+ */
+export const DRAWN_UNDER_LOADED_MAX_M = 5;
 
 function isFlatGlobe(scene: Cesium.Scene): boolean {
   const provider = (scene as { terrainProvider?: unknown }).terrainProvider;
