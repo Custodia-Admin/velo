@@ -962,6 +962,8 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     const rows: { m: number; h: number | undefined; kind: string; shown: boolean }[] = [];
     // 30 km/h: 4 m a sample, 480 ms apart, the gate run every frame between.
     for (let m = 0; m <= 72; m += 4) {
+      // Drawn, the globe is still streaming tiles on every other sample.
+      globe.tilesLoaded = !(globe.show && m % 8 === 0);
       const h = sampler.sample(lon, lat(m), 162, t);
       rows.push({ m, h, kind: sampler.ground(), shown: globe.show });
       for (let k = 0; k < 29; k++) {
@@ -976,12 +978,31 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     for (const r of rows.filter((x) => x.m >= 8 && x.m < 60)) expect(r.kind, `${r.m} m`).toBe('standIn');
     // Shown within the gate's wait (1 s) of the first stand-in, and kept.
     for (const r of rows.filter((x) => x.m >= 20 && x.m < 60)) expect(r.shown, `${r.m} m`).toBe(true);
-    // On the drawn globe, 1.3–1.7 m under the road held, not over a void.
+    // On the drawn globe, 1.3–1.7 m under the road held, not over a void, and
+    // not back up on the road held while the globe streams.
     for (const r of rows.filter((x) => x.m >= 24 && x.m < 60)) expect(r.h, `${r.m} m`).toBeCloseTo(finestAt(r.m), 6);
     // Out from under the crowns: the mesh road again.
     const out = rows.find((x) => x.m === 64)!;
     expect(out.kind).toBe('mesh');
     expect(out.h).toBeCloseTo(163.74, 6);
+  });
+
+  it('only a stand-in puts the rider on the streaming globe: with no mesh tile under it the rider holds the road (as before)', async () => {
+    setIonToken('eyJ_test');
+    // Held at 160.2, then no mesh tile: the globe is the ground once drawn,
+    // but while it streams (coarse tiles of its own) the rider keeps the
+    // road, even with the terrain 1.7 m under it.
+    let reading: number | undefined = 160.2;
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => reading);
+    const { s, globe } = scene(tileset, { height: 158.5 });
+    const sampler = createGroundSampler(s, createFinestTerrain(async (pts) => pts.map(() => 158.5)));
+    expect(sampler.sample(lon, lat(0), 160, 0)).toBeCloseTo(160.2, 6);
+    expect(sampler.ground()).toBe('mesh');
+    reading = undefined;
+    globe.tilesLoaded = false;
+    expect(sampler.sample(lon, lat(2), 160, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(160.2, 6);
+    expect(sampler.ground()).toBe('globe');
   });
 
   it("the finest is only fetched while held under something, and comes from the scene's terrain provider", async () => {

@@ -2266,8 +2266,15 @@ export function createGroundSampler(scene: Cesium.Scene, finest: FinestTerrain =
           // back in. A globe hidden for kilometres comes back with coarse
           // tiles: at Chengdu 5 km one read 780 m under the road, and the
           // rider sank towards it. The drawn globe still wins where it is
-          // higher.
-          last = road.road();
+          // higher. Where it stands in and is drawn, still streaming, the
+          // rider stands where it refines to (its terrain here, near the
+          // road by GLOBE_STANDIN_M), not on the road held over it: 1.3–2 m
+          // over it under the Cuyahoga crowns, the rider rose to the road on
+          // every sample the globe was still streaming, then eased back down.
+          last =
+            status === 'overhang' && standsIn && !away && !globeHidden(scene) && globeHere !== undefined
+              ? globeHere
+              : road.road();
         }
       }
       // The mesh reading is reused between samples; the globe (drawn over the
