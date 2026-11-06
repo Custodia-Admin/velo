@@ -344,8 +344,9 @@ describe('skylight through the leaves, against the cat-bed measurements', () => 
   });
 
   it('keeps a noon crown the sun lights; only its darkest shade pockets fill', () => {
-    // The knee (`TREE_LEAF_TRANSMIT_KNEE`): the median near crown at noon moves under 3 levels of
-    // luminance. The darkest shade pockets honestly lift: the 8,920 m p10 pixel below gains +12, and
+    // The knee (`TREE_LEAF_TRANSMIT_KNEE`): the median near crown at noon moves about 3 levels of
+    // luminance (+2.4 and, re-measured in the #67 review, +3.0; the fixture's p50 pixel below moves
+    // under 3). The darkest shade pockets honestly lift: the 8,920 m p10 pixel below gains +12, and
     // over every near-crown pixel the review measured mean +3.9, p10 42.8 → 51.8.
     for (const light of [at('noon, 8,920'), at('noon, 8,980')]) {
       const [p10, p50] = light.display.map((row) => displayRow(light, row));
@@ -357,6 +358,10 @@ describe('skylight through the leaves, against the cat-bed measurements', () => 
     // At dawn the sun lights the median crown, which keeps its colour exactly.
     const dawn = displayRow(at('dawn, 8,920'), at('dawn, 8,920').display[1]);
     expect(dawn.after).toEqual(dawn.before);
+    // Its darkest pockets still fill: the p10 pixel below lifts by about 5 (over every near-crown
+    // pixel, p10 8.3 → 13.4 while the mean moves only +0.8).
+    const dawnP10 = displayRow(at('dawn, 8,920'), at('dawn, 8,920').display[0]);
+    expect(luma(dawnP10.after) - luma(dawnP10.before)).toBeGreaterThan(3);
     // The measured pins hold the knee tighter than this; the band documents it.
     expect(TREE_LEAF_TRANSMIT_KNEE).toBeGreaterThanOrEqual(1.5);
     expect(TREE_LEAF_TRANSMIT_KNEE).toBeLessThanOrEqual(2.5);
@@ -387,21 +392,49 @@ describe('the skylight term keeps up with three', () => {
       '#if NUM_HEMI_LIGHTS > 0\n      skyUp += getHemisphereLightIrradiance(hemisphereLights[0], upV);\n    #endif',
     );
     expect(TREE_LEAF_TRANSMIT_GLSL.match(/upV/g)).toHaveLength(4);
+    // The measured fixtures take skyUp as an input, so they can't see an edit to how the
+    // shader builds it (a non-zero start, an extra scale): pin the whole block.
+    const f = (v: number) => (Number.isInteger(v) ? v.toFixed(1) : String(v));
+    const { full, none } = TREE_LEAF_TRANSMIT_FACING;
+    expect(TREE_LEAF_TRANSMIT_GLSL).toBe(
+      [
+        '',
+        '  {',
+        '    vec3 upV = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);',
+        '    vec3 skyUp = vec3(0.0);',
+        '    #if defined( USE_ENVMAP ) && defined( ENVMAP_TYPE_CUBE_UV )',
+        '      skyUp += getIBLIrradiance(upV);',
+        '    #endif',
+        '    #if NUM_HEMI_LIGHTS > 0',
+        '      skyUp += getHemisphereLightIrradiance(hemisphereLights[0], upV);',
+        '    #endif',
+        `    float away = 1.0 - smoothstep(${f(full)}, ${f(none)}, dot(normalize(vNormal), upV));`,
+        '    vec3 leafSky = gLeafHue * skyUp * RECIPROCAL_PI * uLeafTransmit * away * vCrown;',
+        `    vec3 lumaW = vec3(${TREE_LEAF_LUMA.join(', ')});`,
+        `    float knee = ${f(TREE_LEAF_TRANSMIT_KNEE)} * dot(leafSky, lumaW) + 1e-6;`,
+        '    gl_FragColor.rgb += leafSky * (1.0 - smoothstep(0.0, knee, dot(gl_FragColor.rgb, lumaW)));',
+        '  }',
+      ].join('\n'),
+    );
+    expect(TREE_LEAF_TRANSMIT_GLSL.match(/skyUp/g)).toHaveLength(4);
   });
 
   it("matches three's own chunks, so an upgrade fails here and not in the tree shader at runtime", () => {
+    // Every guard is matched up to its line end: a renamed define (ENVMAP_TYPE_CUBE_UV_V2) or an
+    // added condition would still contain the old name, while the tree shader's guard goes false.
     // The env irradiance: defined only with an env map, and only a PMREM (cube UV) one gives light.
     const env = THREE.ShaderChunk.envmap_physical_pars_fragment;
-    expect(env.trimStart().startsWith('#ifdef USE_ENVMAP')).toBe(true);
+    expect(env.trimStart().startsWith('#ifdef USE_ENVMAP\n')).toBe(true);
     const ibl = env.slice(env.indexOf('vec3 getIBLIrradiance( const in vec3 normal ) {'), env.indexOf('vec3 getIBLRadiance('));
     expect(ibl.length).toBeGreaterThan(0);
-    expect(ibl).toMatch(/#ifdef ENVMAP_TYPE_CUBE_UV[\s\S]*return PI \* envMapColor\.rgb \* envMapIntensity;[\s\S]*#else[\s\S]*return vec3\( 0\.0 \);/);
+    expect(ibl).toMatch(/#ifdef ENVMAP_TYPE_CUBE_UV\n[\s\S]*return PI \* envMapColor\.rgb \* envMapIntensity;[\s\S]*#else[\s\S]*return vec3\( 0\.0 \);/);
     // The hemisphere irradiance: declared only with at least one hemisphere light.
     const lights = THREE.ShaderChunk.lights_pars_begin;
     const hemi = lights.indexOf('vec3 getHemisphereLightIrradiance( const in HemisphereLight hemiLight, const in vec3 normal ) {');
     expect(hemi).toBeGreaterThan(-1);
-    expect(lights.lastIndexOf('#if NUM_HEMI_LIGHTS > 0', hemi)).toBeGreaterThan(-1);
-    expect(lights.slice(lights.lastIndexOf('#if NUM_HEMI_LIGHTS > 0', hemi), hemi)).toContain('uniform HemisphereLight hemisphereLights[ NUM_HEMI_LIGHTS ];');
+    const hemiGuard = lights.lastIndexOf('#if NUM_HEMI_LIGHTS > 0\n', hemi);
+    expect(hemiGuard).toBeGreaterThan(-1);
+    expect(lights.slice(hemiGuard, hemi)).toContain('uniform HemisphereLight hemisphereLights[ NUM_HEMI_LIGHTS ];');
     // ÷π comes from three's own constant.
     expect(THREE.ShaderChunk.common).toContain('#define RECIPROCAL_PI 0.3183098861837907');
   });
