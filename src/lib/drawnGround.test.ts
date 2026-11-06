@@ -529,6 +529,31 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     expect(f.status()).toBe('overhang');
   });
 
+  it('a tile changing under the rider from the towpath to a crown top with nothing under it is no tile refined higher (Cuyahoga 4.724 km)', () => {
+    // As logged on cat-bed: read under the crown, the towpath (162.79 m);
+    // the next read at the same spot, a tile with the crown top 13 m over
+    // the terrain and nothing under it.
+    const f = createMeshRoadFilter();
+    let tile = [162.79, 176.73];
+    const readAt = (_lon: number, _lat: number, under?: number) => tile.filter((h) => under === undefined || h <= under).at(-1);
+    expect(f.next(176.73, lon0, at(0), HIGH, readAt, -Infinity, 163.34)).toBe(162.79);
+    tile = [176.62];
+    expect(f.next(176.62, lon0, at(0), HIGH, readAt, -Infinity, 163.34)).toBe(162.79);
+    expect(f.status()).toBe('overhang');
+    // Ridden on: still the towpath, not the crown.
+    expect(f.next(176.62, lon0, at(2), HIGH, readAt, -Infinity, 163.34)).toBe(162.79);
+  });
+
+  it('a tile refined higher under a rider already on a structure is taken (the Melide causeway, 8–10 m over the lake)', () => {
+    const f = createMeshRoadFilter();
+    let tile = [279.2];
+    const readAt = (_lon: number, _lat: number, under?: number) => tile.filter((h) => under === undefined || h <= under).at(-1);
+    for (let m = 0; m <= 30; m += 2) f.next(279.2, lon0, at(m), HIGH, readAt, -Infinity, 270);
+    expect(f.road()).toBe(279.2);
+    tile = [284.1];
+    expect(f.next(284.1, lon0, at(32), HIGH, readAt, -Infinity, 270)).toBe(284.1);
+  });
+
   it('a fall from an unproven road is always taken; a reset forgets the road it was unproven against', () => {
     const { ride } = edgeOnTowpath(121.6, 99.8);
     expect([0, 4, 8].map(ride)).toEqual([100, 100, 101.76]);

@@ -1842,8 +1842,8 @@ export type MeshRead = (lon: number, lat: number, under?: number) => number | un
  *   the road (the towpath under the crowns, where the mesh has it: about half
  *   the spots on the Cuyahoga towpath). With none, the reading is the road
  *   only if the mesh at that last road spot rose too (a tile refined under
- *   the rider) or it is a ramp (below); otherwise the rider keeps the road it
- *   has ('overhang');
+ *   the rider; never from the ground up onto a structure) or it is a ramp
+ *   (below); otherwise the rider keeps the road it has ('overhang');
  * - with no road to go on from, a reading over the bare terrain is looked
  *   under for the ground near the terrain.
  * A surface found under something is the road only within
@@ -2005,6 +2005,13 @@ export function createMeshRoadFilter() {
         !climbsInSteps(from, baseLon, baseLat, h, lon, lat, moved, readAt, RAMP_GRADE);
       // Looked under only near the bare terrain (UNDER_BARE_M).
       const nearBare = (h: number) => bare !== undefined && h >= bare - UNDER_BARE_M;
+      // A tile refined higher under the rider (roseAt) is taken, but not up
+      // from the ground onto a structure: at Cuyahoga 4.724 km the towpath
+      // read under a crown (162.8 m) was gone from the next read at the same
+      // spot, a tile with the crown top (176.6 m, 13 m over the terrain) and
+      // nothing under it, and the rider rode the crown down for 20 m.
+      const refined = (h: number) =>
+        roseAt(readAt, from, baseLon, baseLat, stepFrom?.h) && !(onStructure(h) && !onStructure(from));
       const allow = Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + OVERHANG_GRADE * moved);
       if (top <= base + allow) {
         let road = top;
@@ -2023,7 +2030,7 @@ export function createMeshRoadFilter() {
             road = under;
           }
         }
-        if (climbsOnto(road) && !roseAt(readAt, base, baseLon, baseLat, stepFrom?.h)) {
+        if (climbsOnto(road) && !refined(road)) {
           status = 'overhang';
           return base;
         }
@@ -2039,10 +2046,7 @@ export function createMeshRoadFilter() {
       const nearRoad = (h: number) => surfaceNear(readAt, lon, lat, Math.min(h + near, top - UNDER_CLEARANCE_M), h, near, usable, nearBare);
       const under = (stepFrom ? nearRoad(stepFrom.h) : undefined) ?? nearRoad(base);
       if (under !== undefined && !climbsOnto(under)) return take(under, lon, lat, true);
-      if (
-        roseAt(readAt, base, baseLon, baseLat, stepFrom?.h) ||
-        (climbsInSteps(base, baseLon, baseLat, top, lon, lat, moved, readAt) && !climbsOnto(top))
-      ) {
+      if (refined(top) || (climbsInSteps(base, baseLon, baseLat, top, lon, lat, moved, readAt) && !climbsOnto(top))) {
         return take(top, lon, lat);
       }
       status = 'overhang';
