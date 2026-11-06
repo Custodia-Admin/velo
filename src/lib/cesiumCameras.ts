@@ -125,9 +125,9 @@ export function riderAimPitchRad(camHeightM: number, horizOffsetM: number): numb
   return -Math.atan2(camHeightM - AIM_HEIGHT_M, horizOffsetM);
 }
 
-/** Pitch (radians, negative = down) aiming from the chase camera at the look-ahead point. */
+/** Pitch (radians, negative = down) aiming from the chase camera at the look-ahead point on the flat. */
 export function chasePitchRad(f: ChaseFraming, upM: number = f.upM): number {
-  return -Math.atan2(upM - AIM_HEIGHT_M, f.backM + f.lookAheadM);
+  return -Math.atan2(upM - f.aimM, f.backM + f.lookAheadM);
 }
 
 // ---------------------------------------------------------------------------
@@ -153,7 +153,7 @@ export interface ChaseCamTarget {
  * rider along its drawn heading, looking at the point `lookAheadM` ahead
  * turned toward the route by half the bend (≤12°, `chaseAimHeading`), at the
  * shared look height (`chaseLookHeight`): the route point's height +
- * {@link AIM_HEIGHT_M} on the flat and downhill; on a climb the view keeps
+ * `framing.aimM` on the flat and downhill; on a climb the view keeps
  * its flat-road pitch so the rear wheel stays where it is on the flat.
  *
  * @param heading The rider's drawn heading (lib/ride/rideHeading's filtered
