@@ -225,17 +225,37 @@ test('a route outside every baked world rides photoreal (OSM fallback with no to
   expect(Math.abs(wide.notice!.x + wide.notice!.w - (wide.strip!.x + wide.strip!.w))).toBeLessThanOrEqual(1);
   expect(wide.notice!.y).toBe(wide.chip!.y);
   expect(wide.rider).not.toBeNull();
-  expect(overlaps(wide.notice!, wide.rider!)).toBe(false);
+  expect(overlaps(wide.notice!, wide.rider!), JSON.stringify({ notice: wide.notice, rider: wide.rider })).toBe(false);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(async () => (await layout()).strip?.w ?? 0).toBeLessThan(390);
+  // The rider box is projected through Cesium's camera, and the camera takes
+  // the new box only at the next rendering update: viewer.resize() (from the
+  // render loop or the view's ResizeObserver) sizes the drawing buffer and
+  // the frustum, then the next frame sets the lens and the chase camera.
+  // Under SwiftShader that update can land a second after the DOM has
+  // reflowed. Until then the 1440x900 frustum is projected into the 390x844
+  // box and the stretched rider reads ~275 px tall down to y ~759, over the
+  // notice, instead of ~172 px down to y ~632 (card t_dad0597d). A steady
+  // riderScreen proves nothing (no frame, no change). So measure once the
+  // canvas has the reflowed box's aspect and a frame has been drawn at it.
+  const resizedToBox = () =>
+    page.evaluate(() => {
+      const c = document.querySelector<HTMLCanvasElement>('[data-renderer] .cesium-widget canvas');
+      if (!c || !c.height || !c.clientHeight) return false;
+      const box = c.clientWidth / c.clientHeight;
+      return Math.abs(c.width / c.height - box) <= 0.02 * box;
+    });
+  await expect.poll(resizedToBox, { timeout: 60_000 }).toBe(true);
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   const phone = await layout();
   expect(phone.notice!.h).toBe(40);
   expect(phone.lines).toBe(1);
   expect(phone.notice!.x).toBe(phone.strip!.x);
   expect(phone.notice!.y + phone.notice!.h).toBeLessThanOrEqual(phone.strip!.y);
   expect(phone.chip).toBeNull(); // calm: the chip hides on phones, the notice has the lane
-  expect(overlaps(phone.notice!, phone.rider!)).toBe(false);
+  expect(phone.rider).not.toBeNull();
+  expect(overlaps(phone.notice!, phone.rider!), JSON.stringify({ notice: phone.notice, rider: phone.rider })).toBe(false);
   const area = (b: Box | null) => (b ? b.w * b.h : 0);
   expect((area(phone.notice) + area(phone.strip)) / (phone.vw * phone.vh)).toBeLessThanOrEqual(0.15);
 
