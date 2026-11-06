@@ -29,6 +29,7 @@ import {
   drawnGroundHeight,
   getPhotorealTileset,
   groundSettled,
+  liftAboveTerrain,
   sampleGroundHeight,
   sceneGroundHeight,
   setIonToken,
@@ -76,6 +77,11 @@ interface GlobeOpts {
   show?: boolean;
   translucent?: boolean;
   tilesLoaded?: boolean;
+  /**
+   * The globe tile drawn last frame at the spot (Globe.pick): undefined for no
+   * rendered tile there; leave the key out for a globe without `pick`.
+   */
+  drawn?: number | undefined;
 }
 
 function scene(tileset: Cesium.Cesium3DTileset | null, g: GlobeOpts, terrain: object = { worldTerrain: true }) {
@@ -84,6 +90,12 @@ function scene(tileset: Cesium.Cesium3DTileset | null, g: GlobeOpts, terrain: ob
     translucency: { enabled: g.translucent ?? false },
     tilesLoaded: g.tilesLoaded ?? true,
     getHeight: vi.fn(() => g.height),
+  } as {
+    show: boolean;
+    translucency: { enabled: boolean };
+    tilesLoaded: boolean;
+    getHeight: ReturnType<typeof vi.fn>;
+    pick?: ReturnType<typeof vi.fn>;
   };
   const s = {
     context: FRAME_STATE.context,
@@ -94,6 +106,20 @@ function scene(tileset: Cesium.Cesium3DTileset | null, g: GlobeOpts, terrain: ob
     globe,
     terrainProvider: terrain,
   } as unknown as Cesium.Scene;
+  if ('drawn' in g) {
+    // Cesium's Globe.pick(ray, scene, result) reads scene.mode and the
+    // rendered tiles; the fake answers only a ray straight down the local
+    // vertical, where it crosses the drawn height.
+    globe.pick = vi.fn((ray: Cesium.Ray, sc: unknown) => {
+      if (sc !== s) throw new TypeError('globe.pick needs the scene');
+      const top = Cesium.Cartographic.fromCartesian(ray.origin);
+      const down = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormalCartographic(top);
+      if (g.drawn === undefined || Cesium.Cartesian3.dot(down, ray.direction) > -0.999999) return undefined;
+      // A ray starting under the drawn surface never crosses it.
+      if (g.drawn >= top.height) return undefined;
+      return Cesium.Cartesian3.fromRadians(top.longitude, top.latitude, g.drawn);
+    });
+  }
   return { s, globe };
 }
 
@@ -233,6 +259,124 @@ describe('the rider stands on the drawn ground over the photoreal mesh', () => {
     expect(sampler.sample(lonAt(frame + 2), 43.2, 259, 1032 + GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(309.9, 6);
     expect(sampler.sample(lonAt(frame + 3), 43.2, 259, 1048 + GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(309.9, 6);
     expect(getHeight).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe("the globe as drawn, not its deepest loaded tile (Santa Monica start, t_b6dbd3d2)", () => {
+  // Measured per frame at the Santa Monica start (1280×648 @2, cat-bed, main
+  // and PR #74): no photoreal tile under the rider yet, the globe drew a
+  // level-14 tile at -32.15 m while globe.getHeight read the level-15 tile
+  // loaded under it at -33.70 m. The rider stood on getHeight for 4 frames,
+  // 1.1-1.4 m under the ground the camera saw, which hid its wheels.
+  const lon = -118.4972;
+  const lat = 34.0089;
+  const ROUTE_ELE = 3;
+
+  it('the rider stands on the drawn tile, over the finer one loaded under it', async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photoreal(undefined);
+    const g: GlobeOpts = { height: -33.7, drawn: -32.15 };
+    const { s, globe } = scene(tileset, g);
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(lon, lat, ROUTE_ELE, 1000)).toBeCloseTo(-32.15, 6);
+    expect(globe.pick).toHaveBeenCalled();
+    // The globe refines there: the level-15 tile is drawn, and stood on.
+    g.drawn = -33.69;
+    expect(sampler.sample(lon, lat, ROUTE_ELE, 1016)).toBeCloseTo(-33.69, 6);
+    expect(sampler.meshGround()).toBe(false);
+  });
+
+  it('the drawn globe over the mesh is the ground; a mesh over it still wins', async () => {
+    setIonToken('eyJ_test');
+    const { s } = scene(null, { height: -33.7, drawn: -32.15 });
+    expect(drawnGroundHeight(s, lon, lat, -32.6, ROUTE_ELE)).toBeCloseTo(-32.15, 6);
+    expect(drawnGroundHeight(s, lon, lat, -31.9, ROUTE_ELE)).toBeCloseTo(-31.9, 6);
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.15, 6);
+  });
+
+  it('no rendered tile under the spot: the loaded tiles decide (getHeight)', () => {
+    setIonToken('eyJ_test');
+    const { s, globe } = scene(null, { height: -33.7, drawn: undefined });
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-33.7, 6);
+    expect(globe.pick).toHaveBeenCalledTimes(1);
+  });
+
+  it('high ground: the drawn tile on a 2,100 m pass is found from above it', () => {
+    setIonToken('eyJ_test');
+    const { s } = scene(null, { height: 2098.6, drawn: 2100.2 });
+    expect(drawnGroundHeight(s, 9.65, 46.45, undefined, 2101)).toBeCloseTo(2100.2, 6);
+  });
+
+  it("a hidden globe's rendered tiles are stale: getHeight decides, the pick is never run", () => {
+    setIonToken('eyJ_test');
+    const { s, globe } = scene(null, { height: -33.7, drawn: -25.12, show: false });
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-33.7, 6);
+    expect(globe.pick).not.toHaveBeenCalled();
+  });
+
+  it("a drawn tile far off the ground (a coarse tile's chord) is not stood on: the loaded tiles decide", () => {
+    setIonToken('eyJ_test');
+    // Measured: a drawn level-4 tile at -821 m over a loaded level-8 one at -25 m.
+    const { s } = scene(null, { height: -25.15, drawn: -821.27 });
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-25.15, 6);
+    expect(drawnGroundHeight(s, lon, lat, -32.4, ROUTE_ELE)).toBeCloseTo(-25.15, 6);
+    const cam = Cesium.Cartesian3.fromDegrees(lon, lat, -24.1);
+    expect(liftAboveTerrain(s, cam, -25.15, 1.5)).toBeCloseTo(0.45, 6);
+  });
+
+  it('a drawn tile under the loaded one is about to refine: the rider waits on the loaded one, never sinks', () => {
+    setIonToken('eyJ_test');
+    // A chord within the 800 m bound of the route, 275 m under the loaded tile.
+    const g: GlobeOpts = { height: -25.15, drawn: -300 };
+    const { s } = scene(null, g);
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-25.15, 6);
+    // Measured at the Lake Trasimeno start: level 11 drawn at 386.64 m, level
+    // 12 loaded at 387.95 m and drawn the next frame. On the drawn tile the
+    // rider was 1.31 m under the ground for that frame.
+    g.height = 387.95;
+    g.drawn = 386.64;
+    expect(drawnGroundHeight(s, 12.1, 43.13, undefined, 388)).toBeCloseTo(387.95, 6);
+    g.drawn = 387.95;
+    expect(drawnGroundHeight(s, 12.1, 43.13, undefined, 388)).toBeCloseTo(387.95, 6);
+    // Over the loaded tile the drawn one wins, however far (the start's 26 m step).
+    g.height = -32.14;
+    g.drawn = -5.87;
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-5.87, 6);
+  });
+
+  it('a loaded reading that is a chord leaves the drawn tile', () => {
+    setIonToken('eyJ_test');
+    const g: GlobeOpts = { height: -2400, drawn: -32.2 };
+    const { s } = scene(null, g);
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.2, 6);
+    // A chord over the route (a coarse tile spanning a valley) isn't the higher ground either.
+    g.height = ROUTE_ELE + 900;
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.2, 6);
+  });
+
+  it('a drawn chord over the route leaves the loaded tile, for the rider and the camera', () => {
+    setIonToken('eyJ_test');
+    const { s } = scene(null, { height: -32.2, drawn: ROUTE_ELE + 900 });
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.2, 6);
+    // liftAboveTerrain's bound is 60 m from the rider's ground.
+    const t = scene(null, { height: -32.2, drawn: -32.2 + 75 });
+    const cam = Cesium.Cartesian3.fromDegrees(lon, lat, -31.7);
+    expect(liftAboveTerrain(t.s, cam, -32.2, 1.5)).toBeCloseTo(1.0, 6);
+  });
+
+  it('the chase camera keeps its clearance over the drawn tile, not the finer one under it', async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photoreal(undefined);
+    const { s } = scene(tileset, { height: -33.7, drawn: -32.15 });
+    // 2.6 m over getHeight's tile, 1.05 m over the drawn one.
+    const cam = Cesium.Cartesian3.fromDegrees(lon, lat, -31.1);
+    const lift = liftAboveTerrain(s, cam, -32.15, 1.5);
+    expect(lift).toBeCloseTo(0.45, 6);
+    expect(Cesium.Cartographic.fromCartesian(cam).height).toBeCloseTo(-30.65, 6);
+    // …and over a finer loaded tile higher than the drawn one, drawn next frame (Trasimeno).
+    const t = scene(tileset, { height: 387.95, drawn: 386.64 });
+    const cam2 = Cesium.Cartesian3.fromDegrees(12.1, 43.13, 388.5);
+    expect(liftAboveTerrain(t.s, cam2, 387.95, 1.5)).toBeCloseTo(0.95, 6);
   });
 });
 
