@@ -82,12 +82,12 @@ describe('photoreal and the world renderer share one vertical field of view', ()
     for (const [w, h] of VIEWS) {
       const f = rideFrustum(w, h);
       void f.projectionMatrix; // runs the frustum's update
-      expect(deg(f.fovy)).toBeCloseTo(RIDE_FOV_Y_DEG, 9);
+      expect(deg(f.fovy as number)).toBeCloseTo(RIDE_FOV_Y_DEG, 9);
     }
     // Cesium's default (60° across the width) was ~36° vertical at 16:9.
     const old = frustumFor(1920, 1080, Math.PI / 3);
     void old.projectionMatrix;
-    expect(deg(old.fovy)).toBeCloseTo(35.98, 2);
+    expect(deg(old.fovy as number)).toBeCloseTo(35.98, 2);
   });
 
   it('the chase rider lands on the same pixels in both renderers (gate viewports, tab, phones)', () => {
@@ -239,7 +239,7 @@ function fakeView(w: number, h: number, covered?: string) {
       frustum.aspectRatio = container.clientWidth / container.clientHeight;
       resizes.push(container.clientHeight);
     },
-    xr: false,
+    xr: false as boolean,
     ownsFrustum() {
       return !this.xr;
     },
@@ -348,6 +348,44 @@ describe('applyHudLensCrop (before every frame)', () => {
     view.xr = false;
     expect(applyHudLensCrop(view, state)).toBe(true);
     expect(container.span).toEqual([-78, 240]);
+  });
+
+  it('leaving VR/AR resets the fov to 60° at the same window shape: the next frame puts the ride field back', () => {
+    // lib/webxr exitVR/exitAR (restoreLoop) reset the frustum to Cesium's
+    // 60° when the session ends; the window keeps its shape. The lens reads
+    // the live frustum, not the fov it wrote last, so it undoes that write.
+    const { view, frustum, resizes } = fakeView(1440, 900);
+    const state = lensCropState(FOV_Y);
+    const ride = cesiumFov(FOV_Y, 1440 / 900);
+    expect(applyHudLensCrop(view, state)).toBe(true);
+    expect(frustum.fov).toBeCloseTo(ride, 12);
+    view.xr = true;
+    expect(applyHudLensCrop(view, state)).toBe(false);
+    frustum.fov = Math.PI / 3;
+    view.xr = false;
+    expect(applyHudLensCrop(view, state)).toBe(true);
+    expect(frustum.fov).toBeCloseTo(ride, 12);
+    expect(applyHudLensCrop(view, state)).toBe(false);
+    expect(resizes).toEqual([]);
+  });
+
+  it('the same in the floating window, where restoreLoop swaps in a new 60° frustum over the taller canvas', () => {
+    const { view, container, resizes } = fakeView(427, 240, '78');
+    const state = lensCropState(FOV_Y);
+    applyHudLensCrop(view, state);
+    expect(container.span).toEqual([-78, 240]);
+    view.xr = true;
+    expect(applyHudLensCrop(view, state)).toBe(false);
+    // As restoreLoop does: a fresh frustum, its aspect from the drawing buffer (the canvas, 318 px tall).
+    const reset = new Cesium.PerspectiveFrustum({ fov: Math.PI / 3, aspectRatio: 427 / 318, near: 0.1, far: 1e7 });
+    (view.camera as { frustum: object }).frustum = reset;
+    view.xr = false;
+    expect(applyHudLensCrop(view, state)).toBe(true);
+    expect(reset.fov).toBeCloseTo(cesiumFov(hudLensCrop(427, 240, 78, FOV_Y).canvasFovY, 427 / 318), 12);
+    expect(viewFovYDeg(reset, 318, 78)).toBe(RIDE_FOV_Y_DEG);
+    expect(container.span).toEqual([-78, 240]);
+    expect(resizes).toEqual([318]);
+    expect(applyHudLensCrop(view, state)).toBe(false);
   });
 
   it('leaves a frustum without a fov alone (orthographic)', () => {

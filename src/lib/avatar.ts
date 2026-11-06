@@ -1812,8 +1812,14 @@ export function createGroundSampler(scene: Cesium.Scene) {
       // it: a coarse tile, which a finer one replaces any frame (at the Santa
       // Monica start one read 11 m under the globe, then the street landed
       // 4 m over it and the rider stood under it until the next sample, with
-      // the camera under the road). It lasts until the mesh is the ground or
-      // the globe gate hides the globe (renderers/cesium/globeGate, 750 ms).
+      // the camera under the road). Once a reading is the road (or something
+      // over it), it lasts until the mesh is the ground or, 750 ms on, the
+      // globe gate hides the globe (renderers/cesium/globeGate), which then no
+      // longer counts as drawn. While the readings are only coarse tiles
+      // (createMeshRoadFilter's 'coarse': the last road is held), it has no
+      // bound: meshGround stays false, so the gate keeps the globe drawn, and
+      // the mesh is read every frame for as long as that lasts, as with no
+      // mesh road at all.
       const drawn = drawnGroundHeight(scene, lon, lat, last, expect);
       const onGlobe = last !== undefined && drawn !== undefined && drawn > last + GLOBE_OVER_MESH_M;
       const fresh = last === undefined || onGlobe || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M;

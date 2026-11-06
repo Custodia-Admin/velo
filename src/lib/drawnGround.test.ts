@@ -200,6 +200,40 @@ describe('the rider stands on the drawn ground over the photoreal mesh', () => {
     sampler.sample(12.10002, 43.2, 259, 1032);
     expect(getHeight).toHaveBeenCalledTimes(2);
   });
+
+  it('a hidden globe over the mesh reading is not stood on: the mesh reading keeps the throttle', async () => {
+    // Once the mesh is the road under the rider, renderers/cesium/globeGate
+    // hides the globe (globe.show = false). Its tiles still read 3.7 m over
+    // the mesh here, but nothing draws them: the mesh is the ground, and its
+    // reading (a tile pick each) is reused until the interval, not taken
+    // every frame as while the globe is drawn over it.
+    setIonToken('eyJ_test');
+    const { tileset, getHeight } = await photoreal(306.2);
+    const g: GlobeOpts = { height: 309.9, show: false };
+    const { s, globe } = scene(tileset, g);
+    globe.getHeight.mockImplementation(() => g.height);
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(12.1, 43.2, 259, 1000)).toBeCloseTo(306.2, 6);
+    expect(sampler.meshGround()).toBe(true);
+    expect(getHeight).toHaveBeenCalledTimes(1);
+    // 36 km/h, 60 fps (0.16 m a frame): every frame inside the interval reuses the reading.
+    const lonAt = (frame: number) => 12.1 + frame * 2e-6;
+    let frame = 1;
+    for (; 1000 + 16 * frame < 1000 + GROUND_SAMPLE_INTERVAL_MS; frame++) {
+      expect(sampler.sample(lonAt(frame), 43.2, 259, 1000 + 16 * frame)).toBeCloseTo(306.2, 6);
+    }
+    expect(frame).toBeGreaterThan(10);
+    expect(getHeight).toHaveBeenCalledTimes(1);
+    // The interval is up: read again, once.
+    sampler.sample(lonAt(frame), 43.2, 259, 1000 + GROUND_SAMPLE_INTERVAL_MS);
+    sampler.sample(lonAt(frame + 1), 43.2, 259, 1016 + GROUND_SAMPLE_INTERVAL_MS);
+    expect(getHeight).toHaveBeenCalledTimes(2);
+    // The same globe drawn again: it is the ground, and the mesh is read every frame.
+    globe.show = true;
+    expect(sampler.sample(lonAt(frame + 2), 43.2, 259, 1032 + GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(309.9, 6);
+    expect(sampler.sample(lonAt(frame + 3), 43.2, 259, 1048 + GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(309.9, 6);
+    expect(getHeight).toHaveBeenCalledTimes(4);
+  });
 });
 
 describe('overhangs: only the road is ground, not what stands over it', () => {
