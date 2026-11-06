@@ -75,13 +75,14 @@ The in-app credits line comes from each bundle's `manifest.json` `credits`.
   road follows the route's smoothed elevation profile (see
   [WORLD-FORMAT.md](WORLD-FORMAT.md)).
 
-### Copernicus DEM GLO-30 Public (opt-in heightfield source)
+### Copernicus DEM GLO-30 Public (opt-in heightfield source; Lugano)
 
 - Used for: `height.bin.gz` and every height in the bundle, **only** in worlds
   whose recipe sets `"dem": { "source": "copernicus-glo30" }` (see
   [WORLD-FORMAT.md](WORLD-FORMAT.md) "DEM source"). Such a bundle carries the
   `copernicus-glo30` credit instead of `terrain-tiles`; that credit's
-  `licence` field holds the disclaimer below. No world uses it yet.
+  `licence` field holds the disclaimer below. Lugano uses it (since the 6 Nov
+  2026 re-bake, card t_49b58e90).
 - URL template (public bucket on the AWS Open Data Registry,
   https://registry.opendata.aws/copernicus-dem/, readme
   https://copernicus-dem-30m.s3.amazonaws.com/readme.html):
@@ -166,7 +167,7 @@ The in-app credits line comes from each bundle's `manifest.json` `credits`.
 
 - Bounding box (WGS84): south 45.93774, west 8.68965, north 46.18076, east 8.98748.
 - World extent: x -11500…11495 m, y -13500…13500 m, local transverse Mercator at 46.0593, 8.8386.
-- Elevation: 72 Terrain Tiles (terrarium) at zoom 13, `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png`: `13/4293/2908`, `13/4294/2908`, `13/4295/2908`, `13/4296/2908`, `13/4297/2908`, `13/4298/2908`, `13/4299/2908`, `13/4300/2908`, `13/4293/2909`, `13/4294/2909`, `13/4295/2909`, `13/4296/2909`, `13/4297/2909`, `13/4298/2909`, `13/4299/2909`, `13/4300/2909`, `13/4293/2910`, `13/4294/2910`, `13/4295/2910`, `13/4296/2910`, `13/4297/2910`, `13/4298/2910`, `13/4299/2910`, `13/4300/2910`, `13/4293/2911`, `13/4294/2911`, `13/4295/2911`, `13/4296/2911`, `13/4297/2911`, `13/4298/2911`, `13/4299/2911`, `13/4300/2911`, `13/4293/2912`, `13/4294/2912`, `13/4295/2912`, `13/4296/2912`, `13/4297/2912`, `13/4298/2912`, `13/4299/2912`, `13/4300/2912`, `13/4293/2913`, `13/4294/2913`, `13/4295/2913`, `13/4296/2913`, `13/4297/2913`, `13/4298/2913`, `13/4299/2913`, `13/4300/2913`, `13/4293/2914`, `13/4294/2914`, `13/4295/2914`, `13/4296/2914`, `13/4297/2914`, `13/4298/2914`, `13/4299/2914`, `13/4300/2914`, `13/4293/2915`, `13/4294/2915`, `13/4295/2915`, `13/4296/2915`, `13/4297/2915`, `13/4298/2915`, `13/4299/2915`, `13/4300/2915`, `13/4293/2916`, `13/4294/2916`, `13/4295/2916`, `13/4296/2916`, `13/4297/2916`, `13/4298/2916`, `13/4299/2916`, `13/4300/2916`.
+- Elevation: 2 Copernicus DEM GLO-30 tiles (1″ COG), `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM.tif`: `N46_00_E008_00`, `N45_00_E008_00`. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.
 - OpenStreetMap: Overpass API (`https://overpass-api.de/api/interpreter`), data as of 2026-10-01T00:00:00Z (attic query), layers roads, water, landcover, buildings, treerows, pois, landmarks over the bounding box above. Queries are recorded in `tools/worldbake/reports/lugano.json`.
 - Routes: `scenic-lugano-melide`, `scenic-locarno-brissago` from `src/lib/scenicRouteData.ts` (OSRM bike geometry + Copernicus GLO-90 profile via Open-Meteo).
 - Validation: 50 seeded Open-Meteo elevation samples (Copernicus GLO-90), not shipped.

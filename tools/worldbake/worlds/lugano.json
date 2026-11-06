@@ -4,7 +4,7 @@
   "description": "Lake Lugano from the city's lakefront past Paradiso to the Melide causeway, Monte Ceneri, and Lago Maggiore from Locarno past Ascona to Brissago.",
   "origin": { "lat": 46.0593, "lon": 8.8386 },
   "grid": { "xMin": -11500, "yMax": 13500, "cellSize": 15, "cols": 1534, "rows": 1801 },
-  "dem": { "zoom": 13 },
+  "dem": { "source": "copernicus-glo30" },
   "osmDate": "2026-10-01T00:00:00Z",
   "routes": ["scenic-lugano-melide", "scenic-locarno-brissago"],
   "routesOutside": {
@@ -34,19 +34,19 @@
     "reference": "open-meteo-elevation/copernicus-glo90",
     "registration": "glo90-nw-node",
     "sample_count": 50,
-    "dem_source": "aws-terrain-tiles",
+    "dem_source": "copernicus-glo30",
     "terrain_class": "mountain",
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.5177,
+    "steep_fraction": 0.5503,
     "floor_source": "copernicus-glo30-cog/lugano-t_045a5081",
     "floor_rms_m": 1.71,
     "own_error_allowance_m": 6,
     "bound_m": 6.24,
-    "registered_rms_m": 8.88,
-    "point_rms_m": 18.17,
-    "max_abs_registered_err_m": 29.52,
-    "pass": false
+    "registered_rms_m": 1.81,
+    "point_rms_m": 19.47,
+    "max_abs_registered_err_m": 7.49,
+    "pass": true
   }
 }

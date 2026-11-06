@@ -66,11 +66,11 @@
       "attribution": "© OpenStreetMap contributors"
     },
     {
-      "id": "terrain-tiles",
-      "name": "Terrain Tiles (Tilezen/Mapzen terrarium) on the AWS Open Data Registry",
-      "licence": "Mixed open sources, attribution required",
-      "url": "https://github.com/tilezen/joerd/blob/master/docs/attribution.md",
-      "attribution": "Europe terrain data produced using Copernicus data and information funded by the European Union - EU-DEM layers; SRTM and GMTED2010 terrain data courtesy of the U.S. Geological Survey; Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration"
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
     },
     {
       "id": "copernicus-glo90",

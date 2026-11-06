@@ -616,9 +616,8 @@ describe('P1.3 v2: validate.mjs on a baked world', () => {
 describe('P1.3 v2: committed worlds', () => {
   // Shipped worlds that fail the gate, each with the card that fixes it. Remove
   // the entry with the fix: the test fails while a listed world passes.
-  const KNOWN_FAILURES: Record<string, string> = {
-    lugano: 't_49b58e90: re-bake from copernicus-glo30 (EU-DEM measures 8.88 m registered against the 6.24 m mountain bound)',
-  };
+  // (Lugano left the list with its GLO-30 re-bake, card t_49b58e90: 1.81 m registered.)
+  const KNOWN_FAILURES: Record<string, string> = {};
 
   it('every recipe and report carries a complete, consistent block, the same in both', () => {
     for (const id of WORLDS) {

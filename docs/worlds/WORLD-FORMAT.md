@@ -396,8 +396,8 @@ change the next bake's bytes.
 
 | `dem` | Source | Notes |
 | --- | --- | --- |
-| `{ "zoom": 13 }` (no `source`, or `"source": "aws-terrain-tiles"`) | AWS Terrain Tiles, terrarium PNGs (`fetchDem.mjs`). **The default.** | Web Mercator tiles at `zoom`; EU-DEM in Europe. Perugia and Lugano use it. |
-| `{ "source": "copernicus-glo30" }` | Copernicus DEM GLO-30 Public, 1″ Cloud Optimized GeoTIFFs (`fetchGlo30.mjs` + `geotiff.mjs`). Opt-in. | No `zoom` (the bake refuses one). The manifest gets `demSource: "copernicus-dem-30m/glo30-cog"`, no `demZoom`, and the `copernicus-glo30` credit (notice plus the licence's Art. 6(c) liability disclaimer, see [CREDITS.md](CREDITS.md)) in place of `terrain-tiles`. |
+| `{ "zoom": 13 }` (no `source`, or `"source": "aws-terrain-tiles"`) | AWS Terrain Tiles, terrarium PNGs (`fetchDem.mjs`). **The default.** | Web Mercator tiles at `zoom`; EU-DEM in Europe. Perugia uses it. |
+| `{ "source": "copernicus-glo30" }` | Copernicus DEM GLO-30 Public, 1″ Cloud Optimized GeoTIFFs (`fetchGlo30.mjs` + `geotiff.mjs`). Opt-in; the default for mountain worlds. Lugano uses it. | No `zoom` (the bake refuses one). The manifest gets `demSource: "copernicus-dem-30m/glo30-cog"`, no `demZoom`, and the `copernicus-glo30` credit (notice plus the licence's Art. 6(c) liability disclaimer, see [CREDITS.md](CREDITS.md)) in place of `terrain-tiles`. |
 
 Both sources give `buildHeightfield.sampleGrid` the same thing: a bilinear
 `sample(lat, lon)` on the source's pixel centres. Every grid node is projected
@@ -567,15 +567,33 @@ and `scenic-locarno-brissago`, about 22 km apart across Monte Ceneri. The other
 Ticino and Lombardy routes (Magadino plain, Valle Maggia, Lake Varese, Lake
 Como) are 20–45 km further out; one world reaching them would pass 2048
 nodes a side and the 8 MB budget, so they stay map rides in the Lugano
-destination until they get worlds of their own. Baked 4 Nov 2026 on cat-bed:
+destination until they get worlds of their own. Baked 4 Nov 2026 on cat-bed
+from Terrain Tiles (EU-DEM), re-baked 6 Nov 2026 from Copernicus GLO-30
+(`"dem": { "source": "copernicus-glo30" }`, card t_49b58e90). The shipped
+bundle is the GLO-30 one:
 
 | Check | Result |
 | --- | --- |
-| Bake time | 516 s from an empty cache (Overpass ≈ 7 min of it) |
-| Determinism | two bakes from cache and one from an empty cache: identical bytes for all 8 files (re-bake after the route fixes: two bakes from cache, identical) |
-| Size | 9.46 MB as shipped (gzip), 7.12 MB brotli, 19.3 MB raw |
-| Routes | max gap 0 m; grade Δ 0.61 pp (Lugano–Melide), 0.61 pp (Locarno–Brissago); painted guide 100 % on drawn roads, checked every 0.1 m across the band (Locarno–Brissago: 99.98 % within 1 m of mapped roads; the route fit moves 20 roads by at most 0.85 m: 8 bent under 247 m of route, 7 junction neighbours moved with them, 5 road ends grown ≤ 0.22 m; at the 2,072 m junction it adds one 7.6 m join instead of bending the connector path onto the wide road; a 116 m route fill used to lie beside the paths) |
-| Heightfield vs Open-Meteo, 50 seeded points | P1.3 v2 (5 Nov): `mountain` (steep fraction 0.5177), registered **8.88 m > 6.24 m, FAIL**; at the points 18.17 m (reported only) |
+| Bake time | 516 s from an empty cache (Overpass ≈ 7 min of it); the GLO-30 re-bake takes 87 s from cache (2 tiles, `N46_00_E008_00` and `N45_00_E008_00`) |
+| Determinism | two bakes from cache and one from an empty cache: identical bytes for all 8 files (re-bake after the route fixes: two bakes from cache, identical). GLO-30: two `--out` bakes and the committed bake, identical bytes for all 8 files |
+| Size | 9.73 MB as shipped (gzip), 7.41 MB brotli, 19.26 MB raw (EU-DEM: 9.46 / 7.12 / 19.26 MB). Only `height.bin.gz`, `routes.json.gz` and `manifest.json` change; the 2-D layers are byte-identical |
+| Routes | max gap 0 m; grade Δ 0.86 pp (Lugano–Melide), 0.68 pp (Locarno–Brissago); painted guide 100 % on drawn roads, checked every 0.1 m across the band (Locarno–Brissago: 99.98 % within 1 m of mapped roads; the route fit moves 20 roads by at most 0.85 m: 8 bent under 247 m of route, 7 junction neighbours moved with them, 5 road ends grown ≤ 0.22 m; at the 2,072 m junction it adds one 7.6 m join instead of bending the connector path onto the wide road; a 116 m route fill used to lie beside the paths) |
+| Heightfield vs Open-Meteo, 50 seeded points | P1.3 v2: `mountain` (steep fraction 0.5503), registered **1.81 m ≤ 6.24 m, PASS**; at the points 19.47 m (reported only) |
+
+Before and after, same 50 samples (seed 46059), same cache, same rule
+(`glo90-nw-node`):
+
+| | EU-DEM (Terrain Tiles z13) | GLO-30 |
+| --- | --- | --- |
+| **Registered RMS (gates, bound 6.24 m)** | **8.88 m, FAIL** (9.12 m under v1's node query) | **1.81 m, PASS** |
+| Registered mean bias / max abs | −1.79 m / 29.52 m | −0.05 m / 7.49 m |
+| Samples off by more than 6.24 m at the node | 16 | 1 |
+| Point RMS (reported only) | 18.17 m | 19.47 m |
+| Gentle 32 (EU-DEM relief point-to-node < 10 m): registered / point | 5.03 m / 5.72 m | 1.78 m / 5.32 m |
+| Steep 18: registered / point | 13.20 m / 29.31 m | 1.86 m / 31.67 m |
+| Steep fraction | 0.5177 | 0.5503 |
+| Heightfield range | 180.9–1907.8 m | 191.3–1949.2 m |
+| Route vs swissALTI3D, every 250 m (Lugano–Melide 32 / Locarno–Brissago 39 points): RMS, mean | 10.14 m, +7.83 m / 13.87 m, +11.05 m | 8.02 m, +4.93 m / 7.79 m, +4.70 m |
 
 Lugano–Melide's grade Δ was 1.127 pp at the first bake: its geometry rode
 ~800 m up a street and back down it with a different profile each way. The
@@ -586,25 +604,55 @@ fails any shipped route that runs over water or off its drawn roads.
 
 Under v1 (point RMS ≤ 6 m) this world failed at 18.17 m, and no 30 m DEM
 could pass: on Ticino's 30–40° slopes neighbouring GLO-90 nodes differ by
-70 m, so the point figure mostly measures where in its cell a sample fell
-(GLO-30 itself scores 20.63 m at the points). Under v2 the gate reads the
-heightfield at the node instead, and GLO-30 scores 1.71 m there: that's the
-mountain floor, and the 6.24 m bound. The EU-DEM heightfield (Terrain Tiles)
-measures 8.88 m registered (bias −1.79 m), so it **fails** v2 too, now on its
-own error: √(8.88² − 1.71²) = 8.71 m against the 6.00 m allowance.
+70 m, so the point figure mostly measures where in its cell a sample fell.
+GLO-30 is sharper than EU-DEM, so it scores *worse* at the points (19.47 m)
+and far better at the node. Under v2 the gate reads the heightfield at the
+node, and the GLO-30 bundle passes with 1.81 m, 4.43 m inside the bound. In
+quadrature that is an own error of √(1.81² − 1.71²) = 0.59 m against the
+6.00 m allowance. EU-DEM's own error was √(8.88² − 1.71²) = 8.71 m.
 
-- On the 32 samples where the ground within the GLO-90 cell is gentle
-  (heightfield relief point-to-node < 10 m) it scores 5.03 m registered,
-  5.72 m at the points; the 18 steep samples score 13.2 m registered.
-- 16 samples are off by more than 6.24 m at the node; the two worst are
-  −29.52 m at (46.11281, 8.88639) (Open-Meteo 1533 m, heightfield 1503.5 m)
-  and −29.41 m at (45.94457, 8.70333) (677 m vs 647.6 m).
-  The per-point rows are in `tools/worldbake/reports/lugano.json`.
+- **Against the floor.** The 1.71 m mountain floor (`MOUNTAIN_FLOOR_RMS_M`)
+  was measured on the 50 draws of the pre-#32 Lugano extent (four tiles, card
+  t_045a5081), and re-measuring it there gives 1.71 m again. On the shipped
+  extent's 50 samples, raw GLO-30 at the node scores 2.41 m (bias −0.10 m,
+  max 9.89 m). The bundle scores 1.81 m: 0.10 m above the floor constant and
+  0.60 m under raw GLO-30 on the same samples. Bundle and raw GLO-30 differ
+  by 0.67 m RMS at the nodes (max 2.41 m) and 0.33 m at the points: the 15 m
+  transverse Mercator resample and the 1/32 m quantisation. No sample lies on
+  a route corridor, so the carve isn't in either figure. (The ruling's
+  original 6.53 m floor came from a prototype that read the PixelIsPoint
+  tiles as PixelIsArea; see "DEM source" above.)
+- **Datum.** GLO-30 and Open-Meteo's GLO-90 are both EGM2008 heights from the
+  same WorldDEM lineage, so no datum term enters the gate. Bias at the node
+  is −0.05 m.
+- **The worst sample** is −7.49 m at (46.1148, 8.91291): Open-Meteo 726 m,
+  heightfield 718.5 m, raw GLO-30 at the node 716.1 m. GLO-30's pixel and
+  GLO-90's node disagree there, and the resample is in fact 2.4 m closer.
+  It's the only sample over 6.24 m.
 - Open-Meteo answered every one of the 50 samples from the node the rule
-  picks (`node_answer_mismatches` 0), so the registration isn't the problem.
+  picks (`node_answer_mismatches` 0). The per-point rows are in
+  `tools/worldbake/reports/lugano.json`.
 
-The fix is the GLO-30 re-bake (card t_49b58e90): the same source lineage as
-the reference, so its registered figure should land near the 1.71 m floor.
+**On the routes.** swissALTI3D (2 m lidar terrain, `api3.geo.admin.ch`,
+LN02 heights) every 250 m puts the GLO-30 route 4.7–4.9 m high on average.
+The EU-DEM route was 7.8–11.1 m high. The GLO-90 profile itself is 16.0 m RMS
+off on Locarno–Brissago (mean +10.9 m), most likely because Open-Meteo's
+north-west node lies upslope of that shore road. So the bigger
+`maxRenderMinusProfileM` in the report (20.69 m, 23.08 m; EU-DEM 14.94 m,
+9.82 m) measures the profile, not the bundle. The largest remaining error is
+Lugano–Melide above Paradiso: GLO-30 sits 16–21 m over swissALTI3D at 2.25–2.5
+and 3.25–3.5 km, where EU-DEM sat 10–18 m over it (at most 5.9 m less, at
+2.5 km). At 5 km the road drops 14.8 m to within 0.6 m of swissALTI3D. From that
+lower eye height the nearer slope hides a switchback (road 27116) that showed
+on the EU-DEM hillside: line of sight 37/37 points before, 0/37 after.
+
+GLO-30 is a surface model (buildings and canopy in, water flattened); see
+"DEM source" above. Chase shots before and after (one build, bundles
+swapped) at Lugano–Melide 2.4, 3.25 and 5 km and Locarno–Brissago 6.75 and
+7.35 km, at 1440 and 390, show no spikes, no terrain through roads or
+buildings, and the rider on the road. The steep slopes get more relief, and
+more of the pale steep-face shading. Four of them are in
+`docs/design/screenshots/v2/build/lugano-glo30/`.
 
 ### Adding a world
 

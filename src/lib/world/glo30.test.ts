@@ -477,18 +477,23 @@ describe('worldbake: manifest generator and bundle budget', () => {
   const read = (rel: string) => readFileSync(fileURLToPath(new URL(`../../../${rel}`, import.meta.url)));
   const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
 
-  it('writes the committed bundles\' generator block, key order included, for the default source', () => {
-    for (const id of ['perugia', 'lugano']) {
+  it('writes the committed bundles\' generator block, key order included, for each source', () => {
+    // Perugia bakes from the default source, Lugano from GLO-30 (card t_49b58e90).
+    const sources: Record<string, string> = { perugia: DEFAULT_DEM_SOURCE, lugano: 'copernicus-glo30' };
+    for (const [id, source] of Object.entries(sources)) {
       const recipe = JSON.parse(read(`tools/worldbake/worlds/${id}.json`).toString('utf8'));
       const shipped = JSON.parse(read(`public/worlds/${id}/manifest.json`).toString('utf8')).generator;
       const bundleBytes = recipeBundleBytes(recipe);
-      const gen = generatorFor(demSourceOf(recipe), recipe, { source: 'unused', tiles: new Array(shipped.demTiles) });
-      expect(Object.keys(gen)).toEqual(['tool', 'version', 'recipeSha256', 'osmDate', 'demSource', 'demZoom', 'demTiles']);
+      expect(demSourceOf(recipe), id).toBe(source);
+      const glo30 = source === 'copernicus-glo30';
+      const gen = generatorFor(source, recipe, { source: glo30 ? GLO30_SOURCE : 'unused', tiles: new Array(shipped.demTiles) });
+      expect(Object.keys(gen)).toEqual(['tool', 'version', 'recipeSha256', 'osmDate', 'demSource', ...(glo30 ? [] : ['demZoom']), 'demTiles']);
       // recipeSha256 covers the recipe minus its P1.3 `validation` block, so the shipped bundle
       // names the recipe that built it even after the bake writes its check back into the recipe.
       expect(gen.recipeSha256).toBe(sha(bundleBytes));
       expect(JSON.stringify(gen)).toBe(JSON.stringify(shipped));
-      expect(gen.demZoom).toBe(recipe.dem.zoom);
+      if (glo30) expect(shipped.demSource).toBe('copernicus-dem-30m/glo30-cog');
+      else expect(gen.demZoom).toBe(recipe.dem.zoom);
     }
   });
 
