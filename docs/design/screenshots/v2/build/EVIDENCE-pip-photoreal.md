@@ -40,7 +40,10 @@ above the window and ends at its bottom edge.
   size, `top` empty and `lensShiftPx` 0, before and after on all three screens, and again after
   "Back to the Velo tab". No page errors in any run.
 
-## What is left (follow-up t_a67fb090)
+## What is left (follow-up t_a67fb090) — resolved
+
+Resolved by t_a67fb090 (`EVIDENCE-photoreal-fov.md`): photoreal now draws the ride's vertical field
+(60°, as the world renderer), and the wheels clear the bar at every size. The original note:
 
 The rider's wheels (the bottom ~0.4 m, ~23 px) still sit behind the bar at every size: the rider's
 ground point is ~23 px under the bar top (laptop S: point 145 + 91/1.7 ≈ 198 vs bar 174). The world

@@ -1544,6 +1544,11 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
 export const GROUND_SAMPLE_INTERVAL_MS = 250;
 /** …or as soon as the rider has moved this far (m) since the last sample. */
 export const GROUND_SAMPLE_MOVE_M = 5;
+/**
+ * …or every frame while the drawn globe is more than this (m) over the mesh
+ * reading: the rider stands on the globe, not on the mesh (createGroundSampler).
+ */
+export const GLOBE_OVER_MESH_M = 0.25;
 
 /**
  * The avatar's ground height one frame on: up at once (a rider eased up onto
@@ -2131,11 +2136,26 @@ export function createGroundSampler(scene: Cesium.Scene) {
       }
       const movedM = metresBetween(lon, lat, lastLon, lastLat);
       // No mesh road under the rider yet: look again every frame, so a tile
-      // that loads over the globe is stood on at once (as before). Not while
-      // the mesh there is only something over the road (its reads look under
-      // it, several a sample): at the usual pace.
-      const waiting = last === undefined && road.status() !== 'overhang';
-      if (waiting || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M) {
+      // that loads over the globe is stood on at once (as before). The same
+      // while the rider stands on the drawn globe over a mesh reading under
+      // it: a coarse tile, which a finer one replaces any frame (at the Santa
+      // Monica start one read 11 m under the globe, then the street landed
+      // 4 m over it and the rider stood under it until the next sample, with
+      // the camera under the road). Once a reading is the road (or something
+      // over it), it lasts until the mesh is the ground or, 750 ms on, the
+      // globe gate hides the globe (renderers/cesium/globeGate), which then no
+      // longer counts as drawn. While the readings are only coarse tiles
+      // (createMeshRoadFilter's 'coarse': the last road is held), it has no
+      // bound: meshGround stays false, so the gate keeps the globe drawn, and
+      // the mesh is read every frame for as long as that lasts, as with no
+      // mesh road at all. Not while the mesh there is only something over
+      // the road (its reads look under it, several a sample): at the usual
+      // pace.
+      const drawn = drawnGroundHeight(scene, lon, lat, last, expect);
+      const onGlobe = last !== undefined && drawn !== undefined && drawn > last + GLOBE_OVER_MESH_M;
+      const waiting = road.status() !== 'overhang' && (last === undefined || onGlobe);
+      const fresh = waiting || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M;
+      if (fresh) {
         lastMs = nowMs;
         lastLon = lon;
         lastLat = lat;
@@ -2207,7 +2227,7 @@ export function createGroundSampler(scene: Cesium.Scene) {
       }
       // The mesh reading is reused between samples; the globe (drawn over the
       // mesh wherever its terrain is higher) is read fresh every call.
-      return drawnGroundHeight(scene, lon, lat, last, expect);
+      return fresh ? drawnGroundHeight(scene, lon, lat, last, expect) : drawn;
     },
     /** The photoreal mesh is loaded at road level under the last spot sampled. */
     meshGround(): boolean {

@@ -56,13 +56,14 @@ import {
 import { createAvatar, createGroundSampler, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { ridePose } from '@/lib/ride/rideSim';
+import { RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
 import type { RiderPose, WorldViewProps } from '@/lib/world/renderer';
 import { createCesiumWorldRenderer } from '@/renderers/cesium/cesiumWorldRenderer';
 import { GroundGate } from '@/renderers/cesium/globeGate';
 import { StartGroundWatch } from '@/renderers/cesium/startGround';
 import { createSideCamSight } from '@/lib/sideCamSight';
 import { placeSideCam } from '@/renderers/cesium/sideCam';
-import { applyHudLensCrop, lensCropState, type LensCropState } from '@/renderers/cesium/hudLensCrop';
+import { applyHudLensCrop, lensCropState, viewFovYDeg, type LensCropState } from '@/renderers/cesium/hudLensCrop';
 import {
   applyGraphicsQuality,
   recommendedGraphicsQuality,
@@ -502,12 +503,20 @@ export function CesiumScene({
         lost: () => context.lost(canvasKey),
         restored: () => context.restored(canvasKey),
       });
-      // In the floating ride window the bar covers the bottom of the picture
-      // (data-hud-bottom): draw a taller canvas cropped by the window, so the
-      // rider sits in the clear band above the bar (hudLensCrop). Checked
-      // before every frame, ahead of its camera and canvas size.
-      const lensView = { container, camera: viewer.camera, resize: () => viewer.resize() };
-      const lensCrop = lensCropState(lensView);
+      // The ride camera's lens (hudLensCrop): the vertical field both
+      // renderers share (Cesium's own fov spans the canvas's longer side), and
+      // in the floating ride window, where the bar covers the bottom of the
+      // picture (data-hud-bottom), a taller canvas cropped by the window, so
+      // the rider sits in the clear band above the bar. Checked before every
+      // frame, ahead of its camera and canvas size. A WebXR session sets its
+      // own projection off the default render loop (lib/webxr).
+      const lensView = {
+        container,
+        camera: viewer.camera,
+        resize: () => viewer.resize(),
+        ownsFrustum: () => viewer.useDefaultRenderLoop,
+      };
+      const lensCrop = lensCropState(Cesium.Math.toRadians(RIDE_FOV_Y_DEG));
       lensCropRef.current = lensCrop;
       viewer.scene.preUpdate.addEventListener(() => {
         applyHudLensCrop(lensView, lensCrop);
@@ -1291,6 +1300,8 @@ export function CesiumScene({
             riderHeightPx: head && foot ? Math.round(Math.hypot(head.x - foot.x, head.y - foot.y)) : null,
             viewportPx: [viewer.canvas.clientWidth, viewer.canvas.clientHeight - cropTop],
             lensShiftPx: cropTop / 2,
+            // The view's vertical field of view (the canvas's, less the strip above the view).
+            fovYDeg: viewFovYDeg(viewer.camera.frustum, viewer.canvas.clientHeight, cropTop),
           };
         };
       }

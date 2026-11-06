@@ -18,6 +18,7 @@ import {
   createMeshRoadFilter,
   DECK_RUN_M,
   followGround,
+  GLOBE_OVER_MESH_M,
   GLOBE_STANDIN_M,
   GROUND_SAMPLE_INTERVAL_MS,
   OVERHANG_GIVE_UP_M,
@@ -142,24 +143,100 @@ describe('the rider stands on the drawn ground over the photoreal mesh', () => {
     expect(drawnGroundHeight(flat, 12.1, 43.2, undefined, 259)).toBe(0);
   });
 
-  it("the avatar's throttled sampler reuses the mesh reading but reads the globe fresh every frame", async () => {
+  it("the avatar's throttled sampler reuses the mesh reading while the mesh is the ground; the globe is read fresh every frame", async () => {
     setIonToken('eyJ_test');
     const { tileset, getHeight } = await photoreal(306.2);
-    const g: GlobeOpts = { height: 309.2 };
+    const g: GlobeOpts = { height: 305 };
     const { s, globe } = scene(tileset, g);
     globe.getHeight.mockImplementation(() => g.height);
     const sampler = createGroundSampler(s);
-    expect(sampler.sample(12.1, 43.2, 259, 1000)).toBeCloseTo(309.2, 6);
-    // Next frame, a metre on: the globe rose, the mesh sample is reused.
-    g.height = 309.9;
-    expect(sampler.sample(12.10001, 43.2, 259, 1016)).toBeCloseTo(309.9, 6);
+    expect(sampler.sample(12.1, 43.2, 259, 1000)).toBeCloseTo(306.2, 6);
+    // Next frame, a metre on: the globe rose but stays under the mesh, the mesh sample is reused.
+    g.height = 305.9;
+    expect(sampler.sample(12.10001, 43.2, 259, 1016)).toBeCloseTo(306.2, 6);
     expect(getHeight).toHaveBeenCalledTimes(1);
-    // The globe dips under the mesh: the (cached) mesh is the ground again.
+    // The globe rises over the mesh: it is the ground at once (read fresh).
+    g.height = 309.9;
+    expect(sampler.sample(12.10002, 43.2, 259, 1032)).toBeCloseTo(309.9, 6);
+    // Under the mesh again: the mesh, sampled again after the interval.
     g.height = 305;
-    expect(sampler.sample(12.10002, 43.2, 259, 1032)).toBeCloseTo(306.2, 6);
-    // After the interval the mesh is sampled again.
-    sampler.sample(12.10003, 43.2, 259, 1032 + GROUND_SAMPLE_INTERVAL_MS);
+    sampler.sample(12.10003, 43.2, 259, 1048);
+    const calls = getHeight.mock.calls.length;
+    expect(sampler.sample(12.10004, 43.2, 259, 1064)).toBeCloseTo(306.2, 6);
+    expect(getHeight).toHaveBeenCalledTimes(calls);
+    sampler.sample(12.10005, 43.2, 259, 1048 + GROUND_SAMPLE_INTERVAL_MS);
+    expect(getHeight).toHaveBeenCalledTimes(calls + 1);
+  });
+
+  it('on the globe over a coarse mesh reading, the mesh is read every frame: a finer tile landing over the globe is stood on at once', async () => {
+    // Santa Monica start, photoreal at the ride's 60° field (t_a67fb090): a
+    // coarse tile read 11 m under the drawn globe, the street landed 4.2 m
+    // over it a few frames later, and the throttled sampler kept the rider on
+    // the globe, under the street, for 150–290 ms (camera under the road).
+    setIonToken('eyJ_test');
+    const { tileset, getHeight } = await photoreal(295.0);
+    const g: GlobeOpts = { height: 306.0 };
+    const { s, globe } = scene(tileset, g);
+    globe.getHeight.mockImplementation(() => g.height);
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(12.1, 43.2, 259, 1000)).toBeCloseTo(306.0, 6);
+    expect(sampler.meshGround()).toBe(true);
+    // The street's tile lands, one frame and a metre on.
+    getHeight.mockImplementation(() => 310.2);
+    expect(sampler.sample(12.10001, 43.2, 259, 1016)).toBeCloseTo(310.2, 6);
+    // On the mesh now: its reading is reused until the interval.
+    const calls = getHeight.mock.calls.length;
+    expect(sampler.sample(12.10002, 43.2, 259, 1032)).toBeCloseTo(310.2, 6);
+    expect(getHeight).toHaveBeenCalledTimes(calls);
+  });
+
+  it('on the globe over the mesh, a globe within GLOBE_OVER_MESH_M of the reading keeps the throttle', async () => {
+    setIonToken('eyJ_test');
+    const { tileset, getHeight } = await photoreal(306.2);
+    const g: GlobeOpts = { height: 306.2 + GLOBE_OVER_MESH_M - 0.01 };
+    const { s, globe } = scene(tileset, g);
+    globe.getHeight.mockImplementation(() => g.height);
+    const sampler = createGroundSampler(s);
+    sampler.sample(12.1, 43.2, 259, 1000);
+    sampler.sample(12.10001, 43.2, 259, 1016);
+    expect(getHeight).toHaveBeenCalledTimes(1);
+    g.height = 306.2 + GLOBE_OVER_MESH_M + 0.01;
+    sampler.sample(12.10002, 43.2, 259, 1032);
     expect(getHeight).toHaveBeenCalledTimes(2);
+  });
+
+  it('a hidden globe over the mesh reading is not stood on: the mesh reading keeps the throttle', async () => {
+    // Once the mesh is the road under the rider, renderers/cesium/globeGate
+    // hides the globe (globe.show = false). Its tiles still read 3.7 m over
+    // the mesh here, but nothing draws them: the mesh is the ground, and its
+    // reading (a tile pick each) is reused until the interval, not taken
+    // every frame as while the globe is drawn over it.
+    setIonToken('eyJ_test');
+    const { tileset, getHeight } = await photoreal(306.2);
+    const g: GlobeOpts = { height: 309.9, show: false };
+    const { s, globe } = scene(tileset, g);
+    globe.getHeight.mockImplementation(() => g.height);
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(12.1, 43.2, 259, 1000)).toBeCloseTo(306.2, 6);
+    expect(sampler.meshGround()).toBe(true);
+    expect(getHeight).toHaveBeenCalledTimes(1);
+    // 36 km/h, 60 fps (0.16 m a frame): every frame inside the interval reuses the reading.
+    const lonAt = (frame: number) => 12.1 + frame * 2e-6;
+    let frame = 1;
+    for (; 1000 + 16 * frame < 1000 + GROUND_SAMPLE_INTERVAL_MS; frame++) {
+      expect(sampler.sample(lonAt(frame), 43.2, 259, 1000 + 16 * frame)).toBeCloseTo(306.2, 6);
+    }
+    expect(frame).toBeGreaterThan(10);
+    expect(getHeight).toHaveBeenCalledTimes(1);
+    // The interval is up: read again, once.
+    sampler.sample(lonAt(frame), 43.2, 259, 1000 + GROUND_SAMPLE_INTERVAL_MS);
+    sampler.sample(lonAt(frame + 1), 43.2, 259, 1016 + GROUND_SAMPLE_INTERVAL_MS);
+    expect(getHeight).toHaveBeenCalledTimes(2);
+    // The same globe drawn again: it is the ground, and the mesh is read every frame.
+    globe.show = true;
+    expect(sampler.sample(lonAt(frame + 2), 43.2, 259, 1032 + GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(309.9, 6);
+    expect(sampler.sample(lonAt(frame + 3), 43.2, 259, 1048 + GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(309.9, 6);
+    expect(getHeight).toHaveBeenCalledTimes(4);
   });
 });
 
