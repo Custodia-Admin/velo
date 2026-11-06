@@ -9,11 +9,9 @@ import type {
   Toast,
   TrainerData,
 } from '@/types';
-import type { ParsedFit } from '@/lib/fitParser';
 import type { SensorConnectionStatus } from '@/lib/bleSensors';
 import type { TrainerControlMode } from '@/lib/ftms';
 import { setTrainerControlMode as setFtmsTrainerControlMode } from '@/lib/ftms';
-import type { Workout } from '@/lib/workout';
 import { computeDraftState, type DraftState } from '@/lib/drafting';
 import type { PaceBot } from '@/lib/paceBots';
 import { createPaceBot, tickPaceBot } from '@/lib/paceBots';
@@ -119,23 +117,6 @@ interface RideStoreState {
   /** Clear the live polyline (called on start of a new outdoor ride). */
   clearLivePolyline: () => void;
 
-  // ---- Replay (ADDITIVE) ----
-  /**
-   * When non-null the ride is a replay session. Contains the full parsed FIT
-   * telemetry track. The replay loop reads from this instead of computing
-   * physics. Null during a normal live ride.
-   */
-  replayData: ParsedFit | null;
-  /**
-   * Index into replayData.samples pointing at the "current" sample.
-   * Advances each frame in the replay loop.
-   */
-  replayIndex: number;
-  /** Action: load a parsed FIT as the replay source and enter ready state. */
-  loadReplay: (fit: ParsedFit) => void;
-  /** Action: clear replay data and return to normal ride state. */
-  clearReplay: () => void;
-
   // ---- ADDITIVE: Standalone BLE sensor state ----
   /**
    * Connection status for the dedicated Heart Rate Monitor sensor.
@@ -191,7 +172,7 @@ interface RideStoreState {
   // ---- ADDITIVE: ERG/SIM trainer control state ----
   /**
    * Current trainer control mode.
-   *   'erg' = the workout engine drives power via setTargetPower (opcode 0x05).
+   *   'erg' = the trainer holds a target power via setTargetPower (opcode 0x05).
    *   'sim' = the ride loop drives gradient via setSimulationParams (opcode 0x11).
    * Defaults to 'sim' so existing behaviour is unchanged.
    */
@@ -199,37 +180,9 @@ interface RideStoreState {
   /**
    * The power target most recently sent to the trainer in ERG mode, watts.
    * null when not in ERG mode or no target has been set yet.
-   * Read by ConnectionStatus / TrainerConnect to show current target in the HUD.
+   * Read by the ride chip and the Devices trainer row to show the current target.
    */
   targetPowerW: number | null;
-
-  // ---- ADDITIVE: Workout engine state ----
-  /**
-   * The workout currently bound to this ride session.
-   * null = normal free-ride (no structured workout active).
-   * Set before starting a ride via loadWorkout / clearWorkout.
-   */
-  activeWorkout: Workout | null;
-  /**
-   * True while the workout engine is driving the trainer.
-   * Acts as a mutual-exclusion guard: useRideLoop bails when this is true
-   * (same pattern as replayData), and useWorkoutEngine owns tick() instead.
-   */
-  workoutRunning: boolean;
-  /** Elapsed seconds into the active workout (driven by useWorkoutEngine). */
-  workoutElapsedSec: number;
-  /** Last resolved target watts for the HUD. null = no ERG target (grade/free). */
-  workoutTargetWatts: number | null;
-  /** Action: attach a workout to the current ride session. */
-  loadWorkout: (workout: Workout) => void;
-  /** Action: detach the workout and return to free-ride. */
-  clearWorkout: () => void;
-  /** Action: set workoutRunning flag (called by useWorkoutEngine). */
-  setWorkoutRunning: (running: boolean) => void;
-  /** Action: advance workout elapsed time (called each frame by useWorkoutEngine). */
-  advanceWorkoutElapsed: (dt: number) => void;
-  /** Action: update the last resolved ERG target for the HUD. */
-  setWorkoutTargetWatts: (watts: number | null) => void;
 
   // ---- ADDITIVE: Multi-rider session ----
   /**
@@ -291,7 +244,7 @@ interface RideStoreState {
   // ---- ADDITIVE: ERG control actions ----
   /** Set trainer control mode (erg or sim). Reflects to ftms module. */
   setTrainerControlMode: (mode: TrainerControlMode) => void;
-  /** Single source-of-truth action for UI/workout paths that need store + FTMS sync. */
+  /** Single source-of-truth action for UI paths that need store + FTMS sync. */
   setTrainerControlModeSynced: (mode: TrainerControlMode) => void;
   /** Update the current ERG target power displayed in the HUD. */
   setTargetPowerW: (watts: number | null) => void;
@@ -377,13 +330,6 @@ function sourceChangeAllowed(st: RideStoreState, patch: Partial<SourceFields>): 
   return dispatchFsm(st, { type: 'SET_SOURCE', source }) !== null;
 }
 
-/** Leaving the session's replay (or a plain reset when none is loaded). */
-function leaveReplayEvent(st: RideStoreState, hasRoute: boolean): RideEvent {
-  return st.replayData
-    ? { type: 'CLEAR_REPLAY', source: sourceOf({ ...st, replayData: null }), hasRoute }
-    : { type: 'RESET', hasRoute };
-}
-
 let toastCounter = 0;
 function genToastId(): string {
   toastCounter += 1;
@@ -442,10 +388,6 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   rideMode: 'trainer',
   livePolyline: [],
 
-  // Replay initial state (ADDITIVE)
-  replayData: null,
-  replayIndex: 0,
-
   // ---- ADDITIVE: Sensor initial state ----
   hrSensorStatus: 'disconnected',
   hrSensorDeviceName: null,
@@ -460,39 +402,6 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   // ---- ADDITIVE: ERG/SIM initial state ----
   trainerControlMode: 'sim',
   targetPowerW: null,
-
-  // ---- ADDITIVE: Workout engine initial state ----
-  activeWorkout: null,
-  workoutRunning: false,
-  workoutElapsedSec: 0,
-  workoutTargetWatts: null,
-
-  // ---- ADDITIVE: Workout actions ----
-  loadWorkout: (workout) =>
-    set({
-      activeWorkout: workout,
-      workoutRunning: false,
-      workoutElapsedSec: 0,
-      workoutTargetWatts: null,
-    }),
-
-  clearWorkout: () =>
-    set({
-      activeWorkout: null,
-      workoutRunning: false,
-      workoutElapsedSec: 0,
-      workoutTargetWatts: null,
-    }),
-
-  setWorkoutRunning: (running) => {
-    if (!sourceChangeAllowed(get(), { workoutRunning: running })) return;
-    set({ workoutRunning: running });
-  },
-
-  advanceWorkoutElapsed: (dt) =>
-    set((st) => ({ workoutElapsedSec: st.workoutElapsedSec + dt })),
-
-  setWorkoutTargetWatts: (watts) => set({ workoutTargetWatts: watts }),
 
   // ---- ADDITIVE: Multi-rider actions ----
   setMultiriderId: (id) => set({ multiriderId: id ?? undefined }),
@@ -541,58 +450,12 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
 
   clearLivePolyline: () => set({ livePolyline: [] }),
 
-  // ---- Replay actions (ADDITIVE) ----
-  loadReplay: (fit) =>
-    set({
-      route: fit.route,
-      replayData: fit,
-      replayIndex: 0,
-      rideState: toRideState(transition(selectRideFsm(get()), { type: 'LOAD_REPLAY' }).phase),
-      distance: 0,
-      elapsedMs: 0,
-      samples: [],
-      startedAt: null,
-      speed: 0,
-      trainerSpeed: 0,
-      power: 0,
-      cadence: 0,
-      heartRate: null,
-      grade: 0,
-      elevation: fit.route.points[0].ele,
-      lastSentGrade: NaN,
-    }),
-
-  clearReplay: () =>
-    set((st) => ({
-      replayData: null,
-      replayIndex: 0,
-      // Keep the route loaded so the globe still shows it; reset ride state.
-      rideState: toRideState(transition(selectRideFsm(st), leaveReplayEvent(st, !!st.route)).phase),
-      distance: 0,
-      elapsedMs: 0,
-      samples: [],
-      startedAt: null,
-      speed: 0,
-      trainerSpeed: 0,
-      power: 0,
-      cadence: 0,
-      heartRate: null,
-      grade: 0,
-      elevation: st.route?.points[0].ele ?? 0,
-      lastSentGrade: NaN,
-    })),
-
   setRoute: (route) =>
     set((st) => ({
       route,
-      // Loading a route abandons any ride or replay in progress.
+      // Loading a route abandons any ride in progress.
       rideState: toRideState(
-        transition(
-          selectRideFsm(st),
-          st.replayData
-            ? leaveReplayEvent(st, !!route)
-            : { type: route ? 'ROUTE_LOADED' : 'ROUTE_CLEARED' },
-        ).phase,
+        transition(selectRideFsm(st), { type: route ? 'ROUTE_LOADED' : 'ROUTE_CLEARED' }).phase,
       ),
       distance: 0,
       elapsedMs: 0,
@@ -606,9 +469,6 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       grade: 0,
       elevation: route?.points[0].ele ?? 0,
       lastSentGrade: NaN,
-      // Clear any active replay when a new route is loaded normally
-      replayData: null,
-      replayIndex: 0,
       // The rider's pace partners stay picked and go back to the start line.
       paceBots: reseatPaceBots(st.paceBots, route),
     })),
@@ -789,11 +649,6 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       grade: 0,
       elevation: get().route?.points[0].ele ?? 0,
       lastSentGrade: NaN,
-      replayIndex: 0,
-      // Reset workout engine state but keep the bound workout so user can re-ride
-      workoutRunning: false,
-      workoutElapsedSec: 0,
-      workoutTargetWatts: null,
       // Pace partners back to the start line for the re-ride.
       paceBots: reseatPaceBots(get().paceBots, get().route),
     }),
@@ -808,15 +663,8 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       let newState: RideState = st.rideState;
 
       if (st.route && st.route.totalDistance > 0 && newDistance >= st.route.totalDistance) {
-        if (st.workoutRunning) {
-          // The workout outlasts the map — loop the route for another lap
-          // rather than ending the session early. The workout engine still
-          // calls finish() when the workout itself completes.
-          newDistance %= st.route.totalDistance;
-        } else {
-          newDistance = st.route.totalDistance;
-          newState = toRideState(transition(selectRideFsm(st), { type: 'FINISH' }).phase);
-        }
+        newDistance = st.route.totalDistance;
+        newState = toRideState(transition(selectRideFsm(st), { type: 'FINISH' }).phase);
       }
 
       const elapsedMs = st.elapsedMs + input.dt * 1000;
@@ -861,9 +709,9 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         elevation: input.elevationNow,
         // A connected trainer owns speed (set by ingest; `displaySpeed`
         // carries the virtual-gear-adjusted figure from the loop). Everything
-        // else — Demo Mode, replay, outdoor, workouts, and riding before a
-        // trainer is paired — shows the loop's computed/recorded speed, which
-        // is also what advances distance.
+        // else — Demo Mode, outdoor, a lost link and riding before a trainer
+        // is paired — shows the loop's speed (physics or GPS), which is also
+        // what advances distance.
         speed:
           driveOf(selectRideFsm(st)) === 'trainer'
             ? (input.displaySpeed ?? st.speed)

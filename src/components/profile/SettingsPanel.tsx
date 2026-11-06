@@ -81,7 +81,7 @@ export function SettingsPanel({
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // Re-sync the active tab when the caller asks us to open with a specific
-  // initial tab (e.g. NoTokenBanner → 'visual'). Without this the second
+  // initial tab (e.g. the photoreal notice → 'visual'). Without this the second
   // open of the panel would stay on whatever tab the user last viewed.
   useEffect(() => {
     if (open) setActiveTab(initialTab);
@@ -116,11 +116,15 @@ export function SettingsPanel({
     [],
   );
 
-  // Close on Escape
+  // Close on Escape. It stops here: on the ride's window Escape is the
+  // pause / finish shortcut, so closing Settings mid-ride paused the ride.
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -245,7 +249,7 @@ export function SettingsButton({
   const [initialTab, setInitialTab] = useState<TabId>('rider');
 
   // Listen for global "open settings" events fired by lightweight nudges
-  // like the NoTokenBanner. The custom-event channel keeps consumers from
+  // like the photoreal notice (velo/PhotorealNotice). The custom-event channel keeps consumers from
   // having to prop-drill the setter or share a context.
   useEffect(() => {
     function onOpen(e: Event) {

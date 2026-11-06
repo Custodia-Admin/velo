@@ -21,7 +21,7 @@ import { offsetSideways } from '@/lib/laneOffset';
 import { rideDrive, type RideDriveInput } from '@/lib/rideDrive';
 import type { RiderPose } from '@/lib/world/renderer';
 
-/** Grade smoothing, same factor as useRideLoop / useWorkoutEngine. */
+/** Grade smoothing, same factor as useRideLoop. */
 export const GRADE_EMA_ALPHA = 0.18;
 
 /** Longest step the sim integrates at once, seconds (matches the loop's clamp). */
@@ -44,8 +44,6 @@ export interface RideSimInputs {
   dt: number;
   /** Trainer / demo inputs for `rideDrive` (the grade comes from the route). */
   drive: Omit<RideDriveInput, 'gradePct'>;
-  /** Loop the route instead of finishing at its end (workouts). */
-  loop?: boolean;
   /** Current handlebar lane offset, metres (+ = right). */
   laneOffsetM?: number;
 }
@@ -126,13 +124,9 @@ export function step(state: RideSimState, inputs: RideSimInputs, route: Route): 
   let rideState: RideState = state.rideState;
   let finished = false;
   if (route.totalDistance > 0 && distance >= route.totalDistance) {
-    if (inputs.loop) {
-      distance %= route.totalDistance;
-    } else {
-      distance = route.totalDistance;
-      rideState = 'finished';
-      finished = true;
-    }
+    distance = route.totalDistance;
+    rideState = 'finished';
+    finished = true;
   }
 
   const next: RideSimState = {

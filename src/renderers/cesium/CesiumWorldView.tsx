@@ -1444,7 +1444,14 @@ export function CesiumScene({
                 sideCamCutsRef.current = cuts;
                 cameraLiftRef.current = 0;
               }
-              const needed = ground === undefined ? 0 : Math.max(0, ground + CHASE_MIN_CLEARANCE_M - camCarto.height);
+              const needed =
+                ground === undefined || (ground > camCarto.height && sideCamSightRef.current.castClear())
+                  ? 0
+                  : Math.max(0, ground + CHASE_MIN_CLEARANCE_M - camCarto.height);
+              // A top over the camera while the sight's casts see the rider
+              // with air under the camera is a canopy it stands under: lifted
+              // over it, it filmed palm crowns from above (Santa Monica
+              // 1555 m, t_ee2165b8). Only a top under the camera lifts it.
               const lift = Math.max(needed, cameraLiftRef.current * Math.exp(-1.5 * Math.min(dt, 0.1)));
               cameraLiftRef.current = lift;
               if (lift > 0.01) {

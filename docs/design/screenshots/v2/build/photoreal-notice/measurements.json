@@ -1,0 +1,1284 @@
+{
+ "card": "t_375b203d",
+ "route": "scenic-magadino-plain (Bellinzona to Locarno, outside every baked world: photoreal, token-free OSM)",
+ "builds": {
+  "before": "origin/main 89a6f01 + PR #66 016f638 (trial merge f0c12a1; banner code = main), token-free prod dist",
+  "after": "the same + this branch (trial merge 65c72e2 of b98ec54 = rebased 69b1a1a, identical patches), token-free prod dist"
+ },
+ "method": {
+  "hudAreaPct": "scripts/v2-build-shots/hud_area.py HUD_AREA: sum of visible HUD surface rects / viewport (owner budget <= 15 %)",
+  "riderBox": "__veloRideDebug(): riderScreen (1 m above ground) and riderHeightPx (1.7 m); box = x +/- 0.3 h, foot = y + h/1.7, head = foot - h (the e2e uses the same box)",
+  "states": "riding = 6 s after Cesium frame 30; 3D view stopped = WEBGL_lose_context.loseContext() on the viewer + 3 s (PR #66 chip); back = after the chip tap",
+  "probe": "~/.hermes/handoffs/velo/t_375b203d/notice_probe.py"
+ },
+ "tab": {
+  "1440": {
+   "before": {
+    "riding": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 6.6,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 305,
+       "y": 810,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "Add a free Cesium ion token for photorea",
+       "x": 496,
+       "y": 697,
+       "w": 448,
+       "h": 51
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 305,
+       "y": 762,
+       "w": 195,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 496,
+      "y": 697,
+      "w": 448,
+      "h": 51,
+      "text": "Add a free Cesium ion token for photoreal terrain & satellite imageryfor photoreal EarthSettings",
+      "textLines": 2
+     },
+     "riderBox": {
+      "x": 621,
+      "y": 516,
+      "w": 176,
+      "h": 293
+     },
+     "noticeRiderGapPx": {
+      "x": -301,
+      "y": -112
+     }
+    },
+    "viewStopped": {
+     "chip": "3D view stopped \u00b7 tap to reload",
+     "hudAreaPct": 6.8,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 305,
+       "y": 810,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "Add a free Cesium ion token for photorea",
+       "x": 496,
+       "y": 697,
+       "w": 448,
+       "h": 51
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 305,
+       "y": 762,
+       "w": 258,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 496,
+      "y": 697,
+      "w": 448,
+      "h": 51,
+      "text": "Add a free Cesium ion token for photoreal terrain & satellite imageryfor photoreal EarthSettings",
+      "textLines": 2
+     },
+     "riderBox": {
+      "x": 632,
+      "y": 516,
+      "w": 176,
+      "h": 293
+     },
+     "noticeRiderGapPx": {
+      "x": -312,
+      "y": -112
+     }
+    },
+    "afterTap": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 6.6,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 302,
+       "y": 810,
+       "w": 837,
+       "h": 66
+      },
+      {
+       "name": "Add a free Cesium ion token for photorea",
+       "x": 496,
+       "y": 697,
+       "w": 448,
+       "h": 51
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 302,
+       "y": 762,
+       "w": 195,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 496,
+      "y": 697,
+      "w": 448,
+      "h": 51,
+      "text": "Add a free Cesium ion token for photoreal terrain & satellite imageryfor photoreal EarthSettings",
+      "textLines": 2
+     },
+     "riderBox": {
+      "x": 632,
+      "y": 516,
+      "w": 176,
+      "h": 293
+     },
+     "noticeRiderGapPx": {
+      "x": -312,
+      "y": -112
+     }
+    },
+    "pageErrors": []
+   },
+   "after": {
+    "riding": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 5.7,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 305,
+       "y": 810,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "photoreal-notice",
+       "x": 840,
+       "y": 762,
+       "w": 294,
+       "h": 40
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 305,
+       "y": 762,
+       "w": 195,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 844,
+      "y": 762,
+      "w": 294,
+      "h": 40,
+      "text": "Free token for photoreal Earth",
+      "textLines": 1
+     },
+     "riderBox": {
+      "x": 593,
+      "y": 516,
+      "w": 176,
+      "h": 294
+     },
+     "noticeRiderGapPx": {
+      "x": 75,
+      "y": -48
+     }
+    },
+    "viewStopped": {
+     "chip": "3D view stopped \u00b7 tap to reload",
+     "hudAreaPct": 5,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 305,
+       "y": 810,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 305,
+       "y": 762,
+       "w": 258,
+       "h": 40
+      }
+     ],
+     "notice": null,
+     "riderBox": {
+      "x": 632,
+      "y": 516,
+      "w": 176,
+      "h": 293
+     },
+     "noticeRiderGapPx": null
+    },
+    "afterTap": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 5.8,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 302,
+       "y": 810,
+       "w": 837,
+       "h": 66
+      },
+      {
+       "name": "photoreal-notice",
+       "x": 844,
+       "y": 762,
+       "w": 294,
+       "h": 40
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 302,
+       "y": 762,
+       "w": 195,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 840,
+      "y": 762,
+      "w": 294,
+      "h": 40,
+      "text": "Free token for photoreal Earth",
+      "textLines": 1
+     },
+     "riderBox": {
+      "x": 616,
+      "y": 516,
+      "w": 176,
+      "h": 293
+     },
+     "noticeRiderGapPx": {
+      "x": 48,
+      "y": -47
+     }
+    },
+    "pageErrors": []
+   }
+  },
+  "1280": {
+   "before": {
+    "riding": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 10.3,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 225,
+       "y": 558,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "Add a free Cesium ion token for photorea",
+       "x": 416,
+       "y": 445,
+       "w": 448,
+       "h": 51
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 225,
+       "y": 510,
+       "w": 195,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 416,
+      "y": 445,
+      "w": 448,
+      "h": 51,
+      "text": "Add a free Cesium ion token for photoreal terrain & satellite imageryfor photoreal EarthSettings",
+      "textLines": 2
+     },
+     "riderBox": {
+      "x": 554,
+      "y": 383,
+      "w": 157,
+      "h": 261
+     },
+     "noticeRiderGapPx": {
+      "x": -295,
+      "y": -113
+     }
+    },
+    "viewStopped": {
+     "chip": "3D view stopped \u00b7 tap to reload",
+     "hudAreaPct": 10.6,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 225,
+       "y": 558,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "Add a free Cesium ion token for photorea",
+       "x": 416,
+       "y": 445,
+       "w": 448,
+       "h": 51
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 225,
+       "y": 510,
+       "w": 258,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 416,
+      "y": 445,
+      "w": 448,
+      "h": 51,
+      "text": "Add a free Cesium ion token for photoreal terrain & satellite imageryfor photoreal EarthSettings",
+      "textLines": 2
+     },
+     "riderBox": {
+      "x": 562,
+      "y": 383,
+      "w": 157,
+      "h": 261
+     },
+     "noticeRiderGapPx": {
+      "x": -302,
+      "y": -113
+     }
+    },
+    "afterTap": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 10.3,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 225,
+       "y": 558,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "Add a free Cesium ion token for photorea",
+       "x": 416,
+       "y": 445,
+       "w": 448,
+       "h": 51
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 225,
+       "y": 510,
+       "w": 195,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 416,
+      "y": 445,
+      "w": 448,
+      "h": 51,
+      "text": "Add a free Cesium ion token for photoreal terrain & satellite imageryfor photoreal EarthSettings",
+      "textLines": 2
+     },
+     "riderBox": {
+      "x": 563,
+      "y": 383,
+      "w": 157,
+      "h": 261
+     },
+     "noticeRiderGapPx": {
+      "x": -301,
+      "y": -113
+     }
+    },
+    "pageErrors": []
+   },
+   "after": {
+    "riding": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 9,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 225,
+       "y": 558,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "photoreal-notice",
+       "x": 760,
+       "y": 510,
+       "w": 294,
+       "h": 40
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 225,
+       "y": 510,
+       "w": 195,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 764,
+      "y": 510,
+      "w": 294,
+      "h": 40,
+      "text": "Free token for photoreal Earth",
+      "textLines": 1
+     },
+     "riderBox": {
+      "x": 525,
+      "y": 384,
+      "w": 157,
+      "h": 261
+     },
+     "noticeRiderGapPx": {
+      "x": 82,
+      "y": -135
+     }
+    },
+    "viewStopped": {
+     "chip": "3D view stopped \u00b7 tap to reload",
+     "hudAreaPct": 7.8,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 225,
+       "y": 558,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 225,
+       "y": 510,
+       "w": 258,
+       "h": 40
+      }
+     ],
+     "notice": null,
+     "riderBox": {
+      "x": 562,
+      "y": 383,
+      "w": 157,
+      "h": 261
+     },
+     "noticeRiderGapPx": null
+    },
+    "afterTap": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 9,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 225,
+       "y": 558,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "photoreal-notice",
+       "x": 760,
+       "y": 510,
+       "w": 294,
+       "h": 40
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 225,
+       "y": 510,
+       "w": 195,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 760,
+      "y": 510,
+      "w": 294,
+      "h": 40,
+      "text": "Free token for photoreal Earth",
+      "textLines": 1
+     },
+     "riderBox": {
+      "x": 563,
+      "y": 383,
+      "w": 157,
+      "h": 261
+     },
+     "noticeRiderGapPx": {
+      "x": 40,
+      "y": -134
+     }
+    },
+    "pageErrors": []
+   }
+  },
+  "390": {
+   "before": {
+    "riding": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 19.2,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 12,
+       "y": 734,
+       "w": 366,
+       "h": 98
+      },
+      {
+       "name": "Add a free Cesium ion token for photorea",
+       "x": 93,
+       "y": 527,
+       "w": 204,
+       "h": 134
+      }
+     ],
+     "notice": {
+      "x": 93,
+      "y": 527,
+      "w": 204,
+      "h": 134,
+      "text": "Add a free Cesium ion token for photoreal terrain & satellite imageryfor photoreal EarthSettings",
+      "textLines": 7
+     },
+     "riderBox": {
+      "x": 135,
+      "y": 461,
+      "w": 103,
+      "h": 172
+     },
+     "noticeRiderGapPx": {
+      "x": -145,
+      "y": -106
+     }
+    },
+    "viewStopped": {
+     "chip": "3D view stopped \u00b7 tap to reload",
+     "hudAreaPct": 22.3,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 12,
+       "y": 734,
+       "w": 366,
+       "h": 98
+      },
+      {
+       "name": "Add a free Cesium ion token for photorea",
+       "x": 93,
+       "y": 527,
+       "w": 204,
+       "h": 134
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 12,
+       "y": 686,
+       "w": 258,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 93,
+      "y": 527,
+      "w": 204,
+      "h": 134,
+      "text": "Add a free Cesium ion token for photoreal terrain & satellite imageryfor photoreal EarthSettings",
+      "textLines": 7
+     },
+     "riderBox": {
+      "x": 142,
+      "y": 460,
+      "w": 103,
+      "h": 172
+     },
+     "noticeRiderGapPx": {
+      "x": -152,
+      "y": -105
+     }
+    },
+    "afterTap": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 19.2,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 12,
+       "y": 734,
+       "w": 366,
+       "h": 98
+      },
+      {
+       "name": "Add a free Cesium ion token for photorea",
+       "x": 93,
+       "y": 527,
+       "w": 204,
+       "h": 134
+      }
+     ],
+     "notice": {
+      "x": 93,
+      "y": 527,
+      "w": 204,
+      "h": 134,
+      "text": "Add a free Cesium ion token for photoreal terrain & satellite imageryfor photoreal EarthSettings",
+      "textLines": 7
+     },
+     "riderBox": {
+      "x": 147,
+      "y": 460,
+      "w": 103,
+      "h": 172
+     },
+     "noticeRiderGapPx": {
+      "x": -150,
+      "y": -105
+     }
+    },
+    "pageErrors": []
+   },
+   "after": {
+    "riding": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 14.5,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 12,
+       "y": 734,
+       "w": 366,
+       "h": 98
+      },
+      {
+       "name": "photoreal-notice",
+       "x": 12,
+       "y": 686,
+       "w": 294,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 12,
+      "y": 686,
+      "w": 294,
+      "h": 40,
+      "text": "Free token for photoreal Earth",
+      "textLines": 1
+     },
+     "riderBox": {
+      "x": 134,
+      "y": 461,
+      "w": 103,
+      "h": 172
+     },
+     "noticeRiderGapPx": {
+      "x": -172,
+      "y": 53
+     }
+    },
+    "viewStopped": {
+     "chip": "3D view stopped \u00b7 tap to reload",
+     "hudAreaPct": 14,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 12,
+       "y": 734,
+       "w": 366,
+       "h": 98
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 12,
+       "y": 686,
+       "w": 258,
+       "h": 40
+      }
+     ],
+     "notice": null,
+     "riderBox": {
+      "x": 142,
+      "y": 460,
+      "w": 103,
+      "h": 172
+     },
+     "noticeRiderGapPx": null
+    },
+    "afterTap": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 14.5,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 12,
+       "y": 734,
+       "w": 366,
+       "h": 98
+      },
+      {
+       "name": "photoreal-notice",
+       "x": 12,
+       "y": 686,
+       "w": 294,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 12,
+      "y": 686,
+      "w": 294,
+      "h": 40,
+      "text": "Free token for photoreal Earth",
+      "textLines": 1
+     },
+     "riderBox": {
+      "x": 143,
+      "y": 460,
+      "w": 103,
+      "h": 172
+     },
+     "noticeRiderGapPx": {
+      "x": -163,
+      "y": 54
+     }
+    },
+    "pageErrors": []
+   }
+  },
+  "1440-night": {
+   "after": {
+    "riding": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 5.7,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 305,
+       "y": 810,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "photoreal-notice",
+       "x": 840,
+       "y": 762,
+       "w": 294,
+       "h": 40
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 305,
+       "y": 762,
+       "w": 195,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 840,
+      "y": 762,
+      "w": 294,
+      "h": 40,
+      "text": "Free token for photoreal Earth",
+      "textLines": 1
+     },
+     "riderBox": {
+      "x": 628,
+      "y": 516,
+      "w": 176,
+      "h": 293
+     },
+     "noticeRiderGapPx": {
+      "x": 36,
+      "y": -47
+     }
+    },
+    "viewStopped": {
+     "chip": "3D view stopped \u00b7 tap to reload",
+     "hudAreaPct": 5,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 305,
+       "y": 810,
+       "w": 829,
+       "h": 66
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 305,
+       "y": 762,
+       "w": 258,
+       "h": 40
+      }
+     ],
+     "notice": null,
+     "riderBox": {
+      "x": 632,
+      "y": 516,
+      "w": 176,
+      "h": 293
+     },
+     "noticeRiderGapPx": null
+    },
+    "afterTap": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 5.8,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 302,
+       "y": 810,
+       "w": 837,
+       "h": 66
+      },
+      {
+       "name": "photoreal-notice",
+       "x": 844,
+       "y": 762,
+       "w": 294,
+       "h": 40
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 302,
+       "y": 762,
+       "w": 195,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 840,
+      "y": 762,
+      "w": 294,
+      "h": 40,
+      "text": "Free token for photoreal Earth",
+      "textLines": 1
+     },
+     "riderBox": {
+      "x": 632,
+      "y": 516,
+      "w": 176,
+      "h": 293
+     },
+     "noticeRiderGapPx": {
+      "x": 32,
+      "y": -47
+     }
+    },
+    "pageErrors": []
+   }
+  },
+  "390-night": {
+   "after": {
+    "riding": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 14.5,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 12,
+       "y": 734,
+       "w": 366,
+       "h": 98
+      },
+      {
+       "name": "photoreal-notice",
+       "x": 12,
+       "y": 686,
+       "w": 294,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 12,
+      "y": 686,
+      "w": 294,
+      "h": 40,
+      "text": "Free token for photoreal Earth",
+      "textLines": 1
+     },
+     "riderBox": {
+      "x": 136,
+      "y": 461,
+      "w": 103,
+      "h": 172
+     },
+     "noticeRiderGapPx": {
+      "x": -170,
+      "y": 53
+     }
+    },
+    "viewStopped": {
+     "chip": "3D view stopped \u00b7 tap to reload",
+     "hudAreaPct": 14,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 12,
+       "y": 734,
+       "w": 366,
+       "h": 98
+      },
+      {
+       "name": "ride-status-chip",
+       "x": 12,
+       "y": 686,
+       "w": 258,
+       "h": 40
+      }
+     ],
+     "notice": null,
+     "riderBox": {
+      "x": 143,
+      "y": 460,
+      "w": 103,
+      "h": 172
+     },
+     "noticeRiderGapPx": null
+    },
+    "afterTap": {
+     "chip": "Demo ride \u00b7 no trainer",
+     "hudAreaPct": 14.5,
+     "hudRects": [
+      {
+       "name": "ride-strip",
+       "x": 12,
+       "y": 734,
+       "w": 366,
+       "h": 98
+      },
+      {
+       "name": "photoreal-notice",
+       "x": 12,
+       "y": 686,
+       "w": 294,
+       "h": 40
+      }
+     ],
+     "notice": {
+      "x": 12,
+      "y": 686,
+      "w": 294,
+      "h": 40,
+      "text": "Free token for photoreal Earth",
+      "textLines": 1
+     },
+     "riderBox": {
+      "x": 102,
+      "y": 461,
+      "w": 103,
+      "h": 172
+     },
+     "noticeRiderGapPx": {
+      "x": -193,
+      "y": 53
+     }
+    },
+    "pageErrors": []
+   }
+  }
+ },
+ "settings": {
+  "probe": "~/.hermes/handoffs/velo/t_375b203d/settings_reach.py (real pointer click at the target centre)",
+  "before390": {
+   "vp": "390",
+   "variant": "old",
+   "targetText": "Settings",
+   "targetBox": {
+    "x": 204.9375,
+    "y": 585,
+    "width": 45.09375,
+    "height": 16.5
+   },
+   "afterClick": {
+    "dialogs": 0,
+    "label": null,
+    "selectedTabs": [],
+    "tokenField": false
+   },
+   "afterEscape": {
+    "dialogs": 0,
+    "label": null,
+    "selectedTabs": [],
+    "tokenField": false
+   },
+   "rideStateAfterEscape": "paused",
+   "dismissFound": 1,
+   "dismissBox": {
+    "x": 262.03125,
+    "y": 584.25,
+    "width": 18,
+    "height": 18
+   },
+   "noticeAfterDismiss": 0
+  },
+  "after": [
+   {
+    "vp": "1440",
+    "variant": "new",
+    "targetText": "Free token for photoreal Earth",
+    "targetBox": {
+     "x": 844.90625,
+     "y": 762,
+     "width": 252.421875,
+     "height": 40
+    },
+    "afterClick": {
+     "dialogs": 1,
+     "label": "Rider settings",
+     "selectedTabs": [
+      "Visual"
+     ],
+     "tokenField": true
+    },
+    "afterEscape": {
+     "dialogs": 0,
+     "label": null,
+     "selectedTabs": [],
+     "tokenField": false
+    },
+    "rideStateAfterEscape": "running",
+    "dismissFound": 1,
+    "dismissBox": {
+     "x": 1097.328125,
+     "y": 762,
+     "width": 40,
+     "height": 40
+    },
+    "noticeAfterDismiss": 0
+   },
+   {
+    "vp": "390",
+    "variant": "new",
+    "targetText": "Free token for photoreal Earth",
+    "targetBox": {
+     "x": 13,
+     "y": 686,
+     "width": 252.421875,
+     "height": 40
+    },
+    "afterClick": {
+     "dialogs": 1,
+     "label": "Rider settings",
+     "selectedTabs": [
+      "Visual"
+     ],
+     "tokenField": true
+    },
+    "afterEscape": {
+     "dialogs": 0,
+     "label": null,
+     "selectedTabs": [],
+     "tokenField": false
+    },
+    "rideStateAfterEscape": "running",
+    "dismissFound": 1,
+    "dismissBox": {
+     "x": 265.421875,
+     "y": 686,
+     "width": 40,
+     "height": 40
+    },
+    "noticeAfterDismiss": 0
+   }
+  ],
+  "escapeFromToolsMenu1440": {
+   "before": {
+    "dialogBeforeEscape": 1,
+    "rideStateAfterEscape": "paused"
+   },
+   "after": {
+    "dialogBeforeEscape": 1,
+    "rideStateAfterEscape": "running"
+   }
+  }
+ },
+ "mockup": {
+  "calm-1440": {
+   "chip": {
+    "x": 304,
+    "y": 762,
+    "w": 199,
+    "h": 40
+   },
+   "notice": {
+    "x": 842,
+    "y": 762,
+    "w": 294,
+    "h": 40
+   },
+   "band": {
+    "x": 304,
+    "y": 810,
+    "w": 832,
+    "h": 66
+   },
+   "sumPct": 5.8
+  },
+  "lost-1440": {
+   "chip": {
+    "x": 304,
+    "y": 762,
+    "w": 262,
+    "h": 40
+   },
+   "notice": null,
+   "band": {
+    "x": 304,
+    "y": 810,
+    "w": 832,
+    "h": 66
+   },
+   "sumPct": 5
+  },
+  "fallback-1440": {
+   "chip": {
+    "x": 304,
+    "y": 762,
+    "w": 199,
+    "h": 40
+   },
+   "notice": {
+    "x": 844,
+    "y": 762,
+    "w": 292,
+    "h": 40
+   },
+   "band": {
+    "x": 304,
+    "y": 810,
+    "w": 832,
+    "h": 66
+   },
+   "sumPct": 5.8
+  },
+  "calm-1280": {
+   "chip": {
+    "x": 224,
+    "y": 510,
+    "w": 199,
+    "h": 40
+   },
+   "notice": {
+    "x": 762,
+    "y": 510,
+    "w": 294,
+    "h": 40
+   },
+   "band": {
+    "x": 224,
+    "y": 558,
+    "w": 832,
+    "h": 66
+   },
+   "sumPct": 9
+  },
+  "lost-1280": {
+   "chip": {
+    "x": 224,
+    "y": 510,
+    "w": 262,
+    "h": 40
+   },
+   "notice": null,
+   "band": {
+    "x": 224,
+    "y": 558,
+    "w": 832,
+    "h": 66
+   },
+   "sumPct": 7.9
+  },
+  "fallback-1280": {
+   "chip": {
+    "x": 224,
+    "y": 510,
+    "w": 199,
+    "h": 40
+   },
+   "notice": {
+    "x": 764,
+    "y": 510,
+    "w": 292,
+    "h": 40
+   },
+   "band": {
+    "x": 224,
+    "y": 558,
+    "w": 832,
+    "h": 66
+   },
+   "sumPct": 9
+  },
+  "calm-390": {
+   "chip": null,
+   "notice": {
+    "x": 12,
+    "y": 685,
+    "w": 294,
+    "h": 40
+   },
+   "band": {
+    "x": 12,
+    "y": 733,
+    "w": 366,
+    "h": 99
+   },
+   "sumPct": 14.6
+  },
+  "lost-390": {
+   "chip": {
+    "x": 12,
+    "y": 685,
+    "w": 262,
+    "h": 40
+   },
+   "notice": null,
+   "band": {
+    "x": 12,
+    "y": 733,
+    "w": 366,
+    "h": 99
+   },
+   "sumPct": 14.2
+  },
+  "fallback-390": {
+   "chip": null,
+   "notice": {
+    "x": 12,
+    "y": 685,
+    "w": 292,
+    "h": 40
+   },
+   "band": {
+    "x": 12,
+    "y": 733,
+    "w": 366,
+    "h": 99
+   },
+   "sumPct": 14.6
+  }
+ }
+}

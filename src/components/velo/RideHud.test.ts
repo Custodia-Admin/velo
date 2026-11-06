@@ -93,6 +93,41 @@ describe('RideHud', () => {
     expect(useRideHudStore.getState().expanded).toBe(false);
   });
 
+  it('the photoreal notice rides in the chip lane: chip at the band\'s left end, notice at its right end, one h-10 row above the band', () => {
+    const notice = { kind: 'upgrade' as const, onOpenSettings: () => undefined, onDismiss: () => undefined };
+    const html = renderToStaticMarkup(createElement(RideHudLayout, { ...props, expanded: false, devicesOpen: false, notice }));
+    const tag = (id: string) => html.match(new RegExp(`<[a-z]+[^>]*data-testid="${id}"[^>]*>`))?.[0] ?? '';
+    const lane = tag('ride-chip-lane');
+    expect(lane).toContain('flex max-w-full flex-wrap items-center justify-between gap-2');
+    // The lane spans the band (the chip alone sits at its start).
+    expect(lane).toContain('shrink-0 self-stretch');
+    // Order: lane (chip, then notice), then the band; one column, no float.
+    const at = (s: string) => html.indexOf(s);
+    expect(at('data-testid="ride-chip-lane"')).toBeGreaterThan(-1);
+    expect(at('data-testid="ride-chip-lane"')).toBeLessThan(at('data-testid="ride-status-chip"'));
+    expect(at('data-testid="ride-status-chip"')).toBeLessThan(at('data-testid="photoreal-notice"'));
+    expect(at('data-testid="photoreal-notice"')).toBeLessThan(at('data-testid="ride-strip"'));
+    const pill = tag('photoreal-notice');
+    expect(pill).toContain('h-10');
+    expect(pill).toContain('hud-surface');
+    expect(pill).not.toMatch(/\b(absolute|fixed)\b/);
+    expect(html).toContain('Free token for photoreal Earth');
+    expect(html).toContain('aria-label="Dismiss photoreal upgrade banner"');
+    expect(html).not.toContain('ride-banner-float');
+  });
+
+  it('the notice steps aside while the ride details or the devices sheet are open; no notice, no lane', () => {
+    const notice = { kind: 'upgrade' as const, onOpenSettings: () => undefined, onDismiss: () => undefined };
+    for (const s of [{ expanded: true, devicesOpen: false }, { expanded: false, devicesOpen: true }]) {
+      const html = renderToStaticMarkup(createElement(RideHudLayout, { ...props, ...s, notice }));
+      expect(html, JSON.stringify(s)).not.toContain('data-testid="photoreal-notice"');
+      expect(html, JSON.stringify(s)).not.toContain('data-testid="ride-chip-lane"');
+    }
+    const bare = renderToStaticMarkup(createElement(RideHudLayout, { ...props, expanded: false, devicesOpen: false, notice: null }));
+    expect(bare).not.toContain('data-testid="ride-chip-lane"');
+    expect(bare).toMatch(/<button[^>]*data-testid="ride-status-chip"[^>]*class="[^"]*shrink-0 self-start/);
+  });
+
   it('notice hosting is counted and released once', () => {
     const release = useRideHudStore.getState().hostNotices();
     expect(useRideHudStore.getState().noticeHosts).toBe(1);

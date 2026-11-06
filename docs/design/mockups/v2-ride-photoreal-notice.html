@@ -1,0 +1,168 @@
+<!doctype html>
+<!--
+  Velo v2 in-ride HUD: the photoreal notice in the chip lane (card t_375b203d).
+  Builds on v2-ride-hud.html (owner-directed revision, 2 Nov 2026).
+
+  Before: the token-free photoreal ride floated "Add a free Cesium ion token
+  for photoreal Earth · Settings · ×" centred above the band. At 390 it wrapped
+  into a 204x134 column of seven lines over the rider, and took the ride UI to
+  19.2 % of the screen (22.3 % with a chip). At 1440 and 1280 it was centred
+  on the band while the chip sits on the band's left edge, so the two notices
+  staggered.
+
+  Now: the notice is ONE h-10 pill in the chip lane, one line on every
+  viewport, never over the rider:
+    - sm+: the lane spans the band; the chip holds its left end, the notice
+      its right end, the chase-camera rider the middle (at 1440 the rider's
+      wheels reach y 802, so a notice next to the chip would cover them);
+    - phones: the calm chip is hidden, so the notice is alone at the lane's
+      start, 50 px under the rider's wheels;
+    - any alert in the chip (trainer lost, 3D view stopped, a passing
+      notice) takes the lane: the notice steps aside until the alert clears,
+      so the chip never competes with an upsell;
+    - the text is the button that opens Settings (Visual tab, where the token
+      goes); x dismisses it for the session. One short line everywhere:
+      "Free token for photoreal Earth" (the Settings section it opens is
+      "Photoreal Earth") keeps the 390 pill ~300 px wide, band +
+      pill under the 15 % budget.
+  The imagery-fallback variant ("token present but Bing stalled") uses the
+  same pill with a status line and only the x.
+
+  States: default (calm, notice showing), ?state=lost (an alert chip: the
+  notice yields), ?notice=fallback (the imagery-fallback variant). Scene: a
+  canvas-only still of the token-free photoreal ride (OSM imagery, Bellinzona
+  to Locarno). HUD surfaces are translucent paper without backdrop-filter.
+-->
+<html lang="en" data-revision="photoreal notice in the chip lane, t_375b203d">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — Ride HUD: photoreal notice in the chip lane (v2 mockup)</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="v2-kit.css" />
+<script src="v2-data.js"></script>
+<script>
+  // Two lucide icons the shared set lacks (lucide-react 0.460 node lists).
+  Object.assign(window.V2_DATA.icons, {
+    earth: [
+      ['path', { d: 'M21.54 15H17a2 2 0 0 0-2 2v4.54' }],
+      ['path', { d: 'M7 3.34V5a3 3 0 0 0 3 3a2 2 0 0 1 2 2c0 1.1.9 2 2 2a2 2 0 0 0 2-2c0-1.1.9-2 2-2h3.17' }],
+      ['path', { d: 'M11 21.95V18a2 2 0 0 0-2-2a2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2H2.05' }],
+      ['circle', { cx: '12', cy: '12', r: '10' }],
+    ],
+    'cloud-off': [
+      ['path', { d: 'm2 2 20 20' }],
+      ['path', { d: 'M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193' }],
+      ['path', { d: 'M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07' }],
+    ],
+  });
+</script>
+<script src="v2-kit.js"></script>
+<style>
+  body { overflow: hidden; }
+  .hud-col { position: fixed; left: var(--s-4); right: var(--s-4); bottom: var(--s-6); display: flex; flex-direction: column; align-items: center; }
+  .group { width: max-content; max-width: calc(100vw - var(--s-8)); display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); }
+  /* the chip lane: chip, then the photoreal notice, on the band's left edge */
+  .lane { align-self: stretch; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); max-width: 100%; }
+  .chip { display: inline-flex; align-items: center; gap: var(--s-2); height: var(--s-10); padding: 0 var(--s-3); font-size: var(--text-sm); font-weight: 600; border: var(--hairline) solid hsl(var(--border) / 0.6); white-space: nowrap; }
+  .dot.warn { background: hsl(var(--destructive)); }
+  .chip .lost { display: none; }
+  html[data-state='lost'] .chip .ok { display: none; }
+  html[data-state='lost'] .chip .lost { display: flex; }
+  /* the notice: one h-10 pill; the text is a button, x is a 40 px button */
+  .notice { display: inline-flex; align-items: center; height: var(--s-10); min-width: 0; border: var(--hairline) solid hsl(var(--border) / 0.6); font-size: var(--text-sm); font-weight: 600; }
+  .notice .go { display: inline-flex; align-items: center; gap: var(--s-2); height: 100%; min-width: 0; padding-left: var(--s-3); padding-right: var(--s-1); background: none; border: 0; color: inherit; font: inherit; white-space: nowrap; }
+  .notice .go .icon { color: hsl(var(--primary)); width: var(--s-4); height: var(--s-4); flex: none; }
+  .notice .go u { text-decoration: none; overflow: hidden; text-overflow: ellipsis; }
+  .notice .x { width: var(--s-10); height: 100%; display: inline-flex; align-items: center; justify-content: center; background: none; border: 0; color: hsl(var(--muted-foreground)); flex: none; }
+  .notice .x .icon { width: var(--s-4); height: var(--s-4); }
+  .notice .status { display: none; }
+  .notice .status .icon { color: hsl(var(--muted-foreground)); }
+  html[data-notice='fallback'] .notice .go.pitch { display: none; }
+  html[data-notice='fallback'] .notice .status { display: inline-flex; }
+  html[data-state='lost'] .notice { display: none; }
+  .band { align-self: stretch; display: flex; align-items: center; gap: var(--s-3); padding: var(--s-2); }
+  .figs { display: flex; gap: var(--s-6); padding: 0 var(--s-4); border-left: var(--hairline) solid hsl(var(--border)); }
+  .fig .v { font-size: var(--text-2xl); line-height: var(--lh-2xl); }
+  .fig .v small { line-height: 1; }
+  .fig .l .unit { display: none; }
+  .controls { display: flex; align-items: center; gap: var(--s-1); padding-left: var(--s-3); border-left: var(--hairline) solid hsl(var(--border)); }
+  .controls .btn.icon-only.labelled { width: auto; padding: 0 var(--s-3); }
+  .compact { display: none; }
+  @media (max-width: 1023px) {
+    .controls .btn.icon-only.labelled { width: var(--s-10); padding: 0; }
+    .controls .btn .label { display: none; }
+  }
+  @media (max-width: 639px) {
+    .hud-col { left: var(--s-3); right: var(--s-3); bottom: var(--s-3); align-items: stretch; }
+    .group { width: auto; max-width: none; align-items: stretch; }
+    .chip { display: none; }
+    html[data-state='lost'] .chip { display: inline-flex; }
+    .wide-only { display: none; }
+    .band { flex-wrap: wrap; gap: 0 var(--s-2); }
+    .figs { flex: 1; min-width: 0; justify-content: space-between; gap: var(--s-3); padding: 0 var(--s-1); border-left: 0; }
+    .fig.minor { display: none; }
+    .fig .v small { display: none; }
+    .fig .l .unit { display: inline; }
+    .fig .l .name { display: none; }
+    .controls { border-left: 0; padding-left: 0; }
+    .compact { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--s-3); flex-basis: 100%; padding: 0 var(--s-1); }
+    .compact > span { white-space: nowrap; }
+    .compact b { font-size: var(--text-2xl); line-height: var(--lh-2xl); font-weight: 700; }
+    .compact small { font-size: var(--text-sm); font-weight: 600; color: hsl(var(--muted-foreground)); margin-left: var(--s-1); }
+    .compact small.pre { margin-left: 0; margin-right: var(--s-1); }
+  }
+</style>
+<script>
+  (function () {
+    const q = new URLSearchParams(location.search);
+    if (q.get('state') === 'lost') document.documentElement.setAttribute('data-state', 'lost');
+    if (q.get('notice') === 'fallback') document.documentElement.setAttribute('data-notice', 'fallback');
+  })();
+</script>
+</head>
+<body>
+<div class="scene" aria-hidden="true">
+  <picture>
+    <source media="(max-width: 639px)" srcset="assets/photoreal-notoken-390.jpg" />
+    <source media="(max-height: 700px)" srcset="assets/photoreal-notoken-1280.jpg" />
+    <img src="assets/photoreal-notoken-1440.jpg" alt="" />
+  </picture>
+</div>
+
+<div class="hud-col">
+ <div class="group">
+  <div class="lane">
+    <button class="hud chip" aria-label="Demo ride: no trainer paired. Tap for devices.">
+      <span class="ok row"><span class="dot"></span>Demo ride · no trainer</span>
+      <span class="lost row"><span class="dot warn"></span>3D view stopped · tap to reload</span>
+    </button>
+    <div class="hud notice" role="status">
+      <button class="go pitch" aria-label="Add a free Cesium ion token for photoreal Earth: open Settings">
+        <i data-icon="earth"></i><u>Free token for photoreal Earth</u>
+      </button>
+      <span class="go status"><i data-icon="cloud-off"></i><u>Photoreal unavailable for now</u></span>
+      <button class="x" aria-label="Dismiss"><i data-icon="x"></i></button>
+    </div>
+  </div>
+  <section class="hud band" aria-label="Ride numbers">
+    <button class="btn quiet icon-only wide-only" aria-label="Exit ride and return to setup"><i data-icon="arrow-left" class="lg"></i></button>
+    <div class="figs">
+      <div class="fig"><span class="v">32.0<small>km/h</small></span><span class="l"><span class="name">Speed</span><span class="unit">km/h</span></span></div>
+      <div class="fig"><span class="v">0:09</span><span class="l">Time</span></div>
+      <div class="fig"><span class="v">0.1<small>km</small></span><span class="l"><span class="name">Distance</span><span class="unit">km</span></span></div>
+      <div class="fig minor"><span class="v">0.0<small>%</small></span><span class="l">Grade</span></div>
+      <div class="fig minor"><span class="v">190<small>W</small></span><span class="l">Power</span></div>
+      <div class="fig minor"><span class="v">6<small>/ 11</small></span><span class="l">Gear</span></div>
+    </div>
+    <div class="controls">
+      <button class="btn outline icon-only labelled" aria-label="Pause ride"><i data-icon="pause" class="lg"></i><span class="label">Pause</span></button>
+      <button class="btn quiet icon-only labelled" aria-label="Finish ride"><i data-icon="flag" class="lg"></i><span class="label">Finish</span></button>
+      <button class="btn quiet icon-only" aria-label="Show ride details: route, map and ride tools" aria-expanded="false"><i data-icon="chevron-up" class="lg"></i></button>
+    </div>
+    <span class="compact num"><span><b>0.0</b><small>%</small></span><span><b>190</b><small>W</small></span><span><small class="pre">gear</small><b>6</b></span></span>
+  </section>
+ </div>
+</div>
+</body>
+</html>

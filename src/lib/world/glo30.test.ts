@@ -482,7 +482,7 @@ describe('worldbake: manifest generator and bundle budget', () => {
       const recipe = JSON.parse(read(`tools/worldbake/worlds/${id}.json`).toString('utf8'));
       const shipped = JSON.parse(read(`public/worlds/${id}/manifest.json`).toString('utf8')).generator;
       const bundleBytes = recipeBundleBytes(recipe);
-      const gen = generatorFor(demSourceOf(recipe), recipe, bundleBytes, { source: 'unused', tiles: new Array(shipped.demTiles) });
+      const gen = generatorFor(demSourceOf(recipe), recipe, { source: 'unused', tiles: new Array(shipped.demTiles) });
       expect(Object.keys(gen)).toEqual(['tool', 'version', 'recipeSha256', 'osmDate', 'demSource', 'demZoom', 'demTiles']);
       // recipeSha256 covers the recipe minus its P1.3 `validation` block, so the shipped bundle
       // names the recipe that built it even after the bake writes its check back into the recipe.
@@ -501,10 +501,26 @@ describe('worldbake: manifest generator and bundle budget', () => {
     expect(recipeBundleBytes({ ...recipe, grid: { ...recipe.grid, cellSize: recipe.grid.cellSize + 1 } })).not.toEqual(bytes);
   });
 
+  it('hashes the recipe without its validation block in the generator, never the recipe file', () => {
+    // The bake writes its P1.3 block back into the recipe file, so a hash of
+    // the file would name a recipe the bundle wasn't baked from.
+    const file = read('tools/worldbake/worlds/lugano.json');
+    const recipe = JSON.parse(file.toString('utf8'));
+    const dem = { source: 'unused', tiles: [] };
+    const gen = generatorFor(demSourceOf(recipe), recipe, dem);
+    expect(gen.recipeSha256).toBe(sha(recipeBundleBytes(recipe)));
+    expect(gen.recipeSha256).not.toBe(sha(file));
+    expect(gen.recipeSha256).not.toBe(sha(Buffer.from(JSON.stringify(recipe))));
+    const rewritten = { ...recipe, validation: { ...recipe.validation, registered_rms_m: 1, pass: true } };
+    expect(generatorFor(demSourceOf(rewritten), rewritten, dem).recipeSha256).toBe(gen.recipeSha256);
+    const moved = { ...recipe, osmDate: '2026-10-02T00:00:00Z' };
+    expect(generatorFor(demSourceOf(moved), moved, dem).recipeSha256).not.toBe(gen.recipeSha256);
+  });
+
   it('names the GLO-30 source and drops demZoom for a GLO-30 recipe', () => {
     const recipeBytes = Buffer.from('{"osmDate":"2026-10-01T00:00:00Z","dem":{"source":"copernicus-glo30"}}');
     const recipe = JSON.parse(recipeBytes.toString('utf8'));
-    const gen = generatorFor(demSourceOf(recipe), recipe, recipeBytes, { source: GLO30_SOURCE, tiles: ['N46_00_E008_00', 'N45_00_E008_00'] });
+    const gen = generatorFor(demSourceOf(recipe), recipe, { source: GLO30_SOURCE, tiles: ['N46_00_E008_00', 'N45_00_E008_00'] });
     expect(gen).toEqual({
       tool: 'velo-worldbake',
       version: 1,

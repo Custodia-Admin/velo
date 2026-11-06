@@ -14,6 +14,12 @@
 // tools/worldbake/worlds/<world>.json and tools/worldbake/reports/<world>.json.
 // Same bundle + same cached answers → the same block, to the byte. Exits 0
 // on PASS and FAIL alike (the verdict is the block's `pass`); 1 on an error.
+//
+// Refuses (exit 1, "re-bake") a bundle the recipe didn't bake: another id,
+// grid, origin or DEM source, or a `generator.recipeSha256` that isn't the
+// hash of the recipe without its `validation` (recipeBundleBytes in
+// bake.mjs). Editing the recipe's `validation` keeps the bundle valid; any
+// other edit (routes, snap, osmDate…) needs a re-bake first.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -24,7 +30,8 @@ import { DEM_SOURCE } from './fetchDem.mjs';
 import { GLO30_SOURCE } from './fetchGlo30.mjs';
 import { demSourceOf, GLO30_DEM_SOURCE } from './demSource.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
-import { here } from './util.mjs';
+import { readRecipe, recipeBundleBytes } from './bake.mjs';
+import { here, sha256 } from './util.mjs';
 
 const ROOT = resolve(here(import.meta.url), '../..');
 
@@ -56,6 +63,12 @@ export function loadBakedWorld(bundleDir, recipe) {
   if (manifest.id !== recipe.id || h.cols !== g.cols || h.rows !== g.rows || h.cellSize !== g.cellSize || manifest.extent.xMin !== g.xMin || manifest.extent.yMax !== g.yMax || o.lat0 !== recipe.origin.lat || o.lon0 !== recipe.origin.lon) {
     throw new Error(`${bundleDir} doesn't match the recipe's id, grid or origin: re-bake`);
   }
+  // Every other recipe field that shapes the bundle (routes, snap, osmDate…).
+  const recipeSha256 = sha256(recipeBundleBytes(recipe));
+  const bakedSha256 = manifest.generator?.recipeSha256;
+  if (bakedSha256 !== recipeSha256) {
+    throw new Error(`${bundleDir} was baked from another recipe (generator.recipeSha256 ${String(bakedSha256).slice(0, 12)}…, the recipe without its validation block hashes to ${recipeSha256.slice(0, 12)}…): re-bake`);
+  }
   const q = decodeHeightDeltas(new Uint8Array(gunzipSync(read(h.file))), h.cols, h.rows);
   const hf = new Heightfield({ cols: h.cols, rows: h.rows, cellSize: h.cellSize, xMin: g.xMin, yMax: g.yMax, heightOffset: h.heightOffset, heightScale: h.heightScale }, q);
   // Exactly the bake's projection and extent (bake.mjs), so the samples land on the same points.
@@ -65,18 +78,24 @@ export function loadBakedWorld(bundleDir, recipe) {
   return { manifest, demSource, hf, projection, extent, routes };
 }
 
+/**
+ * Check a baked world and (unless `write` is false) write the block. `root`
+ * is the tree holding the recipe, the report and the default bundle (the
+ * repo by default). Returns the result; a FAIL returns like a PASS.
+ */
 export async function validateBaked(opts) {
-  const recipePath = join(ROOT, 'tools/worldbake/worlds', `${opts.world}.json`);
-  const recipe = JSON.parse(readFileSync(recipePath, 'utf8'));
-  const bundleDir = resolve(opts.bundle ?? join(ROOT, 'public/worlds', recipe.id));
-  const cacheDir = resolve(opts.cache ?? join(ROOT, 'tools/worldbake/cache'), recipe.id);
+  const root = opts.root ?? ROOT;
+  const recipePath = join(root, 'tools/worldbake/worlds', `${opts.world}.json`);
+  const { recipe } = readRecipe(recipePath);
+  const bundleDir = resolve(opts.bundle ?? join(root, 'public/worlds', recipe.id));
+  const cacheDir = resolve(opts.cache ?? join(root, 'tools/worldbake/cache'), recipe.id);
   const { demSource, hf, projection, extent, routes } = loadBakedWorld(bundleDir, recipe);
   const core = recipe.snap.coreCells * recipe.grid.cellSize + recipe.snap.falloffM;
   const mask = (x, y) => routes.some((r) => r.x.some((rx, i) => Math.hypot(rx - x, r.y[i] - y) < core));
   const result = await validateHeightfield({ hf, projection, extent, recipe, demSource, cacheDir, routeMask: mask });
   console.log(`${recipe.id} (${bundleDir}): ${describeValidation(result)}`);
   if (opts.write) {
-    const reportPath = join(ROOT, 'tools/worldbake/reports', `${recipe.id}.json`);
+    const reportPath = join(root, 'tools/worldbake/reports', `${recipe.id}.json`);
     writeValidation({ recipePath, reportPath: existsSync(reportPath) ? reportPath : null, block: result.block, report: result.report });
     console.log(`wrote the validation block to ${recipePath}${existsSync(reportPath) ? ` and ${reportPath}` : ''}`);
   }
