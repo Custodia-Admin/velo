@@ -336,13 +336,15 @@ describe('chase aim: photoreal frames a bend and a slope as the world rig does',
 
   it('the bends and slopes move the frame (a straight-road camera would miss them by pixels)', () => {
     // Guards the poses above: each non-straight one shifts the world rig's
-    // 1 m point well past the 2 px gate against the straight, level camera.
+    // 1 m point past the 2 px gate against the straight, level camera. The
+    // straight climb shifts it least (5.4 px): the camera keeps its flat-road
+    // pitch there, tipped down only by the bike's pitch (chaseLookHeight).
     const vp = VIEWPORTS['1440x900'];
     for (const pose of POSES.slice(1)) {
       const L = CHASE_FRAMING.standard.lookAheadM;
       const bent = boxOf([[0, 0, 1]], worldAt('standard', pose.heading, aheadOf(pose.heading, pose.bendDeg, pose.grade, L)), vp);
       const flat = boxOf([[0, 0, 1]], worldAt('standard', pose.heading, aheadOf(pose.heading, 0, 0, L)), vp);
-      expect(Math.hypot(bent[0] - flat[0], bent[1] - flat[1]), pose.name).toBeGreaterThan(5);
+      expect(Math.hypot(bent[0] - flat[0], bent[1] - flat[1]), pose.name).toBeGreaterThan(4);
     }
   });
 

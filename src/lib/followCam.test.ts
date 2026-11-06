@@ -64,7 +64,7 @@ describe('applyFollowCam: the photoreal chase camera follows the world rig', () 
     { what: 'a right bend on a 7 % climb at standard', heading: 0.3, bendDeg: 26, grade: 0.07, distance: 'standard' as const },
     { what: 'a left bend on a 5 % descent at close', heading: -2.0, bendDeg: -12, grade: -0.05, distance: 'close' as const },
   ]) {
-    it(`frames ${c.what}: camera square behind the drawn heading, looking half the bend toward the point ahead + 1 m`, () => {
+    it(`frames ${c.what}: camera square behind the drawn heading, looking half the bend toward the point ahead (shared look height)`, () => {
       const framing = CHASE_FRAMING[c.distance];
       const ahead = aheadENU(c.heading, c.bendDeg, c.grade, framing.lookAheadM);
       const { viewer, views } = stubViewer();
