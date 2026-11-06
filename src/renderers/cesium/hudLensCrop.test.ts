@@ -425,7 +425,7 @@ describe('CesiumWorldView wiring', () => {
     const three = readFileSync(join(__dirname, '../three/ThreeWorldView.tsx'), 'utf8');
     expect(three).toMatch(/camera=\{\{ fov: RIDE_FOV_Y_DEG, /);
     expect(three).toMatch(/import \{[^}]*\bRIDE_FOV_Y_DEG\b[^}]*\} from '@\/lib\/world\/cameraFraming';/);
-    expect(src).toMatch(/import \{ RIDE_FOV_Y_DEG \} from '@\/lib\/world\/cameraFraming';/);
+    expect(src).toMatch(/import \{[^}]*\bRIDE_FOV_Y_DEG\b[^}]*\} from '@\/lib\/world\/cameraFraming';/);
     expect(RIDE_FOV_Y_DEG).toBe(60);
   });
 

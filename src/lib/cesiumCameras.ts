@@ -87,7 +87,12 @@ export function easeOutCubic(t: number): number {
 // lib/world/cameraFraming (engine-free), re-exported here for the Cesium side.
 import {
   AIM_HEIGHT_M,
+  CAMERA_GLIDE_S,
+  CAMERA_GLIDE_TAU_S,
   CHASE_FRAMING,
+  CHASE_TAU_S,
+  chaseAimHeading,
+  chaseLookHeight,
   DEFAULT_CAMERA_DISTANCE,
   isCameraDistance,
   type CameraDistance,
@@ -120,9 +125,130 @@ export function riderAimPitchRad(camHeightM: number, horizOffsetM: number): numb
   return -Math.atan2(camHeightM - AIM_HEIGHT_M, horizOffsetM);
 }
 
-/** Pitch (radians, negative = down) aiming from the chase camera at the look-ahead point. */
+/** Pitch (radians, negative = down) aiming from the chase camera at the look-ahead point on the flat. */
 export function chasePitchRad(f: ChaseFraming, upM: number = f.upM): number {
-  return -Math.atan2(upM - AIM_HEIGHT_M, f.backM + f.lookAheadM);
+  return -Math.atan2(upM - f.aimM, f.backM + f.lookAheadM);
+}
+
+// ---------------------------------------------------------------------------
+// Chase camera: the world renderer's rule in the rider's ENU frame
+// ---------------------------------------------------------------------------
+
+/** A point in the rider's local east-north-up frame, metres (ground contact at the origin). */
+export interface ENU {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** Where the chase camera wants to be and the point it looks at, rider-relative ENU. */
+export interface ChaseCamTarget {
+  position: ENU;
+  look: ENU;
+}
+
+/**
+ * The photoreal chase camera's target: the world renderer's chase rule
+ * (three/chaseRig `cameraTarget` 'chase'). `backM` behind and `upM` above the
+ * rider along its drawn heading, looking at the point `lookAheadM` ahead
+ * turned toward the route by half the bend (≤12°, `chaseAimHeading`), at the
+ * shared look height (`chaseLookHeight`): the route point's height +
+ * `framing.aimM` on the flat and downhill; on a climb the view keeps
+ * its flat-road pitch so the rear wheel stays where it is on the flat.
+ *
+ * @param heading The rider's drawn heading (lib/ride/rideHeading's filtered
+ *   one), radians clockwise from north.
+ * @param ahead The route point `framing.lookAheadM` ahead, on the ground.
+ */
+export function chaseCamTarget(heading: number, ahead: ENU, framing: ChaseFraming): ChaseCamTarget {
+  const aim = chaseAimHeading(heading, ahead.x, ahead.y);
+  return {
+    position: { x: -Math.sin(heading) * framing.backM, y: -Math.cos(heading) * framing.backM, z: framing.upM },
+    look: {
+      x: Math.sin(aim) * framing.lookAheadM,
+      y: Math.cos(aim) * framing.lookAheadM,
+      z: chaseLookHeight(framing, ahead.z),
+    },
+  };
+}
+
+/** Heading (radians clockwise from north) and pitch (negative = down) of a camera at `from` looking at `to`. */
+export function lookAtHeadingPitch(from: ENU, to: ENU): { heading: number; pitch: number } {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  return { heading: Math.atan2(dx, dy), pitch: Math.atan2(to.z - from.z, Math.hypot(dx, dy)) };
+}
+
+function dampFactor(tauS: number, dt: number): number {
+  if (!(dt > 0)) return 0;
+  return 1 - Math.exp(-dt / tauS);
+}
+
+const finiteENU = (p: ENU) => Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(p.z);
+
+/**
+ * The chase camera's smoothed position and look point, both relative to the
+ * rider, as the world renderer's CameraRig smooths them (anchor = rider,
+ * {@link CHASE_TAU_S}). The camera moves with the rider rigidly, so the
+ * framing holds at any speed; smoothing only damps turns. A handover from
+ * another camera mode (`seed`) glides in over {@link CAMERA_GLIDE_S}.
+ */
+export class ChaseCamSmoother {
+  readonly position: ENU = { x: 0, y: 0, z: 0 };
+  readonly look: ENU = { x: 0, y: 1, z: 0 };
+  private initialized = false;
+  private glideLeftS = 0;
+  private seeded: { position: ENU; heading: number; pitch: number } | null = null;
+
+  /** Forget the history: the next step cuts straight to its target. */
+  reset(): void {
+    this.initialized = false;
+    this.seeded = null;
+    this.glideLeftS = 0;
+  }
+
+  /** Start from where another camera is (rider-relative ENU, its heading and pitch) and glide to the chase framing. */
+  seed(position: ENU, heading: number, pitch: number): void {
+    this.seeded = { position: { ...position }, heading, pitch };
+  }
+
+  /** Advance one frame toward `target`; non-finite targets are ignored. */
+  step(target: ChaseCamTarget, dt: number): void {
+    if (!finiteENU(target.position) || !finiteENU(target.look)) return;
+    const seeded = this.seeded;
+    this.seeded = null;
+    if (seeded && finiteENU(seeded.position) && Number.isFinite(seeded.heading) && Number.isFinite(seeded.pitch)) {
+      // Look along the old camera's view, as far out as the chase look point.
+      Object.assign(this.position, seeded.position);
+      const reach = Math.hypot(
+        target.look.x - seeded.position.x,
+        target.look.y - seeded.position.y,
+        target.look.z - seeded.position.z,
+      );
+      const cp = Math.cos(seeded.pitch);
+      this.look.x = seeded.position.x + Math.sin(seeded.heading) * cp * reach;
+      this.look.y = seeded.position.y + Math.cos(seeded.heading) * cp * reach;
+      this.look.z = seeded.position.z + Math.sin(seeded.pitch) * reach;
+      this.initialized = true;
+      this.glideLeftS = CAMERA_GLIDE_S;
+      return;
+    }
+    if (!this.initialized) {
+      Object.assign(this.position, target.position);
+      Object.assign(this.look, target.look);
+      this.initialized = true;
+      this.glideLeftS = 0;
+      return;
+    }
+    const gliding = this.glideLeftS > 0;
+    const kPos = dampFactor(gliding ? Math.max(CHASE_TAU_S.pos, CAMERA_GLIDE_TAU_S) : CHASE_TAU_S.pos, dt);
+    const kLook = dampFactor(gliding ? Math.max(CHASE_TAU_S.look, CAMERA_GLIDE_TAU_S * 0.6) : CHASE_TAU_S.look, dt);
+    for (const axis of ['x', 'y', 'z'] as const) {
+      this.position[axis] += (target.position[axis] - this.position[axis]) * kPos;
+      this.look[axis] += (target.look[axis] - this.look[axis]) * kLook;
+    }
+    this.glideLeftS = Math.max(0, this.glideLeftS - Math.max(0, dt));
+  }
 }
 
 /** Scale applied to the other orbiting / tracking modes per distance. */
@@ -140,7 +266,7 @@ export const CHASE_PITCH_RAD   = chasePitchRad(CHASE_FRAMING.standard);
 
 /** Eye height on the bike and how far forward of the hip origin the eyes sit. */
 export const FIRST_PERSON_EYE_HEIGHT_M = 1.25;
-/** Just in front of the face (head centre 0.30 m + radius 0.12 m), so the rider's own head never fills the view. */
+/** Just in front of the face (head centre 0.32 m + radius 0.12 m, lib/avatar), so the rider's own head never fills the view. */
 export const FIRST_PERSON_EYE_FORWARD_M = 0.45;
 export const FIRST_PERSON_HEAD_BOB_AMP = 0.04;  // metres
 /** Slight downward look so the bars and the road just ahead are in view. */
@@ -375,14 +501,14 @@ export function computeCameraPose(
   switch (mode) {
     // ------------------------------------------------------------------
     case 'chase': {
-      // Trail behind and above, aimed down the road (applyFollowCam eases it).
+      // Trail behind and above, aimed down the road: the chase rule on a
+      // straight, level road (applyFollowCam aims it at the route ahead).
       const f = CHASE_FRAMING[isCameraDistance(distance) ? distance : DEFAULT_CAMERA_DISTANCE];
-      const x = -Math.sin(h) * f.backM;
-      const y = -Math.cos(h) * f.backM;
+      const t = chaseCamTarget(h, { x: Math.sin(h) * f.lookAheadM, y: Math.cos(h) * f.lookAheadM, z: 0 }, f);
       return {
-        offsetENU: { x, y, z: f.upM },
+        offsetENU: t.position,
         heading: h,
-        pitch: chasePitchRad(f),
+        pitch: lookAtHeadingPitch(t.position, t.look).pitch,
         roll: 0,
       };
     }

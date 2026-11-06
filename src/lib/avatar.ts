@@ -5,10 +5,12 @@ import {
   photorealGroundShown,
   sampleGroundHeight,
   sceneEle,
+  sceneFinestTerrain,
   sceneGroundHeight,
   withMeshReadCache,
 } from '@/lib/cesiumUtils';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
+import type { FinestTerrain } from '@/lib/finestTerrain';
 import type { RiderPosition } from '@/lib/physics';
 
 export type { AvatarColors } from '@/lib/avatarConfig';
@@ -252,62 +254,129 @@ interface RigDynamics {
 }
 
 // ---- Bike + rider geometry (all metres, body-local) -----------------------
+//
+// The landmarks are the world renderer's GLB rider (scripts/gen-rider-glb.mjs,
+// +X forward / +Y up there; here +Y forward / +Z up), so photoreal draws an
+// adult rider of the same size: helmet top 1.645 m over the ground, saddle at
+// 0.97 m, hips at 1.05 m. An older, smaller rig (saddle 0.71 m, helmet top
+// 1.36 m) drew the photoreal rider 22–55 px shorter than the world rider at
+// the same camera (src/renderers/riderFraming.test.ts holds them together).
 
-const WHEEL_R = 0.34;
-const REAR_HUB = v3(0, -0.5, WHEEL_R);
-const FRONT_HUB = v3(0, 0.5, WHEEL_R);
-const BB = v3(0, 0.03, 0.27); // bottom bracket / crank centre
-const HEAD_TOP = v3(0, 0.46, 0.66);
-const SADDLE_J = v3(0, -0.13, 0.66); // seat-tube / top-tube junction
-const SADDLE = v3(0, -0.15, 0.71);
-const BAR = v3(0, 0.46, 0.86);
-const CRANK_R = 0.17;
-const THIGH_L = 0.43;
-const SHIN_L = 0.43;
+/**
+ * The landmarks shared with the GLB's RIG (body-local [forward, up], metres):
+ * tests pin each to scripts/gen-rider-glb.mjs.
+ */
+export const AVATAR_RIG = {
+  wheelRadius: 0.34,
+  /** Hubs ahead of / behind the origin. */
+  halfWheelbase: 0.5,
+  bb: [-0.09, 0.27] as const,
+  crankLength: 0.1725,
+  hip: [-0.27, 1.05] as const,
+  thigh: 0.46,
+  /** Knee to pedal: the GLB's shin (0.46 m) plus its ankle over the pedal. */
+  shin: 0.53,
+  /** Helmet shell centre (the road shell's top is 0.105 m above it). */
+  helmet: [0.30, 1.545] as const,
+};
+
+const WHEEL_R = AVATAR_RIG.wheelRadius;
+const REAR_HUB = v3(0, -AVATAR_RIG.halfWheelbase, WHEEL_R);
+const FRONT_HUB = v3(0, AVATAR_RIG.halfWheelbase, WHEEL_R);
+const BB = v3(0, AVATAR_RIG.bb[0], AVATAR_RIG.bb[1]); // bottom bracket / crank centre
+const HEAD_TOP = v3(0, 0.37, 0.86); // top of the head tube (the stem starts here)
+const HEAD_BOTTOM = v3(0, 0.41, 0.70); // bottom of the head tube (fork + down tube)
+const SADDLE_J = v3(0, -0.246, 0.797); // seat-tube / top-tube junction
+const SADDLE = v3(0, -0.277, 0.97);
+const BAR = v3(0, 0.48, 0.90); // stem end, bar tops
+const CRANK_R = AVATAR_RIG.crankLength;
+const THIGH_L = AVATAR_RIG.thigh;
+const SHIN_L = AVATAR_RIG.shin;
 
 // Derived geometry constants reused by multiple detail parts
-const SEATPOST_TOP = v3(0, -0.13, 0.67);
-const SEATPOST_BOT = v3(0, -0.06, 0.52);
-const DROP_LEFT  = v3(-0.21, 0.46, 0.86);
-const DROP_RIGHT = v3( 0.21, 0.46, 0.86);
-const HOOD_LEFT  = v3(-0.21, 0.44, 0.82);
-const HOOD_RIGHT = v3( 0.21, 0.44, 0.82);
+const SEATPOST_TOP = v3(0, -0.287, 0.945);
+const SEATPOST_BOT = SADDLE_J;
+const DROP_LEFT  = v3(-0.21, 0.48, 0.90);
+const DROP_RIGHT = v3( 0.21, 0.48, 0.90);
+const HOOD_LEFT  = v3(-0.21, 0.46, 0.86);
+const HOOD_RIGHT = v3( 0.21, 0.46, 0.86);
 
 // Hip / shoulder landmarks
-const HIP_LEFT   = v3(-0.1, -0.04, 0.82);
-const HIP_RIGHT  = v3( 0.1, -0.04, 0.82);
-const KNEE_LEFT  = v3(-0.1, 0.02, 0.55);   // nominal resting knee (overridden by IK)
-const KNEE_RIGHT = v3( 0.1, 0.02, 0.55);
+const HIP_Y = AVATAR_RIG.hip[0];
+const HIP_Z = AVATAR_RIG.hip[1];
+const HIP_LEFT   = v3(-0.1, HIP_Y, HIP_Z);
+const HIP_RIGHT  = v3( 0.1, HIP_Y, HIP_Z);
+const KNEE_LEFT  = v3(-0.1, -0.12, 0.66);   // nominal resting knee (overridden by IK)
+const KNEE_RIGHT = v3( 0.1, -0.12, 0.66);
+
+/** Torso axis: pelvis to the base of the neck (leaning forward ~32°). */
+const TORSO_BOT = v3(0, -0.25, 1.09);
+const TORSO_TOP = v3(0, 0.20, 1.37);
+const TORSO_R = 0.13;
+/** Pelvis block (hips part) centre. */
+const PELVIS = v3(0, -0.25, 1.06);
 
 // Shoulder attachment points (top of torso where arms connect)
-const SHOULDER_LEFT  = v3(-0.16, 0.12, 1.12);
-const SHOULDER_RIGHT = v3( 0.16, 0.12, 1.12);
-const ELBOW_LEFT     = v3(-0.19, 0.34, 0.98);
-const ELBOW_RIGHT    = v3( 0.19, 0.34, 0.98);
+const SHOULDER_LEFT  = v3(-0.185, 0.18, 1.35);
+const SHOULDER_RIGHT = v3( 0.185, 0.18, 1.35);
+const ELBOW_LEFT     = v3(-0.205, 0.37, 1.13);
+const ELBOW_RIGHT    = v3( 0.205, 0.37, 1.13);
+/** Forearm length: elbow to wrist on the hoods. */
+const FOREARM_L = 0.25;
+
+/** Helmet shell centre (the GLB's: top 1.645 m with the road shell's 0.105 m). */
+const HELMET_C = v3(0, AVATAR_RIG.helmet[0], AVATAR_RIG.helmet[1]);
+/** Head centre, under the shell. */
+const HEAD_C = v3(0, 0.32, 1.48);
+/** A point HELMET_C + (0, dy, dz): helmet details keep their place on the shell. */
+const onHelmet = (x: number, dy: number, dz: number): V3 => v3(x, HELMET_C[1] + dy, HELMET_C[2] + dz);
+
+/** A point `t` of the way up the torso axis (0 = pelvis, 1 = neck). */
+function torsoAt(t: number): V3 {
+  return v3(
+    0,
+    TORSO_BOT[1] + (TORSO_TOP[1] - TORSO_BOT[1]) * t,
+    TORSO_BOT[2] + (TORSO_TOP[2] - TORSO_BOT[2]) * t,
+  );
+}
+/** How far ahead of the torso axis (horizontally) its front surface is. */
+const TORSO_FRONT_M =
+  TORSO_R / Math.sin(Math.atan2(TORSO_TOP[2] - TORSO_BOT[2], TORSO_TOP[1] - TORSO_BOT[1]));
+
+/**
+ * A point `t` of the way along the down tube (BB → head tube), `out` metres
+ * off its axis on the upper side (bottle, battery).
+ */
+function onDownTube(t: number, out: number): V3 {
+  const dy = HEAD_BOTTOM[1] - BB[1];
+  const dz = HEAD_BOTTOM[2] - BB[2];
+  const l = Math.hypot(dy, dz);
+  return v3(0, BB[1] + dy * t - (dz / l) * out, BB[2] + dz * t + (dy / l) * out);
+}
 
 // ---- Hand positions per posture -------------------------------------------
 
 /** Body-local hand positions for each rider posture. */
 const HAND_POS: Record<RiderPosition, { left: V3; right: V3 }> = {
   hoods: {
-    left:  v3(-0.21, 0.46, 0.84),
-    right: v3( 0.21, 0.46, 0.84),
+    left:  v3(-0.21, 0.48, 0.88),
+    right: v3( 0.21, 0.48, 0.88),
   },
   drops: {
-    left:  v3(-0.21, 0.50, 0.76),
-    right: v3( 0.21, 0.50, 0.76),
+    left:  v3(-0.21, 0.52, 0.80),
+    right: v3( 0.21, 0.52, 0.80),
   },
   tops: {
-    left:  v3(-0.10, 0.40, 0.90),
-    right: v3( 0.10, 0.40, 0.90),
+    left:  v3(-0.10, 0.42, 0.94),
+    right: v3( 0.10, 0.42, 0.94),
   },
 };
 
 /** Forearm wrist endpoints per posture (elbow stays fixed, wrist follows hand). */
 const FOREARM_END: Record<RiderPosition, { left: V3; right: V3 }> = {
-  hoods: { left: v3(-0.21, 0.44, 0.86), right: v3( 0.21, 0.44, 0.86) },
-  drops: { left: v3(-0.21, 0.48, 0.78), right: v3( 0.21, 0.48, 0.78) },
-  tops:  { left: v3(-0.10, 0.40, 0.92), right: v3( 0.10, 0.40, 0.92) },
+  hoods: { left: v3(-0.21, 0.46, 0.90), right: v3( 0.21, 0.46, 0.90) },
+  drops: { left: v3(-0.21, 0.50, 0.82), right: v3( 0.21, 0.50, 0.82) },
+  tops:  { left: v3(-0.10, 0.42, 0.96), right: v3( 0.10, 0.42, 0.96) },
 };
 
 // ---- Part factory functions -----------------------------------------------
@@ -350,7 +419,7 @@ function crankPart(name: string, side: -1 | 1): PartSpec {
  * Shared by thigh, shin, and knee-joint parts.
  */
 function solveIK(side: -1 | 1, crankAngle: number): { hip: V3; knee: V3; pedal: V3 } {
-  const hip = v3(side * 0.1, -0.04, 0.82);
+  const hip = v3(side * 0.1, HIP_Y, HIP_Z);
   const pedal = pedalPos(side, crankAngle);
   const ay = pedal[1] - hip[1];
   const az = pedal[2] - hip[2];
@@ -515,7 +584,7 @@ function forearmPart(name: string, side: 'left' | 'right'): PartSpec {
   return {
     name,
     kind: 'cylinder',
-    dims: v3(0.033, 0.20, 0.033),
+    dims: v3(0.033, FOREARM_L, 0.033),
     role: 'skin',
     place: (d) => {
       const wrist = FOREARM_END[d.riderPosition][side];
@@ -532,7 +601,7 @@ function headPart(): PartSpec {
     dims: v3(0.10, 0.12, 0.13),
     role: 'skin',
     place: (d) => ({
-      pos: v3(0, 0.30, 1.19),
+      pos: HEAD_C,
       rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
     }),
   };
@@ -556,7 +625,7 @@ function helmetShellPart(style: HelmetStyle): PartSpec {
     dims: dims[style],
     role: 'helmet',
     place: (d) => ({
-      pos: v3(0, 0.28, 1.255),
+      pos: HELMET_C,
       rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
     }),
   };
@@ -573,14 +642,15 @@ function helmetVisorPart(style: HelmetStyle): PartSpec {
     aero:     v3(0.120, 0.080, 0.020),  // larger chin area
     climbing: v3(0.105, 0.045, 0.014),  // minimal brim
   };
-  const fwdOffset: Record<HelmetStyle, number> = { road: 0.40, aero: 0.42, climbing: 0.38 };
+  /** Ahead of the shell centre. */
+  const fwdOffset: Record<HelmetStyle, number> = { road: 0.12, aero: 0.14, climbing: 0.10 };
   return {
     name: 'helmet-visor',
     kind: 'box',
     dims: dims[style],
     role: 'helmet',
     place: (d) => ({
-      pos: v3(0, fwdOffset[style], 1.21),
+      pos: onHelmet(0, fwdOffset[style], -0.045),
       rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
     }),
   };
@@ -597,7 +667,7 @@ function helmetVentPart(name: string, zOffset: number): PartSpec {
     dims: v3(0.095, 0.025, 0.012),
     role: 'wheel',  // dark vent color (wheel role = near-black)
     place: (d) => ({
-      pos: v3(0, 0.29, 1.24 + zOffset),
+      pos: onHelmet(0, 0.01, -0.015 + zOffset),
       rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
     }),
   };
@@ -611,7 +681,7 @@ function helmetStrapPart(): PartSpec {
     dims: v3(0.008, 0.010, 0.055),
     role: 'helmet',
     place: (d) => ({
-      pos: v3(0, 0.33, 1.17),
+      pos: onHelmet(0, 0.05, -0.085),
       rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
     }),
   };
@@ -626,7 +696,7 @@ function glassesLensPart(name: string, xOffset: number): PartSpec {
     role: 'accent',  // tinted lens — accent color
     alpha: 0.55,
     place: (d) => ({
-      pos: v3(xOffset, 0.38, 1.185),
+      pos: onHelmet(xOffset, 0.10, -0.07),
       rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
     }),
   };
@@ -640,7 +710,7 @@ function glassesBridgePart(): PartSpec {
     dims: v3(0.030, 0.006, 0.006),
     role: 'accent',
     place: (d) => ({
-      pos: v3(0, 0.375, 1.185),
+      pos: onHelmet(0, 0.095, -0.07),
       rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
     }),
   };
@@ -648,8 +718,8 @@ function glassesBridgePart(): PartSpec {
 
 /** Water bottle on the down tube — cylinder, kit color. */
 function waterBottlePart(): PartSpec {
-  // Down tube mid-point: between BB and HEAD_TOP
-  const bottlePos = v3(0, 0.24, 0.50);
+  // On top of the down tube, half way along it.
+  const bottlePos = onDownTube(0.5, 0.04);
   return {
     name: 'water-bottle',
     kind: 'cylinder',
@@ -658,7 +728,7 @@ function waterBottlePart(): PartSpec {
     place: {
       // Align with the down-tube direction
       pos: bottlePos,
-      rot: quatZTo(sub(HEAD_TOP, BB)),
+      rot: quatZTo(sub(HEAD_BOTTOM, BB)),
     },
   };
 }
@@ -794,9 +864,9 @@ function hipsPart(): PartSpec {
     dims: v3(0.30, 0.22, 0.20),
     role: 'kit',
     place: (d) => {
-      if (!d.climbing) return { pos: v3(0, -0.06, 0.82), rot: QUAT_IDENTITY };
+      if (!d.climbing) return { pos: PELVIS, rot: QUAT_IDENTITY };
       const swayX = Math.sin(d.climbSway) * 0.06;
-      return { pos: v3(swayX, -0.06, 0.82), rot: QUAT_IDENTITY };
+      return { pos: v3(swayX, PELVIS[1], PELVIS[2]), rot: QUAT_IDENTITY };
     },
   };
 }
@@ -860,7 +930,7 @@ function ttBarPart(name: string, xSide: number): PartSpec {
     kind: 'cylinder',
     dims: v3(0.014, 0.22, 0.014),
     role: 'frame',
-    place: { pos: v3(xSide * 0.065, 0.62, 0.87), rot: quatZTo(v3(0, 1, 0)) },
+    place: { pos: v3(xSide * 0.065, BAR[1] + 0.16, BAR[2] + 0.01), rot: quatZTo(v3(0, 1, 0)) },
   };
 }
 
@@ -871,13 +941,13 @@ function flatBarPart(): PartSpec {
     kind: 'box',
     dims: v3(0.55, 0.04, 0.038),
     role: 'frame',
-    place: { pos: v3(0, 0.46, 0.88), rot: QUAT_IDENTITY },
+    place: { pos: v3(0, BAR[1], BAR[2] + 0.02), rot: QUAT_IDENTITY },
   };
 }
 
 /** Suspension fork leg — vertical tube from steerer to wheel axle. */
 function suspForkPart(name: string, xSide: number): PartSpec {
-  return tube(name, v3(xSide * 0.040, HEAD_TOP[1], HEAD_TOP[2]),
+  return tube(name, v3(xSide * 0.040, HEAD_BOTTOM[1], HEAD_BOTTOM[2]),
                     v3(xSide * 0.040, FRONT_HUB[1], FRONT_HUB[2]), 0.022, 'frame');
 }
 
@@ -888,31 +958,33 @@ function ebikeBatteryPart(): PartSpec {
     kind: 'box',
     dims: v3(0.065, 0.26, 0.065),
     role: 'accent',
-    place: { pos: v3(0, 0.21, 0.46), rot: quatZTo(sub(HEAD_TOP, BB)) },
+    place: { pos: onDownTube(0.45, 0), rot: quatZTo(sub(HEAD_BOTTOM, BB)) },
   };
 }
 
 // ---- Kit pattern helpers --------------------------------------
 
-/** Horizontal jersey band — thin box across the torso at a given Z height. */
-function jerseyBandPart(name: string, zPos: number, role: ColorRole): PartSpec {
+/** Horizontal jersey band — thin box across the torso, `t` of the way up it (0 = hem). */
+function jerseyBandPart(name: string, t: number, role: ColorRole): PartSpec {
   return {
     name,
     kind: 'box',
     dims: v3(0.30, 0.22, 0.065),
     role,
-    place: { pos: v3(0, 0.05, zPos), rot: QUAT_IDENTITY },
+    place: { pos: torsoAt(t), rot: QUAT_IDENTITY },
   };
 }
 
-/** Polka dot — small ellipsoid on jersey surface. */
-function polkaDotPart(name: string, x: number, z: number): PartSpec {
+/** Polka dot — small ellipsoid on the jersey's front, `x` right of centre and `t` of the way up. */
+function polkaDotPart(name: string, x: number, t: number): PartSpec {
+  const axis = torsoAt(t);
+  const across = Math.sqrt(Math.max(0, TORSO_R * TORSO_R - x * x)) / TORSO_R;
   return {
     name,
     kind: 'ellipsoid',
     dims: v3(0.028, 0.012, 0.028),
     role: 'accent',
-    place: { pos: v3(x, 0.22, z), rot: QUAT_IDENTITY },
+    place: { pos: v3(x, axis[1] + TORSO_FRONT_M * across, axis[2]), rot: QUAT_IDENTITY },
   };
 }
 
@@ -959,19 +1031,19 @@ function buildParts(opts: ResolvedAvatarOptions): PartSpec[] {
     brakeRotorPart('rotor-front', FRONT_HUB, -1),
 
     // ---- frame — tube radii scaled by bikeShape ---------------------------
-    tube('down-tube',  BB,           HEAD_TOP,          0.035 * ts, 'frame'),
+    tube('down-tube',  BB,           HEAD_BOTTOM,       0.035 * ts, 'frame'),
     tube('seat-tube',  BB,           SADDLE_J,          0.032 * ts, 'frame'),
     tube('top-tube',   SADDLE_J,     HEAD_TOP,          0.030 * ts, 'frame'),
     tube('chain-stay', REAR_HUB,     BB,                0.025 * ts, 'frame'),
     tube('seat-stay',  REAR_HUB,     SADDLE_J,          0.022 * ts, 'frame'),
     tube('steerer',    HEAD_TOP,     BAR,               0.026 * ts, 'frame'),
     tube('seatpost',   SEATPOST_BOT, SEATPOST_TOP,      0.020 * ts, 'frame'),
-    tube('head-tube',  v3(0, 0.44, 0.58), HEAD_TOP,    0.028 * ts, 'frame'),
+    tube('head-tube',  HEAD_BOTTOM,  HEAD_TOP,          0.028 * ts, 'frame'),
 
     { name: 'saddle', kind: 'box', dims: v3(0.14, 0.18, 0.05), role: 'frame',
       place: { pos: SADDLE, rot: QUAT_IDENTITY } },
     { name: 'saddle-nose', kind: 'box', dims: v3(0.07, 0.10, 0.04), role: 'frame',
-      place: { pos: v3(0, -0.26, 0.70), rot: QUAT_IDENTITY } },
+      place: { pos: v3(0, SADDLE[1] + 0.11, SADDLE[2] - 0.01), rot: QUAT_IDENTITY } },
 
     // ---- drivetrain ----------------------------------------------------------
     crankPart('crank-left',  -1),
@@ -982,7 +1054,7 @@ function buildParts(opts: ResolvedAvatarOptions): PartSpec[] {
 
     // ---- rider body ----------------------------------------------------------
     hipsPart(),
-    tube('torso', v3(0, -0.08, 0.86), v3(0, 0.20, 1.12), 0.13, 'kit'),
+    tube('torso', TORSO_BOT, TORSO_TOP, TORSO_R, 'kit'),
     shoulderPart('shoulder-left',  'left'),
     shoulderPart('shoulder-right', 'right'),
     tube('upper-arm-left',  SHOULDER_LEFT,  ELBOW_LEFT,  0.044, 'kit'),
@@ -1058,7 +1130,7 @@ function buildParts(opts: ResolvedAvatarOptions): PartSpec[] {
       );
     }
   } else {
-    parts.push(tube('fork', HEAD_TOP, FRONT_HUB, 0.028 * ts, 'frame'));
+    parts.push(tube('fork', HEAD_BOTTOM, FRONT_HUB, 0.028 * ts, 'frame'));
   }
 
   // ---- E-bike battery ------------------------------------------------------
@@ -1082,35 +1154,35 @@ function buildParts(opts: ResolvedAvatarOptions): PartSpec[] {
   if (kp === 'rainbow') {
     const RAINBOW_ROLES: ColorRole[] = ['accent', 'kit', 'wheel', 'helmet', 'frame'];
     for (let i = 0; i < 5; i++) {
-      parts.push(jerseyBandPart(`rainbow-band-${i}`, 0.94 + i * 0.050, RAINBOW_ROLES[i]));
+      parts.push(jerseyBandPart(`rainbow-band-${i}`, 0.3 + i * 0.19, RAINBOW_ROLES[i]));
     }
   } else if (kp === 'polka') {
     const DOTS: [number, number][] = [
-      [-0.08, 1.02], [0.08, 1.02],
-      [-0.11, 0.95], [0.11, 0.95],
-      [-0.06, 0.88], [0.06, 0.88],
+      [-0.08, 0.62], [0.08, 0.62],
+      [-0.11, 0.35], [0.11, 0.35],
+      [-0.06, 0.08], [0.06, 0.08],
     ];
     for (let i = 0; i < DOTS.length; i++) {
       parts.push(polkaDotPart(`polka-${i}`, DOTS[i][0], DOTS[i][1]));
     }
   } else if (kp === 'stripes') {
     parts.push(
-      jerseyBandPart('stripe-0', 1.00, 'accent'),
-      jerseyBandPart('stripe-1', 0.93, 'kit'),
-      jerseyBandPart('stripe-2', 0.86, 'accent'),
+      jerseyBandPart('stripe-0', 0.54, 'accent'),
+      jerseyBandPart('stripe-1', 0.27, 'kit'),
+      jerseyBandPart('stripe-2', 0, 'accent'),
     );
   } else if (kp === 'teamReplica') {
     parts.push(
-      jerseyBandPart('team-chest', 1.01, 'accent'),
-      jerseyBandPart('team-mid',   0.93, 'kit'),
-      jerseyBandPart('team-hem',   0.86, 'frame'),
+      jerseyBandPart('team-chest', 0.58, 'accent'),
+      jerseyBandPart('team-mid',   0.27, 'kit'),
+      jerseyBandPart('team-hem',   0, 'frame'),
     );
   } else if (kp === 'yellowLeader') {
     parts.push(
       { name: 'cuff-left',  kind: 'box', dims: v3(0.075, 0.030, 0.030),
-        role: 'wheel', place: { pos: v3(-0.21, 0.42, 0.82), rot: QUAT_IDENTITY } },
+        role: 'wheel', place: { pos: v3(-0.21, 0.44, 0.86), rot: QUAT_IDENTITY } },
       { name: 'cuff-right', kind: 'box', dims: v3(0.075, 0.030, 0.030),
-        role: 'wheel', place: { pos: v3( 0.21, 0.42, 0.82), rot: QUAT_IDENTITY } },
+        role: 'wheel', place: { pos: v3( 0.21, 0.44, 0.86), rot: QUAT_IDENTITY } },
     );
   } else if (kp === 'sprinterGreen') {
     parts.push(
@@ -1124,7 +1196,7 @@ function buildParts(opts: ResolvedAvatarOptions): PartSpec[] {
                  rot: quatZTo(sub(ELBOW_RIGHT, SHOULDER_RIGHT)) } },
     );
   } else if (kp === 'fluoro') {
-    parts.push(jerseyBandPart('fluoro-hem', 0.87, 'frame'));
+    parts.push(jerseyBandPart('fluoro-hem', 0.04, 'frame'));
   }
   // 'solid': no extra primitives.
 
@@ -2068,7 +2140,10 @@ function climbsInSteps(
  * Held under something with nothing drawn near the road under it, the globe
  * is drawn instead when its terrain there is within this of the road (m):
  * see createGroundSampler. The drawn ground is the higher of the two, so this
- * also bounds how far it can lift the rider.
+ * also bounds how far it can lift the rider. Its terrain is the finest the
+ * globe has there (lib/finestTerrain), which it draws once shown, not the
+ * tile a hidden globe last loaded (Lugano–Melide 7.6 km: 4.4 m under the road
+ * or 2 m over it, the finest within 0.25 m).
  */
 export const GLOBE_STANDIN_M = 1.5;
 
@@ -2113,8 +2188,12 @@ export type GroundKind = 'mesh' | 'standIn' | 'globe';
  * another road, so a missing reading there is a fresh start: the globe's
  * terrain decides, drawn or not, until the mesh road there is read (the gate
  * brings the globe back if none turns up).
+ *
+ * `finest`: the finest terrain heights fetched along the way (default: the
+ * scene's terrain provider, cesiumUtils sceneFinestTerrain), for the globe
+ * stand-in ({@link GLOBE_STANDIN_M}).
  */
-export function createGroundSampler(scene: Cesium.Scene) {
+export function createGroundSampler(scene: Cesium.Scene, finest: FinestTerrain = sceneFinestTerrain(scene)) {
   let lastMs = -Infinity;
   let lastLon = NaN;
   let lastLat = NaN;
@@ -2156,6 +2235,8 @@ export function createGroundSampler(scene: Cesium.Scene) {
       const waiting = road.status() !== 'overhang' && (last === undefined || onGlobe);
       const fresh = waiting || nowMs - lastMs >= GROUND_SAMPLE_INTERVAL_MS || movedM >= GROUND_SAMPLE_MOVE_M;
       if (fresh) {
+        const fromLon = lastLon;
+        const fromLat = lastLat;
         lastMs = nowMs;
         lastLon = lon;
         lastLat = lat;
@@ -2195,8 +2276,17 @@ export function createGroundSampler(scene: Cesium.Scene) {
         // towpath under the I-80 deck, Cuyahoga 2.98–3.01 km: the mesh has a
         // hole there, the globe 0.2 m under the towpath). Where it is far off
         // (26 m over the Lugano shore street) it would lift the rider, so the
-        // rider holds the road with the globe hidden.
-        const standsIn = bare !== undefined && held !== undefined && Math.abs(bare - held) <= GLOBE_STANDIN_M;
+        // rider holds the road with the globe hidden. Near or far is judged
+        // by the finest terrain the globe has here, fetched (ahead) while the
+        // rider is held: what it draws once shown. A hidden globe's loaded
+        // tile is whatever coarse one it last loaded along the way: at
+        // Lugano–Melide 7.6 km, under a 54 m slab with no ground drawn under
+        // it, that read 4.4 m under the road (the finest 0.25 m), so the
+        // rider rode on over a black void. Until the finest lands, the loaded
+        // tile decides.
+        if (status === 'overhang' && held !== undefined && !away) finest.want(lon, lat, fromLon, fromLat, nowMs);
+        const globeHere = finest.near(lon, lat) ?? bare;
+        const standsIn = globeHere !== undefined && held !== undefined && Math.abs(globeHere - held) <= GLOBE_STANDIN_M;
         const onMesh = status === 'road' || (status === 'overhang' && held !== undefined && !away && !standsIn);
         // Not on the mesh road, but the mesh is there over the road: the
         // globe is drawn in its place, without the painted road (GroundKind).
@@ -2288,7 +2378,11 @@ export function setAvatarEffortLevel(avatar: Avatar, level01: number): void {
  * test assertions and must never be called in the hot render path.
  */
 export function avatarPrimitiveCount(options?: AvatarOptions): number {
-  const opts: ResolvedAvatarOptions = {
+  return buildParts(resolveTestOptions(options)).length;
+}
+
+function resolveTestOptions(options?: AvatarOptions): ResolvedAvatarOptions {
+  return {
     colors:      options?.colors      ?? DEFAULT_AVATAR_COLORS,
     posture:     options?.posture     ?? 'hoods',
     helmetStyle: options?.helmetStyle ?? 'road',
@@ -2299,7 +2393,62 @@ export function avatarPrimitiveCount(options?: AvatarOptions): number {
     kitAccent:   options?.kitAccent,
     shoeStyle:   options?.shoeStyle   ?? 'roadClip',
   };
-  return buildParts(opts).length;
+}
+
+/**
+ * Points on the surface of every part, body-local metres (+X right, +Y
+ * forward, +Z up; origin on the ground between the wheels), at crank angle
+ * `crankAngle` and the given posture: the rider's silhouette as drawn, for
+ * tests that project it through a camera (rendering never calls this).
+ * Boxes give their corners, cylinders `n` points round each end, ellipsoids
+ * an `n` × `n` latitude/longitude grid.
+ */
+export function avatarSurfacePoints(
+  options?: AvatarOptions,
+  pose: { crankAngle?: number; riderPosition?: RiderPosition } = {},
+  n = 24,
+): V3[] {
+  const opts = resolveTestOptions(options);
+  const dyn: RigDynamics = {
+    wheelAngle: 0,
+    crankAngle: pose.crankAngle ?? 0,
+    headYaw: 0,
+    climbSway: 0,
+    climbing: false,
+    riderPosition: pose.riderPosition ?? opts.posture,
+  };
+  const out: V3[] = [];
+  const m = new Cesium.Matrix3();
+  const p = new Cesium.Cartesian3();
+  for (const part of buildParts(opts)) {
+    const local = typeof part.place === 'function' ? part.place(dyn) : part.place;
+    Cesium.Matrix3.fromQuaternion(local.rot, m);
+    const [a, b, c] = part.dims;
+    const raw: V3[] = [];
+    if (part.kind === 'box') {
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) raw.push(v3((sx * a) / 2, (sy * b) / 2, (sz * c) / 2));
+    } else if (part.kind === 'cylinder') {
+      // Cesium.CylinderGeometry: length dims[1] along z, top radius dims[0], bottom dims[2].
+      for (let i = 0; i < n; i++) {
+        const t = (i / n) * Math.PI * 2;
+        raw.push(v3(Math.cos(t) * a, Math.sin(t) * a, b / 2));
+        raw.push(v3(Math.cos(t) * c, Math.sin(t) * c, -b / 2));
+      }
+    } else {
+      for (let i = 0; i <= n; i++) {
+        const lat = -Math.PI / 2 + (i / n) * Math.PI;
+        for (let j = 0; j < n; j++) {
+          const lon = (j / n) * Math.PI * 2;
+          raw.push(v3(Math.cos(lat) * Math.cos(lon) * a, Math.cos(lat) * Math.sin(lon) * b, Math.sin(lat) * c));
+        }
+      }
+    }
+    for (const q of raw) {
+      Cesium.Matrix3.multiplyByVector(m, Cesium.Cartesian3.fromElements(q[0], q[1], q[2], p), p);
+      out.push(v3(p.x + local.pos[0], p.y + local.pos[1], p.z + local.pos[2]));
+    }
+  }
+  return out;
 }
 
 // ---- Private helpers ------------------------------------------------------

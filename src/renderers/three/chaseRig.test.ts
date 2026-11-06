@@ -1,6 +1,7 @@
+import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 
-import { CHASE_FRAMING, chaseFraming } from '@/lib/world/cameraFraming';
+import { CHASE_FRAMING, REAR_AXLE_M, RIDE_FOV_Y_DEG, chaseFraming } from '@/lib/world/cameraFraming';
 import {
   CameraRig,
   MAX_AIM_OFFSET_RAD,
@@ -158,5 +159,51 @@ describe('camera targets per mode', () => {
     expect(fp.position.y - 200).toBeLessThan(1.4);
     const drone = cameraTarget('drone', input(), chaseFraming('standard'), 'standard');
     expect(drone.position.y - 200).toBe(60);
+  });
+});
+
+describe('chase camera on a climb', () => {
+  /** Top of the ride HUD strip at 390×844, CSS px (measured live: `[data-testid=ride-strip]`). */
+  const STRIP_TOP_390 = 734;
+  const [W, H] = [390, 844];
+
+  /** Ride a steady grade for 2 s through the rig (anchored on the rider) and return the rear tyre contact's screen y. */
+  const rearTyreY = (grade: number, distance: 'close' | 'standard' = 'close') => {
+    const f = chaseFraming(distance);
+    const rig = new CameraRig();
+    const cam = new THREE.PerspectiveCamera(RIDE_FOV_Y_DEG, W / H, 0.4, 5000);
+    const pitch = Math.atan(grade);
+    let rear = new THREE.Vector3();
+    for (let i = 0; i <= 120; i++) {
+      // Riding north (−z) up the grade at 8 m/s; ground height = grade × distance.
+      const d = i * (8 / 60);
+      const rider = { x: 0, y: grade * d, z: -d };
+      const ahead = { x: 0, y: grade * (d + f.lookAheadM), z: -(d + f.lookAheadM) };
+      rig.update('chase', cameraTarget('chase', input({ rider, ahead }), f, distance), 1 / 60, undefined, rider);
+      // The bike pitches up the slope about its ground contact (riderRig placeRider).
+      rear = new THREE.Vector3(rider.x, rider.y - REAR_AXLE_M.back * Math.sin(pitch), rider.z + REAR_AXLE_M.back * Math.cos(pitch));
+    }
+    cam.position.set(rig.position.x, rig.position.y, rig.position.z);
+    cam.lookAt(rig.look.x, rig.look.y, rig.look.z);
+    cam.updateMatrixWorld();
+    return ((1 - rear.project(cam).y) / 2) * H;
+  };
+
+  it("at 'close' on a 12 % climb the rear tyre contact is drawn above the 390×844 ride strip, as on the flat", () => {
+    const flat = rearTyreY(0);
+    expect(flat).toBeLessThan(STRIP_TOP_390);
+    const climb = rearTyreY(0.12);
+    expect(climb).toBeLessThan(STRIP_TOP_390);
+    expect(Math.abs(climb - flat)).toBeLessThan(8);
+    // Standard keeps it clear by a wide margin.
+    expect(rearTyreY(0.12, 'standard')).toBeLessThan(STRIP_TOP_390 - 40);
+  });
+
+  it('on a climb the look point stays under the rider’s + aimM; downhill it is the road ahead + aimM', () => {
+    const f = chaseFraming('close');
+    const up = cameraTarget('chase', input({ ahead: { x: 100, y: 200 + 0.12 * f.lookAheadM, z: -50 - f.lookAheadM } }), f, 'close');
+    expect(up.look.y - 200).toBeLessThan(f.aimM);
+    const down = cameraTarget('chase', input({ ahead: { x: 100, y: 200 - 0.08 * f.lookAheadM, z: -50 - f.lookAheadM } }), f, 'close');
+    expect(down.look.y).toBeCloseTo(200 - 0.08 * f.lookAheadM + f.aimM, 9);
   });
 });
