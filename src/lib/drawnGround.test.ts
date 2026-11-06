@@ -458,9 +458,10 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     // At 8 m the finest tile draws its edge 1.76 m up with nothing under it
     // (taken, unproven); 40 m on, a crown layer 168.8 m with nothing under
     // it, 3.5 m over the edge. By then a coarser tile draws the edge's spot:
-    // its top higher, the towpath (163.03) under it. The road taken there
-    // is not drawn there any more, but the road before it is: no tile
-    // refined under the rider, and the crown is not ridden.
+    // its top 18 m over the terrain, the towpath (163.03) under it. The
+    // road taken there is not drawn there any more, but a tile there risen
+    // to a structure's height is something drawn over the road, not the
+    // road refined higher: the crown is not ridden.
     const f = createMeshRoadFilter();
     let coarser = false;
     const layers = (lat: number): number[] => {
@@ -520,7 +521,8 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
   it('over the road too, a coarser tile drawing the towpath under the crown edge taken is no tile refined higher', () => {
     // The crown layer at 48 m is over the climb allowance from the edge
     // (12.4 m at 44 m on): over the road, nothing near it, and the edge's
-    // spot now draws a top 20 m up and the towpath 0.47 m under where it was.
+    // spot now draws a top 22 m over the terrain and the towpath 0.47 m under
+    // where it was.
     const { f, ride, coarsen } = edgeOnTowpath(121.6, 115, [99.53, 122.4]);
     expect([0, 4, 8].map(ride)).toEqual([100, 100, 101.76]);
     for (let m = 12; m <= 44; m += 4) ride(m);

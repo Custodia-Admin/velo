@@ -2005,18 +2005,18 @@ export function createMeshRoadFilter() {
         !climbsInSteps(from, baseLon, baseLat, h, lon, lat, moved, readAt, RAMP_GRADE);
       // Looked under only near the bare terrain (UNDER_BARE_M).
       const nearBare = (h: number) => bare !== undefined && h >= bare - UNDER_BARE_M;
-      // A tile refined higher under the rider (roseAt) is taken, but not up
-      // from the ground onto a structure, here or at the road spot: at
-      // Cuyahoga 4.724 km the towpath read under a crown (162.8 m) was gone
-      // from the next read at the same spot, a tile with the crown top
-      // (176.6 m, 13 m over the terrain) and nothing under it; then the rider
-      // rode the crown down for 20 m, from 169.1 m (5.8 m over the terrain)
-      // 10 m on.
-      const atStructure = (h: number | undefined, b: number | undefined) =>
-        h !== undefined && b !== undefined && h > b + STRUCTURE_M && h <= b + STRUCTURE_MAX_M;
-      const refined = (h: number) =>
-        roseAt(readAt, from, baseLon, baseLat, stepFrom?.h) &&
-        (onStructure(from) || !(onStructure(h) || atStructure(readAt(baseLon, baseLat), baseBare)));
+      // A tile refined higher under the rider (roseAt) is taken, but not one
+      // that rose from the ground to a structure's height at the road spot:
+      // that is something drawn over the road there. At Cuyahoga 4.724 km the
+      // towpath read under a crown (162.8 m) was gone from the next read at
+      // the same spot, a tile with the crown top (176.6 m, 13 m over the
+      // terrain) and nothing under it, and the rider rode the crown down for
+      // 20 m (from 169.1 m, 5.8 m over the terrain, 10 m on). At 4.740 km the
+      // crown edge taken at 4.696 km was gone the same way (a coarser tile,
+      // its top 18 m over the terrain).
+      const atStructure = (h: number | undefined) =>
+        h !== undefined && baseBare !== undefined && h > baseBare + STRUCTURE_M && h <= baseBare + STRUCTURE_MAX_M;
+      const refined = () => roseAt(readAt, from, baseLon, baseLat) && (atStructure(from) || !atStructure(readAt(baseLon, baseLat)));
       const allow = Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + OVERHANG_GRADE * moved);
       if (top <= base + allow) {
         let road = top;
@@ -2035,7 +2035,7 @@ export function createMeshRoadFilter() {
             road = under;
           }
         }
-        if (climbsOnto(road) && !refined(road)) {
+        if (climbsOnto(road) && !refined()) {
           status = 'overhang';
           return base;
         }
@@ -2051,7 +2051,7 @@ export function createMeshRoadFilter() {
       const nearRoad = (h: number) => surfaceNear(readAt, lon, lat, Math.min(h + near, top - UNDER_CLEARANCE_M), h, near, usable, nearBare);
       const under = (stepFrom ? nearRoad(stepFrom.h) : undefined) ?? nearRoad(base);
       if (under !== undefined && !climbsOnto(under)) return take(under, lon, lat, true);
-      if (refined(top) || (climbsInSteps(base, baseLon, baseLat, top, lon, lat, moved, readAt) && !climbsOnto(top))) {
+      if (refined() || (climbsInSteps(base, baseLon, baseLat, top, lon, lat, moved, readAt) && !climbsOnto(top))) {
         return take(top, lon, lat);
       }
       status = 'overhang';
@@ -2123,18 +2123,13 @@ function surfaceNear(
  * Whether the mesh at the last road spot rose over the road taken there (a
  * tile refined under the rider): its top is higher, and the road is no longer
  * drawn there under it. A crown over the towpath where the road was taken
- * from under it is still a crown, not a refined tile. With the road taken
- * there unproven, the road before it (`before`, the filter's stepFrom) drawn
- * there is the road still drawn too: at Cuyahoga 4.696 km the crown's edge
- * the road was taken on is drawn only by the finest tile, and once the rider
- * is 40 m on, a coarser one there draws the towpath 2.2 m under it.
+ * from under it is still a crown, not a refined tile.
  */
-function roseAt(readAt: MeshRead, base: number, baseLon: number, baseLat: number, before?: number): boolean {
+function roseAt(readAt: MeshRead, base: number, baseLon: number, baseLat: number): boolean {
   const top = readAt(baseLon, baseLat);
   if (top === undefined || top <= base + OVERHANG_RISE_M) return false;
   const still = readAt(baseLon, baseLat, base + OVERHANG_RISE_M);
-  const drawn = (h: number | undefined) => h !== undefined && still !== undefined && Number.isFinite(still) && Math.abs(still - h) <= OVERHANG_RISE_M;
-  return !(drawn(base) || drawn(before));
+  return !(still !== undefined && Number.isFinite(still) && Math.abs(still - base) <= OVERHANG_RISE_M);
 }
 
 /**
