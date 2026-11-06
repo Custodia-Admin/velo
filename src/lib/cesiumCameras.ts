@@ -140,7 +140,7 @@ export const CHASE_PITCH_RAD   = chasePitchRad(CHASE_FRAMING.standard);
 
 /** Eye height on the bike and how far forward of the hip origin the eyes sit. */
 export const FIRST_PERSON_EYE_HEIGHT_M = 1.25;
-/** Just in front of the face (head centre 0.30 m + radius 0.12 m), so the rider's own head never fills the view. */
+/** Just in front of the face (head centre 0.32 m + radius 0.12 m, lib/avatar), so the rider's own head never fills the view. */
 export const FIRST_PERSON_EYE_FORWARD_M = 0.45;
 export const FIRST_PERSON_HEAD_BOB_AMP = 0.04;  // metres
 /** Slight downward look so the bars and the road just ahead are in view. */
