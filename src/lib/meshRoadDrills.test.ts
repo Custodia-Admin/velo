@@ -210,4 +210,17 @@ describe('the mesh road filter on drilled stretches: each rule that moved the dr
     // layer between (167.7 m at 4760 m) measured from a crown taken.
     onTheRoad(ridden, 4759);
   });
+
+  it('Cuyahoga 5.83–5.91 km: held on a road found under a crown that climbed too steeply, the towpath is looked for near the road before it', () => {
+    // A bush 3–4 m over the towpath, read from under a crown, is the surface
+    // nearest the road and is taken (unproven: it climbed steeper than a
+    // road). Under the next crowns the towpath is drawn again, out of reach
+    // under the bush, and was found only once the crowns ended: the rider
+    // was held 4 m over it for up to 30 m. Looked for near the towpath
+    // before the bush, it is found where it is drawn. (Read 4, 7 or 8 m
+    // apart, the stretch is still ridden off the towpath in places, as it
+    // was before.)
+    onTheRoad(rides('cuyahoga5826', [2, 3, 5, 6]));
+  });
 });
+

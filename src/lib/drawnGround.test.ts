@@ -453,6 +453,36 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     expect(f.status()).toBe('road');
   });
 
+  it('a coarser tile drawing the road under a crown edge taken as road is no tile refined higher (Cuyahoga 4.74 km)', () => {
+    // As logged on cat-bed: the towpath at 163.5, terrain 164.2, then a crown.
+    // At 8 m the finest tile draws its edge 1.76 m up with nothing under it
+    // (taken, unproven); 40 m on, a crown layer 168.8 m with nothing under
+    // it, 3.5 m over the edge. By then a coarser tile draws the edge's spot:
+    // its top higher, the towpath (163.03) under it. The road taken there
+    // is not drawn there any more, but the road before it is: no tile
+    // refined under the rider, and the crown is not ridden.
+    const f = createMeshRoadFilter();
+    let coarser = false;
+    const layers = (lat: number): number[] => {
+      if (lat < at(6)) return [163.5];
+      if (lat < at(10)) return coarser ? [163.03, 182.4] : [165.26, 181.6];
+      if (lat < at(46)) return [181.6];
+      return [168.8];
+    };
+    const readAt = (_lon: number, lat: number, under?: number) =>
+      layers(lat)
+        .filter((h) => under === undefined || h <= under)
+        .at(-1);
+    const bare = (lat: number) => (lat < at(40) ? 164.2 : 163.3);
+    const ride = (m: number) => f.next(readAt(lon0, at(m)), lon0, at(m), HIGH, readAt, -Infinity, bare(at(m)));
+    expect([0, 4].map(ride)).toEqual([163.5, 163.5]);
+    expect(ride(8)).toBe(165.26);
+    for (let m = 12; m <= 44; m += 4) expect(ride(m)).toBe(165.26);
+    coarser = true;
+    for (let m = 48; m <= 60; m += 4) expect(ride(m), `${m} m`).toBe(165.26);
+    expect(f.status()).toBe('overhang');
+  });
+
   it('climbs, falls and holes: climbs and falls taken, a hole leaves the globe to decide but keeps the road', () => {
     const f = createMeshRoadFilter();
     const none = () => undefined;

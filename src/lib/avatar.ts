@@ -2023,19 +2023,24 @@ export function createMeshRoadFilter() {
             road = under;
           }
         }
-        if (climbsOnto(road) && !roseAt(readAt, base, baseLon, baseLat)) {
+        if (climbsOnto(road) && !roseAt(readAt, base, baseLon, baseLat, stepFrom?.h)) {
           status = 'overhang';
           return base;
         }
         return take(road, lon, lat, road !== top);
       }
       // Over the road: the road goes on under it where the mesh has it, read
-      // down from the highest it can have climbed to.
+      // down from the highest it can have climbed to. With the road held
+      // unproven (stepFrom) and nothing near it, the road before it: on the
+      // Cuyahoga towpath at 5.835 km a bush 3.7 m up, taken from under a
+      // crown, held the rider 4 m over the towpath drawn again under the
+      // next crowns, out of reach under it, for 30 m.
       const near = Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + UNDER_GRADE * moved);
-      const under = surfaceNear(readAt, lon, lat, Math.min(base + near, top - UNDER_CLEARANCE_M), base, near, usable, nearBare);
+      const nearRoad = (h: number) => surfaceNear(readAt, lon, lat, Math.min(h + near, top - UNDER_CLEARANCE_M), h, near, usable, nearBare);
+      const under = nearRoad(base) ?? (stepFrom ? nearRoad(stepFrom.h) : undefined);
       if (under !== undefined && !climbsOnto(under)) return take(under, lon, lat, true);
       if (
-        roseAt(readAt, base, baseLon, baseLat) ||
+        roseAt(readAt, base, baseLon, baseLat, stepFrom?.h) ||
         (climbsInSteps(base, baseLon, baseLat, top, lon, lat, moved, readAt) && !climbsOnto(top))
       ) {
         return take(top, lon, lat);
@@ -2109,13 +2114,18 @@ function surfaceNear(
  * Whether the mesh at the last road spot rose over the road taken there (a
  * tile refined under the rider): its top is higher, and the road is no longer
  * drawn there under it. A crown over the towpath where the road was taken
- * from under it is still a crown, not a refined tile.
+ * from under it is still a crown, not a refined tile. With the road taken
+ * there unproven, the road before it (`before`, the filter's stepFrom) drawn
+ * there is the road still drawn too: at Cuyahoga 4.696 km the crown's edge
+ * the road was taken on is drawn only by the finest tile, and once the rider
+ * is 40 m on, a coarser one there draws the towpath 2.2 m under it.
  */
-function roseAt(readAt: MeshRead, base: number, baseLon: number, baseLat: number): boolean {
+function roseAt(readAt: MeshRead, base: number, baseLon: number, baseLat: number, before?: number): boolean {
   const top = readAt(baseLon, baseLat);
   if (top === undefined || top <= base + OVERHANG_RISE_M) return false;
   const still = readAt(baseLon, baseLat, base + OVERHANG_RISE_M);
-  return !(still !== undefined && Number.isFinite(still) && Math.abs(still - base) <= OVERHANG_RISE_M);
+  const drawn = (h: number | undefined) => h !== undefined && still !== undefined && Number.isFinite(still) && Math.abs(still - h) <= OVERHANG_RISE_M;
+  return !(drawn(base) || drawn(before));
 }
 
 /**
