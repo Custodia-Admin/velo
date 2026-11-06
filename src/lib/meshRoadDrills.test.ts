@@ -180,4 +180,83 @@ describe('the mesh road filter on drilled stretches: each rule that moved the dr
     const { rows } = D.cuyahoga6380;
     onTheRoad([...rides('cuyahoga6380', [3, 4, 5, 6, 7, 8]), { at: 'read 2 m apart from 6381 m', reads: ride(rows, 2, 1) }], 6411, 6422);
   });
+
+  it('Cuyahoga 6.39–6.41 km: a crown layer 2.8 m over a bush taken from under a crown is measured from the towpath', () => {
+    // At 6394 m a bush 2 m over the towpath is read from under a crown and
+    // taken, steeper than a road climbs (unproven). 2 m on, a crown layer
+    // 2.8 m over the bush and 5 m over the towpath and its terrain, with
+    // nothing under it: within OVERHANG_MIN_M of the bush and its terrain,
+    // so measured from the bush it was ridden for 16 m. (Read 2 m apart, the
+    // bush itself is still held, 2–4 m over the towpath, as before.)
+    let judged = 0;
+    for (const { at: where, reads } of rides('cuyahoga6380', EVERY)) {
+      for (const r of reads) {
+        if (r.m < 6394 || r.m > 6410) continue;
+        judged++;
+        expect(r.shown - r.road, `${where}, at ${r.m} m (${r.status})`).toBeLessThan(5);
+      }
+    }
+    expect(judged).toBeGreaterThan(0);
+  });
+
+  it('Cuyahoga 4.21–4.22 km: from a road taken steeply under a crown, a fall back down the road is ridden', () => {
+    // At 4.214 km the towpath (168.9 m, a boardwalk over the terrain) is
+    // read from under a crown 3.9 m over the road held, steeper than a road
+    // climbs: taken, unproven. It falls 0.25 m every 2 m after that; a fall
+    // from the road held is never a climb onto something, however high it
+    // is over the road before the climb. (Where the boardwalk is not taken
+    // yet, the rider is held on the towpath under it, as before.)
+    let judged = 0;
+    for (const { at: where, reads } of rides('cuyahoga4196', EVERY)) {
+      for (const r of reads) {
+        if (r.m < 4214 || r.m > 4224) continue;
+        judged++;
+        expect(r.shown - r.road, `${where}, at ${r.m} m (${r.status})`).toBeLessThanOrEqual(0.3);
+      }
+    }
+    expect(judged).toBeGreaterThan(0);
+  });
+
+  it('Cuyahoga 4.69–4.77 km: an edge of a crown found under it is no road to climb onto the crown from', () => {
+    // At 4695–4696 m the mesh closes a crown down onto the towpath: read
+    // there from under the crown, its edge (1.7 m over the towpath, 1.3 m a
+    // metre) is the surface nearest the road, and it is taken. Then nothing
+    // is drawn near the road under the crowns for 62 m, and at 4729–4737 m
+    // the lowest layer of a crown is 5–6 m over the towpath with nothing
+    // under it: under OVERHANG_MIN_M over the edge, so measured from the edge
+    // it was ridden over, and the rider rode 5.6 m over the towpath for 24 m
+    // (cat-bed, every build). Measured from the towpath before the edge
+    // (climbsOnto's stepFrom) it is a climb onto a structure.
+    //
+    // Read up to GROUND_SAMPLE_MOVE_M apart (plus a frame's travel), as the
+    // sampler reads. Read 6–8 m apart (a rider at speed under 10 fps), the
+    // edge's 1.7 m is no steeper than a road climbs (CLIMB_GRADE) from the
+    // last read, and the crown is still ridden.
+    const ridden = rides('cuyahoga4670', [2, 3, 4, 5, 5.5]);
+    let judged = 0;
+    for (const { at: where, reads } of ridden) {
+      for (const r of reads) {
+        if (r.m < 4697 || r.m >= 4759) continue;
+        judged++;
+        expect(r.shown - r.road, `${where}, at ${r.m} m (${r.status})`).toBeLessThanOrEqual(1.5);
+      }
+    }
+    expect(judged).toBeGreaterThan(0);
+    // Where the towpath is drawn again, the rider is on it, not on a crown
+    // layer between (167.7 m at 4760 m) measured from a crown taken.
+    onTheRoad(ridden, 4759);
+  });
+
+  it('Cuyahoga 5.83–5.91 km: held on a road found under a crown that climbed too steeply, the towpath is looked for near the road before it', () => {
+    // A bush 3–4 m over the towpath, read from under a crown, is the surface
+    // nearest the road and is taken (unproven: it climbed steeper than a
+    // road). Under the next crowns the towpath is drawn again, out of reach
+    // under the bush or with a crown layer nearer the bush, and was found
+    // only once the crowns ended: the rider was held 4 m over it for up to
+    // 30 m. Looked for near the towpath before the bush first, it is found
+    // where it is drawn. (Read 7 or 8 m apart, the stretch is still ridden
+    // off the towpath in places, as it was before.)
+    onTheRoad(rides('cuyahoga5826', [2, 3, 4, 5, 6]));
+  });
 });
+
