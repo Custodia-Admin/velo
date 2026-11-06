@@ -544,6 +544,20 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     expect(f.next(176.62, lon0, at(2), HIGH, readAt, -Infinity, 163.34)).toBe(162.79);
   });
 
+  it('within the climb allowance too, a tile at the last road spot rising onto a structure is no tile refined higher', () => {
+    // The road at 163 m on the terrain; 24 m on (allowance 7.5 m) a reading
+    // 7 m over the terrain, and the tile at the road spot now 8 m up with
+    // nothing under it.
+    const f = createMeshRoadFilter();
+    let rose = false;
+    const readAt = (_lon: number, lat: number, under?: number) =>
+      (lat < at(1) ? (rose ? [171] : [163]) : [170]).filter((h) => under === undefined || h <= under).at(-1);
+    expect(f.next(163, lon0, at(0), HIGH, readAt, -Infinity, 163)).toBe(163);
+    rose = true;
+    expect(f.next(170, lon0, at(24), HIGH, readAt, -Infinity, 163)).toBe(163);
+    expect(f.status()).toBe('overhang');
+  });
+
   it('a tile refined higher under a rider already on a structure is taken (the Melide causeway, 8–10 m over the lake)', () => {
     const f = createMeshRoadFilter();
     let tile = [279.2];
