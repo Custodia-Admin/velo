@@ -7,8 +7,10 @@
  *   route bearing; the avatar, its lane offset and every camera use it, so the
  *   chase camera sits square behind the rider in a bend;
  * - the route point the camera looks toward is `lookAheadM` ahead (10 m at
- *   close, 14 m standard), not a fixed 15 m, at its route-profile height
- *   from the drawn ground under the rider;
+ *   close, 14 m standard), not a fixed 15 m, at the road's rise to it on the
+ *   low-passed route profile (lib/ride/lookRise `chaseLookRise`), from the
+ *   drawn ground under the rider; never the raw profile difference, whose
+ *   whole-metre steps nodded the camera; 0 on the flat no-token globe;
  * - applyFollowCam gets that heading and framing (half-bend aim, look at the
  *   point ahead + 1 m, chaseCamTarget), and what it applied is the pose a
  *   mode change starts from;
@@ -39,11 +41,17 @@ describe('CesiumWorldView aims the chase camera like the world renderer', () => 
 
   it('looks toward the route point lookAheadM ahead', () => {
     expect(SRC).toContain('const framing = chaseFraming(useSettingsStore.getState().cameraDistance);');
-    expect(SRC).toMatch(
-      /const aheadPose = ridePose\(r, Math\.min\(r\.totalDistance, pose\.distance \+ framing\.lookAheadM\), \{\s*laneOffsetM: pose\.laneOffsetM,\s*offsetHeading: heading,/,
+    expect(SRC).toContain('const aheadDistance = Math.min(r.totalDistance, pose.distance + framing.lookAheadM);');
+    expect(SRC).toMatch(/const aheadPose = ridePose\(r, aheadDistance, \{\s*laneOffsetM: pose\.laneOffsetM,\s*offsetHeading: heading,/);
+    // …at the road's rise to it on the low-passed profile, from the drawn ground
+    // under the rider (lib/ride/lookRise; the nod bounds are pinned in lib/chaseCamNod.test.ts),
+    // on the scene surface (0 on the flat no-token globe).
+    expect(SRC).toContain("import { chaseLookRise } from '@/lib/ride/lookRise';");
+    expect(SRC).toContain(
+      'const aheadAtGround = { ...ahead, ele: groundEle + sceneEle(chaseLookRise(r, pose.distance, aheadDistance)) };',
     );
-    // …at its height on the route profile from the drawn ground under the rider (the world's road is that profile).
-    expect(SRC).toContain('const aheadAtGround = { ...ahead, ele: groundEle + (ahead.ele - sampled.ele) };');
+    // The raw profile difference (whole-metre steps, GPS noise) never reaches the camera.
+    expect(SRC).not.toMatch(/ahead\.ele\s*-\s*sampled\.ele/);
   });
 
   it('hands applyFollowCam the drawn heading and framing, and keeps the pose it applied', () => {

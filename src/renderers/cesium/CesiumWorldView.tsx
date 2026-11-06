@@ -57,6 +57,7 @@ import { createAvatar, createGroundSampler, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { stepDrawnHeading, YawFilter } from '@/lib/ride/rideHeading';
 import { heldRiderPose, ridePose } from '@/lib/ride/rideSim';
+import { chaseLookRise } from '@/lib/ride/lookRise';
 import { chaseFraming, RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
 import type { RiderPose, WorldViewProps } from '@/lib/world/renderer';
 import { createCesiumWorldRenderer } from '@/renderers/cesium/cesiumWorldRenderer';
@@ -1201,7 +1202,8 @@ export function CesiumScene({
           };
       // The chase camera looks toward the route point `lookAheadM` ahead (as the world's).
       const framing = chaseFraming(useSettingsStore.getState().cameraDistance);
-      const aheadPose = ridePose(r, Math.min(r.totalDistance, pose.distance + framing.lookAheadM), {
+      const aheadDistance = Math.min(r.totalDistance, pose.distance + framing.lookAheadM);
+      const aheadPose = ridePose(r, aheadDistance, {
         laneOffsetM: pose.laneOffsetM,
         offsetHeading: heading,
         grade: pose.grade,
@@ -1265,9 +1267,11 @@ export function CesiumScene({
         startGroundRef.current.update(sampled.lon, sampled.lat, drawn, groundEle, nowMs, !globeShown);
       }
       // The route point ahead, on the drawn ground: the chase camera's look height
-      // follows its rise (the world rig's rule, chaseLookHeight; the world lays its
-      // road on this same route profile).
-      const aheadAtGround = { ...ahead, ele: groundEle + (ahead.ele - sampled.ele) };
+      // follows its rise (the world rig's rule, chaseLookHeight). The rise comes from
+      // the route profile low-passed over ±120 m (lib/ride/lookRise): the raw profile
+      // steps in whole metres and GPX altitude is noisy, so the camera nodded (54 px on
+      // Valle Maggia's descent). 0 on the flat no-token globe, as the scene surface (sceneEle).
+      const aheadAtGround = { ...ahead, ele: groundEle + sceneEle(chaseLookRise(r, pose.distance, aheadDistance)) };
       if (typeof window !== 'undefined') {
         // Read-only numbers for the slow-network regression check (no viewer handle).
         const riderLon = sampled.lon;
