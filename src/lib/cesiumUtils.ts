@@ -799,7 +799,7 @@ export function drawnGroundHeight(
   if (isFlatGlobe(scene)) return plausible(sampled) ? sampled : 0;
   const globe = scene.globe as Cesium.Globe | undefined;
   if (!globe || typeof globe.getHeight !== 'function') return plausible(sampled) ? sampled : undefined;
-  const h = globe.getHeight(Cesium.Cartographic.fromDegrees(lon, lat));
+  const h = globeDrawnHeight(scene, globe, Cesium.Cartographic.fromDegrees(lon, lat));
   // Same chord error on coarse World Terrain tiles while they stream in.
   const terrain = plausible(h) ? h : undefined;
   if (!plausible(sampled)) return terrain;
@@ -830,6 +830,46 @@ export function drawnTopHeight(
   }
   return drawnGroundHeight(scene, lon, lat, meshTop, expectEle);
 }
+
+/**
+ * Height of the globe's terrain as DRAWN at `carto`: the tiles it rendered in
+ * the last frame (Globe.pick), not Globe.getHeight. getHeight walks down to
+ * the deepest LOADED tile under the spot, and while World Terrain streams in
+ * the globe often draws a coarser one there (it refines a tile only once its
+ * screen-space error asks for it and the children it needs have loaded; a
+ * tile loaded for an earlier view stays loaded). At the Santa Monica start
+ * getHeight read a level-15 tile 0.4–1.4 m under the level-13 or -14 tile
+ * drawn over it for up to 7 frames, and a level-12/13 tile 7–9 m under a
+ * drawn level-8 one: the rider stood on getHeight, under the ground the camera
+ * saw, which hid its wheels (t_b6dbd3d2).
+ *
+ * The rendered tiles are the last frame's: the avatar is placed before the
+ * frame selects its own (Cesium updates primitives before the globe), so a
+ * tile drawn for the first time is stood on one frame later. Where no
+ * rendered tile lies under the spot (off screen, before the first frame) or
+ * the globe is hidden (its tiles stop updating), getHeight decides.
+ */
+export function globeDrawnHeight(
+  scene: Cesium.Scene,
+  globe: Cesium.Globe,
+  carto: Cesium.Cartographic,
+): number | undefined {
+  if ((globe as { show?: boolean }).show !== false && typeof globe.pick === 'function') {
+    const ellipsoid = (scene as { ellipsoid?: Cesium.Ellipsoid }).ellipsoid ?? Cesium.Ellipsoid.WGS84;
+    const s = (drawnScratch ??= { ray: new Cesium.Ray(), hit: new Cesium.Cartesian3(), high: new Cesium.Cartographic() });
+    // Straight down the local vertical, from as far out as meshHeightAt starts.
+    s.high.longitude = carto.longitude;
+    s.high.latitude = carto.latitude;
+    s.high.height = 2 * ellipsoid.maximumRadius;
+    ellipsoid.cartographicToCartesian(s.high, s.ray.origin);
+    Cesium.Cartesian3.negate(ellipsoid.geodeticSurfaceNormalCartographic(carto, s.ray.direction), s.ray.direction);
+    const hit = globe.pick(s.ray, scene, s.hit);
+    const h = hit ? ellipsoid.cartesianToCartographic(hit)?.height : undefined;
+    if (h !== undefined && Number.isFinite(h)) return h;
+  }
+  return globe.getHeight(carto);
+}
+let drawnScratch: { ray: Cesium.Ray; hit: Cesium.Cartesian3; high: Cesium.Cartographic } | null = null;
 
 /** The globe draws its terrain as an opaque surface (not hidden, not see-through). */
 function globeDrawnOpaque(globe: Cesium.Globe): boolean {
@@ -1076,7 +1116,9 @@ export function liftAboveTerrain(
   liftScratch ??= new Cesium.Cartographic();
   const carto = Cesium.Cartographic.fromCartesian(camPos, undefined, liftScratch);
   if (!carto) return 0;
-  const ground = globe.getHeight(carto);
+  // The terrain as drawn: a camera over getHeight's finer tile can still be
+  // under the coarser one drawn there, and see it from below.
+  const ground = globeDrawnHeight(scene, globe, carto);
   if (ground === undefined || !Number.isFinite(ground) || Math.abs(ground - riderEle) >= 60) return 0;
   const lift = ground + minClear - carto.height;
   if (lift <= 0) return 0;
