@@ -2031,13 +2031,13 @@ export function createMeshRoadFilter() {
       }
       // Over the road: the road goes on under it where the mesh has it, read
       // down from the highest it can have climbed to. With the road held
-      // unproven (stepFrom) and nothing near it, the road before it: on the
-      // Cuyahoga towpath at 5.835 km a bush 3.7 m up, taken from under a
-      // crown, held the rider 4 m over the towpath drawn again under the
-      // next crowns, out of reach under it, for 30 m.
+      // unproven (stepFrom), near the road before it first: on the Cuyahoga
+      // towpath at 5.835 km a bush 3.7 m up, taken from under a crown, held
+      // the rider 4 m over the towpath drawn again under the next crowns
+      // (out of reach under the bush, or a crown layer nearer it) for 30 m.
       const near = Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + UNDER_GRADE * moved);
       const nearRoad = (h: number) => surfaceNear(readAt, lon, lat, Math.min(h + near, top - UNDER_CLEARANCE_M), h, near, usable, nearBare);
-      const under = nearRoad(base) ?? (stepFrom ? nearRoad(stepFrom.h) : undefined);
+      const under = (stepFrom ? nearRoad(stepFrom.h) : undefined) ?? nearRoad(base);
       if (under !== undefined && !climbsOnto(under)) return take(under, lon, lat, true);
       if (
         roseAt(readAt, base, baseLon, baseLat, stepFrom?.h) ||

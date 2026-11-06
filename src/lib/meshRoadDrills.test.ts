@@ -215,12 +215,12 @@ describe('the mesh road filter on drilled stretches: each rule that moved the dr
     // A bush 3–4 m over the towpath, read from under a crown, is the surface
     // nearest the road and is taken (unproven: it climbed steeper than a
     // road). Under the next crowns the towpath is drawn again, out of reach
-    // under the bush, and was found only once the crowns ended: the rider
-    // was held 4 m over it for up to 30 m. Looked for near the towpath
-    // before the bush, it is found where it is drawn. (Read 4, 7 or 8 m
-    // apart, the stretch is still ridden off the towpath in places, as it
-    // was before.)
-    onTheRoad(rides('cuyahoga5826', [2, 3, 5, 6]));
+    // under the bush or with a crown layer nearer the bush, and was found
+    // only once the crowns ended: the rider was held 4 m over it for up to
+    // 30 m. Looked for near the towpath before the bush first, it is found
+    // where it is drawn. (Read 7 or 8 m apart, the stretch is still ridden
+    // off the towpath in places, as it was before.)
+    onTheRoad(rides('cuyahoga5826', [2, 3, 4, 5, 6]));
   });
 });
 

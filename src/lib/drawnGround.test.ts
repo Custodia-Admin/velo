@@ -483,6 +483,68 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     expect(f.status()).toBe('overhang');
   });
 
+  /**
+   * The towpath at 100 m (terrain 100.5); at 8 m a crown edge 1.76 m up
+   * under a top `edgeTop`, with nothing drawn under the edge; then a crown
+   * 20 m up with nothing under it to 46 m; then `layer` alone. Returns the
+   * filter and a ride(m, coarser?) that reads it as the sampler does.
+   */
+  const edgeOnTowpath = (edgeTop: number, layer: number, coarserEdge?: number[]) => {
+    const f = createMeshRoadFilter();
+    let coarser = false;
+    const layers = (lat: number): number[] => {
+      if (lat < at(6)) return [100];
+      if (lat < at(10)) return coarser && coarserEdge ? coarserEdge : [101.76, edgeTop];
+      if (lat < at(46)) return [120];
+      return [layer];
+    };
+    const readAt = (_lon: number, lat: number, under?: number) =>
+      layers(lat)
+        .filter((h) => under === undefined || h <= under)
+        .at(-1);
+    const bare = (lat: number) => (lat < at(40) ? 100.5 : 100);
+    const ride = (m: number) => f.next(readAt(lon0, at(m)), lon0, at(m), HIGH, readAt, -Infinity, bare(at(m)));
+    return { f, ride, coarsen: () => (coarser = true) };
+  };
+
+  it('a crown edge found under a top within the climb allowance is unproven too: the next crown is measured from the towpath', () => {
+    // The top at the edge is 3.9 m over the towpath (within the allowance,
+    // the rise branch), the edge under it taken. 40 m on, a crown layer
+    // 3.54 m over the edge and 5.3 m over the towpath, nothing under it.
+    const { f, ride } = edgeOnTowpath(103.9, 105.3);
+    expect([0, 4, 8].map(ride)).toEqual([100, 100, 101.76]);
+    for (let m = 12; m <= 60; m += 4) expect(ride(m), `${m} m`).toBe(101.76);
+    expect(f.status()).toBe('overhang');
+  });
+
+  it('over the road too, a coarser tile drawing the towpath under the crown edge taken is no tile refined higher', () => {
+    // The crown layer at 48 m is over the climb allowance from the edge
+    // (12.4 m at 44 m on): over the road, nothing near it, and the edge's
+    // spot now draws a top 20 m up and the towpath 0.47 m under where it was.
+    const { f, ride, coarsen } = edgeOnTowpath(121.6, 115, [99.53, 122.4]);
+    expect([0, 4, 8].map(ride)).toEqual([100, 100, 101.76]);
+    for (let m = 12; m <= 44; m += 4) ride(m);
+    coarsen();
+    expect(ride(52)).toBe(101.76);
+    expect(f.status()).toBe('overhang');
+  });
+
+  it('a fall from an unproven road is always taken; a reset forgets the road it was unproven against', () => {
+    const { ride } = edgeOnTowpath(121.6, 99.8);
+    expect([0, 4, 8].map(ride)).toEqual([100, 100, 101.76]);
+    // Back on the towpath, 0.2 m under where the edge was climbed from.
+    expect(ride(48)).toBe(99.8);
+    // A new ride after a jump: the towpath 2 m higher, then a step 3.6 m up
+    // 12 m on (within OVERHANG_MIN_M of the road and of its terrain) is taken.
+    const g = edgeOnTowpath(121.6, 120);
+    [0, 4, 8].map(g.ride);
+    g.f.reset();
+    const step = (lat: number) => (lat < at(200) ? 102 : 105.6);
+    const readAt = oneSurface(step);
+    expect(g.f.next(102, lon0, at(190), HIGH, readAt, -Infinity, 102)).toBe(102);
+    expect(g.f.next(105.6, lon0, at(202), HIGH, readAt, -Infinity, 102)).toBe(105.6);
+  });
+
   it('climbs, falls and holes: climbs and falls taken, a hole leaves the globe to decide but keeps the road', () => {
     const f = createMeshRoadFilter();
     const none = () => undefined;
