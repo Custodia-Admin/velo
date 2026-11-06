@@ -115,6 +115,8 @@ function scene(tileset: Cesium.Cesium3DTileset | null, g: GlobeOpts, terrain: ob
       const top = Cesium.Cartographic.fromCartesian(ray.origin);
       const down = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormalCartographic(top);
       if (g.drawn === undefined || Cesium.Cartesian3.dot(down, ray.direction) > -0.999999) return undefined;
+      // A ray starting under the drawn surface never crosses it.
+      if (g.drawn >= top.height) return undefined;
       return Cesium.Cartesian3.fromRadians(top.longitude, top.latitude, g.drawn);
     });
   }
@@ -297,6 +299,12 @@ describe("the globe as drawn, not its deepest loaded tile (Santa Monica start, t
     const { s, globe } = scene(null, { height: -33.7, drawn: undefined });
     expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-33.7, 6);
     expect(globe.pick).toHaveBeenCalledTimes(1);
+  });
+
+  it('high ground: the drawn tile on a 2,100 m pass is found from above it', () => {
+    setIonToken('eyJ_test');
+    const { s } = scene(null, { height: 2098.6, drawn: 2100.2 });
+    expect(drawnGroundHeight(s, 9.65, 46.45, undefined, 2101)).toBeCloseTo(2100.2, 6);
   });
 
   it("a hidden globe's rendered tiles are stale: getHeight decides, the pick is never run", () => {

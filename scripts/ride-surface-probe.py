@@ -86,7 +86,7 @@ localStorage.setItem('globeride.settings.v1', JSON.stringify(cur));
 
 # One sample of the drawn surfaces under the rider (and the camera). Returns null until a scene is up.
 SAMPLE = r"""async ([tol, undersideMax]) => {
-  const d = window.__veloRideDebug && window.__veloRideDebug();
+  let d = window.__veloRideDebug && window.__veloRideDebug();
   if (!d) return null;
   if (d.renderer === 'world') {
     const t = window.__veloThree; if (!t || !d.riderXZ) return null;
@@ -147,8 +147,6 @@ SAMPLE = r"""async ([tol, undersideMax]) => {
   const meshShown = !!(ts && !ts.isDestroyed() && ts.show);
   const globeShown = globe.show !== false;
   const globeOpaque = globeShown && !(globe.translucency && globe.translucency.enabled);
-  const rc = Cesium.Cartographic.fromDegrees(d.riderLonLat[0], d.riderLonLat[1]);
-  const cam = viewer.camera.positionCartographic.clone();
   // What the GPU draws, not the app's own height model: scene.sampleHeight renders a pick pass of the globe
   // (when shown) and the tilesets with every other primitive (riders, bots, clouds) and the ground
   // primitives (the route corridor's classification volumes) hidden. Its answer is the top of the drawn
@@ -156,16 +154,15 @@ SAMPLE = r"""async ([tol, undersideMax]) => {
   const hidden = []; const prims = scene.primitives;
   for (let i = 0; i < prims.length; i++) { const p = prims.get(i); if (p && !('_selectedTiles' in p) && p.show) { hidden.push(p); p.show = false; } }
   const gp = scene.groundPrimitives; const gpShow = gp.show; gp.show = false;
-  let gpuR, gpuC, viewTop = null, viewAlong = null, wheelsOnScreen = false;
+  let gpuR, gpuC, viewTop = null, viewAlong = null, wheelsOnScreen = false, rc, cam;
   try {
-    try { gpuR = scene.sampleHeight(rc); } catch { gpuR = undefined; }
-    try { gpuC = scene.sampleHeight(cam); } catch { gpuC = undefined; }
-    // sampleHeight's overhead pick camera selects its own (often finer) tiles. The main view exactly as
-    // drawn: render it with the riders hidden and read the depth buffer where the rider's contact point
-    // projects; viewTop is the height of the drawn surface that camera ray hits (above the contact point
-    // when the rider is under the ground, below it when the rider floats).
+    // The main view exactly as drawn: render it with the riders hidden and read the depth buffer where the
+    // rider's contact point projects; viewTop is the height of the drawn surface that camera ray hits (above
+    // the contact point when the rider is under the ground, below it when the rider floats). The app's own
+    // frame handler runs in this render and places the rider for it, so the rider is read again after it.
     try {
       scene.render();
+      d = window.__veloRideDebug() || d;
       const P = Cesium.Cartesian3.fromDegrees(d.riderLonLat[0], d.riderLonLat[1], d.groundEle);
       const wp = Cesium.SceneTransforms.worldToWindowCoordinates(scene, P);
       const cv = scene.canvas;
@@ -177,17 +174,35 @@ SAMPLE = r"""async ([tol, undersideMax]) => {
         viewAlong = Cesium.Cartesian3.distance(C, Q) - Cesium.Cartesian3.distance(C, P);
       }
     } catch { viewTop = null; }
+    rc = Cesium.Cartographic.fromDegrees(d.riderLonLat[0], d.riderLonLat[1]);
+    cam = viewer.camera.positionCartographic.clone();
+    // sampleHeight's overhead pick camera selects its own (often coarser or finer) tiles into
+    // tileset._selectedTiles, and the app's CPU mesh pick reads that list on its next frame: put the main
+    // view's selection back, so the probe doesn't move the rider it measures.
+    const saved = meshShown ? ts._selectedTiles.slice() : null;
+    try { gpuR = scene.sampleHeight(rc); } catch { gpuR = undefined; }
+    try { gpuC = scene.sampleHeight(cam); } catch { gpuC = undefined; }
+    if (saved) { ts._selectedTiles.length = 0; for (const t of saved) ts._selectedTiles.push(t); }
   } finally { for (const p of hidden) p.show = true; gp.show = gpShow; }
   const near = (h) => (h !== undefined && Number.isFinite(h) && Math.abs(h - d.groundEle) < 60 ? h : null);
+  // The globe as drawn (the tiles it rendered in the probe's frame, Globe.pick down the vertical). Not
+  // globe.getHeight: that reads the deepest LOADED tile, and while the globe streams it often draws a coarser
+  // one (at the Santa Monica start up to 1.4 m over it): a GPU top on that drawn tile then reads as 'mesh'.
+  const drawnGlobe = (carto) => {
+    const o = Cesium.Cartesian3.fromRadians(carto.longitude, carto.latitude, 2 * Cesium.Ellipsoid.WGS84.maximumRadius);
+    const dir = Cesium.Cartesian3.negate(Cesium.Ellipsoid.WGS84.geodeticSurfaceNormalCartographic(carto), new Cesium.Cartesian3());
+    const p = globe.pick(new Cesium.Ray(o, dir), scene);
+    return p ? Cesium.Cartographic.fromCartesian(p).height : globe.getHeight(carto); };
   // Which surface the GPU top is (diagnostic): the globe when it draws there at that height, else the mesh.
-  const kind = (h, carto) => { if (!globeOpaque) return 'mesh'; const g = globe.getHeight(carto);
+  const kind = (h, carto) => { if (!globeOpaque) return 'mesh'; const g = drawnGlobe(carto);
     return g !== undefined && Math.abs(g - h) < 0.05 ? 'globe' : 'mesh'; };
   const topOf = (h, carto) => { const v = near(h); return v === null ? [] : [[kind(v, carto), v]]; };
   const atRider = topOf(gpuR, rc);
   const atCam = topOf(gpuC, cam);
-  // The app's own model (diagnostic only): the globe's loaded tiles and the mesh's CPU ray.
+  // The app's own model (diagnostic only): the globe as drawn and its loaded tiles, and the mesh's CPU ray.
   const model = (carto) => { const s = [];
-    if (globeShown) { const h = near(globe.getHeight(carto)); if (h !== null) s.push(['globe', h]); }
+    if (globeShown) { const h = near(drawnGlobe(carto)); if (h !== null) s.push(['globe', h]);
+      const l = near(globe.getHeight(carto)); if (l !== null && (h === null || Math.abs(l - h) >= 0.05)) s.push(['globeLoaded', l]); }
     if (meshShown) { const h = near(ts.getHeight(carto, scene)); if (h !== null) s.push(['mesh', h]); }
     return s; };
   // Bare earth, independent of what is drawn or hidden: the finest World Terrain the provider has here.
