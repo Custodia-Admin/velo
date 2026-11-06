@@ -17,6 +17,9 @@
  * hits (backface culling): seen from the road, the walls, hedges, banks and
  * crowns facing it are hit, a canopy's underside above the line is not.
  *
+ * The rider's ground is read the same way ({@link rayTriangleHit}): an
+ * endless ray straight down from far above, with Cesium's own answer.
+ *
  * Pure and engine-free: positions and indices are plain arrays.
  */
 
@@ -99,6 +102,144 @@ export function segmentTriangleHit(
     if (v < 0 || u + v > 1) continue;
     const t = (e2x * kx + e2y * ky + e2z * kz) * inv;
     if (t >= 0 && t <= 1 && t < best) best = t;
+  }
+  return best;
+}
+
+/**
+ * Cesium's IntersectionTests.rayTriangleParametric drops a triangle whose
+ * determinant (with the ray's unit direction, in world space) is under this
+ * (CesiumMath.EPSILON6): edge-on, or facing away when culling.
+ */
+export const RAY_DET_EPSILON = 1e-6;
+
+/** A corner closer than this (frame units) to a plane through the ray never lets the quick reject drop its triangle. */
+const RAY_REJECT_SLACK = 1e-6;
+
+/**
+ * The nearest triangle the endless ray o + t·d (t ≥ 0) crosses, as its t (in
+ * lengths of d); {@link NO_HIT} when it crosses none.
+ *
+ * This is Cesium's pickModel for one primitive instance (the rider's ground,
+ * read straight down from far above, cesiumUtils.meshHeightAt), with the
+ * same answer, but the triangles stay in their own frame: o and d come into
+ * it instead (d = the world ray's unit direction through the inverse of the
+ * instance's linear map). `detScale` is the determinant of that linear map
+ * (1 for a rigid one, negative when it mirrors): every triangle's world-space
+ * determinant is its frame determinant times `detScale`, so Cesium's epsilon
+ * and its facing rule (with `cull`, only triangles wound counter-clockwise as
+ * seen from o in world space) apply unchanged, and t is the same number.
+ *
+ * Before any cross product, a triangle whose three corners all lie on one
+ * side of either of two planes through the ray (at right angles to each
+ * other) is dropped: it can't be crossed.
+ */
+export function rayTriangleHit(
+  positions: ArrayLike<number>,
+  stride: number,
+  indices: ArrayLike<number>,
+  ox: number,
+  oy: number,
+  oz: number,
+  dx: number,
+  dy: number,
+  dz: number,
+  cull = true,
+  detScale = 1,
+): number {
+  // (A zero or non-finite d makes every determinant 0 or NaN: no hit, without a guard.)
+  const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  const nx = dx / len;
+  const ny = dy / len;
+  const nz = dz / len;
+  // Two unit axes across the ray: n x (the coordinate axis least along n), then n x that.
+  const fx = Math.abs(nx);
+  const fy = Math.abs(ny);
+  const fz = Math.abs(nz);
+  let ux: number;
+  let uy: number;
+  let uz: number;
+  if (fx <= fy && fx <= fz) {
+    ux = 0;
+    uy = nz;
+    uz = -ny;
+  } else if (fy <= fz) {
+    ux = -nz;
+    uy = 0;
+    uz = nx;
+  } else {
+    ux = ny;
+    uy = -nx;
+    uz = 0;
+  }
+  const ul = Math.sqrt(ux * ux + uy * uy + uz * uz);
+  ux /= ul;
+  uy /= ul;
+  uz /= ul;
+  const wx = ny * uz - nz * uy;
+  const wy = nz * ux - nx * uz;
+  const wz = nx * uy - ny * ux;
+  const cu = ox * ux + oy * uy + oz * uz;
+  const cw = ox * wx + oy * wy + oz * wz;
+  let best = NO_HIT;
+  const n = indices.length - (indices.length % 3);
+  for (let i = 0; i < n; i += 3) {
+    const p = indices[i] * stride;
+    const q = indices[i + 1] * stride;
+    const r = indices[i + 2] * stride;
+    const px = positions[p];
+    const py = positions[p + 1];
+    const pz = positions[p + 2];
+    const qx = positions[q];
+    const qy = positions[q + 1];
+    const qz = positions[q + 2];
+    const rx = positions[r];
+    const ry = positions[r + 1];
+    const rz = positions[r + 2];
+    const pu = px * ux + py * uy + pz * uz - cu;
+    const qu = qx * ux + qy * uy + qz * uz - cu;
+    const ru = rx * ux + ry * uy + rz * uz - cu;
+    if (
+      (pu > RAY_REJECT_SLACK && qu > RAY_REJECT_SLACK && ru > RAY_REJECT_SLACK) ||
+      (pu < -RAY_REJECT_SLACK && qu < -RAY_REJECT_SLACK && ru < -RAY_REJECT_SLACK)
+    ) {
+      continue;
+    }
+    const pw = px * wx + py * wy + pz * wz - cw;
+    const qw = qx * wx + qy * wy + qz * wz - cw;
+    const rw = rx * wx + ry * wy + rz * wz - cw;
+    if (
+      (pw > RAY_REJECT_SLACK && qw > RAY_REJECT_SLACK && rw > RAY_REJECT_SLACK) ||
+      (pw < -RAY_REJECT_SLACK && qw < -RAY_REJECT_SLACK && rw < -RAY_REJECT_SLACK)
+    ) {
+      continue;
+    }
+    // Moller-Trumbore as IntersectionTests.rayTriangleParametric.
+    const e1x = qx - px;
+    const e1y = qy - py;
+    const e1z = qz - pz;
+    const e2x = rx - px;
+    const e2y = ry - py;
+    const e2z = rz - pz;
+    const hx = dy * e2z - dz * e2y;
+    const hy = dz * e2x - dx * e2z;
+    const hz = dx * e2y - dy * e2x;
+    const det = e1x * hx + e1y * hy + e1z * hz;
+    const worldDet = det * detScale;
+    if (cull ? !(worldDet >= RAY_DET_EPSILON) : !(Math.abs(worldDet) >= RAY_DET_EPSILON)) continue;
+    const inv = 1 / det;
+    const tx = ox - px;
+    const ty = oy - py;
+    const tz = oz - pz;
+    const u = (tx * hx + ty * hy + tz * hz) * inv;
+    if (u < 0 || u > 1) continue;
+    const kx = ty * e1z - tz * e1y;
+    const ky = tz * e1x - tx * e1z;
+    const kz = tx * e1y - ty * e1x;
+    const v = (dx * kx + dy * ky + dz * kz) * inv;
+    if (v < 0 || u + v > 1) continue;
+    const t = (e2x * kx + e2y * ky + e2z * kz) * inv;
+    if (t >= 0 && t < best) best = t;
   }
   return best;
 }

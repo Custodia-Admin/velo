@@ -82,5 +82,7 @@ describe('CesiumWorldView places the side camera with sight of the rider', () =>
     expect(SRC).toMatch(/lastCamModeRef\.current = currentMode;\s*sideCamSightRef\.current\.reset\(\);/);
     expect(SRC).toContain('sideCam: sideCamSightRef.current.debug(),');
     expect(SRC).toContain('meshTileReads: meshTopReadStats(),');
+    expect(SRC).toContain('groundReads: meshGroundReadStats(),');
+    expect(SRC).toContain('return ts ? meshHeightAt(ts, Cesium.Cartographic.fromDegrees(lon, lat), viewer.scene) : undefined;');
   });
 });
