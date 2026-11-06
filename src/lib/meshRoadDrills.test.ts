@@ -180,4 +180,34 @@ describe('the mesh road filter on drilled stretches: each rule that moved the dr
     const { rows } = D.cuyahoga6380;
     onTheRoad([...rides('cuyahoga6380', [3, 4, 5, 6, 7, 8]), { at: 'read 2 m apart from 6381 m', reads: ride(rows, 2, 1) }], 6411, 6422);
   });
+
+  it('Cuyahoga 4.69–4.77 km: an edge of a crown found under it is no road to climb onto the crown from', () => {
+    // At 4695–4696 m the mesh closes a crown down onto the towpath: read
+    // there from under the crown, its edge (1.7 m over the towpath, 1.3 m a
+    // metre) is the surface nearest the road, and it is taken. Then nothing
+    // is drawn near the road under the crowns for 62 m, and at 4729–4737 m
+    // the lowest layer of a crown is 5–6 m over the towpath with nothing
+    // under it: under OVERHANG_MIN_M over the edge, so measured from the edge
+    // it was ridden over, and the rider rode 5.6 m over the towpath for 24 m
+    // (cat-bed, every build). Measured from the towpath before the edge
+    // (climbsOnto's stepFrom) it is a climb onto a structure.
+    //
+    // Read up to GROUND_SAMPLE_MOVE_M apart (plus a frame's travel), as the
+    // sampler reads. Read 6–8 m apart (a rider at speed under 10 fps), the
+    // edge's 1.7 m is no steeper than a road climbs (CLIMB_GRADE) from the
+    // last read, and the crown is still ridden.
+    const ridden = rides('cuyahoga4670', [2, 3, 4, 5, 5.5]);
+    let judged = 0;
+    for (const { at: where, reads } of ridden) {
+      for (const r of reads) {
+        if (r.m < 4697 || r.m >= 4759) continue;
+        judged++;
+        expect(r.shown - r.road, `${where}, at ${r.m} m (${r.status})`).toBeLessThanOrEqual(1.5);
+      }
+    }
+    expect(judged).toBeGreaterThan(0);
+    // Where the towpath is drawn again, the rider is on it, not on a crown
+    // layer between (167.7 m at 4760 m) measured from a crown taken.
+    onTheRoad(ridden, 4759);
+  });
 });

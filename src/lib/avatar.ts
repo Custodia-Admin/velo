@@ -1849,7 +1849,10 @@ export type MeshRead = (lon: number, lat: number, under?: number) => number | un
  * A surface found under something is the road only within
  * {@link UNDER_BARE_M} of the bare terrain: a tile can draw a second layer
  * under the road with nothing between (Lugano–Melide 4.93 km), and where the
- * terrain can't tell them apart the top is ridden, as before.
+ * terrain can't tell them apart the top is ridden, as before. One that climbs
+ * steeper than a road is taken but unproven (the edge of a crown closed down
+ * onto the towpath): until the road goes on from it, a further climb is
+ * measured from the road before it.
  * Falls are always taken (the rider eases down).
  *
  * A rise refused across a gap longer than {@link OVERHANG_STEP_M} is read
@@ -1867,11 +1870,27 @@ export function createMeshRoadFilter() {
   /** The bare terrain where the road was last taken (undefined if unknown). */
   let baseBare: number | undefined;
   /** Road spots taken within {@link CLIMB_SPAN_M} of the last one. */
-  let recent: { h: number; lon: number; lat: number }[] = [];
+  let recent: { h: number; lon: number; lat: number; bare: number | undefined }[] = [];
   let bareNow: number | undefined;
+  /**
+   * A road found under something that climbs from a road spot taken in the
+   * last {@link CLIMB_SPAN_M} steeper than a road climbs (tooSteep) is
+   * unproven: it can be the edge where the mesh closes a crown down onto the
+   * ground (Cuyahoga 4.696 km: 1.7 m over the towpath, 1.3 m a metre), not
+   * the road. Until the road is taken again without such a climb, climbsOnto
+   * measures from the lowest road spot it climbed from (and that spot's bare
+   * terrain), here; undefined otherwise.
+   */
+  let stepFrom: { h: number; bare: number | undefined } | undefined;
   /** With no road to go on from: the smooth run of structure tops read so far. */
   let deck: { h: number; lon: number; lat: number; fromLon: number; fromLat: number } | undefined;
-  const take = (h: number, lon: number, lat: number) => {
+  const take = (h: number, lon: number, lat: number, underSomething = false) => {
+    const steepFrom = recent.filter((r) => climbsSteep(h, lon, lat, r));
+    if (!steepFrom.length) stepFrom = undefined;
+    else if (!stepFrom && underSomething) {
+      const low = steepFrom.reduce((a, b) => (b.h < a.h ? b : a));
+      stepFrom = { h: low.h, bare: low.bare };
+    }
     base = h;
     baseLon = lon;
     baseLat = lat;
@@ -1879,15 +1898,16 @@ export function createMeshRoadFilter() {
     status = 'road';
     deck = undefined;
     recent = recent.filter((r) => metresBetween(lon, lat, r.lon, r.lat) < CLIMB_SPAN_M);
-    recent.push({ h, lon, lat });
+    recent.push({ h, lon, lat, bare: bareNow });
     return h;
   };
+  /** Whether h at lon/lat climbs from road spot r steeper than a road. */
+  const climbsSteep = (h: number, lon: number, lat: number, r: { h: number; lon: number; lat: number }) => {
+    const d = metresBetween(lon, lat, r.lon, r.lat);
+    return d < CLIMB_SPAN_M && h - r.h > Math.max(OVERHANG_RISE_M, CLIMB_GRADE * d);
+  };
   /** Whether h at lon/lat climbs from a road spot taken nearby steeper than a road. */
-  const tooSteep = (h: number, lon: number, lat: number) =>
-    recent.some((r) => {
-      const d = metresBetween(lon, lat, r.lon, r.lat);
-      return d < CLIMB_SPAN_M && h - r.h > Math.max(OVERHANG_RISE_M, CLIMB_GRADE * d);
-    });
+  const tooSteep = (h: number, lon: number, lat: number) => recent.some((r) => climbsSteep(h, lon, lat, r));
   return {
     /**
      * The road height from one reading (undefined: no mesh road here, the
@@ -1968,14 +1988,20 @@ export function createMeshRoadFilter() {
       // Lugano–Melide shore road (2.74 km) is no terrain to measure from. A
       // ramp is no such climb: read every metre from the road, it rises
       // RAMP_GRADE or less each metre (the Chengdu ramps at 1.21 and 9.52 km
-      // leave the terrain at up to 0.58 m per m).
+      // leave the terrain at up to 0.58 m per m). After an unproven road
+      // (stepFrom) a climb over the road is measured from the road before it:
+      // the edge of a crown taken at Cuyahoga 4.696 km left the lowest layer
+      // of the next crown (4.73 km, 5.6 m over the towpath, nothing under it)
+      // within OVERHANG_MIN_M, and the rider rode it for 24 m. A fall is never
+      // such a climb.
+      const climbFrom = stepFrom ?? { h: from, bare: baseBare };
       const climbsOnto = (h: number) =>
         ((onStructure(h) && !onStructure(from) && tooSteep(h, lon, lat)) ||
-          (h > from + OVERHANG_MIN_M &&
+          (h > Math.max(from, climbFrom.h + OVERHANG_MIN_M) &&
             bare !== undefined &&
-            baseBare !== undefined &&
-            Math.abs(from - baseBare) <= STRUCTURE_M &&
-            h - bare > from - baseBare + OVERHANG_MIN_M)) &&
+            climbFrom.bare !== undefined &&
+            Math.abs(climbFrom.h - climbFrom.bare) <= STRUCTURE_M &&
+            h - bare > climbFrom.h - climbFrom.bare + OVERHANG_MIN_M)) &&
         !climbsInSteps(from, baseLon, baseLat, h, lon, lat, moved, readAt, RAMP_GRADE);
       // Looked under only near the bare terrain (UNDER_BARE_M).
       const nearBare = (h: number) => bare !== undefined && h >= bare - UNDER_BARE_M;
@@ -2001,13 +2027,13 @@ export function createMeshRoadFilter() {
           status = 'overhang';
           return base;
         }
-        return take(road, lon, lat);
+        return take(road, lon, lat, road !== top);
       }
       // Over the road: the road goes on under it where the mesh has it, read
       // down from the highest it can have climbed to.
       const near = Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + UNDER_GRADE * moved);
       const under = surfaceNear(readAt, lon, lat, Math.min(base + near, top - UNDER_CLEARANCE_M), base, near, usable, nearBare);
-      if (under !== undefined && !climbsOnto(under)) return take(under, lon, lat);
+      if (under !== undefined && !climbsOnto(under)) return take(under, lon, lat, true);
       if (
         roseAt(readAt, base, baseLon, baseLat) ||
         (climbsInSteps(base, baseLon, baseLat, top, lon, lat, moved, readAt) && !climbsOnto(top))
@@ -2037,6 +2063,7 @@ export function createMeshRoadFilter() {
       recent = [];
       baseBare = undefined;
       deck = undefined;
+      stepFrom = undefined;
     },
   };
 }
