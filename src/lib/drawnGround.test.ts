@@ -37,8 +37,10 @@ import {
   liftAboveTerrain,
   sampleGroundHeight,
   sceneGroundHeight,
+  sceneFinestTerrain,
   setIonToken,
 } from '@/lib/cesiumUtils';
+import { createFinestTerrain } from '@/lib/finestTerrain';
 import { ridePose } from '@/lib/ride/rideSim';
 import { scenicRouteById } from '@/lib/scenicRoutes';
 import { useRideStore } from '@/stores/rideStore';
@@ -996,6 +998,131 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
         6,
       );
     }
+  });
+
+  // Lugano–Melide 7.57–7.63 km (t_6a69c279, cat-bed): the route runs on the
+  // shore road (321.5 m) under the railway and A2 bridges, drawn as one slab
+  // 327.8 m with nothing under it. Ridden from the start, the hidden globe
+  // still has the coarse tile it last loaded there: 317.1 m in one run, 323.6
+  // in another. Its finest terrain (what it draws once shown) is 321.26 m.
+  const slab = async (stale: number) => {
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
+      Cesium.Math.toDegrees(c.latitude) > lat(1) ? 327.8 : 321.48,
+    );
+    return scene(tileset, { height: stale, show: false });
+  };
+  const flush = async () => {
+    for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+
+  it('held under a slab, a hidden globe 4.4 m under the road but its finest 0.2 m: the globe stands in once the finest lands (Lugano–Melide 7.59 km)', async () => {
+    setIonToken('eyJ_test');
+    for (const stale of [317.1, 323.55]) {
+      const { s, globe } = await slab(stale);
+      const batches: [number, number][][] = [];
+      const finest = createFinestTerrain(async (pts) => {
+        batches.push(pts);
+        return pts.map(() => 321.26);
+      });
+      const sampler = createGroundSampler(s, finest);
+      sampler.sample(lon, lat(0), 322, 0);
+      expect(sampler.ground()).toBe('mesh');
+      expect(batches).toHaveLength(0);
+      // Onto the slab: held under it, nothing drawn under it. Until the
+      // finest lands the stale tile decides: hidden, a black void (as before).
+      expect(sampler.sample(lon, lat(2), 322, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(321.48, 6);
+      expect(sampler.ground(), `stale ${stale}`).toBe('mesh');
+      // Fetched here and ahead (north, the way the rider moves).
+      expect(batches).toHaveLength(1);
+      expect(batches[0][0][1]).toBeCloseTo(lat(2), 9);
+      expect(batches[0][batches[0].length - 1][1]).toBeGreaterThan(lat(30));
+      await flush();
+      // The globe stands in; hidden still, the rider holds the road.
+      expect(sampler.sample(lon, lat(4), 322, 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(321.48, 6);
+      expect(sampler.ground(), `stale ${stale}`).toBe('standIn');
+      expect(sampler.meshGround()).toBe(false);
+      // Drawn (the gate a second later), refined: the rider on it.
+      globe.show = true;
+      globe.getHeight.mockReturnValue(321.3);
+      expect(sampler.sample(lon, lat(6), 322, 3 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(321.3, 6);
+      expect(sampler.ground()).toBe('standIn');
+      // The batch covers the next spots: no second fetch.
+      expect(batches).toHaveLength(1);
+    }
+  });
+
+  it('the finest decides both ways: a stale tile near the road over a finest 26 m up (the Lugano shore) does not stand in', async () => {
+    setIonToken('eyJ_test');
+    const { s } = await slab(321.6);
+    const finest = createFinestTerrain(async (pts) => pts.map(() => 347.5));
+    const sampler = createGroundSampler(s, finest);
+    sampler.sample(lon, lat(0), 322, 0);
+    sampler.sample(lon, lat(2), 322, GROUND_SAMPLE_INTERVAL_MS);
+    // Before the finest lands, the stale tile 0.1 m off the road stands in.
+    expect(sampler.ground()).toBe('standIn');
+    await flush();
+    expect(sampler.sample(lon, lat(4), 322, 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(321.48, 6);
+    expect(sampler.ground()).toBe('mesh');
+  });
+
+  it("the finest is only fetched while held under something, and comes from the scene's terrain provider", async () => {
+    setIonToken('eyJ_test');
+    // A terrain provider as sampleTerrainMostDetailed reads it: one level, the
+    // finest tile drawing 321.26 m everywhere.
+    const tiles: string[] = [];
+    const provider = {
+      availability: { computeMaximumLevelAtPosition: () => 14 },
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      requestTileGeometry: (x: number, y: number, level: number) => {
+        tiles.push(`${level}/${x}/${y}`);
+        return Promise.resolve({ interpolateHeight: () => 321.26 });
+      },
+      loadTileDataAvailability: () => undefined,
+    };
+    const { tileset } = await photoreal(undefined);
+    let onSlab = false;
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) =>
+      onSlab && Cesium.Math.toDegrees(c.latitude) > lat(9) ? 327.8 : 321.48,
+    );
+    const { s } = scene(tileset, { height: 317.1, show: false }, provider);
+    const sampler = createGroundSampler(s);
+    for (let i = 0; i < 4; i++) sampler.sample(lon, lat(2 * i), 322, i * GROUND_SAMPLE_INTERVAL_MS);
+    await flush();
+    // On the mesh road: nothing fetched.
+    expect(tiles).toHaveLength(0);
+    onSlab = true;
+    sampler.sample(lon, lat(10), 322, 4 * GROUND_SAMPLE_INTERVAL_MS);
+    expect(sampler.ground()).toBe('mesh');
+    await flush();
+    expect(tiles.length).toBeGreaterThan(0);
+    expect(tiles.every((t) => t.startsWith('14/'))).toBe(true);
+    sampler.sample(lon, lat(12), 322, 5 * GROUND_SAMPLE_INTERVAL_MS);
+    expect(sampler.ground()).toBe('standIn');
+  });
+
+  it('a new terrain provider on the scene: heights fetched from the old one are not used', async () => {
+    setIonToken('eyJ_test');
+    const provider = (h: number) => ({
+      availability: { computeMaximumLevelAtPosition: () => 14 },
+      tilingScheme: new Cesium.GeographicTilingScheme(),
+      requestTileGeometry: () => Promise.resolve({ interpolateHeight: () => h }),
+      loadTileDataAvailability: () => undefined,
+    });
+    const s = { terrainProvider: provider(321.26) } as unknown as Cesium.Scene;
+    const finest = sceneFinestTerrain(s);
+    finest.want(lon, lat(0), NaN, NaN, 0);
+    await flush();
+    expect(finest.near(lon, lat(0))).toBeCloseTo(321.26, 6);
+    (s as unknown as { terrainProvider: object }).terrainProvider = provider(347.5);
+    expect(finest.near(lon, lat(0))).toBeUndefined();
+    finest.want(lon, lat(0), NaN, NaN, 10);
+    await flush();
+    expect(finest.near(lon, lat(0))).toBeCloseTo(347.5, 6);
+    // The flat globe has no finest terrain.
+    (s as unknown as { terrainProvider: object }).terrainProvider = new Cesium.EllipsoidTerrainProvider();
+    finest.want(lon, lat(0), NaN, NaN, 20);
+    expect(finest.near(lon, lat(0))).toBeUndefined();
   });
 
   it("the root tile's chord far under the route is not mesh ground: the globe stays (Lugano–Melide start)", async () => {

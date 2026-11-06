@@ -10,6 +10,7 @@
  */
 
 import * as Cesium from 'cesium';
+import { createFinestTerrain, NO_FINEST_TERRAIN, type FinestTerrain } from '@/lib/finestTerrain';
 import { IMAGERY_FALLBACK_EVENT } from '@/lib/imageryFallback';
 import { NO_HIT, segmentMeetsSphere, segmentTriangleHit } from '@/lib/segmentHit';
 import { tileReadCacheFor, type TileReadCache } from '@/lib/tileReadCache';
@@ -969,6 +970,46 @@ const MAX_COARSE_TILE_ERROR_M = 800;
 function isFlatGlobe(scene: Cesium.Scene): boolean {
   const provider = (scene as { terrainProvider?: unknown }).terrainProvider;
   return !provider || provider instanceof Cesium.EllipsoidTerrainProvider;
+}
+
+const finestByScene = new WeakMap<object, { provider: unknown; finest: FinestTerrain }>();
+
+/** The scene's terrain provider's finest heights (one cache per scene and provider), if it has levels. */
+function finestFor(scene: Cesium.Scene): FinestTerrain {
+  const provider = (scene as { terrainProvider?: Cesium.TerrainProvider }).terrainProvider;
+  // The flat ellipsoid has no levels (sampleTerrainMostDetailed rejects on
+  // it), nor has a provider without tile availability.
+  if (isFlatGlobe(scene) || !(provider as { availability?: unknown }).availability) return NO_FINEST_TERRAIN;
+  let e = finestByScene.get(scene);
+  if (!e || e.provider !== provider) {
+    const p = provider as Cesium.TerrainProvider;
+    e = {
+      provider,
+      finest: createFinestTerrain(async (points) => {
+        const cs = await Cesium.sampleTerrainMostDetailed(
+          p,
+          // NaN until a tile answers: a point no tile covered is no height.
+          points.map(([lon, lat]) => Cesium.Cartographic.fromDegrees(lon, lat, NaN)),
+        );
+        // Undefined where a tile failed (createFinestTerrain skips those).
+        return cs.map((c) => c.height);
+      }),
+    };
+    finestByScene.set(scene, e);
+  }
+  return e.finest;
+}
+
+/**
+ * The finest terrain the globe has at a spot (lib/finestTerrain): what it
+ * draws there once shown, not the coarse tile a hidden globe last loaded.
+ * Shared by every rider on the scene; follows a change of terrain provider.
+ */
+export function sceneFinestTerrain(scene: Cesium.Scene): FinestTerrain {
+  return {
+    near: (lon, lat) => finestFor(scene).near(lon, lat),
+    want: (lon, lat, fromLon, fromLat, nowMs) => finestFor(scene).want(lon, lat, fromLon, fromLat, nowMs),
+  };
 }
 
 /**
