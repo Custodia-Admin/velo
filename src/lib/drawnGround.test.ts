@@ -346,8 +346,22 @@ describe("the globe as drawn, not its deepest loaded tile (Santa Monica start, t
 
   it('a loaded reading that is a chord leaves the drawn tile', () => {
     setIonToken('eyJ_test');
-    const { s } = scene(null, { height: -2400, drawn: -32.2 });
+    const g: GlobeOpts = { height: -2400, drawn: -32.2 };
+    const { s } = scene(null, g);
     expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.2, 6);
+    // A chord over the route (a coarse tile spanning a valley) isn't the higher ground either.
+    g.height = ROUTE_ELE + 900;
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.2, 6);
+  });
+
+  it('a drawn chord over the route leaves the loaded tile, for the rider and the camera', () => {
+    setIonToken('eyJ_test');
+    const { s } = scene(null, { height: -32.2, drawn: ROUTE_ELE + 900 });
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.2, 6);
+    // liftAboveTerrain's bound is 60 m from the rider's ground.
+    const t = scene(null, { height: -32.2, drawn: -32.2 + 75 });
+    const cam = Cesium.Cartesian3.fromDegrees(lon, lat, -31.7);
+    expect(liftAboveTerrain(t.s, cam, -32.2, 1.5)).toBeCloseTo(1.0, 6);
   });
 
   it('the chase camera keeps its clearance over the drawn tile, not the finer one under it', async () => {
