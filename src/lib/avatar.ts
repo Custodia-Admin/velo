@@ -164,6 +164,11 @@ export interface Avatar {
    * False on the globe, with no mesh tile, or with only a coarse floating tile.
    */
   meshGround: () => boolean;
+  /**
+   * What the rider stands on (see {@link GroundKind}): what the globe and the
+   * painted road follow (renderers/cesium/globeGate GroundGate).
+   */
+  ground: () => GroundKind;
   setColors: (c: AvatarColors) => void;
   dispose: () => void;
   /** Internal: current skin color including effort tint. Set by setAvatarEffortLevel. */
@@ -1526,6 +1531,7 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     update,
     groundEle: () => smoothedEle,
     meshGround: () => groundSampler.meshGround(),
+    ground: () => groundSampler.ground(),
     setColors,
     dispose,
     _effortLevel: 0,
@@ -1611,9 +1617,10 @@ export const OVERHANG_STEP_SPAN_M = 10;
 export const OVERHANG_STEP_GRADE = 2;
 
 /**
- * How far under a surface the next read down starts (m): the mesh read
- * ({@link sampleGroundHeight}'s `under`) answers the highest up-facing
- * surface at or under where it starts.
+ * How far under a surface the next read down starts (m): a mesh read from
+ * `under` ({@link sampleGroundHeight}) answers an up-facing surface at or
+ * under where it starts (see {@link MeshRead}), so the next read starts just
+ * under the last one found.
  */
 export const UNDER_GAP_M = 0.05;
 /**
@@ -1732,9 +1739,16 @@ function metresBetween(lon: number, lat: number, fromLon: number, fromLat: numbe
 export type MeshRoadStatus = 'road' | 'overhang' | 'coarse' | 'none';
 
 /**
- * Reads the mesh at lon/lat: from the top (`under` undefined), or the highest
- * up-facing surface at or under `under` (undefined if none, or if this reader
- * can't look under anything).
+ * Reads the mesh at lon/lat: from the top (`under` undefined), or down the
+ * vertical from `under`: an up-facing surface at or under it (undefined if
+ * none, or if this reader can't look under anything). That is what
+ * Cesium3DTileset.pick hits first from there: the first candidate tile with
+ * any hit, nearest bounding sphere to the ray's origin first. A low origin is
+ * inside every candidate's sphere (distance 0), so with tiles stacked there
+ * the order falls back to the tileset's selection order, and the answer can
+ * be a lower surface than the highest one at or under `under`. The filter
+ * reads down from each surface it finds ({@link UNDER_READS}), so a surface
+ * skipped that way is a candidate missed, never a surface over `under`.
  */
 export type MeshRead = (lon: number, lat: number, under?: number) => number | undefined;
 
@@ -2046,6 +2060,31 @@ function climbsInSteps(
 }
 
 /**
+ * Held under something with nothing drawn near the road under it, the globe
+ * is drawn instead when its terrain there is within this of the road (m):
+ * see createGroundSampler. The drawn ground is the higher of the two, so this
+ * also bounds how far it can lift the rider.
+ */
+export const GLOBE_STANDIN_M = 1.5;
+
+/**
+ * What the rider's last ground sample stood it on ({@link createGroundSampler}):
+ * - 'mesh': the photoreal mesh road (or the road held under something over it,
+ *   with the globe hidden);
+ * - 'standIn': the mesh is there, but only over the road (tree crowns, a deck)
+ *   with nothing drawn near the road under it, so the globe is drawn under it
+ *   in the mesh's place: held there with the globe's terrain near the road, or
+ *   under a structure with no road to go on from (a jump, the start);
+ * - 'globe': no mesh road here (no tile, a coarse one, the mesh not shown):
+ *   the globe is the ground.
+ * The globe is drawn for both of the last two; the painted road only for
+ * 'globe' (renderers/cesium/globeGate GroundGate): it is a ground
+ * classification, so with the mesh there it paints the crowns, piers and the
+ * deck in its footprint.
+ */
+export type GroundKind = 'mesh' | 'standIn' | 'globe';
+
+/**
  * Throttled {@link sceneGroundHeight}.
  *
  * On terrain (no photoreal mesh shown) the rendered ground is the globe's
@@ -2070,20 +2109,12 @@ function climbsInSteps(
  * terrain decides, drawn or not, until the mesh road there is read (the gate
  * brings the globe back if none turns up).
  */
-/**
- * Held under something with nothing drawn near the road under it, the globe
- * is drawn instead when its terrain there is within this of the road (m):
- * see createGroundSampler. The drawn ground is the higher of the two, so this
- * also bounds how far it can lift the rider.
- */
-export const GLOBE_STANDIN_M = 1.5;
-
 export function createGroundSampler(scene: Cesium.Scene) {
   let lastMs = -Infinity;
   let lastLon = NaN;
   let lastLat = NaN;
   let last: number | undefined;
-  let onMesh = false;
+  let ground: GroundKind = 'globe';
   /** The route's elevation where the road was last taken. */
   let roadEle = 0;
   const road = createMeshRoadFilter();
@@ -2094,7 +2125,7 @@ export function createGroundSampler(scene: Cesium.Scene) {
       const expect = sceneEle(ele);
       if (!photorealGroundShown(scene)) {
         last = undefined;
-        onMesh = false;
+        ground = 'globe';
         road.reset();
         return sceneGroundHeight(scene, lon, lat, undefined, expect, { terrainOnly: true });
       }
@@ -2146,7 +2177,10 @@ export function createGroundSampler(scene: Cesium.Scene) {
         // (26 m over the Lugano shore street) it would lift the rider, so the
         // rider holds the road with the globe hidden.
         const standsIn = bare !== undefined && held !== undefined && Math.abs(bare - held) <= GLOBE_STANDIN_M;
-        onMesh = status === 'road' || (status === 'overhang' && held !== undefined && !away && !standsIn);
+        const onMesh = status === 'road' || (status === 'overhang' && held !== undefined && !away && !standsIn);
+        // Not on the mesh road, but the mesh is there over the road: the
+        // globe is drawn in its place, without the painted road (GroundKind).
+        ground = onMesh ? 'mesh' : status === 'overhang' ? 'standIn' : 'globe';
         // Where the globe stands in, the rider stands on it once it is drawn
         // (below: held while it is still hidden), not on the road held over
         // it: under the I-80 deck the globe was drawn 0.75 m under the road
@@ -2177,7 +2211,11 @@ export function createGroundSampler(scene: Cesium.Scene) {
     },
     /** The photoreal mesh is loaded at road level under the last spot sampled. */
     meshGround(): boolean {
-      return onMesh;
+      return ground === 'mesh';
+    },
+    /** What the last sample stood the rider on (see {@link GroundKind}). */
+    ground(): GroundKind {
+      return ground;
     },
   };
 }

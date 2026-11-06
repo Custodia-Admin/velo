@@ -487,10 +487,12 @@ export async function clampCartesiansToScene(
  * geometry, so a stationary rider (paused) would otherwise sample the top of
  * its own helmet, step up onto it, and climb into the sky frame by frame.
  *
- * `under`: read the photoreal mesh from this height down instead of from the
- * top, i.e. the highest surface at or under it (what is under a tree crown
- * or a deck, see meshHeightAt). Only the CPU mesh read can look under
- * something; without it (no WebGL 2, no mesh shown) the answer is undefined.
+ * `under`: read the photoreal mesh down from this height instead of from the
+ * top: an up-facing surface at or under it, what Cesium3DTileset.pick hits
+ * first from there (see meshHeightAt; under a tree crown or a deck, the
+ * ground below it where the mesh draws one). Only the CPU mesh read can look
+ * under something; without it (no WebGL 2, no mesh shown) the answer is
+ * undefined.
  */
 export function sampleGroundHeight(
   scene: Cesium.Scene,
@@ -540,9 +542,13 @@ type TilesetPick = (ray: Cesium.Ray, frameState: unknown, result?: Cesium.Cartes
  *
  * `under`: start the ray at this height instead (undefined without a tile
  * pick). The pick culls back faces, so every hit is a surface facing up, and
- * one read from under a tree crown is the ground below it, where the mesh has
- * one: on the Cuyahoga towpath it does at about half the spots under the
- * canopy, and under every road deck crossing it (I-271, Main Street).
+ * one read from under a tree crown is a surface below it, the ground where
+ * the mesh draws one: on the Cuyahoga towpath it does at about half the
+ * spots under the canopy, and under every road deck crossing it (I-271, Main
+ * Street). Not always the highest surface under `under`: the first tile hit
+ * wins, nearest bounding sphere to the origin first, and a low origin is
+ * inside every candidate tile's sphere, so with tiles stacked there the
+ * tileset's selection order decides which one answers.
  */
 export function meshHeightAt(
   tileset: Cesium.Cesium3DTileset,
@@ -577,8 +583,9 @@ export function sightReadable(scene: Cesium.Scene): boolean {
 }
 
 /**
- * Tile geometry copies the sight's reads reuse (lib/tileReadCache), on
- * Cesium's private ModelReader; null when this Cesium has no such reads.
+ * Tile geometry copies the sight's reads and the rider's ground reads reuse
+ * (lib/tileReadCache), on Cesium's private ModelReader; null when this Cesium
+ * has no such reads.
  */
 let meshTopReads: TileReadCache | null | undefined;
 function meshTopReadCache(): TileReadCache | null {
@@ -588,12 +595,15 @@ function meshTopReadCache(): TileReadCache | null {
   return meshTopReads;
 }
 
-/** Drop the tile geometry the sight's reads kept (the view that read it is gone). */
+/** Drop the tile geometry the mesh reads kept (the view that read it is gone). */
 export function clearMeshTopReads(): void {
   meshTopReads?.clear();
 }
 
-/** Hits, copies, bytes and entries of the sight's tile geometry cache, for probes (null: no cache). */
+/**
+ * Hits, copies, bytes and entries of the tile geometry cache the sight's and
+ * the rider's ground reads share, for probes (null: no cache).
+ */
 export function meshTopReadStats(): ReturnType<TileReadCache['stats']> | null {
   return meshTopReads ? meshTopReads.stats() : null;
 }

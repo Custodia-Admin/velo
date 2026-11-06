@@ -694,29 +694,37 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     const { s } = scene(tileset, { height: 160.4 });
     const sampler = createGroundSampler(s);
     expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('globe');
     sampler.sample(lon, lat(0), 195, 0);
     expect(sampler.meshGround()).toBe(true);
+    expect(sampler.ground()).toBe('mesh');
     // The I-80 deck 29 m over the towpath, nothing drawn under it: the rider
-    // holds the road, and the globe (0.2 m off it) stands in for the ground.
+    // holds the road, and the globe (0.2 m off it) stands in for the ground,
+    // without the painted road (it would paint the deck and its piers).
     deck = true;
     expect(sampler.sample(lon, lat(2), 195, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(160.4, 6);
     expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('standIn');
     deck = false;
     // A coarse tile 610 m up (the Cuyahoga start): not the ground.
     reading = 768.9;
     sampler.sample(lon, lat(4), 195, 2 * GROUND_SAMPLE_INTERVAL_MS);
     expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('globe');
     // No tile under the rider.
     reading = undefined;
     sampler.sample(lon, lat(6), 195, 3 * GROUND_SAMPLE_INTERVAL_MS);
     expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('globe');
     // Tileset hidden (camera over 5 km): the globe is the ground.
     reading = 160.2;
     sampler.sample(lon, lat(8), 195, 4 * GROUND_SAMPLE_INTERVAL_MS);
     expect(sampler.meshGround()).toBe(true);
+    expect(sampler.ground()).toBe('mesh');
     (tileset as unknown as { show: boolean }).show = false;
     sampler.sample(lon, lat(10), 195, 5 * GROUND_SAMPLE_INTERVAL_MS);
     expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('globe');
   });
 
   it('held under a deck with nothing drawn under it: the globe stands in only where it is near the road', async () => {
@@ -742,6 +750,7 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
       // Hidden, the globe's height isn't drawn: the rider holds the road.
       expect(sampler.sample(lon, lat(2), 160, GROUND_SAMPLE_INTERVAL_MS), `globe ${globeH}`).toBeCloseTo(160.2, 6);
       expect(sampler.meshGround(), `globe ${globeH}`).toBe(!standsIn);
+      expect(sampler.ground(), `globe ${globeH}`).toBe(standsIn ? 'standIn' : 'mesh');
       // Drawn (the gate shows it a second later), it is the ground where it
       // stands in: the rider on it, not floating over it on the road held.
       globe.show = true;
@@ -1446,6 +1455,71 @@ describe('under what stands over the road: the rider rides the road under it (t_
         expect(Math.abs(worst(reads)), `${from} read ${reads[1].m - reads[0].m} m apart from ${reads[0].m} m`).toBeLessThanOrEqual(0.3);
       }
     }
+  });
+
+  /**
+   * A photoreal tileset with a stack of up-facing surfaces under each spot
+   * (top first, by metres along). Its pick answers as Cesium3DTileset.pick
+   * does down one stack: the highest surface at or under the ray's origin, so
+   * a ray started under a crown reaches the ground under it.
+   */
+  async function stacked(column: (m: number) => number[]) {
+    const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
+    Object.defineProperty(fake, 'show', { value: true, writable: true });
+    Object.defineProperty(fake, 'tilesLoaded', { value: true, writable: true });
+    const stack = (c: Cesium.Cartographic) => column(metresC(Cesium.Math.toDegrees(c.latitude)));
+    Object.defineProperty(fake, 'getHeight', { value: (c: Cesium.Cartographic) => stack(c)[0] });
+    Object.defineProperty(fake, 'pick', {
+      value: (ray: Cesium.Ray, frameState: unknown) => {
+        requireFrameState(frameState);
+        const c = Cesium.Cartographic.fromCartesian(ray.origin);
+        const h = stack(c).find((x) => x <= c.height);
+        return h === undefined ? undefined : Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h);
+      },
+    });
+    vi.spyOn(Cesium.Cesium3DTileset, 'fromIonAssetId').mockResolvedValue(fake);
+    return (await getPhotorealTileset())!;
+  }
+
+  it('through the real reads (sampler → sampleGroundHeight → meshHeightAt → pick): under a crown the rider takes the towpath, on the mesh', async () => {
+    setIonToken('eyJ_test');
+    // The towpath climbs 5 cm a metre; from 1 m on a crown stands 15 m over
+    // it. The globe (World Terrain) is 0.6 m under the towpath, within
+    // GLOBE_STANDIN_M: were the towpath not read from under the crown, the
+    // globe would stand in for it (meshGround false) and the rider would
+    // hold the road it last took.
+    const towpath = (m: number) => 160 + 0.05 * m;
+    const tileset = await stacked((m) => (m > 1 ? [towpath(m) + 15, towpath(m)] : [towpath(m)]));
+    const { s, globe } = scene(tileset, { height: undefined, show: false });
+    (globe.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (c: Cesium.Cartographic) => towpath(metresC(Cesium.Math.toDegrees(c.latitude))) - 0.6,
+    );
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(lonC, atC(0), 160, 0)).toBeCloseTo(towpath(0), 6);
+    expect(sampler.ground()).toBe('mesh');
+    for (let i = 1; i <= 12; i++) {
+      const m = 2 * i;
+      expect(sampler.sample(lonC, atC(m), 160, i * GROUND_SAMPLE_INTERVAL_MS), `${m} m`).toBeCloseTo(towpath(m), 6);
+      expect(sampler.meshGround(), `${m} m`).toBe(true);
+      expect(sampler.ground(), `${m} m`).toBe('mesh');
+    }
+  });
+
+  it('a fresh start under a structure with nothing drawn under it: the globe stands in (no painted road), not the top', async () => {
+    setIonToken('eyJ_test');
+    // A crown 15 m over the towpath with no ground drawn under it, the globe
+    // at the towpath: no road to go on from, so the rider stands on the globe.
+    const tileset = await stacked(() => [175.4]);
+    const { s } = scene(tileset, { height: 160.4 });
+    const sampler = createGroundSampler(s);
+    expect(sampler.sample(lonC, atC(0), 160, 0)).toBeCloseTo(160.4, 6);
+    expect(sampler.meshGround()).toBe(false);
+    expect(sampler.ground()).toBe('standIn');
+    // With the tile gone, no mesh at all: the globe is the ground.
+    const bare = await stacked(() => []);
+    const open = createGroundSampler(scene(bare, { height: 160.4 }).s);
+    open.sample(lonC, atC(0), 160, 0);
+    expect(open.ground()).toBe('globe');
   });
 
   it('only a surface within UNDER_BARE_M of the bare terrain is taken from under something; with no terrain, none', () => {

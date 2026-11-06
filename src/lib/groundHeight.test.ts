@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as Cesium from 'cesium';
-import { getPhotorealTileset, liftAboveTerrain, sampleGroundHeight, setIonToken } from '@/lib/cesiumUtils';
+import { getPhotorealTileset, liftAboveTerrain, meshHeightAt, sampleGroundHeight, setIonToken } from '@/lib/cesiumUtils';
 
 async function photorealTileset(height: number | undefined) {
   const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
@@ -85,6 +85,106 @@ describe('sampleGroundHeight over the photoreal mesh', () => {
     const { s, sampleHeight } = scene(null, true);
     expect(sampleGroundHeight(s, 8.95, 46.0)).toBeUndefined();
     expect(sampleHeight).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Reads from under what stands over the road (PR #76, the rider's ground
+ * under tree crowns and decks): the mesh read starts its ray at `under` and
+ * answers a surface at or under it, never the top over it, and never a GPU
+ * pick (which has no ray to start low).
+ */
+describe('sampleGroundHeight / meshHeightAt from `under`: the ray starts there', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    setIonToken(null);
+  });
+
+  /**
+   * A tileset with one stack of up-facing surfaces (`column`, top first) under
+   * every spot. Its pick answers like Cesium3DTileset.pick down that stack: the
+   * highest surface at or under the ray's origin. Records each origin height.
+   */
+  async function layered(column: number[], opts: { pick?: boolean } = {}) {
+    const fake = Object.create(Cesium.Cesium3DTileset.prototype) as Cesium.Cesium3DTileset;
+    Object.defineProperty(fake, 'show', { value: true, writable: true });
+    const getHeight = vi.fn(() => column[0]);
+    Object.defineProperty(fake, 'getHeight', { value: getHeight });
+    const origins: number[] = [];
+    Object.defineProperty(fake, 'pick', {
+      value:
+        opts.pick === false
+          ? undefined
+          : (ray: Cesium.Ray, frameState: unknown) => {
+              if (frameState !== FRAME_STATE) throw new TypeError("tileset.pick needs the scene's frameState");
+              const c = Cesium.Cartographic.fromCartesian(ray.origin);
+              origins.push(c.height);
+              // Straight down the local vertical: the ray stays over the spot.
+              const below = Cesium.Cartographic.fromCartesian(Cesium.Ray.getPoint(ray, c.height - 100));
+              expect(below.longitude).toBeCloseTo(c.longitude, 9);
+              expect(below.latitude).toBeCloseTo(c.latitude, 9);
+              const h = column.find((x) => x <= c.height);
+              return h === undefined ? undefined : Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, h);
+            },
+    });
+    vi.spyOn(Cesium.Cesium3DTileset, 'fromIonAssetId').mockResolvedValue(fake);
+    const tileset = (await getPhotorealTileset())!;
+    return { tileset, getHeight, origins };
+  }
+  // A crown 14 m over the towpath, the towpath drawn under it (Cuyahoga 2748 m).
+  const crown = [175.0, 160.9];
+  const at = Cesium.Cartographic.fromDegrees(-81.5, 41.2);
+
+  it('meshHeightAt: from the top with no `under`, else from `under` down: the surface under it, or none', async () => {
+    setIonToken('eyJ_test');
+    const { tileset, origins } = await layered(crown);
+    const { s } = scene(tileset, true);
+    const R = Cesium.Ellipsoid.WGS84.maximumRadius;
+    expect(meshHeightAt(tileset, at, s)).toBeCloseTo(175.0, 6);
+    expect(origins.at(-1)! / R).toBeCloseTo(2, 6);
+    expect(meshHeightAt(tileset, at, s, 172)).toBeCloseTo(160.9, 6);
+    expect(origins.at(-1)).toBeCloseTo(172, 6);
+    expect(meshHeightAt(tileset, at, s, 161.0)).toBeCloseTo(160.9, 6);
+    expect(origins.at(-1)).toBeCloseTo(161.0, 6);
+    // Under the towpath there is nothing: not the towpath 0.4 m over the start.
+    expect(meshHeightAt(tileset, at, s, 160.5)).toBeUndefined();
+    expect(origins.at(-1)).toBeCloseTo(160.5, 6);
+  });
+
+  it('sampleGroundHeight hands `under` to the mesh read', async () => {
+    setIonToken('eyJ_test');
+    const { tileset, origins } = await layered(crown);
+    const { s, sampleHeight } = scene(tileset, true);
+    expect(sampleGroundHeight(s, -81.5, 41.2, [])).toBeCloseTo(175.0, 6);
+    expect(sampleGroundHeight(s, -81.5, 41.2, [], 172)).toBeCloseTo(160.9, 6);
+    expect(origins.at(-1)).toBeCloseTo(172, 6);
+    expect(sampleGroundHeight(s, -81.5, 41.2, [], 160.5)).toBeUndefined();
+    expect(sampleHeight).not.toHaveBeenCalled();
+  });
+
+  it('with no tile pick a read from under answers nothing, never the top (getHeight reads from the top only)', async () => {
+    setIonToken('eyJ_test');
+    const { tileset, getHeight } = await layered(crown, { pick: false });
+    const { s } = scene(tileset, true);
+    expect(meshHeightAt(tileset, at, s, 172)).toBeUndefined();
+    expect(getHeight).not.toHaveBeenCalled();
+    expect(sampleGroundHeight(s, -81.5, 41.2, [], 172)).toBeUndefined();
+    expect(getHeight).not.toHaveBeenCalled();
+    // From the top it still reads the top.
+    expect(meshHeightAt(tileset, at, s)).toBeCloseTo(175.0, 6);
+  });
+
+  it('with no CPU mesh read (WebGL 1, no mesh shown) a read from under answers nothing, never the GPU pick', async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await layered(crown);
+    const gl1 = scene(tileset, false);
+    expect(sampleGroundHeight(gl1.s, -81.5, 41.2, [], 172)).toBeUndefined();
+    expect(gl1.sampleHeight).not.toHaveBeenCalled();
+    const none = scene(null, true);
+    expect(sampleGroundHeight(none.s, -81.5, 41.2, [], 172)).toBeUndefined();
+    expect(none.sampleHeight).not.toHaveBeenCalled();
+    // From the top, the GPU pick stays the fallback.
+    expect(sampleGroundHeight(gl1.s, -81.5, 41.2, [])).toBe(999);
   });
 });
 
