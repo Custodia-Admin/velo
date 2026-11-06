@@ -132,10 +132,12 @@ export function driveBotPose(
  * on the start line.
  *
  * The slot is clamped to the drawn ribbon the route runs on there (the one
- * under the route point, along the route's own bearing: roadSpan.roadSpanAt)
- * and eased toward that clamp over time (stepPartnerSlot), so a partner
- * drifts over where the road narrows or a junction changes the ribbon
- * instead of jumping sideways.
+ * under the route point, along the route's own bearing: roadSpan.roadSpanAt),
+ * but never closer than 0.9 m to the line or to the next partner in on its
+ * side (partnerSlotM): on a 1.5 m path the partner rides the verge. It is
+ * eased toward that target over time (stepPartnerSlot), so a partner drifts
+ * over where the road narrows or a junction changes the ribbon instead of
+ * jumping sideways.
  */
 export function placeBot(
   sceneWorld: SceneWorld,

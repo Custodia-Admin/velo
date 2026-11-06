@@ -4,9 +4,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { RideView } from '@/components/ride/RideView';
 import type { WorldRenderer } from '@/lib/world/renderer';
 import { worldForRoute } from '@/lib/world/catalog';
-import { NoTokenBanner } from '@/components/ride/NoTokenBanner';
 import { PlayPanel } from '@/components/velo/PlayMode';
 import { RideHud } from '@/components/velo/RideHud';
+import { usePhotorealNotice } from '@/components/velo/PhotorealNotice';
 import { GestureLegend } from '@/components/ride/GestureLegend';
 import { ShowCorner, ShowPanel } from '@/components/velo/ShowPanel';
 import { ShowHud } from '@/components/velo/ShowHud';
@@ -17,7 +17,6 @@ import { useIdle } from '@/hooks/useIdle';
 import { cn } from '@/lib/utils';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideLoop } from '@/hooks/useRideLoop';
 import { useRideAutoStart } from '@/hooks/useRideAutoStart';
 import { useWakeLock } from '@/hooks/useWakeLock';
@@ -80,8 +79,6 @@ export function Ride() {
   const rideState     = useRideStore((s) => s.rideState);
   const rideMode      = useRideStore((s) => s.rideMode);
   const preferredRenderer = useSettingsStore((s) => s.renderer);
-  // Ride details or the devices sheet open: the no-token banner steps aside.
-  const hudDetailsOpen = useRideHudStore((s) => s.expanded || s.devicesOpen);
 
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
   const controllerDebugVisible = useControllerDebugVisible();
@@ -158,14 +155,16 @@ export function Ride() {
 
   // Cesium ion token resolution. The ride view no longer *requires* a token:
   // without one we fall back to OSM imagery + flat terrain (see
-  // setupBaseImagery / getTerrainProvider in cesiumUtils). The banner below
-  // surfaces the upgrade path without blocking the ride.
+  // setupBaseImagery / getTerrainProvider in cesiumUtils). The photoreal
+  // notice in the HUD's chip lane surfaces the upgrade path without
+  // blocking the ride.
   const [token] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     const fromEnv = import.meta.env.VITE_CESIUM_ION_TOKEN ?? '';
     if (fromEnv.length > 0) return fromEnv;
     return window.localStorage.getItem(TOKEN_STORAGE_KEY);
   });
+  const photorealNotice = usePhotorealNotice(token !== null && token.length > 0);
 
   useEffect(() => {
     if (!route && rideMode !== 'outdoor') navigate('/app');
@@ -260,16 +259,6 @@ export function Ride() {
       {/* With a video of the rider's own playing, the tab keeps the video panel. */}
       {floating && showSource !== 'files' && <RideFloatingNotice />}
 
-      {/* No-token banner — subtle nudge offering the photoreal upgrade.
-          Invisible when a token is already installed; dismissible per-session
-          so it never gets in the way of the ride. */}
-      {/* Hidden in show mode: it would sit on the show strip. */}
-      {/* Hidden on world-renderer rides too: they need no token, so the
-          photoreal pitch and the Bing watchdog don't apply there. */}
-      {!showActive && !worldRide && !hudDetailsOpen && (
-        <NoTokenBanner hasToken={token !== null && token.length > 0} />
-      )}
-
       {/* Paused veil: a light scrim, no blur (no backdrop-filter may sit over
           the live canvas: it cost 10–25 fps, PR #16). */}
       {rideState === 'paused' && (
@@ -292,6 +281,10 @@ export function Ride() {
           onShortcuts={() => setHelpOpen((o) => !o)}
           voice={{ isListening, onToggle: isListening ? stopListening : startListening }}
           xr={xrButtons}
+          // The photoreal notice (no-token pitch / imagery fallback) in the
+          // chip lane. World rides need no token, so the pitch and the Bing
+          // watchdog don't apply there. Show mode has no RideHud at all.
+          notice={worldRide ? null : photorealNotice}
           modes={
             <>
               <PlayPanel compact />

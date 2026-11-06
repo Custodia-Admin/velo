@@ -17,15 +17,12 @@ import {
   computeAvgPower,
   computeAvgSpeed,
   computeAscentM,
+  type RideRecord,
 } from '@/lib/rideHistory';
-import { useProfileStore } from '@/stores/profileStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRiderRosterStore } from '@/stores/riderRosterStore';
 import { computeRideMetrics } from '@/lib/metrics';
-import { totalDurationSec } from '@/lib/workout';
 import type { RideState } from '@/types';
-// ADDITIVE: World Tour stage detection (static import — no async needed)
-import { WORLD_TOUR_STAGES } from '@/lib/worldTourStages';
 
 const MIN_DURATION_SEC = 30;
 
@@ -55,7 +52,7 @@ export function useRideHistoryRecorder(): void {
       savedRef.current = true;
 
         const s = useRideStore.getState();
-        const { samples, elapsedMs, route, activeWorkout, workoutElapsedSec, startedAt, replayData } = s;
+        const { samples, elapsedMs, route, startedAt } = s;
 
         // Skip trivially short rides.
         if (elapsedMs / 1000 < MIN_DURATION_SEC) return;
@@ -67,28 +64,12 @@ export function useRideHistoryRecorder(): void {
           : 0;
 
         const name =
-          activeWorkout?.name ??
-          route?.name ??
-          (replayData ? 'Replay' : 'Ride') +
-            ` — ${new Date(startedAt ?? Date.now()).toLocaleDateString()}`;
-
-        let source: 'route' | 'workout' | 'replay' = 'route';
-        if (replayData) source = 'replay';
-        else if (activeWorkout) source = 'workout';
+          route?.name ?? `Ride — ${new Date(startedAt ?? Date.now()).toLocaleDateString()}`;
 
         const ftpW = useSettingsStore.getState().ftpW;
-        const metrics = computeRideMetrics(samples, ftpW, activeWorkout);
-        const targetDurationSec = activeWorkout ? totalDurationSec(activeWorkout) : 0;
-        const workoutCompliance = activeWorkout
-          ? {
-              completed: workoutElapsedSec >= targetDurationSec * 0.95,
-              targetDurationSec,
-              completedDurationSec: Math.round(workoutElapsedSec),
-              segmentCompliance: metrics.segments,
-            }
-          : undefined;
+        const metrics = computeRideMetrics(samples, ftpW);
 
-        const record = {
+        const record: RideRecord = {
           id: rideId(),
           name,
           startedAt: startedAt ?? Date.now() - elapsedMs,
@@ -98,63 +79,19 @@ export function useRideHistoryRecorder(): void {
           avgPower: computeAvgPower(samples),
           avgSpeed: computeAvgSpeed(samples),
           sampleCount: samples.length,
-          workoutName: activeWorkout?.name,
           samples: [...samples], // snapshot so the store can be reset freely
-          source,
+          // Every ride is a route ride now; 'workout' / 'replay' records saved
+          // by older builds stay readable (lib/rideHistory RideSource).
+          source: 'route',
           metrics,
           ftpW,
           riderId: useRiderRosterStore.getState().activeRiderId,
           routeRef: route ? { id: route.id, name: route.name } : undefined,
-          workoutRef: activeWorkout ? { id: activeWorkout.id, name: activeWorkout.name } : undefined,
-          workoutCompliance,
         };
 
         saveRide(record).catch((err) => {
           console.warn('[rideHistory] Failed to save ride:', err);
         });
-
-        // Award XP and update lifetime stats in the profile store.
-        const workoutCompleted =
-          !!activeWorkout &&
-          workoutElapsedSec > 0 &&
-          workoutElapsedSec >= totalDurationSec(activeWorkout);
-
-        // ── later waves extra ride metadata ──────────────────────────────────
-        // Draft seconds: accumulated via _rideDraftSec on the ride store when
-        // the draft-accumulator extension is present; otherwise 0.
-        const draftSec: number = (s as { _rideDraftSec?: number })._rideDraftSec ?? 0;
-
-        // Bots: rider beat all bots when all bot distances are behind the rider.
-        const paceBots = s.paceBots ?? [];
-        const beatAllBots =
-          paceBots.length > 0 &&
-          paceBots.every((bot) => bot.state.distance < s.distance);
-
-        // World Tour stage: synchronous check against statically-imported catalog.
-        const isWorldTourStage = route
-          ? WORLD_TOUR_STAGES.some((wts) => wts.route.id === route.id)
-          : false;
-
-        // Companion opened: flag set by useCompanionReceiver during this session.
-        const companionOpenedThisRide: boolean =
-          (s as { _companionOpenedThisRide?: boolean })._companionOpenedThisRide ?? false;
-
-        // Mood: set by CesiumViewer/RideStore extension when available.
-        const mood: string | undefined =
-          (s as { _activeMood?: string })._activeMood;
-
-        const rideInput = {
-          distanceM,
-          ascentM: record.ascentM,
-          workoutCompleted,
-          draftSec,
-          beatAllBots,
-          isWorldTourStage,
-          companionOpenedThisRide,
-          mood,
-        };
-
-        useProfileStore.getState().recordRide(rideInput);
       },
     );
 

@@ -138,7 +138,6 @@ export interface ChipInput {
   battery: number | null;
   reconnectAttempt: number;
   reconnectMaxAttempts: number;
-  replay: boolean;
 }
 
 export const LOW_BATTERY = 20;
@@ -155,9 +154,6 @@ export function shortDeviceName(name: string): string {
 }
 
 export function statusChip(i: ChipInput): ChipView {
-  if (i.replay) {
-    return { label: 'Replay', aria: 'Replaying a recorded ride', tone: 'calm', pulse: false, alert: false };
-  }
   if (i.mode === 'outdoor') {
     return { label: 'Outdoor · GPS', aria: 'Outdoor ride on phone GPS', tone: 'calm', pulse: false, alert: false };
   }
@@ -301,7 +297,7 @@ const CONTROLS_ALERT: Partial<Record<ControlsPhase, string>> = {
  * the chip says so and opens the devices sheet.
  */
 export function rideChip(i: RideChipInput): RideChipView {
-  const indoor = !i.replay && i.mode !== 'outdoor';
+  const indoor = i.mode !== 'outdoor';
   const offline = i.connection === 'disconnected' || i.connection === 'error';
   const lost = i.connection === 'disconnected' && i.errorCode === 'reconnect-failed';
   if (indoor && offline && i.trainerReconnectable) {

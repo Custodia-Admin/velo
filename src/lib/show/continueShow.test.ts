@@ -563,6 +563,67 @@ describe('one click, one file allowed (after a browser restart)', () => {
     expect(asked[0]).toBe('Show S01E02.mp4');
     expect(r).toMatchObject({ ok: false, reason: 'denied' });
   });
+
+  // Review of PR #63 @e14ff81, N2 (probes R1/R2): a library remembered before
+  // PR #56 can hold release sidecars. One sorting at the planned spot took the
+  // click's only grant, and the episode was refused: 3 clicks to start E02.
+  it('a sidecar audio track (.mka) beside the next episode: one click asks for E02 and starts it', async () => {
+    markWatched({ key: fileKey(ep('Show S01E01.mkv', 100)), name: 'Show S01E01.mkv', positionS: 1500, durationS: 1500 }, 1, store);
+    const { asked, h } = oneClick();
+    const mka = h('Show S01E02.mka', new File([new Uint8Array(100)], 'Show S01E02.mka', { type: 'audio/x-matroska' }));
+    const r = await cont([h('Show S01E01.mkv'), mka, h('Show S01E02.mkv'), h('Show S01E03.mkv')]);
+    expect(asked[0]).toBe('Show S01E02.mkv');
+    expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E02.mkv', 100)), next: { reason: 'next' } });
+    expect(r.ok && r.plan.files.map((f) => f.name)).toEqual(['Show S01E02.mkv']);
+  });
+
+  it("nothing watched and a folder.ico sorting first: one click asks for E01 and starts it", async () => {
+    const { asked, h } = oneClick();
+    const ico = h('folder.ico', new File([new Uint8Array(100)], 'folder.ico', { type: 'image/vnd.microsoft.icon' }));
+    const r = await cont([ico, h('Show S01E01.mkv'), h('Show S01E02.mkv')]);
+    expect(asked[0]).toBe('Show S01E01.mkv');
+    expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E01.mkv', 100)), next: { reason: 'first' } });
+  });
+});
+
+// Review of PR #63 @e14ff81, N1: a file Chrome let us READ is kept by its type
+// or name (isVideoFile), not by mayBeVideoName, the refused-file test: that one
+// says yes to anything not known to be something else. A readable README or
+// audio track from an older library, or from a show folder, would join the
+// playlist, and README sorts before "Show …", so a 'first' start would open it.
+describe('a readable file that is not a video never plays', () => {
+  const typed = (name: string, type: string) => new File([new Uint8Array(100)], name, { type });
+  const strays = () => [typed('README', ''), typed('Show S01E01.mka', 'audio/x-matroska')];
+  const episodes = () => [ep('Show S01E02.mp4', 100), ep('Show S01E01.mp4', 100)];
+
+  it('files: README and an .mka beside the episodes, nothing watched: plays the episodes from E01', async () => {
+    const handles = [...strays(), ...episodes()].map((f) => handle(f.name, { file: f }));
+    const r = await continueLastShow(
+      { ask: true },
+      { recall: async () => ({ kind: 'files', handles }) as unknown as RememberedLibrary, read: readLibrary, storage: store },
+    );
+    expect(r.ok && r.plan.files.map((f) => f.name)).toEqual(['Show S01E01.mp4', 'Show S01E02.mp4']);
+    expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E01.mp4', 100)), next: { reason: 'first', index: 0 } });
+  });
+
+  it('folder: README and an .mka in the show folder, nothing watched: plays the episodes from E01', async () => {
+    const files = [...strays(), ...episodes()];
+    const dir = {
+      kind: 'directory',
+      name: 'Show S01',
+      queryPermission: vi.fn(async () => 'granted'),
+      requestPermission: vi.fn(async () => 'granted'),
+      values: async function* () {
+        for (const f of files) yield { kind: 'file', name: f.name, getFile: async () => f };
+      },
+    };
+    const r = await continueLastShow(
+      { ask: false },
+      { recall: async () => ({ kind: 'folder', dir }) as unknown as RememberedLibrary, read: readLibrary, storage: store },
+    );
+    expect(r.ok && r.plan.files.map((f) => f.name)).toEqual(['Show S01E01.mp4', 'Show S01E02.mp4']);
+    expect(r.ok && r.plan).toMatchObject({ startKey: fileKey(ep('Show S01E01.mp4', 100)), next: { reason: 'first', index: 0 } });
+  });
 });
 
 describe('remembered library records', () => {

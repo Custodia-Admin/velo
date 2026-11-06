@@ -13,7 +13,7 @@
  * show mode (alertsOnly) draws the chip only when it has something to say.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ReactElement } from 'react';
+import { createElement, type ReactElement } from 'react';
 
 const h = vi.hoisted(() => ({
   cleanups: [] as Array<() => void>,
@@ -282,5 +282,95 @@ describe('RideChip in show mode (alertsOnly)', () => {
     useRideStore.getState().setMode('demo');
     useRideStore.getState().pushToast({ kind: 'error', title: 'Trainer rejected a command', durationMs: 6_000 });
     expect(chip({ alertsOnly: true })?.text).toBe('Trainer rejected a command');
+  });
+});
+
+describe('RideChip with an aside: the chip lane (photoreal notice, card t_375b203d)', () => {
+  const ASIDE = createElement('span', { 'data-testid': 'aside' }, 'Free token for photoreal Earth');
+
+  interface RenderedLane {
+    className: string;
+    chip: RenderedChip | null;
+    aside: boolean;
+  }
+
+  /** Render the lane once (then unmount it). */
+  function lane(props: { alertsOnly?: boolean; className?: string } = {}): RenderedLane {
+    const el = RideChip({ ...props, aside: ASIDE }) as ReactElement<{
+      className: string;
+      'data-testid': string;
+      children: unknown[];
+    }>;
+    for (const c of h.cleanups.splice(0)) c();
+    expect(el.props['data-testid']).toBe('ride-chip-lane');
+    const [button, aside] = el.props.children as [ReactElement<ChipProps> | null, unknown];
+    return {
+      className: el.props.className,
+      chip: button ? { props: button.props, text: textOf(button), label: button.props['aria-label'] } : null,
+      aside: aside === ASIDE,
+    };
+  }
+
+  it('calm: chip at the start, the aside at the end of a lane that wraps, never overflows', () => {
+    useRideStore.getState().setMode('demo');
+    const l = lane({ className: 'shrink-0 self-stretch' });
+    expect(l.chip?.text).toBe('Demo ride · no trainer');
+    expect(l.aside).toBe(true);
+    expect(l.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(['flex', 'flex-wrap', 'justify-between', 'items-center', 'max-w-full', 'shrink-0', 'self-stretch']),
+    );
+    // The caller's className goes to the lane; the chip keeps its size in it.
+    expect(l.chip!.props.className.split(/\s+/)).toContain('shrink-0');
+    expect(l.chip!.props.className).not.toContain('self-stretch');
+    // Phones: the calm chip hides, so the aside is alone in the lane.
+    expect(visibleOnPhones(l.chip!)).toBe(false);
+  });
+
+  it('steps aside while the 3D view is stopped, and comes back after the reload tap', () => {
+    useRideStore.getState().setMode('demo');
+    worldViewStopped();
+    const l = lane();
+    expect(l.chip?.text).toBe('3D view stopped · tap to reload');
+    expect(visibleOnPhones(l.chip!)).toBe(true);
+    expect(l.aside).toBe(false);
+    l.chip!.props.onClick();
+    expect(lane().aside).toBe(true);
+  });
+
+  it('steps aside for a lost trainer', () => {
+    trainerLostMidRide();
+    useTrainerReconnectStore.setState({ phase: 'available', name: 'KICKR CORE 78C1' });
+    const l = lane();
+    expect(l.chip?.text).toBe('Trainer lost · tap to reconnect');
+    expect(l.aside).toBe(false);
+  });
+
+  it('steps aside for a passing notice, and comes back once it has had its turn', () => {
+    useRideStore.getState().setMode('demo');
+    useRideStore.getState().pushToast({ id: 'pb', kind: 'info', title: 'New personal best', durationMs: 4_000 });
+    expect(lane().aside).toBe(false);
+    // Mounted while its turn runs out (lane() unmounts, which clears the timer).
+    RideChip({ aside: ASIDE });
+    vi.advanceTimersByTime(4_000);
+    for (const c of h.cleanups.splice(0)) c();
+    expect(useRideStore.getState().toasts).toEqual([]);
+    expect(lane().aside).toBe(true);
+  });
+
+  it('steps aside for a low trainer battery (an alert on phones), and comes back above it', () => {
+    useRideStore.getState().setConnection('connected', { deviceName: 'KICKR CORE 78C1' });
+    useRideStore.getState().setMode('trainer');
+    useRideStore.setState({ batteryLevel: 15 });
+    expect(lane().aside).toBe(false);
+    useRideStore.setState({ batteryLevel: 80 });
+    expect(lane().aside).toBe(true);
+  });
+
+  it('without an aside RideChip is the bare chip, as before (className on the chip)', () => {
+    useRideStore.getState().setMode('demo');
+    const el = RideChip({ className: 'shrink-0 self-start' }) as ReactElement<ChipProps>;
+    expect(el.type).toBe('button');
+    expect(el.props.className).toContain('shrink-0 self-start');
+    expect(RideChip({ className: 'x', aside: null }) as ReactElement<ChipProps>).toHaveProperty('type', 'button');
   });
 });

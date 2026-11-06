@@ -3,7 +3,7 @@
  *
  * Three orthogonal dimensions:
  *   phase    idle → ready → riding ⇄ paused → finished
- *   source   what feeds the ride: trainer | demo | workout | replay | outdoor
+ *   source   what feeds the ride: trainer | demo | outdoor
  *   trainer  the FTMS link: disconnected | connecting | connected | lost
  *
  * Transitions live in tables (one per dimension). An event that has no cell
@@ -24,7 +24,7 @@ import type { ConnectionState, RideMode, RideState } from '@/types';
 // ─── State ───────────────────────────────────────────────────────────────────
 
 export type RidePhase = 'idle' | 'ready' | 'riding' | 'paused' | 'finished';
-export type RideSource = 'trainer' | 'demo' | 'workout' | 'replay' | 'outdoor';
+export type RideSource = 'trainer' | 'demo' | 'outdoor';
 export type TrainerLink = 'disconnected' | 'connecting' | 'connected' | 'lost';
 
 export interface RideFsmState {
@@ -34,7 +34,7 @@ export interface RideFsmState {
 }
 
 export const RIDE_PHASES: readonly RidePhase[] = ['idle', 'ready', 'riding', 'paused', 'finished'];
-export const RIDE_SOURCES: readonly RideSource[] = ['trainer', 'demo', 'workout', 'replay', 'outdoor'];
+export const RIDE_SOURCES: readonly RideSource[] = ['trainer', 'demo', 'outdoor'];
 export const TRAINER_LINKS: readonly TrainerLink[] = ['disconnected', 'connecting', 'connected', 'lost'];
 
 export const INITIAL_RIDE_FSM: RideFsmState = { phase: 'idle', source: 'trainer', trainer: 'disconnected' };
@@ -56,12 +56,7 @@ export type TrainerEvent =
   | { type: 'TRAINER_LOST' }
   | { type: 'TRAINER_DISCONNECTED' };
 
-export type SourceEvent =
-  | { type: 'SET_SOURCE'; source: RideSource }
-  /** A recorded ride replaces the session: ready, source replay. */
-  | { type: 'LOAD_REPLAY' }
-  /** Leave replay for the live source; ready when a route remains. */
-  | { type: 'CLEAR_REPLAY'; source: RideSource; hasRoute: boolean };
+export type SourceEvent = { type: 'SET_SOURCE'; source: RideSource };
 
 export type RideEvent = PhaseEvent | TrainerEvent | SourceEvent;
 export type RideEventType = RideEvent['type'];
@@ -89,8 +84,8 @@ export const PHASE_TABLE: Readonly<Record<RidePhase, Partial<Record<PhaseEvent['
   ready:    { ROUTE_LOADED: 'ready', ROUTE_CLEARED: 'idle', RESET: afterReset, START: 'riding' },
   riding:   { ROUTE_LOADED: 'ready', ROUTE_CLEARED: 'idle', RESET: afterReset, PAUSE: 'paused', FINISH: 'finished' },
   paused:   { ROUTE_LOADED: 'ready', ROUTE_CLEARED: 'idle', RESET: afterReset, RESUME: 'riding', FINISH: 'finished' },
-  // FINISH is idempotent: the route end, the workout engine and the replay
-  // loop can each report the finish in the same frame.
+  // FINISH is idempotent: the route end and a Finish request (button, voice)
+  // can both report the finish.
   finished: { ROUTE_LOADED: 'ready', ROUTE_CLEARED: 'idle', RESET: afterReset, FINISH: 'finished' },
 };
 
@@ -107,16 +102,14 @@ export const TRAINER_TABLE: Readonly<Record<TrainerLink, Record<TrainerEvent['ty
 };
 
 /** Sources a ride may switch between while it is in progress (riding/paused). */
-const LIVE_SWAPPABLE: ReadonlySet<RideSource> = new Set(['trainer', 'demo', 'workout']);
+const LIVE_SWAPPABLE: ReadonlySet<RideSource> = new Set(['trainer', 'demo']);
 
 /**
- * May `from` become `to` during `phase`? Replay is entered only via
- * LOAD_REPLAY. Mid-ride, only trainer/demo/workout swap (the Demo toggle,
- * the reconnect-failed fallback, the workout engine taking over); an
- * outdoor GPS ride or a replay can't turn into a trainer ride half way.
+ * May `from` become `to` during `phase`? Mid-ride, only trainer and demo
+ * swap (the Demo toggle, the reconnect-failed fallback); an outdoor GPS
+ * ride can't turn into a trainer ride half way, or back.
  */
 export function sourceSwapAllowed(phase: RidePhase, from: RideSource, to: RideSource): boolean {
-  if (to === 'replay') return false;
   if (phase !== 'riding' && phase !== 'paused') return true;
   return LIVE_SWAPPABLE.has(from) && LIVE_SWAPPABLE.has(to);
 }
@@ -151,11 +144,6 @@ export function nextState(s: RideFsmState, e: RideEvent): RideFsmState | null {
     case 'SET_SOURCE':
       if (!sourceSwapAllowed(s.phase, s.source, e.source)) return null;
       return { ...s, source: e.source };
-    case 'LOAD_REPLAY':
-      return { ...s, phase: 'ready', source: 'replay' };
-    case 'CLEAR_REPLAY':
-      if (s.source !== 'replay' || e.source === 'replay') return null;
-      return { ...s, phase: e.hasRoute ? 'ready' : 'idle', source: e.source };
     default: {
       const cell = PHASE_TABLE[s.phase][e.type];
       if (cell === undefined) return null;
@@ -226,15 +214,11 @@ export function trainerEventFor(connection: ConnectionState): TrainerEvent {
 export interface SourceFields {
   mode: RideMode;
   rideMode: RideMode;
-  replayData: unknown;
-  workoutRunning: boolean;
 }
 
-/** The ride source the store's fields describe. Precedence: replay > outdoor > workout > demo > trainer. */
+/** The ride source the store's fields describe. Precedence: outdoor > demo > trainer. */
 export function sourceOf(f: SourceFields): RideSource {
-  if (f.replayData) return 'replay';
   if (f.rideMode === 'outdoor') return 'outdoor';
-  if (f.workoutRunning) return 'workout';
   // `rideMode` is the indoor/outdoor axis; Demo Mode is `mode`.
   if (f.mode === 'demo') return 'demo';
   return 'trainer';
@@ -249,16 +233,12 @@ export function sourceOf(f: SourceFields): RideSource {
  *            (a rider who had stopped stays stopped; never 190 W demo power)
  *   demo     Demo Mode physics at the configured demo power
  *   gps      outdoor GPS
- *   replay   the recorded file
- *   workout  the workout engine owns the frame
  */
-export type RideDriveKind = 'trainer' | 'held' | 'demo' | 'gps' | 'replay' | 'workout';
+export type RideDriveKind = 'trainer' | 'held' | 'demo' | 'gps';
 
 export function driveOf(s: Pick<RideFsmState, 'source' | 'trainer'>): RideDriveKind {
   switch (s.source) {
     case 'outdoor': return 'gps';
-    case 'replay':  return 'replay';
-    case 'workout': return 'workout';
     case 'demo':    return 'demo';
     case 'trainer':
       if (s.trainer === 'connected') return 'trainer';
@@ -277,7 +257,7 @@ export type ResistanceMode = 'track' | 'hold' | 'off';
 
 export function resistanceOf(s: RideFsmState): ResistanceMode {
   if (s.trainer !== 'connected') return 'off';
-  if (s.source !== 'trainer' && s.source !== 'workout') return 'off';
+  if (s.source !== 'trainer') return 'off';
   if (s.phase === 'riding') return 'track';
   if (s.phase === 'paused') return 'hold';
   return 'off';
@@ -336,8 +316,7 @@ export function nextStandstillSec(prevSec: number, dtSec: number, speedMs: numbe
  * Indoor auto-pause is opt-in (settings.indoorAutoPause). With it off a
  * stopped rider keeps `riding` forever (speed decays to 0, distance stops);
  * with it on a trainer ride pauses after STANDSTILL_AUTOPAUSE_S. Outdoor
- * rides have their own GPS rule; demo power never stops; replays and
- * workouts run their own clocks.
+ * rides have their own GPS rule; demo power never stops.
  */
 export function autoPauseDue(args: {
   state: RideFsmState;

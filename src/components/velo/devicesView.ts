@@ -8,6 +8,7 @@
  */
 
 import type { BluetoothSupportReport } from '@/lib/bluetoothSupport';
+import type { TroubleshootStepId } from '@/components/trainer/BluetoothTroubleshooter';
 import type { ReconnectPhase } from '@/lib/trainerReconnect';
 import type { SensorConnectionStatus } from '@/lib/bleSensors';
 import type { BuzzResult, ControllerSideCheck, ControllerStatus } from '@/stores/controllerStore';
@@ -75,7 +76,7 @@ export function isEmptyChooserError(code: string | null): boolean {
   return code === 'no-device-selected' || code === 'no-device-found';
 }
 
-/** Headline for a failed trainer connection (same wording as TrainerConnect). */
+/** Headline for a failed trainer connection. */
 export function trainerErrorTitle(code: string | null): string {
   switch (code) {
     case 'unsupported':              return "Browser doesn't support Web Bluetooth";
@@ -92,9 +93,10 @@ export function trainerErrorTitle(code: string | null): string {
   }
 }
 
-export type TroubleshootStep = 'browser' | 'https' | 'permission' | 'empty' | 'wake' | 'others' | 'chooser';
+/** A step of the troubleshooting guide: the guide's own ids, so the two can't drift apart. */
+export type TroubleshootStep = TroubleshootStepId;
 
-/** Which troubleshooter step opens for a support report (TrainerConnect's mapping). */
+/** Which troubleshooter step opens for a support report. */
 export function stepForReport(reasonCode: BluetoothSupportReport['reasonCode']): TroubleshootStep {
   switch (reasonCode) {
     case 'ios-unsupported':
@@ -107,7 +109,7 @@ export function stepForReport(reasonCode: BluetoothSupportReport['reasonCode']):
   }
 }
 
-/** Which troubleshooter step opens for a connect error (TrainerConnect's mapping). */
+/** Which troubleshooter step opens for a connect error. */
 export function stepForErrorCode(code: string | null): TroubleshootStep {
   switch (code) {
     case 'unsupported':              return 'browser';

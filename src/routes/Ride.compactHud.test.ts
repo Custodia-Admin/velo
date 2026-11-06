@@ -11,8 +11,8 @@
  * a second always-on device card or red toast box returns.
  *
  * Kept from the mobile-dock regression (t_8ffebbd3, t_19e8b32f): the minimap
- * sizes from classes, the no-token banner positions through
- * ride-banner-float, and the Settings sheet portals to document.body.
+ * sizes from classes and the Settings sheet portals to document.body. The
+ * no-token banner is now the photoreal notice in the chip lane (t_375b203d).
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -26,7 +26,6 @@ const stripSrc = read('src/components/velo/RideStrip.tsx');
 const chipSrc = read('src/components/velo/RideChip.tsx');
 const toasterSrc = read('src/components/setup/Toaster.tsx');
 const storeSrc = read('src/stores/rideHudStore.ts');
-const bannerSrc = read('src/components/ride/NoTokenBanner.tsx');
 const cssSrc = read('src/index.css');
 const settingsSrc = read('src/components/profile/SettingsPanel.tsx');
 
@@ -125,16 +124,46 @@ describe('device and error states: one small chip, never a red box', () => {
   });
 });
 
-describe('no-token banner floats above the band and chip via ride-banner-float', () => {
-  it('NoTokenBanner positions with the utility class, no inline calc', () => {
-    expect(bannerSrc).toContain('ride-banner-float');
-    expect(bannerSrc).not.toContain("bottom: 'calc(");
+describe('photoreal notice: one line in the chip lane, never a floating banner (card t_375b203d)', () => {
+  const noticeSrc = read('src/components/velo/PhotorealNotice.tsx');
+
+  it('the old floating banner is gone: no NoTokenBanner, no ride-banner-float anywhere', () => {
+    // It floated centred above the band; at 390 it shrink-fitted to half the
+    // screen and wrapped into a seven-line column over the rider (19.2 % of
+    // the screen with the band, 22.3 % with a chip).
+    expect(rideSrc).not.toContain('NoTokenBanner');
+    expect(rideSrc).not.toContain('ride-banner-float');
+    expect(cssSrc).not.toContain('ride-banner-float');
+    expect(() => read('src/components/ride/NoTokenBanner.tsx')).toThrow();
   });
 
-  it('the v2 ride root lifts the banner above the band (+ chip) and hides it while details are open', () => {
-    expect(rideSrc).toContain('ride-hud-v2');
-    expect(cssSrc).toContain('.ride-hud-v2 .ride-banner-float { bottom: calc(max(env(safe-area-inset-bottom), 1.5rem) + 8rem); }');
-    expect(rideSrc).toContain('!hudDetailsOpen && (');
+  it('Ride hands the notice to the HUD for photoreal rides only (world rides need no token)', () => {
+    expect(rideSrc).toContain('const photorealNotice = usePhotorealNotice(token !== null && token.length > 0);');
+    expect(hudSection()).toContain('notice={worldRide ? null : photorealNotice}');
+  });
+
+  it('RideHud puts it in the chip lane, collapsed only; the chip yields nothing to it while an alert speaks', () => {
+    expect(hudSrc).toContain('const quiet = notice && !expanded && !devicesOpen ? <PhotorealNoticeView {...notice} /> : null;');
+    expect(hudSrc).toContain('aside={quiet}');
+    expect(chipSrc).toContain('{!view.alert && aside}');
+  });
+
+  it('it stays dismissible and Settings stays one tap away, with the HUD collapsed', () => {
+    expect(noticeSrc).toContain('onClick={onDismiss}');
+    expect(noticeSrc).toContain('onClick={onOpenSettings}');
+    expect(noticeSrc).toContain("new CustomEvent('globeride:open-settings', { detail: { tab: 'visual' } })");
+    // RideHud (always mounted while riding) hosts the sheet for that event;
+    // the tools' menu, mounted only with the details open, no longer listens.
+    const toolsSrc = read('src/components/velo/RideTools.tsx');
+    expect(hudSrc).toContain('<RideSettingsHost />');
+    expect(hudSrc.indexOf('<RideSettingsHost />')).toBeLessThan(hudSrc.indexOf('export function RideHudLayout'));
+    expect(toolsSrc.match(/addEventListener\('globeride:open-settings'/g)?.length).toBe(1);
+    expect(toolsSrc.indexOf("addEventListener('globeride:open-settings'")).toBeGreaterThan(toolsSrc.indexOf('export function RideSettingsHost'));
+    expect(toolsSrc.indexOf("addEventListener('globeride:open-settings'")).toBeLessThan(toolsSrc.indexOf('function RideOptionsMenu'));
+  });
+
+  it('Escape closes Settings without pausing the ride (Escape is the ride shortcut on window)', () => {
+    expect(settingsSrc).toMatch(/if \(e\.key === 'Escape'\) \{\s*e\.stopPropagation\(\);\s*onClose\(\);/);
   });
 });
 

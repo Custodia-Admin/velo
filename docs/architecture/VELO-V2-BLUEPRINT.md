@@ -199,6 +199,10 @@ AVC:
 > bound 8.87 m → 6.24 m). Encoded 2026-11-05 (card t_549dba84):
 > `tools/worldbake/p13Criterion.mjs`, `validateDem.mjs`, `validate.mjs`;
 > fields in `docs/worlds/WORLD-FORMAT.md` "Terrain accuracy check".
+> One deliberate difference from the ruling's text: P1.3.8 keeps the
+> existing id `aws-terrain-tiles` for the Terrain Tiles source instead of the
+> ruling's `eu-dem-terrain-tiles`. It is the id the code, the recipe schema
+> and `dem_source` already use, and Terrain Tiles is EU-DEM only inside Europe.
 
 **P1.3.1 Purpose.** The baked heightfield must reproduce its source terrain through the bake pipeline (projection, node registration, vertical datum, tiling, resampling). P1.3 checks this against an independently served reference. It does not certify the DEM's absolute accuracy; that is the DEM provider's.
 

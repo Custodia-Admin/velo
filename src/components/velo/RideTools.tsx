@@ -169,15 +169,35 @@ function MenuItem({
 
 const ICON = 'h-4 w-4 shrink-0';
 
+type SettingsTab = NonNullable<Parameters<typeof SettingsPanel>[0]['initialTab']>;
+
+/**
+ * The ride's Settings sheet for the app-wide 'globeride:open-settings' event
+ * (the photoreal notice's "Free token for photoreal Earth" opens it on the
+ * Visual tab, where the ion token goes). RideHud mounts it beside its
+ * column, so it listens while the HUD is collapsed too: the options menu
+ * below lives in the ride details and is mounted only while they are open,
+ * so the notice's Settings tap opened nothing (card t_375b203d).
+ */
+export function RideSettingsHost() {
+  const [tab, setTab] = useState<SettingsTab | null>(null);
+  useEffect(() => {
+    const onOpen = (e: Event) => setTab((e as CustomEvent<{ tab?: SettingsTab }>).detail?.tab ?? 'rider');
+    window.addEventListener('globeride:open-settings', onOpen);
+    return () => window.removeEventListener('globeride:open-settings', onOpen);
+  }, []);
+  return <SettingsPanel open={tab !== null} onClose={() => setTab(null)} initialTab={tab ?? 'rider'} />;
+}
+
 /**
  * The Settings icon opens this menu, upward from the tools row. Rider and
- * trainer settings (the full SettingsPanel) is the first item; the
- * app-wide 'globeride:open-settings' event still opens the panel directly.
+ * trainer settings (the full SettingsPanel) is the first item. The
+ * app-wide 'globeride:open-settings' event is RideSettingsHost's (one sheet
+ * per event, with the details open or closed).
  */
 function RideOptionsMenu({ onInvite, onShortcuts, xr }: Pick<RideToolsProps, 'onInvite' | 'onShortcuts' | 'xr'>) {
   const [open, setOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [tab, setTab] = useState<Parameters<typeof SettingsPanel>[0]['initialTab']>('rider');
   const rootRef = useRef<HTMLDivElement>(null);
 
   const isDark = useThemeStore((s) => s.theme === 'dark');
@@ -185,17 +205,6 @@ function RideOptionsMenu({ onInvite, onShortcuts, xr }: Pick<RideToolsProps, 'on
   const sound = useAudioStore((s) => s.enabled);
   const toggleSound = useAudioStore((s) => s.toggleEnabled);
   const gestures = useSettingsStore((s) => s.gestureControlsEnabled);
-
-  useEffect(() => {
-    const onOpen = (e: Event) => {
-      const detail = (e as CustomEvent<{ tab?: typeof tab }>).detail;
-      setTab(detail?.tab ?? 'rider');
-      setOpen(false);
-      setPanelOpen(true);
-    };
-    window.addEventListener('globeride:open-settings', onOpen);
-    return () => window.removeEventListener('globeride:open-settings', onOpen);
-  }, []);
 
   // Escape or a tap outside closes the menu. Escape stops here: on the
   // window it is the ride's pause / finish shortcut.
@@ -249,10 +258,7 @@ function RideOptionsMenu({ onInvite, onShortcuts, xr }: Pick<RideToolsProps, 'on
           <MenuItem
             icon={<SlidersHorizontal className={ICON} aria-hidden="true" />}
             label="Rider and trainer"
-            onClick={then(() => {
-              setTab('rider');
-              setPanelOpen(true);
-            })}
+            onClick={then(() => setPanelOpen(true))}
           />
           <MenuItem
             icon={<Moon className={ICON} aria-hidden="true" />}
@@ -289,7 +295,7 @@ function RideOptionsMenu({ onInvite, onShortcuts, xr }: Pick<RideToolsProps, 'on
           {xr && <div className="flex flex-wrap gap-2 px-1 pt-1 empty:hidden">{xr}</div>}
         </div>
       )}
-      <SettingsPanel open={panelOpen} onClose={() => setPanelOpen(false)} initialTab={tab} />
+      <SettingsPanel open={panelOpen} onClose={() => setPanelOpen(false)} initialTab="rider" />
     </div>
   );
 }

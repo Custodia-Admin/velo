@@ -11,6 +11,7 @@
 
 import * as Cesium from 'cesium';
 import { IMAGERY_FALLBACK_EVENT } from '@/lib/imageryFallback';
+import { NO_HIT, segmentMeetsSphere, segmentTriangleHit } from '@/lib/segmentHit';
 import { tileReadCacheFor, type TileReadCache } from '@/lib/tileReadCache';
 import type { Route } from '@/types';
 import type { SkyConfig } from '@/lib/skyAndClouds';
@@ -160,7 +161,7 @@ const OSM_TILE_URL = 'https://tile.openstreetmap.org/';
 /**
  * Custom DOM event dispatched on `window` whenever the photoreal Bing path
  * silently stalls and we fall back to OSM at runtime. Consumed by
- * NoTokenBanner (or any future status surface) so the user sees a soft
+ * the photoreal notice (velo/PhotorealNotice, or any future status surface) so the user sees a soft
  * "photoreal unavailable" notice instead of just a downgraded-looking globe.
  */
 export { IMAGERY_FALLBACK_EVENT };
@@ -607,6 +608,141 @@ export function meshTopHeight(scene: Cesium.Scene, lon: number, lat: number): nu
     if (h !== undefined && Number.isFinite(h) && (best === undefined || h > best)) best = h;
   }
   return best;
+}
+
+/** The parts of Cesium's private tile / model classes a segment cast walks (Cesium 1.141, engine 25). */
+interface TileLike {
+  content?: { _model?: ModelLike } | null;
+  contentBoundingVolume?: { boundingSphere?: Cesium.BoundingSphere };
+}
+interface ModelLike {
+  _ready?: boolean;
+  backFaceCulling?: boolean;
+}
+interface PrimitiveLike {
+  attributes?: Array<{ semantic?: string; type?: string }>;
+  indices?: unknown;
+}
+type ForEachPrimitive = (
+  model: ModelLike,
+  options: undefined,
+  callback: (
+    runtimePrimitive: { boundingSphere?: Cesium.BoundingSphere },
+    primitive: PrimitiveLike,
+    instances: Array<{ transform: Cesium.Matrix4 }>,
+    computedModelMatrix: Cesium.Matrix4,
+  ) => void,
+) => void;
+interface SegmentReader {
+  forEachPrimitive: ForEachPrimitive;
+  readAttributeAsTypedArray: (attribute: unknown) => ArrayLike<number> | undefined;
+  readIndicesAsTypedArray: (indices: unknown) => ArrayLike<number> | undefined;
+}
+
+function segmentReader(): SegmentReader | null {
+  const r = (Cesium as unknown as { ModelReader?: Partial<SegmentReader> }).ModelReader;
+  return r &&
+    typeof r.forEachPrimitive === 'function' &&
+    typeof r.readAttributeAsTypedArray === 'function' &&
+    typeof r.readIndicesAsTypedArray === 'function'
+    ? (r as SegmentReader)
+    : null;
+}
+
+/**
+ * The side cameras can cast segments through the shown photoreal mesh
+ * ({@link meshSegmentHit}): it can be read on the CPU ({@link sightReadable})
+ * and this Cesium has the model reader the cast walks the tiles with.
+ */
+export function sightRaysReadable(scene: Cesium.Scene): boolean {
+  return sightReadable(scene) && segmentReader() !== null;
+}
+
+/** Scratch for segment casts, made on the first cast (module scope runs under test mocks of 'cesium' too). */
+let segScratch:
+  | { a: Cesium.Cartesian3; b: Cesium.Cartesian3; inverse: Cesium.Matrix4; sphere: Cesium.BoundingSphere }
+  | undefined;
+
+function meetsSphere(a: Cesium.Cartesian3, b: Cesium.Cartesian3, s: Cesium.BoundingSphere | undefined): boolean {
+  if (!s) return true;
+  return segmentMeetsSphere(a.x, a.y, a.z, b.x, b.y, b.z, s.center.x, s.center.y, s.center.z, s.radius);
+}
+
+/** A matrix whose rotation part mirrors (negative determinant) turns the triangles' winding round. */
+function mirrors(m: Cesium.Matrix4): boolean {
+  const det =
+    m[0] * (m[5] * m[10] - m[6] * m[9]) - m[4] * (m[1] * m[10] - m[2] * m[9]) + m[8] * (m[1] * m[6] - m[2] * m[5]);
+  return det < 0;
+}
+
+/**
+ * Where the segment a -> b (world coordinates) first runs into the photoreal
+ * mesh drawn this frame, as a fraction of the way from a (0..1). Undefined
+ * when it runs into nothing, no mesh is shown, or the mesh can't be read
+ * (WebGL 1, a Cesium without the model reader).
+ *
+ * Every tile drawn this frame whose bounding sphere the segment passes
+ * through is read, and the nearest hit over all of them wins
+ * (Cesium3DTileset.pick stops at the first tile, sorted by sphere distance,
+ * that the endless ray hits anywhere). Faces turned away from a are not hits,
+ * as in Cesium's pickModel, unless `bothSides`: then any face the segment
+ * crosses is (the camera sees the front of a face whose back the rider's
+ * bars see). The tile geometry copied back from the GPU is kept for the next
+ * reads (lib/tileReadCache). Pure maths in lib/segmentHit.
+ */
+export function meshSegmentHit(
+  scene: Cesium.Scene,
+  a: Cesium.Cartesian3,
+  b: Cesium.Cartesian3,
+  bothSides = false,
+): number | undefined {
+  if (!isWebGL2(scene)) return undefined;
+  const reader = segmentReader();
+  const prims = (scene as { primitives?: Cesium.PrimitiveCollection }).primitives;
+  if (!reader || !prims || typeof prims.length !== 'number') return undefined;
+  const sc = (segScratch ??= {
+    a: new Cesium.Cartesian3(),
+    b: new Cesium.Cartesian3(),
+    inverse: new Cesium.Matrix4(),
+    sphere: new Cesium.BoundingSphere(),
+  });
+  let best = NO_HIT;
+  const castTile = (tile: TileLike) => {
+    const model = tile.content?._model;
+    if (!model || model._ready !== true || !meetsSphere(a, b, tile.contentBoundingVolume?.boundingSphere)) return;
+    const cull = !bothSides && (model.backFaceCulling ?? true);
+    reader.forEachPrimitive(model, undefined, (runtime, primitive, instances, computed) => {
+      if (runtime.boundingSphere && instances.length === 1) {
+        if (!meetsSphere(a, b, Cesium.BoundingSphere.transform(runtime.boundingSphere, computed, sc.sphere))) return;
+      }
+      const position = primitive.attributes?.find((at) => at.semantic === 'POSITION');
+      if (!position || position.type !== 'VEC3' || primitive.indices === undefined) return;
+      const vertices = reader.readAttributeAsTypedArray(position);
+      const indices = reader.readIndicesAsTypedArray(primitive.indices);
+      if (!vertices || !indices) return;
+      for (const instance of instances) {
+        // The segment moves into the tile's frame, not the tile into the world's.
+        Cesium.Matrix4.inverse(instance.transform, sc.inverse);
+        const la = Cesium.Matrix4.multiplyByPoint(sc.inverse, a, sc.a);
+        const lb = Cesium.Matrix4.multiplyByPoint(sc.inverse, b, sc.b);
+        const t = segmentTriangleHit(vertices, 3, indices, la.x, la.y, la.z, lb.x, lb.y, lb.z, cull, mirrors(instance.transform));
+        if (t < best) best = t;
+      }
+    });
+  };
+  const cast = () => {
+    for (let i = 0; i < prims.length; i++) {
+      const p = prims.get(i) as Cesium.Cesium3DTileset;
+      if (!isPhotorealTileset(p) || !p.show) continue;
+      const tiles = (p as unknown as { _selectedTiles?: TileLike[] })._selectedTiles;
+      if (!Array.isArray(tiles)) continue;
+      for (const tile of tiles) castTile(tile);
+    }
+  };
+  const reads = meshTopReadCache();
+  if (reads) reads.run(cast);
+  else cast();
+  return best <= 1 ? best : undefined;
 }
 
 /**

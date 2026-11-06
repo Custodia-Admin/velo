@@ -71,13 +71,15 @@ describe('riderRosterStore', () => {
     expect(live.trainerDifficulty).toBe(0.3);
   });
 
-  it('keeps a separate XP profile per rider', () => {
-    useProfileStore.setState((s) => ({ profile: s.profile && { ...s.profile, xp: 500 } }));
+  it('keeps a separate profile per rider', () => {
+    const first = useProfileStore.getState().profile;
+    expect(first?.displayName).toBe('Federico');
     useRiderRosterStore.getState().switchRider('rider-2');
-    expect(useProfileStore.getState().profile?.displayName).toBe('Rider 2');
-    expect(useProfileStore.getState().profile?.xp).toBe(0);
+    const second = useProfileStore.getState().profile;
+    expect(second?.displayName).toBe('Rider 2');
+    expect(second?.id).not.toBe(first?.id);
     useRiderRosterStore.getState().switchRider('rider-1');
-    expect(useProfileStore.getState().profile?.xp).toBe(500);
+    expect(useProfileStore.getState().profile).toEqual(first);
   });
 
   it('ignores unknown or current rider ids', () => {
