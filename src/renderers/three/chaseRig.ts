@@ -11,6 +11,7 @@ import {
   CAMERA_GLIDE_TAU_S,
   CHASE_TAU_S,
   chaseAimHeading,
+  chaseLookHeight,
   type CameraDistance,
   type ChaseFraming,
 } from '@/lib/world/cameraFraming';
@@ -87,11 +88,20 @@ export function headingOfXZ(dx: number, dz: number): number {
   return Math.atan2(dx, -dz);
 }
 
-/** Chase look point: `lookAheadM` ahead, turned toward the route ahead by at most MAX_AIM_OFFSET_RAD (chaseAimHeading). */
-export function chaseAim(rider: Vec3, heading: number, ahead: Vec3, lookAheadM: number): Vec3 {
+/**
+ * Chase look point: `framing.lookAheadM` ahead, turned toward the route ahead
+ * by at most MAX_AIM_OFFSET_RAD (chaseAimHeading), at the shared look height
+ * over the rider's ground (chaseLookHeight: the point ahead + 1 m, but never
+ * tipping up on a climb).
+ */
+export function chaseAim(rider: Vec3, heading: number, ahead: Vec3, framing: ChaseFraming): Vec3 {
   // three.js x is east, −z is north.
   const [lx, lz] = forwardXZ(chaseAimHeading(heading, ahead.x - rider.x, -(ahead.z - rider.z)));
-  return { x: rider.x + lx * lookAheadM, y: ahead.y + AIM_HEIGHT_M, z: rider.z + lz * lookAheadM };
+  return {
+    x: rider.x + lx * framing.lookAheadM,
+    y: rider.y + chaseLookHeight(framing, ahead.y - rider.y),
+    z: rider.z + lz * framing.lookAheadM,
+  };
 }
 
 /** Where `mode` wants the camera this frame (before smoothing and ground clearance). */
@@ -144,7 +154,7 @@ export function cameraTarget(
     default:
       return {
         position: at(-fx * framing.backM, framing.upM, -fz * framing.backM),
-        look: chaseAim(rider, heading, ahead, framing.lookAheadM),
+        look: chaseAim(rider, heading, ahead, framing),
       };
   }
 }

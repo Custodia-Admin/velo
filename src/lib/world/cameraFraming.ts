@@ -30,12 +30,49 @@ export function isCameraDistance(value: unknown): value is CameraDistance {
 export interface ChaseFraming {
   backM: number;
   upM: number;
-  /** The camera aims at a point this far ahead along the route, {@link AIM_HEIGHT_M} up. */
+  /** The camera aims at a point this far ahead along the route, {@link chaseLookHeight} up. */
   lookAheadM: number;
 }
 
 /** Height of the aim point above the road: roughly the rider's hips. */
 export const AIM_HEIGHT_M = 1.0;
+
+/**
+ * The rider model's rear axle, metres behind and above its ground contact:
+ * the GLB rig's `RIG.rearAxle` (scripts/gen-rider-glb.mjs), which the Cesium
+ * avatar shares (lib/avatar `AVATAR_RIG`).
+ */
+export const REAR_AXLE_M: Readonly<{ back: number; up: number }> = { back: 0.5, up: 0.34 };
+
+/**
+ * Height of the chase camera's look point above the rider's ground, metres,
+ * when the route point `framing.lookAheadM` ahead is `riseM` above (+) or
+ * below (−) the rider's ground.
+ *
+ * On the flat and downhill the camera looks at that point + {@link AIM_HEIGHT_M}:
+ * on a descent it tips down and shows more of the road ahead.
+ *
+ * On a climb it does not tip up toward the road ahead. Tipping up dropped the
+ * rider down the frame: at "close" on a 9 % climb the rear wheel went 21 px
+ * (1440×900) to 45 px (390×844) under the ride HUD strip. Instead the camera
+ * keeps its flat-road pitch, tipped down by as much as the bike's pitch up
+ * the slope lowers the rear wheel. So the rear wheel is drawn where it is on
+ * the flat, at every grade, distance and window shape. The slope is the
+ * grade to the point ahead (both renderers pitch the bike with the ground).
+ */
+export function chaseLookHeight(framing: ChaseFraming, riseM: number): number {
+  if (!(riseM > 0)) return riseM + AIM_HEIGHT_M;
+  const slope = Math.atan2(riseM, framing.lookAheadM);
+  const { back, up } = REAR_AXLE_M;
+  // In the vertical plane along the heading: camera `backM` behind and `upM`
+  // up; the rear axle turned nose-up by the slope about the ground contact.
+  const axleBack = back * Math.cos(slope) + up * Math.sin(slope);
+  const axleUp = up * Math.cos(slope) - back * Math.sin(slope);
+  const lowered = Math.atan2(framing.upM - axleUp, framing.backM - axleBack) - Math.atan2(framing.upM - up, framing.backM - back);
+  const run = framing.backM + framing.lookAheadM;
+  const flatPitch = Math.atan2(AIM_HEIGHT_M - framing.upM, run);
+  return framing.upM + run * Math.tan(flatPitch - lowered);
+}
 
 /**
  * The chase camera aims this far (radians) at most off the rider's heading

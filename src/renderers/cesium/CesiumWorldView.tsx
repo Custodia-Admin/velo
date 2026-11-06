@@ -1306,11 +1306,11 @@ export function CesiumScene({
         // refinement no longer matters (its tiles stop updating anyway).
         startGroundRef.current.update(sampled.lon, sampled.lat, drawn, groundEle, nowMs, !globeShown);
       }
-      // The route point ahead, on the drawn ground: the chase camera looks at it + 1 m
-      // (the world rig's rule). Its rise comes from the route profile low-passed over
-      // ±120 m (lib/ride/lookRise): the raw profile steps in whole metres and GPX
-      // altitude is noisy, so the camera nodded (54 px on Valle Maggia's descent). 0 on the
-      // flat no-token globe, as the scene surface (sceneEle).
+      // The route point ahead, on the drawn ground: the chase camera's look height
+      // follows its rise (the world rig's rule, chaseLookHeight). The rise comes from
+      // the route profile low-passed over ±120 m (lib/ride/lookRise): the raw profile
+      // steps in whole metres and GPX altitude is noisy, so the camera nodded (54 px on
+      // Valle Maggia's descent). 0 on the flat no-token globe, as the scene surface (sceneEle).
       const aheadAtGround = { ...ahead, ele: groundEle + sceneEle(chaseLookRise(r, pose.distance, aheadDistance)) };
       if (typeof window !== 'undefined') {
         // Read-only numbers for the slow-network regression check (no viewer handle).
@@ -1464,7 +1464,8 @@ export function CesiumScene({
         if (currentMode === 'chase') {
           // The world renderer's chase rule (lib/cesiumCameras chaseCamTarget):
           // behind the rider along the drawn heading, looking half the bend
-          // toward the route ahead at its height + 1 m; eased relative to the
+          // toward the route ahead (chaseLookHeight: its height + 1 m, flat-road
+          // pitch on a climb); eased relative to the
           // rider (applyFollowCam keeps that state across frames).
           lastCamPoseRef.current = applyFollowCam(
             viewer,

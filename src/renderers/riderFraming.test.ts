@@ -21,10 +21,13 @@ import type { RiderPosition } from '@/lib/physics';
 import { AVATAR_RIG, avatarSurfacePoints } from '@/lib/avatar';
 import { ChaseCamSmoother, chaseCamTarget, computeCameraPose, lookAtHeadingPitch } from '@/lib/cesiumCameras';
 import {
+  AIM_HEIGHT_M,
   CAMERA_GLIDE_S,
   CHASE_FRAMING,
   chaseAimHeading,
+  chaseLookHeight,
   MAX_AIM_OFFSET_RAD,
+  REAR_AXLE_M,
   RIDE_FOV_Y_DEG,
   type CameraDistance,
 } from '@/lib/world/cameraFraming';
@@ -182,6 +185,8 @@ describe('rider framing: photoreal draws the rider where the world renderer does
     expect(AVATAR_RIG.thigh).toBe(RIG.thigh);
     // The avatar's shin runs knee → pedal: the GLB's shin plus its ankle over the pedal.
     expect(AVATAR_RIG.shin).toBeCloseTo(RIG.shin + RIG.ankleAbovePedal, 6);
+    // The chase camera's climb rule keeps this axle where it is drawn on the flat.
+    expect(REAR_AXLE_M).toEqual({ back: -RIG.rearAxle[0], up: RIG.rearAxle[1] });
   });
 
   it('the legs reach the pedals all the way round (the knee IK never clamps)', () => {
@@ -237,6 +242,49 @@ describe('rider framing: photoreal draws the rider where the world renderer does
 
 });
 
+// Chase poses shared by the bend/slope and climb checks below.
+const D2R = Math.PI / 180;
+
+/** The route point `lookAheadM` ahead (ENU, rider ground at the origin). */
+const aheadOf = (heading: number, bendDeg: number, grade: number, lookAheadM: number): P3 => [
+  Math.sin(heading + bendDeg * D2R) * lookAheadM,
+  Math.cos(heading + bendDeg * D2R) * lookAheadM,
+  grade * lookAheadM,
+];
+
+/** Photoreal: chaseCamTarget, oriented the way applyFollowCam hands Cesium a heading and pitch. */
+const photorealAt = (distance: CameraDistance, heading: number, ahead: P3): Cam => {
+  const t = chaseCamTarget(heading, { x: ahead[0], y: ahead[1], z: ahead[2] }, CHASE_FRAMING[distance]);
+  const o = lookAtHeadingPitch(t.position, t.look);
+  const cp = Math.cos(o.pitch);
+  return { pos: [t.position.x, t.position.y, t.position.z], fwd: [Math.sin(o.heading) * cp, Math.cos(o.heading) * cp, Math.sin(o.pitch)] };
+};
+
+/** World: three/chaseRig's chase target at the same pose (three.js x east, y up, z south). */
+const worldAt = (distance: CameraDistance, heading: number, ahead: P3): Cam => {
+  const framing = CHASE_FRAMING[distance];
+  const t = cameraTarget(
+    'chase',
+    { rider: { x: 0, y: 0, z: 0 }, heading, ahead: { x: ahead[0], y: ahead[2], z: -ahead[1] }, speed: 8, cadence: 85, timeS: 0 },
+    framing,
+    distance,
+  );
+  const enu = (v: { x: number; y: number; z: number }): P3 => [v.x, -v.z, v.y];
+  const pos = enu(t.position);
+  return { pos, fwd: sub(enu(t.look), pos) };
+};
+
+/** The GLB rider turned to `heading` and pitched up the slope (both renderers draw one model; this pins the cameras). */
+const posed = (pts: P3[], heading: number, grade: number): P3[] => {
+  const p = Math.atan(grade);
+  const [cp, sp, ch, sh] = [Math.cos(p), Math.sin(p), Math.cos(heading), Math.sin(heading)];
+  return pts.map(([x, y, z]) => {
+    const fy = y * cp - z * sp;
+    const fz = y * sp + z * cp;
+    return [x * ch + fy * sh, -x * sh + fy * ch, fz];
+  });
+};
+
 /**
  * In a bend and on a slope both chase cameras frame the rider the same.
  *
@@ -244,11 +292,11 @@ describe('rider framing: photoreal draws the rider where the world renderer does
  * 15 m ahead (the whole bend, eased) and trailed along that bearing at a
  * fixed, flat-road pitch, while the world rig sits square behind the rider's
  * drawn heading, aims half the bend (≤12°) toward the point `lookAheadM`
- * ahead and looks at that point's height + 1 m. Live at Lugano–Melide 1200 m
+ * ahead and looks at that point's height + 1 m (on a climb, since t_54dc80e6,
+ * at the shared look height `chaseLookHeight`). Live at Lugano–Melide 1200 m
  * the 1 m point sat 3–6 px apart in x and the 'close' box 5–9 px.
  */
 describe('chase aim: photoreal frames a bend and a slope as the world rig does', () => {
-  const D2R = Math.PI / 180;
   /** Rider pose: drawn heading, the bend to the route point ahead, and the grade to it. */
   const POSES = [
     { name: 'straight, level', heading: 0.4, bendDeg: 0, grade: 0 },
@@ -261,46 +309,6 @@ describe('chase aim: photoreal frames a bend and a slope as the world rig does',
   const SWEEP: Array<[CameraDistance, string, [number, number]]> = (['standard', 'close', 'far'] as CameraDistance[]).flatMap(
     (d) => Object.entries(VIEWPORTS).map(([n, vp]) => [d, n, vp] as [CameraDistance, string, [number, number]]),
   );
-
-  /** The route point `lookAheadM` ahead (ENU, rider ground at the origin). */
-  const aheadOf = (heading: number, bendDeg: number, grade: number, lookAheadM: number): P3 => [
-    Math.sin(heading + bendDeg * D2R) * lookAheadM,
-    Math.cos(heading + bendDeg * D2R) * lookAheadM,
-    grade * lookAheadM,
-  ];
-
-  /** Photoreal: chaseCamTarget, oriented the way applyFollowCam hands Cesium a heading and pitch. */
-  const photorealAt = (distance: CameraDistance, heading: number, ahead: P3): Cam => {
-    const t = chaseCamTarget(heading, { x: ahead[0], y: ahead[1], z: ahead[2] }, CHASE_FRAMING[distance]);
-    const o = lookAtHeadingPitch(t.position, t.look);
-    const cp = Math.cos(o.pitch);
-    return { pos: [t.position.x, t.position.y, t.position.z], fwd: [Math.sin(o.heading) * cp, Math.cos(o.heading) * cp, Math.sin(o.pitch)] };
-  };
-
-  /** World: three/chaseRig's chase target at the same pose (three.js x east, y up, z south). */
-  const worldAt = (distance: CameraDistance, heading: number, ahead: P3): Cam => {
-    const framing = CHASE_FRAMING[distance];
-    const t = cameraTarget(
-      'chase',
-      { rider: { x: 0, y: 0, z: 0 }, heading, ahead: { x: ahead[0], y: ahead[2], z: -ahead[1] }, speed: 8, cadence: 85, timeS: 0 },
-      framing,
-      distance,
-    );
-    const enu = (v: { x: number; y: number; z: number }): P3 => [v.x, -v.z, v.y];
-    const pos = enu(t.position);
-    return { pos, fwd: sub(enu(t.look), pos) };
-  };
-
-  /** The GLB rider turned to `heading` and pitched up the slope (both renderers draw one model; this pins the cameras). */
-  const posed = (pts: P3[], heading: number, grade: number): P3[] => {
-    const p = Math.atan(grade);
-    const [cp, sp, ch, sh] = [Math.cos(p), Math.sin(p), Math.cos(heading), Math.sin(heading)];
-    return pts.map(([x, y, z]) => {
-      const fy = y * cp - z * sp;
-      const fz = y * sp + z * cp;
-      return [x * ch + fy * sh, -x * sh + fy * ch, fz];
-    });
-  };
 
   let glb: P3[];
   beforeAll(async () => {
@@ -328,24 +336,31 @@ describe('chase aim: photoreal frames a bend and a slope as the world rig does',
 
   it('the bends and slopes move the frame (a straight-road camera would miss them by pixels)', () => {
     // Guards the poses above: each non-straight one shifts the world rig's
-    // 1 m point well past the 2 px gate against the straight, level camera.
+    // 1 m point past the 2 px gate against the straight, level camera. The
+    // straight climb shifts it least (5.4 px): the camera keeps its flat-road
+    // pitch there, tipped down only by the bike's pitch (chaseLookHeight).
     const vp = VIEWPORTS['1440x900'];
     for (const pose of POSES.slice(1)) {
       const L = CHASE_FRAMING.standard.lookAheadM;
       const bent = boxOf([[0, 0, 1]], worldAt('standard', pose.heading, aheadOf(pose.heading, pose.bendDeg, pose.grade, L)), vp);
       const flat = boxOf([[0, 0, 1]], worldAt('standard', pose.heading, aheadOf(pose.heading, 0, 0, L)), vp);
-      expect(Math.hypot(bent[0] - flat[0], bent[1] - flat[1]), pose.name).toBeGreaterThan(5);
+      expect(Math.hypot(bent[0] - flat[0], bent[1] - flat[1]), pose.name).toBeGreaterThan(4);
     }
   });
 
-  it('aims half the bend, never more than 12°, and looks at the point ahead + 1 m', () => {
+  it('aims half the bend, never more than 12°, and looks at the point ahead + 1 m (flat-road pitch on a climb)', () => {
     const f = CHASE_FRAMING.standard;
     const look = (bendDeg: number, grade = 0) => chaseCamTarget(0, { x: Math.sin(bendDeg * D2R) * f.lookAheadM, y: Math.cos(bendDeg * D2R) * f.lookAheadM, z: grade * f.lookAheadM }, f).look;
     expect(Math.atan2(look(10).x, look(10).y)).toBeCloseTo(5 * D2R, 9);
     expect(Math.atan2(look(-16).x, look(-16).y)).toBeCloseTo(-8 * D2R, 9);
     expect(Math.atan2(look(60).x, look(60).y)).toBeCloseTo(MAX_AIM_OFFSET_RAD, 9);
     expect(Math.hypot(look(60).x, look(60).y)).toBeCloseTo(f.lookAheadM, 9);
-    expect(look(0, 0.08).z).toBeCloseTo(0.08 * f.lookAheadM + 1, 9);
+    // Downhill (and on the flat) the point ahead + 1 m; on a climb the shared
+    // look height, which never rises over the rider's + 1 m.
+    expect(look(0, -0.06).z).toBeCloseTo(-0.06 * f.lookAheadM + 1, 9);
+    expect(look(0, 0).z).toBeCloseTo(1, 9);
+    expect(look(0, 0.08).z).toBeCloseTo(chaseLookHeight(f, 0.08 * f.lookAheadM), 9);
+    expect(look(0, 0.08).z).toBeLessThan(1);
     // Riding south, a bend across ±180° turns the short way round (−20° here, not +340°).
     for (const [heading, bearing] of [
       [-3.0, 3.1],
@@ -423,3 +438,106 @@ describe('chase aim: photoreal frames a bend and a slope as the world rig does',
   });
 });
 
+/**
+ * Top of the ride HUD strip under the rider, CSS px, at each gate viewport:
+ * `[data-testid=ride-strip]` measured live in the tab (tabframe2.py
+ * `hudUnderRider`, ~/.hermes/handoffs/velo/t_215ac171/out/tab-*). The status
+ * chip above it sits left of the rider.
+ */
+const HUD_STRIP_TOP: Record<string, number> = { '1440x900': 810, '1280x648': 558, tv: 923, '390x844': 734 };
+
+/**
+ * On a climb the chase camera keeps the rider's wheels where they are on the
+ * flat, in both renderers (one shared rule, `chaseLookHeight`).
+ *
+ * Before t_54dc80e6 both cameras looked at the route point ahead + 1 m, so a
+ * climb tipped the view up and the rider dropped down the frame: at "close"
+ * on Valle Maggia's 9 % (5,205 m) the rear tyre contact was drawn 20.7 px
+ * (1440×900) and 45.0 px (390×844) under the strip, from ~2.5 % up at 390.
+ */
+describe('climbs: the rear wheel stays clear of the ride HUD strip in both renderers', () => {
+  const GRADES = [0.03, 0.06, 0.09, 0.12, 0.15];
+  /** The rear tyre's ground contact with the bike pitched up the slope (ENU, rider heading `heading`). */
+  const rearContact = (heading: number, grade: number): P3 => posed([[0, -REAR_AXLE_M.back, 0]], heading, grade)[0];
+  const yOf = (pt: P3, cam: Cam, vp: [number, number]) => boxOf([pt], cam, vp)[3];
+  const cams = (distance: CameraDistance, heading: number, bendDeg: number, grade: number) => {
+    const ahead = aheadOf(heading, bendDeg, grade, CHASE_FRAMING[distance].lookAheadM);
+    return { photoreal: photorealAt(distance, heading, ahead), world: worldAt(distance, heading, ahead) };
+  };
+
+  let rearWheel: P3[];
+  beforeAll(async () => {
+    // The GLB's rear wheel (behind the bottom bracket, under the saddle): its lowest pixel is the rider's.
+    rearWheel = (await glbPoints()).filter(([, y, z]) => y < -0.15 && z < 0.75);
+  });
+
+  it('a 12 % climb at "close" on 390×844: the rear tyre contact is drawn above the strip (it was under it)', () => {
+    const vp = VIEWPORTS['390x844'];
+    const f = CHASE_FRAMING.close;
+    for (const [name, cam] of Object.entries(cams('close', 0, 0, 0.12))) {
+      const y = yOf(rearContact(0, 0.12), cam, vp);
+      expect(y, name).toBeLessThan(HUD_STRIP_TOP['390x844']);
+    }
+    // The old rule (look at the point ahead + 1 m) drew it well under the strip.
+    const old: Cam = { pos: [0, -f.backM, f.upM], fwd: [0, f.lookAheadM + f.backM, 0.12 * f.lookAheadM + AIM_HEIGHT_M - f.upM] };
+    expect(yOf(rearContact(0, 0.12), old, vp)).toBeGreaterThan(HUD_STRIP_TOP['390x844'] + 40);
+  });
+
+  for (const distance of DISTANCES) {
+    for (const [name, vp] of Object.entries(VIEWPORTS)) {
+      it(`${distance} at ${name}: up to 15 %, straight or bending, the rear wheel is drawn where it is on the flat, over the strip`, () => {
+        for (const [heading, bendDeg] of [
+          [0.4, 0],
+          [-2.6, 20],
+          [1.9, -30],
+        ]) {
+          const flat = cams(distance, heading, bendDeg, 0);
+          for (const grade of GRADES) {
+            const climb = cams(distance, heading, bendDeg, grade);
+            for (const r of ['photoreal', 'world'] as const) {
+              const at = `${r} ${(grade * 100).toFixed(0)} % bend ${bendDeg}°`;
+              expect(yOf(rearContact(heading, grade), climb[r], vp), at).toBeLessThan(HUD_STRIP_TOP[name]);
+              // The wheel's lowest pixel: no lower than on the flat (within 0.5 px)…
+              const wheel = boxOf(posed(rearWheel, heading, grade), climb[r], vp)[3];
+              const flatWheel = boxOf(posed(rearWheel, heading, 0), flat[r], vp)[3];
+              expect(wheel, at).toBeLessThan(flatWheel + 0.5);
+              // …and not lifted either: the climb doesn't reframe the rider.
+              expect(wheel, at).toBeGreaterThan(flatWheel - 2);
+            }
+          }
+        }
+      });
+    }
+  }
+
+  it('the look point never rises over the rider’s + 1 m on a climb, and the rule is continuous at the crest', () => {
+    for (const distance of ['close', 'standard', 'far', 'overview'] as CameraDistance[]) {
+      const f = CHASE_FRAMING[distance];
+      expect(chaseLookHeight(f, 0)).toBe(AIM_HEIGHT_M);
+      expect(chaseLookHeight(f, 1e-6)).toBeCloseTo(AIM_HEIGHT_M, 6);
+      let prev = AIM_HEIGHT_M;
+      for (let rise = 0.1; rise <= 0.2 * f.lookAheadM; rise += 0.1) {
+        const h = chaseLookHeight(f, rise);
+        expect(h).toBeLessThan(prev);
+        prev = h;
+      }
+    }
+  });
+
+  it('downhill the camera still tips down to the road ahead: the rider rides higher and more road shows', () => {
+    for (const distance of DISTANCES) {
+      for (const [name, vp] of Object.entries(VIEWPORTS)) {
+        const flat = cams(distance, 3.0, 0, 0);
+        const down = cams(distance, 3.0, 0, -0.06);
+        for (const r of ['photoreal', 'world'] as const) {
+          const y1 = (cam: Cam) => yOf([0, 0, 1], cam, vp);
+          expect(y1(down[r]), `${distance} ${name} ${r}`).toBeLessThan(y1(flat[r]) - 10);
+        }
+        expect(chaseLookHeight(CHASE_FRAMING[distance], -0.06 * CHASE_FRAMING[distance].lookAheadM)).toBeCloseTo(
+          AIM_HEIGHT_M - 0.06 * CHASE_FRAMING[distance].lookAheadM,
+          9,
+        );
+      }
+    }
+  });
+});

@@ -92,6 +92,7 @@ import {
   CHASE_FRAMING,
   CHASE_TAU_S,
   chaseAimHeading,
+  chaseLookHeight,
   DEFAULT_CAMERA_DISTANCE,
   isCameraDistance,
   type CameraDistance,
@@ -151,7 +152,9 @@ export interface ChaseCamTarget {
  * (three/chaseRig `cameraTarget` 'chase'). `backM` behind and `upM` above the
  * rider along its drawn heading, looking at the point `lookAheadM` ahead
  * turned toward the route by half the bend (≤12°, `chaseAimHeading`), at the
- * route point's height + {@link AIM_HEIGHT_M}: the view tilts with a climb.
+ * shared look height (`chaseLookHeight`): the route point's height +
+ * {@link AIM_HEIGHT_M} on the flat and downhill; on a climb the view keeps
+ * its flat-road pitch so the rear wheel stays where it is on the flat.
  *
  * @param heading The rider's drawn heading (lib/ride/rideHeading's filtered
  *   one), radians clockwise from north.
@@ -164,7 +167,7 @@ export function chaseCamTarget(heading: number, ahead: ENU, framing: ChaseFramin
     look: {
       x: Math.sin(aim) * framing.lookAheadM,
       y: Math.cos(aim) * framing.lookAheadM,
-      z: ahead.z + AIM_HEIGHT_M,
+      z: chaseLookHeight(framing, ahead.z),
     },
   };
 }
