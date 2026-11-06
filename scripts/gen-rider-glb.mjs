@@ -161,7 +161,7 @@ function wheel(name, axle) {
   return node(name, parts, c);
 }
 
-function build() {
+export function build() {
   const root = new THREE.Group();
   root.name = 'velo-rider';
 
