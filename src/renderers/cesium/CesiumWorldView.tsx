@@ -55,8 +55,9 @@ import {
 } from '@/lib/routeVisuals';
 import { createAvatar, createGroundSampler, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
-import { ridePose } from '@/lib/ride/rideSim';
-import { RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
+import { stepDrawnHeading, YawFilter } from '@/lib/ride/rideHeading';
+import { heldRiderPose, ridePose } from '@/lib/ride/rideSim';
+import { chaseFraming, RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
 import type { RiderPose, WorldViewProps } from '@/lib/world/renderer';
 import { createCesiumWorldRenderer } from '@/renderers/cesium/cesiumWorldRenderer';
 import { GlobeGate } from '@/renderers/cesium/globeGate';
@@ -107,8 +108,6 @@ import {
 import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
 import { waitForContainerSize } from '@/lib/waitForContainerSize';
 import {
-  CHASE_FRAMING,
-  chasePitchRad,
   computeCameraPose,
   easedCameraTransition,
   riderAimPitchRad,
@@ -370,6 +369,8 @@ export function CesiumScene({
   // Track which mode was active last frame so we can detect mode changes.
   const lastCamModeRef = useRef<string>('chase');
   const laneRef = useRef(createLaneState());
+  /** The rider's drawn heading: the damped wide chord, as the world renderer's (lib/ride/rideHeading). */
+  const yawRef = useRef(new YawFilter());
   // WorldRenderer.setRider: an outside driver's pose; null = the live ride.
   const riderOverrideRef = useRef<RiderPose | null>(null);
   /** Is the ground under the waiting rider at full detail (the start waits for it, lib/ride/startHold)? */
@@ -528,7 +529,8 @@ export function CesiumScene({
         .catch(() => undefined);
       // Scene handle for render probes (scripts/ride-surface-probe.py): dev
       // builds, or `localStorage['velo.debug.cesium'] = '1'` (as velo.debug.three).
-      // `place(m)` holds the rider at a route distance (null releases it).
+      // `place(m)` holds the rider at a route distance (null releases it), in
+      // the pose the world renderer's place() holds (rideSim heldRiderPose).
       if (cesiumDebugOptedIn()) {
         (window as unknown as { __veloCesium?: unknown }).__veloCesium = {
           viewer,
@@ -537,7 +539,7 @@ export function CesiumScene({
           globeGate: globeGateRef.current,
           place: (distanceM: number | null) => {
             const r = useRideStore.getState().route;
-            riderOverrideRef.current = distanceM === null || !r ? null : ridePose(r, distanceM);
+            riderOverrideRef.current = distanceM === null || !r ? null : heldRiderPose(r, distanceM);
           },
         };
       }
@@ -854,6 +856,7 @@ export function CesiumScene({
     botAvatarsRef.current = [];
     cartesianRouteRef.current = null;
     resetFollowCam();
+    yawRef.current.reset();
 
     // Reset camera transition state so new routes start cleanly.
     camTransitionRef.current = null;
@@ -1168,6 +1171,7 @@ export function CesiumScene({
       if (!r || !avatarRef.current) {
         globeGateRef.current.reset();
         viewer.scene.globe.show = true;
+        yawRef.current.reset();
         return;
       }
 
@@ -1176,19 +1180,32 @@ export function CesiumScene({
 
       // Rider pose from rideSim (or an outside driver via setRider), then the
       // scene height: GPX elevation on ion terrain, 0 m on the flat no-token globe.
-      const pose =
-        riderOverrideRef.current ??
-        ridePose(r, state.distance, {
-          laneOffsetM: laneRef.current.offsetM,
-          grade: state.grade,
-          speed: state.speed,
-        });
-      const aheadPose = ridePose(r, Math.min(r.totalDistance, pose.distance + 15), {
+      // The drawn heading is the world renderer's (three/rideDriver): the damped
+      // wide chord (lib/ride/rideHeading), not the raw ±4 m route bearing that
+      // swings 114–163° within metres at sharp vertices. The rider, its lane
+      // offset and every camera turn with it, so the chase camera sits square
+      // behind the rider in a bend.
+      const override = riderOverrideRef.current;
+      const riderDistance = override ? override.distance : state.distance;
+      const heading = stepDrawnHeading(yawRef.current, r, riderDistance, dt, override?.heading);
+      const pose = override
+        ? { ...override, heading }
+        : {
+            ...ridePose(r, riderDistance, {
+              laneOffsetM: laneRef.current.offsetM,
+              offsetHeading: heading,
+              grade: state.grade,
+              speed: state.speed,
+            }),
+            heading,
+          };
+      // The chase camera looks toward the route point `lookAheadM` ahead (as the world's).
+      const framing = chaseFraming(useSettingsStore.getState().cameraDistance);
+      const aheadPose = ridePose(r, Math.min(r.totalDistance, pose.distance + framing.lookAheadM), {
         laneOffsetM: pose.laneOffsetM,
-        offsetHeading: pose.heading,
+        offsetHeading: heading,
         grade: pose.grade,
       });
-      const heading = pose.heading;
       const sampled = onSceneSurface({ lat: pose.lat, lon: pose.lon, ele: pose.ele });
       const ahead = onSceneSurface({ lat: aheadPose.lat, lon: aheadPose.lon, ele: aheadPose.ele });
 
@@ -1394,19 +1411,15 @@ export function CesiumScene({
         lastCamPoseRef.current = effectivePose;
 
         if (currentMode === 'chase') {
-          // Delegate to the legacy eased follow-cam so it retains its own
-          // internal lerp state (keeps the chase cam silky smooth).
-          const framing = CHASE_FRAMING[cameraDistance] ?? CHASE_FRAMING.standard;
-          applyFollowCam(
+          // The world renderer's chase rule (lib/cesiumCameras chaseCamTarget):
+          // behind the rider along the drawn heading, looking half the bend
+          // toward the route ahead at its height + 1 m; eased relative to the
+          // rider (applyFollowCam keeps that state across frames).
+          lastCamPoseRef.current = applyFollowCam(
             viewer,
             { lat: sampled.lat, lon: sampled.lon, ele: groundEle },
             aheadAtGround,
-            {
-              backMeters: framing.backM,
-              upMeters: framing.upM,
-              pitchDeg: Cesium.Math.toDegrees(chasePitchRad(framing)),
-              minClearanceMeters: CHASE_MIN_CLEARANCE_M,
-            },
+            { heading, framing, minClearanceMeters: CHASE_MIN_CLEARANCE_M },
             dt,
           );
         } else {

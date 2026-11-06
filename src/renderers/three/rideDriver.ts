@@ -6,7 +6,7 @@
 
 import { createLaneState, stepLane, type LaneState } from '@/lib/controllers/steerFeel';
 import { createPartnerSlotState, offsetLatLon, partnerSlotM, stepPartnerSlot, type PartnerSlotState } from '@/lib/ride/partnerSlots';
-import { routeBearingAt, smoothHeadingAt, YawFilter } from '@/lib/ride/rideHeading';
+import { routeBearingAt, smoothHeadingAt, stepDrawnHeading, YawFilter } from '@/lib/ride/rideHeading';
 import { ridePose } from '@/lib/ride/rideSim';
 import type { RiderPose } from '@/lib/world/renderer';
 import type { RideState, Route } from '@/types';
@@ -62,8 +62,7 @@ export function driveRideFrame(frame: RideFrame, memo: RideDriverMemo, sceneWorl
   // the raw route bearing swings 114–163° within metres at sharp vertices.
   // The lane offset turns with that same filtered heading: the chord folds onto
   // itself at an out-and-back U-turn, and a steered rider would jump across the road.
-  const chord = raw ? raw.heading : smoothHeadingAt(route, distance);
-  const heading = memo.yaw.step(chord, distance, dt);
+  const heading = stepDrawnHeading(memo.yaw, route, distance, dt, raw?.heading);
   const pose: RiderPose = raw
     ? { ...raw, heading }
     : {

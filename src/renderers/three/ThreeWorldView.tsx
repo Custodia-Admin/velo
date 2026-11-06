@@ -18,7 +18,7 @@ import { useRouteWeather } from '@/hooks/useLiveWeather';
 import type { WeatherCondition } from '@/lib/meteo/weatherCondition';
 import { EMPTY_TILES, FrameStats } from '@/lib/perf/frameStats';
 import { exposeScenePerf, IDLE_GAP_MS, PUBLISH_MS, publishScenePerf, type ScenePerf } from '@/lib/perf/scenePerf';
-import { sampleRouteAtDistance } from '@/lib/gpxParser';
+import { heldRiderPose } from '@/lib/ride/rideSim';
 import { scenicRouteById } from '@/lib/scenicRoutes';
 import { chaseFraming, RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
 import { worldForRoute, worldUrl, type WorldCatalogEntry } from '@/lib/world/catalog';
@@ -538,20 +538,7 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
           override.current = null;
           return;
         }
-        const a = sampleRouteAtDistance(r, distanceM);
-        const b = sampleRouteAtDistance(r, distanceM + 12);
-        const dy = (b.lat - a.lat) * 111_320;
-        const dx = (b.lon - a.lon) * 111_320 * Math.cos((a.lat * Math.PI) / 180);
-        override.current = {
-          lat: a.lat,
-          lon: a.lon,
-          ele: a.ele,
-          heading: Math.atan2(dx, dy),
-          grade: ((b.ele - a.ele) / 12) * 100,
-          speed: 8,
-          distance: distanceM,
-          laneOffsetM: 0,
-        };
+        override.current = heldRiderPose(r, distanceM);
       },
       set: (p) =>
         setPins((cur) => ({
