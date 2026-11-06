@@ -12,6 +12,9 @@
  *    wide chord well under the cap.
  * 2. Chase framing holds at any speed (a world-space lag used to put the
  *    camera ~10 m back at 39 km/h instead of the 7 m 'standard' framing).
+ * 3. On a climb the rear wheel stays over the ride HUD strip (t_54dc80e6):
+ *    looking at the route point ahead + 1 m tipped the view up the slope and
+ *    drew it under the strip at "close".
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -21,22 +24,25 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
-import { CHASE_FRAMING, chaseFraming, type CameraDistance } from '@/lib/world/cameraFraming';
+import { CHASE_FRAMING, REAR_AXLE_M, RIDE_FOV_Y_DEG, chaseFraming, type CameraDistance } from '@/lib/world/cameraFraming';
 import { loadWorld } from '@/lib/world/loadWorld';
 import type { Route } from '@/types';
 import { MAX_YAW_RATE, headingDelta } from '@/lib/ride/rideHeading';
-import { CameraRig, cameraTarget } from './chaseRig';
+import { CameraRig, cameraTarget, forwardXZ } from './chaseRig';
 import { createRideDriverMemo, driveRideFrame } from './rideDriver';
 import { createRideFrame, createSceneWorld, groundAtThree, type SceneWorld } from './worldScene';
 
-const DIR = fileURLToPath(new URL('../../../public/worlds/perugia', import.meta.url));
-const diskFetch = async (url: string) => {
-  try {
-    return new Response(readFileSync(join(DIR, url.replace(/^.*\//, ''))), { status: 200 });
-  } catch {
-    return new Response(null, { status: 404 });
-  }
+const worldFetch = (id: string) => {
+  const dir = fileURLToPath(new URL(`../../../public/worlds/${id}`, import.meta.url));
+  return async (url: string) => {
+    try {
+      return new Response(readFileSync(join(dir, url.replace(/^.*\//, ''))), { status: 200 });
+    } catch {
+      return new Response(null, { status: 404 });
+    }
+  };
 };
+const diskFetch = worldFetch('perugia');
 
 const VIEWPORTS = [
   [1920, 1080],
@@ -57,6 +63,10 @@ interface Sample {
   backM: number;
   /** Drawn rider heading, radians. */
   heading: number;
+  /** Rear tyre contact on screen (the bike pitched with the ground), px. */
+  rearY: number;
+  /** Ground height, metres. */
+  ele: number;
 }
 
 /** Ride `route` from `from` to `to` metres at `speed` m/s, 60 fps, chase camera. */
@@ -65,7 +75,7 @@ function ride(sw: SceneWorld, route: Route, from: number, to: number, speed: num
   const frame = createRideFrame();
   const memo = createRideDriverMemo();
   const rig = new CameraRig();
-  const cam = new THREE.PerspectiveCamera(60, w / h, 0.4, 5000);
+  const cam = new THREE.PerspectiveCamera(RIDE_FOV_Y_DEG, w / h, 0.4, 5000);
   const v = new THREE.Vector3();
   const dt = 1 / 60;
   const out: Sample[] = [];
@@ -102,7 +112,12 @@ function ride(sw: SceneWorld, route: Route, from: number, to: number, speed: num
     const hips = screen(1);
     const top = screen(RIDER_TOP_M);
     const bottom = screen(0);
-    out.push({ d, x: hips[0], y: hips[1], heightPx: bottom[1] - top[1], backM: Math.hypot(rig.position.x - p.x, rig.position.z - p.z), heading: frame.pose!.heading });
+    const { heading: drawn, pitch } = frame.placement!;
+    const [fx, fz] = forwardXZ(drawn);
+    const back = REAR_AXLE_M.back * Math.cos(pitch);
+    v.set(p.x - fx * back, p.y - REAR_AXLE_M.back * Math.sin(pitch), p.z - fz * back).project(cam);
+    const rearY = ((1 - v.y) / 2) * h;
+    out.push({ d, x: hips[0], y: hips[1], heightPx: bottom[1] - top[1], backM: Math.hypot(rig.position.x - p.x, rig.position.z - p.z), heading: frame.pose!.heading, rearY, ele: p.y });
   }
   return out;
 }
@@ -164,4 +179,36 @@ describe('chase framing on the Perugia world', () => {
     // Prominent: the rider is well over a sixth of a 1080p frame tall.
     expect(walk).toBeGreaterThan(1080 / 6);
   });
+});
+
+describe('chase framing up a climb on the Lugano world', () => {
+  let sw: SceneWorld;
+  let route: Route;
+  beforeAll(async () => {
+    const world = await loadWorld('/worlds/lugano/', { fetch: worldFetch('lugano'), verifyHashes: false });
+    sw = createSceneWorld(world);
+    route = routeFromGeometry('scenic-locarno-brissago', 'scenic-locarno-brissago', SCENIC_ROUTE_GEOMETRY['scenic-locarno-brissago']);
+  }, 60_000);
+
+  /** Top of the ride HUD strip under the rider, CSS px (`[data-testid=ride-strip]`, measured live per gate viewport). */
+  const STRIPS: Array<[number, number, number]> = [
+    [1440, 900, 810],
+    [1280, 648, 558],
+    [1920, 1080, 923],
+    [390, 844, 734],
+  ];
+
+  for (const distance of ['close', 'standard'] as CameraDistance[]) {
+    it(`Locarno–Brissago's climb at 2,740–2,850 m at '${distance}': the rear tyre stays over the strip at every gate viewport`, () => {
+      for (const [w, h, strip] of STRIPS) {
+        // Settle 2 s on the approach, then judge the climb.
+        const s = ride(sw, route, 2700, 2850, 6, [w, h], distance).filter((p) => p.d >= 2740);
+        // It is a climb: ~6–7 % over the stretch.
+        const grade = (s[s.length - 1].ele - s[0].ele) / (s[s.length - 1].d - s[0].d);
+        expect(grade).toBeGreaterThan(0.055);
+        const worst = Math.max(...s.map((p) => p.rearY));
+        expect(worst, `${w}×${h} worst rear tyre y`).toBeLessThan(strip);
+      }
+    });
+  }
 });
