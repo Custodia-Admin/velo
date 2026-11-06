@@ -76,7 +76,7 @@ Composites in `climb-framing/`:
 
 - **"Close" on the flat at TV** is tight in both renderers, and this card doesn't change it.
   t_215ac171's Lugano tab shot had the GLB rear wheel's back edge ~4 px behind the strip (vertex box
-  bottom 926.9 against 923), and 1280×648 close clears by only +1.8 px. Follow-up card filed.
+  bottom 926.9 against 923), and 1280×648 close clears by only +1.8 px. Follow-up card t_4c664b25.
 - **Crests:** the slope is the grade to the point ahead (10 m at close). Just over the top of a
   climb the bike is still pitched while the road ahead is level, so for a moment the rear wheel
   drops by the bike's pitch (~10 px at 12 % at 390). At the foot of a climb it is the reverse: the
