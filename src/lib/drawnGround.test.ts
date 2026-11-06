@@ -558,6 +558,20 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     expect(f.status()).toBe('overhang');
   });
 
+  it('a crown layer under the structure line is no tile refined higher where the road spot turned into a crown (Cuyahoga 4.736 km)', () => {
+    // As logged on cat-bed: the towpath taken at 162.79 m (terrain 163.34);
+    // the tile there now draws the crown top 13 m up and nothing under it;
+    // 10 m on, a crown layer 169.12 m (5.8 m over the terrain), nothing under.
+    const f = createMeshRoadFilter();
+    let crowned = false;
+    const readAt = (_lon: number, lat: number, under?: number) =>
+      (lat < at(1) ? (crowned ? [176.62] : [162.79]) : [169.12]).filter((h) => under === undefined || h <= under).at(-1);
+    expect(f.next(162.79, lon0, at(0), HIGH, readAt, -Infinity, 163.34)).toBe(162.79);
+    crowned = true;
+    expect(f.next(169.12, lon0, at(10), HIGH, readAt, -Infinity, 163.35)).toBe(162.79);
+    expect(f.status()).toBe('overhang');
+  });
+
   it('a tile refined higher under a rider already on a structure is taken (the Melide causeway, 8–10 m over the lake)', () => {
     const f = createMeshRoadFilter();
     let tile = [279.2];
