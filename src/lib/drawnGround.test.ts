@@ -340,6 +340,8 @@ describe("the globe as drawn, not its deepest loaded tile (Santa Monica start, t
     expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(g.drawn, 6);
     g.drawn = -32.55 - DRAWN_UNDER_LOADED_MAX_M - 0.01;
     expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.55, 6);
+    g.drawn = -44.6;
+    expect(drawnGroundHeight(s, lon, lat, undefined, ROUTE_ELE)).toBeCloseTo(-32.55, 6);
     // Over the loaded tile there is no such limit (the start's 26 m step).
     g.height = -32.14;
     g.drawn = -5.87;
