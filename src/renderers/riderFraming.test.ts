@@ -510,12 +510,12 @@ describe('climbs: the rear wheel stays clear of the ride HUD strip in both rende
     }
   }
 
-  it('the look point never rises over the rider’s + 1 m on a climb, and the rule is continuous at the crest', () => {
+  it('the look point never rises over the rider’s + aimM on a climb, and the rule is continuous at the crest', () => {
     for (const distance of ['close', 'standard', 'far', 'overview'] as CameraDistance[]) {
       const f = CHASE_FRAMING[distance];
-      expect(chaseLookHeight(f, 0)).toBe(AIM_HEIGHT_M);
-      expect(chaseLookHeight(f, 1e-6)).toBeCloseTo(AIM_HEIGHT_M, 6);
-      let prev = AIM_HEIGHT_M;
+      expect(chaseLookHeight(f, 0)).toBe(f.aimM);
+      expect(chaseLookHeight(f, 1e-6)).toBeCloseTo(f.aimM, 6);
+      let prev = f.aimM;
       for (let rise = 0.1; rise <= 0.2 * f.lookAheadM; rise += 0.1) {
         const h = chaseLookHeight(f, rise);
         expect(h).toBeLessThan(prev);
@@ -534,10 +534,81 @@ describe('climbs: the rear wheel stays clear of the ride HUD strip in both rende
           expect(y1(down[r]), `${distance} ${name} ${r}`).toBeLessThan(y1(flat[r]) - 10);
         }
         expect(chaseLookHeight(CHASE_FRAMING[distance], -0.06 * CHASE_FRAMING[distance].lookAheadM)).toBeCloseTo(
-          AIM_HEIGHT_M - 0.06 * CHASE_FRAMING[distance].lookAheadM,
+          CHASE_FRAMING[distance].aimM - 0.06 * CHASE_FRAMING[distance].lookAheadM,
           9,
         );
       }
     }
+  });
+});
+
+/**
+ * On the flat at "close" the rear wheel clears the ride HUD strip at every
+ * gate viewport, in both renderers, straight or bending.
+ *
+ * Before t_4c664b25 "close" looked at the point ahead + 1 m, like the other
+ * distances. Live at Lugano–Melide 1,200 m (flat, a gentle bend) the GLB
+ * wheel's back edge was drawn 3.9 px behind the strip on a TV and 1.8 px over
+ * it at 1280×648. Here that framing puts it 0.5 px behind on a straight TV
+ * road and 4.7 px behind in a bend that caps the aim at 12°. "Close" now aims
+ * 0.85 m over the point ahead: the view only tips down 0.43°.
+ */
+describe('flat road at "close": the rear wheel clears the ride HUD strip', () => {
+  /** Least clearance, CSS px, in any bend (a straight road clears by 10–50 px). */
+  const MARGIN_PX = 5;
+  /** Straight, gentle and sharp bends either way (from 24° the aim is capped at 12°). */
+  const BENDS = [0, 10, -14, 20, -30, 48];
+  const f = CHASE_FRAMING.close;
+  /** The framing before t_4c664b25: the point ahead + 1 m, from the same camera spot. */
+  const OLD = { ...f, aimM: AIM_HEIGHT_M };
+
+  let glb: P3[];
+  let rearWheel: P3[];
+  beforeAll(async () => {
+    glb = await glbPoints();
+    rearWheel = glb.filter(([, y, z]) => y < -0.15 && z < 0.75);
+  });
+  /** The rear wheel's lowest pixel through `cam`, the rider heading `heading` on the flat. */
+  const wheelY = (cam: Cam, heading: number, vp: [number, number]) => boxOf(posed(rearWheel, heading, 0), cam, vp)[3];
+
+  for (const [name, vp] of Object.entries(VIEWPORTS)) {
+    it(`${name}: the GLB rear wheel's lowest pixel is at least ${MARGIN_PX} px over the strip, in both renderers`, () => {
+      const heading = 0.4;
+      for (const bendDeg of BENDS) {
+        const ahead = aheadOf(heading, bendDeg, 0, f.lookAheadM);
+        for (const [r, cam] of [
+          ['photoreal', photorealAt('close', heading, ahead)],
+          ['world', worldAt('close', heading, ahead)],
+        ] as const) {
+          expect(HUD_STRIP_TOP[name] - wheelY(cam, heading, vp), `${r} bend ${bendDeg}°`).toBeGreaterThan(MARGIN_PX);
+        }
+      }
+    });
+  }
+
+  it('the 1 m aim drew it behind the TV strip; aiming lower only tilts the view (same camera, same rider size)', () => {
+    const vp = VIEWPORTS.tv;
+    const camOf = (framing: typeof f): Cam => {
+      const t = chaseCamTarget(0, { x: 0, y: framing.lookAheadM, z: 0 }, framing);
+      return { pos: [t.position.x, t.position.y, t.position.z], fwd: sub([t.look.x, t.look.y, t.look.z], [t.position.x, t.position.y, t.position.z]) };
+    };
+    const now = camOf(f);
+    const old = camOf(OLD);
+    expect(wheelY(old, 0, vp)).toBeGreaterThan(HUD_STRIP_TOP.tv);
+    expect(now.pos).toEqual(old.pos);
+    // The whole frame slides up together, ~10 px: the wheel, the 1 m point and
+    // the horizon (within 2 px; a lower camera would drop the horizon instead)…
+    const shift = (pt: P3) => boxOf([pt], old, vp)[3] - boxOf([pt], now, vp)[3];
+    const wheelShift = wheelY(old, 0, vp) - wheelY(now, 0, vp);
+    expect(wheelShift).toBeGreaterThan(8);
+    expect(wheelShift).toBeLessThan(12);
+    expect(Math.abs(shift([0, 0, 1]) - wheelShift)).toBeLessThan(2);
+    expect(Math.abs(shift([0, 1e6, f.upM]) - wheelShift)).toBeLessThan(2);
+    // …and the rider is drawn the same size.
+    const height = (cam: Cam) => {
+      const b = boxOf(glb, cam, vp);
+      return b[3] - b[1];
+    };
+    expect(Math.abs(height(now) - height(old))).toBeLessThan(2);
   });
 });

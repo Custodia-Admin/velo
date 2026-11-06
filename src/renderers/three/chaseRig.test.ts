@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 
-import { AIM_HEIGHT_M, CHASE_FRAMING, REAR_AXLE_M, RIDE_FOV_Y_DEG, chaseFraming } from '@/lib/world/cameraFraming';
+import { CHASE_FRAMING, REAR_AXLE_M, RIDE_FOV_Y_DEG, chaseFraming } from '@/lib/world/cameraFraming';
 import {
   CameraRig,
   MAX_AIM_OFFSET_RAD,
@@ -199,11 +199,11 @@ describe('chase camera on a climb', () => {
     expect(rearTyreY(0.12, 'standard')).toBeLessThan(STRIP_TOP_390 - 40);
   });
 
-  it('on a climb the look point stays under the rider’s + 1 m; downhill it is the road ahead + 1 m', () => {
+  it('on a climb the look point stays under the rider’s + aimM; downhill it is the road ahead + aimM', () => {
     const f = chaseFraming('close');
     const up = cameraTarget('chase', input({ ahead: { x: 100, y: 200 + 0.12 * f.lookAheadM, z: -50 - f.lookAheadM } }), f, 'close');
-    expect(up.look.y - 200).toBeLessThan(AIM_HEIGHT_M);
+    expect(up.look.y - 200).toBeLessThan(f.aimM);
     const down = cameraTarget('chase', input({ ahead: { x: 100, y: 200 - 0.08 * f.lookAheadM, z: -50 - f.lookAheadM } }), f, 'close');
-    expect(down.look.y).toBeCloseTo(200 - 0.08 * f.lookAheadM + AIM_HEIGHT_M, 9);
+    expect(down.look.y).toBeCloseTo(200 - 0.08 * f.lookAheadM + f.aimM, 9);
   });
 });

@@ -91,8 +91,8 @@ export function headingOfXZ(dx: number, dz: number): number {
 /**
  * Chase look point: `framing.lookAheadM` ahead, turned toward the route ahead
  * by at most MAX_AIM_OFFSET_RAD (chaseAimHeading), at the shared look height
- * over the rider's ground (chaseLookHeight: the point ahead + 1 m, but never
- * tipping up on a climb).
+ * over the rider's ground (chaseLookHeight: the point ahead + `aimM`, but
+ * never tipping up on a climb).
  */
 export function chaseAim(rider: Vec3, heading: number, ahead: Vec3, framing: ChaseFraming): Vec3 {
   // three.js x is east, −z is north.

@@ -834,7 +834,7 @@ function camScratch() {
  * rig does (lib/cesiumCameras `chaseCamTarget`): trailing along the rider's
  * drawn heading, looking at the point `lookAheadM` ahead turned half the bend
  * toward the route (≤12°), at the shared look height (lib/world/cameraFraming
- * `chaseLookHeight`: the route point + 1 m, flat-road pitch on a climb).
+ * `chaseLookHeight`: the route point + `aimM`, flat-road pitch on a climb).
  * Camera and look point ease toward that target relative to the rider each
  * frame.
  *

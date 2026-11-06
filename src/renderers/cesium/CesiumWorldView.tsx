@@ -1416,7 +1416,7 @@ export function CesiumScene({
         if (currentMode === 'chase') {
           // The world renderer's chase rule (lib/cesiumCameras chaseCamTarget):
           // behind the rider along the drawn heading, looking half the bend
-          // toward the route ahead (chaseLookHeight: its height + 1 m, flat-road
+          // toward the route ahead (chaseLookHeight: its height + aimM, flat-road
           // pitch on a climb); eased relative to the
           // rider (applyFollowCam keeps that state across frames).
           lastCamPoseRef.current = applyFollowCam(
