@@ -934,9 +934,11 @@ function finestFor(scene: Cesium.Scene): FinestTerrain {
       finest: createFinestTerrain(async (points) => {
         const cs = await Cesium.sampleTerrainMostDetailed(
           p,
-          points.map(([lon, lat]) => Cesium.Cartographic.fromDegrees(lon, lat)),
+          // NaN until a tile answers: a point no tile covered is no height.
+          points.map(([lon, lat]) => Cesium.Cartographic.fromDegrees(lon, lat, NaN)),
         );
-        return cs.map((c) => (Number.isFinite(c.height) ? c.height : undefined));
+        // Undefined where a tile failed (createFinestTerrain skips those).
+        return cs.map((c) => c.height);
       }),
     };
     finestByScene.set(scene, e);
