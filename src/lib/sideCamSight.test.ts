@@ -931,7 +931,7 @@ describe('createSideCamSight: faces where the camera stands now (blockedAt)', ()
     expect(h.asked[0].side).toBe(-1);
   });
 
-  it('never closer than minM; a face closer to the rider than that is left to the reads', () => {
+  it('never closer than minM; a face closer to the rider than that does not move it in', () => {
     // 3.6 m out: 3.1 m is inside the 3.5 m road edge, so 3.5 m.
     expect(guardRig(faceAt(3.6)).step().offsetM).toBeCloseTo(SIGHT_MIN_OFFSET_M, 9);
     for (const at of [3.4, 2]) {
@@ -1062,6 +1062,88 @@ describe('createSideCamSight: faces where the camera stands now (blockedAt)', ()
     for (let f = 12; f < 40; f++) expect(g.askedIn(f)).toHaveLength(1);
     expect(reads).toBe(before);
   });
+
+  it('after a cut, easing back out on the side it crossed to: the way out is cast on that side and stops in front of its face', () => {
+    // 0-59: its own side (right) closed, the left open: a cut to the left. 60-119: the left closed
+    // beyond 5 m (in to 4.5 m; the hold after the cut keeps it on the left). From 120: the left open,
+    // and a face 7 m out on the left only, beyond the line from the bars to 4.5 m.
+    const g = guardRig((s, a, b, f) => (f >= 120 && s === -1 ? faceAt(7)(s, a, b) : undefined));
+    for (let f = 0; f < 60; f++) g.step({ seenAt: (s) => s.side === -1 });
+    expect(g.sides[59]).toBe(-1);
+    expect(g.sight.cuts()).toBe(1);
+    for (let f = 60; f < 120; f++) g.step({ seenAt: (s) => s.side === -1 && s.offsetM <= 5 });
+    expect(g.placed[119]).toBeCloseTo(4.5, 2);
+    for (let f = 120; f < 120 + 6 * 60; f++) g.step({ seenAt: (s) => s.side === -1 });
+    expect(g.sides.slice(60).every((s) => s === -1)).toBe(true);
+    const after = g.placed.slice(120);
+    expect(Math.max(...after)).toBeLessThanOrEqual(7 - SIGHT_GUARD_MARGIN_M + 1e-9);
+    expect(after[after.length - 1]).toBeCloseTo(7 - SIGHT_GUARD_MARGIN_M, 9);
+    // Every cast on the way out was asked on the left (the pose still puts it on the right).
+    const out = g.asked.filter((a) => a.frame >= 120 && a.from.offsetM > 0);
+    expect(out.length).toBeGreaterThan(0);
+    expect(out.every((a) => a.side === -1)).toBe(true);
+  });
+
+  it('a face closer to the rider than minM on the line: holds where it stands, castClear() false (Santa Monica 1525 m)', () => {
+    // Cinematic (no crossing). The reads close the side for a second (the road edge), then open
+    // it; the camera eases out, and from frame 80 a face stands 3.4 m out, under minM.
+    const g = guardRig((s, a, b, f) => (f >= 80 ? faceAt(3.4)(s, a, b) : undefined), { allowSwitch: false });
+    const castClear: boolean[] = [];
+    for (let f = 0; f < 60; f++) {
+      g.step({ seenAt: () => false });
+      castClear.push(g.sight.castClear());
+    }
+    expect(g.placed[59]).toBeCloseTo(SIGHT_MIN_OFFSET_M, 6);
+    for (let f = 60; f < 80 + 4 * 60; f++) {
+      g.step();
+      castClear.push(g.sight.castClear());
+    }
+    // Easing out when the face comes.
+    expect(g.placed[79]).toBeGreaterThan(g.placed[70] + 0.1);
+    expect(castClear[79]).toBe(true);
+    // Moving in can't get in front of it, so it holds: no further out while the face is there.
+    for (let f = 80; f < g.placed.length; f++) expect(g.placed[f]).toBeCloseTo(g.placed[79], 9);
+    expect(castClear.slice(80).every((c) => !c)).toBe(true);
+    expect(g.sight.debug()).toMatchObject({ lineFaced: true, guards: 0, switches: 0 });
+    // Gone: out again, and clear.
+    for (let f = 0; f < 3 * 60; f++) g.step({ blockedAt: () => undefined });
+    expect(g.placed[g.placed.length - 1]).toBeGreaterThan(BASE - 0.5);
+    expect(g.sight.castClear()).toBe(true);
+    expect(g.sight.debug().lineFaced).toBe(false);
+  });
+
+  it('a face under minM in sideTracking: a cut to a wide-open other side in the frame it comes, not at the next refresh', () => {
+    // Open on both sides at full offset; from frame 30 a face 3.4 m out on the right only. Frame 30 is
+    // between two refreshes (frames 24 and 32 at 8 m/s), so the refresh is forced.
+    const g = guardRig((s, a, b, f) => (f >= 30 && s === 1 ? faceAt(3.4)(s, a, b) : undefined));
+    for (let f = 0; f < 30; f++) g.step();
+    expect(g.sides[29]).toBe(1);
+    g.step();
+    expect(g.sides[30]).toBe(-1);
+    expect(g.placed[30]).toBeCloseTo(BASE, 9);
+    expect(g.sight.cuts()).toBe(1);
+    // On the new side, clear at once: the face was on the side it left.
+    expect(g.sight.castClear()).toBe(true);
+    // Within the hold after a cut, a face under minM on the new side too does not cut back: it holds.
+    const back = guardRig((s, a, b, f) => (f >= 30 ? faceAt(3.4)(s, a, b) : undefined));
+    for (let f = 0; f < 100; f++) back.step();
+    const reads = back.sight.debug().reads;
+    for (let f = 100; f < 160; f++) back.step();
+    // A refresh every metre ridden as usual (8 m here, one cast each), not one every frame the face is there.
+    expect(back.sight.debug().reads - reads).toBeLessThanOrEqual(10);
+    for (let f = 160; f < 7 * 60; f++) back.step();
+    expect(back.sight.cuts()).toBe(1);
+    expect(back.sides[back.sides.length - 1]).toBe(-1);
+    expect(back.placed[back.placed.length - 1]).toBeCloseTo(BASE, 9);
+    expect(back.sight.castClear()).toBe(false);
+    // Nor across to a side that is only partly open.
+    const partly = guardRig((s, a, b, f) => (f >= 30 && s === 1 ? faceAt(3.4)(s, a, b) : undefined), {
+      seenAt: (s) => s.side === 1 || s.offsetM <= 7,
+    });
+    for (let f = 0; f < 120; f++) partly.step();
+    expect(partly.sight.cuts()).toBe(0);
+    expect(partly.sides.every((s) => s === 1)).toBe(true);
+  });
 });
 
 describe('castClear: the casts found a spot that sees the rider with air under the camera', () => {
@@ -1102,5 +1184,60 @@ describe('castClear: the casts found a spot that sees the rider with air under t
     expect(s.castClear()).toBe(false);
     s.update(req({ nowMs: 1000, seenAt: () => true }));
     expect(s.castClear()).toBe(true);
+  });
+
+  it('false at once when a refresh reads tops again (the casts went), before its read is in', () => {
+    const s = createSideCamSight();
+    s.update(req({ seenAt: () => true }));
+    expect(s.castClear()).toBe(true);
+    // Due (500 ms on), the reader is tops now, and the frame is spent: no read yet, the cast read still in.
+    s.update(req({ nowMs: 500, spent: () => true }));
+    expect(s.debug()).toMatchObject({ rays: false, pending: true, ahead: 1 });
+    expect(s.castClear()).toBe(false);
+    // And back: a clear read of tops still ahead, then a clear cast: the tops read does not count.
+    const t = createSideCamSight();
+    // Tops: one read a frame, three for open ground.
+    for (let f = 0; f < 3; f++) t.update(req({ nowMs: f * 16, leadM: 5 }));
+    expect(t.debug()).toMatchObject({ rays: false, pending: false, ahead: 1 });
+    t.update(req({ nowMs: 500, distanceM: 1, leadM: 5, seenAt: () => true }));
+    expect(t.debug()).toMatchObject({ rays: true, clear: true, ahead: 2 });
+    expect(t.castClear()).toBe(false);
+  });
+
+  it('false while no read covers where the camera stands (the pose moved sides, its first cast not in yet)', () => {
+    const s = createSideCamSight();
+    s.update(req({ seenAt: () => true }));
+    expect(s.castClear()).toBe(true);
+    // The pose moves to the left: the right's reads go, and the frame is spent before the left is cast.
+    s.update(req({ nowMs: 100, side: -1, seenAt: () => true, spent: () => true }));
+    expect(s.debug()).toMatchObject({ side: -1, ahead: 0, rays: true, pending: true });
+    expect(s.castClear()).toBe(false);
+    s.update(req({ nowMs: 117, side: -1, seenAt: () => true }));
+    expect(s.castClear()).toBe(true);
+  });
+
+  it('answers for every read the camera stands on, not the newest one 0.7 s ahead (a closed stretch ending at 30 m)', () => {
+    // Cinematic (no crossing) at 8 m/s: a wall on the line at every offset up to 30 m along the
+    // route, open after. The camera stands at the road edge, the last resort, all along it.
+    const s = createSideCamSight();
+    const rows: Array<{ d: number; off: number; castClear: boolean; newest: boolean }> = [];
+    for (let f = 0; f < 6 * 60; f++) {
+      const d = (8 * f) / 60;
+      const p = s.update(
+        req({ nowMs: (f * 1000) / 60, distanceM: d, leadM: sightLeadM(8), seenAt: (spot) => d + spot.aheadM >= 30 }),
+      );
+      rows.push({ d, off: p.offsetM, castClear: s.castClear(), newest: s.debug().clear });
+    }
+    const closed = rows.filter((r) => r.d < 30);
+    for (const r of closed) expect(r.off).toBeCloseTo(SIGHT_MIN_OFFSET_M, 6);
+    // The newest read, 5.6 m ahead, says clear for the last 5.6 m of it (40-odd frames)...
+    expect(closed.filter((r) => r.newest).length).toBeGreaterThan(35);
+    // ...but the camera still stands on the closed stretch: not clear, the view's lift may act.
+    expect(closed.some((r) => r.castClear)).toBe(false);
+    // Clear once every read it stands on is (it has passed the last closed one), and from then on.
+    const first = rows.findIndex((r) => r.castClear);
+    expect(rows[first].d).toBeGreaterThanOrEqual(30);
+    expect(rows[first].d).toBeLessThan(30 + SIGHT_RAY_SAMPLE_MOVE_M + 0.2);
+    expect(rows.slice(first).every((r) => r.castClear)).toBe(true);
   });
 });
