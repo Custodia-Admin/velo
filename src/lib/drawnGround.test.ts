@@ -564,6 +564,30 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
     expect(f.status()).toBe('overhang');
   });
 
+  it("measured on the terrain at the towpath spot an unproven edge climbed from, not at the edge's", () => {
+    // World Terrain 0.5 m over the towpath where the edge was climbed from
+    // (4 m), 0.5 m under it at the edge (8 m). A layer 4.2 m over the towpath
+    // and 4 m over the terrain 40 m on: 4.5 m higher over its terrain than
+    // the towpath was over its own, a climb onto it; measured on the
+    // terrain at the edge, 3.5 m, ridden.
+    const f = createMeshRoadFilter();
+    const layers = (lat: number): number[] => {
+      if (lat < at(6)) return [100];
+      if (lat < at(10)) return [101.76, 103.9];
+      if (lat < at(46)) return [120];
+      return [104.2];
+    };
+    const readAt = (_lon: number, lat: number, under?: number) =>
+      layers(lat)
+        .filter((h) => under === undefined || h <= under)
+        .at(-1);
+    const terrain = (lat: number) => (lat < at(6) ? 100.5 : lat < at(10) ? 99.5 : lat < at(40) ? 100.5 : 100.2);
+    const ride = (m: number) => f.next(readAt(lon0, at(m)), lon0, at(m), HIGH, readAt, -Infinity, terrain(at(m)), (_lon, lat) => terrain(lat));
+    expect([0, 4, 8].map(ride)).toEqual([100, 100, 101.76]);
+    for (let m = 12; m <= 60; m += 4) expect(ride(m), `${m} m`).toBe(101.76);
+    expect(f.status()).toBe('overhang');
+  });
+
   it('over the road too, a coarser tile drawing the towpath under the crown edge taken is no tile refined higher', () => {
     // The crown layer at 48 m is over the climb allowance from the edge
     // (12.4 m at 44 m on): over the road, nothing near it, and the edge's
