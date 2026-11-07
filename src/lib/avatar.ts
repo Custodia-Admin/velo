@@ -2018,9 +2018,8 @@ export function createMeshRoadFilter() {
       // reader has it newer than when the road was taken there: both heights
       // over the terrain should come from the tiles the globe has now. A
       // hidden globe keeps the coarse tile it last loaded; drawn again, it
-      // refines. At
-      // Lugano–Melide 7.57 km the road (321.5 m) was taken 4.4 m over a
-      // hidden globe's stale tile (317.1 m; its finest 321.3 m). The globe
+      // refines. At Lugano–Melide 7.57 km the road (321.5 m) was taken 4.4 m
+      // over a hidden globe's stale tile (317.1 m; its finest 321.3 m). The globe
       // was drawn under the slab ahead and refined, and the slab top there
       // (328.3 m, 6.9 m over the refined terrain, nothing under it) was no
       // more than OVERHANG_MIN_M higher over its terrain than the road had
