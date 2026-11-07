@@ -33,7 +33,8 @@
  * side of the line, none moving more than 2.5 m/s sideways; level partners
  * also keep 0.9 m from each other. A second ride has the partners drifting
  * ±8 m around the rider at up to 3 m/s, so they drop back, move up and
- * overtake while the rider steers.
+ * overtake while the rider steers (seeds 7–179 swept before this landed;
+ * the two below are the committed ones).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -161,7 +162,7 @@ interface SteerWorst {
   sideAt: string;
   /** Largest slot change between two frames, metres. */
   stepM: number;
-  /** Closest partners 0+1 and 0+2 come (level partners only), metres. */
+  /** Closest partners 0+1 and 0+2 come, metres. */
   gapM: number;
   gap02M: number;
   /** Frames a partner was drawn ≥ 0.5 m back, and the furthest out any slot went past its home. */
@@ -239,11 +240,9 @@ function rideSteering(sw: SceneWorld, routeId: string, seed: number, drift: bool
       if (p.backM >= 0.5) w.dropFrames++;
       homes[i] = Math.max(homes[i], side * p.slotM);
     });
-    if (!drift) {
-      const [a, b, c] = placed.map((p) => p.placement.position);
-      w.gapM = Math.min(w.gapM, Math.hypot(a.x - b.x, a.z - b.z));
-      w.gap02M = Math.min(w.gap02M, Math.hypot(a.x - c.x, a.z - c.z));
-    }
+    const [a, b, c] = placed.map((p) => p.placement.position);
+    w.gapM = Math.min(w.gapM, Math.hypot(a.x - b.x, a.z - b.z));
+    w.gap02M = Math.min(w.gap02M, Math.hypot(a.x - c.x, a.z - c.z));
     w.frames++;
   }
   w.outM = Math.max(...homes.map((m, i) => m - Math.abs(baseSlotM(i))));
@@ -268,6 +267,9 @@ describe('pace partners giving way to a steering rider, frame by frame on the sh
         expect(w.stepM).toBeLessThanOrEqual(PARTNER_SLOT_MAX_RATE_MPS * DT + 1e-9);
         // The rider really did steer into them: they moved out past their slots.
         expect(w.outM).toBeGreaterThan(0.5);
+        // Level partners keep 0.9 m from each other too. Partners at different
+        // distances meet at bends and hairpins whatever the rider does (the route
+        // folds back under them): there it is best effort, not asserted.
         if (!drift) {
           expect(w.gapM, 'partners 0+1').toBeGreaterThanOrEqual(2 * MIN_GAP_M - DRAWN_TOL_M);
           expect(w.gap02M, 'partners 0+2').toBeGreaterThanOrEqual(MIN_GAP_M - DRAWN_TOL_M);

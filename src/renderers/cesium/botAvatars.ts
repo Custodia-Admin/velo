@@ -97,9 +97,8 @@ const DEG = Math.PI / 180;
  */
 export function updateBotAvatars(bots: readonly PaceBot[], avatars: readonly Avatar[], dt: number, giveWay?: BotGiveWay): boolean {
   if (bots.length !== avatars.length || bots.length === 0) return false;
-  // Partners i − 2 and i − 1 as drawn this frame (target, lat/lon): each keeps clear of the one in on its side.
-  let innerTwo: { targetM: number; blocked: boolean; lat: number; lon: number } | undefined;
-  let innerOne: { targetM: number; blocked: boolean; lat: number; lon: number } | undefined;
+  // The partners drawn so far this frame (target, lat/lon): each keeps clear of them, and beyond the one in on its side.
+  const drawn: { targetM: number; blocked: boolean; lat: number; lon: number }[] = [];
   for (let i = 0; i < bots.length; i++) {
     const bs = bots[i].state;
     let lat = bs.lat;
@@ -119,12 +118,13 @@ export function updateBotAvatars(bots: readonly PaceBot[], avatars: readonly Ava
         const ey = (lat2 - bs.lat) * DEG * EARTH_RADIUS_M + backM * Math.cos(riderHeading);
         return { alongM: ex * Math.sin(h) + ey * Math.cos(h), acrossM: ex * Math.cos(h) - ey * Math.sin(h) };
       };
-      const inner = i >= 2 ? innerTwo : undefined;
+      const inner = i >= 2 ? drawn[i - 2] : undefined;
       const step = stepPartnerYield(state, i, CORRIDOR_SPAN, bs, giveWay.rider, dt, {
         innerTargetM: inner?.targetM,
         innerBlocked: inner?.blocked,
         riderAt: seen(riderLat, riderLon),
         innerAt: inner ? seen(inner.lat, inner.lon) : undefined,
+        peersAt: drawn.map((p) => seen(p.lat, p.lon)),
       });
       slotM = step.slotM;
       targetM = step.targetM;
@@ -140,7 +140,7 @@ export function updateBotAvatars(bots: readonly PaceBot[], avatars: readonly Ava
       slotM = partnerSlotM(i, CORRIDOR_SPAN);
     }
     const slot = offsetLatLon(lat, lon, bs.heading, slotM);
-    if (giveWay) [innerTwo, innerOne] = [innerOne, { targetM, blocked, lat: slot.lat, lon: slot.lon }];
+    if (giveWay) drawn.push({ targetM, blocked, lat: slot.lat, lon: slot.lon });
     avatars[i].update({
       lon: slot.lon,
       lat: slot.lat,

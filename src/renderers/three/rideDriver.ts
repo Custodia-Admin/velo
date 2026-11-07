@@ -202,8 +202,9 @@ export interface BotPlacement {
  * then hold their formation with the rider exactly, through every bend. Back
  * along the route, a 2 m drop at a sharp vertex (Tiber 9,675 m, Assisi
  * 1,985 m, Locarno 3,416 m) put the partner 0.2–0.4 m from the rider.
- * `inner` is this frame's placement of partner index − 2 (placeBots): the
- * partner keeps 0.9 m beyond its target and 0.9 m from where it is drawn.
+ * `peers` are this frame's placements of the partners before it in roster
+ * order (placeBots): it keeps 0.9 m beyond the target of partner index − 2
+ * and 0.9 m from where each is drawn.
  */
 export function placeBot(
   sceneWorld: SceneWorld,
@@ -214,8 +215,9 @@ export function placeBot(
   dt: number,
   ground?: (x: number, y: number) => number,
   rider?: WorldRider | null,
-  inner?: BotPlacement,
+  peers: readonly BotPlacement[] = [],
 ): BotPlacement {
+  const inner = index >= 2 ? peers[index - 2] : undefined;
   const { heading, lean } = driveBotPose(memo, route, bot, dt);
   const [x, y] = sceneWorld.projection.forward(bot.lat, bot.lon);
   const bearing = route && route.points.length >= 2 ? routeBearingAt(route, bot.distance, bot.heading) : bot.heading;
@@ -247,6 +249,7 @@ export function placeBot(
     innerBlocked: inner?.blocked,
     riderAt: giveWay ? seen(giveWay.worldX, giveWay.worldY) : undefined,
     innerAt: giveWay && inner ? seen(inner.placement.worldX, inner.placement.worldY) : undefined,
+    peersAt: giveWay ? peers.slice(0, index).map((p) => seen(p.placement.worldX, p.placement.worldY)) : undefined,
   });
   let at = offsetLatLon(bot.lat, bot.lon, heading, step.slotM);
   if (giveWay && step.backM !== 0) at = offsetLatLon(at.lat, at.lon, giveWay.heading - Math.PI / 2, -step.backM);
@@ -257,7 +260,8 @@ export function placeBot(
 /**
  * Every pace partner this frame, in roster order (placeBot each, with its
  * own memo): each partner keeps 0.9 m beyond this frame's target of the one
- * in on its side, so partners 0 and 2 never close up while one gives way.
+ * in on its side, so partners 0 and 2 never close up while one gives way,
+ * and is held off the partners drawn before it.
  */
 export function placeBots(
   sceneWorld: SceneWorld,
@@ -271,7 +275,7 @@ export function placeBots(
   const out: BotPlacement[] = [];
   for (let i = 0; i < bots.length; i++) {
     memos[i] ??= createBotDriverMemo();
-    out.push(placeBot(sceneWorld, route, bots[i], i, memos[i], dt, ground, rider, i >= 2 ? out[i - 2] : undefined));
+    out.push(placeBot(sceneWorld, route, bots[i], i, memos[i], dt, ground, rider, out));
   }
   for (let i = bots.length; i < memos.length; i++) resetBotDriverMemo(memos[i]);
   return out;

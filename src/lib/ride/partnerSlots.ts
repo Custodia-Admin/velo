@@ -336,10 +336,12 @@ export interface PartnerYieldState {
   innerAlong: number;
   /** Whether the last step held the partner off the rider (or partner index − 2) along the road (holdOff). */
   pressed: boolean;
+  /** The signed drawn gap to each earlier partner at the last step (peersAt; NaN unknown). */
+  peerAlong: number[];
 }
 
 export function createPartnerYieldState(): PartnerYieldState {
-  return { slot: createPartnerSlotState(), back: NaN, hold: new Float64Array(HOLD_BUCKETS).fill(-Infinity), holdAt: 0, holdT: 0, gap: NaN, along: NaN, innerAlong: NaN, pressed: false };
+  return { slot: createPartnerSlotState(), back: NaN, hold: new Float64Array(HOLD_BUCKETS).fill(-Infinity), holdAt: 0, holdT: 0, gap: NaN, along: NaN, innerAlong: NaN, pressed: false, peerAlong: [] };
 }
 
 /** Record `value` at the current time and return the largest value of the last PARTNER_YIELD_HOLD_S (at least that long). */
@@ -403,6 +405,13 @@ export interface PartnerYieldOptions {
    * (one dropped back and the other not, at a bend).
    */
   innerAt?: (backM: number) => RiderLocal;
+  /**
+   * The partners before this one in roster order, as drawn this frame, seen
+   * the same way: the partner is held 0.9 m off each along the road where it
+   * is less than that across (holdOff). Partners riding past each other meet
+   * like that at bends and hairpins, one dropped back or held ahead.
+   */
+  peersAt?: readonly ((backM: number) => RiderLocal)[];
 }
 
 /**
@@ -461,6 +470,7 @@ export function stepPartnerYield(
     state.along = NaN;
     state.innerAlong = NaN;
     state.pressed = false;
+    state.peerAlong.length = 0;
   }
 
   // How far ahead of the rider along the route the partner's own point is.
@@ -550,10 +560,17 @@ export function stepPartnerYield(
     state.slot.m = slotM;
   }
   // Still short of 0.9 m across (the rider turned or closed faster than it
-  // could move over), the partner is held on its side of partner index − 2
-  // and then of the rider along the road, 0.9 m away: never drawn through
-  // either. The rider has the last word.
+  // could move over), the partner is held on its side of the partners drawn
+  // before it, of partner index − 2 and then of the rider along the road,
+  // 0.9 m away: never drawn through any. The rider has the last word.
   let pressed = false;
+  const peers = opts.peersAt ?? [];
+  for (let k = 0; k < peers.length; k++) {
+    const held = holdOff(peers[k], back, slotM, state.peerAlong[k] ?? NaN);
+    back = held.back;
+    state.peerAlong[k] = held.along;
+  }
+  state.peerAlong.length = peers.length;
   if (i >= 2 && opts.innerAt) {
     const held = holdOff(opts.innerAt, back, slotM, state.innerAlong);
     back = held.back;

@@ -1632,8 +1632,8 @@ export function CesiumScene({
         const rider = riderBesideRef.current;
         rider.distance = pose.distance;
         rider.speed = pose.speed;
-        rider.laneOffsetM = pose.laneOffsetM;
-        if (override) rider.leftM = rider.rightM = pose.laneOffsetM;
+        rider.laneOffsetM = pose.laneOffsetM ?? 0;
+        if (override) rider.leftM = rider.rightM = rider.laneOffsetM;
         else laneReach(laneRef.current, steer, rider);
         updateBotAvatars(useRideStore.getState().paceBots, botAvatarsRef.current, dt, {
           states: botGiveWayRef.current,
