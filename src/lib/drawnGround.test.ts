@@ -2490,11 +2490,11 @@ describe('under what stands over the road: the rider rides the road under it (t_
 
   it('Lugano–Melide 7.6 km: held under the slab while the globe refines under it, the rider never rides up onto it (the terrain at the road spot read again)', () => {
     // Read 2–8 m apart at every phase, over any stale tile a hidden globe
-    // kept there (317.1, 323.4 and 337.9 m in rides; 446 m, a chord the
+    // kept there (317.1, 323.4, 337.9 and 370.7 m in rides; 446 m, a chord the
     // sampler gives no terrain for), the globe drawn 4, 8 or 12 m under the
     // slab (the stand-in drew it 4.5–9.5 m in, 10 rides on cat-bed; the
     // allowance reaches the slab ~20 m in): the road held, never the slab top.
-    for (const stale of [317.13, 323.4, 337.9, undefined]) {
+    for (const stale of [317.13, 323.4, 337.9, 370.71, undefined]) {
       for (const showAt of [7576, 7580, 7584]) {
         for (let s = 2; s <= 8; s += 2) {
           for (let o = 0; o < s; o += 2) {
@@ -2600,6 +2600,9 @@ describe('under what stands over the road: the rider rides the road under it (t_
     for (const [label, globeAt] of [
       // Hidden, the coarse tile it kept (317.1 m); drawn, its finest (321.3 m).
       ['stale 317.1', (_m: number, drawn: boolean) => (drawn ? 321.3 : 317.1)],
+      // Hidden, a coarse tile 49 m over the road (370.7 m, main rode 341.6 m
+      // then the slab top in that ride).
+      ['stale 370.7', (_m: number, drawn: boolean) => (drawn ? 321.3 : 370.71)],
       // Hidden, a chord 125 m over the road (446 m: no terrain to go by).
       ['chord 446', (_m: number, drawn: boolean) => (drawn ? 321.3 : 446)],
       // Hidden, the finest; drawn again under the slab, still streaming, a
