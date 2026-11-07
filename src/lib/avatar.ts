@@ -171,6 +171,11 @@ export interface Avatar {
    * painted road follow (renderers/cesium/globeGate GroundGate).
    */
   ground: () => GroundKind;
+  /**
+   * When the sample behind {@link Avatar.ground} was taken (performance.now()
+   * ms): the globe hides only on a sample (renderers/cesium/globeGate).
+   */
+  groundSampledAt: () => number;
   setColors: (c: AvatarColors) => void;
   dispose: () => void;
   /** Internal: current skin color including effort tint. Set by setAvatarEffortLevel. */
@@ -1604,6 +1609,7 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     groundEle: () => smoothedEle,
     meshGround: () => groundSampler.meshGround(),
     ground: () => groundSampler.ground(),
+    groundSampledAt: () => groundSampler.groundSampledAt(),
     setColors,
     dispose,
     _effortLevel: 0,
@@ -2215,16 +2221,26 @@ export function globeStandsIn(globe: number | undefined, held: number | undefine
  *   with the globe hidden);
  * - 'standIn': the mesh is there, but only over the road (tree crowns, a deck)
  *   with nothing drawn near the road under it, so the globe is drawn under it
- *   in the mesh's place: held there with the globe's terrain near the road, or
- *   under a structure with no road to go on from (a jump, the start);
+ *   in the mesh's place: held there, with the globe's finest terrain known at
+ *   or under the road held (within {@link GLOBE_STANDIN_UNDER_M}). Until the
+ *   globe is drawn the rider rides over nothing drawn (a black void), and a
+ *   globe under the road buries nothing, so the ride view draws it at once
+ *   (renderers/cesium/globeGate GLOBE_STANDIN_SHOW_AFTER_MS);
+ * - 'under': the mesh is there over the road and the globe is drawn under it,
+ *   but not known to stand under a road the rider holds: under a structure
+ *   with no road to go on from (a jump, the start), held while the finest
+ *   terrain is still on its way (the globe's loaded tile said near), or with
+ *   the finest over the road held (up to {@link GLOBE_STANDIN_M}: it buries
+ *   the street around it). The ride view waits as for 'globe': drawn again at
+ *   once after a jump, a hidden globe shows coarse tiles over the rider;
  * - 'globe': no mesh road here (no tile, a coarse one, the mesh not shown):
  *   the globe is the ground.
- * The globe is drawn for both of the last two; the painted road only for
- * 'globe' (renderers/cesium/globeGate GroundGate): it is a ground
- * classification, so with the mesh there it paints the crowns, piers and the
- * deck in its footprint.
+ * The globe is drawn for all but 'mesh'; the painted road only for 'globe'
+ * (renderers/cesium/globeGate GroundGate): it is a ground classification, so
+ * with the mesh there it paints the crowns, piers and the deck in its
+ * footprint.
  */
-export type GroundKind = 'mesh' | 'standIn' | 'globe';
+export type GroundKind = 'mesh' | 'standIn' | 'under' | 'globe';
 
 /**
  * Throttled {@link sceneGroundHeight}.
@@ -2350,13 +2366,24 @@ export function createGroundSampler(scene: Cesium.Scene, finest: FinestTerrain =
         // it, that read 4.4 m under the road (the finest 0.25 m), so the
         // rider rode on over a black void. Until the finest lands, the loaded
         // tile decides.
-        if (status === 'overhang' && held !== undefined && !away) finest.want(lon, lat, fromLon, fromLat, nowMs);
-        const globeHere = finest.near(lon, lat) ?? bare;
+        const holding = status === 'overhang' && held !== undefined && !away;
+        if (holding) finest.want(lon, lat, fromLon, fromLat, nowMs);
+        const globeFinest = finest.near(lon, lat);
+        const globeHere = globeFinest ?? bare;
         const standsIn = globeStandsIn(globeHere, held);
-        const onMesh = status === 'road' || (status === 'overhang' && held !== undefined && !away && !standsIn);
+        const onMesh = status === 'road' || (holding && !standsIn);
         // Not on the mesh road, but the mesh is there over the road: the
         // globe is drawn in its place, without the painted road (GroundKind).
-        ground = onMesh ? 'mesh' : status === 'overhang' ? 'standIn' : 'globe';
+        // Held, with the finest terrain known at or under the road held, that
+        // is 'standIn': the ride view draws it at once, as the rider is over
+        // nothing drawn until it does, and a globe under the road buries
+        // nothing (the mesh draws over it). Over the road held it buries the
+        // street around it (the Cuyahoga towpath at 4.60 km, the finest 0.1 m
+        // over it: drawn at once, the globe covered the towpath ahead for a
+        // second); judged by the loaded tile only (the finest still on its
+        // way); or with no road to go on from: 'under', after the usual wait.
+        const sure = holding && globeFinest !== undefined && held !== undefined && globeFinest <= held;
+        ground = onMesh ? 'mesh' : status !== 'overhang' ? 'globe' : sure ? 'standIn' : 'under';
         // Where the globe stands in, the rider stands on it once it is drawn
         // (below: held while it is still hidden), not on the road held over
         // it: under the I-80 deck the globe was drawn 0.75 m under the road
@@ -2399,6 +2426,10 @@ export function createGroundSampler(scene: Cesium.Scene, finest: FinestTerrain =
     /** What the last sample stood the rider on (see {@link GroundKind}). */
     ground(): GroundKind {
       return ground;
+    },
+    /** When that sample was taken (`nowMs` of the call that took it; -Infinity before the first). */
+    groundSampledAt(): number {
+      return lastMs;
     },
   };
 }

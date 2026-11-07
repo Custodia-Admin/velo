@@ -44,7 +44,7 @@ import {
 import { createFinestTerrain } from '@/lib/finestTerrain';
 import { ridePose } from '@/lib/ride/rideSim';
 import { scenicRouteById } from '@/lib/scenicRoutes';
-import { GroundGate } from '@/renderers/cesium/globeGate';
+import { GLOBE_SHOW_AFTER_MS, GroundGate } from '@/renderers/cesium/globeGate';
 import { useRideStore } from '@/stores/rideStore';
 
 async function photoreal(height: number | undefined, opts: { show?: boolean; tilesLoaded?: boolean } = {}) {
@@ -198,6 +198,24 @@ describe('the rider stands on the drawn ground over the photoreal mesh', () => {
     expect(getHeight).toHaveBeenCalledTimes(calls);
     sampler.sample(12.10005, 43.2, 259, 1048 + GROUND_SAMPLE_INTERVAL_MS);
     expect(getHeight).toHaveBeenCalledTimes(calls + 1);
+  });
+
+  it("groundSampledAt is when the sample behind ground() was taken, not the latest call (the globe gate hides only on a sample)", async () => {
+    setIonToken('eyJ_test');
+    const { tileset } = await photoreal(306.2);
+    const { s } = scene(tileset, { height: 305 });
+    const sampler = createGroundSampler(s);
+    expect(sampler.groundSampledAt()).toBe(-Infinity);
+    sampler.sample(12.1, 43.2, 259, 1000);
+    expect(sampler.ground()).toBe('mesh');
+    expect(sampler.groundSampledAt()).toBe(1000);
+    // The frames between samples reuse the reading, and its time.
+    for (const t of [1016, 1033, 1100, 1000 + GROUND_SAMPLE_INTERVAL_MS - 1]) {
+      sampler.sample(12.10001, 43.2, 259, t);
+      expect(sampler.groundSampledAt(), `${t}`).toBe(1000);
+    }
+    sampler.sample(12.10002, 43.2, 259, 1000 + GROUND_SAMPLE_INTERVAL_MS + 3);
+    expect(sampler.groundSampledAt()).toBe(1000 + GROUND_SAMPLE_INTERVAL_MS + 3);
   });
 
   it('on the globe over a coarse mesh reading, the mesh is read every frame: a finer tile landing over the globe is stood on at once', async () => {
@@ -1092,7 +1110,9 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     deck = true;
     expect(sampler.sample(lon, lat(2), 195, GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(160.4, 6);
     expect(sampler.meshGround()).toBe(false);
-    expect(sampler.ground()).toBe('standIn');
+    // No finest terrain in this scene, only the globe's loaded tile: 'under'
+    // (drawn after the usual wait), not 'standIn' (drawn at once).
+    expect(sampler.ground()).toBe('under');
     deck = false;
     // A coarse tile 610 m up (the Cuyahoga start): not the ground.
     reading = 768.9;
@@ -1149,7 +1169,9 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
       // Hidden, the globe's height isn't drawn: the rider holds the road.
       expect(sampler.sample(lon, lat(2), 160, GROUND_SAMPLE_INTERVAL_MS), `globe ${globeH}`).toBeCloseTo(160.2, 6);
       expect(sampler.meshGround(), `globe ${globeH}`).toBe(!standsIn);
-      expect(sampler.ground(), `globe ${globeH}`).toBe(standsIn ? 'standIn' : 'mesh');
+      // No finest terrain in this scene: judged by the globe's loaded tile,
+      // so drawn after the usual wait ('under'), not at once ('standIn').
+      expect(sampler.ground(), `globe ${globeH}`).toBe(standsIn ? 'under' : 'mesh');
       // Drawn (the gate shows it a second later), it is the ground where it
       // stands in: the rider on it, not floating over it on the road held.
       globe.show = true;
@@ -1212,21 +1234,115 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     }
   });
 
-  it('the finest decides both ways: a stale tile near the road over a finest 26 m up (the Lugano shore) does not stand in', async () => {
+  it('held under the slab: the finest under the road held is drawn at once, over it after the usual wait (it buries the street around it)', async () => {
     setIonToken('eyJ_test');
-    const { s } = await slab(321.6);
-    const finest = createFinestTerrain(async (pts) => pts.map(() => 347.5));
-    const sampler = createGroundSampler(s, finest);
-    sampler.sample(lon, lat(0), 322, 0);
-    sampler.sample(lon, lat(2), 322, GROUND_SAMPLE_INTERVAL_MS);
-    // Before the finest lands, the stale tile 0.1 m off the road stands in.
-    expect(sampler.ground()).toBe('standIn');
-    await flush();
-    expect(sampler.sample(lon, lat(4), 322, 2 * GROUND_SAMPLE_INTERVAL_MS)).toBeCloseTo(321.48, 6);
-    expect(sampler.ground()).toBe('mesh');
+    // The road held 321.48. Cuyahoga 4.60 km: the finest 0.1 m over the
+    // towpath, drawn at once, covered the towpath ahead for a second.
+    for (const [finestH, kind, atOnce] of [
+      [321.38, 'standIn', true],
+      [321.47, 'standIn', true],
+      [321.58, 'under', false],
+      [321.48 + GLOBE_STANDIN_M - 0.1, 'under', false],
+    ] as const) {
+      const { s, globe } = await slab(321.3);
+      const sampler = createGroundSampler(s, createFinestTerrain(async (pts) => pts.map(() => finestH)));
+      const gate = new GroundGate();
+      let t = 0;
+      const frames = (ms: number) => {
+        for (let k = 0; k < ms / 16; k++) globe.show = gate.update((t += 16), true, sampler.ground()).globe;
+      };
+      sampler.sample(lon, lat(0), 322, t);
+      frames(1_000);
+      expect(globe.show, `${finestH}`).toBe(false);
+      // Onto the slab: the finest lands with the first sample under it.
+      sampler.sample(lon, lat(2), 322, t);
+      await flush();
+      frames(256);
+      sampler.sample(lon, lat(4), 322, t);
+      expect(sampler.ground(), `${finestH}`).toBe(kind);
+      frames(32);
+      expect(globe.show, `${finestH}`).toBe(atOnce);
+      // Over the road held it still stands in, after the usual wait.
+      for (let m = 6; m <= 12; m += 2) {
+        frames(256);
+        sampler.sample(lon, lat(m), 322, t);
+      }
+      frames(256);
+      expect(globe.show, `${finestH}`).toBe(true);
+    }
   });
 
-  it('held under crowns 1.3–1.7 m over the finest terrain (Cuyahoga 3.11–3.16 km): the globe stands in all the way, shows within the gate wait, and the rider stands on it', async () => {
+  it('a jump back under the slab, its finest fetched on the way through: the globe after the usual wait, not at once (Ride again)', async () => {
+    setIonToken('eyJ_test');
+    // The slab from 1 to 40 m, the shore road on either side.
+    const { tileset } = await photoreal(undefined);
+    (tileset.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation((c: Cesium.Cartographic) => {
+      const la = Cesium.Math.toDegrees(c.latitude);
+      return la > lat(1) && la < lat(40) ? 327.8 : 321.48;
+    });
+    const { s, globe } = scene(tileset, { height: 321.26, show: false });
+    const sampler = createGroundSampler(s, createFinestTerrain(async (pts) => pts.map(() => 321.26)));
+    const gate = new GroundGate();
+    let t = 0;
+    const frames = (ms: number) => {
+      for (let k = 0; k < ms / 16; k++) globe.show = gate.update((t += 16), true, sampler.ground()).globe;
+    };
+    const ride = async (from: number, to: number) => {
+      for (let m = from; m <= to; m += 4) {
+        sampler.sample(lon, lat(m), 322, t);
+        frames(256);
+        await flush();
+      }
+    };
+    // Rolled in from the road: held under the slab, the globe stands in at
+    // once (the finest lands on the first sample under it)…
+    await ride(-8, 20);
+    expect(sampler.ground()).toBe('standIn');
+    expect(globe.show).toBe(true);
+    // …and on along the road, 160 m past it: the mesh road, the globe hidden.
+    await ride(44, 200);
+    expect(sampler.ground()).toBe('mesh');
+    expect(globe.show).toBe(false);
+    // Ride again back to 10 m: under the slab again, its finest known from
+    // the way through, but 190 m from the road held: no road to stand in for.
+    sampler.sample(lon, lat(10), 322, t);
+    expect(sampler.ground()).toBe('under');
+    frames(GLOBE_SHOW_AFTER_MS - 50);
+    expect(globe.show).toBe(false);
+    frames(100);
+    expect(globe.show).toBe(true);
+  });
+
+  it('the finest decides both ways: a stale tile near the road over a finest 26 m up (the Lugano shore) does not stand in, and the globe is never drawn', async () => {
+    setIonToken('eyJ_test');
+    const { s, globe } = await slab(321.6);
+    let land: (() => void) | undefined;
+    const finest = createFinestTerrain((pts) => new Promise((done) => (land = () => done(pts.map(() => 347.5)))));
+    const sampler = createGroundSampler(s, finest);
+    const gate = new GroundGate();
+    let t = 0;
+    const frames = (ms: number) => {
+      for (let k = 0; k < ms / 16; k++) globe.show = gate.update((t += 16), true, sampler.ground()).globe;
+    };
+    sampler.sample(lon, lat(0), 322, 0);
+    frames(1_000);
+    expect(globe.show).toBe(false);
+    sampler.sample(lon, lat(2), 322, t);
+    // Before the finest lands, the stale tile 0.1 m off the road stands in,
+    // but only as 'under': the globe is drawn after the usual wait…
+    expect(sampler.ground()).toBe('under');
+    frames(400);
+    expect(globe.show).toBe(false);
+    // …and the finest (26 m up: it would bury the street) lands first.
+    land?.();
+    await flush();
+    expect(sampler.sample(lon, lat(4), 322, t)).toBeCloseTo(321.48, 6);
+    expect(sampler.ground()).toBe('mesh');
+    frames(2_000);
+    expect(globe.show).toBe(false);
+  });
+
+  it('held under crowns 1.3–1.7 m over the finest terrain (Cuyahoga 3.11–3.16 km): the globe stands in all the way, is drawn at once, and the rider stands on it', async () => {
     setIonToken('eyJ_test');
     // cat-bed roll (t_c92a4576): the towpath taken at 162.92 m, then crowns
     // 180–190 m with nothing drawn under them for 60 m. The finest terrain
@@ -1265,10 +1381,13 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
       await flush();
     }
     // The first spot under the crowns waits for the finest (the stale tile is
-    // 4.9 m under the road); from then on the globe stands in at every spot.
-    for (const r of rows.filter((x) => x.m >= 8 && x.m < 60)) expect(r.kind, `${r.m} m`).toBe('standIn');
-    // Shown within the gate's wait (1 s) of the first stand-in, and kept.
-    for (const r of rows.filter((x) => x.m >= 20 && x.m < 60)) expect(r.shown, `${r.m} m`).toBe(true);
+    // 4.9 m under the road); from then on the globe stands in at every spot
+    // ('under' where a new batch is on its way: drawn all the same).
+    expect(rows.find((x) => x.m === 8)?.kind).toBe('standIn');
+    for (const r of rows.filter((x) => x.m >= 8 && x.m < 60)) expect(['standIn', 'under'], `${r.m} m`).toContain(r.kind);
+    // Drawn from the next frame on (the rider is over nothing drawn until it
+    // is), not a second later, and kept.
+    for (const r of rows.filter((x) => x.m >= 12 && x.m < 60)) expect(r.shown, `${r.m} m`).toBe(true);
     // On the drawn globe, 1.3–1.7 m under the road held, not over a void, and
     // not back up on the road held while the globe streams.
     for (const r of rows.filter((x) => x.m >= 24 && x.m < 60)) expect(r.h, `${r.m} m`).toBeCloseTo(finestAt(r.m), 6);
@@ -2149,7 +2268,7 @@ describe('under what stands over the road: the rider rides the road under it (t_
     clearMeshTopReads();
   });
 
-  it('a fresh start under a structure with nothing drawn under it: the globe stands in (no painted road), not the top', async () => {
+  it('a fresh start under a structure with nothing drawn under it: the globe is drawn under it (no painted road, the usual wait), not the top', async () => {
     setIonToken('eyJ_test');
     // A crown 15 m over the towpath with no ground drawn under it, the globe
     // at the towpath: no road to go on from, so the rider stands on the globe.
@@ -2158,7 +2277,8 @@ describe('under what stands over the road: the rider rides the road under it (t_
     const sampler = createGroundSampler(s);
     expect(sampler.sample(lonC, atC(0), 160, 0)).toBeCloseTo(160.4, 6);
     expect(sampler.meshGround()).toBe(false);
-    expect(sampler.ground()).toBe('standIn');
+    // No road held to stand in for: 'under' (a jump lands here too).
+    expect(sampler.ground()).toBe('under');
     // With the tile gone, no mesh at all: the globe is the ground.
     const bare = await stacked(() => []);
     const open = createGroundSampler(scene(bare, { height: 160.4 }).s);
@@ -2166,7 +2286,7 @@ describe('under what stands over the road: the rider rides the road under it (t_
     expect(open.ground()).toBe('globe');
   });
 
-  it('the avatar hands the ride view what its sampler stood it on: a stand-in, not only "not the mesh"', async () => {
+  it('the avatar hands the ride view what its sampler stood it on: under a structure, not only "not the mesh"', async () => {
     setIonToken('eyJ_test');
     // CesiumWorldView's ground gate reads avatar.ground(): were it only
     // meshGround() (mesh or globe), the painted road would come back under
@@ -2179,8 +2299,32 @@ describe('under what stands over the road: the rider rides the road under it (t_
     const a = createAvatar({ isDestroyed: () => false, scene: s } as unknown as Cesium.Viewer);
     try {
       a.update({ lon: lonC, lat: atC(0), ele: 160, heading: 0, speed: 0, cadence: 0, grade: 0, dt: 1 / 60 });
-      expect(a.ground()).toBe('standIn');
+      expect(a.ground()).toBe('under');
       expect(a.meshGround()).toBe(false);
+    } finally {
+      a.dispose();
+    }
+  });
+
+  it('the avatar hands the ride view when that sample was taken: the frames between samples keep its time', async () => {
+    setIonToken('eyJ_test');
+    const tileset = await stacked(() => [175.4]);
+    const { s } = scene(tileset, { height: 160.4 });
+    const primitives = new Cesium.PrimitiveCollection({ destroyPrimitives: false });
+    primitives.add(tileset);
+    (s as unknown as { primitives: Cesium.PrimitiveCollection }).primitives = primitives;
+    const now = vi.spyOn(performance, 'now');
+    const a = createAvatar({ isDestroyed: () => false, scene: s } as unknown as Cesium.Viewer);
+    const at = (ms: number) => {
+      now.mockReturnValue(ms);
+      a.update({ lon: lonC, lat: atC(0), ele: 160, heading: 0, speed: 0, cadence: 0, grade: 0, dt: 1 / 60 });
+      return a.groundSampledAt();
+    };
+    try {
+      expect(at(5_000)).toBe(5_000);
+      expect(at(5_017)).toBe(5_000);
+      expect(at(5_000 + GROUND_SAMPLE_INTERVAL_MS - 1)).toBe(5_000);
+      expect(at(5_000 + GROUND_SAMPLE_INTERVAL_MS + 9)).toBe(5_000 + GROUND_SAMPLE_INTERVAL_MS + 9);
     } finally {
       a.dispose();
     }
