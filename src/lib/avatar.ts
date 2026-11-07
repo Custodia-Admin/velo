@@ -1835,8 +1835,9 @@ export type MeshRead = (lon: number, lat: number, under?: number) => number | un
 
 /**
  * Reads the bare terrain at lon/lat now: the globe's loaded tile there, from
- * the tiles it has at this moment (undefined if unknown, or a chord far off
- * the route). See {@link createMeshRoadFilter}'s `terrainAt`.
+ * the tiles it has at this moment. Undefined when it has nothing newer than
+ * what was read there before (a hidden globe's tiles don't refine), or for a
+ * chord far off the route. See {@link createMeshRoadFilter}'s `terrainAt`.
  */
 export type TerrainRead = (lon: number, lat: number) => number | undefined;
 
@@ -2013,10 +2014,11 @@ export function createMeshRoadFilter() {
       // within OVERHANG_MIN_M, and the rider rode it for 24 m. A fall is never
       // such a climb.
       //
-      // The terrain at that road spot is read again now (terrainAt), not
-      // kept from when the road was taken there: both heights over the
-      // terrain must come from the tiles the globe has now. A hidden globe
-      // keeps the coarse tile it last loaded; drawn again, it refines. At
+      // The terrain at that road spot is read again (terrainAt) where the
+      // reader has it newer than when the road was taken there: both heights
+      // over the terrain should come from the tiles the globe has now. A
+      // hidden globe keeps the coarse tile it last loaded; drawn again, it
+      // refines. At
       // Lugano–Melide 7.57 km the road (321.5 m) was taken 4.4 m over a
       // hidden globe's stale tile (317.1 m; its finest 321.3 m). The globe
       // was drawn under the slab ahead and refined, and the slab top there
@@ -2379,8 +2381,15 @@ export function createGroundSampler(scene: Cesium.Scene, finest: FinestTerrain =
             ? g
             : undefined;
         const bare = bareOf(globe);
+        // Only while the globe is drawn: a drawn globe refines, so its tile
+        // at the road spot is at least as fine now as when the road was
+        // taken; a hidden one keeps what it had (or less), so the reading
+        // kept is as good. Re-read on a hidden globe's tiles after a road
+        // taken on a drawn one, the Cuyahoga towpath held 4.5 m under World
+        // Terrain (9.8 km) looked more than STRUCTURE_M off a coarse tile
+        // over it, too far to measure a crown 20 m up from (replay).
         const bareAt: TerrainRead = (lo, la) =>
-          bareOf((scene.globe as Cesium.Globe | undefined)?.getHeight?.(Cesium.Cartographic.fromDegrees(lo, la)));
+          globeHidden(scene) ? undefined : bareOf((scene.globe as Cesium.Globe | undefined)?.getHeight?.(Cesium.Cartographic.fromDegrees(lo, la)));
         // Every read of this sample is in the same few tiles: copied back
         // from the GPU once (cesiumUtils.withMeshReadCache).
         last = withMeshReadCache(() =>

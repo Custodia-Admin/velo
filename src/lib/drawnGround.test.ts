@@ -2623,7 +2623,8 @@ describe('under what stands over the road: the rider rides the road under it (t_
     // stands 0.5 m over the terrain here as the road did there.
     const towpath = (m: number) => 160 + 0.2 * Math.max(0, m - 2);
     const tileset = await stacked((m) => (m > 4 && m < 28 ? [towpath(m) + 15] : [towpath(m)]));
-    const { s, globe } = scene(tileset, { height: undefined, show: false });
+    // Drawn (a hidden globe's terrain is not read again: the reading kept is as fine).
+    const { s, globe } = scene(tileset, { height: undefined, show: true });
     (globe.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (c: Cesium.Cartographic) => towpath(metresC(Cesium.Math.toDegrees(c.latitude))) - 0.5,
     );
@@ -2636,6 +2637,28 @@ describe('under what stands over the road: the rider rides the road under it (t_
         expect(h, `${m} m`).toBeCloseTo(towpath(m), 6);
         expect(sampler.ground(), `${m} m`).toBe('mesh');
       }
+    }
+  });
+
+  it("through the sampler: a hidden globe's terrain is not read again at the road spot (the reading kept, taken drawn, is as fine)", async () => {
+    setIonToken('eyJ_test');
+    // Cuyahoga 9.8 km (replay): the towpath 169.55 m, 4.45 m under World
+    // Terrain (174.0 m, drawn when the road was taken). Then hidden, on a
+    // coarse tile 4.4 m higher where the rider goes (178.4 m). A crown with
+    // nothing under it from 4 m on, 197 m, then 189.74 m from 80 m: within
+    // the allowance ~80 m on. Read on the hidden globe's tiles there too,
+    // the towpath stood 8.85 m under its terrain, too far off it to measure
+    // a climb from, and the rider rode the crown 20 m up.
+    const tileset = await stacked((m) => (m > 4 && m < 80 ? [197] : m >= 80 && m < 96 ? [189.74] : [169.55]));
+    const { s, globe } = scene(tileset, { height: undefined, show: true });
+    (globe.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => (globe.show ? 174.0 : 178.4));
+    const sampler = createGroundSampler(s, createFinestTerrain(async () => []));
+    let t = 0;
+    for (let m = -8; m <= 94; m += 2) {
+      globe.show = m <= 4;
+      const h = sampler.sample(lonC, atC(m), 172, t);
+      t += GROUND_SAMPLE_INTERVAL_MS;
+      if (m > 4) expect(h, `${m} m`).toBeCloseTo(169.55, 6);
     }
   });
 });
