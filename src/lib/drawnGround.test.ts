@@ -2350,4 +2350,191 @@ describe('under what stands over the road: the rider rides the road under it (t_
       expect(f.status(), `bare ${bare}`).toBe(taken ? 'road' : 'overhang');
     }
   });
+
+  // Lugano–Melide 7550–7640 m (drill, cat-bed): the shore road (321.5–322.1 m)
+  // under the railway and A2 bridges, drawn as one slab 327.0–328.5 m (the A2
+  // deck 335–338 m over part of it) with nothing under it, 7574–7624 m. The
+  // globe as drilled there, refined (320.0–321.8 m); after the slab the drill's
+  // own globe kept a coarse tile (317.13 m).
+  const luganoSlab: Row[] = [
+    [7550, 319.95, 321.66, 321.66],
+    [7552, 320.04, 321.66, 321.66],
+    [7554, 320.14, 321.65, 321.65],
+    [7556, 320.23, 321.64, 321.64],
+    [7558, 320.31, 321.62, 321.62],
+    [7560, 320.4, 321.61, 321.61],
+    [7562, 320.48, 321.59, 321.59],
+    [7564, 320.55, 321.57, 321.57],
+    [7566, 320.62, 321.55, 321.55],
+    [7568, 320.68, 321.52, 321.52],
+    [7570, 320.75, 321.54, 321.54],
+    [7572, 320.82, 321.48, 327.78, 321.48],
+    [7574, 320.88, 321.57, 327.13],
+    [7576, 320.95, 321.58, 327.19],
+    [7578, 321, 321.58, 327.19],
+    [7580, 321.04, 321.58, 327.17],
+    [7582, 321.07, 321.59, 327.14],
+    [7584, 321.11, 321.59, 327.12],
+    [7586, 321.14, 321.59, 328.52],
+    [7588, 321.18, 321.6, 327.72],
+    [7590, 321.21, 321.6, 327.81],
+    [7592, 321.25, 321.6, 327.84],
+    [7594, 321.28, 321.61, 336.68, 335.59, 327.87],
+    [7596, 321.32, 321.61, 336.59, 327.83],
+    [7598, 321.35, 321.62, 335.82, 335.56, 328.31],
+    [7600, 321.38, 321.62, 334.88],
+    [7602, 321.42, 321.62, 328.3],
+    [7604, 321.45, 321.63, 328.29],
+    [7606, 321.49, 321.63, 328.29],
+    [7608, 321.52, 321.63, 337.88, 328.29],
+    [7610, 321.56, 321.64, 337.58, 328.31],
+    [7612, 321.59, 321.64, 336.92, 328.37],
+    [7614, 321.63, 321.64, 335.9],
+    [7616, 321.66, 321.65, 327.65],
+    [7618, 321.7, 321.65, 327.18],
+    [7620, 321.73, 321.65, 327.12],
+    [7622, 321.76, 321.66, 327.04],
+    [7624, 321.8, 321.66, 327.73],
+    [7626, 317.13, 321.66, 327.16, 321.66],
+    [7628, 317.13, 321.7, 321.7],
+    [7630, 317.13, 321.75, 321.75],
+    [7632, 317.13, 321.87, 321.87],
+    [7634, 317.13, 321.89, 321.89],
+    [7636, 317.13, 321.95, 321.95],
+    [7638, 317.13, 322.02, 322.02],
+    [7640, 317.13, 322.08, 322.08],
+  ];
+
+  /**
+   * The filter rolled through the slab every `spacing` m from `phase` on, as
+   * in a continuous ride (t_2c318b9d, cat-bed): ridden from the start, the
+   * globe is hidden with the coarse tile it last loaded (`stale` everywhere:
+   * 317.1 m in one ride, 323.4 in another), and from `showAt` on it is drawn
+   * (the stand-in) and refines to the drilled terrain. `terrainAt` reads it as
+   * it is at that moment; `kept` leaves it out (the terrain kept as read when
+   * the road was taken).
+   */
+  function slabRide(stale: number, showAt: number, spacing: number, phase: number, kept = false): Read[] {
+    const rows = luganoSlab;
+    const m0 = rows[0][0];
+    const row = (m: number) => rows[Math.max(0, Math.min(rows.length - 1, Math.round((m - m0) / 2)))];
+    const readAt = (_lon: number, lat: number, under?: number) => {
+      const hits = row(metresC(lat)).slice(3);
+      return under === undefined ? hits[0] : hits.find((h) => h <= under);
+    };
+    let now = m0;
+    const terrain = (m: number) => (now >= showAt ? row(m)[1] : stale);
+    const terrainAt = kept ? undefined : (_lon: number, lat: number) => terrain(metresC(lat));
+    const f = createMeshRoadFilter();
+    const out: Read[] = [];
+    for (let m = m0 + phase; m <= rows[rows.length - 1][0]; m += spacing) {
+      now = m;
+      const [, , road, ...hits] = row(m);
+      const got = f.next(hits[0], lonC, atC(m), 1e9, readAt, -Infinity, terrain(m), terrainAt);
+      out.push({ m, shown: got ?? terrain(m), road, globe: terrain(m), drawn: hits.some((h) => Math.abs(h - road) < 0.01), status: f.status() });
+    }
+    return out;
+  }
+
+  it('Lugano–Melide 7.6 km: held under the slab while the globe refines under it, the rider never rides up onto it (the terrain at the road spot read again)', () => {
+    // Read 2–8 m apart at every phase, the globe drawn 2, 6 or 16 m under the
+    // slab, over either stale tile: the road held, never the slab top.
+    for (const stale of [317.13, 323.4]) {
+      for (const showAt of [7576, 7580, 7590]) {
+        for (let s = 2; s <= 8; s += 2) {
+          for (let o = 0; o < s; o += 2) {
+            const reads = slabRide(stale, showAt, s, o);
+            const at = `stale ${stale}, drawn from ${showAt} m, read ${s} m apart from ${reads[0].m} m`;
+            for (const r of reads) expect(r.shown - r.road, `${at}, at ${r.m} m`).toBeLessThan(1);
+            // Out from under it, on the road again.
+            expect(reads.filter((r) => r.m >= 7628).every((r) => r.status === 'road'), at).toBe(true);
+          }
+        }
+      }
+    }
+    // What it fixes: with the terrain kept from when the road was taken on
+    // the stale 317.1 m tile, the slab 6.9 m over the refined terrain was no
+    // climb from a road 4.4 m over the stale one, and the rider rode it from
+    // where the allowance reached it (~20 m held) to its end.
+    const kept = slabRide(317.13, 7580, 2, 0, true);
+    const up = kept.filter((r) => r.shown - r.road > 6);
+    expect(up.length).toBeGreaterThan(8);
+    expect(up[0].m).toBeGreaterThanOrEqual(7590);
+    expect(up[up.length - 1].m).toBeGreaterThanOrEqual(7622);
+  });
+
+  it('with nothing to read at the road spot now, the terrain as read when the road was taken there: the slab is still held', () => {
+    // The globe refined all along (the drilled terrain), but no reading at
+    // the road spot when re-read: the climb is measured from the terrain
+    // kept, not given up on.
+    const rows = luganoSlab;
+    const row = (m: number) => rows[Math.max(0, Math.min(rows.length - 1, Math.round((m - rows[0][0]) / 2)))];
+    const readAt = (_lon: number, lat: number, under?: number) => {
+      const hits = row(metresC(lat)).slice(3);
+      return under === undefined ? hits[0] : hits.find((h) => h <= under);
+    };
+    for (const nothing of [undefined, NaN]) {
+      const f = createMeshRoadFilter();
+      for (let m = 7550; m <= 7640; m += 2) {
+        const [, globe, road, ...hits] = row(m);
+        const got = f.next(hits[0], lonC, atC(m), 1e9, readAt, -Infinity, globe, () => nothing);
+        expect((got ?? globe) - road, `${nothing}, at ${m} m`).toBeLessThan(1);
+      }
+    }
+  });
+
+  it('a tile at the road spot refined into a slab over the road: not taken, judged on the terrain there now (a stale tile over the road made it no structure)', () => {
+    // The road taken 1.9 m under a hidden globe's stale tile (323.4 m), the
+    // globe since refined to 321.3 m. The tile at the road spot, and here,
+    // now draw the slab 328.3 m with nothing under it: 7 m over the terrain
+    // there now (a structure), 4.9 m over the stale tile (none). Taken as a
+    // tile refined under the rider, the rider rode the slab.
+    let slab = false;
+    let refinedGlobe = false;
+    const readAt = (_lon: number, _lat: number, under?: number) => {
+      const top = slab ? 328.3 : 321.48;
+      return under === undefined || top <= under ? top : undefined;
+    };
+    const terrainAt = () => (refinedGlobe ? 321.3 : 323.4);
+    const f = createMeshRoadFilter();
+    expect(f.next(321.48, lonC, atC(0), 1e9, readAt, -Infinity, terrainAt(), terrainAt)).toBe(321.48);
+    slab = true;
+    refinedGlobe = true;
+    expect(f.next(328.3, lonC, atC(2), 1e9, readAt, -Infinity, terrainAt(), terrainAt)).toBe(321.48);
+    expect(f.status()).toBe('overhang');
+    // Kept from when the road was taken (no terrainAt): the stale tile.
+    const kept = createMeshRoadFilter();
+    slab = false;
+    refinedGlobe = false;
+    kept.next(321.48, lonC, atC(0), 1e9, readAt, -Infinity, terrainAt());
+    slab = true;
+    refinedGlobe = true;
+    expect(kept.next(328.3, lonC, atC(2), 1e9, readAt, -Infinity, terrainAt())).toBe(328.3);
+  });
+
+  it('through the sampler and the real gate: held under the Lugano slab while the globe is drawn and refines, the rider stays on the road (the sampler reads the terrain at the road spot again)', async () => {
+    setIonToken('eyJ_test');
+    // The shore road 321.48 m, the slab 328.29 m from 1 to 55 m with nothing
+    // under it. The globe: hidden, the coarse tile it kept (317.1 m); drawn,
+    // its finest (321.3 m).
+    const tileset = await stacked((m) => (m > 1 && m < 55 ? [328.29] : [321.48]));
+    const { s, globe } = scene(tileset, { height: undefined });
+    (globe.getHeight as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => (globe.show ? 321.3 : 317.1));
+    const sampler = createGroundSampler(s, createFinestTerrain(async (pts) => pts.map(() => 321.3)));
+    const gate = new GroundGate();
+    let t = 0;
+    const kinds = new Set<string>();
+    for (let m = -12; m <= 80; m += 2) {
+      const h = sampler.sample(lonC, atC(m), 322, t);
+      kinds.add(`${m > 1 && m < 55 ? 'slab' : 'road'}:${sampler.ground()}`);
+      expect(h, `${m} m (${sampler.ground()}, globe ${globe.show ? 'drawn' : 'hidden'})`).toBeLessThan(321.48 + 0.5);
+      // 8 m/s: a sample every 250 ms, the gate on every 16 ms frame between.
+      for (let k = 0; k < 16; k++) globe.show = gate.update((t += 16), true, sampler.ground(), sampler.groundSampledAt()).globe;
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    // It did go under the slab with the globe hidden first, then stood in.
+    expect(kinds.has('road:mesh')).toBe(true);
+    expect(kinds.has('slab:standIn')).toBe(true);
+    expect([...kinds].filter((k) => k.startsWith('slab:')).every((k) => k === 'slab:standIn' || k === 'slab:mesh' || k === 'slab:under')).toBe(true);
+  });
 });

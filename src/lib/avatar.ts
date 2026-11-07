@@ -1834,6 +1834,13 @@ export type MeshRoadStatus = 'road' | 'overhang' | 'coarse' | 'none';
 export type MeshRead = (lon: number, lat: number, under?: number) => number | undefined;
 
 /**
+ * Reads the bare terrain at lon/lat now: the globe's loaded tile there, from
+ * the tiles it has at this moment (undefined if unknown, or a chord far off
+ * the route). See {@link createMeshRoadFilter}'s `terrainAt`.
+ */
+export type TerrainRead = (lon: number, lat: number) => number | undefined;
+
+/**
  * Which photoreal mesh readings are the road. A vertical ray reads the TOP
  * of whatever is there: a palm canopy 10 m over the Santa Monica Strand, tree
  * crowns 10–30 m over the Cuyahoga towpath, a road deck 28 m over it (I-271),
@@ -1857,6 +1864,10 @@ export type MeshRead = (lon: number, lat: number, under?: number) => number | un
  * steeper than a road is taken but unproven (the edge of a crown closed down
  * onto the towpath): until the road goes on from it, a further climb is
  * measured from the road before it.
+ * Heights over the bare terrain here and at the road spot a climb is
+ * measured from are both read from the terrain as it is now (`terrainAt`): a
+ * hidden globe's stale tile there against a refined one here put the
+ * Lugano–Melide slab (7.6 km) within reach.
  * Falls are always taken (the rider eases down).
  *
  * A rise refused across a gap longer than {@link OVERHANG_STEP_M} is read
@@ -1885,7 +1896,7 @@ export function createMeshRoadFilter() {
    * measures from the lowest road spot it climbed from (and that spot's bare
    * terrain), here; undefined otherwise.
    */
-  let stepFrom: { h: number; bare: number | undefined } | undefined;
+  let stepFrom: { h: number; lon: number; lat: number; bare: number | undefined } | undefined;
   /** With no road to go on from: the smooth run of structure tops read so far. */
   let deck: { h: number; lon: number; lat: number; fromLon: number; fromLat: number } | undefined;
   const take = (h: number, lon: number, lat: number, underSomething = false) => {
@@ -1893,7 +1904,7 @@ export function createMeshRoadFilter() {
     if (!steepFrom.length) stepFrom = undefined;
     else if (!stepFrom && underSomething) {
       const low = steepFrom.reduce((a, b) => (b.h < a.h ? b : a));
-      stepFrom = { h: low.h, bare: low.bare };
+      stepFrom = { h: low.h, lon: low.lon, lat: low.lat, bare: low.bare };
     }
     base = h;
     baseLon = lon;
@@ -1917,7 +1928,9 @@ export function createMeshRoadFilter() {
      * The road height from one reading (undefined: no mesh road here, the
      * globe decides). `ceiling` / `floor`: highest / lowest plausible road
      * height here; `readAt` re-reads the mesh now (at another spot, or under
-     * something); `terrain`: the bare terrain here (the globe), if known.
+     * something); `terrain`: the bare terrain here (the globe), if known;
+     * `terrainAt` reads it again now at the road spot a climb is measured
+     * from (without it, the terrain as read when that road was taken).
      */
     next(
       reading: number | undefined,
@@ -1927,6 +1940,7 @@ export function createMeshRoadFilter() {
       readMesh: MeshRead,
       floor = -Infinity,
       terrain?: number,
+      terrainAt?: TerrainRead,
     ): number | undefined {
       if (reading === undefined || !Number.isFinite(reading)) {
         status = 'none';
@@ -1998,15 +2012,36 @@ export function createMeshRoadFilter() {
       // of the next crown (4.73 km, 5.6 m over the towpath, nothing under it)
       // within OVERHANG_MIN_M, and the rider rode it for 24 m. A fall is never
       // such a climb.
-      const climbFrom = stepFrom ?? { h: from, bare: baseBare };
-      const climbsOnto = (h: number) =>
-        ((onStructure(h) && !onStructure(from) && tooSteep(h, lon, lat)) ||
-          (h > Math.max(from, climbFrom.h + OVERHANG_MIN_M) &&
-            bare !== undefined &&
-            climbFrom.bare !== undefined &&
-            Math.abs(climbFrom.h - climbFrom.bare) <= STRUCTURE_M &&
-            h - bare > climbFrom.h - climbFrom.bare + OVERHANG_MIN_M)) &&
-        !climbsInSteps(from, baseLon, baseLat, h, lon, lat, moved, readAt, RAMP_GRADE);
+      //
+      // The terrain at that road spot is read again now (terrainAt), not
+      // kept from when the road was taken there: both heights over the
+      // terrain must come from the tiles the globe has now. A hidden globe
+      // keeps the coarse tile it last loaded; drawn again, it refines. At
+      // Lugano–Melide 7.57 km the road (321.5 m) was taken 4.4 m over a
+      // hidden globe's stale tile (317.1 m; its finest 321.3 m). The globe
+      // was drawn under the slab ahead and refined, and the slab top there
+      // (328.3 m, 6.9 m over the refined terrain, nothing under it) was no
+      // more than OVERHANG_MIN_M higher over its terrain than the road had
+      // been over the stale one: ~20 m on, once the allowance reached it, the
+      // rider rode the slab top for 25–35 m.
+      const bares = new Map<string, number | undefined>();
+      const bareAt = (spot: { lon: number; lat: number; bare: number | undefined }) => {
+        if (!terrainAt) return spot.bare;
+        const key = `${spot.lon},${spot.lat}`;
+        if (!bares.has(key)) bares.set(key, terrainAt(spot.lon, spot.lat));
+        const now = bares.get(key);
+        return now !== undefined && Number.isFinite(now) ? now : spot.bare;
+      };
+      const climbFrom = stepFrom ?? { h: from, lon: baseLon, lat: baseLat, bare: baseBare };
+      const climbsOnto = (h: number) => {
+        if (!(onStructure(h) && !onStructure(from) && tooSteep(h, lon, lat))) {
+          if (!(h > Math.max(from, climbFrom.h + OVERHANG_MIN_M) && bare !== undefined)) return false;
+          const climbBare = bareAt(climbFrom);
+          if (climbBare === undefined || Math.abs(climbFrom.h - climbBare) > STRUCTURE_M) return false;
+          if (!(h - bare > climbFrom.h - climbBare + OVERHANG_MIN_M)) return false;
+        }
+        return !climbsInSteps(from, baseLon, baseLat, h, lon, lat, moved, readAt, RAMP_GRADE);
+      };
       // Looked under only near the bare terrain (UNDER_BARE_M).
       const nearBare = (h: number) => bare !== undefined && h >= bare - UNDER_BARE_M;
       // A tile refined higher under the rider (roseAt) is taken, but not one
@@ -2017,9 +2052,12 @@ export function createMeshRoadFilter() {
       // terrain) and nothing under it, and the rider rode the crown down for
       // 20 m (from 169.1 m, 5.8 m over the terrain, 10 m on). At 4.740 km the
       // crown edge taken at 4.696 km was gone the same way (a coarser tile,
-      // its top 18 m over the terrain).
-      const atStructure = (h: number | undefined) =>
-        h !== undefined && baseBare !== undefined && h > baseBare + STRUCTURE_M && h <= baseBare + STRUCTURE_MAX_M;
+      // its top 18 m over the terrain). That terrain too as the globe has it
+      // now (bareAt).
+      const atStructure = (h: number | undefined) => {
+        const b = bareAt({ lon: baseLon, lat: baseLat, bare: baseBare });
+        return h !== undefined && b !== undefined && h > b + STRUCTURE_M && h <= b + STRUCTURE_MAX_M;
+      };
       const refined = () => roseAt(readAt, from, baseLon, baseLat) && (atStructure(from) || !atStructure(readAt(baseLon, baseLat)));
       const allow = Math.max(OVERHANG_MIN_M, OVERHANG_RISE_M + OVERHANG_GRADE * moved);
       if (top <= base + allow) {
@@ -2329,18 +2367,24 @@ export function createGroundSampler(scene: Cesium.Scene, finest: FinestTerrain =
         const floor = heldHere !== undefined ? Math.max(terrain, heldHere) : terrain;
         // The bare terrain here (World Terrain as loaded), unless a chord (far
         // from the route, or far under the road carried here): what a crown
-        // or a deck is told apart from with no road to go on from.
-        const bare =
-          globe !== undefined &&
-          Number.isFinite(globe) &&
-          Math.abs(globe - expect) <= MESH_UNDER_ROUTE_MAX_M &&
-          (heldHere === undefined || globe >= heldHere - MESH_UNDER_ROUTE_MAX_M)
-            ? globe
+        // or a deck is told apart from with no road to go on from. The
+        // filter reads it again where the road was taken (bareAt): a climb
+        // over the terrain is judged on the tiles the globe has now, there
+        // and here.
+        const bareOf = (g: number | undefined) =>
+          g !== undefined &&
+          Number.isFinite(g) &&
+          Math.abs(g - expect) <= MESH_UNDER_ROUTE_MAX_M &&
+          (heldHere === undefined || g >= heldHere - MESH_UNDER_ROUTE_MAX_M)
+            ? g
             : undefined;
+        const bare = bareOf(globe);
+        const bareAt: TerrainRead = (lo, la) =>
+          bareOf((scene.globe as Cesium.Globe | undefined)?.getHeight?.(Cesium.Cartographic.fromDegrees(lo, la)));
         // Every read of this sample is in the same few tiles: copied back
         // from the GPU once (cesiumUtils.withMeshReadCache).
         last = withMeshReadCache(() =>
-          road.next(meshAt(lon, lat), lon, lat, floor + MESH_OVER_TERRAIN_MAX_M, meshAt, expect - MESH_UNDER_ROUTE_MAX_M, bare),
+          road.next(meshAt(lon, lat), lon, lat, floor + MESH_OVER_TERRAIN_MAX_M, meshAt, expect - MESH_UNDER_ROUTE_MAX_M, bare, bareAt),
         );
         const status = road.status();
         if (status === 'road') roadEle = expect;
