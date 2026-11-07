@@ -4,7 +4,9 @@
  * rider stands (review of PR #45 @4ea2ff0: seated partners covered the
  * rider's own model). BotRider is called as a function under a react mock
  * whose useMemo runs at once; the RiderModel element it returns carries the
- * per-frame `drive` the model calls.
+ * per-frame `drive` the model calls. Card t_ffc99d86: given the frame's
+ * rider and a shared group (as PaceBots passes them), partners give way to
+ * the rider's steering.
  */
 import { describe, expect, it, vi } from 'vitest';
 
@@ -13,7 +15,7 @@ vi.mock('react', async (importOriginal) => {
   return { ...actual, useMemo: <T,>(f: () => T) => f() };
 });
 
-const { BotRider, RiderModel } = await import('./Rider');
+const { BotRider, RiderModel, createBotGroup } = await import('./Rider');
 const { useRideStore } = await import('@/stores/rideStore');
 const { BOT_COLORWAYS, BOT_PRESETS, createPaceBot } = await import('@/lib/paceBots');
 const { routeFromGeometry } = await import('@/lib/scenicRoutes');
@@ -153,6 +155,31 @@ describe('BotRider', () => {
     // Back 20 m on, on the path: straight into its 0.9 m slot, not drifting in from 1.2 m.
     useRideStore.setState({ paceBots: rosterAt(bots, r, 210) });
     expect(60 - drive(1 / 60)!.placement.worldY).toBeCloseTo(0.9, 2);
+  });
+
+  it('gives way to the rider in the frame it is given: partner 0 moves out past a rider steering right, partner 1 stays', () => {
+    useRideStore.setState({ paceBots: BOT_PRESETS.slice(0, 3).map((p, i) => createPaceBot(`b${i}`, p, route)) });
+    const frame = createRideFrame();
+    const memo = createRideDriverMemo();
+    const group = createBotGroup();
+    const drives = [0, 1, 2].map(
+      (i) => (BotRider({ sceneWorld: sw, route, index: i, frame, group }) as unknown as { props: { drive: Drive } }).props.drive,
+    );
+    let at: ReturnType<Drive>[] = [];
+    for (let f = 1; f <= 240; f++) {
+      driveRideFrame(frame, memo, sw, {
+        route, distance: 0, speed: 0, grade: 0, cadence: 0, power: 0, rideState: 'ready',
+        steer: 1, override: null, lookAheadM: 12, dt: 1 / 60, timeS: f / 60,
+      });
+      at = drives.map((d) => d(1 / 60));
+      const rider = frame.placement!.position;
+      for (const p of at) expect(Math.hypot(p!.placement.position.x - rider.x, p!.placement.position.z - rider.z)).toBeGreaterThanOrEqual(0.89);
+    }
+    // Eastbound: right is south. Full lock puts the rider 1.6 m south of the line.
+    expect(60 - frame.placement!.worldY).toBeCloseTo(1.6, 2);
+    expect(60 - at[0]!.placement.worldY).toBeCloseTo(1.6 + 0.9, 2);
+    expect(60 - at[2]!.placement.worldY).toBeCloseTo(1.6 + 1.8, 2);
+    expect(at[1]!.placement.worldY - 60).toBeCloseTo(1.2, 2);
   });
 
   it('stands the partner on the ground it is given (the drawn ground, like the rider)', () => {

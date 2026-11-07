@@ -57,6 +57,7 @@ import {
 } from '@/lib/routeVisuals';
 import { createAvatar, createGroundSampler, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
+import { laneReach, type PartnerYieldState, type RiderBeside } from '@/lib/ride/partnerSlots';
 import { stepDrawnHeading, YawFilter } from '@/lib/ride/rideHeading';
 import { heldRiderPose, ridePose } from '@/lib/ride/rideSim';
 import { chaseLookRise } from '@/lib/ride/lookRise';
@@ -333,6 +334,9 @@ export function CesiumScene({
   const ghostRidesRef = useRef<GhostRide[]>([]);
   // Pace bot avatar refs — one Avatar per active bot, parallel to rideStore.paceBots.
   const botAvatarsRef = useRef<Avatar[]>([]);
+  // How each pace partner is giving way to the rider (botAvatars.updateBotAvatars), parallel to botAvatarsRef.
+  const botGiveWayRef = useRef<PartnerYieldState[]>([]);
+  const riderBesideRef = useRef<RiderBeside>({ distance: 0, speed: 0, leftM: 0, rightM: 0, laneOffsetM: 0 });
   // Weather particle system — recreated on route change and quality change.
   const weatherSystemRef = useRef<WeatherSystem | null>(null);
   // Cloud collection + shadow entity — created on route load.
@@ -763,6 +767,7 @@ export function CesiumScene({
         if (viewer && !viewer.isDestroyed()) ba.dispose();
       }
       botAvatarsRef.current = [];
+      botGiveWayRef.current = [];
       // Explicitly destroy tileset GPU resources after removal.
       // Cesium's primitives.remove() does NOT free VRAM unless the scene was
       // constructed with destroyPrimitives:true (we don't set that flag).
@@ -900,6 +905,7 @@ export function CesiumScene({
       if (!viewer.isDestroyed()) ba.dispose();
     }
     botAvatarsRef.current = [];
+    botGiveWayRef.current = [];
     cartesianRouteRef.current = null;
     resetFollowCam();
     yawRef.current.reset();
@@ -1008,6 +1014,7 @@ export function CesiumScene({
     // the next route load or a manual rebuild — acceptable for the first ship).
     // Each is placed on the route at creation (the start line after a load).
     botAvatarsRef.current = placeBotAvatars(useRideStore.getState().paceBots, route, () => createAvatar(viewer));
+    botGiveWayRef.current = [];
 
     const start = route.points[0];
     avatar.update({
@@ -1222,7 +1229,8 @@ export function CesiumScene({
       }
 
       // Handlebar steering: drift across the lane, back to the line on release.
-      stepLane(laneRef.current, activeSteer(), dt);
+      const steer = activeSteer();
+      stepLane(laneRef.current, steer, dt);
 
       // Rider pose from rideSim (or an outside driver via setRider), then the
       // scene height: GPX elevation on ion terrain, 0 m on the flat no-token globe.
@@ -1618,7 +1626,24 @@ export function CesiumScene({
       // count mismatch can occur if bots are added after route load — the
       // update skips silently rather than crash; the user would need to
       // re-select the route.
-      if (r) updateBotAvatars(useRideStore.getState().paceBots, botAvatarsRef.current, dt);
+      // They give way to the rider where it steers toward them (partnerSlots.stepPartnerYield),
+      // to where it rides or is heading across the road (laneReach), as in the world renderer.
+      if (r) {
+        const rider = riderBesideRef.current;
+        rider.distance = pose.distance;
+        rider.speed = pose.speed;
+        rider.laneOffsetM = pose.laneOffsetM;
+        if (override) rider.leftM = rider.rightM = pose.laneOffsetM;
+        else laneReach(laneRef.current, steer, rider);
+        updateBotAvatars(useRideStore.getState().paceBots, botAvatarsRef.current, dt, {
+          states: botGiveWayRef.current,
+          route: r,
+          rider,
+          riderLat: pose.lat,
+          riderLon: pose.lon,
+          riderHeading: pose.heading,
+        });
+      }
 
       // ---- Ghost avatar updates ----
       const ghostsOn = useGhostStore.getState().ghostsEnabled;

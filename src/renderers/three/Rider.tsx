@@ -16,7 +16,15 @@ import { BOT_COLORWAYS } from '@/lib/paceBots';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import type { Route } from '@/types';
-import { createBotDriverMemo, placeBot, resetBotDriverMemo } from './rideDriver';
+import {
+  createWorldRider,
+  placeBots,
+  resetBotDriverMemo,
+  riderBeside,
+  type BotDriverMemo,
+  type BotPlacement,
+  type WorldRider,
+} from './rideDriver';
 import {
   RIDER_RIG,
   estimatedCadence,
@@ -149,35 +157,97 @@ export function LiveRider({ frame, castShadow }: { frame: RideFrame; castShadow:
 type Ground = (x: number, y: number) => number;
 
 /**
- * Pace partner `index`, drawn in its lateral slot beside the route line
- * (rideDriver.placeBot), never on the line the rider rides.
+ * The pace partners' drawing state, shared by every BotRider: the first
+ * partner drawn in a frame places them all, in roster order
+ * (rideDriver.placeBots), so each one keeps clear of this frame's target of
+ * the partner in on its side, and all give way to this frame's rider.
  */
-export function BotRider({ sceneWorld, route, index, ground }: { sceneWorld: SceneWorld; route: Route; index: number; ground?: Ground }) {
-  const memo = useMemo(() => createBotDriverMemo(), []);
+export interface BotGroup {
+  memos: BotDriverMemo[];
+  placed: BotPlacement[];
+  /** frame.timeS of the frame `placed` was computed for (NaN: none yet). */
+  at: number;
+  rider: WorldRider;
+}
+
+export function createBotGroup(): BotGroup {
+  return { memos: [], placed: [], at: NaN, rider: createWorldRider() };
+}
+
+/**
+ * Every partner's placement for the current frame (computed once a frame,
+ * after the RideDriver's step). Without a `frame` there is no rider to give
+ * way to, and every call is a new frame.
+ */
+export function stepBotGroup(
+  group: BotGroup,
+  frame: RideFrame | null,
+  sceneWorld: SceneWorld,
+  route: Route,
+  dt: number,
+  ground?: Ground,
+): BotPlacement[] {
+  if (!frame || group.at !== frame.timeS) {
+    group.at = frame ? frame.timeS : NaN;
+    const bots = useRideStore.getState().paceBots.map((b) => b.state);
+    group.placed = placeBots(sceneWorld, route, bots, group.memos, dt, ground, frame ? riderBeside(frame, group.rider) : null);
+  }
+  return group.placed;
+}
+
+/**
+ * Pace partner `index`, drawn in its lateral slot beside the route line,
+ * never on the line the rider rides, and giving way when the rider in
+ * `frame` steers toward it (rideDriver.placeBots). PaceBots shares one
+ * `group` between its partners; alone, a BotRider keeps its own.
+ */
+export function BotRider({
+  sceneWorld,
+  route,
+  index,
+  ground,
+  frame,
+  group: shared,
+}: {
+  sceneWorld: SceneWorld;
+  route: Route;
+  index: number;
+  ground?: Ground;
+  frame?: RideFrame;
+  group?: BotGroup;
+}) {
+  const own = useMemo(() => createBotGroup(), []);
+  const group = shared ?? own;
   const drive = useMemo(
     () =>
       (dt: number): RiderDrive | null => {
         const bot = useRideStore.getState().paceBots[index];
         if (!bot) {
-          resetBotDriverMemo(memo);
+          if (group.memos[index]) resetBotDriverMemo(group.memos[index]);
           return null;
         }
+        const placed = stepBotGroup(group, frame ?? null, sceneWorld, route, dt, ground)[index];
+        if (!placed) return null;
         const s = bot.state;
-        const { placement, lean } = placeBot(sceneWorld, route, s, index, memo, dt, ground);
-        return { placement, speed: s.speed, cadence: estimatedCadence(s.speed), lean };
+        return { placement: placed.placement, speed: s.speed, cadence: estimatedCadence(s.speed), lean: placed.lean };
       },
-    [sceneWorld, route, index, memo, ground],
+    [sceneWorld, route, index, ground, frame, group],
   );
   return <RiderModel colors={BOT_COLORWAYS[index % BOT_COLORWAYS.length]} drive={drive} />;
 }
 
-/** Pace bots on the drawn ground (`ground`, worldScene.drawnGround), like the rider. */
-export function PaceBots({ sceneWorld, route, ground }: { sceneWorld: SceneWorld; route: Route; ground?: Ground }) {
+/** Pace bots on the drawn ground (`ground`, worldScene.drawnGround), like the rider, giving way to the rider in `frame`. */
+export function PaceBots({ sceneWorld, route, ground, frame }: { sceneWorld: SceneWorld; route: Route; ground?: Ground; frame: RideFrame }) {
   const count = useRideStore((s) => s.paceBots.length);
+  const group = useMemo(() => createBotGroup(), []);
+  // A partner that leaves the roster is seated afresh when one comes back.
+  useEffect(() => {
+    for (let i = count; i < group.memos.length; i++) resetBotDriverMemo(group.memos[i]);
+  }, [count, group]);
   return (
     <>
       {Array.from({ length: count }, (_, i) => (
-        <BotRider key={i} sceneWorld={sceneWorld} route={route} index={i} ground={ground} />
+        <BotRider key={i} sceneWorld={sceneWorld} route={route} index={i} ground={ground} frame={frame} group={group} />
       ))}
     </>
   );

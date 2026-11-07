@@ -11,6 +11,8 @@
  * - review of PR #45 @4ea2ff0: each partner stands and rides in its lateral
  *   slot (lib/ride/partnerSlots) across its heading, never on the line the
  *   rider stands on;
+ * - card t_ffc99d86: they give way to the steering rider (the photoreal
+ *   rider steers off the line too), by the shared solver;
  * - the view builds and moves them through these two functions.
  */
 import { readFileSync } from 'node:fs';
@@ -20,7 +22,8 @@ import type { Avatar, AvatarUpdate } from '@/lib/avatar';
 import type { AvatarColors } from '@/lib/avatarConfig';
 import { BOT_COLORWAYS, BOT_PRESETS, createPaceBot, type PaceBot } from '@/lib/paceBots';
 import type { Route } from '@/types';
-import { botSlotLatLon, CORRIDOR_SPAN, placeBotAvatars, updateBotAvatars } from './botAvatars';
+import { offsetLatLon, PARTNER_SLOT_FLOOR_M, PARTNER_SLOT_MAX_RATE_MPS, type PartnerYieldState } from '@/lib/ride/partnerSlots';
+import { botSlotLatLon, CORRIDOR_SPAN, placeBotAvatars, updateBotAvatars, type BotGiveWay } from './botAvatars';
 
 const route: Route = {
   id: 'assisi',
@@ -193,9 +196,60 @@ describe('updateBotAvatars', () => {
     expect(enu(43.1, 12.4, p)[0]).toBeCloseTo(3.4, 3);
   });
 
+  describe('giving way to the steering rider', () => {
+    const DT = 1 / 60;
+    const LAT = 43.1;
+    const LON = 12.4;
+    /** The rider level with the partners, `laneM` right of the line (north-facing: right is east). */
+    function giveWay(states: PartnerYieldState[], laneM: number, reach: [number, number] = [laneM, laneM]): BotGiveWay {
+      const at = offsetLatLon(LAT, LON, 0, laneM);
+      return {
+        states,
+        route,
+        rider: { distance: 500, speed: 8, laneOffsetM: laneM, leftM: reach[0], rightM: reach[1] },
+        riderLat: at.lat,
+        riderLon: at.lon,
+        riderHeading: 0,
+      };
+    }
+
+    it('moves the partner on the rider’s side out, keeps 0.9 m from the rider, and never swaps sides', () => {
+      const bots = [0, 1, 2].map((i) => riding(i, LAT, LON, 0));
+      const made = bots.map(() => fakeAvatar([]));
+      const states: PartnerYieldState[] = [];
+      for (let f = 0; f < 120; f++) updateBotAvatars(bots, made.map((m) => m.avatar), DT, giveWay(states, 1.6));
+      const at = made.map((m) => enu(LAT, LON, m.updates[m.updates.length - 1]));
+      expect(at[0][0]).toBeCloseTo(1.6 + PARTNER_SLOT_FLOOR_M, 3);
+      expect(at[1][0]).toBeCloseTo(-1.2, 3);
+      expect(at[2][0]).toBeCloseTo(1.6 + 2 * PARTNER_SLOT_FLOOR_M, 3);
+      // Every frame: 0.9 m from the rider (to the projection's 0.5 %), each on its own side, eased.
+      made.forEach((m, i) => {
+        let prev = NaN;
+        for (const u of m.updates) {
+          const [e] = enu(LAT, LON, u);
+          expect(Math.abs(e - 1.6)).toBeGreaterThanOrEqual(PARTNER_SLOT_FLOOR_M - 0.005);
+          expect(Math.sign(e)).toBe(i % 2 === 0 ? 1 : -1);
+          if (Number.isFinite(prev)) expect(Math.abs(e - prev)).toBeLessThanOrEqual(PARTNER_SLOT_MAX_RATE_MPS * DT * 1.005);
+          prev = e;
+        }
+      });
+    });
+
+    it('keeps the base slots for a rider on the line, and with no give-way at all', () => {
+      const bots = [0, 1, 2].map((i) => riding(i, LAT, LON, 0));
+      const a = bots.map(() => fakeAvatar([]));
+      const b = bots.map(() => fakeAvatar([]));
+      updateBotAvatars(bots, a.map((m) => m.avatar), DT, giveWay([], 0));
+      updateBotAvatars(bots, b.map((m) => m.avatar), DT);
+      a.forEach((m, i) => expect(m.updates[0]).toEqual(b[i].updates[0]));
+    });
+  });
+
   it('is how the photoreal view moves its bot avatars every frame', () => {
     const src = readFileSync(join(__dirname, 'CesiumWorldView.tsx'), 'utf8');
-    expect(src).toContain('if (r) updateBotAvatars(useRideStore.getState().paceBots, botAvatarsRef.current, dt);');
+    expect(src).toMatch(/updateBotAvatars\(useRideStore\.getState\(\)\.paceBots, botAvatarsRef\.current, dt, \{\s*states: botGiveWayRef\.current,/);
+    // The partners give way to the rider's reach through the shared solver.
+    expect(src).toContain('laneReach(laneRef.current, steer, rider);');
     // Nothing else moves a bot avatar (an unshifted update would put it back on the line).
     expect(src).not.toMatch(/botAvatars(Ref\.current)?\[i\]\.update\(/);
     expect(src.match(/updateBotAvatars\(/g)).toHaveLength(1);

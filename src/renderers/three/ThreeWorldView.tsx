@@ -403,7 +403,7 @@ export function WorldScene({
       <Ghosts sceneWorld={sceneWorld} route={route} ground={ground} />
       <Suspense fallback={null}>
         <LiveRider frame={frame} castShadow={quality.shadows} />
-        <PaceBots sceneWorld={sceneWorld} route={route} ground={ground} />
+        <PaceBots sceneWorld={sceneWorld} route={route} ground={ground} frame={frame} />
         <ReadySignal onReady={onReady} />
       </Suspense>
       {quality.postFx && <PostFx />}
