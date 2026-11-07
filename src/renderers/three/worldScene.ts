@@ -5,6 +5,7 @@
  * sky read. No React here; three.js only for types.
  */
 
+import type { LaneReach } from '@/lib/ride/partnerSlots';
 import type { Heightfield } from '@/lib/world/heightfield';
 import type { LoadedWorld } from '@/lib/world/loadWorld';
 import type { RiderPose } from '@/lib/world/renderer';
@@ -74,6 +75,12 @@ export interface RideFrame {
   dt: number;
   /** Monotonic seconds. */
   timeS: number;
+  /**
+   * The furthest left and right the rider rides or is heading with the
+   * levers as they are, metres right of the line (partnerSlots.laneReach):
+   * what the pace partners give way to.
+   */
+  reach: LaneReach;
 }
 
 export function createRideFrame(): RideFrame {
@@ -88,6 +95,7 @@ export function createRideFrame(): RideFrame {
     rideState: 'idle',
     dt: 0,
     timeS: 0,
+    reach: { leftM: 0, rightM: 0 },
   };
 }
 

@@ -2,23 +2,37 @@
  * Pace partners' lateral slots (partnerSlots.ts): which side of the route
  * line each partner rides on, how far, how a road clamps it, the 0.9 m
  * floor that keeps it out of the rider and the partner beside it on narrow
- * paths, and that the shift is across the heading, not along it.
+ * paths, how partners give way to a steering rider (out on their own side,
+ * back behind the rider on a narrow road, a second's hold before coming
+ * back), and that the shift is across the heading, not along it.
  */
 import { describe, expect, it } from 'vitest';
 
+import { stepLane } from '@/lib/controllers/steerFeel';
 import {
   baseSlotM,
   createPartnerSlotState,
+  createPartnerYieldState,
   easeSlotM,
+  LANE_REACH_S,
+  laneReach,
   offsetLatLon,
+  partnerClearsRider,
   partnerSlotM,
+  PARTNER_DROP_GAP_M,
+  PARTNER_DROP_MAX_M,
+  PARTNER_DROP_MAX_RATE_MPS,
   PARTNER_EDGE_MARGIN_M,
   PARTNER_SLOT_FLOOR_M,
   PARTNER_SLOT_MAX_RATE_MPS,
   PARTNER_SLOT_TAU_S,
+  PARTNER_YIELD_HOLD_S,
+  PARTNER_YIELD_MARGIN_M,
+  PARTNER_YIELD_VERGE_M,
   stepPartnerSlot,
+  stepPartnerYield,
 } from './partnerSlots';
-import type { RoadSpan as RoadSpanLike } from './partnerSlots';
+import type { RiderBeside, RoadSpan as RoadSpanLike } from './partnerSlots';
 import { YAW_SNAP_M } from './rideHeading';
 
 const R = 6_371_000;
@@ -289,5 +303,218 @@ describe('offsetLatLon', () => {
 
   it('leaves the point where it is for a zero slot', () => {
     expect(offsetLatLon(lat, lon, 1, 0)).toEqual({ lat, lon });
+  });
+});
+
+describe('giving way to a steering rider', () => {
+  const DT = 1 / 60;
+  const WIDE: RoadSpanLike = { leftM: -5, rightM: 5 };
+  /** A 1.5 m path with the line on its centre. */
+  const NARROW: RoadSpanLike = { leftM: -0.75, rightM: 0.75 };
+
+  function rider(laneOffsetM: number, distance = 100, reach?: [number, number]): RiderBeside {
+    const [leftM, rightM] = reach ?? [laneOffsetM, laneOffsetM];
+    return { distance, speed: 8, laneOffsetM, leftM, rightM };
+  }
+
+  /** Drawn distance from partner to rider on a straight road (the solver's own picture without riderAt). */
+  function clearance(step: { slotM: number; backM: number }, r: RiderBeside, partnerDistance: number): number {
+    return Math.hypot(step.slotM - r.laneOffsetM, partnerDistance - step.backM - r.distance);
+  }
+
+  describe('partnerSlotM with the rider off the line', () => {
+    it('is the home slot with the rider on the line', () => {
+      for (let i = 0; i < 4; i++) expect(partnerSlotM(i, WIDE, 0)).toBe(partnerSlotM(i, WIDE));
+    });
+
+    it('moves the partner on the rider’s side out to 0.9 m beyond it, leaving the other side alone', () => {
+      expect(partnerSlotM(0, WIDE, 1)).toBeCloseTo(1 + PARTNER_SLOT_FLOOR_M, 12);
+      expect(partnerSlotM(1, WIDE, 1)).toBe(-1.2);
+      expect(partnerSlotM(1, WIDE, -1.6)).toBeCloseTo(-1.6 - PARTNER_SLOT_FLOOR_M, 12);
+      // Partner 2 keeps 0.9 m beyond partner 0 as it moves.
+      expect(partnerSlotM(2, WIDE, 1.6)).toBeCloseTo(1.6 + 2 * PARTNER_SLOT_FLOOR_M, 12);
+    });
+
+    it('never moves a partner in from its home, so it never changes sides', () => {
+      for (let x = -1.6; x <= 1.6; x += 0.05) {
+        for (const span of [WIDE, NARROW, null]) {
+          for (let i = 0; i < 4; i++) {
+            const side = Math.sign(baseSlotM(i));
+            expect(side * partnerSlotM(i, span, x)).toBeGreaterThanOrEqual(side * partnerSlotM(i, span) - 1e-12);
+          }
+        }
+      }
+    });
+
+    it('stops at the road edge (or a step onto the verge) where the road is too narrow, and says so', () => {
+      expect(partnerSlotM(0, NARROW, 0.4)).toBeCloseTo(PARTNER_SLOT_FLOOR_M + PARTNER_YIELD_VERGE_M, 12);
+      expect(partnerClearsRider(0, NARROW, 0.4)).toBe(false);
+      expect(partnerClearsRider(0, NARROW, 0)).toBe(true);
+      // A rider a few centimetres off the line: the partner steps out onto the verge, it doesn't drop back.
+      expect(partnerSlotM(0, NARROW, 0.1)).toBeCloseTo(0.1 + PARTNER_SLOT_FLOOR_M, 12);
+      expect(partnerClearsRider(0, NARROW, PARTNER_YIELD_VERGE_M)).toBe(true);
+      expect(partnerClearsRider(0, WIDE, 1.6)).toBe(true);
+      expect(partnerClearsRider(0, null, 1.6)).toBe(true);
+    });
+
+    it('is continuous in the rider’s lateral: a move of ε moves the slot by at most ε', () => {
+      for (const span of [WIDE, NARROW, { leftM: -1.4, rightM: 2.1 }, null]) {
+        for (let i = 0; i < 4; i++) {
+          for (let x = -1.6; x < 1.6; x += 0.01) {
+            expect(Math.abs(partnerSlotM(i, span, x + 0.01) - partnerSlotM(i, span, x))).toBeLessThanOrEqual(0.01 + 1e-9);
+          }
+        }
+      }
+    });
+  });
+
+  describe('laneReach', () => {
+    it('is where the rider rides with the levers released at rest', () => {
+      expect(laneReach({ offsetM: 0, velMs: 0 }, 0)).toEqual({ leftM: 0, rightM: 0 });
+      const r = laneReach({ offsetM: 0.7, velMs: 0 }, 0);
+      expect(r.rightM).toBe(0.7);
+      expect(r.leftM).toBeLessThan(0.7);
+    });
+
+    it('runs the lane forward through the real spring (stepLane) over LANE_REACH_S', () => {
+      const lane = { offsetM: 0.2, velMs: 0.5 };
+      const reach = laneReach(lane, 1);
+      // The lane itself is untouched.
+      expect(lane).toEqual({ offsetM: 0.2, velMs: 0.5 });
+      const ahead = { ...lane };
+      let hi = ahead.offsetM;
+      for (let t = 0; t < LANE_REACH_S - 1e-9; t += 0.05) hi = Math.max(hi, stepLane(ahead, 1, 0.05).offsetM);
+      expect(reach.rightM).toBeCloseTo(hi, 12);
+      expect(reach.leftM).toBe(0.2);
+      // Full lock right is foreseen almost at once.
+      expect(reach.rightM).toBeGreaterThan(1.5);
+    });
+  });
+
+  describe('stepPartnerYield', () => {
+    it('rides its home slot while the rider keeps 0.9 m clear of it (no twitch)', () => {
+      const state = createPartnerYieldState();
+      for (let f = 0; f < 120; f++) {
+        const s = stepPartnerYield(state, 0, WIDE, { distance: 100, speed: 8 }, rider(0.3), DT);
+        expect(s.slotM).toBe(1.2);
+        expect(s.backM).toBe(0);
+      }
+    });
+
+    it('moves out as the rider steers in, holds for a second after it moves away, then eases home', () => {
+      const state = createPartnerYieldState();
+      const p = { distance: 100, speed: 8 };
+      let s = stepPartnerYield(state, 0, WIDE, p, rider(0), DT);
+      for (let f = 0; f < 240; f++) s = stepPartnerYield(state, 0, WIDE, p, rider(1.6), DT);
+      expect(s.slotM).toBeCloseTo(1.6 + PARTNER_SLOT_FLOOR_M, 3);
+      // The rider moves back to the line: the partner stays out for PARTNER_YIELD_HOLD_S…
+      let frames = 0;
+      while (frames < 600) {
+        s = stepPartnerYield(state, 0, WIDE, p, rider(0), DT);
+        frames++;
+        if (s.targetM < 1.6 + PARTNER_SLOT_FLOOR_M - 1e-9) break;
+      }
+      const heldS = frames * DT;
+      expect(heldS).toBeGreaterThanOrEqual(PARTNER_YIELD_HOLD_S);
+      expect(heldS).toBeLessThanOrEqual(PARTNER_YIELD_HOLD_S + 0.15);
+      // …then eases home at the drift rate, never jumping.
+      let prev = s.slotM;
+      for (let f = 0; f < 120; f++) {
+        s = stepPartnerYield(state, 0, WIDE, p, rider(0), DT);
+        expect(prev - s.slotM).toBeLessThanOrEqual(PARTNER_SLOT_MAX_RATE_MPS * DT + 1e-12);
+        expect(s.slotM).toBeLessThanOrEqual(prev);
+        prev = s.slotM;
+      }
+      expect(s.slotM).toBeCloseTo(1.2, 4);
+    });
+
+    it('restarts the hold while a weaving rider keeps coming back', () => {
+      const state = createPartnerYieldState();
+      const p = { distance: 100, speed: 8 };
+      let s = stepPartnerYield(state, 0, WIDE, p, rider(0), DT);
+      for (let t = 0; t < 6; t += DT) {
+        // In toward the partner for 0.2 s of every 0.8 s: it never starts back.
+        s = stepPartnerYield(state, 0, WIDE, p, rider(t % 0.8 < 0.2 ? 1.2 : 0), DT);
+        expect(s.targetM).toBeGreaterThanOrEqual(1.2 + PARTNER_SLOT_FLOOR_M - 1e-12);
+        expect(s.targetM).toBeLessThanOrEqual(1.2 + PARTNER_SLOT_FLOOR_M + PARTNER_YIELD_MARGIN_M + 1e-12);
+        // Once out, it stays out (to the margin it may take while held off the teleported rider).
+        if (t > 1.2) expect(s.slotM).toBeGreaterThanOrEqual(1.2 + PARTNER_SLOT_FLOOR_M - 1e-3);
+      }
+    });
+
+    it('moves out ahead of where the rider is heading (its reach), not only where it is', () => {
+      const state = createPartnerYieldState();
+      const s = stepPartnerYield(state, 0, WIDE, { distance: 100, speed: 8 }, rider(0, 100, [0, 1.6]), DT);
+      expect(s.targetM).toBeCloseTo(1.6 + PARTNER_SLOT_FLOOR_M, 12);
+      expect(s.slotM).toBeCloseTo(s.targetM, 12); // the first frame seats it
+    });
+
+    it('never crosses: a rider steering away leaves the partner home, a rider at full lock on its side pushes it out', () => {
+      for (let i = 0; i < 4; i++) {
+        const side = Math.sign(baseSlotM(i));
+        const away = stepPartnerYield(createPartnerYieldState(), i, WIDE, { distance: 100, speed: 8 }, rider(-side * 1.6), DT);
+        expect(away.slotM).toBe(partnerSlotM(i, WIDE));
+        const toward = stepPartnerYield(createPartnerYieldState(), i, WIDE, { distance: 100, speed: 8 }, rider(side * 1.6), DT);
+        expect(side * toward.slotM).toBeGreaterThanOrEqual(1.6 + PARTNER_SLOT_FLOOR_M - 1e-9);
+      }
+    });
+
+    it('drops back behind the rider where the road is too narrow, 0.9 m clear every frame, and moves up again', () => {
+      const state = createPartnerYieldState();
+      let d = 100;
+      const at = () => ({ distance: d, speed: 8 });
+      let s = stepPartnerYield(state, 0, NARROW, at(), rider(0, d), DT);
+      expect(s.slotM).toBeCloseTo(PARTNER_SLOT_FLOOR_M, 12);
+      let prevSlot = s.slotM;
+      let prevBack = s.backM;
+      let maxBack = 0;
+      const check = (r: RiderBeside) => {
+        s = stepPartnerYield(state, 0, NARROW, at(), r, DT);
+        expect(clearance(s, r, d)).toBeGreaterThanOrEqual(PARTNER_SLOT_FLOOR_M - 1e-9);
+        expect(Math.sign(s.slotM)).toBe(1);
+        expect(Math.abs(s.slotM - prevSlot)).toBeLessThanOrEqual(PARTNER_SLOT_MAX_RATE_MPS * DT + 1e-12);
+        expect(Math.abs(s.backM - prevBack)).toBeLessThanOrEqual(PARTNER_DROP_MAX_RATE_MPS * DT + 1e-12);
+        prevSlot = s.slotM;
+        prevBack = s.backM;
+        maxBack = Math.max(maxBack, s.backM);
+        d += 8 * DT;
+      };
+      // The rider, through the real spring: full lock right for 3 s, then the levers released.
+      const lane = { offsetM: 0, velMs: 0 };
+      const ride = (steer: number, seconds: number) => {
+        for (let t = 0; t < seconds; t += DT) {
+          stepLane(lane, steer, DT);
+          const reach = laneReach(lane, steer);
+          check(rider(lane.offsetM, d, [reach.leftM, reach.rightM]));
+        }
+      };
+      ride(1, 3);
+      expect(s.backM).toBeCloseTo(PARTNER_DROP_GAP_M, 3);
+      expect(s.blocked).toBe(true);
+      // Back to the line: it moves up once the rider has kept clear for a second.
+      ride(0, 8);
+      expect(maxBack).toBeLessThanOrEqual(PARTNER_DROP_MAX_M);
+      expect(s.backM).toBe(0);
+      expect(s.slotM).toBeCloseTo(PARTNER_SLOT_FLOOR_M, 4);
+    });
+
+    it('takes partner 2 back with partner 0 when partner 0 has no room', () => {
+      const s0 = stepPartnerYield(createPartnerYieldState(), 0, NARROW, { distance: 100, speed: 8 }, rider(1.6), DT);
+      const s2 = stepPartnerYield(createPartnerYieldState(), 2, WIDE, { distance: 100, speed: 8 }, rider(1.6), DT, {
+        innerTargetM: s0.targetM,
+        innerBlocked: s0.blocked,
+      });
+      expect(s0.blocked).toBe(true);
+      expect(s2.blocked).toBe(true);
+      expect(s2.backM).toBeCloseTo(s0.backM, 12);
+    });
+
+    it('rides its slot without a rider, and seats afresh after a seek', () => {
+      const state = createPartnerYieldState();
+      expect(stepPartnerYield(state, 1, WIDE, { distance: 100, speed: 8 }, null, DT)).toMatchObject({ slotM: -1.2, backM: 0 });
+      for (let f = 0; f < 60; f++) stepPartnerYield(state, 1, WIDE, { distance: 100, speed: 8 }, rider(-1.6), DT);
+      const s = stepPartnerYield(state, 1, WIDE, { distance: 100 + 2 * YAW_SNAP_M, speed: 8 }, rider(0, 100 + 2 * YAW_SNAP_M), DT);
+      expect(s.slotM).toBe(-1.2);
+    });
   });
 });
