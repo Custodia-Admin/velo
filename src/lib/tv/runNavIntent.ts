@@ -7,7 +7,7 @@
 import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideStore } from '@/stores/rideStore';
 import type { NavIntent } from './handlebarNav';
-import { activateFocused, focusPrimary, markRemoteInput, moveFocus, sendBack } from './remoteNav';
+import { activateFocused, focusedControl, focusPrimary, markRemoteInput, moveFocus, remoteInput, sendBack } from './remoteNav';
 
 export interface NavIntentOptions {
   /** The Ride page is open. */
@@ -16,7 +16,24 @@ export interface NavIntentOptions {
   backPage?: () => void;
 }
 
+/**
+ * The ring was on screen before this press: remote input was already on, or
+ * the browser draws it (:focus-visible). A button keeps focus after a mouse
+ * or touchpad click with no ring; that focus is not where A points.
+ */
+function ringShowing(): boolean {
+  if (remoteInput()) return true;
+  const el = focusedControl();
+  if (!el) return false;
+  try {
+    return el.matches(':focus-visible');
+  } catch {
+    return false;
+  }
+}
+
 export function runNavIntent(intent: NavIntent, { inRide, backPage }: NavIntentOptions): void {
+  const ringed = ringShowing();
   markRemoteInput();
   switch (intent) {
     case 'up':
@@ -26,8 +43,9 @@ export function runNavIntent(intent: NavIntent, { inRide, backPage }: NavIntentO
       moveFocus(intent);
       return;
     case 'select': {
-      if (activateFocused()) return;
-      // Nothing ringed: a paused ride carries on (A has always done that);
+      if (ringed && activateFocused()) return;
+      // Nothing ringed (focus a click left counts as nothing): a paused ride
+      // carries on (A has always done that);
       // elsewhere the first press rings the view's primary control.
       const ride = useRideStore.getState();
       if (inRide && ride.rideState === 'paused') ride.resume();
