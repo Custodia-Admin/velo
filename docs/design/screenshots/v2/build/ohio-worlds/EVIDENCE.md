@@ -2,7 +2,7 @@
 
 Two remote worlds with bridges built as structures. The bundles are on R2 (`velo-worlds`, public r2.dev):
 - `worlds/ohio-erie-towpath/4d29e49bad1fa163/`
-- `worlds/cleveland-lakefront/ce8ae47fe3276bbe/`
+- `worlds/cleveland-lakefront/ea575d8369357cb0/` (re-baked in review, see below; the superseded `ce8ae47fe3276bbe` is deleted)
 
 Figures and bake details:
 - [WORLD-FORMAT.md § Cuyahoga Valley](../../../../worlds/WORLD-FORMAT.md#cuyahoga-valley-ohio--erie-towpath)
@@ -41,7 +41,33 @@ In every shot:
 
 `src/renderers/three/bridgeDecks.test.ts` measures the same from the shipped bundles:
 - every route keeps at least 4.35 m under every deck it doesn't ride;
-- on the decks it does ride, the rider is on the deck.
+- on the decks it does ride, the rider is on the deck;
+- walked every 0.5 m of the line the rider follows, the rider is never more than 0.3 m above the ground off its ridden spans, and on a span it stands on that span's own deck;
+- no deck kinks where pins fight (more than 2 m within 6 m while over 1 m up, unless the piece is straight end to end).
+
+## Defect found in review and fixed: the lakefront route "rode" the Memorial Shoreway at 2.62 km
+
+Review @86a8ecf found that `scenic-cleveland-lakefront` counted as riding road 1014, the Cleveland Memorial Shoreway (a motorway deck), at 2623.86–2630.09 m. The bikeway there runs on its own cycleway, 6.2 m off the Shoreway's centreline (half-width 6 m). The ride pins pinned the deck to the path 6 m from its headroom pin: a 112 % kink. The app then lifted the rider 6.27 m onto the deck at 2616.5–2617 m, where the route passes under it, and the chase camera rode on top of the slab, hiding the rider.
+
+- **Rule.** A route rides only a deck it is on: never a motorway or trunk deck, not where it runs alongside a deck off its surface while its own ground road is nearer, and a ride must put the route on the deck's surface somewhere ([WORLD-FORMAT.md § bridges.json](../../../../worlds/WORLD-FORMAT.md#bridgesjson-bridges-as-structures)). Re-computed offline from both published bundles, the only span this changes is the Shoreway one; every real ride keeps its exact `s0`/`s1`.
+- **Re-bake.** `cleveland-lakefront` → `ea575d8369357cb0`: only `roads`, `bridges` and the manifest changed (no ride pins on the Shoreway). An `--out` re-bake is byte-identical for 9/9 files. `ohio-erie-towpath` re-bakes byte-identical to its published `4d29e49bad1fa163`, so it is unchanged.
+- **Checks every metre.** The bake's `footprintConflicts` now walks every metre of the line the rider follows, not the 10 m route samples, and checks that a ridden span is ridden on its own deck. A new `deckKinks` bake check rejects pins that fight. The shipped-world test walks every 0.5 m. On the old `ce8ae47fe3276bbe` bundle it fails ("6.30 m off its span's own deck at 2617.0 m"; "road 1014: 6.65 m within 6 m"). On the re-bake it passes.
+- **Deck kinks, worst change within 6 m while over 1 m up.**
+  - Cleveland: before 6.75 m (road 1014), after 1.63 m (a footway, 1.6 m up).
+  - Towpath: unchanged at 2.33 m. Its three windows over 2 m (2.09–2.33 m) are straight Buckeye Trail footbridges up 34–39 % hillsides. They carry no pin, stand 1.1–1.6 m up and are over 750 m from any route.
+- **Offline 0.5 m probe** (review's `review103d`). The lakefront rider runs at 2616.5 m and 2623.5–2629.5 m and the camera-reach run at 2613–2638 m are gone. What remains are the ≤ 1 m V-dips in the ground profile (lakefront 41–128 m, Wendy Park 2182–2248 m), as before. Perugia, Lugano and Chengdu read 0.
+- **Browser, standard camera, held with `__veloWorldLight.place()`.** Token-free production builds were served locally: before `index-DSDES6Iy.js` (86a8ecf), after `index-H4aY-4Wf.js`. The composites below are made from the same spots: `review-shoreway-2600-2624-1280x648.jpg` and `review-shoreway-2600-2624-390x844.jpg`.
+
+| Spot | Camera over rider, before → after | Rider root vs path, after | Rider visible, before → after |
+| --- | --- | --- | --- |
+| 2600 m | 2.60 → 2.60 m | 0.00 m | yes → yes |
+| 2612 m | 2.60 → 2.60 m | −0.03 m | yes → yes |
+| 2618 m | **6.85** → 2.60 m (camera on the Shoreway deck) | −0.02 m | **no** → yes |
+| 2624 m | **6.97** → 2.60 m | +0.18 m | **no** → yes |
+
+The figures are the same at 1280×648@2 and 390×844. At 2616.5, 2617 and 2627 m the rider used to stand +6.27, +6.27 and +3.07 m over the path; it now stands at −0.03, −0.03 and +0.02 m.
+
+"Visible" means the shot changes when the rider object is hidden (pixels above the HUD that differ by more than 24 levels). After the fix that is 521–2,165 pixels at 1280×648@2 and 1,434–9,041 at 390×844 for every spot. Before, at 2618 and 2624 m, it was 0 in both viewports: the camera looked along the top of the slab.
 
 ## Defects found and fixed while shooting
 
