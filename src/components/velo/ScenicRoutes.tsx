@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useSettingsStore, type UnitSystem } from '@/stores/settingsStore';
 import type { ScenicRouteInfo } from '@/lib/scenicRoutes';
 import { WeatherLine } from '@/components/velo/WeatherLine';
+import { useNavPrimary } from '@/hooks/useNavPrimary';
 import type { WeatherEntry } from '@/stores/liveWeatherStore';
 import { cardWeatherText } from '@/lib/meteo/weatherText';
 import { postersFor } from '@/lib/world/posters';
@@ -70,6 +71,8 @@ export function FeaturedScenicRide({
   className?: string;
 }) {
   const units = useSettingsStore((s) => s.units);
+  // Home's one primary action: where a TV remote lands first.
+  const primary = useNavPrimary();
   const posters = postersFor(info.route.id);
   const plateClass = 'aspect-4/3 w-full sm:aspect-video sm:max-h-hero-fit';
   return (
@@ -99,6 +102,7 @@ export function FeaturedScenicRide({
             className="w-full text-base sm:w-auto"
             onClick={() => onRide(info)}
             aria-label={`Ride ${info.name}`}
+            {...primary}
           >
             <Play className="h-5 w-5" />
             Ride

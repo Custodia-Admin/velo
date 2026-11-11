@@ -6,7 +6,7 @@ import { useRideStore } from '@/stores/rideStore';
 import { ComfortControls, RiderSwitch } from '@/components/velo/RiderPanel';
 import { HomeHeader } from '@/components/velo/HomeHeader';
 import { WorldCredits } from '@/components/velo/WorldCredits';
-import { COLUMN, DISPLAY, PAGE_X } from '@/components/velo/v2';
+import { COLUMN, DISPLAY, PAGE_X, PAGE_Y_SAFE } from '@/components/velo/v2';
 import { cn } from '@/lib/utils';
 import { ScenicRouteGridSkeleton } from '@/components/velo/ScenicRoutes';
 // Lazy: scenic route geometry (~30 kB) stays off the critical path.
@@ -47,7 +47,7 @@ export function Home() {
   }, [location.search]);
 
   return (
-    <div className="relative min-h-full w-full overflow-x-hidden">
+    <div className={cn('relative min-h-full w-full overflow-x-hidden', PAGE_Y_SAFE)}>
       <HomeHeader />
       <main className={PAGE_X}>
         <div className={COLUMN}>

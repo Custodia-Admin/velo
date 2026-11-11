@@ -3,7 +3,7 @@
  * low-light HUD, avatar/garage colours.
  */
 
-import { Camera, Monitor, Moon, Palette, Smartphone } from 'lucide-react';
+import { Camera, Monitor, MonitorSmartphone, Moon, Palette, Smartphone } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useThemeStore } from '@/stores/themeStore';
 import type { LowLightSetting } from '@/lib/lowLightMode';
@@ -14,6 +14,7 @@ import { Section } from '@/components/ui/section-header';
 import { PickerButton } from './shared';
 import { CesiumIonTokenSection } from './CesiumIonTokenSection';
 import { CameraDistancePicker } from '@/components/velo/CameraDistancePicker';
+import { LayoutPicker } from '@/components/velo/LayoutPicker';
 
 // ---------------------------------------------------------------------------
 // Camera label map
@@ -61,6 +62,11 @@ export function VisualSettings() {
           <PickerButton selected={theme === 'light'} onClick={() => setTheme('light')} label="Day" sub="paper" />
           <PickerButton selected={theme === 'dark'} onClick={() => setTheme('dark')} label="Night" sub="deep umber" />
         </div>
+      </Section>
+
+      {/* TV layout (P3.3): Auto | TV | Standard */}
+      <Section icon={<MonitorSmartphone className="h-4 w-4" />} title="Layout">
+        <LayoutPicker />
       </Section>
 
       {/* Camera mode */}

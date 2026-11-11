@@ -25,7 +25,8 @@ import { Figure } from '@/components/velo/Figure';
 import { MapPlate } from '@/components/velo/MapPlate';
 import { Plate } from '@/components/velo/Plate';
 import { RouteProfile } from '@/components/velo/RouteProfile';
-import { COLUMN, DISPLAY, KICKER, PAGE_X, WORDMARK } from '@/components/velo/v2';
+import { COLUMN, DISPLAY, KICKER, PAGE_X, PAGE_Y_SAFE, WORDMARK } from '@/components/velo/v2';
+import { remoteFirst, useNavPrimary } from '@/hooks/useNavPrimary';
 import { useRideExport } from '@/hooks/useRideExport';
 import { computeMetrics } from '@/lib/metrics';
 import { computeAscentM, listRides } from '@/lib/rideHistory';
@@ -172,9 +173,13 @@ export function FinishCard() {
   const exp = useRideExport();
   const saved = useSavedOnDevice(startedAt);
 
+  // Home is the one filled button: on a TV (or with a remote / the
+  // handlebars) the ring lands there, so OK goes Home. Otherwise the
+  // dialog's title takes the focus, for screen readers.
+  const homeButton = useNavPrimary();
   const titleRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    titleRef.current?.focus({ preventScroll: true });
+    if (!remoteFirst()) titleRef.current?.focus({ preventScroll: true });
   }, []);
 
   const ascentM = useMemo(() => computeAscentM(samples), [samples]);
@@ -203,7 +208,7 @@ export function FinishCard() {
       aria-modal="true"
       aria-labelledby={TITLE_ID}
       data-testid="finish-screen"
-      className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background text-foreground"
+      className={cn('fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background text-foreground', PAGE_Y_SAFE)}
     >
       <header className={cn(PAGE_X, 'shrink-0')}>
         <div className={cn(COLUMN, 'flex h-16 items-center justify-between gap-4')}>
@@ -297,7 +302,7 @@ export function FinishCard() {
                 <RotateCcw className="h-5 w-5" aria-hidden="true" />
                 Ride again
               </Button>
-              <Button variant="primary" size="lg" className="col-span-2 text-base" onClick={() => navigate('/app')}>
+              <Button variant="primary" size="lg" className="col-span-2 text-base" onClick={() => navigate('/app')} {...homeButton}>
                 <Home className="h-5 w-5" aria-hidden="true" />
                 Home
               </Button>

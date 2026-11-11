@@ -23,7 +23,7 @@
  * backdrop-filter over the live canvas, PR #16).
  */
 
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useRideHudStore } from '@/stores/rideHudStore';
 import { PhotorealNoticeView, type PhotorealNoticeState } from './PhotorealNotice';
@@ -110,8 +110,26 @@ export function RideHudLayout({
  * the containing block of the phones' fixed top row.
  */
 function RideDetails(tools: RideToolsProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  // Escape (a remote's or the handlebars' Back) with the focus in the
+  // details closes them and puts the ring back on the toggle. It stops here:
+  // on the window Escape is the ride's pause / finish shortcut. An open
+  // tools menu (its trigger is aria-expanded) closes itself first.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const root = ref.current;
+      if (e.key !== 'Escape' || !root || !root.contains(e.target as Node)) return;
+      if (root.querySelector('[aria-expanded="true"]')) return;
+      e.stopPropagation();
+      useRideHudStore.getState().setExpanded(false);
+      document.querySelector<HTMLElement>('[data-testid="ride-details-toggle"]')?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
   return (
     <div
+      ref={ref}
       id="ride-details"
       role="region"
       aria-label="Ride details"

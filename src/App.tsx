@@ -6,6 +6,8 @@ import { Toaster } from '@/components/setup/Toaster';
 import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
 import { ServiceWorkerUpdates } from '@/components/ServiceWorkerUpdates';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
+import { LayoutModeHost } from '@/hooks/useLayoutMode';
+import { RemoteNavigationHost } from '@/hooks/useRemoteNavigation';
 
 const Ride = React.lazy(() => import('@/routes/Ride').then(m => ({ default: m.Ride })));
 const Devices = React.lazy(() => import('@/routes/Devices').then(m => ({ default: m.Devices })));
@@ -23,6 +25,9 @@ export default function App() {
     <BrowserRouter>
       <TrainerEventBridge />
       <ServiceWorkerUpdates />
+      <LayoutModeHost />
+      {/* Arrow keys / TV remote / handlebar buttons move a visible focus ring (P3.3). */}
+      <RemoteNavigationHost />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           {/* Home is the app: "/" (and any unknown URL, below) goes there */}

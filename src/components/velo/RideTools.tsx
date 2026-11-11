@@ -214,6 +214,8 @@ function RideOptionsMenu({ onInvite, onShortcuts, xr }: Pick<RideToolsProps, 'on
       if (e.key === 'Escape') {
         e.stopPropagation();
         setOpen(false);
+        // The ring goes back to the Settings button (a remote's Back).
+        if (rootRef.current?.contains(document.activeElement)) rootRef.current.querySelector('button')?.focus();
       }
     };
     const onDown = (e: PointerEvent) => {

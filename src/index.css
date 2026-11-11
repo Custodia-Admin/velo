@@ -155,9 +155,20 @@
   }
 
   /* 10-foot layout (UI-RULES §5 TV addendum): the same UI at 1.75x, so
-     1rem = 28 px on a 1920x1080 TV. Set by src/lib/tvLayout.ts. */
+     1rem = 28 px on a 1920x1080 TV; a browser that reports a bigger screen
+     (3840x2160) gets the same picture scaled with it (56 px), never the
+     1080p sizes at half the height. Set by src/lib/tvLayout.ts (P3.3).
+     --overscan-*: TVs may crop up to 5 % of each edge (Android TV / tvOS
+     title-safe); pages and the ride HUD stay inside that plus 0.5rem, so a
+     focus ring does too. 0 off the TV layout. */
+  :root {
+    --overscan-x: 0px;
+    --overscan-y: 0px;
+  }
   html[data-layout='tv'] {
-    font-size: 175%;
+    font-size: max(175%, min(1.4583vw, 2.5926vh));
+    --overscan-x: calc(5vw + 0.5rem);
+    --overscan-y: calc(5vh + 0.5rem);
   }
 
   /* The floating ride window (journey mode, lib/show/pip.ts) scales its own
@@ -182,6 +193,29 @@
   :focus-visible {
     outline: 2px solid hsl(var(--primary));
     outline-offset: 2px;
+  }
+  /* Remote input (arrow keys, a TV remote, the handlebars; lib/tv/remoteNav):
+     the ring shows on whatever has focus, also when a handlebar press moved
+     it by script (no keyboard event, so :focus-visible may not match).
+     tabindex=-1 targets (a dialog's title) are focus parking, not controls. */
+  html[data-input='remote'] :focus:not([tabindex='-1']) {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+  /* TV (P3.3): the ring is where the remote points, read from the sofa:
+     0.25rem (7 px at 1080p) of ink with a paper gap, in rem so it scales.
+     Ink, not terracotta: terracotta on the terracotta primary reads as a
+     thicker border, and selected pills already wear a terracotta outline.
+     The gap (a box-shadow; it replaces a focused Button's own ring) keeps it
+     readable over the dark 3D scene behind the ride HUD. */
+  html[data-layout='tv'] :focus-visible,
+  html[data-layout='tv'][data-input='remote'] :focus:not([tabindex='-1']) {
+    outline: 0.25rem solid hsl(var(--foreground));
+    outline-offset: 0.125rem;
+    box-shadow: 0 0 0 0.125rem hsl(var(--background));
+    /* The ring lands at once: it is the answer to a remote press, and a TV
+       busy drawing the 3D scene would ease it in over many frames. */
+    transition-property: color, background-color, border-color, opacity, transform;
   }
 
   /* Styled range inputs. :where() keeps this at zero specificity, so a
@@ -210,13 +244,14 @@
   .max-h-hero-fit {
     max-height: calc(100vh - 13rem);
   }
-  /* In-ride HUD insets: spacing 4 (28 px on TV) inside the screen edge,
-     or the safe-area inset when that is larger. */
-  .hud-inset-t { top: max(env(safe-area-inset-top), 1rem); }
-  .hud-inset-x { left: max(env(safe-area-inset-left), 1rem); right: max(env(safe-area-inset-right), 1rem); }
-  .hud-inset-l { left: max(env(safe-area-inset-left), 1rem); }
-  .hud-inset-r { right: max(env(safe-area-inset-right), 1rem); }
-  .hud-inset-b { bottom: max(env(safe-area-inset-bottom), 1.5rem); }
+  /* In-ride HUD insets: spacing 4 inside the screen edge, or the safe-area
+     inset when that is larger; on the TV layout outside the overscan frame
+     (--overscan-*, 5 % + 0.5rem). */
+  .hud-inset-t { top: max(env(safe-area-inset-top), 1rem, var(--overscan-y)); }
+  .hud-inset-x { left: max(env(safe-area-inset-left), 1rem, var(--overscan-x)); right: max(env(safe-area-inset-right), 1rem, var(--overscan-x)); }
+  .hud-inset-l { left: max(env(safe-area-inset-left), 1rem, var(--overscan-x)); }
+  .hud-inset-r { right: max(env(safe-area-inset-right), 1rem, var(--overscan-x)); }
+  .hud-inset-b { bottom: max(env(safe-area-inset-bottom), 1.5rem, var(--overscan-y)); }
   @media (max-width: 639.98px) {
     .hud-inset-t { top: max(env(safe-area-inset-top), 0.75rem); }
     .hud-inset-x { left: max(env(safe-area-inset-left), 0.75rem); right: max(env(safe-area-inset-right), 0.75rem); }
@@ -226,7 +261,24 @@
   }
   /* Ride strip: never wider than the viewport minus the side insets. */
   .max-w-hud-strip {
-    max-width: calc(100vw - 2rem);
+    max-width: calc(100vw - max(2rem, 2 * var(--overscan-x)));
+  }
+  /* Page gutters (UI-RULES §4: spacing 4, 10 from sm), outside the TV's
+     overscan frame on the TV layout; and the TV frame's top and bottom for
+     full-screen pages (0 off the TV layout). */
+  .page-x {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  @media (min-width: 640px) {
+    .page-x {
+      padding-left: max(2.5rem, var(--overscan-x));
+      padding-right: max(2.5rem, var(--overscan-x));
+    }
+  }
+  .page-y-safe {
+    padding-top: var(--overscan-y);
+    padding-bottom: var(--overscan-y);
   }
 
   /* v2 utilities: home (add home-only rules below this line) */
@@ -255,9 +307,9 @@
   }
   /* Show mode insets (v2-show.html): 1.5rem from the screen edges from sm,
      the HUD's 0.75rem below sm; safe-area aware like .hud-inset-*. */
-  .show-inset-t { top: max(env(safe-area-inset-top), 1.5rem); }
-  .show-inset-l { left: max(env(safe-area-inset-left), 1.5rem); }
-  .show-inset-r { right: max(env(safe-area-inset-right), 1.5rem); }
+  .show-inset-t { top: max(env(safe-area-inset-top), 1.5rem, var(--overscan-y)); }
+  .show-inset-l { left: max(env(safe-area-inset-left), 1.5rem, var(--overscan-x)); }
+  .show-inset-r { right: max(env(safe-area-inset-right), 1.5rem, var(--overscan-x)); }
   @media (max-width: 639.98px) {
     .show-inset-t { top: max(env(safe-area-inset-top), 0.75rem); }
     .show-inset-l { left: max(env(safe-area-inset-left), 0.75rem); }
@@ -270,7 +322,7 @@
   .w-show-s { width: 30vw; }
   .w-show-m { width: 42vw; }
   .w-show-l { width: min(55vw, (53vh - 2rem) * 16 / 9); }
-  .max-h-show-fit { max-height: calc(100vh - 10rem); }
+  .max-h-show-fit { max-height: calc(100vh - 10rem - var(--overscan-y)); }
   /* v2 utilities: devices + finish (add rules below this line) */
   /* Devices page at lg: device panels | Ride + pairing tips (7fr / 4fr),
      the right column's Ride row sized to its content. */
