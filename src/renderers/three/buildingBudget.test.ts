@@ -138,4 +138,20 @@ describe('buildings: as surveyed near the camera, as boxes past buildingDetailM'
     expect(shown(h)).toEqual([true, true, false]);
     expect(shownBoxes(h)).toEqual([false, null, true]);
   });
+
+  it('boxes take the plain far material and stay out of the shadow map; surveyed chunks keep both', () => {
+    const sw = world('surveyed');
+    const h = createBuildings(sw, createAtmosphere());
+    updateBuildings(h, sw, 50, 50, 1000, 3, true, Infinity, Infinity, 60);
+    for (const m of [h.meshes[0], h.meshes[1]]) {
+      expect(m!.material).toBe(h.material);
+      expect([m!.castShadow, m!.receiveShadow]).toEqual([true, true]);
+    }
+    const box = h.boxes[2]!;
+    expect(box.material).toBe(h.farMaterial);
+    expect(h.farMaterial).not.toBe(h.material);
+    expect([box.castShadow, box.receiveShadow]).toEqual([false, false]);
+    // Distinct programs: the far one carries none of the wall detail.
+    expect(h.farMaterial.customProgramCacheKey()).not.toBe(h.material.customProgramCacheKey());
+  });
 });

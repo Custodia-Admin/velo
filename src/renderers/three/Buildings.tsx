@@ -9,6 +9,10 @@
  * house a kilometre off is a few pixels; its box is 4 walls and a roof), and
  * up to `buildingTris` in all, so a dense metro world stops short of the view
  * distance. Chunks the camera rides away from hide or turn to boxes again.
+ * Boxes take a plain material (`createFarBuildingMaterial`) and neither cast
+ * nor receive shadows: past `buildingDetailM` the wall and roof detail has
+ * faded out anyway, and boxes a few pixels across shaded with it cost Santa
+ * Monica's medium tier a third of its frame.
  */
 
 import { useEffect, useMemo } from 'react';
@@ -93,6 +97,20 @@ float bh(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx +
   });
 }
 
+/**
+ * The far boxes' material: the same vertex colours, light and atmosphere,
+ * none of the wall and roof detail. At a box's distance the detail has faded
+ * to its mean, so walls and roofs take that: 0.95 for the stains, streaks and
+ * damp plinth, darker in the rain.
+ */
+export function createFarBuildingMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMaterial {
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 });
+  return patchWorldMaterial(mat, atmo, {
+    key: 'buildings-far-v1',
+    fragmentReplace: [['#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb *= 0.95 * (1.0 - 0.2 * uWet);']],
+  });
+}
+
 function toGeometry(d: ReturnType<typeof buildBuildingGeometry>): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(d.positions, 3));
@@ -114,6 +132,8 @@ export interface BuildingsHandle {
   tris: number[];
   boxTris: number[];
   material: THREE.MeshStandardMaterial;
+  /** The boxes' material (`createFarBuildingMaterial`). */
+  farMaterial: THREE.MeshStandardMaterial;
   /** Frames to skip before looking again (nothing was left to build). */
   pendingCheck: number;
 }
@@ -134,7 +154,7 @@ export function createBuildings(sw: SceneWorld, atmo: WorldAtmosphere): Building
   const group = new THREE.Group();
   group.name = 'buildings';
   const none = () => sw.chunks.map(() => null);
-  return { group, buckets, meshes: none(), boxes: none(), tris, boxTris, material: createBuildingMaterial(atmo), pendingCheck: 0 };
+  return { group, buckets, meshes: none(), boxes: none(), tris, boxTris, material: createBuildingMaterial(atmo), farMaterial: createFarBuildingMaterial(atmo), pendingCheck: 0 };
 }
 
 /**
@@ -197,11 +217,12 @@ export function updateBuildings(
     const detailed = want.get(i)!;
     const chunk = sw.chunks[i];
     const data = buildBuildingGeometry(sw.world.buildings, handle.buckets[i], sw.heightfield, chunk.centerX, chunk.centerZ, !detailed);
-    const mesh = new THREE.Mesh(toGeometry(data), handle.material);
+    const mesh = new THREE.Mesh(toGeometry(data), detailed ? handle.material : handle.farMaterial);
     mesh.name = `buildings-${i}${detailed ? '' : '-boxes'}`;
     mesh.position.set(chunk.centerX, 0, chunk.centerZ);
-    mesh.castShadow = shadows;
-    mesh.receiveShadow = shadows;
+    // The shadow map covers tens of metres round the rider; boxes are a kilometre off.
+    mesh.castShadow = shadows && detailed;
+    mesh.receiveShadow = shadows && detailed;
     handle.group.add(mesh);
     if (detailed) {
       handle.meshes[i] = mesh;
@@ -219,6 +240,7 @@ export function disposeBuildings(handle: BuildingsHandle) {
   for (const m of handle.meshes) m?.geometry.dispose();
   for (const m of handle.boxes) m?.geometry.dispose();
   handle.material.dispose();
+  handle.farMaterial.dispose();
 }
 
 export function Buildings({ sceneWorld, quality, atmo }: { sceneWorld: SceneWorld; quality: ThreeQuality; atmo?: WorldAtmosphere }) {
