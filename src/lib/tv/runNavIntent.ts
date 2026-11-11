@@ -43,6 +43,14 @@ function ringShowing(): boolean {
 
 export function runNavIntent(intent: NavIntent, { inRide, backPage }: NavIntentOptions): void {
   const ringed = ringShowing();
+  const ride = useRideStore.getState();
+  // A on a paused ride with nothing ringed carries on (A has always done
+  // that) and leaves the ring off: lit now, it would land on the control a
+  // click left focused and take the next A.
+  if (intent === 'select' && !ringed && inRide && ride.rideState === 'paused') {
+    ride.resume();
+    return;
+  }
   markRemoteInput();
   switch (intent) {
     case 'up':
@@ -53,10 +61,8 @@ export function runNavIntent(intent: NavIntent, { inRide, backPage }: NavIntentO
       return;
     case 'select': {
       if (ringed && activateFocused()) return;
-      // Nothing ringed (focus a click left counts as nothing): a paused ride
-      // carries on (A has always done that);
-      // elsewhere the first press rings the view's primary control.
-      const ride = useRideStore.getState();
+      // Nothing to press (focus a click left counts as nothing): a paused
+      // ride carries on; elsewhere the first press rings the view's primary.
       if (inRide && ride.rideState === 'paused') ride.resume();
       else focusPrimary();
       return;

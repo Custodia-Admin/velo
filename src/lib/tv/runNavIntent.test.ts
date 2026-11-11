@@ -42,10 +42,14 @@ describe('runNavIntent select on a paused ride', () => {
     useRideStore.setState({ rideState: 'paused', resume });
   });
 
-  it('a control a mouse click focused (no ring showing) is not pressed: A carries on', () => {
+  it('a control a mouse click focused (no ring showing) is not pressed: A carries on, every time', () => {
     nav.focused = control(false);
     runNavIntent('select', { inRide: true });
     expect(resume).toHaveBeenCalledTimes(1);
+    // Paused again (A while riding is the ride map's): carrying on left the ring off.
+    useRideStore.setState({ rideState: 'paused' });
+    runNavIntent('select', { inRide: true });
+    expect(resume).toHaveBeenCalledTimes(2);
     expect(nav.activateFocused).not.toHaveBeenCalled();
   });
 
