@@ -60,6 +60,8 @@ const PARALLEL_COS = Math.cos(Math.PI / 6);
  * onto whatever runs beside it (Locarno 2,072 m).
  */
 export const ROUTE_EASE_CORNER_M = 0.6;
+/** Most passes easeRoadsOntoRoutes makes before it gives up (it stops once nothing moves). */
+export const ROUTE_FIT_MAX_PASSES = 16;
 
 /**
  * Distance from (x, y) past the drawn edge of segment `i` (vertex offset) of
@@ -674,7 +676,11 @@ export function easeRoadsOntoRoutes(routes, roads) {
   const joins = [];
   const mid = (r, i) => [(r.x[i] + r.x[i - 1]) / 2, (r.y[i] + r.y[i - 1]) / 2];
   const underground = routes.map((r) => r.s.map((_, i) => i > 0 && !!inTunnel && inTunnel(...mid(r, i)).edge <= COVERAGE_MARGIN_M));
-  for (let pass = 0; pass < 8; pass++) {
+  // Most fits settle in a few passes. Rounding to decimetres can leave a
+  // centimetre on a tight corner that takes a few more (Santa Monica's Strand
+  // at Hermosa needs 10). A fit that settles stops early, so the cap only
+  // changes a fit that would otherwise throw.
+  for (let pass = 0; pass < ROUTE_FIT_MAX_PASSES; pass++) {
     const near = roadIndex(drawn);
     const demands = new Map();
     const exts = new Map();
