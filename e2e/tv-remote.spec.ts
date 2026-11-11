@@ -11,6 +11,9 @@
  *    sends Enter.
  *
  * Runs against the token-free production build (playwright.config.ts).
+ * Graphics on low (as context-loss.spec.ts): software GL at 1920×1080 on a
+ * CI runner otherwise takes so long per frame that the ride never ticks and
+ * the route change back to Home waits behind the 3D frames.
  */
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
@@ -20,7 +23,7 @@ const H = 1080;
 const init = (layoutMode: 'auto' | 'tv' | 'default') => `
   localStorage.removeItem('globeride.cesiumIonToken');
   localStorage.setItem('globeride.onboarding.v2', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 2 }));
-  localStorage.setItem('globeride.settings.v1', JSON.stringify({ state: { layoutMode: '${layoutMode}' }, version: 1 }));
+  localStorage.setItem('globeride.settings.v1', JSON.stringify({ state: { layoutMode: '${layoutMode}', graphicsQuality: 'low', graphicsQualityAuto: false }, version: 1 }));
 `;
 
 async function layoutOf(browser: Browser, opts: Parameters<Browser['newContext']>[0], layoutMode: 'auto' | 'tv' = 'auto') {
@@ -142,6 +145,7 @@ test.describe('keys only at 1920×1080', () => {
     // Home again, ring back on Ride.
     await page.keyboard.press('Enter');
     await page.waitForURL('**/app');
+    await expect(page.locator('#home-title')).toBeVisible({ timeout: 60_000 });
     await ringOn(page, /^Ride (?!.*and watch)/, 'Home again');
 
     expect(pageErrors).toEqual([]);
