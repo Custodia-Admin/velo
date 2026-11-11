@@ -243,16 +243,16 @@ describe('worldbake: nothing the rider follows runs through a building', () => {
 });
 
 describe('shipped worlds: a loop route meets itself at one height', () => {
-  // Baked before closeLoop: Perugia's Assisi loop still steps 2.2 m in its
-  // first 10 m. Remove the entry when Perugia is re-baked (the test below
-  // fails once the step is gone, so the entry can't go stale).
-  const BAKED_BEFORE_CLOSE_LOOP: Record<string, string[]> = { perugia: ['scenic-assisi-valley'] };
+  // Every shipped world is baked with closeLoop. Before it, Perugia's Assisi
+  // loop stepped 2.2 m in its first 10 m (24 % at 30 m).
   const MAX_JOIN_GRADE = 0.08;
   const recipes = fileURLToPath(new URL('../../../tools/worldbake/worlds', import.meta.url));
   const worlds = readableWorldBundles().filter((b: { id: string }) => existsSync(join(recipes, `${b.id}.json`)));
 
   it('finds the shipped worlds', () => {
-    expect(worlds.map((b: { id: string }) => b.id)).toContain('chengdu-luxelakes');
+    const ids = worlds.map((b: { id: string }) => b.id);
+    expect(ids).toContain('chengdu-luxelakes');
+    expect(ids).toContain('perugia');
   });
 
   for (const { id, dir } of worlds as { id: string; dir: string }[]) {
@@ -267,7 +267,7 @@ describe('shipped worlds: a loop route meets itself at one height', () => {
         for (const i of [1, 2, 3, n - 3, n - 2, n - 1]) worst = Math.max(worst, Math.abs(r.h[i] - r.h[i - 1]) / (r.s[i] - r.s[i - 1]));
         if (worst > MAX_JOIN_GRADE) stepped.push(r.id);
       }
-      expect(stepped).toEqual(BAKED_BEFORE_CLOSE_LOOP[id] ?? []);
+      expect(stepped).toEqual([]);
     });
   }
 });
