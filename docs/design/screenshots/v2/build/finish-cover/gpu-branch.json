@@ -1,0 +1,103 @@
+{
+ "label": "branch",
+ "1440x900": {
+  "riding": {
+   "rideState": "running",
+   "distance": 118.65508182334845,
+   "elapsedMs": 10116.300000000001,
+   "draws": 57851,
+   "frames": 673,
+   "riderScreen": [
+    713,
+    559
+   ],
+   "pins": [
+    "pin-0"
+   ]
+  },
+  "finishedDraws3s": 0,
+  "finishedFrames3s": 0,
+  "again1_5s": {
+   "rideState": "running",
+   "distance": 17.80585323904663,
+   "elapsedMs": 1516.5999999999985,
+   "draws": 66671,
+   "frames": 771,
+   "riderScreen": [
+    721,
+    557
+   ],
+   "pins": [
+    "pin-0",
+    "pin-119"
+   ]
+  },
+  "again5_5s": {
+   "rideState": "running",
+   "distance": 64.59695995909168,
+   "elapsedMs": 5516.399999999998,
+   "draws": 88271,
+   "frames": 1011,
+   "riderScreen": [
+    721,
+    557
+   ],
+   "pins": [
+    "pin-0",
+    "pin-119"
+   ]
+  },
+  "againCanvasVariety": 3121,
+  "pageErrors": []
+ },
+ "390x844": {
+  "riding": {
+   "rideState": "running",
+   "distance": 119.03091172183784,
+   "elapsedMs": 10149.6,
+   "draws": 43390,
+   "frames": 674,
+   "riderScreen": [
+    185,
+    524
+   ],
+   "pins": [
+    "pin-0"
+   ]
+  },
+  "finishedDraws3s": 0,
+  "finishedFrames3s": 0,
+  "again1_5s": {
+   "rideState": "running",
+   "distance": 17.630310569070105,
+   "elapsedMs": 1500,
+   "draws": 50022,
+   "frames": 773,
+   "riderScreen": [
+    196,
+    523
+   ],
+   "pins": [
+    "pin-0",
+    "pin-119"
+   ]
+  },
+  "again5_5s": {
+   "rideState": "running",
+   "distance": 64.46627452692307,
+   "elapsedMs": 5499.799999999999,
+   "draws": 66102,
+   "frames": 1013,
+   "riderScreen": [
+    196,
+    523
+   ],
+   "pins": [
+    "pin-0",
+    "pin-119"
+   ]
+  },
+  "againCanvasVariety": 3910,
+  "pageErrors": []
+ }
+}
