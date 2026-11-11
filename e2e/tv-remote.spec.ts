@@ -53,6 +53,8 @@ interface Focused {
   testid: string | null;
   outlineStyle: string;
   outlineWidth: number;
+  /** Spread of the box-shadow: the paper gap + halo around the ink ring. */
+  haloSpread: number;
   inViewport: boolean;
 }
 
@@ -67,6 +69,7 @@ const focused = (page: Page) =>
       testid: el.getAttribute('data-testid'),
       outlineStyle: s.outlineStyle,
       outlineWidth: parseFloat(s.outlineWidth),
+      haloSpread: parseFloat(s.boxShadow.match(/-?[\d.]+px/g)?.[3] ?? '0'),
       inViewport: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight,
     };
   });
@@ -77,12 +80,16 @@ async function ringOn(page: Page, label: string | RegExp, what: string) {
     .poll(async () => (await focused(page))?.label ?? '(nothing focused)', { message: `${what}: focus`, timeout: 15_000 })
     .toMatch(typeof label === 'string' ? new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) : label);
   // The 7 px ink ring (0.25rem at 1080p), at once: the TV ring does not ease in.
+  // Paper around it (0.625rem = 17.5 px spread: the 3.5 px gap inside, a 7 px
+  // halo outside the ring's outer edge at 10.5 px), as in the mockup.
   await expect
     .poll(async () => {
       const f = await focused(page);
-      return f ? `${f.outlineStyle} ${Math.round(f.outlineWidth)} ${f.inViewport ? 'on screen' : 'off screen'}` : 'nothing';
-    }, { message: `${what}: a visible 7 px ring, on screen`, timeout: 5_000 })
-    .toBe('solid 7 on screen');
+      return f
+        ? `${f.outlineStyle} ${Math.round(f.outlineWidth)} halo ${f.haloSpread} ${f.inViewport ? 'on screen' : 'off screen'}`
+        : 'nothing';
+    }, { message: `${what}: a visible 7 px ring in its paper halo, on screen`, timeout: 5_000 })
+    .toBe('solid 7 halo 17.5 on screen');
 }
 
 test('Devices: Escape closes the pairing guide and stays on Devices; a second Escape goes Home', async ({ page }) => {
