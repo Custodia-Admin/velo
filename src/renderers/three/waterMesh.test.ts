@@ -13,7 +13,21 @@ import { readableWorldBundles, worldBundles } from '../../../tools/worldbake/wor
 
 import { Heightfield } from '@/lib/world/heightfield';
 import { loadWorld, type LoadedWorld, type WaterLayer } from '@/lib/world/loadWorld';
-import { buildWaterGeometry, lakeLevel, levelLakes, LEVEL_LAKE_MIN_NODES, LEVEL_LAKE_TOL_M, ROUTE_DRY_CELLS, tessellateWaterPolygon, WATER_EDGE_M, waterDepression } from './waterMesh';
+import {
+  buildWaterGeometry,
+  lakeLevel,
+  levelLakes,
+  LEVEL_LAKE_MIN_NODES,
+  LEVEL_LAKE_TOL_M,
+  ROUTE_DRY_CELLS,
+  SEA_VERTEX_KIND,
+  seaApron,
+  SHORE_FAR_M,
+  tessellateWaterPolygon,
+  WATER_EDGE_M,
+  WATER_SURFACE_DROP_M,
+  waterDepression,
+} from './waterMesh';
 
 /** Float32 positions of ~10 km coordinates round to ~1 mm. */
 const EPS_M = 0.01;
@@ -227,6 +241,72 @@ describe('level lakes are drawn flat; ground standing above them stays dry', () 
   });
 });
 
+describe('the sea (coast worlds) is level, surfs at the coast and runs on past the edge', () => {
+  // 41 × 41 nodes at 10 m over 0…400 m; the bake set the sea (x < 195) to 0 m, land at 6 m.
+  const spec = { cols: 41, rows: 41, cellSize: 10, xMin: 0, yMax: 400, heightOffset: -10, heightScale: 1 / 64 };
+  const q = new Uint16Array(spec.cols * spec.rows);
+  for (let r = 0; r < spec.rows; r++) for (let c = 0; c < spec.cols; c++) q[r * spec.cols + c] = Math.round(((c * 10 < 195 ? 0 : 6) + 10) * 64);
+  const hf = new Heightfield(spec, q);
+  // The sea's outline: the coast at x = 195 and the world's west, north and south edges.
+  const sea: WaterLayer = { areas: [{ kind: 'sea', rings: [new Float32Array([0, 0, 0, 400, 195, 400, 195, 0])] }], lines: [] };
+
+  it('is drawn flat at sea level without flatLakes, every vertex of kind SEA_VERTEX_KIND', () => {
+    expect(lakeLevel(sea.areas[0], hf)).toBe(0);
+    const g = buildWaterGeometry(sea, hf, WATER_EDGE_M);
+    const ys = new Set<number>();
+    for (let i = 1; i < g.positions.length; i += 3) ys.add(Math.round(g.positions[i] * 1000) / 1000);
+    expect([...ys]).toEqual([-WATER_SURFACE_DROP_M]);
+    expect(new Set(g.kinds)).toEqual(new Set([SEA_VERTEX_KIND]));
+  });
+
+  it('carries each vertex\'s distance to the coast, never to the world\'s edge', () => {
+    const g = buildWaterGeometry(sea, hf, WATER_EDGE_M);
+    for (let i = 0; i < g.shore.length; i++) {
+      const x = g.positions[3 * i];
+      expect(g.shore[i]).toBeCloseTo(Math.min(SHORE_FAR_M, 195 - x), 3);
+    }
+    expect(Math.min(...g.shore)).toBeCloseTo(0, 6);
+    expect(Math.max(...g.shore)).toBe(SHORE_FAR_M);
+    // Lakes and streams carry SHORE_FAR_M: no surf.
+    const lake: WaterLayer = { areas: [{ kind: 'lake', rings: [new Float32Array([220, 20, 380, 20, 380, 180, 220, 180])] }], lines: [] };
+    expect(new Set(buildWaterGeometry(lake, hf, WATER_EDGE_M).shore)).toEqual(new Set([SHORE_FAR_M]));
+  });
+
+  it('presses down every sea node, the edge rows too, without flatLakes; the land stays', () => {
+    const bed = waterDepression(sea, hf);
+    for (let r = 0; r < spec.rows; r++) {
+      for (let c = 0; c < spec.cols; c++) expect(bed[r * spec.cols + c] > 0, `node ${c},${r}`).toBe(c * 10 < 195);
+    }
+  });
+
+  it('runs on past the world\'s edge where the sea meets it, and only there', () => {
+    const reach = 5000;
+    const a = seaApron(sea, hf, reach);
+    expect(new Set(a.kinds)).toEqual(new Set([SEA_VERTEX_KIND]));
+    expect(new Set(a.shore)).toEqual(new Set([SHORE_FAR_M]));
+    const tris = a.positions.length / 9;
+    // West edge, north and south edges' sea runs, and the two western corners: two triangles each.
+    expect(tris).toBe(2 * 5);
+    let area = 0;
+    for (let i = 0; i < a.positions.length; i += 9) {
+      const ax = a.positions[i], ay = -a.positions[i + 2];
+      const bx = a.positions[i + 3], by = -a.positions[i + 5];
+      const cx = a.positions[i + 6], cy = -a.positions[i + 8];
+      const s = ((bx - ax) * (cy - ay) - (cx - ax) * (by - ay)) / 2;
+      expect(s, 'counter-clockwise from above').toBeGreaterThan(0);
+      area += s;
+      for (let k = 1; k < 9; k += 3) expect(a.positions[i + k]).toBe(-WATER_SURFACE_DROP_M);
+      // Nothing over the land side (x > 195) or inside the world.
+      for (const [x, y] of [[ax, ay], [bx, by], [cx, cy]]) expect(x <= 195 + 1e-9).toBe(true);
+      const mx = (ax + bx + cx) / 3, my = (ay + by + cy) / 3;
+      expect(mx < 0 || my < 0 || my > 400).toBe(true);
+    }
+    expect(area).toBeCloseTo(reach * 400 + 2 * 195 * reach + 2 * reach * reach, 0);
+    const lakeOnly: WaterLayer = { areas: [{ kind: 'lake', rings: [new Float32Array([0, 0, 0, 400, 195, 400, 195, 0])] }], lines: [] };
+    expect(seaApron(lakeOnly, hf, reach).positions.length).toBe(0);
+  });
+});
+
 describe.each(SHIPPED)('shipped world %s water mesh', (id) => {
   let world: LoadedWorld;
   beforeAll(async () => {
@@ -240,7 +320,7 @@ describe.each(SHIPPED)('shipped world %s water mesh', (id) => {
     const data = buildWaterGeometry(world.water, world.heightfield, WATER_EDGE_M);
     const tris = data.positions.length / 9;
     let polygons = 0;
-    for (let i = 0; i < data.kinds.length; i += 3) if (data.kinds[i] === 1) polygons++;
+    for (let i = 0; i < data.kinds.length; i += 3) if (data.kinds[i] >= 1) polygons++; // lakes, rivers, the sea
     const ceiling = waterCeiling(world.water, world.heightfield.spec.cellSize);
     expect(polygons, `${id} polygon triangles`).toBeLessThanOrEqual(ceiling.polygons);
     expect(tris - polygons, `${id} stream ribbon triangles`).toBeLessThanOrEqual(ceiling.ribbons);

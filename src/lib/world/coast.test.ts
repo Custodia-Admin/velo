@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { assembleSea, buildSea, edgePosition, flattenSea, joinCoastline, relevelSea, SEA_LEVEL_M } from '../../../tools/worldbake/coast.mjs';
-import { buildLandcover, buildWater, clipLine, LANDCOVER_KINDS, WATER_AREA_KINDS } from '../../../tools/worldbake/buildVectors.mjs';
+import { assembleSea, buildSea, clipCoast, edgePosition, flattenSea, joinCoastline, relevelSea, SEA_LEVEL_M } from '../../../tools/worldbake/coast.mjs';
+import { buildLandcover, buildWater, LANDCOVER_KINDS, WATER_AREA_KINDS } from '../../../tools/worldbake/buildVectors.mjs';
 import { osmLayersFor, OSM_LAYERS } from '../../../tools/worldbake/fetchOsm.mjs';
 
 /** A 1 km square world round the origin. */
@@ -94,6 +94,13 @@ describe('coast: the sea from coastline ways (land left, water right)', () => {
     expect(polyArea(open[0])).toBeCloseTo(1_000_000 - 10_000, 6);
   });
 
+  it('keeps a coast whole through the world: no cut at a vertex where x0 + dx·1 ≠ x1 in the last bit', () => {
+    // Berkeley's coast at 3,660.9 m (OSM node 37.908983, −122.3280839 in its world frame).
+    const line = [-39.77565780783127, 3663.7268850988585, -7.378241937722094, 3660.929724124572, 12.514005055634788, 3651.5839720491913];
+    expect(-39.77565780783127 + (line[2] - line[0]) * 1).not.toBe(line[2]);
+    expect(clipCoast(line, { xMin: -4900, xMax: 3272, yMin: -4924, yMax: 5000 })).toEqual([line]);
+  });
+
   it('refuses a coastline that stops inside the world', () => {
     expect(() => assembleSea([[0, 500, 0, 0]], ext)).toThrow(/ends inside the world/);
   });
@@ -111,7 +118,7 @@ describe('coast: the sea from coastline ways (land left, water right)', () => {
     const way = (id: number, pts: [number, number][]) => ({ type: 'way', id, tags: { natural: 'coastline' }, geometry: pts.map(([x, y]) => ({ lat: y, lon: x })) });
     // A coast running south in two ways, the join inside the world; an island loop crossing the north edge.
     const els = [way(2, [[0, 0], [0, -900]]), way(1, [[0, 900], [0, 0]]), way(3, [[-300, 600], [-300, 400], [-200, 400], [-200, 600], [-300, 600]])];
-    const polys = buildSea(els, projection, ext, { clipLine });
+    const polys = buildSea(els, projection, ext);
     expect(isSea(polys, -400, 0)).toBe(true);
     expect(isSea(polys, -250, 450)).toBe(false); // the island's tip
     expect(isSea(polys, 300, 0)).toBe(false);

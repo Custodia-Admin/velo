@@ -1,0 +1,60 @@
+{
+  "id": "berkeley",
+  "name": "Berkeley",
+  "description": "The east shore of San Francisco Bay from Emeryville past the Berkeley Marina and Albany to Point Isabel and Richmond’s Marina Bay, with the Bay Trail along the water.",
+  "origin": {
+    "lat": 37.876,
+    "lon": -122.328
+  },
+  "grid": {
+    "xMin": -4900,
+    "yMax": 5000,
+    "cellSize": 12,
+    "cols": 682,
+    "rows": 828
+  },
+  "dem": {
+    "source": "copernicus-glo30"
+  },
+  "osmDate": "2026-11-01T00:00:00Z",
+  "routes": [
+    "scenic-berkeley-bay-trail",
+    "scenic-richmond-marina-bay"
+  ],
+  "host": "remote",
+  "routeCredits": true,
+  "coast": true,
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 400,
+    "offsetMeanM": 1600,
+    "coreCells": 1.5,
+    "falloffM": 40
+  },
+  "vegetation": {
+    "seed": 37876,
+    "maxInstances": 320000,
+    "spacingM": {
+      "forest": 11,
+      "wood": 11,
+      "scrub": 16,
+      "orchard": 7,
+      "park": 20
+    },
+    "character": {
+      "gardenKeep": 0.3,
+      "riparianM": 30
+    }
+  },
+  "moods": [
+    "golden-hour",
+    "mediterranean-mist",
+    "clear-afternoon",
+    "overcast",
+    "clear-noon"
+  ],
+  "defaultMood": "golden-hour",
+  "validation": {
+    "sample_seed": 37876
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "id": "puerto-vallarta",
+  "name": "Puerto Vallarta",
+  "description": "The head of Banderas Bay from Puerto Vallarta’s Zona Romántica and malecón past the hotel zone and Marina Vallarta, across the Ameca to Nuevo Vallarta and Bucerías.",
+  "origin": {
+    "lat": 20.68,
+    "lon": -105.282
+  },
+  "grid": {
+    "xMin": -8000,
+    "yMax": 9000,
+    "cellSize": 12,
+    "cols": 1206,
+    "rows": 1583
+  },
+  "dem": {
+    "source": "copernicus-glo30"
+  },
+  "osmDate": "2026-11-01T00:00:00Z",
+  "routes": [
+    "scenic-puerto-vallarta-malecon",
+    "scenic-nuevo-vallarta-bucerias"
+  ],
+  "host": "remote",
+  "routeCredits": true,
+  "coast": true,
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 400,
+    "offsetMeanM": 1600,
+    "coreCells": 1.5,
+    "falloffM": 40
+  },
+  "vegetation": {
+    "seed": 20680,
+    "maxInstances": 320000,
+    "spacingM": {
+      "forest": 11,
+      "wood": 11,
+      "scrub": 16,
+      "orchard": 7,
+      "park": 20
+    },
+    "character": {
+      "gardenKeep": 0.3,
+      "riparianM": 30
+    }
+  },
+  "moods": [
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "mediterranean-mist",
+    "overcast"
+  ],
+  "defaultMood": "golden-hour",
+  "validation": {
+    "sample_seed": 20680
+  }
+}

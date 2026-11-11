@@ -50,7 +50,7 @@ import { fetchOsm, osmLayersFor, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { buildSea, flattenSea, relevelSea } from './coast.mjs';
-import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, clipLine, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
+import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
@@ -290,7 +290,7 @@ export async function bake(opts) {
   t = Date.now();
   const osm = await fetchOsm({ bbox, osmDate: recipe.osmDate, cacheDir, log, layers: osmLayersFor(recipe) });
   // A coast world's sea: the water side of the coastline ways (coast.mjs).
-  const sea = recipe.coast ? buildSea(osm.elements.coast, projection, extent, { clipLine }) : null;
+  const sea = recipe.coast ? buildSea(osm.elements.coast, projection, extent) : null;
   const water = buildWater(osm.elements.water, projection, extent, { sea });
   lap('osm', t);
   let lakes = null;

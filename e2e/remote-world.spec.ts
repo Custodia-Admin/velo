@@ -1,9 +1,10 @@
 /**
- * A wishlist world that is not shipped with the app (blueprint §P3.1,
+ * Wishlist worlds that are not shipped with the app (blueprint §P3.1,
  * docs/worlds/ADDING-A-WORLD.md "Hosting").
  *
- * Chengdu Luxe Lakes is published to the R2 bucket under a content-hashed
- * directory. The first ride downloads it (≤ 8 MB), the loader keeps every
+ * Chengdu Luxe Lakes and the coast worlds (Berkeley, Santa Monica, Puerto
+ * Vallarta) are published to the R2 bucket under content-hashed
+ * directories. Each first ride downloads its world (≤ 8 MB), the loader keeps every
  * file it checked in the `velo-worlds-v1` Cache API store, and once the
  * service worker has precached the app shell the next ride starts with the
  * browser offline: page, world and all, with no request for a world file
@@ -17,8 +18,17 @@ import { expect, test, type Page, type Request } from '@playwright/test';
 const INIT = `
   localStorage.removeItem('globeride.cesiumIonToken');
 `;
-const WORLD_FILE = /\/worlds\/chengdu-luxelakes\/[0-9a-f]{16}\/([^/?#]+)$/;
 const MB = 1024 * 1024;
+
+/** One route per remote world, ridden from its Home card in "Places we want to go". */
+const WORLDS = [
+  { world: 'chengdu-luxelakes', route: 'scenic-chengdu-xinglong-lake', label: /^Ride Xinglong Lake loop in Chengdu, (?!.*map view)/ },
+  { world: 'berkeley', route: 'scenic-richmond-marina-bay', label: /^Ride Richmond Marina Bay in Berkeley, (?!.*map view)/ },
+  { world: 'santa-monica-venice', route: 'scenic-will-rogers-venice', label: /^Ride Will Rogers to Venice in Santa Monica, (?!.*map view)/ },
+  { world: 'puerto-vallarta', route: 'scenic-nuevo-vallarta-bucerias', label: /^Ride Nuevo Vallarta to Bucerías in Puerto Vallarta, (?!.*map view)/ },
+];
+type RemoteWorld = (typeof WORLDS)[number];
+const worldFile = (w: RemoteWorld) => new RegExp(`/worlds/${w.world}/[0-9a-f]{16}/([^/?#]+)$`);
 
 interface WorldDebug {
   renderer: string;
@@ -34,21 +44,21 @@ const worldDebug = (page: Page) =>
     return (fn ? fn() : null) as WorldDebug | null;
   });
 
-/** Home → the Xinglong Lake card in "Places we want to go" → riding the Chengdu world. */
-async function rideXinglong(page: Page) {
+/** Home → the route's card in "Places we want to go" → riding its world. */
+async function rideWorld(page: Page, w: RemoteWorld) {
   await page.goto('/app');
   const wishlist = page.locator('[data-destination-section="wishlist"]');
   await expect(wishlist).toBeVisible();
-  const card = wishlist.locator('[data-scenic-route="scenic-chengdu-xinglong-lake"]');
+  const card = wishlist.locator(`[data-scenic-route="${w.route}"]`);
   // A world ride: the tile carries no "map view" badge.
-  await expect(card).toHaveAttribute('aria-label', /^Ride Xinglong Lake loop in Chengdu, (?!.*map view)/);
+  await expect(card).toHaveAttribute('aria-label', w.label);
   await card.click();
   await page.waitForURL('**/ride**');
 
   const view = page.locator('[data-renderer]');
   await expect(view).toHaveAttribute('data-renderer-preferred', 'world');
   await expect(view).toHaveAttribute('data-renderer', 'world');
-  await expect.poll(async () => (await worldDebug(page))?.world ?? null, { timeout: 90_000 }).toBe('chengdu-luxelakes');
+  await expect.poll(async () => (await worldDebug(page))?.world ?? null, { timeout: 90_000 }).toBe(w.world);
   const a = await worldDebug(page);
   await expect.poll(async () => (await worldDebug(page))?.distance ?? 0, { timeout: 60_000 }).toBeGreaterThan(a!.distance!);
   const b = await worldDebug(page);
@@ -57,7 +67,8 @@ async function rideXinglong(page: Page) {
   await expect(page.getByTestId('photoreal-notice')).toHaveCount(0);
 }
 
-test('the Chengdu world downloads once (≤ 8 MB) and the next ride starts offline', async ({ page, context }) => {
+for (const w of WORLDS) test(`the ${w.world} world downloads once (≤ 8 MB) and the next ride starts offline`, async ({ page, context }) => {
+  const WORLD_FILE = worldFile(w);
   const cesium: string[] = [];
   const pageErrors: string[] = [];
   const fetched = new Map<string, number>();
@@ -76,7 +87,7 @@ test('the Chengdu world downloads once (≤ 8 MB) and the next ride starts offli
   await page.addInitScript(INIT);
 
   // First ride: every file of the bundle comes from the bucket, once.
-  await rideXinglong(page);
+  await rideWorld(page, w);
   const files = [...fetched.keys()].sort();
   expect(files).toEqual([
     'buildings.bin.gz',
@@ -89,7 +100,7 @@ test('the Chengdu world downloads once (≤ 8 MB) and the next ride starts offli
     'water.json.gz',
   ]);
   const bytes = [...fetched.values()].reduce((s, n) => s + n, 0);
-  console.info(`first ride downloaded ${(bytes / MB).toFixed(2)} MB of Chengdu world`);
+  console.info(`first ride downloaded ${(bytes / MB).toFixed(2)} MB of the ${w.world} world`);
   expect(bytes).toBeGreaterThan(0.5 * MB);
   expect(bytes).toBeLessThanOrEqual(8 * MB);
 
@@ -113,7 +124,7 @@ test('the Chengdu world downloads once (≤ 8 MB) and the next ride starts offli
   page.on('requestfailed', (req) => {
     if (WORLD_FILE.test(req.url())) failed.push(req.url());
   });
-  await rideXinglong(page);
+  await rideWorld(page, w);
   expect(failed, 'no world file request may need the network offline').toEqual([]);
   expect(fromNetwork, 'no world file may come from the network offline').toEqual([]);
 

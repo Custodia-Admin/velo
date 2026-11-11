@@ -198,13 +198,53 @@ export function joinCoastline(ways) {
 }
 
 /**
- * The coast world's sea and beach from the coast layer's elements:
- * `seaPolygons` (as assembleSea, metres, before simplifying) and
- * `beachElements` (the natural=beach/sand ways and relations, for
- * buildLandcover). `clipLine` and `projectGeom` come from buildVectors (no
- * import cycle).
+ * Liang–Barsky: clip a polyline to the extent → list of polylines. Unlike
+ * buildVectors' clipLine, a vertex inside the extent keeps its exact
+ * coordinates (x0 + dx·1 can differ from x1 in the last bit, which would cut
+ * the coast into pieces that end inside the world).
  */
-export function buildSea(elements, projection, ext, { clipLine }) {
+export function clipCoast(flat, ext) {
+  const out = [];
+  let cur = [];
+  const flush = () => {
+    if (cur.length >= 4) out.push(cur);
+    cur = [];
+  };
+  for (let i = 0; i + 3 < flat.length; i += 2) {
+    const x0 = flat[i], y0 = flat[i + 1], x1 = flat[i + 2], y1 = flat[i + 3];
+    let t0 = 0, t1 = 1;
+    const dx = x1 - x0, dy = y1 - y0;
+    const p = [-dx, dx, -dy, dy];
+    const q = [x0 - ext.xMin, ext.xMax - x0, y0 - ext.yMin, ext.yMax - y0];
+    let visible = true;
+    for (let k = 0; k < 4; k++) {
+      if (p[k] === 0) {
+        if (q[k] < 0) { visible = false; break; }
+      } else {
+        const t = q[k] / p[k];
+        if (p[k] < 0) { if (t > t1) { visible = false; break; } if (t > t0) t0 = t; }
+        else { if (t < t0) { visible = false; break; } if (t < t1) t1 = t; }
+      }
+    }
+    if (!visible) { flush(); continue; }
+    const ax = t0 === 0 ? x0 : x0 + dx * t0, ay = t0 === 0 ? y0 : y0 + dy * t0;
+    const bx = t1 === 1 ? x1 : x0 + dx * t1, by = t1 === 1 ? y1 : y0 + dy * t1;
+    if (cur.length === 0 || cur[cur.length - 2] !== ax || cur[cur.length - 1] !== ay) {
+      flush();
+      cur.push(ax, ay);
+    }
+    cur.push(bx, by);
+    if (t1 < 1) flush();
+  }
+  flush();
+  return out;
+}
+
+/**
+ * The sea polygons of a coast world from the coast layer's elements (its
+ * natural=coastline ways), as assembleSea: metres, before simplifying.
+ */
+export function buildSea(elements, projection, ext) {
   const ways = elements.filter((el) => el.type === 'way' && el.tags?.natural === 'coastline' && el.geometry?.length >= 2);
   // Order-independent: the same snapshot in any response order gives the same chains.
   ways.sort((a, b) => a.id - b.id);
@@ -234,7 +274,7 @@ export function buildSea(elements, projection, ext, { clipLine }) {
       const ring = flat.slice(0, -2);
       src = [...ring.slice(2 * o), ...ring.slice(0, 2 * o), ring[2 * o], ring[2 * o + 1]];
     }
-    for (const piece of clipLine(src, ext)) pieces.push(snapToEdge(piece, ext));
+    for (const piece of clipCoast(src, ext)) pieces.push(snapToEdge(piece, ext));
   }
   return assembleSea(pieces, ext);
 }
