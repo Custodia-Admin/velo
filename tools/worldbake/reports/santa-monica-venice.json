@@ -5,16 +5,16 @@
     "dem": 0.6,
     "osm": 0.6,
     "heightfield+routes": 0.1,
-    "vectors": 9.8,
-    "write": 14.7,
+    "vectors": 9.6,
+    "write": 14.3,
     "validate": 0,
-    "total": 26
+    "total": 25.4
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 975309,
+      "stored": 967776,
       "content": 4351984,
-      "brotli": 777360
+      "brotli": 772922
     },
     "roads.json.gz": {
       "stored": 996351,
@@ -42,30 +42,30 @@
       "brotli": 122806
     },
     "routes.json.gz": {
-      "stored": 52137,
-      "content": 125369,
-      "brotli": 36894
+      "stored": 52423,
+      "content": 125677,
+      "brotli": 37166
     },
     "manifest.json": {
-      "stored": 12399,
-      "content": 12399,
-      "brotli": 3165
+      "stored": 12400,
+      "content": 12400,
+      "brotli": 3155
     }
   },
   "totals": {
-    "stored": 5504330,
-    "content": 13809833,
-    "brotli": 4350612
+    "stored": 5497084,
+    "content": 13810142,
+    "brotli": 4346436
   },
   "hashes": {
-    "height.bin.gz": "65cf760f53947ad3d5d162911ed3e54101cae5d50aa6a22c7cf675defae30076",
+    "height.bin.gz": "15696997d6ca8e3f29afad6129a84939e9b6ecf5c81f6468886fcd839af72d22",
     "roads.json.gz": "aa8bed33011ab36f7c0b272220464b2ee2869eb741c98ede385dd8a6c36c7e2f",
     "water.json.gz": "15db63d72ae6ee218f9f3ca85b87aaa0a01a3c0c364c653cee8bd3416c7aac9b",
     "landcover.json.gz": "4f015bd928c27738a185bec6ec0d16bfd62bcb2326c8ebd316281ae34d1e5355",
     "buildings.bin.gz": "64bfbc2fd684f3cefe01a82ac8e7b0ede44e71731313ddea6777bcca4c812499",
     "vegetation.bin.gz": "bb1bdf8c5c8c10c8109603f0fee43f3f10cad75f2ae7c595cb4b201c896e9dbd",
-    "routes.json.gz": "4dbbd51f3357824adb9d08022c4e529749223d8f046913cd068042444f317655",
-    "manifest.json": "16f40a09fa1651a30ef166980c4f200c2f4b1b888ad57c4d896567d866ec618a"
+    "routes.json.gz": "6ea94374fab9da2cf10d1a9b0befb2764fc49ed1f48c35956474e34004c5ff20",
+    "manifest.json": "c3292e044c833846271b1191497315795c9b766295eb07ac026613680f92610b"
   },
   "routes": [
     {
@@ -73,11 +73,11 @@
       "name": "Santa Monica to Hermosa Beach",
       "lengthM": 23247.35,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.12,
+      "gradeMeanAbsDiffPct": 0.121,
       "report": {
         "samples": 2326,
-        "gradeMaxAbsDiffPct": 0.792,
-        "rawDemGradeMeanAbsDiffPct": 0.71,
+        "gradeMaxAbsDiffPct": 0.786,
+        "rawDemGradeMeanAbsDiffPct": 0.693,
         "maxRenderMinusProfileM": 5.57
       },
       "roadCoverage": {
@@ -94,12 +94,12 @@
       "name": "Will Rogers to Venice",
       "lengthM": 9936.53,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.121,
+      "gradeMeanAbsDiffPct": 0.115,
       "report": {
         "samples": 995,
-        "gradeMaxAbsDiffPct": 0.573,
-        "rawDemGradeMeanAbsDiffPct": 0.61,
-        "maxRenderMinusProfileM": 3.69
+        "gradeMaxAbsDiffPct": 0.594,
+        "rawDemGradeMeanAbsDiffPct": 0.612,
+        "maxRenderMinusProfileM": 3.16
       },
       "roadCoverage": {
         "mappedPct": 99.41,
@@ -263,13 +263,15 @@
     "minHeight": -1.1875,
     "maxHeight": 98.765625,
     "carvedNodes": 23491,
-    "maxCutM": 8.36
+    "maxCutM": 8.84
   },
   "coast": {
     "seaPolygons": 1,
     "islands": 1,
     "seaNodes": 1363670,
     "shoreNodesLowered": 2664,
+    "beachNodesSloped": 13631,
+    "beachMaxCutM": 6.49,
     "demUnderSea": {
       "min": -0.01,
       "max": 4.09
@@ -313,19 +315,19 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.0075,
+    "steep_fraction": 0.0076,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
     "bound_m": 6,
-    "registered_rms_m": 0.5,
-    "point_rms_m": 0.76,
-    "max_abs_registered_err_m": 2.31,
+    "registered_rms_m": 0.55,
+    "point_rms_m": 0.8,
+    "max_abs_registered_err_m": 2.79,
     "pass": true,
     "diagnostics": {
       "note": "not gating (blueprint §P1.3.4)",
-      "registered_mean_bias_m": -0.09,
-      "point_mean_bias_m": 0,
+      "registered_mean_bias_m": -0.12,
+      "point_mean_bias_m": -0.05,
       "point_max_abs_err_m": 3.35,
       "node_answer_mismatches": 0
     },
@@ -587,10 +589,10 @@
         "lat": 33.86555,
         "lon": -118.40397,
         "openMeteo": 3,
-        "heightfield": 3.78,
+        "heightfield": 1.13,
         "nodeLat": 33.86583333,
         "nodeLon": -118.40416667,
-        "nodeHeightfield": 0.69,
+        "nodeHeightfield": 0.21,
         "nodeOpenMeteo": 3,
         "onRouteCorridor": false
       },
@@ -741,10 +743,10 @@
         "lat": 34.01046,
         "lon": -118.49848,
         "openMeteo": 5,
-        "heightfield": 4.69,
+        "heightfield": 4.68,
         "nodeLat": 34.01083333,
         "nodeLon": -118.49916667,
-        "nodeHeightfield": 5.55,
+        "nodeHeightfield": 4.31,
         "nodeOpenMeteo": 5,
         "onRouteCorridor": true
       },

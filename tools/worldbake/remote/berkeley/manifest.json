@@ -48,11 +48,11 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 226278,
-      "sha256": "12668a25dd415d450afb6f4f2d05159b2fed18c2c667bd257b473f95d0ca9a15",
+      "bytes": 226270,
+      "sha256": "2203b8225aafa51b3ade480d00ea78ef624b307bc1a410d8d71c8eb06957ded1",
       "compression": "gzip",
       "contentBytes": 1129392,
-      "contentSha256": "da95a22631090e1cc5773f69bb552571dc9fe5ccc37998db13d55f54e3145c0f"
+      "contentSha256": "113bdffd12f797181032a51a1d84052f30b37843e7d5b638a39de300bd4d2a1b"
     },
     {
       "path": "roads.json.gz",

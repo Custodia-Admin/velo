@@ -220,8 +220,8 @@ The in-app credits line comes from each bundle's `manifest.json` `credits`.
 - Elevation: 1 Copernicus DEM GLO-30 tile (1″ COG), `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM.tif`: `N20_00_W106_00`. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.
 - OpenStreetMap: Overpass API (`https://overpass-api.de/api/interpreter`), data as of 2026-11-01T00:00:00Z (attic query), layers roads, water, landcover, buildings, treerows, pois, landmarks, coast over the bounding box above. Queries are recorded in `tools/worldbake/reports/puerto-vallarta.json`.
 - Routes from `src/lib/scenicRouteData.ts` (profiles: Copernicus GLO-90 via Open-Meteo), geometry sources:
-  - `scenic-puerto-vallarta-malecon`: Puerto Vallarta bayfront: OSRM bike route through 4 waypoints, routing.openstreetmap.de, <https://routing.openstreetmap.de/routed-bike/route/v1/driving/-105.2385,20.6043;-105.2351,20.6104;-105.2324,20.6183;-105.2487,20.6684?overview=full&geometries=geojson&steps=true>.
-  - `scenic-nuevo-vallarta-bucerias`: Nuevo Vallarta to Bucerías: OSRM bike route through 3 waypoints, routing.openstreetmap.de, <https://routing.openstreetmap.de/routed-bike/route/v1/driving/-105.2935,20.6935;-105.32147,20.74183;-105.3385,20.755?overview=full&geometries=geojson&steps=true>.
+  - `scenic-puerto-vallarta-malecon`: Puerto Vallarta bayfront: OSRM bike route through 6 waypoints, routing.openstreetmap.de, <https://routing.openstreetmap.de/routed-bike/route/v1/driving/-105.2385,20.6043;-105.23756,20.60657;-105.23509,20.60998;-105.23271,20.61441;-105.23294,20.61537;-105.2487,20.6684?overview=full&geometries=geojson&steps=true>.
+  - `scenic-nuevo-vallarta-bucerias`: Nuevo Vallarta to Bucerías: OSRM bike route through 4 waypoints, routing.openstreetmap.de, <https://routing.openstreetmap.de/routed-bike/route/v1/driving/-105.2935,20.6935;-105.3385,20.755;-105.34058,20.75585;-105.34382,20.75821?overview=full&geometries=geojson&steps=true>.
 - Validation: 50 seeded Open-Meteo elevation samples (Copernicus GLO-90), not shipped.
 <!-- world:puerto-vallarta:end -->
 

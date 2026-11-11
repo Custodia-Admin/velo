@@ -48,11 +48,11 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 975309,
-      "sha256": "65cf760f53947ad3d5d162911ed3e54101cae5d50aa6a22c7cf675defae30076",
+      "bytes": 967776,
+      "sha256": "15696997d6ca8e3f29afad6129a84939e9b6ecf5c81f6468886fcd839af72d22",
       "compression": "gzip",
       "contentBytes": 4351984,
-      "contentSha256": "d224c6682070a9c4ebc6b6abca5155c7114efef17cb4901f44314b22242a2a78"
+      "contentSha256": "d66bdf0418f4911bdf17755ef4c3c4e85f764899e26867ae1439e1bc0627e853"
     },
     {
       "path": "roads.json.gz",
@@ -96,11 +96,11 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 52137,
-      "sha256": "4dbbd51f3357824adb9d08022c4e529749223d8f046913cd068042444f317655",
+      "bytes": 52423,
+      "sha256": "6ea94374fab9da2cf10d1a9b0befb2764fc49ed1f48c35956474e34004c5ff20",
       "compression": "gzip",
-      "contentBytes": 125369,
-      "contentSha256": "a37edcd40066d03ef25d93780578427db1a59f8439361f59c1db399e1178eb0c"
+      "contentBytes": 125677,
+      "contentSha256": "05bb302ac867b094f23477f9c413caeada2d68998cd21a2c41b5d82ee7f778cf"
     }
   ],
   "moods": [
@@ -209,7 +209,7 @@
       "x": -639.8,
       "y": 4259.5,
       "osm": "node/1595724846",
-      "h": 5.48
+      "h": 5.04
     },
     {
       "name": "Santa Monica",
@@ -371,14 +371,14 @@
       "name": "Santa Monica to Hermosa Beach",
       "lengthM": 23247.35,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.12
+      "gradeMeanAbsDiffPct": 0.121
     },
     {
       "id": "scenic-will-rogers-venice",
       "name": "Will Rogers to Venice",
       "lengthM": 9936.53,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.121
+      "gradeMeanAbsDiffPct": 0.115
     }
   ],
   "stats": {
