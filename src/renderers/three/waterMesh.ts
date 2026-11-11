@@ -15,7 +15,9 @@
  *
  * The sea (water areas of kind `sea`, coast worlds) is always drawn level:
  * the bake sets every node under it to sea level (tools/worldbake/coast.mjs).
- * Its vertices carry their distance to the coast (`shore`) for the surf, and
+ * Its vertices carry their distance to the coast (`shore`) and how open the
+ * water around them is (`open`: 0 in a marina or a channel, 1 on an open
+ * shore) for the surf, and
  * `seaApron` carries the sea on past the world's edge to the far plane.
  */
 
@@ -36,6 +38,10 @@ export const SEA_KIND = 'sea';
 export const SEA_VERTEX_KIND = 2;
 /** `shore` beyond this many metres from the coast (and on every non-sea vertex). */
 export const SHORE_FAR_M = 160;
+/** `open` samples the water this far round a sea vertex, metres. */
+export const SEA_OPEN_R_M = 120;
+/** A sample counts as open water this far from the coast, metres. */
+export const SEA_OPEN_CLEAR_M = 40;
 /**
  * Longest sea triangle edge, as a multiple of the lattice edge passed in. The
  * sea is level and its shading is per fragment, so it needs no terrain-
@@ -152,6 +158,24 @@ export interface WaterGeometryData {
   kinds: Float32Array;
   /** Per vertex: metres to the coast, capped at SHORE_FAR_M (SHORE_FAR_M off the sea). */
   shore: Float32Array;
+  /** Per vertex: share of open water round it, 0–1 (1 off the sea). */
+  open: Float32Array;
+}
+
+/**
+ * How open the water round a point on the sea is: the share of eight points
+ * SEA_OPEN_R_M round it that are sea (at sea level in the heightfield) more
+ * than SEA_OPEN_CLEAR_M from the coast. About ½ on a straight open shore, 0
+ * inside a marina, a channel or a lagoon, so waves only break where there is
+ * water for them to roll in across.
+ */
+export function seaOpenness(hf: Heightfield, toCoast: (x: number, y: number) => number): (x: number, y: number) => number {
+  const dirs = Array.from({ length: 8 }, (_, k) => [Math.cos((k * Math.PI) / 4) * SEA_OPEN_R_M, Math.sin((k * Math.PI) / 4) * SEA_OPEN_R_M]);
+  return (x, y) => {
+    let n = 0;
+    for (const [dx, dy] of dirs) if (hf.sampleHeight(x + dx, y + dy) < 0.05 && toCoast(x + dx, y + dy) > SEA_OPEN_CLEAR_M) n++;
+    return n / 8;
+  };
 }
 
 /** Whether an area is drawn level: every sea, and with `levelLakes` every level lake. */
@@ -584,12 +608,29 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
   const P: number[] = [];
   const K: number[] = [];
   const S: number[] = [];
+  const O: number[] = [];
   const toCoast = water.areas.some((a) => a.kind === SEA_KIND) ? coastDistance(water.areas, hf) : null;
+  const openAt = toCoast ? seaOpenness(hf, toCoast) : null;
+  // Lattice vertices repeat in up to six triangles: measure each once.
+  const seaAt = new Map<string, [number, number]>();
   let level: number | null = null;
   const put = (p: V2, lift: number, kind: number) => {
     P.push(p[0], (level ?? hf.sampleHeight(p[0], p[1])) - WATER_SURFACE_DROP_M + lift, -p[1]);
     K.push(kind);
-    S.push(kind === SEA_VERTEX_KIND && toCoast ? toCoast(p[0], p[1]) : SHORE_FAR_M);
+    if (kind === SEA_VERTEX_KIND && toCoast && openAt) {
+      const key = `${p[0]},${p[1]}`;
+      let v = seaAt.get(key);
+      if (!v) {
+        const d = toCoast(p[0], p[1]);
+        v = [d, d < SHORE_FAR_M ? openAt(p[0], p[1]) : 1];
+        seaAt.set(key, v);
+      }
+      S.push(v[0]);
+      O.push(v[1]);
+    } else {
+      S.push(SHORE_FAR_M);
+      O.push(1);
+    }
   };
   for (const area of water.areas) {
     if (!area.rings.length) continue;
@@ -648,7 +689,7 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
       }
     }
   }
-  return { positions: new Float32Array(P), kinds: new Float32Array(K), shore: new Float32Array(S) };
+  return { positions: new Float32Array(P), kinds: new Float32Array(K), shore: new Float32Array(S), open: new Float32Array(O) };
 }
 
 /**
@@ -690,7 +731,12 @@ export function seaApron(water: WaterLayer, hf: Heightfield, reachM: number): Wa
     }
   }
   const count = P.length / 3;
-  return { positions: new Float32Array(P), kinds: new Float32Array(count).fill(SEA_VERTEX_KIND), shore: new Float32Array(count).fill(SHORE_FAR_M) };
+  return {
+    positions: new Float32Array(P),
+    kinds: new Float32Array(count).fill(SEA_VERTEX_KIND),
+    shore: new Float32Array(count).fill(SHORE_FAR_M),
+    open: new Float32Array(count).fill(1),
+  };
 }
 
 /**

@@ -394,7 +394,77 @@ export function flattenSea({ grid, heights, water }) {
       }
     }
   }
-  return { nodes: Int32Array.from(nodes), inNodes: nodes.length, stripNodes, before: nodes.length ? before : null };
+  return { nodes: Int32Array.from(nodes), mask: sea, inNodes: nodes.length, stripNodes, before: nodes.length ? before : null };
+}
+
+/**
+ * Steepest a beach may rise from the water: 1 in 25. GLO-30 is a surface
+ * model at 30 m, so a beach reads as a shelf a few metres above the sea
+ * (Santa Monica: 4–7 m right up to the waterline, then a drop) that hides
+ * the sea from the road behind it. A real beach slopes down to the water.
+ */
+export const BEACH_SLOPE = 0.04;
+
+/**
+ * Metres from every node to the nearest node in `mask` (3-4 chamfer: exact
+ * along rows, columns and diagonals, within 8 % elsewhere). Infinity
+ * without any.
+ */
+export function maskDistance(grid, mask) {
+  const { cols, rows, cellSize } = grid;
+  const d = new Float64Array(cols * rows).fill(Infinity);
+  for (let i = 0; i < d.length; i++) if (mask[i]) d[i] = 0;
+  const a = cellSize, b = cellSize * Math.SQRT2;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      if (c > 0) d[i] = Math.min(d[i], d[i - 1] + a);
+      if (r > 0) {
+        d[i] = Math.min(d[i], d[i - cols] + a);
+        if (c > 0) d[i] = Math.min(d[i], d[i - cols - 1] + b);
+        if (c < cols - 1) d[i] = Math.min(d[i], d[i - cols + 1] + b);
+      }
+    }
+  }
+  for (let r = rows - 1; r >= 0; r--) {
+    for (let c = cols - 1; c >= 0; c--) {
+      const i = r * cols + c;
+      if (c < cols - 1) d[i] = Math.min(d[i], d[i + 1] + a);
+      if (r < rows - 1) {
+        d[i] = Math.min(d[i], d[i + cols] + a);
+        if (c < cols - 1) d[i] = Math.min(d[i], d[i + cols + 1] + b);
+        if (c > 0) d[i] = Math.min(d[i], d[i + cols - 1] + b);
+      }
+    }
+  }
+  return d;
+}
+
+/**
+ * Slope the beaches down to the sea: a node inside a beach (rings in metres;
+ * natural=beach, not natural=sand, which also maps dunes: El Segundo's stand
+ * 50 m above the sea)
+ * stands at most BEACH_SLOPE × its distance to the sea above sea level.
+ * Only lowers. Returns how many nodes moved and the deepest cut.
+ */
+export function slopeBeaches({ grid, heights, sea, beaches, slope = BEACH_SLOPE }) {
+  const dist = maskDistance(grid, sea);
+  let changed = 0;
+  let maxCutM = 0;
+  const seen = new Uint8Array(heights.length);
+  for (const rings of beaches) {
+    forNodesInside(grid, rings, (c, r) => {
+      const i = r * grid.cols + c;
+      if (seen[i] || sea[i]) return;
+      seen[i] = 1;
+      const cap = SEA_LEVEL_M + slope * dist[i];
+      if (heights[i] <= cap) return;
+      maxCutM = Math.max(maxCutM, heights[i] - cap);
+      heights[i] = cap;
+      changed++;
+    });
+  }
+  return { changed, maxCutM };
 }
 
 /** After the route carve: sea nodes back to sea level, except those `keep(i)` names (the route core). */

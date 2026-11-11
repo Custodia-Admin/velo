@@ -151,16 +151,20 @@ export const SCENIC_ROUTE_SOURCES = [
   },
   {
     id: 'scenic-puerto-vallarta-malecon',
-    // North along the bay. The coast road south to Mismaloya climbs the cliffs; skipped.
-    waypoints: [[20.6043, -105.2385], [20.6104, -105.2351], [20.6183, -105.2324], [20.6684, -105.2487]],
+    // North along the bay: the Malecón from the Zona Romántica over the Cuale,
+    // Paseo Díaz Ordaz beside it, then the hotel zone. Points on the Malecón
+    // itself: without them the router takes Calle Juárez a block inland. The
+    // coast road south to Mismaloya climbs the cliffs; skipped.
+    waypoints: [[20.6043, -105.2385], [20.60657, -105.23756], [20.60998, -105.23509], [20.61441, -105.23271], [20.61537, -105.23294], [20.6684, -105.2487]],
   },
   {
     id: 'scenic-nuevo-vallarta-bucerias',
-    // Paseo de los Cocoteros through Nuevo Vallarta to Bucerías. Marina
-    // Vallarta to Nuevo Vallarta is highway 200 past the airport, so this
-    // route starts across the Ameca. A point on the residential Calle Paseo
-    // de los Cocoteros sends the router through a retorno and back.
-    waypoints: [[20.6935, -105.2935], [20.74183, -105.32147], [20.755, -105.3385]],
+    // Paseo de los Cocoteros through Nuevo Vallarta to Bucerías, ending on
+    // Avenida del Pacífico along Bucerías beach. Marina Vallarta to Nuevo
+    // Vallarta is highway 200 past the airport, so this route starts across
+    // the Ameca. No point on Paseo de los Cocoteros itself: the router turns
+    // through a retorno there and rides 400 m back.
+    waypoints: [[20.6935, -105.2935], [20.755, -105.3385], [20.75585, -105.34058], [20.75821, -105.34382]],
   },
 ];
 

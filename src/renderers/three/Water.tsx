@@ -30,10 +30,10 @@ export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMa
     polygonOffsetUnits: -2,
   });
   return patchWorldMaterial(mat, atmo, {
-    key: 'water-v2',
-    vertexPars: 'attribute float aKind;\nattribute float aShore;\nvarying float vKind;\nvarying float vShore;',
-    vertexMain: 'vKind = aKind;\nvShore = aShore;',
-    fragmentPars: `varying float vKind;\nvarying float vShore;\nfloat gFoam = 0.0;\n${NOISE_GLSL}`,
+    key: 'water-v4',
+    vertexPars: 'attribute float aKind;\nattribute float aShore;\nattribute float aOpen;\nvarying float vKind;\nvarying float vShore;\nvarying float vOpen;',
+    vertexMain: 'vKind = aKind;\nvShore = aShore;\nvOpen = aOpen;',
+    fragmentPars: `varying float vKind;\nvarying float vShore;\nvarying float vOpen;\nfloat gFoam = 0.0;\n${NOISE_GLSL}`,
     fragmentReplace: [
       [
         '#include <color_fragment>',
@@ -44,28 +44,41 @@ export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMa
     diffuseColor.rgb *= 0.85 + 0.3 * vNoise(wp * 0.02);
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.1, 0.09, 0.06), clamp(1.0 - vKind, 0.0, 1.0) * 0.8);
     if (vKind > 1.5) {
-      // The sea: deep blue-green, lighter over the shallows near the coast.
+      // The sea: blue, turning teal over the shallows near the coast.
       float pxM = max(length(fwidth(wp)), 1e-3);
-      vec3 deep = vec3(0.012, 0.045, 0.075);
-      vec3 shallow = vec3(0.035, 0.13, 0.14);
-      vec3 sea = mix(deep, shallow, (1.0 - smoothstep(3.0, 70.0, vShore)) * 0.85);
-      diffuseColor.rgb = sea * (0.88 + 0.24 * vNoise(wp * 0.008));
-      // Surf: white water at the edge that swells and ebbs with the waves,
-      // and a broken wave line just offshore. Fades out before it aliases.
-      float swell = 0.5 + 0.5 * sin(uTime * 0.7 + vNoise(wp * 0.02) * 6.0);
-      float edge = 1.0 - smoothstep(1.5 + 3.5 * swell, 4.0 + 5.0 * swell, vShore);
-      float lace = 0.45 + 0.55 * vNoise(wp * 0.7 + vec2(uTime * 0.15, 0.0));
-      float crest = 0.5 + 0.5 * sin(vShore * 0.45 - uTime * 1.1 + vNoise(wp * 0.05) * 3.0);
-      float wave = smoothstep(0.82, 0.97, crest) * (1.0 - smoothstep(8.0, 24.0, vShore)) * vNoise(wp * 0.3 - uTime * 0.1);
-      gFoam = clamp(edge * lace + wave * 0.7, 0.0, 1.0) * octF(1.5, pxM);
-      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.72, 0.76, 0.75), gFoam);
+      vec3 deep = vec3(0.02, 0.085, 0.15);
+      vec3 shallow = vec3(0.05, 0.21, 0.23);
+      vec3 sea = mix(deep, shallow, (1.0 - smoothstep(4.0, 90.0, vShore)) * 0.9);
+      diffuseColor.rgb = sea * (0.9 + 0.2 * vNoise(wp * 0.006));
+      // Surf: white water at the edge that swells and ebbs, and lines of
+      // breaking waves rolling in across the surf zone. Wide enough to read
+      // from the road behind a beach; fades only once a pixel spans metres.
+      // Waves break only on an open shore (vOpen): a marina, a channel or a
+      // lagoon just laps at its edge.
+      float exposed = smoothstep(0.1, 0.45, vOpen);
+      float swell = 0.5 + 0.5 * sin(uTime * 0.6 + vNoise(wp * 0.01) * 6.0);
+      float edgeW = 1.5 + (1.5 + 6.0 * swell) * exposed;
+      float edge = 1.0 - smoothstep(edgeW * 0.5, edgeW, vShore);
+      float lace = smoothstep(0.2, 0.75, vNoise(wp * 0.25 + vec2(uTime * 0.08, 0.0)));
+      float roll = 0.5 + 0.5 * sin(6.2832 * (vShore / 24.0 + uTime * 0.07) + vNoise(wp * 0.02) * 3.0);
+      float crest = smoothstep(0.84, 0.97, roll) * (1.0 - smoothstep(18.0, 70.0, vShore)) * exposed;
+      float wave = crest * smoothstep(0.25, 0.7, vNoise(wp * 0.06 + vec2(0.0, uTime * 0.05)));
+      gFoam = clamp(edge * (0.55 + 0.45 * lace) + wave * 0.8, 0.0, 1.0) * octF(12.0, pxM);
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.8, 0.84, 0.84), gFoam);
     }
   }`,
       ],
       [
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-  roughnessFactor = mix(roughnessFactor, 0.85, gFoam);`,
+  roughnessFactor = mix(vKind > 1.5 ? 0.24 : roughnessFactor, 0.85, gFoam);`,
+      ],
+      [
+        // The sea mirrors less of the sky than a pond: at a beach's grazing
+        // angles a full mirror reads as a white plane, not water.
+        '#include <lights_fragment_end>',
+        `#include <lights_fragment_end>
+  if (vKind > 1.5) reflectedLight.indirectSpecular *= 0.55;`,
       ],
       [
         '#include <normal_fragment_maps>',
@@ -102,6 +115,7 @@ function waterGeometry(data: WaterGeometryData): THREE.BufferGeometry {
   g.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
   g.setAttribute('aKind', new THREE.BufferAttribute(data.kinds, 1));
   g.setAttribute('aShore', new THREE.BufferAttribute(data.shore, 1));
+  g.setAttribute('aOpen', new THREE.BufferAttribute(data.open, 1));
   const n = new Float32Array(data.positions.length);
   for (let i = 1; i < n.length; i += 3) n[i] = 1;
   g.setAttribute('normal', new THREE.BufferAttribute(n, 3));

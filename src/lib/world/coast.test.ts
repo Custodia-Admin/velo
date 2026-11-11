@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { assembleSea, buildSea, clipCoast, edgePosition, flattenSea, joinCoastline, relevelSea, SEA_LEVEL_M } from '../../../tools/worldbake/coast.mjs';
+import { assembleSea, BEACH_SLOPE, buildSea, clipCoast, edgePosition, flattenSea, joinCoastline, maskDistance, relevelSea, SEA_LEVEL_M, slopeBeaches } from '../../../tools/worldbake/coast.mjs';
 import { buildLandcover, buildWater, LANDCOVER_KINDS, WATER_AREA_KINDS } from '../../../tools/worldbake/buildVectors.mjs';
 import { osmLayersFor, OSM_LAYERS } from '../../../tools/worldbake/fetchOsm.mjs';
 
@@ -149,6 +149,30 @@ describe('coast: terrain and layers', () => {
     h[1] = 5;
     expect(relevelSea({ heights: h, nodes, keep: (i: number) => i === 1 })).toBe(1);
     expect([h[0], h[1]]).toEqual([SEA_LEVEL_M, 5]);
+  });
+
+  it('slopes a beach down to the sea at BEACH_SLOPE, lowering only, and leaves the land behind it', () => {
+    // A 15 m shelf of sand right up to the water (GLO-30 over Santa Monica: 4–7 m), sea in columns 0–5.
+    const h = new Float64Array(121).fill(15);
+    const { mask } = flattenSea({ grid, heights: h, water: seaLayer });
+    const d = maskDistance(grid, mask);
+    expect([d[5], d[6], d[8], d[10]]).toEqual([0, 100, 300, 500]);
+    expect(d[2 * 11 + 7]).toBeCloseTo(200, 6);
+    // The beach: x 50…350 m (columns 6–8), every row.
+    const beach = [[[50, 600, 350, 600, 350, -600, 50, -600]]];
+    const res = slopeBeaches({ grid, heights: h, sea: mask, beaches: beach });
+    for (let r = 0; r < 11; r++) {
+      expect(h[r * 11 + 6]).toBe(SEA_LEVEL_M); // the shore strip, already at sea level
+      expect(h[r * 11 + 7]).toBeCloseTo(BEACH_SLOPE * 200, 9);
+      expect(h[r * 11 + 8]).toBeCloseTo(BEACH_SLOPE * 300, 9);
+      expect(h[r * 11 + 9]).toBe(15); // behind the beach
+    }
+    expect(res.changed).toBe(22);
+    expect(res.maxCutM).toBeCloseTo(15 - BEACH_SLOPE * 200, 9);
+    // Never raises: a low beach stays.
+    const low = new Float64Array(121).fill(0.5);
+    flattenSea({ grid, heights: low, water: seaLayer });
+    expect(slopeBeaches({ grid, heights: low, sea: mask, beaches: beach }).changed).toBe(0);
   });
 
   it('adds the sea and the beach kinds only to coast worlds', () => {

@@ -278,6 +278,28 @@ describe('the sea (coast worlds) is level, surfs at the coast and runs on past t
     expect(new Set(buildWaterGeometry(lake, hf, WATER_EDGE_M).shore)).toEqual(new Set([SHORE_FAR_M]));
   });
 
+  it('lets waves break on an open shore only: a channel just laps', () => {
+    const g = buildWaterGeometry(sea, hf, WATER_EDGE_M);
+    // On the coast at mid-height: open water west and on both western diagonals (3 of 8).
+    const coastOpen = new Set<number>();
+    for (let i = 0; i < g.shore.length; i++) {
+      if (Math.abs(g.positions[3 * i] - 195) < 1e-3 && Math.abs(-g.positions[3 * i + 2] - 200) < 60) coastOpen.add(g.open[i]);
+    }
+    expect([...coastOpen]).toEqual([3 / 8]);
+    // A 60 m channel through the land: nowhere 40 m clear of the coast.
+    const q2 = new Uint16Array(spec.cols * spec.rows);
+    for (let r = 0; r < spec.rows; r++) for (let c = 0; c < spec.cols; c++) q2[r * spec.cols + c] = Math.round(((c * 10 >= 170 && c * 10 <= 230 ? 0 : 6) + 10) * 64);
+    const hf2 = new Heightfield(spec, q2);
+    const channel: WaterLayer = { areas: [{ kind: 'sea', rings: [new Float32Array([170, 0, 170, 400, 230, 400, 230, 0])] }], lines: [] };
+    const g2 = buildWaterGeometry(channel, hf2, WATER_EDGE_M);
+    // (Its ends open onto the sea past the world's edge, which counts as open water.)
+    const mid = [...g2.open].filter((_, i) => Math.abs(-g2.positions[3 * i + 2] - 200) < 70);
+    expect(mid.length).toBeGreaterThan(10);
+    expect(Math.max(...mid)).toBe(0);
+    // Lakes and the apron are not surf water: open 1, shore far.
+    expect(new Set(seaApron(sea, hf, 1000).open)).toEqual(new Set([1]));
+  });
+
   it('presses down every sea node, the edge rows too, without flatLakes; the land stays', () => {
     const bed = waterDepression(sea, hf);
     for (let r = 0; r < spec.rows; r++) {

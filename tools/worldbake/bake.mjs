@@ -49,7 +49,7 @@ import { demSourceOf, GLO30_DEM_SOURCE } from './demSource.mjs';
 import { fetchOsm, osmLayersFor, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
-import { buildSea, flattenSea, relevelSea } from './coast.mjs';
+import { BEACH_KIND, buildSea, flattenSea, relevelSea, slopeBeaches } from './coast.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
@@ -300,11 +300,16 @@ export async function bake(opts) {
     const cut = lakes.reduce((mx, l) => Math.max(mx, l.maxCutM), 0);
     log(`flatLakes: ${lakes.length} lakes and ponds levelled (${lakes.reduce((n, l) => n + l.inNodes, 0)} nodes under water, ${flat.changedNodes} changed, max cut ${cut.toFixed(1)} m)`);
   }
+  // Landcover needs nothing but OSM; a coast world's beaches shape the terrain.
+  const landcover = buildLandcover(osm.elements.landcover, projection, extent, { beach: recipe.coast ? osm.elements.coast : null });
   let seaFlat = null;
+  let beachSlope = null;
   if (sea) {
     seaFlat = flattenSea({ grid: g, heights, water });
     const b = seaFlat.before;
     log(`coast: ${sea.length} sea polygon${sea.length === 1 ? '' : 's'} (${sea.reduce((n, p) => n + p.length - 1, 0)} islands), ${seaFlat.inNodes} nodes at sea level${b ? ` (DEM ${b.min.toFixed(1)}…${b.max.toFixed(1)} m)` : ''}, ${seaFlat.stripNodes} shore nodes lowered to it`);
+    beachSlope = slopeBeaches({ grid: g, heights, sea: seaFlat.mask, beaches: landcover.polys.filter((p) => p.kind === BEACH_KIND && p.tags.natural === 'beach').map((p) => p.rings) });
+    log(`coast: beaches sloped to the sea, ${beachSlope.changed} nodes lowered (max ${beachSlope.maxCutM.toFixed(1)} m)`);
   }
 
   // 2. Routes: carve corridors into the float grid, then quantise.
@@ -358,7 +363,6 @@ export async function bake(opts) {
     log(`route ${id}: ${c.mappedPct}% within 1 m of mapped roads; guide on drawn roads ${c.paintPctBefore}% → ${c.paintPct}% (${c.easedM} m eased, ${c.joinedM} m joined${c.tunnelM ? `, ${c.tunnelM} m in tunnels` : ''})`);
   }
   log(`route fit: ${fit.roadsEased} roads bent (up to ${fit.maxShiftM} m), ${fit.joins} join pieces`);
-  const landcover = buildLandcover(osm.elements.landcover, projection, extent, { beach: recipe.coast ? osm.elements.coast : null });
   // What the rider follows must never run through a building: every scenic
   // route at full resolution (the app's own polyline), plus every drawn road.
   const routeLines = routesIn.map((r) => r.points.flatMap(([lat, lon]) => projection.forward(lat, lon)));
@@ -484,7 +488,7 @@ export async function bake(opts) {
     routes: snapped.info.map((r) => ({ ...r, roadCoverage: roadCoverage[r.id] })),
     routeFit: routeFitReport(fit),
     heightfield: { ...height.info, carvedNodes: carve.carvedNodes, maxCutM: round(carve.maxCutM) },
-    ...(seaFlat ? { coast: { seaPolygons: sea.length, islands: sea.reduce((n, p) => n + p.length - 1, 0), seaNodes: seaFlat.inNodes, shoreNodesLowered: seaFlat.stripNodes, demUnderSea: seaFlat.before && { min: round(seaFlat.before.min), max: round(seaFlat.before.max) }, beachAreas: landcover.layer.areas.filter((a) => landcover.layer.kinds[a.k] === 'beach').length } } : {}),
+    ...(seaFlat ? { coast: { seaPolygons: sea.length, islands: sea.reduce((n, p) => n + p.length - 1, 0), seaNodes: seaFlat.inNodes, shoreNodesLowered: seaFlat.stripNodes, beachNodesSloped: beachSlope.changed, beachMaxCutM: round(beachSlope.maxCutM), demUnderSea: seaFlat.before && { min: round(seaFlat.before.min), max: round(seaFlat.before.max) }, beachAreas: landcover.layer.areas.filter((a) => landcover.layer.kinds[a.k] === 'beach').length } } : {}),
     ...(lakes ? { flatLakes: lakes.map(({ nodes: _nodes, ...l }) => ({ ...l, level: round(l.level), before: { min: round(l.before.min), max: round(l.before.max) }, maxCutM: round(l.maxCutM) })) } : {}),
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
     ...(glo30 ? { demSource: dem.source } : {}),

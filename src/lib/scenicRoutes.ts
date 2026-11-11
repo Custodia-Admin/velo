@@ -265,7 +265,7 @@ const SCENIC_META: ScenicMeta[] = [
     name: 'Puerto Vallarta bayfront',
     place: 'Jalisco · Banderas Bay',
     description:
-      'From the Zona Romántica through the old town beside the malecón and up the hotel-zone boulevard to Marina Vallarta.',
+      'Along the malecón from the Zona Romántica, over the Cuale and past the old town seafront, then up the hotel-zone boulevard to Marina Vallarta.',
     scenery: 'coast',
     mood: 'golden-hour',
   },
@@ -274,7 +274,7 @@ const SCENIC_META: ScenicMeta[] = [
     name: 'Nuevo Vallarta to Bucerías',
     place: 'Nayarit · Banderas Bay',
     description:
-      'Along the palm-lined Paseo de los Cocoteros past the Nuevo Vallarta beach resorts to the fishing town of Bucerías.',
+      'Along the palm-lined Paseo de los Cocoteros past the Nuevo Vallarta beach resorts to the fishing town of Bucerías and its beachfront street.',
     scenery: 'coast',
     mood: 'golden-hour',
   },

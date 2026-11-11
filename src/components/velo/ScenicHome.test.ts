@@ -44,16 +44,29 @@ describe('ScenicHomeSections', () => {
     expect(hometown.match(/Map view/g)).toHaveLength(4);
     expect(hometown).toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*"/);
     expect(hometown).not.toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*, map view"/);
-    // The wishlist now mixes too: Chengdu's world leads, the map rides carry the badge.
+    // The wishlist now mixes too: the places with a world lead (Chengdu, then
+    // the coast worlds in manifest order), the map rides carry the badge.
     const wishlist = out.slice(out.indexOf('data-destination-section="wishlist"'));
     const wishTiles = [...wishlist.matchAll(/data-scenic-route="([^"]+)"/g)].map((m) => m[1]);
-    expect(wishTiles.slice(0, 2)).toEqual(['scenic-chengdu-luxe-lakes', 'scenic-chengdu-xinglong-lake']);
+    const worldTiles = [
+      'scenic-chengdu-luxe-lakes',
+      'scenic-chengdu-xinglong-lake',
+      'scenic-berkeley-bay-trail',
+      'scenic-richmond-marina-bay',
+      'scenic-santa-monica-strand',
+      'scenic-will-rogers-venice',
+      'scenic-puerto-vallarta-malecon',
+      'scenic-nuevo-vallarta-bucerias',
+    ];
+    expect(wishTiles.slice(0, worldTiles.length)).toEqual(worldTiles);
+    expect(wishlist).toMatch(/aria-label="Ride Will Rogers to Venice in Santa Monica, [^"]*"/);
+    expect(wishlist).not.toMatch(/aria-label="Ride (Berkeley shoreline|Richmond Marina Bay|Santa Monica to Hermosa Beach|Will Rogers to Venice|Puerto Vallarta bayfront|Nuevo Vallarta to Bucerías) in [^"]*, map view"/);
     expect(wishlist).toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*"/);
     expect(wishlist).toMatch(/aria-label="Ride Xinglong Lake loop in Chengdu, [^"]*"/);
     expect(wishlist).not.toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*, map view"/);
     expect(wishlist).not.toMatch(/aria-label="Ride Xinglong Lake loop in Chengdu, [^"]*, map view"/);
     expect(wishlist).toMatch(/aria-label="Ride West Lake loop in Hangzhou, [^"]*, map view"/);
-    expect(wishlist.match(/>Map view</g)).toHaveLength(wishTiles.length - 2);
+    expect(wishlist.match(/>Map view</g)).toHaveLength(wishTiles.length - worldTiles.length);
     expect(out).not.toContain('3D worlds coming; these ride on the map today');
   });
 });
@@ -67,6 +80,7 @@ describe('homeSectionViews', () => {
       format: 'velo-destination',
       version: 1,
       routes: ['scenic-berkeley-bay-trail'],
+      world: null,
     });
     // A section whose only route is today's disappears.
     expect(homeSectionViews('scenic-berkeley-bay-trail', homeSections([one]))).toEqual([]);
