@@ -131,7 +131,27 @@ export function buildLandcoverCanvas(world: LoadedWorld, texels: number): Landco
     list.push({ area, i });
     byKind.set(area.kind, list);
   });
+  const strokeWaterLines = () => {
+    ctx.strokeStyle = WATER_COLOR;
+    for (const line of world.water.lines) {
+      ctx.lineWidth = Math.max(1, line.width * sx);
+      ctx.beginPath();
+      const p = line.points;
+      ctx.moveTo(px(p[0]), py(p[1]));
+      for (let i = 2; i + 1 < p.length; i += 2) ctx.lineTo(px(p[i]), py(p[i + 1]));
+      ctx.stroke();
+    }
+  };
+  // On a coast, streams go under the sand: a texel is ~5 m at medium, so a
+  // 2.5 m storm-drain outlet stroked here smeared into a grey-blue band across
+  // the beach (Santa Monica's Pico outlet under the Strand). Its ribbon still
+  // draws it.
+  let linesDrawn = false;
   for (const kind of [...ORDER, ...[...byKind.keys()].filter((k) => !ORDER.includes(k))]) {
+    if (kind === 'beach' && byKind.has(kind)) {
+      strokeWaterLines();
+      linesDrawn = true;
+    }
     for (const { area, i } of byKind.get(kind) ?? []) {
       ctx.fillStyle = kind === 'farmland' ? FIELDS[hashIndex(i) % FIELDS.length] : (LANDCOVER_COLORS[kind] ?? BASE);
       path(area);
@@ -184,15 +204,7 @@ export function buildLandcoverCanvas(world: LoadedWorld, texels: number): Landco
     path(area);
     ctx.fill('evenodd');
   }
-  ctx.strokeStyle = WATER_COLOR;
-  for (const line of world.water.lines) {
-    ctx.lineWidth = Math.max(1, line.width * sx);
-    ctx.beginPath();
-    const p = line.points;
-    ctx.moveTo(px(p[0]), py(p[1]));
-    for (let i = 2; i + 1 < p.length; i += 2) ctx.lineTo(px(p[i]), py(p[i + 1]));
-    ctx.stroke();
-  }
+  if (!linesDrawn) strokeWaterLines();
   return { canvas, aux: buildAux(world, width, height, byKind), width, height };
 }
 
