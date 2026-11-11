@@ -186,6 +186,9 @@ function worstKink(p: DeckPiece, hf: Heightfield): { s: number; riseM: number; a
 
 describe('shipped worlds with bridges', () => {
   it('include the Ohio worlds', () => {
+    // Remote worlds are read once their layers are on disk (fetchPublished.mjs):
+    // CI fetches them and requires them; a fresh clone without them skips them.
+    if (process.env.VELO_REQUIRE_REMOTE_WORLDS !== '1') return;
     expect(BUNDLES.map((b: { id: string }) => b.id)).toEqual(expect.arrayContaining(['cleveland-lakefront', 'ohio-erie-towpath']));
   });
 });
