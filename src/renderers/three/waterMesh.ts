@@ -12,6 +12,11 @@
  * polygon that stands above the level (the carved embankment of a route
  * crossing a lake arm on a bridge, a causeway, an island) stays dry and
  * undepressed, so the rider never rides through a draped sheet of water.
+ *
+ * The sea (water areas of kind `sea`, coast worlds) is always drawn level:
+ * the bake sets every node under it to sea level (tools/worldbake/coast.mjs).
+ * Its vertices carry their distance to the coast (`shore`) for the surf, and
+ * `seaApron` carries the sea on past the world's edge to the far plane.
  */
 
 import * as THREE from 'three';
@@ -25,6 +30,12 @@ export const WATER_SURFACE_DROP_M = 0.5;
 export const WATER_BED_DEPTH_M = 2.6;
 /** Longest water triangle edge: enough to follow a river's fall, cheap on triangles. */
 export const WATER_EDGE_M = 45;
+/** Area kind of the sea (coast worlds). */
+export const SEA_KIND = 'sea';
+/** `kinds` value of sea vertices (lakes and rivers 1, stream ribbons 0.5). */
+export const SEA_VERTEX_KIND = 2;
+/** `shore` beyond this many metres from the coast (and on every non-sea vertex). */
+export const SHORE_FAR_M = 160;
 
 /** Whether the bake levelled this world's lakes (recipe `flatLakes`), so the renderer may draw them level. */
 export function levelLakes(world: Pick<LoadedWorld, 'manifest'>): boolean {
@@ -48,8 +59,23 @@ export const LEVEL_LAKE_SHARE = 0.5;
 /** Nodes within this of the level are the lake's own; higher ones are dry ground inside it. */
 export const LEVEL_LAKE_TOL_M = 0.05;
 
-/** Visit every heightfield node inside `area` (holes excluded), scanline at node centres. */
-function forNodesInside(area: WorldArea, hf: Heightfield, visit: (c: number, r: number) => void): void {
+/**
+ * The sea's rings for node scans: vertices on the world's edge pushed a
+ * metre past it, so the half-open scanline rule doesn't leave the sea's
+ * nodes on the north edge out (the bake levels them the same way,
+ * tools/worldbake/coast.mjs seaScanRings).
+ */
+export function seaScanRings(area: WorldArea, hf: Heightfield): WorldArea {
+  const { cols, rows, cellSize, xMin, yMax } = hf.spec;
+  const xMax = xMin + (cols - 1) * cellSize;
+  const yMin = yMax - (rows - 1) * cellSize;
+  const out = (v: number, lo: number, hi: number) => (Math.abs(v - lo) < 0.05 ? lo - 1 : Math.abs(v - hi) < 0.05 ? hi + 1 : v);
+  return { ...area, rings: area.rings.map((r) => r.map((v, i) => (i % 2 === 0 ? out(v, xMin, xMax) : out(v, yMin, yMax)))) };
+}
+
+/** Visit every heightfield node inside `area` (holes excluded), scanline at node centres; the sea by its pushed-out rings. */
+function forNodesInside(area0: WorldArea, hf: Heightfield, visit: (c: number, r: number) => void): void {
+  const area = area0.kind === SEA_KIND ? seaScanRings(area0, hf) : area0;
   const { cols, rows, cellSize, xMin, yMax } = hf.spec;
   const outer = area.rings[0];
   let y0 = Infinity;
@@ -85,9 +111,10 @@ function forNodesInside(area: WorldArea, hf: Heightfield, visit: (c: number, r: 
  * most of its nodes share (at least LEVEL_LAKE_SHARE of them, within
  * LEVEL_LAKE_TOL_M, and at least LEVEL_LAKE_MIN_NODES nodes). Null for
  * rivers and for lakes the DEM left tilted, which keep following the terrain.
+ * The sea counts too: its nodes are all at sea level.
  */
 export function lakeLevel(area: WorldArea, hf: Heightfield): number | null {
-  if (area.kind !== 'lake' && area.kind !== 'pond') return null;
+  if (area.kind !== 'lake' && area.kind !== 'pond' && area.kind !== SEA_KIND) return null;
   if (!area.rings.length || area.rings[0].length < 6) return null;
   const step = hf.spec.heightScale;
   const counts = new Map<number, number>();
@@ -114,8 +141,70 @@ export function lakeLevel(area: WorldArea, hf: Heightfield): number | null {
 
 export interface WaterGeometryData {
   positions: Float32Array;
-  /** 1 for polygons (lakes/rivers), 0.5 for line ribbons (streams). */
+  /** 1 for polygons (lakes/rivers), 0.5 for line ribbons (streams), SEA_VERTEX_KIND for the sea. */
   kinds: Float32Array;
+  /** Per vertex: metres to the coast, capped at SHORE_FAR_M (SHORE_FAR_M off the sea). */
+  shore: Float32Array;
+}
+
+/** Whether an area is drawn level: every sea, and with `levelLakes` every level lake. */
+function areaLevel(area: WorldArea, hf: Heightfield, levelLakes: boolean): number | null {
+  return levelLakes || area.kind === SEA_KIND ? lakeLevel(area, hf) : null;
+}
+
+/**
+ * Distance to the coast for points on the sea: the sea rings' segments
+ * except those along the world's edge (where the sea runs on, not the land).
+ */
+export function coastDistance(areas: readonly WorldArea[], hf: Heightfield, far = SHORE_FAR_M): (x: number, y: number) => number {
+  const { xMin, yMax, cellSize, cols, rows } = hf.spec;
+  const xMax = xMin + (cols - 1) * cellSize;
+  const yMin = yMax - (rows - 1) * cellSize;
+  const onEdge = (ax: number, ay: number, bx: number, by: number) =>
+    (Math.abs(ax - xMin) < 0.5 && Math.abs(bx - xMin) < 0.5) ||
+    (Math.abs(ax - xMax) < 0.5 && Math.abs(bx - xMax) < 0.5) ||
+    (Math.abs(ay - yMin) < 0.5 && Math.abs(by - yMin) < 0.5) ||
+    (Math.abs(ay - yMax) < 0.5 && Math.abs(by - yMax) < 0.5);
+  const cell = far;
+  const key = (cx: number, cy: number) => cx * 100003 + cy;
+  const grid = new Map<number, number[]>();
+  for (const area of areas) {
+    if (area.kind !== SEA_KIND) continue;
+    for (const ring of area.rings) {
+      const n = ring.length / 2;
+      for (let i = 0, j = n - 1; i < n; j = i++) {
+        const ax = ring[2 * j], ay = ring[2 * j + 1], bx = ring[2 * i], by = ring[2 * i + 1];
+        if (onEdge(ax, ay, bx, by)) continue;
+        const c0 = Math.floor(Math.min(ax, bx) / cell), c1 = Math.floor(Math.max(ax, bx) / cell);
+        const r0 = Math.floor(Math.min(ay, by) / cell), r1 = Math.floor(Math.max(ay, by) / cell);
+        for (let cx = c0; cx <= c1; cx++) {
+          for (let cy = r0; cy <= r1; cy++) {
+            const list = grid.get(key(cx, cy));
+            if (list) list.push(ax, ay, bx, by);
+            else grid.set(key(cx, cy), [ax, ay, bx, by]);
+          }
+        }
+      }
+    }
+  }
+  return (x, y) => {
+    let best = far;
+    const cx = Math.floor(x / cell), cy = Math.floor(y / cell);
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const list = grid.get(key(cx + dx, cy + dy));
+        if (!list) continue;
+        for (let i = 0; i < list.length; i += 4) {
+          const ax = list[i], ay = list[i + 1], ex = list[i + 2] - ax, ey = list[i + 3] - ay;
+          const l2 = ex * ex + ey * ey;
+          const t = l2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * ex + (y - ay) * ey) / l2)) : 0;
+          const d = Math.hypot(x - ax - t * ex, y - ay - t * ey);
+          if (d < best) best = d;
+        }
+      }
+    }
+    return best;
+  };
 }
 
 type V2 = [number, number];
@@ -487,14 +576,17 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
   const onRoute = routeCrossingTest(opts.dryRoutes ?? [], water, hf);
   const P: number[] = [];
   const K: number[] = [];
+  const S: number[] = [];
+  const toCoast = water.areas.some((a) => a.kind === SEA_KIND) ? coastDistance(water.areas, hf) : null;
   let level: number | null = null;
   const put = (p: V2, lift: number, kind: number) => {
     P.push(p[0], (level ?? hf.sampleHeight(p[0], p[1])) - WATER_SURFACE_DROP_M + lift, -p[1]);
     K.push(kind);
+    S.push(kind === SEA_VERTEX_KIND && toCoast ? toCoast(p[0], p[1]) : SHORE_FAR_M);
   };
   for (const area of water.areas) {
     if (!area.rings.length) continue;
-    level = levelLakes ? lakeLevel(area, hf) : null;
+    level = areaLevel(area, hf, levelLakes);
     const outer = ringPoints(area.rings[0]);
     const holes = area.rings.slice(1).map(ringPoints);
     if (outer.length < 3) continue;
@@ -511,7 +603,8 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
       maxEdgeM,
       flat,
     );
-    for (let i = 0; i < flat.length; i += 2) put([flat[i], flat[i + 1]], 0, 1);
+    const kind = area.kind === SEA_KIND ? SEA_VERTEX_KIND : 1;
+    for (let i = 0; i < flat.length; i += 2) put([flat[i], flat[i + 1]], 0, kind);
   }
   level = null;
   // Streams and rivers without polygons: flat ribbons following the terrain,
@@ -548,21 +641,63 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
       }
     }
   }
-  return { positions: new Float32Array(P), kinds: new Float32Array(K) };
+  return { positions: new Float32Array(P), kinds: new Float32Array(K), shore: new Float32Array(S) };
+}
+
+/**
+ * The sea past the world's edge, out to `reachM`: one quad outward from every
+ * run of the sea's outline along the edge, and a corner square where the sea
+ * covers a corner. Level with the sea, so the horizon is water, not sky
+ * under the terrain's edge. Empty without a sea.
+ */
+export function seaApron(water: WaterLayer, hf: Heightfield, reachM: number): WaterGeometryData {
+  const { xMin, yMax, cellSize, cols, rows } = hf.spec;
+  const xMax = xMin + (cols - 1) * cellSize;
+  const yMin = yMax - (rows - 1) * cellSize;
+  const P: number[] = [];
+  const quad = (x0: number, y0: number, x1: number, y1: number, h: number) => {
+    // Counter-clockwise from above in world (x, y): (x0,y0) (x1,y0) (x1,y1) (x0,y1).
+    for (const [x, y] of [[x0, y0], [x1, y0], [x1, y1], [x0, y0], [x1, y1], [x0, y1]]) P.push(x, h, -y);
+  };
+  const near = (a: number, b: number) => Math.abs(a - b) < 0.5;
+  const corner = { nw: false, ne: false, se: false, sw: false };
+  for (const area of water.areas) {
+    if (area.kind !== SEA_KIND || !area.rings.length) continue;
+    const level = lakeLevel(area, hf);
+    const h = (level ?? 0) - WATER_SURFACE_DROP_M;
+    const ring = area.rings[0];
+    const n = ring.length / 2;
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      const ax = ring[2 * j], ay = ring[2 * j + 1], bx = ring[2 * i], by = ring[2 * i + 1];
+      if (near(ay, yMax) && near(by, yMax)) quad(Math.min(ax, bx), yMax, Math.max(ax, bx), yMax + reachM, h);
+      else if (near(ay, yMin) && near(by, yMin)) quad(Math.min(ax, bx), yMin - reachM, Math.max(ax, bx), yMin, h);
+      else if (near(ax, xMin) && near(bx, xMin)) quad(xMin - reachM, Math.min(ay, by), xMin, Math.max(ay, by), h);
+      else if (near(ax, xMax) && near(bx, xMax)) quad(xMax, Math.min(ay, by), xMax + reachM, Math.max(ay, by), h);
+    }
+    for (let i = 0; i < n; i++) {
+      const x = ring[2 * i], y = ring[2 * i + 1];
+      if (near(x, xMin) && near(y, yMax) && !corner.nw) { corner.nw = true; quad(xMin - reachM, yMax, xMin, yMax + reachM, h); }
+      if (near(x, xMax) && near(y, yMax) && !corner.ne) { corner.ne = true; quad(xMax, yMax, xMax + reachM, yMax + reachM, h); }
+      if (near(x, xMax) && near(y, yMin) && !corner.se) { corner.se = true; quad(xMax, yMin - reachM, xMax + reachM, yMin, h); }
+      if (near(x, xMin) && near(y, yMin) && !corner.sw) { corner.sw = true; quad(xMin - reachM, yMin - reachM, xMin, yMin, h); }
+    }
+  }
+  const count = P.length / 3;
+  return { positions: new Float32Array(P), kinds: new Float32Array(count).fill(SEA_VERTEX_KIND), shore: new Float32Array(count).fill(SHORE_FAR_M) };
 }
 
 /**
  * Per-node depression of the terrain under water polygons (metres, ≥ 0),
  * cols × rows like the heightfield. Scanline fill at node centres. With
  * `levelLakes`, under a level lake (`lakeLevel`) only the nodes at its level
- * are pressed down.
+ * are pressed down; under the sea always.
  */
 export function waterDepression(water: WaterLayer, hf: Heightfield, levelLakes = false): Float32Array {
   const { cols, rows } = hf.spec;
   const out = new Float32Array(cols * rows);
   for (const area of water.areas) {
     if (!area.rings.length) continue;
-    const level = levelLakes ? lakeLevel(area, hf) : null;
+    const level = areaLevel(area, hf, levelLakes);
     forNodesInside(area, hf, (c, r) => {
       if (level !== null && hf.nodeHeight(c, r) > level + LEVEL_LAKE_TOL_M) return;
       out[r * cols + c] = WATER_BED_DEPTH_M;

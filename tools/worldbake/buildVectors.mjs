@@ -3,6 +3,7 @@
 // Everything here is a pure function of (elements, projection, recipe), so
 // the same cached Overpass responses always give byte-identical layers.
 
+import { BEACH_KIND, SEA_KIND } from './coast.mjs';
 import { hash32, simplifyLine } from './util.mjs';
 
 export const ROAD_CLASSES = [
@@ -210,6 +211,46 @@ function pointInPolygon(x, y, rings) {
   return inside;
 }
 
+/** Polygons with more vertices than this get a cell index for point tests (a coast world's sea). */
+const POLY_INDEX_MIN_VERTS = 4000;
+const POLY_INDEX_CELL_M = 25;
+
+/**
+ * Exact point-in-polygon for big polygons: a grid where every cell an edge
+ * may touch (its segment's bbox) is tested exactly, and every other cell
+ * takes the answer of its centre, which no edge separates from the rest of
+ * the cell. Same answers as pointInPolygon, without walking 10⁴ edges per
+ * tree on a coast world's sea.
+ */
+function polygonTester(rings, bbox) {
+  let verts = 0;
+  for (const r of rings) verts += r.length / 2;
+  if (verts < POLY_INDEX_MIN_VERTS) return (x, y) => pointInPolygon(x, y, rings);
+  const s = POLY_INDEX_CELL_M;
+  const [x0, y0, x1, y1] = bbox;
+  const nx = Math.max(1, Math.ceil((x1 - x0) / s) + 1);
+  const ny = Math.max(1, Math.ceil((y1 - y0) / s) + 1);
+  const edge = new Uint8Array(nx * ny);
+  const ci = (x) => Math.min(nx - 1, Math.max(0, Math.floor((x - x0) / s)));
+  const cj = (y) => Math.min(ny - 1, Math.max(0, Math.floor((y - y0) / s)));
+  for (const r of rings) {
+    const n = r.length / 2;
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      const i0 = ci(Math.min(r[2 * i], r[2 * j])) - 1, i1 = ci(Math.max(r[2 * i], r[2 * j])) + 1;
+      const j0 = cj(Math.min(r[2 * i + 1], r[2 * j + 1])) - 1, j1 = cj(Math.max(r[2 * i + 1], r[2 * j + 1])) + 1;
+      for (let b = Math.max(0, j0); b <= Math.min(ny - 1, j1); b++) for (let a = Math.max(0, i0); a <= Math.min(nx - 1, i1); a++) edge[b * nx + a] = 1;
+    }
+  }
+  const state = new Int8Array(nx * ny); // 0 unknown, 1 inside, -1 outside
+  return (x, y) => {
+    if (x < x0 || x > x1 || y < y0 || y > y1) return false;
+    const k = cj(y) * nx + ci(x);
+    if (edge[k]) return pointInPolygon(x, y, rings);
+    if (!state[k]) state[k] = pointInPolygon(x0 + (ci(x) + 0.5) * s, y0 + (cj(y) + 0.5) * s, rings) ? 1 : -1;
+    return state[k] > 0;
+  };
+}
+
 /** Clip + simplify + quantise a polygon; null when nothing is left. */
 function finishPolygon(rings, ext, tol, minArea) {
   const out = [];
@@ -273,7 +314,12 @@ export function buildRoads(elements, projection, ext) {
   };
 }
 
-export function buildWater(elements, projection, ext) {
+/**
+ * Water layer. `sea` (coast worlds, coast.mjs buildSea) adds the sea
+ * polygons as areas of kind `sea`, appended to `areaKinds`; without it the
+ * layer is exactly as before.
+ */
+export function buildWater(elements, projection, ext, { sea = null } = {}) {
   const areas = [];
   const lines = [];
   const lineIdx = new Map(WATER_LINE_KINDS.map(([k], i) => [k, i]));
@@ -302,10 +348,15 @@ export function buildWater(elements, projection, ext) {
       if (rings) areas.push({ k: kind, r: rings });
     }
   }
+  const areaKinds = sea ? [...WATER_AREA_KINDS, SEA_KIND] : WATER_AREA_KINDS;
+  for (const poly of sea ?? []) {
+    const rings = finishPolygon(poly, ext, 1, 20);
+    if (rings) areas.push({ k: areaKinds.indexOf(SEA_KIND), r: rings });
+  }
   return {
     version: 1,
     units: 'dm',
-    areaKinds: WATER_AREA_KINDS,
+    areaKinds,
     lineKinds: WATER_LINE_KINDS.map(([k]) => k),
     lineWidths: WATER_LINE_KINDS.map(([, w]) => w),
     areas,
@@ -328,22 +379,32 @@ function landcoverKind(t) {
   return null;
 }
 
-export function buildLandcover(elements, projection, ext) {
+/**
+ * Landcover layer. `beach` (coast worlds: the coast layer's natural=beach
+ * and natural=sand areas) adds them as kind `beach`, appended to `kinds`
+ * after every other area; without it the layer is exactly as before.
+ */
+export function buildLandcover(elements, projection, ext, { beach = null } = {}) {
+  const kinds = beach ? [...LANDCOVER_KINDS, BEACH_KIND] : LANDCOVER_KINDS;
   const areas = [];
   const polys = []; // full-precision copies for vegetation seeding
-  for (const el of elements) {
-    const t = el.tags ?? {};
-    const kind = landcoverKind(t);
-    if (!kind) continue;
+  const add = (el, kind) => {
     for (const poly of polygonsOf(el, projection)) {
       const rings = finishPolygon(poly, ext, 3, 200);
       if (!rings) continue;
-      const k = LANDCOVER_KINDS.indexOf(kind);
-      areas.push({ k, r: rings });
-      polys.push({ kind, tags: t, rings: rings.map((r) => r.map((v) => v / 10)) });
+      areas.push({ k: kinds.indexOf(kind), r: rings });
+      polys.push({ kind, tags: el.tags ?? {}, rings: rings.map((r) => r.map((v) => v / 10)) });
     }
+  };
+  for (const el of elements) {
+    const kind = landcoverKind(el.tags ?? {});
+    if (kind) add(el, kind);
   }
-  return { layer: { version: 1, units: 'dm', kinds: LANDCOVER_KINDS, areas }, polys };
+  for (const el of beach ?? []) {
+    const n = el.tags?.natural;
+    if (n === 'beach' || n === 'sand') add(el, BEACH_KIND);
+  }
+  return { layer: { version: 1, units: 'dm', kinds, areas }, polys };
 }
 
 function buildingHeight(t) {
@@ -850,9 +911,13 @@ export function buildVegetation({ polys, ext, recipe, roads = null, water = null
     }
     return false;
   };
-  const waterPolys = (water?.areas ?? []).map((a) => {
-    const rings = a.r.map((r) => r.map((v) => v / 10));
-    return { rings, bbox: ringBbox(rings[0]) };
+  // Open water and sand (a coast world's beaches, under a beach park's lattice) grow no trees.
+  const waterPolys = [
+    ...(water?.areas ?? []).map((a) => a.r.map((r) => r.map((v) => v / 10))),
+    ...polys.filter((p) => p.kind === BEACH_KIND).map((p) => p.rings),
+  ].map((rings) => {
+    const bbox = ringBbox(rings[0]);
+    return { rings, bbox, inside: polygonTester(rings, bbox) };
   });
   const blocked = (x, y) => {
     if (x < ext.xMin || x > ext.xMax || y < ext.yMin || y > ext.yMax) return true;
@@ -861,7 +926,7 @@ export function buildVegetation({ polys, ext, recipe, roads = null, water = null
       if (Math.hypot(b.cx - x, b.cy - y) > b.r * 1.5 + C.buildingClearM + 2) continue;
       if (pointInRing(x, y, b.ring) || nearWall(x, y, b.ring)) return true;
     }
-    return waterPolys.some((p) => p.bbox[0] <= x && x <= p.bbox[2] && p.bbox[1] <= y && y <= p.bbox[3] && pointInPolygon(x, y, p.rings));
+    return waterPolys.some((p) => p.bbox[0] <= x && x <= p.bbox[2] && p.bbox[1] <= y && y <= p.bbox[3] && p.inside(x, y));
   };
   const pushCharacter = (pts, k) => {
     for (const p of pts) {

@@ -46,10 +46,11 @@ import { validateManifest, WORLD_FORMAT, WORLD_FORMAT_VERSION } from '../../src/
 import { fetchDem, DEM_SOURCE } from './fetchDem.mjs';
 import { fetchGlo30, GLO30_CREDIT, GLO30_URL_TEMPLATE } from './fetchGlo30.mjs';
 import { demSourceOf, GLO30_DEM_SOURCE } from './demSource.mjs';
-import { fetchOsm, OVERPASS_URL } from './fetchOsm.mjs';
+import { fetchOsm, osmLayersFor, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
-import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
+import { buildSea, flattenSea, relevelSea } from './coast.mjs';
+import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, clipLine, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
@@ -287,8 +288,10 @@ export async function bake(opts) {
 
   // OSM first: the water areas shape the terrain under them (flatLakes).
   t = Date.now();
-  const osm = await fetchOsm({ bbox, osmDate: recipe.osmDate, cacheDir, log });
-  const water = buildWater(osm.elements.water, projection, extent);
+  const osm = await fetchOsm({ bbox, osmDate: recipe.osmDate, cacheDir, log, layers: osmLayersFor(recipe) });
+  // A coast world's sea: the water side of the coastline ways (coast.mjs).
+  const sea = recipe.coast ? buildSea(osm.elements.coast, projection, extent, { clipLine }) : null;
+  const water = buildWater(osm.elements.water, projection, extent, { sea });
   lap('osm', t);
   let lakes = null;
   if (recipe.flatLakes) {
@@ -296,6 +299,12 @@ export async function bake(opts) {
     lakes = flat.lakes;
     const cut = lakes.reduce((mx, l) => Math.max(mx, l.maxCutM), 0);
     log(`flatLakes: ${lakes.length} lakes and ponds levelled (${lakes.reduce((n, l) => n + l.inNodes, 0)} nodes under water, ${flat.changedNodes} changed, max cut ${cut.toFixed(1)} m)`);
+  }
+  let seaFlat = null;
+  if (sea) {
+    seaFlat = flattenSea({ grid: g, heights, water });
+    const b = seaFlat.before;
+    log(`coast: ${sea.length} sea polygon${sea.length === 1 ? '' : 's'} (${sea.reduce((n, p) => n + p.length - 1, 0)} islands), ${seaFlat.inNodes} nodes at sea level${b ? ` (DEM ${b.min.toFixed(1)}…${b.max.toFixed(1)} m)` : ''}, ${seaFlat.stripNodes} shore nodes lowered to it`);
   }
 
   // 2. Routes: carve corridors into the float grid, then quantise.
@@ -307,9 +316,10 @@ export async function bake(opts) {
     return { id, name: names[id] ?? id, points: geometry[id].points };
   });
   const carve = carveRoutes({ grid: g, heights, projection, routes: routesIn, snap: recipe.snap });
-  if (lakes) {
+  if (lakes || seaFlat) {
     const keep = routeCoreNodes(g, carve.prepared, recipe.snap.coreCells * g.cellSize);
-    log(`flatLakes: ${relevelLakes({ heights, lakes, keep: (i) => keep.has(i) })} lake nodes re-levelled after the route carve (route core kept)`);
+    if (lakes) log(`flatLakes: ${relevelLakes({ heights, lakes, keep: (i) => keep.has(i) })} lake nodes re-levelled after the route carve (route core kept)`);
+    if (seaFlat) log(`coast: ${relevelSea({ heights, nodes: seaFlat.nodes, keep: (i) => keep.has(i) })} sea nodes re-levelled after the route carve (route core kept)`);
   }
   const height = buildHeightfield({ grid: g, heights });
   const snapped = finishRoutes({ prepared: carve.prepared, hf: height.hf, snap: recipe.snap });
@@ -348,7 +358,7 @@ export async function bake(opts) {
     log(`route ${id}: ${c.mappedPct}% within 1 m of mapped roads; guide on drawn roads ${c.paintPctBefore}% → ${c.paintPct}% (${c.easedM} m eased, ${c.joinedM} m joined${c.tunnelM ? `, ${c.tunnelM} m in tunnels` : ''})`);
   }
   log(`route fit: ${fit.roadsEased} roads bent (up to ${fit.maxShiftM} m), ${fit.joins} join pieces`);
-  const landcover = buildLandcover(osm.elements.landcover, projection, extent);
+  const landcover = buildLandcover(osm.elements.landcover, projection, extent, { beach: recipe.coast ? osm.elements.coast : null });
   // What the rider follows must never run through a building: every scenic
   // route at full resolution (the app's own polyline), plus every drawn road.
   const routeLines = routesIn.map((r) => r.points.flatMap(([lat, lon]) => projection.forward(lat, lon)));
@@ -474,6 +484,7 @@ export async function bake(opts) {
     routes: snapped.info.map((r) => ({ ...r, roadCoverage: roadCoverage[r.id] })),
     routeFit: routeFitReport(fit),
     heightfield: { ...height.info, carvedNodes: carve.carvedNodes, maxCutM: round(carve.maxCutM) },
+    ...(seaFlat ? { coast: { seaPolygons: sea.length, islands: sea.reduce((n, p) => n + p.length - 1, 0), seaNodes: seaFlat.inNodes, shoreNodesLowered: seaFlat.stripNodes, demUnderSea: seaFlat.before && { min: round(seaFlat.before.min), max: round(seaFlat.before.max) }, beachAreas: landcover.layer.areas.filter((a) => landcover.layer.kinds[a.k] === 'beach').length } } : {}),
     ...(lakes ? { flatLakes: lakes.map(({ nodes: _nodes, ...l }) => ({ ...l, level: round(l.level), before: { min: round(l.before.min), max: round(l.before.max) }, maxCutM: round(l.maxCutM) })) } : {}),
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
     ...(glo30 ? { demSource: dem.source } : {}),

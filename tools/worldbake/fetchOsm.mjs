@@ -7,6 +7,7 @@
 
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { COAST_LAYER } from './coast.mjs';
 import { cachedFetch, ensureDir, sha256, sleep } from './util.mjs';
 
 export const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
@@ -27,19 +28,28 @@ export const OSM_LAYERS = {
     '(way[historic~"^(castle|monument|tower|city_gate|fort|archaeological_site)$"][name]({{bbox}});way[amenity=place_of_worship][name][wikidata]({{bbox}});way[tourism=attraction][name][wikidata]({{bbox}});relation[amenity=place_of_worship][name][wikidata]({{bbox}}););out center;',
 };
 
-export function overpassQuery(layer, bbox, osmDate) {
+/**
+ * The layers a recipe fetches: OSM_LAYERS, plus the coast layer (coastline,
+ * beach and sand; coast.mjs) for a recipe with `"coast": true`. Other
+ * recipes fetch exactly OSM_LAYERS, so their cached responses stay valid.
+ */
+export function osmLayersFor(recipe) {
+  return recipe.coast ? { ...OSM_LAYERS, coast: COAST_LAYER } : OSM_LAYERS;
+}
+
+export function overpassQuery(layer, bbox, osmDate, layers = OSM_LAYERS) {
   const b = `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`;
-  return `[out:json][timeout:300][date:"${osmDate}"];${OSM_LAYERS[layer].replaceAll('{{bbox}}', b)}`;
+  return `[out:json][timeout:300][date:"${osmDate}"];${layers[layer].replaceAll('{{bbox}}', b)}`;
 }
 
 /** Fetch every layer sequentially (Overpass etiquette: one slot at a time). */
-export async function fetchOsm({ bbox, osmDate, cacheDir, log = () => {} }) {
+export async function fetchOsm({ bbox, osmDate, cacheDir, log = () => {}, layers = OSM_LAYERS }) {
   const dir = join(cacheDir, 'overpass');
   ensureDir(dir);
   const out = {};
   const queries = {};
-  for (const layer of Object.keys(OSM_LAYERS)) {
-    const q = overpassQuery(layer, bbox, osmDate);
+  for (const layer of Object.keys(layers)) {
+    const q = overpassQuery(layer, bbox, osmDate, layers);
     queries[layer] = q;
     const t0 = Date.now();
     const { body, cached } = await cachedFetch(

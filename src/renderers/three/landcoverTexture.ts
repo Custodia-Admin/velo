@@ -2,7 +2,8 @@
  * Landcover colour map for the terrain shader: the world's landcover and
  * water polygons, rivers and (faintly) roads rasterised onto a canvas, row
  * 0 = north. Farmland parcels each get their own crop colour so the valley
- * reads as the Umbrian patchwork rather than one green.
+ * reads as the Umbrian patchwork rather than one green. On a coast, beaches
+ * are pale sand with a darker band of wet sand along the water's edge.
  *
  * Needs a 2D canvas (DOM or OffscreenCanvas); returns null without one
  * (unit tests), and the terrain falls back to a plain tint.
@@ -26,15 +27,24 @@ export const LANDCOVER_COLORS: Readonly<Record<string, string>> = {
   residential: '#a69c8a',
   industrial: '#9a958c',
   cemetery: '#6f7a52',
+  beach: '#d6c39b',
 };
+
+/** Wet sand along the sea's edge on a beach, and how wide the band is, metres. */
+export const WET_SAND_COLOR = '#a8946c';
+export const WET_SAND_M = 7;
 
 /** Field colours: ripe wheat, stubble, ploughed earth, young green, fodder. */
 export const FIELDS = ['#b5a466', '#a8955f', '#8e7553', '#7f8f4c', '#99a05a', '#b09a63', '#8a7c55'];
 
 export const WATER_COLOR = '#36667f';
 
-/** Draw order: broad covers first, built-up last, so towns sit on top. */
-const ORDER = ['farmland', 'grass', 'scrub', 'orchard', 'vineyard', 'park', 'forest', 'cemetery', 'industrial', 'residential'];
+/**
+ * Draw order: broad covers first, built-up last, so towns sit on top. Sand
+ * goes over everything: a beach inside a park or a residential polygon is
+ * still a beach.
+ */
+const ORDER = ['farmland', 'grass', 'scrub', 'orchard', 'vineyard', 'park', 'forest', 'cemetery', 'industrial', 'residential', 'beach'];
 
 function hashIndex(i: number): number {
   let h = (i + 1) * 2654435761;
@@ -47,7 +57,7 @@ export interface LandcoverCanvas {
   /**
    * Aux map, same size: r = crop-row angle / π (rows run along each parcel's
    * longest edge), g = row kind (0.3 furrows, 0.6 orchard/olive rows, 0.9
-   * vine rows, 0 none), b = woodland class (1 forest, 0.7 scrub).
+   * vine rows, 0 none), b = surface class (1 forest, 0.7 scrub, 0.35 sand).
    */
   aux: HTMLCanvasElement | OffscreenCanvas | null;
   width: number;
@@ -56,8 +66,8 @@ export interface LandcoverCanvas {
 
 /** Row kind per landcover kind (aux green channel, 0–255). */
 export const ROW_KIND: Readonly<Record<string, number>> = { farmland: 77, orchard: 153, vineyard: 230 };
-/** Woodland class (aux blue channel, 0–255). */
-export const WOOD_CLASS: Readonly<Record<string, number>> = { forest: 255, scrub: 178 };
+/** Surface class (aux blue channel, 0–255): woodland, and sand for the terrain shader's beach. */
+export const WOOD_CLASS: Readonly<Record<string, number>> = { forest: 255, scrub: 178, beach: 90 };
 
 /** Direction of a ring's longest edge, radians in [0, π). */
 export function longestEdgeAngle(ring: Float32Array | number[]): number {
@@ -127,6 +137,33 @@ export function buildLandcoverCanvas(world: LoadedWorld, texels: number): Landco
       path(area);
       ctx.fill('evenodd');
     }
+  }
+
+  // Wet sand: the sea's outline stroked inside the beaches (the half over the
+  // sea is painted over as water below).
+  const beaches = byKind.get('beach') ?? [];
+  const seas = world.water.areas.filter((a) => a.kind === 'sea');
+  if (beaches.length && seas.length) {
+    ctx.save();
+    ctx.beginPath();
+    for (const { area } of beaches) {
+      for (const ring of area.rings) {
+        for (let i = 0; i + 1 < ring.length; i += 2) {
+          if (i === 0) ctx.moveTo(px(ring[i]), py(ring[i + 1]));
+          else ctx.lineTo(px(ring[i]), py(ring[i + 1]));
+        }
+        ctx.closePath();
+      }
+    }
+    ctx.clip();
+    ctx.strokeStyle = WET_SAND_COLOR;
+    ctx.lineWidth = Math.max(1, 2 * WET_SAND_M * sx);
+    ctx.lineJoin = 'round';
+    for (const area of seas) {
+      path(area);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   // Roads, faintly: far terrain (no ribbons there) still shows the network.
