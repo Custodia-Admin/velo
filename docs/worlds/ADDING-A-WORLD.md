@@ -59,6 +59,26 @@ from `chengdu-luxelakes.json`:
   the lake used to cover. Expect the P1.3 registered RMS to rise a little: the
   reference DEM is as old as GLO-30, so points on a dug lake now disagree with
   it (Chengdu: 1.09 m before, 2.35 m after, 0.99 m away from the water).
+- `"coast": true` if the world reaches the sea. OSM has no sea polygons, only
+  `natural=coastline` ways (land on the left, water on the right). The bake
+  fetches one more Overpass layer for them (and `natural=beach`/`sand`), and
+  `tools/worldbake/coast.mjs`:
+  - joins the coastline ways into chains, clips them to the extent and closes
+    them along its edge into the sea, islands as holes, shipped as a water
+    area of kind `sea`;
+  - sets every node under the sea to 0 m and the one-cell strip round it no
+    higher (GLO-30 and the coastline disagree by metres, and the DSM carries
+    piers and boats);
+  - slopes each `natural=beach` down to the water at 1:25 (GLO-30 reads a
+    beach as a shelf 4–7 m above the sea that hides the water from the road
+    behind it; `natural=sand` also maps dunes, so it is left alone);
+  - ships beaches and sand as landcover kind `beach`.
+  The route carve runs after this; sea nodes it lifts go back to 0 m except
+  the route's core. A coastline that stops inside the world fails the bake:
+  the snapshot is broken, pick another `osmDate`. Give the grid an extra
+  1–1.5 km on the sea side so the water runs out to the edge; the renderer
+  carries it on past the edge to the far plane (`seaApron`). Recipes without
+  the flag fetch and bake exactly as before.
 
 ## 3. Bake on cat-bed
 
@@ -174,7 +194,9 @@ fails instead of being skipped.
 ## 6. Tests and evidence
 
 - Add the world's water triangle count to `BUDGET` in `waterMesh.test.ts`. The
-  failure message gives the number.
+  failure message gives the number. The sea is tessellated at
+  `SEA_EDGE_FACTOR` × the lattice edge (it is level), so a coast world stays
+  near a lake world's count.
 - `destinations.test.ts`, `catalog.test.ts` and `ScenicHome.test.ts` pin where
   the place shows on Home. A wishlist place with a world leads
   "Places we want to go".
@@ -183,7 +205,10 @@ fails instead of being skipped.
   `SPOTS`, `TIMES`, `SIZES`). Check that:
   - the rider is on the drawn road;
   - there is one road surface;
-  - there is no void.
+  - there is no void;
+  - on a coast world, that the coast reads as coast: pick spots where the
+    route runs within ~100 m of the water (a wide beach or a row of hotels
+    hides the sea from the road, as it does in life).
 - Measure fps with the HUD on, at medium, on cat-bed's iGPU
   (`scripts/world-hud-fps.py`). The bar is ≥ 58 fps.
 - Add a section for the world to WORLD-FORMAT.md with the bake figures.

@@ -220,15 +220,25 @@ natively, without Node's web-stream wrapper.
 
 ## water.json
 
-`areas[]`: `{ k, r }`, `k` indexes `areaKinds` (lake, river, pond) and `r` is
-a list of rings: outer ring first, then holes. Rings are open (no repeated
+`areas[]`: `{ k, r }`, `k` indexes `areaKinds` (lake, river, pond, and `sea`
+in a coast world) and `r` is a list of rings: outer ring first, then holes. Rings are open (no repeated
 first vertex), dm. `lines[]`: `{ k, w?, p }`, `k` indexes `lineKinds` (river,
 canal, stream), width `w` or `lineWidths[k]`. Culverted waterways are dropped.
+
+A coast world (recipe `"coast": true`, `tools/worldbake/coast.mjs`) adds the
+`sea` kind: the water side of the OSM coastline inside the extent, closed
+along the extent's edge, islands as holes. Every heightfield node under it is
+at 0 m apart from a route's carved core. The renderer draws it level, bluer
+and teal over the shallows, with surf where the shore is open (`shore` and
+`open` per vertex in `waterMesh.ts`), and carries it on past the extent's
+edge (`seaApron`).
 
 ## landcover.json
 
 `areas[]`: `{ k, r }`, `k` indexes `kinds`: forest, scrub, grass, park,
-farmland, orchard, vineyard, residential, industrial, cemetery. Polygons are
+farmland, orchard, vineyard, residential, industrial, cemetery, and `beach`
+(OSM `natural=beach`/`sand`) in a coast world, drawn as sand over every other
+cover. Polygons are
 clipped to the extent, simplified at 3 m, and dropped below 200 m².
 
 ## buildings.bin
@@ -398,7 +408,7 @@ most.
 `id`, `name`, `description`, `origin` (world `(0, 0)`), `grid` (`xMin`, `yMax`,
 `cellSize`, `cols`, `rows`, ≤ 2048 a side), `dem` (below), `osmDate`, `routes`
 (+ `routesOutside` with reasons), `snap`, `vegetation`, `moods`,
-`defaultMood`, the optional `host` (`"remote"`), `routeCredits` and
+`defaultMood`, the optional `host` (`"remote"`), `routeCredits`, `coast` and
 `flatLakes` ([ADDING-A-WORLD.md](ADDING-A-WORLD.md)), and `validation`
 (`sample_seed`, plus an optional mountain
 override; the bake writes the rest, see

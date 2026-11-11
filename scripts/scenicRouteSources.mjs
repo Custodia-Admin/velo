@@ -140,22 +140,29 @@ export const SCENIC_ROUTE_SOURCES = [
   },
   {
     id: 'scenic-santa-monica-strand',
-    waypoints: [[34.0089, -118.4974], [33.9867, -118.4741], [33.9587, -118.4523], [33.8839, -118.4132], [33.8616, -118.4037]],
+    // From the beach path just south of Santa Monica Pier (a start on the pier
+    // climbs its stairs and back) to the Hermosa pier plaza: a point on the
+    // pier rides 160 m out over the sea on foot, and one by Manhattan Beach
+    // Pier detours onto that pier.
+    waypoints: [[34.00905, -118.49619], [33.9867, -118.4741], [33.9587, -118.4523], [33.89, -118.415], [33.86199, -118.40137]],
   },
   {
     id: 'scenic-will-rogers-venice',
     // The beach path from its north end at Will Rogers State Beach to Venice.
     // Points on the path: an end on Venice Pier routes onto the pier on foot,
-    // one a street inland pulls the route onto Pacific Avenue.
-    waypoints: [[34.0354, -118.5361], [34.02553, -118.51691], [34.0089, -118.4974], [33.98981, -118.47677], [33.97939, -118.4672]],
+    // one a street inland pulls the route onto Pacific Avenue. It passes Santa
+    // Monica Pier through the underpass: a point on the pier climbs its stairs.
+    waypoints: [[34.0354, -118.5361], [34.02553, -118.51691], [34.00842, -118.49526], [33.98981, -118.47677], [33.97939, -118.4672]],
   },
   {
     id: 'scenic-puerto-vallarta-malecon',
-    // North along the bay: the Malecón from the Zona Romántica over the Cuale,
-    // Paseo Díaz Ordaz beside it, then the hotel zone. Points on the Malecón
-    // itself: without them the router takes Calle Juárez a block inland. The
-    // coast road south to Mismaloya climbs the cliffs; skipped.
-    waypoints: [[20.6043, -105.2385], [20.60657, -105.23756], [20.60998, -105.23509], [20.61441, -105.23271], [20.61537, -105.23294], [20.6684, -105.2487]],
+    // North along the bay: over the Cuale from the Zona Romántica on the
+    // Puente del Malecón, the Malecón and Paseo Díaz Ordaz beside it, then the
+    // hotel zone. Points on the Malecón itself: without them the router takes
+    // Calle Juárez a block inland. It starts at the bridge: south of it the
+    // router follows a Malecón way the bake doesn't draw. The coast road
+    // south to Mismaloya climbs the cliffs; skipped.
+    waypoints: [[20.60553, -105.2381], [20.60657, -105.23756], [20.60998, -105.23509], [20.61441, -105.23271], [20.61537, -105.23294], [20.6684, -105.2487]],
   },
   {
     id: 'scenic-nuevo-vallarta-bucerias',
