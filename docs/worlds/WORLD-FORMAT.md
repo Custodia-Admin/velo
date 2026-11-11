@@ -152,15 +152,14 @@ natively, without Node's web-stream wrapper.
      step) has the target ramped over 400 m at each end so both ends meet
      at their mean (`closeLoop`): the ground at the start/finish has one
      height, and without the ramp Chengdu's Xinglong loop stepped 3 m in
-     its first 10 m. Perugia's Assisi loop was baked before this and still
-     steps 2.2 m (a test names it until it is re-baked);
+     its first 10 m;
   2. nodes within `1.5 × cellSize` of the route take the target; the next
      40 m blend back to the natural terrain (smoothstep), like a road
      embankment or cutting.
 - Checks per route (in the manifest and the report): `maxGapM` (0), and
   `gradeMeanAbsDiffPct`, the mean |render grade − profile grade| over a
-  centred 200 m window (must be ≤ 1 percentage point; Perugia: 0.11 and 0.10).
-  For comparison the raw DEM along the same line differs by 0.73 and 0.61.
+  centred 200 m window (must be ≤ 1 percentage point; Perugia: 0.11 and 0.16).
+  For comparison the raw DEM along the same line differs by 0.78 and 0.75.
 
 ## roads.json
 
@@ -285,7 +284,7 @@ Nothing the rider follows runs through a building (`buildingClearance` in
 
 Districts are classified before the drop, so the remaining buildings keep
 their palettes. The bake logs the counts and records them in the report
-(`buildingsDropped`); Perugia drops 44 on routes and 91 astride roads of
+(`buildingsDropped`); Perugia drops 27 on routes and 91 astride roads of
 24,056.
 
 Districts come from the built fabric (`classifyDistricts` in
@@ -387,15 +386,17 @@ keeps its previous block.
   copies the world's bbox, routes, moods, towns and credits into its
   destination manifest (`docs/worlds/DESTINATIONS.md`).
 
-Perugia, 31 Oct 2026 on cat-bed (Node 26), from a clean cache:
+Perugia on cat-bed (Node 26). The first bake (31 Oct 2026) ran from a clean
+cache; the shipped bundle was re-baked from that cache on 11 Nov 2026, with
+`closeLoop`:
 
 | Check | Result |
 | --- | --- |
-| Bake time | 342 s (Overpass ≈ 5 min of it) |
-| Determinism | two clean-cache bakes, identical SHA-256 for every file |
-| Size | 4.73 MB as shipped (gzip), 3.56 MB brotli, 9.5 MB raw |
-| Heightfield vs Open-Meteo, 50 seeded points | at the points 5.96 m (bias −1.18 m, max 18.2 m); P1.3 v2 (5 Nov): `standard`, registered 4.54 m ≤ 6.00 m, **PASS** |
-| Routes | max gap 0 m; grade Δ 0.109 pp (Tiber park), 0.101 pp (Assisi valley); painted guide 100 % on drawn roads, checked every 0.1 m across the band (the route fit bends 17 paths under 1.6 km of route, by at most 1.02 m, and grows 4 road ends; no joins) |
+| Bake time | 342 s from a clean cache (Overpass ≈ 5 min of it); 26 s from the cache |
+| Determinism | two clean-cache bakes (31 Oct), and an `--out` bake against the default bake (11 Nov): identical SHA-256 for every file |
+| Size | 5.82 MB as shipped (gzip), 4.58 MB brotli, 11.5 MB raw |
+| Heightfield vs Open-Meteo, 50 seeded points | at the points 5.96 m (bias −1.18 m, max 18.2 m); P1.3 v2: `standard`, registered 4.54 m ≤ 6.00 m, **PASS** |
+| Routes | max gap 0 m; grade Δ 0.11 pp (Tiber park), 0.156 pp (Assisi valley); the Assisi loop meets itself at one height (worst step in its first and last 30 m 2.1 %); painted guide 100 % on drawn roads, checked every 0.1 m across the band (the route fit bends 21 paths under 1.6 km of route, by at most 1.02 m; no joins) |
 
 The 50-point point RMS passed v1's 6 m, but only just. Spot checks of 500 more points
 (5 seeds × 100) gave RMS 6.0–8.2 m, about 7.0 m overall. The raw z12 and z13

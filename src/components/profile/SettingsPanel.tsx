@@ -148,7 +148,7 @@ export function SettingsPanel({
       onClick={onClose}
     >
       <Card
-        className="w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden"
+        className="w-full max-w-lg max-h-dialog-fit flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

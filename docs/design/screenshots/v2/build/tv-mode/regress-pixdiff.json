@@ -1,0 +1,132 @@
+{
+ "devices-1280-night.jpg": {
+  "changedPct": 0.0,
+  "bbox": null
+ },
+ "devices-1280.jpg": {
+  "changedPct": 0.001,
+  "bbox": [
+   1305,
+   601,
+   1415,
+   622
+  ]
+ },
+ "devices-1440-night.jpg": {
+  "changedPct": 0.017,
+  "bbox": [
+   729,
+   301,
+   791,
+   312
+  ]
+ },
+ "devices-1440.jpg": {
+  "changedPct": 0.0,
+  "bbox": null
+ },
+ "finish-1280-night.jpg": {
+  "changedPct": 0.0,
+  "bbox": null
+ },
+ "finish-1280.jpg": {
+  "changedPct": 0.0,
+  "bbox": null
+ },
+ "finish-1440-night.jpg": {
+  "changedPct": 0.0,
+  "bbox": null
+ },
+ "finish-1440.jpg": {
+  "changedPct": 0.0,
+  "bbox": null
+ },
+ "home-1280-night.jpg": {
+  "changedPct": 0.0,
+  "bbox": null
+ },
+ "home-1280.jpg": {
+  "changedPct": 0.0,
+  "bbox": null
+ },
+ "home-1440-night.jpg": {
+  "changedPct": 0.0,
+  "bbox": null
+ },
+ "home-1440.jpg": {
+  "changedPct": 0.0,
+  "bbox": null
+ },
+ "ride-hud-1280-night.jpg": {
+  "changedPct": 44.886,
+  "bbox": [
+   0,
+   0,
+   2560,
+   1296
+  ]
+ },
+ "ride-hud-1280.jpg": {
+  "changedPct": 47.39,
+  "bbox": [
+   0,
+   0,
+   2560,
+   1296
+  ]
+ },
+ "ride-hud-1440-night.jpg": {
+  "changedPct": 58.047,
+  "bbox": [
+   0,
+   0,
+   1440,
+   900
+  ]
+ },
+ "ride-hud-1440.jpg": {
+  "changedPct": 61.848,
+  "bbox": [
+   0,
+   0,
+   1440,
+   900
+  ]
+ },
+ "ride-hud-open-1280-night.jpg": {
+  "changedPct": 22.729,
+  "bbox": [
+   0,
+   0,
+   2560,
+   1296
+  ]
+ },
+ "ride-hud-open-1280.jpg": {
+  "changedPct": 57.727,
+  "bbox": [
+   0,
+   0,
+   2560,
+   1296
+  ]
+ },
+ "ride-hud-open-1440-night.jpg": {
+  "changedPct": 48.561,
+  "bbox": [
+   0,
+   0,
+   1440,
+   900
+  ]
+ },
+ "ride-hud-open-1440.jpg": {
+  "changedPct": 52.064,
+  "bbox": [
+   0,
+   0,
+   1440,
+   900
+  ]
+ }
+}

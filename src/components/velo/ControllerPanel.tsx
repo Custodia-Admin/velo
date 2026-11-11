@@ -24,6 +24,7 @@ import {
   reconnectRideController,
 } from '@/lib/controllers/rideController';
 import { ACTION_LEGEND, SHOW_LEGEND, type LegendRow } from '@/lib/controllers/controllerActions';
+import { MENU_LEGEND } from '@/lib/tv/handlebarNav';
 import { useControllerStore } from '@/stores/controllerStore';
 
 
@@ -113,6 +114,16 @@ export function ShowLegend() {
     <>
       <p className="pt-4 font-semibold text-foreground">While you watch a video</p>
       <Legend rows={SHOW_LEGEND} />
+    </>
+  );
+}
+
+/** The handlebars as a remote (P3.3): menus, Back and the ride details. */
+export function MenuLegend() {
+  return (
+    <>
+      <p className="pt-4 font-semibold text-foreground">Menus: Home, Devices, a paused ride, the finish page</p>
+      <Legend rows={MENU_LEGEND} />
     </>
   );
 }
@@ -233,6 +244,7 @@ export function HandlebarRow() {
         view.settings && (
           <ButtonLegend className="open:basis-full">
             <ShowLegend />
+            <MenuLegend />
             <div className="flex flex-col gap-4 pt-4">
               <SteeringSwitch />
               <GearBuzzSwitch />

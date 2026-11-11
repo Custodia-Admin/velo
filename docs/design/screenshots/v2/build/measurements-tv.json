@@ -1,0 +1,1230 @@
+{
+ "tv-devices-legend-tv-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "What the buttons do",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    244,
+    -187,
+    663,
+    70
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Gears: up is harder, down is easier",
+   "minTarget": 70,
+   "minTargetEl": "",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     795,
+     1025,
+     907,
+     1095
+    ],
+    "what": ""
+   }
+  ]
+ },
+ "tv-devices-legend-tv.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "What the buttons do",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    244,
+    -187,
+    663,
+    70
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Gears: up is harder, down is easier",
+   "minTarget": 70,
+   "minTargetEl": "",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     795,
+     1025,
+     907,
+     1095
+    ],
+    "what": ""
+   }
+  ]
+ },
+ "tv-devices-legend-tv4k-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "What the buttons do",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    487,
+    -374,
+    1329,
+    140
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 49,
+   "minFontEl": "Gears: up is harder, down is easier",
+   "minTarget": 140,
+   "minTargetEl": "",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     1592,
+     2049,
+     1816,
+     2189
+    ],
+    "what": ""
+   }
+  ]
+ },
+ "tv-devices-legend-tv4k.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "What the buttons do",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    487,
+    -374,
+    1329,
+    140
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 49,
+   "minFontEl": "Gears: up is harder, down is easier",
+   "minTarget": 140,
+   "minTargetEl": "",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     1592,
+     2049,
+     1816,
+     2189
+    ],
+    "what": ""
+   }
+  ]
+ },
+ "tv-devices-tv-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Ride",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    1222,
+    320,
+    195,
+    84
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 21,
+   "minFontEl": "Options",
+   "minTarget": 70,
+   "minTargetEl": "Home",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     990,
+     1001,
+     1102,
+     1071
+    ],
+    "what": ""
+   }
+  ]
+ },
+ "tv-devices-tv.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Ride",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    1222,
+    320,
+    195,
+    84
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 21,
+   "minFontEl": "Options",
+   "minTarget": 70,
+   "minTargetEl": "Home",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     990,
+     1001,
+     1102,
+     1071
+    ],
+    "what": ""
+   }
+  ]
+ },
+ "tv-devices-tv4k-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Ride",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    2445,
+    640,
+    388,
+    168
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 42,
+   "minFontEl": "Options",
+   "minTarget": 140,
+   "minTargetEl": "Home",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     1982,
+     1997,
+     2206,
+     2137
+    ],
+    "what": ""
+   }
+  ]
+ },
+ "tv-devices-tv4k.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Ride",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    2445,
+    640,
+    388,
+    168
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 42,
+   "minFontEl": "Options",
+   "minTarget": 140,
+   "minTargetEl": "Home",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     1982,
+     1997,
+     2206,
+     2137
+    ],
+    "what": ""
+   }
+  ]
+ },
+ "tv-finish-tv-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Home",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    1593,
+    682,
+    217,
+    84
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 21,
+   "minFontEl": "Ride finished \u00b7 saved on this device",
+   "minTarget": 70,
+   "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-finish-tv.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Home",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    1593,
+    682,
+    217,
+    84
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 21,
+   "minFontEl": "Ride finished \u00b7 saved on this device",
+   "minTarget": 70,
+   "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-finish-tv4k-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Home",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    3188,
+    1365,
+    432,
+    168
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 42,
+   "minFontEl": "Ride finished \u00b7 saved on this device",
+   "minTarget": 140,
+   "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-finish-tv4k.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Home",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    3188,
+    1365,
+    432,
+    168
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 42,
+   "minFontEl": "Ride finished \u00b7 saved on this device",
+   "minTarget": 140,
+   "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-home-tv-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Ride Tiber river park",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    194,
+    882,
+    195,
+    84
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 21,
+   "minFontEl": "Today\u2019s ride",
+   "minTarget": 70,
+   "minTargetEl": "Devices: KICKR CORE 78C1 connected",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-home-tv.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Ride Tiber river park",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    194,
+    882,
+    195,
+    84
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 21,
+   "minFontEl": "Today\u2019s ride",
+   "minTarget": 70,
+   "minTargetEl": "Devices: KICKR CORE 78C1 connected",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-home-tv4k-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Ride Tiber river park",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    388,
+    1764,
+    388,
+    168
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 42,
+   "minFontEl": "Today\u2019s ride",
+   "minTarget": 140,
+   "minTargetEl": "Devices: KICKR CORE 78C1 connected",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-home-tv4k.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Ride Tiber river park",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    388,
+    1764,
+    388,
+    168
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 42,
+   "minFontEl": "Today\u2019s ride",
+   "minTarget": 140,
+   "minTargetEl": "Devices: KICKR CORE 78C1 connected",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-legend-tv-night.jpg": {
+  "errors": [],
+  "focus": null,
+  "measure": {
+   "backdrop": 2,
+   "dark": true,
+   "minFont": 11,
+   "minFontEl": "Double-tap to pause \u00b7 long-press for qui",
+   "minTarget": 28,
+   "minTargetEl": "Enable handlebar gesture controls",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-legend-tv.jpg": {
+  "errors": [],
+  "focus": null,
+  "measure": {
+   "backdrop": 2,
+   "dark": false,
+   "minFont": 11,
+   "minFontEl": "Double-tap to pause \u00b7 long-press for qui",
+   "minTarget": 28,
+   "minTargetEl": "Enable handlebar gesture controls",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-legend-tv4k-night.jpg": {
+  "errors": [],
+  "focus": null,
+  "measure": {
+   "backdrop": 2,
+   "dark": true,
+   "minFont": 11,
+   "minFontEl": "Double-tap to pause \u00b7 long-press for qui",
+   "minTarget": 56,
+   "minTargetEl": "Enable handlebar gesture controls",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-legend-tv4k.jpg": {
+  "errors": [],
+  "focus": null,
+  "measure": {
+   "backdrop": 2,
+   "dark": false,
+   "minFont": 11,
+   "minFontEl": "Double-tap to pause \u00b7 long-press for qui",
+   "minTarget": 56,
+   "minTargetEl": "Enable handlebar gesture controls",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-open-tv-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Camera: chase",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    631,
+    645,
+    70,
+    70
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "1.8 km to go \u00b7 about 5 min",
+   "minTarget": 70,
+   "minTargetEl": "Watch a show while you ride",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-open-tv.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Camera: chase",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    631,
+    645,
+    70,
+    70
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "1.9 km to go \u00b7 about 5 min",
+   "minTarget": 70,
+   "minTargetEl": "Watch a show while you ride",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-open-tv4k-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Camera: chase",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    1265,
+    1289,
+    140,
+    140
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 49,
+   "minFontEl": "1.9 km to go \u00b7 about 5 min",
+   "minTarget": 140,
+   "minTargetEl": "Watch a show while you ride",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-open-tv4k.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Camera: chase",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    1265,
+    1289,
+    140,
+    140
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 49,
+   "minFontEl": "1.8 km to go \u00b7 about 5 min",
+   "minTarget": 140,
+   "minTargetEl": "Watch a show while you ride",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-paused-tv-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Resume ride",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    1257,
+    919,
+    189,
+    70
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Resume",
+   "minTarget": 70,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-paused-tv.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Resume ride",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    1257,
+    919,
+    189,
+    70
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Resume",
+   "minTarget": 70,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-paused-tv4k-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Resume ride",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    2514,
+    1839,
+    376,
+    140
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 49,
+   "minFontEl": "Resume",
+   "minTarget": 140,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-paused-tv4k.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Resume ride",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    2514,
+    1839,
+    376,
+    140
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 49,
+   "minFontEl": "Resume",
+   "minTarget": 140,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-tv-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Pause ride",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    1269,
+    919,
+    165,
+    70
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 24.5,
+   "minFontEl": "Pause",
+   "minTarget": 70,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-tv.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Pause ride",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    1269,
+    919,
+    165,
+    70
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 24.5,
+   "minFontEl": "Pause",
+   "minTarget": 70,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-tv4k-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Pause ride",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    2539,
+    1839,
+    327,
+    140
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": true,
+   "minFont": 49,
+   "minFontEl": "Pause",
+   "minTarget": 140,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-ride-hud-tv4k.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "Pause ride",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    2539,
+    1839,
+    327,
+    140
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 0,
+   "dark": false,
+   "minFont": 49,
+   "minFontEl": "Pause",
+   "minTarget": 140,
+   "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": []
+ },
+ "tv-settings-1280-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "TVbig type, remote",
+   "layout": null,
+   "outline": "solid 2px",
+   "rect": [
+    564,
+    327,
+    151,
+    60
+   ],
+   "rootFont": "16px"
+  },
+  "measure": {
+   "backdrop": 2,
+   "dark": true,
+   "minFont": 12,
+   "minFontEl": "Today\u2019s ride",
+   "minTarget": 28,
+   "minTargetEl": "Close settings",
+   "overflow": false,
+   "scrollWidth": 1280,
+   "tv": false
+  },
+  "outsideOverscan": []
+ },
+ "tv-settings-1280.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "TVbig type, remote",
+   "layout": null,
+   "outline": "solid 2px",
+   "rect": [
+    564,
+    327,
+    151,
+    60
+   ],
+   "rootFont": "16px"
+  },
+  "measure": {
+   "backdrop": 2,
+   "dark": false,
+   "minFont": 12,
+   "minFontEl": "Today\u2019s ride",
+   "minTarget": 28,
+   "minTargetEl": "Close settings",
+   "overflow": false,
+   "scrollWidth": 1280,
+   "tv": false
+  },
+  "outsideOverscan": []
+ },
+ "tv-settings-1440-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "TVbig type, remote",
+   "layout": null,
+   "outline": "solid 2px",
+   "rect": [
+    644,
+    337,
+    151,
+    60
+   ],
+   "rootFont": "16px"
+  },
+  "measure": {
+   "backdrop": 2,
+   "dark": true,
+   "minFont": 11,
+   "minFontEl": "Velo works out of the box with OpenStree",
+   "minTarget": 28,
+   "minTargetEl": "Close settings",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "outsideOverscan": []
+ },
+ "tv-settings-1440.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "TVbig type, remote",
+   "layout": null,
+   "outline": "solid 2px",
+   "rect": [
+    644,
+    337,
+    151,
+    60
+   ],
+   "rootFont": "16px"
+  },
+  "measure": {
+   "backdrop": 2,
+   "dark": false,
+   "minFont": 11,
+   "minFontEl": "Velo works out of the box with OpenStree",
+   "minTarget": 28,
+   "minTargetEl": "Close settings",
+   "overflow": false,
+   "scrollWidth": 1440,
+   "tv": false
+  },
+  "outsideOverscan": []
+ },
+ "tv-settings-tv-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "TVbig type, remote",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    827,
+    589,
+    265,
+    103
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 2,
+   "dark": true,
+   "minFont": 21,
+   "minFontEl": "Today\u2019s ride",
+   "minTarget": 49,
+   "minTargetEl": "Close settings",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     548,
+     985,
+     813,
+     1088
+    ],
+    "what": "Sidetracking shot"
+   },
+   {
+    "rect": [
+     827,
+     985,
+     1093,
+     1088
+    ],
+    "what": "Cinematicdynamic cuts"
+   },
+   {
+    "rect": [
+     1107,
+     985,
+     1372,
+     1088
+    ],
+    "what": "Dronehigh, drifting"
+   }
+  ]
+ },
+ "tv-settings-tv.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "TVbig type, remote",
+   "layout": "tv",
+   "outline": "solid 7px",
+   "rect": [
+    827,
+    589,
+    265,
+    103
+   ],
+   "rootFont": "28px"
+  },
+  "measure": {
+   "backdrop": 2,
+   "dark": false,
+   "minFont": 21,
+   "minFontEl": "Today\u2019s ride",
+   "minTarget": 49,
+   "minTargetEl": "Close settings",
+   "overflow": false,
+   "scrollWidth": 1920,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     548,
+     985,
+     813,
+     1088
+    ],
+    "what": "Sidetracking shot"
+   },
+   {
+    "rect": [
+     827,
+     985,
+     1093,
+     1088
+    ],
+    "what": "Cinematicdynamic cuts"
+   },
+   {
+    "rect": [
+     1107,
+     985,
+     1372,
+     1088
+    ],
+    "what": "Dronehigh, drifting"
+   }
+  ]
+ },
+ "tv-settings-tv4k-night.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "TVbig type, remote",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    1654,
+    1171,
+    531,
+    204
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 2,
+   "dark": true,
+   "minFont": 42,
+   "minFontEl": "Today\u2019s ride",
+   "minTarget": 98,
+   "minTargetEl": "Close settings",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     1095,
+     1960,
+     1626,
+     2164
+    ],
+    "what": "Sidetracking shot"
+   },
+   {
+    "rect": [
+     1654,
+     1960,
+     2186,
+     2164
+    ],
+    "what": "Cinematicdynamic cuts"
+   },
+   {
+    "rect": [
+     2214,
+     1960,
+     2745,
+     2164
+    ],
+    "what": "Dronehigh, drifting"
+   }
+  ]
+ },
+ "tv-settings-tv4k.jpg": {
+  "errors": [],
+  "focus": {
+   "label": "TVbig type, remote",
+   "layout": "tv",
+   "outline": "solid 14px",
+   "rect": [
+    1654,
+    1171,
+    531,
+    204
+   ],
+   "rootFont": "56px"
+  },
+  "measure": {
+   "backdrop": 2,
+   "dark": false,
+   "minFont": 42,
+   "minFontEl": "Today\u2019s ride",
+   "minTarget": 98,
+   "minTargetEl": "Close settings",
+   "overflow": false,
+   "scrollWidth": 3840,
+   "tv": true
+  },
+  "outsideOverscan": [
+   {
+    "rect": [
+     1095,
+     1960,
+     1626,
+     2164
+    ],
+    "what": "Sidetracking shot"
+   },
+   {
+    "rect": [
+     1654,
+     1960,
+     2186,
+     2164
+    ],
+    "what": "Cinematicdynamic cuts"
+   },
+   {
+    "rect": [
+     2214,
+     1960,
+     2745,
+     2164
+    ],
+    "what": "Dronehigh, drifting"
+   }
+  ]
+ }
+}

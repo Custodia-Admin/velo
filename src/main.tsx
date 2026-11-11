@@ -8,6 +8,7 @@ import { warnIfTokenMissing } from '@/lib/cesiumTokenWarning';
 import { perfOverlayEnabled } from '@/lib/perf/perfFlag';
 import { installTvLayout } from '@/lib/tvLayout';
 import { startServiceWorker } from '@/lib/swUpdate';
+import { useSettingsStore } from '@/stores/settingsStore';
 import '@/index.css';
 // Side-effect import ensures the theme is applied as early as the module
 // graph loads, in addition to the pre-paint script in index.html.
@@ -19,8 +20,9 @@ silenceKnownWarnings();
 // Remember ?perf=1 (ride perf overlay) before the router drops the query.
 perfOverlayEnabled();
 
-// 10-foot layout (1rem = 28 px) on a TV browser, or with ?layout=tv.
-installTvLayout();
+// 10-foot layout (1rem = 28 px at 1080p) before the first paint: a TV browser,
+// Settings → Layout, or ?layout=tv. App's useLayoutMode keeps it in step.
+installTvLayout(useSettingsStore.getState().layoutMode);
 
 // Dev-only warning if VITE_CESIUM_ION_TOKEN is missing.
 warnIfTokenMissing();

@@ -15,6 +15,8 @@
 <script src="v2-kit.js"></script>
 <style>
   .plate.wide { margin-top: var(--s-2); aspect-ratio: 21 / 9; max-height: calc(100vh - 26rem); width: 100%; }
+  /* TV: the page keeps inside the overscan frame (body padding), so the plate gives up that height */
+  html[data-layout='tv'] .plate.wide { max-height: calc(100vh - 26rem - 2 * var(--overscan-y)); }
   .summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-4) var(--s-10); align-items: end; margin-top: var(--s-6); }
   h1 { font-size: var(--text-4xl); line-height: var(--lh-4xl); margin-top: var(--s-1); }
   .figs { display: flex; gap: var(--s-10); margin-top: var(--s-4); }
@@ -62,9 +64,10 @@
         </div>
       </div>
       <div class="actions">
-        <button class="btn lg outline"><i data-icon="download" class="lg"></i>Download FIT</button>
-        <button class="btn lg outline"><i data-icon="upload" class="lg"></i>Send to Strava</button>
-        <button class="btn lg primary">Back to Home</button>
+        <!-- P3.3: the built actions (Save .FIT, Ride again, Home); Strava upload was cut in PR #37. -->
+        <button class="btn lg outline"><i data-icon="download" class="lg"></i>Save .FIT</button>
+        <button class="btn lg outline"><i data-icon="rotate-ccw" class="lg"></i>Ride again</button>
+        <button class="btn lg primary" data-focus="home"><i data-icon="house" class="lg"></i>Home</button>
       </div>
       <div class="profile-wrap"><svg class="profile" data-profile="scenic-perugia-tiber-park" data-at="1" data-h="40"></svg></div>
       <div class="after t-sm">
