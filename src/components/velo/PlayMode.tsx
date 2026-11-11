@@ -116,12 +116,13 @@ export function PlayPanel({ className, compact = false }: { className?: string; 
   // The ride HUD's one row, so the mobile HUD stack doesn't run into the
   // ride controls. The buddy is visible in the scene; their line is dropped
   // here. On phones the card is only the count between pickups (the note is
-  // read to screen readers, the next place's pin is in the world) and the
-  // note shows with a pickup: the ride UI stays within its 15 % of the
+  // read to screen readers, the next place's pin is in the world), and with
+  // a pickup at most 16rem wide, a long place name cut short (it is named in
+  // full on the Finish screen): the ride UI stays within its 15 % of the
   // screen (UI-RULES, minimal HUD).
   if (compact) {
     return (
-      <Card className={cn('pointer-events-auto px-4 py-2', !recent && 'max-sm:self-start', className)}>
+      <Card className={cn('pointer-events-auto px-4 py-2 max-sm:max-w-64 max-sm:self-start', className)}>
         <section aria-label="Play mode" className="flex items-center justify-between gap-3">
           <span className="flex min-w-0 items-center gap-2">
             <Mail className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
@@ -129,7 +130,15 @@ export function PlayPanel({ className, compact = false }: { className?: string; 
               aria-live="polite"
               className={cn('min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium', recent ? 'text-accent' : 'text-foreground max-sm:sr-only')}
             >
-              {note}
+              {recent && place ? (
+                <>
+                  {/* Phones: the place alone (the envelope says postcard), so the name survives the cut. */}
+                  <span className="max-sm:sr-only">Postcard from </span>
+                  {place}
+                </>
+              ) : (
+                note
+              )}
             </span>
           </span>
           {count}
