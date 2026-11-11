@@ -257,6 +257,25 @@ export function buildBridgeGeometry(
   const { originX: ox, originZ: oz } = opts;
   for (const p of decks) {
     const n = p.s.length;
+    // Right of travel per segment, and mitred at each vertex (capped at 2×),
+    // as the road ribbon joins, so the slab's edges follow the ribbon's.
+    const segR: [number, number][] = [];
+    for (let k = 0; k + 1 < n; k++) {
+      const dx = p.xy[k * 2 + 2] - p.xy[k * 2];
+      const dy = p.xy[k * 2 + 3] - p.xy[k * 2 + 1];
+      const l = Math.hypot(dx, dy) || 1;
+      segR.push([dy / l, -dx / l]);
+    }
+    const vertR = (k: number): [number, number] => {
+      const a = segR[Math.max(0, k - 1)];
+      const b = segR[Math.min(segR.length - 1, k)];
+      const mx = a[0] + b[0];
+      const my = a[1] + b[1];
+      const ml = Math.hypot(mx, my);
+      if (ml < 1e-6) return b;
+      const stretch = Math.min(2, 1 / Math.max(0.5, (mx / ml) * b[0] + (my / ml) * b[1]));
+      return [(mx / ml) * stretch, (my / ml) * stretch];
+    };
     for (let k = 0; k + 1 < n; k++) {
       const ax = p.xy[k * 2];
       const ay = p.xy[k * 2 + 1];
@@ -264,12 +283,10 @@ export function buildBridgeGeometry(
       const by = p.xy[k * 2 + 3];
       const len = Math.hypot(bx - ax, by - ay);
       if (len < 1e-3) continue;
-      const ux = (bx - ax) / len;
-      const uy = (by - ay) / len;
-      // Right of travel.
-      const rx = uy;
-      const ry = -ux;
       const steps = Math.max(1, Math.ceil(len / opts.maxSegM));
+      const rA = vertR(k);
+      const rB = vertR(k + 1);
+      const rightAt = (j: number): [number, number] => (j === 0 ? rA : j === steps ? rB : segR[k]);
       for (let j = 0; j < steps; j++) {
         const t0 = j / steps;
         const t1 = (j + 1) / steps;
@@ -292,20 +309,25 @@ export function buildBridgeGeometry(
         const h = p.halfWidth;
         const w = h + PARAPET_W_M;
         const P = PARAPET_H_M;
-        const pt = (x: number, y: number, side: number, off: number, z: number) => [x + rx * off * side, y + ry * off * side, z];
+        const r0 = rightAt(j);
+        const r1 = rightAt(j + 1);
+        const pt0 = (side: number, off: number, z: number) => [x0 + r0[0] * off * side, y0 + r0[1] * off * side, z];
+        const pt1 = (side: number, off: number, z: number) => [x1 + r1[0] * off * side, y1 + r1[1] * off * side, z];
+        const rx = segR[k][0];
+        const ry = segR[k][1];
         if (!atGrade) {
           // Top (under the ribbon) and underside, spanning the parapets.
-          m.quad(pt(x0, y0, -1, w, z0), pt(x0, y0, 1, w, z0), pt(x1, y1, 1, w, z1), pt(x1, y1, -1, w, z1), [0, 0, 1], ox, oz);
-          m.quad(pt(x0, y0, 1, w, b0), pt(x0, y0, -1, w, b0), pt(x1, y1, -1, w, b1), pt(x1, y1, 1, w, b1), [0, 0, -1], ox, oz);
+          m.quad(pt0(-1, w, z0), pt0(1, w, z0), pt1(1, w, z1), pt1(-1, w, z1), [0, 0, 1], ox, oz);
+          m.quad(pt0(1, w, b0), pt0(-1, w, b0), pt1(-1, w, b1), pt1(1, w, b1), [0, 0, -1], ox, oz);
         }
         for (const side of [-1, 1]) {
           const nOut: [number, number, number] = [rx * side, ry * side, 0];
           const nIn: [number, number, number] = [-rx * side, -ry * side, 0];
           // Outer face: underside (or the ground, at grade) to the parapet top.
-          m.quad(pt(x0, y0, side, w, atGrade ? z0 : b0), pt(x1, y1, side, w, atGrade ? z1 : b1), pt(x1, y1, side, w, z1 + P), pt(x0, y0, side, w, z0 + P), nOut, ox, oz);
+          m.quad(pt0(side, w, atGrade ? z0 : b0), pt1(side, w, atGrade ? z1 : b1), pt1(side, w, z1 + P), pt0(side, w, z0 + P), nOut, ox, oz);
           // Parapet cap and inner face.
-          m.quad(pt(x0, y0, side, h, z0 + P), pt(x0, y0, side, w, z0 + P), pt(x1, y1, side, w, z1 + P), pt(x1, y1, side, h, z1 + P), [0, 0, 1], ox, oz);
-          m.quad(pt(x0, y0, side, h, z0), pt(x0, y0, side, h, z0 + P), pt(x1, y1, side, h, z1 + P), pt(x1, y1, side, h, z1), nIn, ox, oz);
+          m.quad(pt0(side, h, z0 + P), pt0(side, w, z0 + P), pt1(side, w, z1 + P), pt1(side, h, z1 + P), [0, 0, 1], ox, oz);
+          m.quad(pt0(side, h, z0), pt0(side, h, z0 + P), pt1(side, h, z1 + P), pt1(side, h, z1), nIn, ox, oz);
         }
       }
     }
