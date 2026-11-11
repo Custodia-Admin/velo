@@ -9,7 +9,8 @@
   "detail": "Banderas Bay",
   "world": null,
   "routes": [
-    "scenic-puerto-vallarta-malecon"
+    "scenic-puerto-vallarta-malecon",
+    "scenic-nuevo-vallarta-bucerias"
   ],
   "moods": [
     "golden-hour"

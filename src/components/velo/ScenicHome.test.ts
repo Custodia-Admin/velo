@@ -66,6 +66,7 @@ describe('homeSectionViews', () => {
       ...JSON.parse(JSON.stringify(DESTINATIONS.find((d) => d.id === 'berkeley'))),
       format: 'velo-destination',
       version: 1,
+      routes: ['scenic-berkeley-bay-trail'],
     });
     // A section whose only route is today's disappears.
     expect(homeSectionViews('scenic-berkeley-bay-trail', homeSections([one]))).toEqual([]);

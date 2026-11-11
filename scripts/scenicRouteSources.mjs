@@ -131,13 +131,36 @@ export const SCENIC_ROUTE_SOURCES = [
     waypoints: [[37.9007, -122.3247], [37.8718, -122.3189], [37.8403, -122.3149]],
   },
   {
+    id: 'scenic-richmond-marina-bay',
+    // North on the Bay Trail from the Albany waterfront past Point Isabel and
+    // Meeker Slough, round Marina Bay to Ford Point. Points on the trail
+    // itself; past Ford Point the trail leaves the shore for Cutting Blvd. A
+    // point at Point Isabel itself routes out along its spur and back.
+    waypoints: [[37.8895, -122.3150], [37.9101, -122.3343], [37.90767, -122.34798], [37.91485, -122.35134], [37.90964, -122.35925]],
+  },
+  {
     id: 'scenic-santa-monica-strand',
     waypoints: [[34.0089, -118.4974], [33.9867, -118.4741], [33.9587, -118.4523], [33.8839, -118.4132], [33.8616, -118.4037]],
+  },
+  {
+    id: 'scenic-will-rogers-venice',
+    // The beach path from its north end at Will Rogers State Beach to Venice.
+    // Points on the path: an end on Venice Pier routes onto the pier on foot,
+    // one a street inland pulls the route onto Pacific Avenue.
+    waypoints: [[34.0354, -118.5361], [34.02553, -118.51691], [34.0089, -118.4974], [33.98981, -118.47677], [33.97939, -118.4672]],
   },
   {
     id: 'scenic-puerto-vallarta-malecon',
     // North along the bay. The coast road south to Mismaloya climbs the cliffs; skipped.
     waypoints: [[20.6043, -105.2385], [20.6104, -105.2351], [20.6183, -105.2324], [20.6684, -105.2487]],
+  },
+  {
+    id: 'scenic-nuevo-vallarta-bucerias',
+    // Paseo de los Cocoteros through Nuevo Vallarta to Bucerías. Marina
+    // Vallarta to Nuevo Vallarta is highway 200 past the airport, so this
+    // route starts across the Ameca. A point on the residential Calle Paseo
+    // de los Cocoteros sends the router through a retorno and back.
+    waypoints: [[20.6935, -105.2935], [20.74183, -105.32147], [20.755, -105.3385]],
   },
 ];
 

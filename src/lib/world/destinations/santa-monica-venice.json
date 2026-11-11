@@ -9,10 +9,12 @@
   "detail": "The beach path past Venice to Hermosa",
   "world": null,
   "routes": [
-    "scenic-santa-monica-strand"
+    "scenic-santa-monica-strand",
+    "scenic-will-rogers-venice"
   ],
   "moods": [
-    "clear-afternoon"
+    "clear-afternoon",
+    "golden-hour"
   ],
   "defaultMood": "clear-afternoon",
   "pois": [],
