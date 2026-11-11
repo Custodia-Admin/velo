@@ -325,7 +325,7 @@ describe('the sea (coast worlds) is level, surfs at the coast and runs on past t
       area += s;
       for (let k = 1; k < 9; k += 3) expect(a.positions[i + k]).toBe(-WATER_SURFACE_DROP_M);
       // Nothing over the land side (x > 195) or inside the world.
-      for (const [x, y] of [[ax, ay], [bx, by], [cx, cy]]) expect(x <= 195 + 1e-9).toBe(true);
+      for (const x of [ax, bx, cx]) expect(x <= 195 + 1e-9).toBe(true);
       const mx = (ax + bx + cx) / 3, my = (ay + by + cy) / 3;
       expect(mx < 0 || my < 0 || my > 400).toBe(true);
     }
