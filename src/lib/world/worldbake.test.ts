@@ -21,6 +21,7 @@ import {
   buildVegetation,
   buildingClearance,
   routeClearances,
+  routeWaterDrops,
   clipLine,
   clipRing,
   segmentRingDistance,
@@ -200,6 +201,29 @@ describe('worldbake: nothing the rider follows runs through a building', () => {
     expect(at(2500)).toBe(5); // 4 + 1
     expect(at(3500)).toBe(ROUTE_CLEAR_MAX_M); // tunnel: no drawn road under the route
     expect(at(4500)).toBe(ROUTE_CLEAR_MAX_M); // nothing mapped
+  });
+
+  it('drops small ponds and lagoons a route runs through or brushes, never a river, the sea or a big lake', () => {
+    // Rings in dm, as in the water layer; the route runs along y = 0.
+    const box = (x0: number, y0: number, w: number, h: number) => [x0, y0, x0 + w, y0, x0 + w, y0 + h, x0, y0 + h].map((v) => v * 10);
+    const water = {
+      areaKinds: ['lake', 'river', 'pond', 'sea'],
+      areas: [
+        { k: 0, r: [box(0, -35, 12, 70)] }, // storm-drain channel under the path: drop
+        { k: 2, r: [box(100, ROUTE_CLEAR_MAX_M - 1, 20, 20)] }, // pond 5 m off: drop
+        { k: 2, r: [box(200, ROUTE_CLEAR_MAX_M + 1, 20, 20)] }, // pond 7 m off: keep
+        { k: 1, r: [box(300, -35, 12, 70)] }, // river under a bridge: keep
+        { k: 3, r: [box(400, -35, 12, 70)] }, // the sea: keep
+        { k: 0, r: [box(500, -60, 120, 120)] }, // 1.44 ha lake the route crosses: keep
+        { k: 2, r: [box(700, -50, 120, 100), box(710, -40, 100, 80)] }, // 1.2 ha ring of water, 0.4 ha after the hole: drop
+      ],
+    };
+    const routeLines = [[-50, 0, 900, 0]];
+    expect(routeWaterDrops(water, { routeLines })).toEqual([0, 1, 6]);
+    // A narrow path's clearance (3.5 m) keeps the pond 5 m off.
+    const narrow = routeClearances(routeLines, { roads: [{ c: 0, p: [-500, 0, 9000, 0] }], widths: [5] });
+    expect(routeWaterDrops(water, { routeLines: narrow.lines, routeClear: narrow.clear })).toEqual([0, 6]);
+    expect(routeWaterDrops(water, {})).toEqual([]);
   });
 
   it('buildBuildings drops them from the bundle and keeps the rest in order', () => {

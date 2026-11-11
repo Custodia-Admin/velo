@@ -706,6 +706,42 @@ export function buildingClearance(rings, { routeLines = [], routeClear = null, r
   return out;
 }
 
+/** Standing water smaller than this gives way to a scenic route that runs through or beside it, m². */
+export const ROUTE_DRY_WATER_MAX_M2 = 10000;
+
+/**
+ * Which water areas (the layer as built, dm) a scenic route must not run
+ * through: a lake or pond (never a river, never the sea) smaller than
+ * ROUTE_DRY_WATER_MAX_M2 that comes closer to a route centreline than that
+ * segment's clearance (`routeClear`, from `routeClearances`: the rule that
+ * keeps buildings off the route). OSM maps beach storm-drain channels and
+ * creek-mouth lagoons this way, e.g. Santa Monica's Pico outlet
+ * (`water=stream`, 12 × 70 m) under the beach path. Drawn as a flat sheet, it
+ * reads as a flood across the path. Returns the indices of `water.areas` to
+ * drop, ascending. Pure.
+ */
+export function routeWaterDrops(water, { routeLines = [], routeClear = null, routeClearM = ROUTE_CLEAR_MAX_M } = {}) {
+  const standing = new Set(['lake', 'pond'].map((k) => water.areaKinds.indexOf(k)).filter((k) => k >= 0));
+  const routeQ = segmentBuckets(routeLines, 50);
+  const reach = routeClear ? routeClear.reduce((m, c) => c.reduce((a, v) => Math.max(a, v), m), 0) : routeClearM;
+  const out = [];
+  water.areas.forEach((a, ai) => {
+    if (!standing.has(a.k)) return;
+    const rings = a.r.map((r) => r.map((v) => v / 10));
+    const areaM2 = Math.abs(ringArea(rings[0])) - rings.slice(1).reduce((s, r) => s + Math.abs(ringArea(r)), 0);
+    if (areaM2 >= ROUTE_DRY_WATER_MAX_M2) return;
+    for (const [li, i] of routeQ(ringBbox(rings[0]), reach)) {
+      const p = routeLines[li];
+      const clearM = routeClear ? routeClear[li][i / 2] : routeClearM;
+      if (segmentRingDistance(p[i], p[i + 1], p[i + 2], p[i + 3], rings[0]) < clearM) {
+        out.push(ai);
+        return;
+      }
+    }
+  });
+  return out;
+}
+
 /**
  * Buildings → binary (see WORLD-FORMAT.md "buildings.bin"; VWB2 = VWB1 plus
  * one district byte per building). Outer rings only. Also returns the

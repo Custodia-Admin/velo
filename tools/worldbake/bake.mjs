@@ -50,7 +50,7 @@ import { fetchOsm, osmLayersFor, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { BEACH_KIND, buildSea, flattenSea, relevelSea, slopeBeaches } from './coast.mjs';
-import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
+import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, routeWaterDrops, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
@@ -371,6 +371,14 @@ export async function bake(opts) {
     .filter((r) => !(r.f && r.f & ROAD_FLAGS.tunnel) && r.c !== stepsClass)
     .map((r) => r.p.map((v) => v / 10));
   const routeClear = routeClearances(routeLines, roads);
+  // Nor through a small pond or lagoon drawn as a flat sheet across it.
+  const dryWater = routeWaterDrops(water, { routeLines: routeClear.lines, routeClear: routeClear.clear });
+  if (dryWater.length) {
+    // flatLakes has already levelled these; dropping one would leave a dry pit.
+    if (lakes) throw new Error(`route runs through ${dryWater.length} small water area(s) a flatLakes world has levelled; move the route or the lake`);
+    const drop = new Set(dryWater);
+    water.areas = water.areas.filter((_, i) => !drop.has(i));
+  }
   const buildings = buildBuildings(osm.elements.buildings, projection, extent, landcover.polys, {
     routeLines: routeClear.lines,
     routeClear: routeClear.clear,
@@ -388,7 +396,7 @@ export async function bake(opts) {
   });
   const pois = buildPois([...osm.elements.pois, ...osm.elements.landmarks], projection, extent).map((p) => ({ ...p, h: round(height.hf.sampleHeight(p.x, p.y)) }));
   lap('vectors', t);
-  log(`vectors: ${roads.roads.length} road pieces, ${water.areas.length} water areas + ${water.lines.length} lines, ${landcover.layer.areas.length} landcover, ${buildings.count} buildings ${JSON.stringify(buildings.districts)} (dropped ${buildings.dropped.route} on routes, ${buildings.dropped.road} astride roads), ${vegetation.count} trees (woodland lattice ${vegetation.lattice}, character ${vegetation.character}) ${JSON.stringify(vegetation.byKind)}, ${pois.length} POIs`);
+  log(`vectors: ${roads.roads.length} road pieces, ${water.areas.length} water areas${dryWater.length ? ` (dropped ${dryWater.length} on routes)` : ''} + ${water.lines.length} lines, ${landcover.layer.areas.length} landcover, ${buildings.count} buildings ${JSON.stringify(buildings.districts)} (dropped ${buildings.dropped.route} on routes, ${buildings.dropped.road} astride roads), ${vegetation.count} trees (woodland lattice ${vegetation.lattice}, character ${vegetation.character}) ${JSON.stringify(vegetation.byKind)}, ${pois.length} POIs`);
 
   // 4. Write the bundle.
   t = Date.now();
@@ -491,6 +499,7 @@ export async function bake(opts) {
     ...(seaFlat ? { coast: { seaPolygons: sea.length, islands: sea.reduce((n, p) => n + p.length - 1, 0), seaNodes: seaFlat.inNodes, shoreNodesLowered: seaFlat.stripNodes, beachNodesSloped: beachSlope.changed, beachMaxCutM: round(beachSlope.maxCutM), demUnderSea: seaFlat.before && { min: round(seaFlat.before.min), max: round(seaFlat.before.max) }, beachAreas: landcover.layer.areas.filter((a) => landcover.layer.kinds[a.k] === 'beach').length } } : {}),
     ...(lakes ? { flatLakes: lakes.map(({ nodes: _nodes, ...l }) => ({ ...l, level: round(l.level), before: { min: round(l.before.min), max: round(l.before.max) }, maxCutM: round(l.maxCutM) })) } : {}),
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
+    ...(dryWater.length ? { waterDroppedOnRoutes: dryWater.length } : {}),
     ...(glo30 ? { demSource: dem.source } : {}),
     demTiles: dem.tiles,
     ...(glo30 ? { demMissingTiles: dem.missing } : {}),
