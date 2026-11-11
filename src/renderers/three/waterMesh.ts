@@ -36,6 +36,13 @@ export const SEA_KIND = 'sea';
 export const SEA_VERTEX_KIND = 2;
 /** `shore` beyond this many metres from the coast (and on every non-sea vertex). */
 export const SHORE_FAR_M = 160;
+/**
+ * Longest sea triangle edge, as a multiple of the lattice edge passed in. The
+ * sea is level and its shading is per fragment, so it needs no terrain-
+ * following detail: three times coarser keeps a coast world's water near a
+ * lake world's triangle count (Santa Monica 240 k → 3× edge).
+ */
+export const SEA_EDGE_FACTOR = 3;
 
 /** Whether the bake levelled this world's lakes (recipe `flatLakes`), so the renderer may draw them level. */
 export function levelLakes(world: Pick<LoadedWorld, 'manifest'>): boolean {
@@ -600,7 +607,7 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
     const flat: number[] = [];
     tessellateWaterPolygon(
       tris.map((t) => [all[t[0]].x, all[t[0]].y, all[t[1]].x, all[t[1]].y, all[t[2]].x, all[t[2]].y]),
-      maxEdgeM,
+      area.kind === SEA_KIND ? maxEdgeM * SEA_EDGE_FACTOR : maxEdgeM,
       flat,
     );
     const kind = area.kind === SEA_KIND ? SEA_VERTEX_KIND : 1;

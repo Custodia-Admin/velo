@@ -1,0 +1,460 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "santa-monica-venice",
+  "name": "Santa Monica",
+  "origin": {
+    "lat": 33.948,
+    "lon": -118.468
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 33.948,
+    "lon0": -118.468,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -8400,
+    "xMax": 6876,
+    "yMin": -10184,
+    "yMax": 10300
+  },
+  "bbox": {
+    "south": 33.85615,
+    "west": -118.55897,
+    "north": 34.04086,
+    "east": -118.39353
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 1274,
+    "rows": 1708,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": -3,
+    "heightScale": 0.015625,
+    "minHeight": -1.1875,
+    "maxHeight": 98.765625
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 975309,
+      "sha256": "65cf760f53947ad3d5d162911ed3e54101cae5d50aa6a22c7cf675defae30076",
+      "compression": "gzip",
+      "contentBytes": 4351984,
+      "contentSha256": "d224c6682070a9c4ebc6b6abca5155c7114efef17cb4901f44314b22242a2a78"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 996351,
+      "sha256": "aa8bed33011ab36f7c0b272220464b2ee2869eb741c98ede385dd8a6c36c7e2f",
+      "compression": "gzip",
+      "contentBytes": 2952510,
+      "contentSha256": "ff75486464db958cd0e3ccb3b96469b9ab37e7c77db7209be37669ce74e006a4"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 14120,
+      "sha256": "15db63d72ae6ee218f9f3ca85b87aaa0a01a3c0c364c653cee8bd3416c7aac9b",
+      "compression": "gzip",
+      "contentBytes": 32423,
+      "contentSha256": "5c4b034607caba9ee8a492352ad0fd1907599d261624db3374012ec4841ac9e8"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 119394,
+      "sha256": "4f015bd928c27738a185bec6ec0d16bfd62bcb2326c8ebd316281ae34d1e5355",
+      "compression": "gzip",
+      "contentBytes": 297922,
+      "contentSha256": "5ca2386dbf45a0f1904c51daffa17df33a0940ba6e8779967caec47c9a1ba93f"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 3188533,
+      "sha256": "64bfbc2fd684f3cefe01a82ac8e7b0ede44e71731313ddea6777bcca4c812499",
+      "compression": "gzip",
+      "contentBytes": 5838112,
+      "contentSha256": "228c326de1f5b247e038c5a1331deaae42097d7c39a6beefb9d99a0f6bac8e05"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 146087,
+      "sha256": "bb1bdf8c5c8c10c8109603f0fee43f3f10cad75f2ae7c595cb4b201c896e9dbd",
+      "compression": "gzip",
+      "contentBytes": 199114,
+      "contentSha256": "2b07a0a5a874aa77fbc1700b57c1678661fd72d71ef258e3a59584e014656d8f"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 52137,
+      "sha256": "4dbbd51f3357824adb9d08022c4e529749223d8f046913cd068042444f317655",
+      "compression": "gzip",
+      "contentBytes": 125369,
+      "contentSha256": "a37edcd40066d03ef25d93780578427db1a59f8439361f59c1db399e1178eb0c"
+    }
+  ],
+  "moods": [
+    "clear-afternoon",
+    "golden-hour",
+    "mediterranean-mist",
+    "clear-noon",
+    "overcast"
+  ],
+  "defaultMood": "clear-afternoon",
+  "pois": [
+    {
+      "name": "Venice",
+      "kind": "village",
+      "rank": 2,
+      "x": 102.8,
+      "y": 5218.2,
+      "osm": "node/26427725",
+      "h": 8.63
+    },
+    {
+      "name": "Westchester",
+      "kind": "village",
+      "rank": 2,
+      "x": 6226.7,
+      "y": 1303.7,
+      "osm": "node/150941906",
+      "h": 38.36
+    },
+    {
+      "name": "Culver City",
+      "kind": "town",
+      "rank": 3,
+      "x": 6607,
+      "y": 8113.2,
+      "osm": "node/150948325",
+      "h": 30.6
+    },
+    {
+      "name": "Mar Vista",
+      "kind": "village",
+      "rank": 1,
+      "x": 2663.9,
+      "y": 6185.4,
+      "osm": "node/150966677",
+      "h": 17.71
+    },
+    {
+      "name": "Hermosa Beach",
+      "kind": "town",
+      "rank": 3,
+      "x": 6364.9,
+      "y": -9339.4,
+      "osm": "node/150978158",
+      "h": 16.64
+    },
+    {
+      "name": "Sawtelle",
+      "kind": "village",
+      "rank": 2,
+      "x": 1588.4,
+      "y": 10193.1,
+      "osm": "node/150981982",
+      "h": 63.49
+    },
+    {
+      "name": "Saint Monica Roman Catholic Church",
+      "kind": "church",
+      "rank": 2,
+      "x": -2707,
+      "y": 8358.3,
+      "osm": "node/358819821",
+      "h": 46.71
+    },
+    {
+      "name": "Venice Canal Historic District",
+      "kind": "village",
+      "rank": 2,
+      "x": 167.3,
+      "y": 4012.9,
+      "osm": "node/358828800",
+      "h": 4.67
+    },
+    {
+      "name": "Santa Monica Bay",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 116.1,
+      "y": -1440.6,
+      "osm": "node/369171015",
+      "h": 0
+    },
+    {
+      "name": "Bodega",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -1969.1,
+      "y": 7802.5,
+      "osm": "node/1028757169",
+      "h": 32.18
+    },
+    {
+      "name": "Venice Graffiti Walls",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -639.8,
+      "y": 4259.5,
+      "osm": "node/1595724846",
+      "h": 5.48
+    },
+    {
+      "name": "Santa Monica",
+      "kind": "town",
+      "rank": 3,
+      "x": -2145.3,
+      "y": 7927.9,
+      "osm": "node/1792515162",
+      "h": 33.41
+    },
+    {
+      "name": "El Segundo",
+      "kind": "town",
+      "rank": 3,
+      "x": 4842.5,
+      "y": -3434.2,
+      "osm": "node/1837324449",
+      "h": 30.45
+    },
+    {
+      "name": "Manhattan Beach",
+      "kind": "town",
+      "rank": 3,
+      "x": 5325.4,
+      "y": -6733.9,
+      "osm": "node/1837324451",
+      "h": 37.5
+    },
+    {
+      "name": "Airplane Landing View Point",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 6573.5,
+      "y": 579.5,
+      "osm": "node/5314142922",
+      "h": 35.21
+    },
+    {
+      "name": "Pacific Jewish Center",
+      "kind": "church",
+      "rank": 2,
+      "x": -1017.1,
+      "y": 5006.5,
+      "osm": "node/5695538351",
+      "h": 6.12
+    },
+    {
+      "name": "On LA & Malibu",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -5962.7,
+      "y": 9741.3,
+      "osm": "node/5739986221",
+      "h": 83
+    },
+    {
+      "name": "Palms",
+      "kind": "village",
+      "rank": 2,
+      "x": 5207.6,
+      "y": 8512.8,
+      "osm": "node/7304587961",
+      "h": 31.64
+    },
+    {
+      "name": "Marquez Family Historical Monument",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -4024.2,
+      "y": 9414.3,
+      "osm": "node/8037992176",
+      "h": 28.68
+    },
+    {
+      "name": "King Fahad Mosque",
+      "kind": "church",
+      "rank": 2,
+      "x": 5334.6,
+      "y": 7048.9,
+      "osm": "node/8403520487",
+      "h": 21.74
+    },
+    {
+      "name": "Alsace",
+      "kind": "village",
+      "rank": 1,
+      "x": 5149,
+      "y": 3789.8,
+      "osm": "node/10979793809",
+      "h": 7.08
+    },
+    {
+      "name": "Imperial Hill",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 5217.9,
+      "y": -1889.8,
+      "osm": "node/12491740626",
+      "h": 45.56
+    },
+    {
+      "name": "Santa Monica Pier",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -2761.2,
+      "y": 6758.2,
+      "osm": "way/22728853",
+      "h": 4.78
+    },
+    {
+      "name": "Venice Fishing Pier",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -98.7,
+      "y": 3300.8,
+      "osm": "way/49649926",
+      "h": 0
+    },
+    {
+      "name": "Carousel Park",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -2599.8,
+      "y": 6887,
+      "osm": "way/336889636",
+      "h": 9.88
+    },
+    {
+      "name": "Saint Augustine Roman Catholic Church",
+      "kind": "church",
+      "rank": 2,
+      "x": 6228.3,
+      "y": 8038.1,
+      "osm": "way/391226508",
+      "h": 31.35
+    },
+    {
+      "name": "Culver City Christian Testimony Assembly",
+      "kind": "church",
+      "rank": 2,
+      "x": 5294.8,
+      "y": 7085.9,
+      "osm": "way/439266879",
+      "h": 19.29
+    },
+    {
+      "name": "Douglas DC-3 Monument",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 1897.3,
+      "y": 7435,
+      "osm": "way/1163783338",
+      "h": 41.91
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-santa-monica-strand",
+      "name": "Santa Monica to Hermosa Beach",
+      "lengthM": 23247.35,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.12
+    },
+    {
+      "id": "scenic-will-rogers-venice",
+      "name": "Will Rogers to Venice",
+      "lengthM": 9936.53,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.121
+    }
+  ],
+  "stats": {
+    "roads": 48879,
+    "waterAreas": 104,
+    "waterLines": 75,
+    "landcoverAreas": 2834,
+    "buildings": 120877,
+    "buildingVertices": 1157332,
+    "buildings:suburb": 98952,
+    "buildings:old-town": 14277,
+    "buildings:rural": 347,
+    "buildings:industrial": 7301,
+    "trees": 33183,
+    "trees:broadleaf": 1190,
+    "trees:conifer": 0,
+    "trees:scrub": 9536,
+    "trees:olive": 4,
+    "trees:park": 3731,
+    "trees:cypress": 313,
+    "trees:riparian": 999,
+    "trees:hedgerow": 372,
+    "trees:garden": 17038,
+    "pois": 28,
+    "carvedNodes": 23491
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-santa-monica-strand",
+      "name": "Santa Monica to Hermosa Beach: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.4974,34.0089;-118.4741,33.9867;-118.4523,33.9587;-118.4132,33.8839;-118.4037,33.8616?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-will-rogers-venice",
+      "name": "Will Rogers to Venice: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.5361,34.0354;-118.51691,34.02553;-118.4974,34.0089;-118.47677,33.98981;-118.4672,33.97939?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "5ee1900e68f15009871414d7914a82e3d9ae2c2620d0e813ea75ac2761d9fea3",
+    "osmDate": "2026-11-01T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 2
+  }
+}

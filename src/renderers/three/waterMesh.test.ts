@@ -20,6 +20,7 @@ import {
   LEVEL_LAKE_MIN_NODES,
   LEVEL_LAKE_TOL_M,
   ROUTE_DRY_CELLS,
+  SEA_EDGE_FACTOR,
   SEA_VERTEX_KIND,
   seaApron,
   SHORE_FAR_M,
@@ -103,9 +104,14 @@ const ALL_WORLDS = worldBundles().map((b: { id: string }) => b.id);
  * needs an entry: a new world fails until its measured count is pinned here.
  */
 const BUDGET: Record<string, { max?: number; expected?: number }> = {
+  // Coast worlds: the sea at SEA_EDGE_FACTOR × the lattice edge (Santa Monica
+  // drew 240 k at 45 m).
+  berkeley: { expected: 15_995 },
   'chengdu-luxelakes': { expected: 36_767 },
   lugano: { max: 400_000 },
   perugia: { expected: 26_752 },
+  'puerto-vallarta': { expected: 42_263 },
+  'santa-monica-venice': { expected: 38_915 },
 };
 
 /**
@@ -333,17 +339,21 @@ describe.each(SHIPPED)('shipped world %s water mesh', (id) => {
     }
     const P = data.positions;
     let maxEdge = 0;
+    let maxSeaEdge = 0;
     let polyArea = 0;
     for (let i = 0; i < P.length; i += 9) {
       for (const [p, q] of [[0, 3], [3, 6], [6, 0]]) {
-        maxEdge = Math.max(maxEdge, Math.hypot(P[i + p] - P[i + q], P[i + p + 2] - P[i + q + 2]));
+        const e = Math.hypot(P[i + p] - P[i + q], P[i + p + 2] - P[i + q + 2]);
+        if (data.kinds[i / 3] === SEA_VERTEX_KIND) maxSeaEdge = Math.max(maxSeaEdge, e);
+        else maxEdge = Math.max(maxEdge, e);
       }
-      // Polygon triangles (kind 1), in plan: x and −z.
-      if (data.kinds[i / 3] === 1) {
+      // Polygon triangles (kind 1, the sea SEA_VERTEX_KIND), in plan: x and −z.
+      if (data.kinds[i / 3] >= 1) {
         polyArea += Math.abs(area2([P[i], -P[i + 2], P[i + 3], -P[i + 5], P[i + 6], -P[i + 8]]));
       }
     }
     expect(maxEdge).toBeLessThanOrEqual(WATER_EDGE_M + EPS_M);
+    expect(maxSeaEdge).toBeLessThanOrEqual(WATER_EDGE_M * SEA_EDGE_FACTOR + EPS_M);
     // The tessellation neither drops water nor doubles it.
     expect(polyArea / polygonArea(world.water)).toBeGreaterThan(0.995);
     expect(polyArea / polygonArea(world.water)).toBeLessThan(1.005);
@@ -403,6 +413,21 @@ describe.each(SHIPPED)('shipped world %s water mesh', (id) => {
     expect(level).toBeGreaterThan(100);
     // The routes cross lake arms in a few places (Chengdu: 5); their core stays dry.
     expect(dryCore).toBeGreaterThan(0);
+  });
+
+  // Coast worlds (recipe "coast", tools/worldbake/coast.mjs): the sea is one
+  // level sheet at sea level that runs on past the world's edge, and the
+  // beaches ship as sand.
+  it.runIf(recipe.coast === true)('the sea is level at sea level, surfs at the coast and runs on past the edge; beaches ship', () => {
+    const seas = world.water.areas.filter((a) => a.kind === 'sea');
+    expect(seas.length).toBeGreaterThan(0);
+    for (const sea of seas) expect(Math.abs(lakeLevel(sea, world.heightfield)!)).toBeLessThanOrEqual(LEVEL_LAKE_TOL_M);
+    const data = buildWaterGeometry(world.water, world.heightfield, WATER_EDGE_M);
+    let surf = 0;
+    for (let i = 0; i < data.shore.length; i++) if (data.kinds[i] === SEA_VERTEX_KIND && data.shore[i] < 1) surf++;
+    expect(surf, 'sea vertices on the coast').toBeGreaterThan(100);
+    expect(seaApron(world.water, world.heightfield, 10_000).positions.length).toBeGreaterThan(0);
+    expect(world.landcover.areas.filter((a) => a.kind === 'beach').length).toBeGreaterThan(0);
   });
 });
 

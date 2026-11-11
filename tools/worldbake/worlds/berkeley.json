@@ -55,6 +55,24 @@
   ],
   "defaultMood": "golden-hour",
   "validation": {
-    "sample_seed": 37876
+    "sample_seed": 37876,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "copernicus-glo30",
+    "terrain_class": "standard",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.0146,
+    "floor_source": "none",
+    "floor_rms_m": 0,
+    "own_error_allowance_m": 6,
+    "bound_m": 6,
+    "registered_rms_m": 0.41,
+    "point_rms_m": 1.06,
+    "max_abs_registered_err_m": 1.76,
+    "pass": true
   }
 }
