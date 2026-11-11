@@ -21,6 +21,12 @@ export interface WorldCatalogEntry {
   name: string;
   /** Directory under the worlds base URL that holds manifest.json. */
   dir: string;
+  /**
+   * Published off-repo (`world.host: "remote"`): served from the remote
+   * worlds base URL under a content-hashed dir, so its files never change and
+   * the loader keeps them in the Cache API (offline after the first ride).
+   */
+  remote: boolean;
   /** Geographic bounds of the heightfield (manifest.bbox). */
   bbox: WorldBbox;
   /** Scenic routes snapped into the bundle (manifest.routes[].id). */
@@ -30,7 +36,9 @@ export interface WorldCatalogEntry {
 /** One catalog entry per destination with a baked world. */
 export function worldCatalogFrom(destinations: readonly Destination[]): WorldCatalogEntry[] {
   return destinations.flatMap((d) =>
-    d.world ? [{ id: d.world.id, name: d.name, dir: d.world.dir, bbox: d.world.bbox, routeIds: d.world.routes }] : [],
+    d.world
+      ? [{ id: d.world.id, name: d.name, dir: d.world.dir, remote: d.world.host === 'remote', bbox: d.world.bbox, routeIds: d.world.routes }]
+      : [],
   );
 }
 
@@ -40,19 +48,37 @@ export const WORLD_CATALOG: readonly WorldCatalogEntry[] = worldCatalogFrom(DEST
 const EDGE_MARGIN_DEG = 0.0025;
 
 /**
- * Base URL of the world bundles: `VITE_WORLDS_BASE_URL` (e.g. an R2 bucket)
+ * The public R2 bucket (`velo-worlds`) the remote worlds are published to by
+ * `tools/worldbake/publish.mjs`, as served by its r2.dev URL. Every key is
+ * `worlds/<id>/<hash>/<file>`; nothing under a hash ever changes.
+ */
+export const DEFAULT_REMOTE_WORLDS_URL = 'https://pub-26367e714cf944b59b97a34ecb76922b.r2.dev/worlds/';
+
+type Env = Record<string, string | undefined>;
+const viteEnv = (): Env => (import.meta as { env?: Env }).env ?? {};
+const withSlash = (url: string) => (url.endsWith('/') ? url : `${url}/`);
+
+/**
+ * Base URL of the world bundles shipped with the app: `VITE_WORLDS_BASE_URL`
  * when set, else `<app base>/worlds/`.
  */
-export function worldsBaseUrl(): string {
-  const env = (import.meta as { env?: Record<string, string | undefined> }).env ?? {};
+export function worldsBaseUrl(env: Env = viteEnv()): string {
   const fromEnv = env.VITE_WORLDS_BASE_URL;
-  if (fromEnv) return fromEnv.endsWith('/') ? fromEnv : `${fromEnv}/`;
-  const base = env.BASE_URL ?? '/';
-  return `${base.endsWith('/') ? base : `${base}/`}worlds/`;
+  if (fromEnv) return withSlash(fromEnv);
+  return `${withSlash(env.BASE_URL ?? '/')}worlds/`;
 }
 
-export function worldUrl(entry: WorldCatalogEntry): string {
-  return worldsBaseUrl() + entry.dir;
+/**
+ * Base URL of the remote (off-repo) world bundles: `VITE_WORLDS_REMOTE_URL`
+ * when set (another bucket, or a household server with the same
+ * `<id>/<hash>/` layout), else the public R2 bucket.
+ */
+export function remoteWorldsBaseUrl(env: Env = viteEnv()): string {
+  return withSlash(env.VITE_WORLDS_REMOTE_URL || DEFAULT_REMOTE_WORLDS_URL);
+}
+
+export function worldUrl(entry: Pick<WorldCatalogEntry, 'dir' | 'remote'>, env: Env = viteEnv()): string {
+  return (entry.remote ? remoteWorldsBaseUrl(env) : worldsBaseUrl(env)) + entry.dir;
 }
 
 function inside(b: WorldBbox, lat: number, lon: number): boolean {

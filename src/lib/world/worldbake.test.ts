@@ -2,12 +2,15 @@
  * Unit tests for the bake's pure helpers (tools/worldbake/*.mjs). The bake
  * itself runs on the bake host; these keep its geometry honest in CI.
  */
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { createProjection } from './projection';
 import { Heightfield } from './heightfield';
-import { appRoutePoints, carveRoutes, finishRoutes } from '../../../tools/worldbake/snapRoutes.mjs';
+import { appRoutePoints, carveRoutes, closeLoop, finishRoutes } from '../../../tools/worldbake/snapRoutes.mjs';
 import {
   CHARACTER_DEFAULTS,
   ROUTE_CLEAR_MAX_M,
@@ -23,6 +26,8 @@ import {
 } from '../../../tools/worldbake/buildVectors.mjs';
 import { quantize } from '../../../tools/worldbake/buildHeightfield.mjs';
 import { tilesForBbox } from '../../../tools/worldbake/fetchDem.mjs';
+import { loadBakedWorld } from '../../../tools/worldbake/validate.mjs';
+import { readableWorldBundles } from '../../../tools/worldbake/worldBundles.mjs';
 
 describe('worldbake: snapRoutes', () => {
   it('replicates scenicRoutes.routeFromGeometry distances for every scenic route', () => {
@@ -62,6 +67,31 @@ describe('worldbake: snapRoutes', () => {
     // Raw terrain ripples ±3 m every 40 m; the carved road climbs smoothly with the 1 % profile.
     expect(info[0].report.rawDemGradeMeanAbsDiffPct).toBeGreaterThan(info[0].gradeMeanAbsDiffPct);
     expect(info[0].gradeMeanAbsDiffPct).toBeLessThan(0.5);
+  });
+
+  it('a loop meets itself at one height; an open route keeps its target', () => {
+    // A 1 km square loop sampled every 10 m whose profile ends 4.5 m above where it starts.
+    const s = Array.from({ length: 101 }, (_, i) => i * 10);
+    const at = (v: number): [number, number] => {
+      const side = Math.min(3, Math.floor(v / 250));
+      const t = v - side * 250;
+      return ([[t, 0], [250, t], [250 - t, 250], [0, 250 - t]] as [number, number][])[side];
+    };
+    const x = s.map((v) => at(v)[0]);
+    const y = s.map((v) => at(v)[1]);
+    const target = s.map((v) => 466 + (4.5 * v) / 1000);
+    const out = closeLoop(s, x, y, target, { stepM: 10, rampM: 400 });
+    expect(out[0]).toBeCloseTo(468.25, 6);
+    expect(out[100]).toBeCloseTo(468.25, 6);
+    // The steepest step anywhere is the profile's own plus |Δ| / (2 · ramp), here 250 m (a quarter of the loop).
+    let worst = 0;
+    for (let i = 1; i < s.length; i++) worst = Math.max(worst, Math.abs(out[i] - out[i - 1]) / 10);
+    expect(worst).toBeLessThan(0.0045 + 4.5 / 2 / 250 + 1e-9);
+    // Away from the ends the target is untouched.
+    expect(out[50]).toBe(target[50]);
+    // An open route (ends 1 km apart) is returned as it is.
+    const open = s.map((v) => v);
+    expect(closeLoop(s, open, s.map(() => 0), target, { stepM: 10, rampM: 400 })).toBe(target);
   });
 
   it('refuses a route that leaves the world', () => {
@@ -210,4 +240,34 @@ describe('worldbake: nothing the rider follows runs through a building', () => {
     expect(near(open)).toBeGreaterThan(20);
     expect(near(cleared)).toBe(0);
   });
+});
+
+describe('shipped worlds: a loop route meets itself at one height', () => {
+  // Baked before closeLoop: Perugia's Assisi loop still steps 2.2 m in its
+  // first 10 m. Remove the entry when Perugia is re-baked (the test below
+  // fails once the step is gone, so the entry can't go stale).
+  const BAKED_BEFORE_CLOSE_LOOP: Record<string, string[]> = { perugia: ['scenic-assisi-valley'] };
+  const MAX_JOIN_GRADE = 0.08;
+  const recipes = fileURLToPath(new URL('../../../tools/worldbake/worlds', import.meta.url));
+  const worlds = readableWorldBundles().filter((b: { id: string }) => existsSync(join(recipes, `${b.id}.json`)));
+
+  it('finds the shipped worlds', () => {
+    expect(worlds.map((b: { id: string }) => b.id)).toContain('chengdu-luxelakes');
+  });
+
+  for (const { id, dir } of worlds as { id: string; dir: string }[]) {
+    it(`${id}: no step steeper than ${MAX_JOIN_GRADE * 100} % where a loop closes`, () => {
+      const recipe = JSON.parse(readFileSync(join(recipes, `${id}.json`), 'utf8'));
+      const world = loadBakedWorld(dir, recipe);
+      const stepped: string[] = [];
+      for (const r of world.routes as { id: string; s: number[]; x: number[]; y: number[]; h: number[] }[]) {
+        const n = r.s.length;
+        if (Math.hypot(r.x[0] - r.x[n - 1], r.y[0] - r.y[n - 1]) > recipe.snap.stepM) continue;
+        let worst = 0;
+        for (const i of [1, 2, 3, n - 3, n - 2, n - 1]) worst = Math.max(worst, Math.abs(r.h[i] - r.h[i - 1]) / (r.s[i] - r.s[i - 1]));
+        if (worst > MAX_JOIN_GRADE) stepped.push(r.id);
+      }
+      expect(stepped).toEqual(BAKED_BEFORE_CLOSE_LOOP[id] ?? []);
+    });
+  }
 });

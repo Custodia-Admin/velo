@@ -5,10 +5,10 @@
  * Fixing a failure means moving a waypoint in scripts/build-scenic-routes.mjs
  * onto the road and re-baking the world, never loosening the bounds.
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { readableWorldBundles } from '../../../tools/worldbake/worldBundles.mjs';
 
 import { loadWorld, type RoadsLayer, type WaterLayer, type WorldRoute } from './loadWorld';
 import { longestRun, routeSurfaces } from './routeSurface';
@@ -18,8 +18,9 @@ const MAX_ON_WATER_M = 150;
 /** Longest stretch a route may run more than 12 m from every drawn road (tunnels excepted), metres. */
 const MAX_OFF_ROAD_M = 200;
 
-const WORLDS = fileURLToPath(new URL('../../../public/worlds', import.meta.url));
-const SHIPPED = readdirSync(WORLDS).filter((d) => existsSync(join(WORLDS, d, 'manifest.json')));
+/** Every bundle in public/worlds, plus each remote one whose files are on disk (worldBundles.mjs). */
+const BUNDLE_DIRS = new Map<string, string>(readableWorldBundles().map((b: { id: string; dir: string }) => [b.id, b.dir]));
+const SHIPPED = [...BUNDLE_DIRS.keys()];
 
 const FLAGS = { bridge: 1, tunnel: 2, unpaved: 4, oneway: 8, routeFill: 16 };
 
@@ -134,7 +135,7 @@ describe('routeSurfaces', () => {
 });
 
 describe.each(SHIPPED)('shipped world %s: routes ride its roads, never the lake', (id) => {
-  const dir = join(WORLDS, id);
+  const dir = BUNDLE_DIRS.get(id)!;
   const diskFetch = async (url: string) => {
     try {
       return new Response(readFileSync(join(dir, url.replace(/^.*\//, ''))), { status: 200 });

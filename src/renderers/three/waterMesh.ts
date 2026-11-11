@@ -5,12 +5,19 @@
  * ribbons with a vertex every terrain cell. The terrain under water polygons
  * is pressed down (`waterDepression`) so the river has a bed and banks, and
  * bridges keep their clearance.
+ *
+ * In a world baked with `flatLakes` (manifest `generator.flatLakes`), a lake
+ * or pond whose terrain is level (`lakeLevel`) is drawn flat at that level
+ * instead, and only its level nodes are pressed down. Ground inside the
+ * polygon that stands above the level (the carved embankment of a route
+ * crossing a lake arm on a bridge, a causeway, an island) stays dry and
+ * undepressed, so the rider never rides through a draped sheet of water.
  */
 
 import * as THREE from 'three';
 
 import type { Heightfield } from '@/lib/world/heightfield';
-import type { WaterLayer } from '@/lib/world/loadWorld';
+import type { LoadedWorld, WaterLayer, WorldArea, WorldRoute } from '@/lib/world/loadWorld';
 
 /** Water surface below the (undepressed) ground, metres. */
 export const WATER_SURFACE_DROP_M = 0.5;
@@ -18,6 +25,92 @@ export const WATER_SURFACE_DROP_M = 0.5;
 export const WATER_BED_DEPTH_M = 2.6;
 /** Longest water triangle edge: enough to follow a river's fall, cheap on triangles. */
 export const WATER_EDGE_M = 45;
+
+/** Whether the bake levelled this world's lakes (recipe `flatLakes`), so the renderer may draw them level. */
+export function levelLakes(world: Pick<LoadedWorld, 'manifest'>): boolean {
+  // Hand-built test worlds may carry a partial manifest.
+  return world.manifest?.generator?.flatLakes === true;
+}
+
+/**
+ * Half-width of the ground a baked route stands on, in terrain cells: the
+ * bake carves the route's core corridor `snap.coreCells` (1.5 in every
+ * recipe) wide each side. Where a stream or river crosses the route (under
+ * its bridge) the ribbon is left out there, or it would be painted across the
+ * road (Chengdu, Xinglong loop at 1.1, 4.5 and 5.4 km).
+ */
+export const ROUTE_DRY_CELLS = 1.5;
+
+/** A lake or pond needs this many nodes before its terrain counts as level (a few-cell pond stays draped). */
+export const LEVEL_LAKE_MIN_NODES = 8;
+/** Share of its nodes that must hold one height for a lake to count as level. */
+export const LEVEL_LAKE_SHARE = 0.5;
+/** Nodes within this of the level are the lake's own; higher ones are dry ground inside it. */
+export const LEVEL_LAKE_TOL_M = 0.05;
+
+/** Visit every heightfield node inside `area` (holes excluded), scanline at node centres. */
+function forNodesInside(area: WorldArea, hf: Heightfield, visit: (c: number, r: number) => void): void {
+  const { cols, rows, cellSize, xMin, yMax } = hf.spec;
+  const outer = area.rings[0];
+  let y0 = Infinity;
+  let y1 = -Infinity;
+  for (let i = 1; i < outer.length; i += 2) {
+    y0 = Math.min(y0, outer[i]);
+    y1 = Math.max(y1, outer[i]);
+  }
+  const r0 = Math.max(0, Math.floor((yMax - y1) / cellSize));
+  const r1 = Math.min(rows - 1, Math.ceil((yMax - y0) / cellSize));
+  for (let r = r0; r <= r1; r++) {
+    const y = yMax - r * cellSize;
+    const xs: number[] = [];
+    for (const ring of area.rings) {
+      const n = ring.length / 2;
+      for (let i = 0, j = n - 1; i < n; j = i++) {
+        const yi = ring[2 * i + 1];
+        const yj = ring[2 * j + 1];
+        if (yi > y !== yj > y) xs.push(ring[2 * i] + ((y - yi) / (yj - yi)) * (ring[2 * j] - ring[2 * i]));
+      }
+    }
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const c0 = Math.max(0, Math.ceil((xs[k] - xMin) / cellSize));
+      const c1 = Math.min(cols - 1, Math.floor((xs[k + 1] - xMin) / cellSize));
+      for (let c = c0; c <= c1; c++) visit(c, r);
+    }
+  }
+}
+
+/**
+ * The surface height of a lake or pond whose terrain is level: the height
+ * most of its nodes share (at least LEVEL_LAKE_SHARE of them, within
+ * LEVEL_LAKE_TOL_M, and at least LEVEL_LAKE_MIN_NODES nodes). Null for
+ * rivers and for lakes the DEM left tilted, which keep following the terrain.
+ */
+export function lakeLevel(area: WorldArea, hf: Heightfield): number | null {
+  if (area.kind !== 'lake' && area.kind !== 'pond') return null;
+  if (!area.rings.length || area.rings[0].length < 6) return null;
+  const step = hf.spec.heightScale;
+  const counts = new Map<number, number>();
+  let n = 0;
+  forNodesInside(area, hf, (c, r) => {
+    const key = Math.round(hf.nodeHeight(c, r) / step);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+    n++;
+  });
+  if (n < LEVEL_LAKE_MIN_NODES) return null;
+  let mode = 0;
+  let best = -1;
+  for (const [key, count] of counts) {
+    if (count > best || (count === best && key < mode)) {
+      best = count;
+      mode = key;
+    }
+  }
+  const tol = Math.round(LEVEL_LAKE_TOL_M / step);
+  let near = 0;
+  for (const [key, count] of counts) if (Math.abs(key - mode) <= tol) near += count;
+  return near >= LEVEL_LAKE_SHARE * n ? mode * step : null;
+}
 
 export interface WaterGeometryData {
   positions: Float32Array;
@@ -305,15 +398,103 @@ function ringPoints(r: Float32Array): THREE.Vector2[] {
 }
 
 /** All water as one triangle soup in three.js coordinates (x, h, −y). */
-export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM = WATER_EDGE_M): WaterGeometryData {
+export interface WaterGeometryOptions {
+  /** Draw level lakes flat (`levelLakes(world)`). */
+  levelLakes?: boolean;
+  /** Baked routes: no waterway ribbon draws on their core corridor where it crosses them. */
+  dryRoutes?: readonly Pick<WorldRoute, 'x' | 'y' | 'stepM'>[];
+}
+
+type RouteLine = Pick<WorldRoute, 'x' | 'y' | 'stepM'>;
+
+/** Points hashed into square cells, for "any point within r of (x, y)". */
+function pointHash(cell: number) {
+  const key = (cx: number, cy: number) => cx * 100003 + cy;
+  const cells = new Map<number, number[]>();
+  return {
+    add(x: number, y: number) {
+      const k = key(Math.floor(x / cell), Math.floor(y / cell));
+      const list = cells.get(k);
+      if (list) list.push(x, y);
+      else cells.set(k, [x, y]);
+    },
+    /** Any point within `r` (≤ cell) of (x, y). */
+    near(x: number, y: number, r: number): boolean {
+      const cx = Math.floor(x / cell);
+      const cy = Math.floor(y / cell);
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          const list = cells.get(key(cx + dx, cy + dy));
+          if (!list) continue;
+          for (let i = 0; i < list.length; i += 2) if (Math.hypot(list[i] - x, list[i + 1] - y) <= r) return true;
+        }
+      }
+      return false;
+    },
+  };
+}
+
+/** Where segment a–b crosses segment c–d, or null. */
+function crossing(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, dx: number, dy: number): [number, number] | null {
+  const rx = bx - ax, ry = by - ay, sx = dx - cx, sy = dy - cy;
+  const den = rx * sy - ry * sx;
+  if (Math.abs(den) < 1e-9) return null;
+  const t = ((cx - ax) * sy - (cy - ay) * sx) / den;
+  const u = ((cx - ax) * ry - (cy - ay) * rx) / den;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1 ? [ax + t * rx, ay + t * ry] : null;
+}
+
+/**
+ * A test for "on a route's core corridor, where a waterway crosses it": within
+ * ROUTE_DRY_CELLS of the route and within three times that of a point where
+ * one of `water.lines` crosses the route. A stream running beside a route
+ * (Perugia's Tiber park) is left alone.
+ */
+function routeCrossingTest(routes: readonly RouteLine[], water: WaterLayer, hf: Heightfield): (x: number, y: number) => boolean {
+  if (!routes.length || !water.lines.length) return () => false;
+  const radius = ROUTE_DRY_CELLS * hf.spec.cellSize;
+  const step = Math.max(...routes.map((r) => r.stepM));
+  const reach = radius + step / 2;
+  const samples = pointHash(3 * radius + step);
+  for (const r of routes) for (let i = 0; i < r.x.length; i++) samples.add(r.x[i], r.y[i]);
+  const crossings = pointHash(3 * radius + step);
+  let any = false;
+  for (const line of water.lines) {
+    const p = line.points;
+    for (let i = 0; i + 3 < p.length; i += 2) {
+      const mx = (p[i] + p[i + 2]) / 2;
+      const my = (p[i + 1] + p[i + 3]) / 2;
+      const half = Math.hypot(p[i + 2] - p[i], p[i + 3] - p[i + 1]) / 2;
+      // A short segment can only cross the route if its midpoint is near a sample.
+      if (half <= 3 * radius && !samples.near(mx, my, half + step)) continue;
+      for (const r of routes) {
+        for (let k = 0; k + 1 < r.x.length; k++) {
+          const c = crossing(p[i], p[i + 1], p[i + 2], p[i + 3], r.x[k], r.y[k], r.x[k + 1], r.y[k + 1]);
+          if (c) {
+            crossings.add(c[0], c[1]);
+            any = true;
+          }
+        }
+      }
+    }
+  }
+  if (!any) return () => false;
+  return (x, y) => samples.near(x, y, reach) && crossings.near(x, y, 3 * radius);
+}
+
+export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM = WATER_EDGE_M, opts: WaterGeometryOptions = {}): WaterGeometryData {
+  const levelLakes = opts.levelLakes === true;
+  const onRoute = routeCrossingTest(opts.dryRoutes ?? [], water, hf);
   const P: number[] = [];
   const K: number[] = [];
+  let level: number | null = null;
   const put = (p: V2, lift: number, kind: number) => {
-    P.push(p[0], hf.sampleHeight(p[0], p[1]) - WATER_SURFACE_DROP_M + lift, -p[1]);
+    P.push(p[0], (level ?? hf.sampleHeight(p[0], p[1])) - WATER_SURFACE_DROP_M + lift, -p[1]);
     K.push(kind);
   };
   for (const area of water.areas) {
     if (!area.rings.length) continue;
+    level = levelLakes ? lakeLevel(area, hf) : null;
     const outer = ringPoints(area.rings[0]);
     const holes = area.rings.slice(1).map(ringPoints);
     if (outer.length < 3) continue;
@@ -332,6 +513,7 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
     );
     for (let i = 0; i < flat.length; i += 2) put([flat[i], flat[i + 1]], 0, 1);
   }
+  level = null;
   // Streams and rivers without polygons: flat ribbons following the terrain,
   // a vertex every terrain cell (finer only adds triangles the terrain mesh
   // under them can't show: Lugano has 1,000 km of mountain streams).
@@ -356,6 +538,7 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
         const y0 = ay + (by - ay) * t0;
         const x1 = ax + (bx - ax) * t1;
         const y1 = ay + (by - ay) * t1;
+        if (onRoute((x0 + x1) / 2, (y0 + y1) / 2)) continue;
         const l0: V2 = [x0 + nx, y0 + ny];
         const r0: V2 = [x0 - nx, y0 - ny];
         const l1: V2 = [x1 + nx, y1 + ny];
@@ -370,40 +553,20 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
 
 /**
  * Per-node depression of the terrain under water polygons (metres, ≥ 0),
- * cols × rows like the heightfield. Scanline fill at node centres.
+ * cols × rows like the heightfield. Scanline fill at node centres. With
+ * `levelLakes`, under a level lake (`lakeLevel`) only the nodes at its level
+ * are pressed down.
  */
-export function waterDepression(water: WaterLayer, hf: Heightfield): Float32Array {
-  const { cols, rows, cellSize, xMin, yMax } = hf.spec;
+export function waterDepression(water: WaterLayer, hf: Heightfield, levelLakes = false): Float32Array {
+  const { cols, rows } = hf.spec;
   const out = new Float32Array(cols * rows);
   for (const area of water.areas) {
     if (!area.rings.length) continue;
-    let y0 = Infinity;
-    let y1 = -Infinity;
-    const outer = area.rings[0];
-    for (let i = 1; i < outer.length; i += 2) {
-      y0 = Math.min(y0, outer[i]);
-      y1 = Math.max(y1, outer[i]);
-    }
-    const r0 = Math.max(0, Math.floor((yMax - y1) / cellSize));
-    const r1 = Math.min(rows - 1, Math.ceil((yMax - y0) / cellSize));
-    for (let r = r0; r <= r1; r++) {
-      const y = yMax - r * cellSize;
-      const xs: number[] = [];
-      for (const ring of area.rings) {
-        const n = ring.length / 2;
-        for (let i = 0, j = n - 1; i < n; j = i++) {
-          const yi = ring[2 * i + 1];
-          const yj = ring[2 * j + 1];
-          if (yi > y !== yj > y) xs.push(ring[2 * i] + ((y - yi) / (yj - yi)) * (ring[2 * j] - ring[2 * i]));
-        }
-      }
-      xs.sort((a, b) => a - b);
-      for (let k = 0; k + 1 < xs.length; k += 2) {
-        const c0 = Math.max(0, Math.ceil((xs[k] - xMin) / cellSize));
-        const c1 = Math.min(cols - 1, Math.floor((xs[k + 1] - xMin) / cellSize));
-        for (let c = c0; c <= c1; c++) out[r * cols + c] = WATER_BED_DEPTH_M;
-      }
-    }
+    const level = levelLakes ? lakeLevel(area, hf) : null;
+    forNodesInside(area, hf, (c, r) => {
+      if (level !== null && hf.nodeHeight(c, r) > level + LEVEL_LAKE_TOL_M) return;
+      out[r * cols + c] = WATER_BED_DEPTH_M;
+    });
   }
   return out;
 }

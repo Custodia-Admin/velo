@@ -28,11 +28,12 @@
  *   draws roads (flat ends, real widths), against the mapped line of every
  *   road the fit bent (tools/worldbake/reports/<id>.json routeFit.bent).
  */
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+import { readableWorldBundles } from '../../../tools/worldbake/worldBundles.mjs';
 
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { createProjection } from './projection';
@@ -758,19 +759,19 @@ describe('bake: fit the drawn roads to a route (one surface under the guide)', (
   });
 });
 
-const WORLDS = fileURLToPath(new URL('../../../public/worlds', import.meta.url));
 const RECIPES = fileURLToPath(new URL('../../../tools/worldbake/worlds', import.meta.url));
 const REPORTS = fileURLToPath(new URL('../../../tools/worldbake/reports', import.meta.url));
 
 interface RouteFitReport { roadsBent: number; maxShiftM: number; joins: number; bent: { road: number; shiftM: number; mapped: string }[] }
 
+/** Every bundle in public/worlds, plus each remote one whose files are on disk (worldBundles.mjs). */
 function shippedWorlds() {
-  return readdirSync(WORLDS)
-    .filter((id) => existsSync(join(WORLDS, id, 'manifest.json')) && existsSync(join(RECIPES, `${id}.json`)))
-    .map((id) => {
-      const manifest = JSON.parse(readFileSync(join(WORLDS, id, 'manifest.json'), 'utf8'));
+  return readableWorldBundles()
+    .filter((b: { id: string }) => existsSync(join(RECIPES, `${b.id}.json`)))
+    .map(({ id, dir }: { id: string; dir: string }) => {
+      const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
       const recipe = JSON.parse(readFileSync(join(RECIPES, `${id}.json`), 'utf8'));
-      const roads: Layer = JSON.parse(gunzipSync(readFileSync(join(WORLDS, id, manifest.layers.roads))).toString('utf8'));
+      const roads: Layer = JSON.parse(gunzipSync(readFileSync(join(dir, manifest.layers.roads))).toString('utf8'));
       const projection = createProjection(manifest.projection);
       const routes: Sampled[] = recipe.routes.map((rid: string) => ({ id: rid, ...sampleAppRoute(SCENIC_ROUTE_GEOMETRY[rid].points, projection) }));
       const fit: RouteFitReport | undefined = JSON.parse(readFileSync(join(REPORTS, `${id}.json`), 'utf8')).routeFit;

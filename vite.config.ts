@@ -38,8 +38,29 @@ export default defineConfig({
       workbox: {
         // Cesium ships some large WASM/JS chunks; bump the precache size limit.
         maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,wasm,woff2}'],
+        // glb: the rider model (public/models/velo-rider.glb). Without it a
+        // world ride offline crashes the world renderer (worldCache.test.ts).
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,wasm,woff2,glb}'],
         navigateFallback: '/index.html',
+        // Remote world bundles (lib/world/catalog.ts remoteWorldsBaseUrl, an
+        // R2 bucket by default) live under content-hashed dirs
+        // `…/worlds/<id>/<16 hex>/<file>`: a URL never changes, so the first
+        // ride's download serves every later ride, offline included. Same
+        // cache name as the loader's own Cache API copy (lib/world/worldCache.ts,
+        // WORLD_CACHE_NAME; worldCache.test.ts pins the two together). The
+        // pattern is anchored at the scheme: workbox only applies a RegExp to
+        // a cross-origin URL when it matches from the first character.
+        runtimeCaching: [
+          {
+            urlPattern: /^https?:\/\/.+\/worlds\/[a-z0-9-]+\/[0-9a-f]{16}\/[^/?#]+$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'velo-worlds-v1',
+              cacheableResponse: { statuses: [200] },
+              expiration: { maxEntries: 400, maxAgeSeconds: 180 * 24 * 60 * 60 },
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: false,

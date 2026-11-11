@@ -23,10 +23,10 @@ P1.5). Full suites run in GitHub CI.
 
 ## Phase 2 — Beautiful (after P1)
 - [x] P2.1 World materials, light, weather, time of day: water, trees, buildings, landmarks, live Open-Meteo (PR #28; Federico approved it "as an MVP" on 2 Nov)
-- [ ] P2.2 Lugano world + destination system (Home generated from manifests: Home · Perugia, Hometown · Lugano, Places we want to go)
-- [ ] P2.3 Show & journey mode v2: local video overlay, Document PiP ride-over-anything, cinematic director
-- [ ] P2.4 Visual identity v2 build (tokens + `src/components/velo/`, after P1.5 sign-off)
-- [ ] P2.5 Device layer: battery, auto-reconnect, steering feel, handlebar button map
+- [x] P2.2 Lugano world + destination system (Home generated from manifests: Home · Perugia, Hometown · Lugano, Places we want to go) (PR #32)
+- [x] P2.3 Show & journey mode v2: local video overlay, Document PiP ride-over-anything, cinematic director (PR #36)
+- [x] P2.4 Visual identity v2 build (tokens + `src/components/velo/`, after P1.5 sign-off) (PR #27)
+- [x] P2.5 Device layer: battery, auto-reconnect, steering feel, handlebar button map (PR #26)
 
 ## Phase 3 — Destinations and play (after P2)
 - [ ] P3.1 Wishlist worlds (Chengdu, Ohio & Erie towpath, Cleveland, Berkeley, Santa Monica, Puerto Vallarta) on Cloudflare R2, cached after the first ride

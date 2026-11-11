@@ -167,7 +167,7 @@ export function carveRoutes({ grid, heights, projection, routes, snap }) {
       Math.round(offsetMeanM / stepM / 2),
       mean,
     );
-    const target = rs.ele.map((e, i) => e + offset[i]);
+    const target = closeLoop(rs.s, x, y, rs.ele.map((e, i) => e + offset[i]), { stepM, rampM: offsetMedianM });
     prepared.push({ id: r.id, name: r.name, lengthM: app.total, s: rs.s.map(round2), x, y, profile: rs.ele, raw, target });
   }
 
@@ -214,6 +214,31 @@ export function carveRoutes({ grid, heights, projection, routes, snap }) {
     carved++;
   }
   return { prepared, carvedNodes: carved, maxCutM: maxCut };
+}
+
+/**
+ * A loop ends where it starts, and the ground there has one height, but the
+ * profile's two ends need not agree (Chengdu's Xinglong loop: 466 m at the
+ * start, 470.5 m at the finish), and the nearest-route carve then left a
+ * 3 m step in the first 10 m (31 %). When the route closes (ends within
+ * `stepM`), ramp the target over `rampM` at each end so both meet at the
+ * mean of the two; the render grade there moves by |Δ| / (2 · rampM).
+ * Open routes are returned as they are.
+ */
+export function closeLoop(s, x, y, target, { stepM, rampM }) {
+  const n = target.length;
+  if (n < 3 || Math.hypot(x[0] - x[n - 1], y[0] - y[n - 1]) > stepM) return target;
+  const total = s[n - 1];
+  const ramp = Math.min(rampM, total / 4);
+  const meet = (target[0] + target[n - 1]) / 2;
+  const d0 = meet - target[0];
+  const d1 = meet - target[n - 1];
+  return target.map((t, i) => {
+    let v = t;
+    if (s[i] < ramp) v += d0 * (1 - s[i] / ramp);
+    if (total - s[i] < ramp) v += d1 * (1 - (total - s[i]) / ramp);
+    return v;
+  });
 }
 
 /** Step 4: render elevations from the final quantised Heightfield + stats. */
