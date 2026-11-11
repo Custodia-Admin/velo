@@ -118,6 +118,17 @@ node tools/worldbake/publish.mjs <id>
   The bucket is on the free tier: r2.dev public access, CORS GET/HEAD from any
   origin.
 
+Once the new destination is pushed, delete the bundle it replaces, so the
+bucket holds only bundles a destination points at. Every file is listed in
+the old manifest's `files`, plus `manifest.json` itself:
+
+```bash
+B=https://pub-26367e714cf944b59b97a34ecb76922b.r2.dev/worlds/<id>/<old-hash>
+for f in $(curl -s $B/manifest.json | jq -r '.files[].path') manifest.json; do
+  npx wrangler@4 r2 object delete "velo-worlds/worlds/<id>/<old-hash>/$f" --remote
+done
+```
+
 The app reads remote worlds from `DEFAULT_REMOTE_WORLDS_URL` in
 `src/lib/world/catalog.ts`. That must be the same value as in
 `tools/worldbake/worldBundles.mjs`, and `worldCache.test.ts` pins the two
