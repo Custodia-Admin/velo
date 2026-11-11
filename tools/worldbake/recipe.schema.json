@@ -52,6 +52,7 @@
     "routes": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Scenic route ids from src/lib/scenicRoutes.ts that lie inside the world." },
     "routesOutside": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Nearby route ids left out, with the reason." },
     "host": { "const": "remote", "description": "Publish the bundle off-repo: baked to tools/worldbake/remote/<id>/ (only manifest.json is committed), uploaded by publish.mjs to worlds/<id>/<hash>/ in the public R2 bucket, loaded from the remote worlds base URL and kept in the Cache API. Absent: shipped in public/worlds/<id>/. Not part of generator.recipeSha256." },
+    "flatLakes": { "type": "boolean", "description": "Level the terrain under every OSM lake and pond (tools/worldbake/flatLakes.mjs): for lakes newer than the DEM, which still carries the land they were dug from." },
     "routeCredits": { "type": "boolean", "description": "Add one manifest credit per route linking the OSM relation or OSRM bike query its geometry came from (scripts/scenicRouteSources.mjs)." },
     "snap": {
       "type": "object",

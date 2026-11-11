@@ -90,7 +90,7 @@ Validated by `validateManifest()`; schema in
 | `routes[]` | `{ id, name, lengthM, maxGapM, gradeMeanAbsDiffPct }` per snapped scenic route (ids match `src/lib/scenicRoutes.ts`). |
 | `stats` | Counts (roads, buildings, trees, …) for logs and UI. |
 | `credits[]` | `{ id, name, licence, url, attribution }`: show these wherever the world is shown. |
-| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count). |
+| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry). |
 
 ## height.bin: the heightfield (`u16-delta`)
 
@@ -393,7 +393,9 @@ most.
 `id`, `name`, `description`, `origin` (world `(0, 0)`), `grid` (`xMin`, `yMax`,
 `cellSize`, `cols`, `rows`, ≤ 2048 a side), `dem` (below), `osmDate`, `routes`
 (+ `routesOutside` with reasons), `snap`, `vegetation`, `moods`,
-`defaultMood` and `validation` (`sample_seed`, plus an optional mountain
+`defaultMood`, the optional `host` (`"remote"`), `routeCredits` and
+`flatLakes` ([ADDING-A-WORLD.md](ADDING-A-WORLD.md)), and `validation`
+(`sample_seed`, plus an optional mountain
 override; the bake writes the rest, see
 [Terrain accuracy check](#terrain-accuracy-check-p13-v2)).
 `manifest.generator.recipeSha256` is the SHA-256 of the parsed recipe without
@@ -670,16 +672,16 @@ The first remote world (card t_55f6c646): 8.8 × 12.9 km at 12 m (`x
 Tianfu New Area, holding the Luxe Lakes (Luhu) loop and Xinglong Lake's signed
 clockwise cycle loop (OSM relation 18146670), 11 km apart north to south.
 Baked 11 Nov 2026 on cat-bed from Copernicus GLO-30 and OSM as of 1 Nov 2026,
-published as `worlds/chengdu-luxelakes/2e00c73073dda8fd/`.
+published as `worlds/chengdu-luxelakes/5c30ac89c31cd3d2/`.
 
 | Check | Result |
 | --- | --- |
-| Bake time | 6 s from cache |
-| Determinism | an `--out` bake and the committed bake from cache: identical bytes for all 8 files (checked at each of the three bakes on this card) |
-| Size | 1.87 MB as shipped (gzip), 1.54 MB brotli, 3.41 MB raw; the first ride downloads 1.78 MB (`e2e/remote-world.spec.ts`) |
+| Bake time | 10 s from cache |
+| Determinism | an `--out` bake and the committed bake from cache: identical bytes for all 8 files (checked at each of the five bakes on this card) |
+| Size | 1.84 MB as shipped (gzip), 1.51 MB brotli, 3.41 MB raw; the first ride downloads 1.78 MB (`e2e/remote-world.spec.ts`) |
 | Routes | Luxe Lakes 11.18 km, Xinglong Lake 8.19 km: max gap 0 m; grade Δ 0.305 / 0.576 pp; 100 % within 1 m of mapped roads; painted guide 100 % on drawn roads (37.3 m and 1 m eased; the fit bends 8 roads by at most 0.45 m, no joins) |
-| Heightfield vs Open-Meteo, 50 seeded points (seed 30432) | P1.3 v2: `standard` (steep fraction 0.0492), registered **1.09 m ≤ 6.00 m, PASS**; point RMS 5.64 m, max \|registered\| 3.36 m (reported only); 0/50 answers from another node |
-| Heightfield range | 451.0–538.5 m; 15,339 nodes carved under the routes (max 19.6 m); 120 m and 68 m of the routes run in mapped underpasses |
+| Heightfield vs Open-Meteo, 50 seeded points (seed 30432) | P1.3 v2: `standard` (steep fraction 0.0638), registered **2.35 m ≤ 6.00 m, PASS**; point RMS 5.66 m, max \|registered\| 11.06 m (reported only); 0/50 answers from another node. The two worst points (−11.06 m, −9.73 m) lie on dug lakes, where the GLO-90 reference also has the land the lakes were dug from; the 39 points more than 100 m from any water give 0.99 m. Before `flatLakes` the whole set gave 1.09 m |
+| Heightfield range | 451.0–538.5 m; 157 lakes and ponds levelled (37,926 nodes under water; Xinglong Lake spanned 455.7–483.7 m and now lies at 456.26 m; max cut 33.6 m); 15,339 nodes carved under the routes (max 19.6 m), 260 lake nodes put back to level after the carve; 120 m and 68 m of the routes run in mapped underpasses |
 | Content | 4,913 road pieces, 165 water areas + 72 waterways, 776 landcover areas, 794 buildings, 154,675 trees |
 
 Tianfu's towers are thinly mapped in OSM (794 buildings over 114 km²), so the

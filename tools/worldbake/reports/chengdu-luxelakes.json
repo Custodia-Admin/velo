@@ -3,18 +3,18 @@
   "bakedWith": "node v26.12.1",
   "timingsS": {
     "dem": 0.2,
-    "heightfield+routes": 0,
     "osm": 0,
+    "heightfield+routes": 0,
     "vectors": 1.4,
-    "write": 4,
+    "write": 4.1,
     "validate": 0,
-    "total": 5.7
+    "total": 9.9
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 943243,
+      "stored": 914506,
       "content": 1581720,
-      "brotli": 775235
+      "brotli": 751726
     },
     "roads.json.gz": {
       "stored": 201300,
@@ -42,30 +42,30 @@
       "brotli": 507031
     },
     "routes.json.gz": {
-      "stored": 30348,
-      "content": 74398,
-      "brotli": 20407
+      "stored": 30269,
+      "content": 74275,
+      "brotli": 20029
     },
     "manifest.json": {
-      "stored": 8054,
-      "content": 8054,
-      "brotli": 2484
+      "stored": 8076,
+      "content": 8076,
+      "brotli": 2455
     }
   },
   "totals": {
-    "stored": 1866842,
-    "content": 3409038,
-    "brotli": 1538046
+    "stored": 1838048,
+    "content": 3408937,
+    "brotli": 1514130
   },
   "hashes": {
-    "height.bin.gz": "38cfc9d4352694f0fdcff6a0a3adcfc467bb9ec52e629580bac77a00173f2aec",
+    "height.bin.gz": "3a7994b4cf1518877b87c0cce87405227cb4c34e055c4e5ea8eb3eb1b7e3f9c7",
     "roads.json.gz": "ab01076a24135f4cc7f364c5cd93bab3d78aee25f37bcf70e8a7842d7f488f82",
     "water.json.gz": "9a6313ae22ede4ae1f30c004bb7cd2774a918340e9b7bd3dd36e6ab85685cddd",
     "landcover.json.gz": "82f5d43d351f639c723e11520743013f6b7914d3d903f838ce1ef8bdbf16a1db",
     "buildings.bin.gz": "63468a6f71d952fc10624b06e45136b82e609c207ae08feeceee2638dfe55204",
     "vegetation.bin.gz": "2effa20caddb5f739625b66e7427bac698a4460c6c50f7b5b269a4c39ae683cb",
-    "routes.json.gz": "98f9ebb7de201813f1a30d9fbd14cc302d7b96c097d6ae187e93fc0567e2b22e",
-    "manifest.json": "2e00c73073dda8fd7c2f7e9b69b118067c0bb56232b9dca82d65df6d37acf453"
+    "routes.json.gz": "33aa751e02eb35aac8e5c8f5591fcc6da081b880fe2f4a60978388e8b2338adc",
+    "manifest.json": "5c30ac89c31cd3d225299f8e6a4172295e1888c0affaeaa6baea102ff8600bea"
   },
   "routes": [
     {
@@ -73,12 +73,12 @@
       "name": "Luxe Lakes loop",
       "lengthM": 11178.84,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.305,
+      "gradeMeanAbsDiffPct": 0.31,
       "report": {
         "samples": 1119,
-        "gradeMaxAbsDiffPct": 2.541,
-        "rawDemGradeMeanAbsDiffPct": 2.884,
-        "maxRenderMinusProfileM": 13.18
+        "gradeMaxAbsDiffPct": 2.337,
+        "rawDemGradeMeanAbsDiffPct": 3.163,
+        "maxRenderMinusProfileM": 13.12
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -94,11 +94,11 @@
       "name": "Xinglong Lake loop",
       "lengthM": 8188.89,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.576,
+      "gradeMeanAbsDiffPct": 0.575,
       "report": {
         "samples": 820,
         "gradeMaxAbsDiffPct": 3.645,
-        "rawDemGradeMeanAbsDiffPct": 2.636,
+        "rawDemGradeMeanAbsDiffPct": 2.745,
         "maxRenderMinusProfileM": 14.07
       },
       "roadCoverage": {
@@ -170,6 +170,1735 @@
     "carvedNodes": 15339,
     "maxCutM": 19.64
   },
+  "flatLakes": [
+    {
+      "index": 0,
+      "kind": "pond",
+      "level": 478.95,
+      "inNodes": 75,
+      "before": {
+        "min": 478.5,
+        "max": 483.07
+      },
+      "maxCutM": 4.11
+    },
+    {
+      "index": 1,
+      "kind": "pond",
+      "level": 488.5,
+      "inNodes": 137,
+      "before": {
+        "min": 488.5,
+        "max": 490.55
+      },
+      "maxCutM": 2.05
+    },
+    {
+      "index": 3,
+      "kind": "pond",
+      "level": 493.37,
+      "inNodes": 98,
+      "before": {
+        "min": 493.5,
+        "max": 497.38
+      },
+      "maxCutM": 4.01
+    },
+    {
+      "index": 4,
+      "kind": "pond",
+      "level": 492.5,
+      "inNodes": 66,
+      "before": {
+        "min": 492.5,
+        "max": 495.81
+      },
+      "maxCutM": 3.31
+    },
+    {
+      "index": 5,
+      "kind": "pond",
+      "level": 498.07,
+      "inNodes": 16,
+      "before": {
+        "min": 498.11,
+        "max": 499.04
+      },
+      "maxCutM": 0.97
+    },
+    {
+      "index": 6,
+      "kind": "lake",
+      "level": 473.34,
+      "inNodes": 30,
+      "before": {
+        "min": 473.71,
+        "max": 477.9
+      },
+      "maxCutM": 4.55
+    },
+    {
+      "index": 7,
+      "kind": "lake",
+      "level": 487.54,
+      "inNodes": 264,
+      "before": {
+        "min": 487.5,
+        "max": 494.52
+      },
+      "maxCutM": 6.98
+    },
+    {
+      "index": 8,
+      "kind": "lake",
+      "level": 485.9,
+      "inNodes": 173,
+      "before": {
+        "min": 486,
+        "max": 488.72
+      },
+      "maxCutM": 2.82
+    },
+    {
+      "index": 9,
+      "kind": "lake",
+      "level": 494.18,
+      "inNodes": 213,
+      "before": {
+        "min": 494.5,
+        "max": 500.91
+      },
+      "maxCutM": 6.73
+    },
+    {
+      "index": 10,
+      "kind": "lake",
+      "level": 486.18,
+      "inNodes": 114,
+      "before": {
+        "min": 485.8,
+        "max": 492.94
+      },
+      "maxCutM": 6.76
+    },
+    {
+      "index": 11,
+      "kind": "lake",
+      "level": 486,
+      "inNodes": 130,
+      "before": {
+        "min": 486,
+        "max": 488.1
+      },
+      "maxCutM": 2.1
+    },
+    {
+      "index": 12,
+      "kind": "lake",
+      "level": 480.15,
+      "inNodes": 234,
+      "before": {
+        "min": 480,
+        "max": 486.5
+      },
+      "maxCutM": 6.35
+    },
+    {
+      "index": 13,
+      "kind": "pond",
+      "level": 481.94,
+      "inNodes": 17,
+      "before": {
+        "min": 480.49,
+        "max": 489.32
+      },
+      "maxCutM": 7.38
+    },
+    {
+      "index": 14,
+      "kind": "pond",
+      "level": 478.43,
+      "inNodes": 51,
+      "before": {
+        "min": 477.81,
+        "max": 485.08
+      },
+      "maxCutM": 6.66
+    },
+    {
+      "index": 15,
+      "kind": "pond",
+      "level": 478.78,
+      "inNodes": 93,
+      "before": {
+        "min": 477.56,
+        "max": 484.46
+      },
+      "maxCutM": 5.67
+    },
+    {
+      "index": 16,
+      "kind": "pond",
+      "level": 481.65,
+      "inNodes": 87,
+      "before": {
+        "min": 480.83,
+        "max": 494.62
+      },
+      "maxCutM": 12.97
+    },
+    {
+      "index": 17,
+      "kind": "pond",
+      "level": 481.86,
+      "inNodes": 30,
+      "before": {
+        "min": 481.53,
+        "max": 486.09
+      },
+      "maxCutM": 4.22
+    },
+    {
+      "index": 18,
+      "kind": "pond",
+      "level": 483.2,
+      "inNodes": 22,
+      "before": {
+        "min": 482.97,
+        "max": 486.61
+      },
+      "maxCutM": 3.41
+    },
+    {
+      "index": 19,
+      "kind": "pond",
+      "level": 474.79,
+      "inNodes": 61,
+      "before": {
+        "min": 473.5,
+        "max": 475.6
+      },
+      "maxCutM": 0.81
+    },
+    {
+      "index": 20,
+      "kind": "pond",
+      "level": 478.63,
+      "inNodes": 9,
+      "before": {
+        "min": 478.68,
+        "max": 480.89
+      },
+      "maxCutM": 2.25
+    },
+    {
+      "index": 21,
+      "kind": "lake",
+      "level": 484.77,
+      "inNodes": 59,
+      "before": {
+        "min": 484.47,
+        "max": 487.94
+      },
+      "maxCutM": 3.17
+    },
+    {
+      "index": 22,
+      "kind": "lake",
+      "level": 468.88,
+      "inNodes": 99,
+      "before": {
+        "min": 468.85,
+        "max": 471.71
+      },
+      "maxCutM": 2.83
+    },
+    {
+      "index": 23,
+      "kind": "lake",
+      "level": 490,
+      "inNodes": 31,
+      "before": {
+        "min": 490,
+        "max": 491.73
+      },
+      "maxCutM": 1.73
+    },
+    {
+      "index": 24,
+      "kind": "lake",
+      "level": 496.1,
+      "inNodes": 22,
+      "before": {
+        "min": 494.93,
+        "max": 500.67
+      },
+      "maxCutM": 4.57
+    },
+    {
+      "index": 25,
+      "kind": "lake",
+      "level": 496.48,
+      "inNodes": 36,
+      "before": {
+        "min": 495.72,
+        "max": 501.61
+      },
+      "maxCutM": 5.13
+    },
+    {
+      "index": 26,
+      "kind": "lake",
+      "level": 499.74,
+      "inNodes": 4,
+      "before": {
+        "min": 500.1,
+        "max": 500.38
+      },
+      "maxCutM": 0.63
+    },
+    {
+      "index": 27,
+      "kind": "lake",
+      "level": 465.52,
+      "inNodes": 23,
+      "before": {
+        "min": 466.94,
+        "max": 471.44
+      },
+      "maxCutM": 5.93
+    },
+    {
+      "index": 28,
+      "kind": "lake",
+      "level": 463,
+      "inNodes": 39,
+      "before": {
+        "min": 463,
+        "max": 466.72
+      },
+      "maxCutM": 3.72
+    },
+    {
+      "index": 29,
+      "kind": "lake",
+      "level": 463,
+      "inNodes": 100,
+      "before": {
+        "min": 463,
+        "max": 467.7
+      },
+      "maxCutM": 4.7
+    },
+    {
+      "index": 30,
+      "kind": "lake",
+      "level": 462.68,
+      "inNodes": 101,
+      "before": {
+        "min": 462.72,
+        "max": 465.72
+      },
+      "maxCutM": 3.04
+    },
+    {
+      "index": 31,
+      "kind": "lake",
+      "level": 466.71,
+      "inNodes": 8,
+      "before": {
+        "min": 466.59,
+        "max": 468.64
+      },
+      "maxCutM": 1.94
+    },
+    {
+      "index": 32,
+      "kind": "lake",
+      "level": 465.38,
+      "inNodes": 9,
+      "before": {
+        "min": 466.24,
+        "max": 468.1
+      },
+      "maxCutM": 2.72
+    },
+    {
+      "index": 33,
+      "kind": "lake",
+      "level": 459.4,
+      "inNodes": 205,
+      "before": {
+        "min": 459,
+        "max": 460.71
+      },
+      "maxCutM": 1.31
+    },
+    {
+      "index": 34,
+      "kind": "lake",
+      "level": 459.5,
+      "inNodes": 36,
+      "before": {
+        "min": 459.5,
+        "max": 460.67
+      },
+      "maxCutM": 1.17
+    },
+    {
+      "index": 35,
+      "kind": "lake",
+      "level": 459.5,
+      "inNodes": 49,
+      "before": {
+        "min": 459.5,
+        "max": 463.15
+      },
+      "maxCutM": 3.65
+    },
+    {
+      "index": 36,
+      "kind": "lake",
+      "level": 459.5,
+      "inNodes": 42,
+      "before": {
+        "min": 459.5,
+        "max": 463.78
+      },
+      "maxCutM": 4.28
+    },
+    {
+      "index": 37,
+      "kind": "lake",
+      "level": 459.5,
+      "inNodes": 29,
+      "before": {
+        "min": 459.5,
+        "max": 461.54
+      },
+      "maxCutM": 2.04
+    },
+    {
+      "index": 38,
+      "kind": "lake",
+      "level": 459.5,
+      "inNodes": 20,
+      "before": {
+        "min": 459.5,
+        "max": 462.36
+      },
+      "maxCutM": 2.86
+    },
+    {
+      "index": 39,
+      "kind": "lake",
+      "level": 459.77,
+      "inNodes": 18,
+      "before": {
+        "min": 459.9,
+        "max": 462.91
+      },
+      "maxCutM": 3.14
+    },
+    {
+      "index": 40,
+      "kind": "lake",
+      "level": 462.37,
+      "inNodes": 11,
+      "before": {
+        "min": 462.39,
+        "max": 464.67
+      },
+      "maxCutM": 2.31
+    },
+    {
+      "index": 41,
+      "kind": "lake",
+      "level": 463.16,
+      "inNodes": 10,
+      "before": {
+        "min": 463.08,
+        "max": 467.83
+      },
+      "maxCutM": 4.67
+    },
+    {
+      "index": 42,
+      "kind": "lake",
+      "level": 463.21,
+      "inNodes": 13,
+      "before": {
+        "min": 463.2,
+        "max": 466.59
+      },
+      "maxCutM": 3.39
+    },
+    {
+      "index": 43,
+      "kind": "lake",
+      "level": 463.1,
+      "inNodes": 18,
+      "before": {
+        "min": 463.53,
+        "max": 468.18
+      },
+      "maxCutM": 5.08
+    },
+    {
+      "index": 44,
+      "kind": "lake",
+      "level": 462.75,
+      "inNodes": 34,
+      "before": {
+        "min": 461.4,
+        "max": 467.79
+      },
+      "maxCutM": 5.03
+    },
+    {
+      "index": 45,
+      "kind": "lake",
+      "level": 465.04,
+      "inNodes": 33,
+      "before": {
+        "min": 465,
+        "max": 467.97
+      },
+      "maxCutM": 2.93
+    },
+    {
+      "index": 46,
+      "kind": "lake",
+      "level": 465,
+      "inNodes": 52,
+      "before": {
+        "min": 465,
+        "max": 468.35
+      },
+      "maxCutM": 3.35
+    },
+    {
+      "index": 47,
+      "kind": "lake",
+      "level": 465,
+      "inNodes": 29,
+      "before": {
+        "min": 465,
+        "max": 467.31
+      },
+      "maxCutM": 2.31
+    },
+    {
+      "index": 48,
+      "kind": "lake",
+      "level": 465,
+      "inNodes": 44,
+      "before": {
+        "min": 465,
+        "max": 466.42
+      },
+      "maxCutM": 1.42
+    },
+    {
+      "index": 49,
+      "kind": "lake",
+      "level": 465,
+      "inNodes": 51,
+      "before": {
+        "min": 465,
+        "max": 466.63
+      },
+      "maxCutM": 1.63
+    },
+    {
+      "index": 50,
+      "kind": "lake",
+      "level": 466.87,
+      "inNodes": 34,
+      "before": {
+        "min": 466.94,
+        "max": 469.58
+      },
+      "maxCutM": 2.7
+    },
+    {
+      "index": 51,
+      "kind": "lake",
+      "level": 467.23,
+      "inNodes": 14,
+      "before": {
+        "min": 467.24,
+        "max": 468.96
+      },
+      "maxCutM": 1.72
+    },
+    {
+      "index": 52,
+      "kind": "lake",
+      "level": 468.06,
+      "inNodes": 39,
+      "before": {
+        "min": 468.21,
+        "max": 471.65
+      },
+      "maxCutM": 3.59
+    },
+    {
+      "index": 53,
+      "kind": "lake",
+      "level": 475.55,
+      "inNodes": 16,
+      "before": {
+        "min": 475.75,
+        "max": 479.36
+      },
+      "maxCutM": 3.81
+    },
+    {
+      "index": 54,
+      "kind": "lake",
+      "level": 462.49,
+      "inNodes": 16,
+      "before": {
+        "min": 462.6,
+        "max": 465.6
+      },
+      "maxCutM": 3.11
+    },
+    {
+      "index": 55,
+      "kind": "lake",
+      "level": 463.58,
+      "inNodes": 53,
+      "before": {
+        "min": 463.5,
+        "max": 467.12
+      },
+      "maxCutM": 3.54
+    },
+    {
+      "index": 56,
+      "kind": "lake",
+      "level": 463.78,
+      "inNodes": 64,
+      "before": {
+        "min": 463.5,
+        "max": 466.68
+      },
+      "maxCutM": 2.9
+    },
+    {
+      "index": 57,
+      "kind": "lake",
+      "level": 467.15,
+      "inNodes": 42,
+      "before": {
+        "min": 466.87,
+        "max": 469.11
+      },
+      "maxCutM": 1.96
+    },
+    {
+      "index": 58,
+      "kind": "lake",
+      "level": 469.07,
+      "inNodes": 7,
+      "before": {
+        "min": 469.12,
+        "max": 471.42
+      },
+      "maxCutM": 2.35
+    },
+    {
+      "index": 59,
+      "kind": "lake",
+      "level": 472.98,
+      "inNodes": 24,
+      "before": {
+        "min": 473.3,
+        "max": 475.22
+      },
+      "maxCutM": 2.24
+    },
+    {
+      "index": 60,
+      "kind": "lake",
+      "level": 471.11,
+      "inNodes": 59,
+      "before": {
+        "min": 471,
+        "max": 477.25
+      },
+      "maxCutM": 6.14
+    },
+    {
+      "index": 61,
+      "kind": "lake",
+      "level": 467.1,
+      "inNodes": 17,
+      "before": {
+        "min": 467.43,
+        "max": 469.82
+      },
+      "maxCutM": 2.72
+    },
+    {
+      "index": 62,
+      "kind": "lake",
+      "level": 474.5,
+      "inNodes": 73,
+      "before": {
+        "min": 474.5,
+        "max": 476.7
+      },
+      "maxCutM": 2.2
+    },
+    {
+      "index": 63,
+      "kind": "lake",
+      "level": 486.48,
+      "inNodes": 139,
+      "before": {
+        "min": 486.5,
+        "max": 493.01
+      },
+      "maxCutM": 6.52
+    },
+    {
+      "index": 64,
+      "kind": "lake",
+      "level": 486.5,
+      "inNodes": 58,
+      "before": {
+        "min": 486.5,
+        "max": 488.68
+      },
+      "maxCutM": 2.18
+    },
+    {
+      "index": 65,
+      "kind": "lake",
+      "level": 483.46,
+      "inNodes": 54,
+      "before": {
+        "min": 483.47,
+        "max": 486.07
+      },
+      "maxCutM": 2.61
+    },
+    {
+      "index": 66,
+      "kind": "lake",
+      "level": 464.03,
+      "inNodes": 39,
+      "before": {
+        "min": 464.14,
+        "max": 472.72
+      },
+      "maxCutM": 8.69
+    },
+    {
+      "index": 67,
+      "kind": "lake",
+      "level": 465.86,
+      "inNodes": 94,
+      "before": {
+        "min": 465.14,
+        "max": 476.47
+      },
+      "maxCutM": 10.61
+    },
+    {
+      "index": 68,
+      "kind": "lake",
+      "level": 490.61,
+      "inNodes": 6,
+      "before": {
+        "min": 490.67,
+        "max": 491.95
+      },
+      "maxCutM": 1.34
+    },
+    {
+      "index": 69,
+      "kind": "lake",
+      "level": 467.09,
+      "inNodes": 66,
+      "before": {
+        "min": 467.31,
+        "max": 470.44
+      },
+      "maxCutM": 3.35
+    },
+    {
+      "index": 70,
+      "kind": "lake",
+      "level": 469,
+      "inNodes": 83,
+      "before": {
+        "min": 469,
+        "max": 471.07
+      },
+      "maxCutM": 2.07
+    },
+    {
+      "index": 71,
+      "kind": "lake",
+      "level": 469,
+      "inNodes": 91,
+      "before": {
+        "min": 469,
+        "max": 471.46
+      },
+      "maxCutM": 2.46
+    },
+    {
+      "index": 72,
+      "kind": "lake",
+      "level": 469,
+      "inNodes": 78,
+      "before": {
+        "min": 469,
+        "max": 471.59
+      },
+      "maxCutM": 2.59
+    },
+    {
+      "index": 73,
+      "kind": "lake",
+      "level": 469.05,
+      "inNodes": 30,
+      "before": {
+        "min": 469,
+        "max": 472.07
+      },
+      "maxCutM": 3.03
+    },
+    {
+      "index": 74,
+      "kind": "lake",
+      "level": 469,
+      "inNodes": 64,
+      "before": {
+        "min": 469,
+        "max": 471.73
+      },
+      "maxCutM": 2.73
+    },
+    {
+      "index": 75,
+      "kind": "lake",
+      "level": 466.48,
+      "inNodes": 255,
+      "before": {
+        "min": 466.44,
+        "max": 470.49
+      },
+      "maxCutM": 4.01
+    },
+    {
+      "index": 76,
+      "kind": "lake",
+      "level": 452.5,
+      "inNodes": 127,
+      "before": {
+        "min": 452.5,
+        "max": 456.95
+      },
+      "maxCutM": 4.45
+    },
+    {
+      "index": 77,
+      "kind": "lake",
+      "level": 455.42,
+      "inNodes": 39,
+      "before": {
+        "min": 455.29,
+        "max": 456.3
+      },
+      "maxCutM": 0.87
+    },
+    {
+      "index": 78,
+      "kind": "lake",
+      "level": 471.48,
+      "inNodes": 8,
+      "before": {
+        "min": 471.76,
+        "max": 473.41
+      },
+      "maxCutM": 1.93
+    },
+    {
+      "index": 79,
+      "kind": "lake",
+      "level": 469.47,
+      "inNodes": 14,
+      "before": {
+        "min": 469.76,
+        "max": 471.49
+      },
+      "maxCutM": 2.02
+    },
+    {
+      "index": 80,
+      "kind": "lake",
+      "level": 473.16,
+      "inNodes": 6,
+      "before": {
+        "min": 473.54,
+        "max": 475.7
+      },
+      "maxCutM": 2.54
+    },
+    {
+      "index": 81,
+      "kind": "lake",
+      "level": 470.29,
+      "inNodes": 21,
+      "before": {
+        "min": 470.32,
+        "max": 473.19
+      },
+      "maxCutM": 2.9
+    },
+    {
+      "index": 82,
+      "kind": "lake",
+      "level": 478.55,
+      "inNodes": 81,
+      "before": {
+        "min": 478.5,
+        "max": 481.04
+      },
+      "maxCutM": 2.49
+    },
+    {
+      "index": 83,
+      "kind": "lake",
+      "level": 492.7,
+      "inNodes": 46,
+      "before": {
+        "min": 492.5,
+        "max": 493.95
+      },
+      "maxCutM": 1.25
+    },
+    {
+      "index": 84,
+      "kind": "lake",
+      "level": 480.92,
+      "inNodes": 130,
+      "before": {
+        "min": 481,
+        "max": 483.96
+      },
+      "maxCutM": 3.04
+    },
+    {
+      "index": 85,
+      "kind": "lake",
+      "level": 472.67,
+      "inNodes": 31,
+      "before": {
+        "min": 472.87,
+        "max": 475.84
+      },
+      "maxCutM": 3.17
+    },
+    {
+      "index": 86,
+      "kind": "lake",
+      "level": 481.29,
+      "inNodes": 7,
+      "before": {
+        "min": 481.4,
+        "max": 488.94
+      },
+      "maxCutM": 7.65
+    },
+    {
+      "index": 87,
+      "kind": "lake",
+      "level": 470.9,
+      "inNodes": 10,
+      "before": {
+        "min": 471.1,
+        "max": 472.65
+      },
+      "maxCutM": 1.75
+    },
+    {
+      "index": 88,
+      "kind": "lake",
+      "level": 471.47,
+      "inNodes": 4,
+      "before": {
+        "min": 472.01,
+        "max": 473.01
+      },
+      "maxCutM": 1.53
+    },
+    {
+      "index": 89,
+      "kind": "lake",
+      "level": 469.2,
+      "inNodes": 27,
+      "before": {
+        "min": 469.26,
+        "max": 471.3
+      },
+      "maxCutM": 2.09
+    },
+    {
+      "index": 90,
+      "kind": "lake",
+      "level": 466.46,
+      "inNodes": 28,
+      "before": {
+        "min": 466.13,
+        "max": 468.27
+      },
+      "maxCutM": 1.81
+    },
+    {
+      "index": 91,
+      "kind": "lake",
+      "level": 482.37,
+      "inNodes": 37,
+      "before": {
+        "min": 482.33,
+        "max": 486.52
+      },
+      "maxCutM": 4.15
+    },
+    {
+      "index": 92,
+      "kind": "lake",
+      "level": 475.68,
+      "inNodes": 11,
+      "before": {
+        "min": 475.93,
+        "max": 477.87
+      },
+      "maxCutM": 2.19
+    },
+    {
+      "index": 93,
+      "kind": "lake",
+      "level": 477.94,
+      "inNodes": 18,
+      "before": {
+        "min": 478.15,
+        "max": 481.88
+      },
+      "maxCutM": 3.93
+    },
+    {
+      "index": 94,
+      "kind": "lake",
+      "level": 479.12,
+      "inNodes": 5,
+      "before": {
+        "min": 479.61,
+        "max": 481.6
+      },
+      "maxCutM": 2.47
+    },
+    {
+      "index": 95,
+      "kind": "lake",
+      "level": 477.42,
+      "inNodes": 6,
+      "before": {
+        "min": 477.89,
+        "max": 480.92
+      },
+      "maxCutM": 3.5
+    },
+    {
+      "index": 96,
+      "kind": "lake",
+      "level": 475.6,
+      "inNodes": 7,
+      "before": {
+        "min": 476.68,
+        "max": 478.22
+      },
+      "maxCutM": 2.62
+    },
+    {
+      "index": 97,
+      "kind": "lake",
+      "level": 472.76,
+      "inNodes": 5,
+      "before": {
+        "min": 472.77,
+        "max": 474
+      },
+      "maxCutM": 1.25
+    },
+    {
+      "index": 98,
+      "kind": "lake",
+      "level": 473.93,
+      "inNodes": 1,
+      "before": {
+        "min": 474.73,
+        "max": 474.73
+      },
+      "maxCutM": 0.8
+    },
+    {
+      "index": 99,
+      "kind": "lake",
+      "level": 471.43,
+      "inNodes": 16,
+      "before": {
+        "min": 471.57,
+        "max": 475.83
+      },
+      "maxCutM": 4.4
+    },
+    {
+      "index": 100,
+      "kind": "lake",
+      "level": 470.58,
+      "inNodes": 11,
+      "before": {
+        "min": 470.76,
+        "max": 472.63
+      },
+      "maxCutM": 2.05
+    },
+    {
+      "index": 101,
+      "kind": "lake",
+      "level": 469.16,
+      "inNodes": 17,
+      "before": {
+        "min": 469.24,
+        "max": 471.6
+      },
+      "maxCutM": 2.44
+    },
+    {
+      "index": 102,
+      "kind": "lake",
+      "level": 477.06,
+      "inNodes": 41,
+      "before": {
+        "min": 477.12,
+        "max": 481.73
+      },
+      "maxCutM": 4.67
+    },
+    {
+      "index": 103,
+      "kind": "lake",
+      "level": 470.94,
+      "inNodes": 10,
+      "before": {
+        "min": 471.58,
+        "max": 473.68
+      },
+      "maxCutM": 2.74
+    },
+    {
+      "index": 104,
+      "kind": "lake",
+      "level": 466.74,
+      "inNodes": 8,
+      "before": {
+        "min": 466.78,
+        "max": 467.85
+      },
+      "maxCutM": 1.11
+    },
+    {
+      "index": 105,
+      "kind": "lake",
+      "level": 476.04,
+      "inNodes": 10,
+      "before": {
+        "min": 475.55,
+        "max": 479.6
+      },
+      "maxCutM": 3.57
+    },
+    {
+      "index": 106,
+      "kind": "lake",
+      "level": 475.02,
+      "inNodes": 18,
+      "before": {
+        "min": 475.02,
+        "max": 478.08
+      },
+      "maxCutM": 3.05
+    },
+    {
+      "index": 107,
+      "kind": "lake",
+      "level": 474.87,
+      "inNodes": 30,
+      "before": {
+        "min": 474.92,
+        "max": 476.57
+      },
+      "maxCutM": 1.7
+    },
+    {
+      "index": 108,
+      "kind": "lake",
+      "level": 477.55,
+      "inNodes": 8,
+      "before": {
+        "min": 477.44,
+        "max": 478.56
+      },
+      "maxCutM": 1.01
+    },
+    {
+      "index": 109,
+      "kind": "lake",
+      "level": 478.06,
+      "inNodes": 5,
+      "before": {
+        "min": 478,
+        "max": 478.95
+      },
+      "maxCutM": 0.89
+    },
+    {
+      "index": 110,
+      "kind": "lake",
+      "level": 482.89,
+      "inNodes": 24,
+      "before": {
+        "min": 482.99,
+        "max": 485.85
+      },
+      "maxCutM": 2.95
+    },
+    {
+      "index": 111,
+      "kind": "lake",
+      "level": 476.06,
+      "inNodes": 55,
+      "before": {
+        "min": 476.16,
+        "max": 477.35
+      },
+      "maxCutM": 1.29
+    },
+    {
+      "index": 112,
+      "kind": "lake",
+      "level": 481.44,
+      "inNodes": 13,
+      "before": {
+        "min": 481.74,
+        "max": 484.84
+      },
+      "maxCutM": 3.4
+    },
+    {
+      "index": 113,
+      "kind": "lake",
+      "level": 478.39,
+      "inNodes": 23,
+      "before": {
+        "min": 478.47,
+        "max": 481.08
+      },
+      "maxCutM": 2.69
+    },
+    {
+      "index": 114,
+      "kind": "lake",
+      "level": 477.59,
+      "inNodes": 10,
+      "before": {
+        "min": 477.59,
+        "max": 480.68
+      },
+      "maxCutM": 3.09
+    },
+    {
+      "index": 115,
+      "kind": "lake",
+      "level": 477.49,
+      "inNodes": 70,
+      "before": {
+        "min": 477.5,
+        "max": 480.98
+      },
+      "maxCutM": 3.49
+    },
+    {
+      "index": 116,
+      "kind": "lake",
+      "level": 477.78,
+      "inNodes": 46,
+      "before": {
+        "min": 476.43,
+        "max": 484.22
+      },
+      "maxCutM": 6.44
+    },
+    {
+      "index": 117,
+      "kind": "lake",
+      "level": 486,
+      "inNodes": 23,
+      "before": {
+        "min": 485.15,
+        "max": 488.61
+      },
+      "maxCutM": 2.62
+    },
+    {
+      "index": 118,
+      "kind": "lake",
+      "level": 487,
+      "inNodes": 79,
+      "before": {
+        "min": 487,
+        "max": 488.73
+      },
+      "maxCutM": 1.73
+    },
+    {
+      "index": 119,
+      "kind": "lake",
+      "level": 494.37,
+      "inNodes": 25,
+      "before": {
+        "min": 494.55,
+        "max": 497.94
+      },
+      "maxCutM": 3.57
+    },
+    {
+      "index": 120,
+      "kind": "lake",
+      "level": 491.94,
+      "inNodes": 29,
+      "before": {
+        "min": 491.67,
+        "max": 497.2
+      },
+      "maxCutM": 5.26
+    },
+    {
+      "index": 121,
+      "kind": "lake",
+      "level": 484.5,
+      "inNodes": 24,
+      "before": {
+        "min": 484.5,
+        "max": 487.77
+      },
+      "maxCutM": 3.27
+    },
+    {
+      "index": 122,
+      "kind": "lake",
+      "level": 496.66,
+      "inNodes": 25,
+      "before": {
+        "min": 496.79,
+        "max": 498.65
+      },
+      "maxCutM": 1.99
+    },
+    {
+      "index": 123,
+      "kind": "lake",
+      "level": 501.93,
+      "inNodes": 12,
+      "before": {
+        "min": 501.96,
+        "max": 504.75
+      },
+      "maxCutM": 2.82
+    },
+    {
+      "index": 124,
+      "kind": "lake",
+      "level": 474.03,
+      "inNodes": 118,
+      "before": {
+        "min": 474,
+        "max": 480.83
+      },
+      "maxCutM": 6.8
+    },
+    {
+      "index": 125,
+      "kind": "lake",
+      "level": 480.73,
+      "inNodes": 40,
+      "before": {
+        "min": 481.11,
+        "max": 484.82
+      },
+      "maxCutM": 4.09
+    },
+    {
+      "index": 126,
+      "kind": "lake",
+      "level": 481.47,
+      "inNodes": 40,
+      "before": {
+        "min": 481.45,
+        "max": 489.13
+      },
+      "maxCutM": 7.66
+    },
+    {
+      "index": 128,
+      "kind": "pond",
+      "level": 496.62,
+      "inNodes": 1,
+      "before": {
+        "min": 497.72,
+        "max": 497.72
+      },
+      "maxCutM": 1.1
+    },
+    {
+      "index": 129,
+      "kind": "pond",
+      "level": 485.45,
+      "inNodes": 20,
+      "before": {
+        "min": 486.47,
+        "max": 499.63
+      },
+      "maxCutM": 14.18
+    },
+    {
+      "index": 130,
+      "kind": "lake",
+      "level": 465.2,
+      "inNodes": 33,
+      "before": {
+        "min": 466,
+        "max": 474.12
+      },
+      "maxCutM": 8.91
+    },
+    {
+      "index": 132,
+      "kind": "lake",
+      "level": 468.85,
+      "inNodes": 68,
+      "before": {
+        "min": 468.91,
+        "max": 472.69
+      },
+      "maxCutM": 3.85
+    },
+    {
+      "index": 133,
+      "kind": "lake",
+      "level": 468.56,
+      "inNodes": 3,
+      "before": {
+        "min": 468.07,
+        "max": 470.17
+      },
+      "maxCutM": 1.61
+    },
+    {
+      "index": 134,
+      "kind": "lake",
+      "level": 467.34,
+      "inNodes": 3,
+      "before": {
+        "min": 468.75,
+        "max": 469.22
+      },
+      "maxCutM": 1.88
+    },
+    {
+      "index": 135,
+      "kind": "lake",
+      "level": 466.72,
+      "inNodes": 4,
+      "before": {
+        "min": 466.81,
+        "max": 467.3
+      },
+      "maxCutM": 0.58
+    },
+    {
+      "index": 136,
+      "kind": "lake",
+      "level": 477.82,
+      "inNodes": 21,
+      "before": {
+        "min": 477.8,
+        "max": 479.73
+      },
+      "maxCutM": 1.91
+    },
+    {
+      "index": 137,
+      "kind": "lake",
+      "level": 457.71,
+      "inNodes": 7,
+      "before": {
+        "min": 458.03,
+        "max": 458.71
+      },
+      "maxCutM": 1
+    },
+    {
+      "index": 138,
+      "kind": "lake",
+      "level": 454.72,
+      "inNodes": 120,
+      "before": {
+        "min": 454.81,
+        "max": 457.76
+      },
+      "maxCutM": 3.05
+    },
+    {
+      "index": 139,
+      "kind": "pond",
+      "level": 478.46,
+      "inNodes": 2,
+      "before": {
+        "min": 480.15,
+        "max": 480.6
+      },
+      "maxCutM": 2.14
+    },
+    {
+      "index": 140,
+      "kind": "pond",
+      "level": 476.43,
+      "inNodes": 2,
+      "before": {
+        "min": 476.53,
+        "max": 477.39
+      },
+      "maxCutM": 0.97
+    },
+    {
+      "index": 141,
+      "kind": "pond",
+      "level": 479.24,
+      "inNodes": 1,
+      "before": {
+        "min": 479.37,
+        "max": 479.37
+      },
+      "maxCutM": 0.12
+    },
+    {
+      "index": 142,
+      "kind": "lake",
+      "level": 474.82,
+      "inNodes": 18,
+      "before": {
+        "min": 475.51,
+        "max": 481.81
+      },
+      "maxCutM": 6.98
+    },
+    {
+      "index": 143,
+      "kind": "lake",
+      "level": 475.63,
+      "inNodes": 37,
+      "before": {
+        "min": 475.81,
+        "max": 484.35
+      },
+      "maxCutM": 8.72
+    },
+    {
+      "index": 144,
+      "kind": "lake",
+      "level": 493.93,
+      "inNodes": 60,
+      "before": {
+        "min": 494.18,
+        "max": 498.55
+      },
+      "maxCutM": 4.63
+    },
+    {
+      "index": 145,
+      "kind": "lake",
+      "level": 484.74,
+      "inNodes": 17,
+      "before": {
+        "min": 485.19,
+        "max": 488.5
+      },
+      "maxCutM": 3.76
+    },
+    {
+      "index": 146,
+      "kind": "lake",
+      "level": 478.4,
+      "inNodes": 93,
+      "before": {
+        "min": 478.91,
+        "max": 488.54
+      },
+      "maxCutM": 10.14
+    },
+    {
+      "index": 147,
+      "kind": "pond",
+      "level": 488.9,
+      "inNodes": 70,
+      "before": {
+        "min": 489.02,
+        "max": 497.12
+      },
+      "maxCutM": 8.23
+    },
+    {
+      "index": 148,
+      "kind": "lake",
+      "level": 456.26,
+      "inNodes": 19179,
+      "before": {
+        "min": 455.65,
+        "max": 483.69
+      },
+      "maxCutM": 27.42
+    },
+    {
+      "index": 149,
+      "kind": "lake",
+      "level": 465.37,
+      "inNodes": 397,
+      "before": {
+        "min": 464.65,
+        "max": 483.6
+      },
+      "maxCutM": 18.22
+    },
+    {
+      "index": 150,
+      "kind": "lake",
+      "level": 464.93,
+      "inNodes": 5370,
+      "before": {
+        "min": 465.07,
+        "max": 498.53
+      },
+      "maxCutM": 33.59
+    },
+    {
+      "index": 153,
+      "kind": "lake",
+      "level": 460.27,
+      "inNodes": 1314,
+      "before": {
+        "min": 460,
+        "max": 483.59
+      },
+      "maxCutM": 23.32
+    },
+    {
+      "index": 154,
+      "kind": "lake",
+      "level": 463.41,
+      "inNodes": 1681,
+      "before": {
+        "min": 463.22,
+        "max": 476
+      },
+      "maxCutM": 12.59
+    },
+    {
+      "index": 156,
+      "kind": "lake",
+      "level": 474.81,
+      "inNodes": 1365,
+      "before": {
+        "min": 474.34,
+        "max": 495.01
+      },
+      "maxCutM": 20.2
+    },
+    {
+      "index": 157,
+      "kind": "lake",
+      "level": 479.65,
+      "inNodes": 141,
+      "before": {
+        "min": 479.8,
+        "max": 497.25
+      },
+      "maxCutM": 17.6
+    },
+    {
+      "index": 158,
+      "kind": "lake",
+      "level": 478.74,
+      "inNodes": 591,
+      "before": {
+        "min": 478.84,
+        "max": 493.63
+      },
+      "maxCutM": 14.89
+    },
+    {
+      "index": 159,
+      "kind": "pond",
+      "level": 475.84,
+      "inNodes": 446,
+      "before": {
+        "min": 475.77,
+        "max": 495.12
+      },
+      "maxCutM": 19.28
+    },
+    {
+      "index": 160,
+      "kind": "lake",
+      "level": 484.08,
+      "inNodes": 71,
+      "before": {
+        "min": 484.02,
+        "max": 490.13
+      },
+      "maxCutM": 6.05
+    },
+    {
+      "index": 161,
+      "kind": "lake",
+      "level": 484.5,
+      "inNodes": 524,
+      "before": {
+        "min": 484.5,
+        "max": 494.06
+      },
+      "maxCutM": 9.56
+    },
+    {
+      "index": 162,
+      "kind": "lake",
+      "level": 455.19,
+      "inNodes": 108,
+      "before": {
+        "min": 455.04,
+        "max": 459.48
+      },
+      "maxCutM": 4.29
+    }
+  ],
   "buildingsDropped": {
     "route": 2,
     "road": 6,
@@ -205,19 +1934,19 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.0492,
+    "steep_fraction": 0.0638,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
     "bound_m": 6,
-    "registered_rms_m": 1.09,
-    "point_rms_m": 5.64,
-    "max_abs_registered_err_m": 3.36,
+    "registered_rms_m": 2.35,
+    "point_rms_m": 5.66,
+    "max_abs_registered_err_m": 11.06,
     "pass": true,
     "diagnostics": {
       "note": "not gating (blueprint §P1.3.4)",
-      "registered_mean_bias_m": 0.07,
-      "point_mean_bias_m": 0.91,
+      "registered_mean_bias_m": -0.35,
+      "point_mean_bias_m": 0.43,
       "point_max_abs_err_m": 18.88,
       "node_answer_mismatches": 0
     },
@@ -270,10 +1999,10 @@
         "lat": 30.40176,
         "lon": 104.09019,
         "openMeteo": 465,
-        "heightfield": 464.06,
+        "heightfield": 462.74,
         "nodeLat": 30.4025,
         "nodeLon": 104.09,
-        "nodeHeightfield": 464.61,
+        "nodeHeightfield": 464.03,
         "nodeOpenMeteo": 465,
         "onRouteCorridor": false
       },
@@ -336,10 +2065,10 @@
         "lat": 30.40188,
         "lon": 104.07397,
         "openMeteo": 458,
-        "heightfield": 458.75,
+        "heightfield": 456.27,
         "nodeLat": 30.4025,
         "nodeLon": 104.07333333,
-        "nodeHeightfield": 458.3,
+        "nodeHeightfield": 456.27,
         "nodeOpenMeteo": 458,
         "onRouteCorridor": false
       },
@@ -501,10 +2230,10 @@
         "lat": 30.40646,
         "lon": 104.07491,
         "openMeteo": 460,
-        "heightfield": 462.67,
+        "heightfield": 461.99,
         "nodeLat": 30.40666667,
         "nodeLon": 104.07416667,
-        "nodeHeightfield": 462.88,
+        "nodeHeightfield": 462.73,
         "nodeOpenMeteo": 460,
         "onRouteCorridor": true
       },
@@ -556,10 +2285,10 @@
         "lat": 30.39468,
         "lon": 104.0887,
         "openMeteo": 466,
-        "heightfield": 477.27,
+        "heightfield": 469.49,
         "nodeLat": 30.395,
         "nodeLon": 104.08833333,
-        "nodeHeightfield": 464.16,
+        "nodeHeightfield": 456.27,
         "nodeOpenMeteo": 466,
         "onRouteCorridor": false
       },
@@ -578,10 +2307,10 @@
         "lat": 30.45794,
         "lon": 104.06428,
         "openMeteo": 476,
-        "heightfield": 476.26,
+        "heightfield": 464.94,
         "nodeLat": 30.45833333,
         "nodeLon": 104.06416667,
-        "nodeHeightfield": 475.28,
+        "nodeHeightfield": 464.94,
         "nodeOpenMeteo": 476,
         "onRouteCorridor": false
       },
@@ -633,10 +2362,10 @@
         "lat": 30.40333,
         "lon": 104.07234,
         "openMeteo": 459,
-        "heightfield": 458.86,
+        "heightfield": 458.45,
         "nodeLat": 30.40333333,
         "nodeLon": 104.07166667,
-        "nodeHeightfield": 461.95,
+        "nodeHeightfield": 461.93,
         "nodeOpenMeteo": 459,
         "onRouteCorridor": false
       },

@@ -48,11 +48,11 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 943243,
-      "sha256": "38cfc9d4352694f0fdcff6a0a3adcfc467bb9ec52e629580bac77a00173f2aec",
+      "bytes": 914506,
+      "sha256": "3a7994b4cf1518877b87c0cce87405227cb4c34e055c4e5ea8eb3eb1b7e3f9c7",
       "compression": "gzip",
       "contentBytes": 1581720,
-      "contentSha256": "c390b7caa23b3ff1a0f30d5fd6ea663bbf589981110f44233d81d5e2bbf04081"
+      "contentSha256": "710514754d3d0e0942bd521fae27cb1aba9676ff16d823aea9e6d23ac64dfebb"
     },
     {
       "path": "roads.json.gz",
@@ -96,11 +96,11 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 30348,
-      "sha256": "98f9ebb7de201813f1a30d9fbd14cc302d7b96c097d6ae187e93fc0567e2b22e",
+      "bytes": 30269,
+      "sha256": "33aa751e02eb35aac8e5c8f5591fcc6da081b880fe2f4a60978388e8b2338adc",
       "compression": "gzip",
-      "contentBytes": 74398,
-      "contentSha256": "4e2dde5240d764dfc63b9a748005afb1297ed30b6875f4653ed5f802ac935a30"
+      "contentBytes": 74275,
+      "contentSha256": "955983534307a80c87c400fe85f3c18408b52cbb429a1f4bfc7bd7a7b1b1468d"
     }
   ],
   "moods": [
@@ -164,14 +164,14 @@
       "name": "Luxe Lakes loop",
       "lengthM": 11178.84,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.305
+      "gradeMeanAbsDiffPct": 0.31
     },
     {
       "id": "scenic-chengdu-xinglong-lake",
       "name": "Xinglong Lake loop",
       "lengthM": 8188.89,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.576
+      "gradeMeanAbsDiffPct": 0.575
     }
   ],
   "stats": {
@@ -245,9 +245,10 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "0b00c287e22402c4142ae3f8a2bd6d992c480233a59fe16760007ccb1adc0378",
+    "recipeSha256": "1f85e615eb2c57f194e8c3eb9f835f03ddabcefd2a96ad91621270e595c20a5e",
     "osmDate": "2026-11-01T00:00:00Z",
     "demSource": "copernicus-dem-30m/glo30-cog",
-    "demTiles": 1
+    "demTiles": 1,
+    "flatLakes": true
   }
 }

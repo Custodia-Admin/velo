@@ -48,6 +48,7 @@ import { fetchGlo30, GLO30_CREDIT, GLO30_URL_TEMPLATE } from './fetchGlo30.mjs';
 import { demSourceOf, GLO30_DEM_SOURCE } from './demSource.mjs';
 import { fetchOsm, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
+import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
@@ -168,6 +169,7 @@ export function generatorFor(demSource, recipe, dem) {
     osmDate: recipe.osmDate,
     ...(demSource === GLO30_DEM_SOURCE ? { demSource: dem.source } : { demSource: DEM_SOURCE, demZoom: recipe.dem.zoom }),
     demTiles: dem.tiles.length,
+    ...(recipe.flatLakes ? { flatLakes: true } : {}),
   };
 }
 
@@ -283,6 +285,19 @@ export async function bake(opts) {
   const heights = sampleGrid({ grid: g, projection, dem });
   lap('dem', t);
 
+  // OSM first: the water areas shape the terrain under them (flatLakes).
+  t = Date.now();
+  const osm = await fetchOsm({ bbox, osmDate: recipe.osmDate, cacheDir, log });
+  const water = buildWater(osm.elements.water, projection, extent);
+  lap('osm', t);
+  let lakes = null;
+  if (recipe.flatLakes) {
+    const flat = flattenLakes({ grid: g, heights, water });
+    lakes = flat.lakes;
+    const cut = lakes.reduce((mx, l) => Math.max(mx, l.maxCutM), 0);
+    log(`flatLakes: ${lakes.length} lakes and ponds levelled (${lakes.reduce((n, l) => n + l.inNodes, 0)} nodes under water, ${flat.changedNodes} changed, max cut ${cut.toFixed(1)} m)`);
+  }
+
   // 2. Routes: carve corridors into the float grid, then quantise.
   t = Date.now();
   const geometry = loadScenicGeometry(join(ROOT, 'src/lib/scenicRouteData.ts'));
@@ -292,6 +307,10 @@ export async function bake(opts) {
     return { id, name: names[id] ?? id, points: geometry[id].points };
   });
   const carve = carveRoutes({ grid: g, heights, projection, routes: routesIn, snap: recipe.snap });
+  if (lakes) {
+    const keep = routeCoreNodes(g, carve.prepared, recipe.snap.coreCells * g.cellSize);
+    log(`flatLakes: ${relevelLakes({ heights, lakes, keep: (i) => keep.has(i) })} lake nodes re-levelled after the route carve (route core kept)`);
+  }
   const height = buildHeightfield({ grid: g, heights });
   const snapped = finishRoutes({ prepared: carve.prepared, hf: height.hf, snap: recipe.snap });
   for (const r of snapped.info) {
@@ -301,9 +320,6 @@ export async function bake(opts) {
   lap('heightfield+routes', t);
 
   // 3. Vectors.
-  t = Date.now();
-  const osm = await fetchOsm({ bbox, osmDate: recipe.osmDate, cacheDir, log });
-  lap('osm', t);
   t = Date.now();
   const roads = buildRoads(osm.elements.roads, projection, extent);
   // The route's painted guide must sit on ONE drawn road, never on grass and
@@ -332,7 +348,6 @@ export async function bake(opts) {
     log(`route ${id}: ${c.mappedPct}% within 1 m of mapped roads; guide on drawn roads ${c.paintPctBefore}% → ${c.paintPct}% (${c.easedM} m eased, ${c.joinedM} m joined${c.tunnelM ? `, ${c.tunnelM} m in tunnels` : ''})`);
   }
   log(`route fit: ${fit.roadsEased} roads bent (up to ${fit.maxShiftM} m), ${fit.joins} join pieces`);
-  const water = buildWater(osm.elements.water, projection, extent);
   const landcover = buildLandcover(osm.elements.landcover, projection, extent);
   // What the rider follows must never run through a building: every scenic
   // route at full resolution (the app's own polyline), plus every drawn road.
@@ -459,6 +474,7 @@ export async function bake(opts) {
     routes: snapped.info.map((r) => ({ ...r, roadCoverage: roadCoverage[r.id] })),
     routeFit: routeFitReport(fit),
     heightfield: { ...height.info, carvedNodes: carve.carvedNodes, maxCutM: round(carve.maxCutM) },
+    ...(lakes ? { flatLakes: lakes.map(({ nodes: _nodes, ...l }) => ({ ...l, level: round(l.level), before: { min: round(l.before.min), max: round(l.before.max) }, maxCutM: round(l.maxCutM) })) } : {}),
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
     ...(glo30 ? { demSource: dem.source } : {}),
     demTiles: dem.tiles,

@@ -44,6 +44,21 @@ from `chengdu-luxelakes.json`:
   `"validation": { "sample_seed": <int> }`.
 - `"host": "remote"`: the bundle goes to R2, not to `public/worlds/`.
 - `"routeCredits": true`.
+- `"flatLakes": true` if the place has lakes dug after 2015. GLO-30 was flown
+  in 2011–2015, so it still carries the land those lakes were dug from, and
+  the water would be drawn as a tilted, bulging sheet. The step
+  (`tools/worldbake/flatLakes.mjs`):
+  - levels each OSM lake and pond at the lowest point of its shore;
+  - lowers the one-cell strip round it to that level;
+  - caps the banks at 1:2.
+  The route carve runs after this; lake nodes it lifts are put back to level,
+  except the route's core, so a route crossing a lake arm keeps its
+  embankment. The manifest then carries `generator.flatLakes: true`, and the
+  renderer draws each level lake flat, keeping the ground that stands above
+  it dry. Check the report's `flatLakes` entries: `before` is the terrain range
+  the lake used to cover. Expect the P1.3 registered RMS to rise a little: the
+  reference DEM is as old as GLO-30, so points on a dug lake now disagree with
+  it (Chengdu: 1.09 m before, 2.35 m after, 0.99 m away from the water).
 
 ## 3. Bake on cat-bed
 
