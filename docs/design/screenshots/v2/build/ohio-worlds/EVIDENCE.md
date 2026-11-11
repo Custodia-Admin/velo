@@ -17,6 +17,7 @@ How bridges are built: [WORLD-FORMAT.md § bridges.json](../../../../worlds/WORL
 | First ride downloads ≤ 8 MB | 3.07 MB (`e2e/remote-world.spec.ts`) | 1.29 MB |
 | Offline after one ride | The second ride starts with the network offline; no world request reaches the network | same |
 | Routes | `scenic-cuyahoga-towpath` 17.43 km, `scenic-cuyahoga-towpath-north` 10.35 km | `scenic-cleveland-lakefront` 13.51 km, `scenic-wendy-park-lakewood` 8.11 km |
+| fps ≥ 58, HUD on, medium | **60 fps** (vsync cap) on every route: 3 × 5 s rounds and a 60 s ride each, 0 % of frames over 20 ms, rider in frame 100 %. Measured on cat-bed's Intel iGPU (ANGLE gl-egl), 1920×1080, production build `index-0rY12TR2.js` (`scripts/world-hud-fps.py`). Perugia, run between them as the control, read the same. Each run had the iGPU alone; runs that another card's browser test overlapped were thrown away and redone | same: lakefront and Wendy Park both 60 fps |
 | Home | Both world rides are in "Places we want to go" after Chengdu, with no "Map view" pill (`home-wishlist-*.jpg`, 1440 / 1280×648@2 / 390). No component code changed: each world's destination manifest now names it | same |
 
 ## Ride shots
