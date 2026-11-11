@@ -251,8 +251,11 @@ describe('shipped worlds: a loop route meets itself at one height', () => {
 
   it('finds the shipped worlds', () => {
     const ids = worlds.map((b: { id: string }) => b.id);
-    expect(ids).toContain('chengdu-luxelakes');
     expect(ids).toContain('perugia');
+    expect(ids).toContain('lugano');
+    // A remote world is read once its layers are on disk (fetchPublished.mjs).
+    // CI fetches them and requires them; a fresh clone without them skips it.
+    if (process.env.VELO_REQUIRE_REMOTE_WORLDS === '1') expect(ids).toContain('chengdu-luxelakes');
   });
 
   for (const { id, dir } of worlds as { id: string; dir: string }[]) {
