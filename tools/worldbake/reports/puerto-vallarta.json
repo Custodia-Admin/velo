@@ -2,13 +2,13 @@
   "world": "puerto-vallarta",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 0.5,
+    "dem": 0.4,
     "osm": 0.1,
     "heightfield+routes": 0.1,
-    "vectors": 1.6,
-    "write": 5.3,
+    "vectors": 1.2,
+    "write": 4.3,
     "validate": 0,
-    "total": 7.8
+    "total": 6.2
   },
   "sizes": {
     "height.bin.gz": {
@@ -22,8 +22,8 @@
       "brotli": 205470
     },
     "water.json.gz": {
-      "stored": 29592,
-      "content": 65709,
+      "stored": 29552,
+      "content": 65602,
       "brotli": 19763
     },
     "landcover.json.gz": {
@@ -47,25 +47,25 @@
       "brotli": 17761
     },
     "manifest.json": {
-      "stored": 10598,
-      "content": 10598,
-      "brotli": 2843
+      "stored": 10597,
+      "content": 10597,
+      "brotli": 2826
     }
   },
   "totals": {
-    "stored": 1563721,
-    "content": 5340017,
-    "brotli": 1211949
+    "stored": 1563680,
+    "content": 5339909,
+    "brotli": 1211932
   },
   "hashes": {
     "height.bin.gz": "07c508b2e81771113a02ff3dd0afa3f8bf1d22a9f0653fa228a28e26a8fcfece",
     "roads.json.gz": "55606aa89b6e865f8fceb07a3aa429215c682e39615f055d96f5babd740f2db4",
-    "water.json.gz": "15f480d3576e9b841ac3180a5a50a41007d9944aaccd2815790cff7994d7e09c",
+    "water.json.gz": "06f56324eb57e13e0029ccdbc5331aa2c9941e78329ee17d6e15de1735d8b865",
     "landcover.json.gz": "18de26aef77f30a15ddc0288b8d539089ec08958b7c783c18fdf5434281e7fd4",
     "buildings.bin.gz": "5538bd91967fa70dc2acedc931128a585b84d0131cf9c089832e2a447c116052",
     "vegetation.bin.gz": "e0b752bba90e60a81d2630041dc86040231fd660c52bf4aa5578243ea6a56d0b",
     "routes.json.gz": "3275ede328579e949526eb9796555d15e8d0837b5d42054fd0267bfd14a37e2f",
-    "manifest.json": "ebb5404d2921e97bf93e0eab086063b51a2e7fdbee0bb17afba51205ad4aaf9f"
+    "manifest.json": "9d190b96b345ea2bc039cb346068bf443d475a597fe4a2c48008b49361e62db5"
   },
   "routes": [
     {
@@ -199,6 +199,7 @@
     "routeClearMinM": 3.5,
     "routeClearMaxM": 6
   },
+  "waterDroppedOnRoutes": 1,
   "demSource": "copernicus-dem-30m/glo30-cog",
   "demTiles": [
     "N20_00_W106_00"

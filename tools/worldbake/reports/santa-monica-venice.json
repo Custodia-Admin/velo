@@ -2,13 +2,13 @@
   "world": "santa-monica-venice",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 0.8,
-    "osm": 0.7,
+    "dem": 0.6,
+    "osm": 0.6,
     "heightfield+routes": 0.1,
-    "vectors": 8.8,
-    "write": 15.1,
+    "vectors": 7.1,
+    "write": 12.7,
     "validate": 0,
-    "total": 25.7
+    "total": 21.2
   },
   "sizes": {
     "height.bin.gz": {
@@ -22,9 +22,9 @@
       "brotli": 697446
     },
     "water.json.gz": {
-      "stored": 14120,
-      "content": 32423,
-      "brotli": 9495
+      "stored": 14002,
+      "content": 32144,
+      "brotli": 9428
     },
     "landcover.json.gz": {
       "stored": 119394,
@@ -49,23 +49,23 @@
     "manifest.json": {
       "stored": 12402,
       "content": 12402,
-      "brotli": 3195
+      "brotli": 3174
     }
   },
   "totals": {
-    "stored": 4825193,
-    "content": 12393341,
-    "brotli": 3798697
+    "stored": 4825075,
+    "content": 12393062,
+    "brotli": 3798609
   },
   "hashes": {
     "height.bin.gz": "30bbb878cd5e8239912ed13f8612931b60427ef853978f4b7cd017f81ef03da2",
     "roads.json.gz": "dba3ddf2c11a5880d4c4e1291affc9d553d050130348b325c377e3639849a653",
-    "water.json.gz": "15db63d72ae6ee218f9f3ca85b87aaa0a01a3c0c364c653cee8bd3416c7aac9b",
+    "water.json.gz": "e7344c039c505b5a43742e542e7e477ac2e5d3ffdae7108d9d1581407408ff16",
     "landcover.json.gz": "4f015bd928c27738a185bec6ec0d16bfd62bcb2326c8ebd316281ae34d1e5355",
     "buildings.bin.gz": "c5569570939a96c2dc3dd61d63ee490c00f396ab4c3103046d9e54534f1b800f",
     "vegetation.bin.gz": "f42dbb894e92478fd050a6186d87fa67f2495257cb6fc7f0aca8b45f64d54603",
     "routes.json.gz": "18d6cbecbda66d09f44319e8aa0348cb8c2dc3a81cf41cc16d5ec065c822333b",
-    "manifest.json": "96646be0bdff695dcc1155bff8dc903de3326ee5b26254cbf5a40f1e13135915"
+    "manifest.json": "1e1897deb71a3d9bf954f480ac5baddc9fbf606d496d1a9081a388492fef2c0f"
   },
   "routes": [
     {
@@ -219,6 +219,7 @@
     "routeClearMinM": 3.5,
     "routeClearMaxM": 6
   },
+  "waterDroppedOnRoutes": 2,
   "demSource": "copernicus-dem-30m/glo30-cog",
   "demTiles": [
     "N34_00_W119_00",
