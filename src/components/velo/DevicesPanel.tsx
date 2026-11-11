@@ -11,7 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { COLUMN, DISPLAY, KICKER, PAGE_X, WORDMARK } from '@/components/velo/v2';
+import { COLUMN, DISPLAY, KICKER, PAGE_X, PAGE_Y_SAFE, WORDMARK } from '@/components/velo/v2';
+import { useNavPrimary } from '@/hooks/useNavPrimary';
 import { DEVICE_PANEL, ROW_PAD } from '@/components/velo/DeviceRow';
 import { rideLine } from '@/components/velo/devicesView';
 import { DemoRiderSwitch, TrainerModeSwitch, TrainerRow } from '@/components/velo/TrainerPanel';
@@ -37,6 +38,8 @@ function RideGo() {
   const units = useSettingsStore((s) => s.units);
   const controllerSupported = useControllerSupported();
   const controllerStatus = useControllerStore((s) => s.status);
+  // The page's one filled button: where a TV remote lands first.
+  const primary = useNavPrimary();
 
   const scenic = loaded ? scenicRouteById(loaded.id) : todaysScenicRoute();
   const route = loaded ?? scenic?.route;
@@ -61,7 +64,7 @@ function RideGo() {
         'sm:static sm:border-t-0 sm:bg-transparent sm:p-0 lg:col-start-2 lg:row-start-1 lg:pt-14',
       )}
     >
-      <Button variant="primary" size="lg" className="w-full text-base sm:w-auto" onClick={ride} data-testid="devices-ride">
+      <Button variant="primary" size="lg" className="w-full text-base sm:w-auto" onClick={ride} data-testid="devices-ride" {...primary}>
         <Play className="h-5 w-5" aria-hidden />
         Ride
       </Button>
@@ -134,7 +137,7 @@ export function DevicesPanel() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className={cn('min-h-screen bg-background text-foreground', PAGE_Y_SAFE)}>
       <header className={PAGE_X}>
         <div className={cn(COLUMN, 'flex h-16 items-center justify-between gap-4')}>
           <span className={WORDMARK}>Velo</span>

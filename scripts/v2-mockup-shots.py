@@ -40,12 +40,20 @@ REPO = Path(__file__).resolve().parents[1]
 DESIGN = REPO / "docs/design"
 OUT = DESIGN / "screenshots/v2/mockup"
 SCREENS = ["home", "ride-hud", "ride-hud-open", "ride-hud-lost", "devices", "show", "finish",
-           "pip", "pip-third", "pip-half", "pip-tab"]
+           "pip", "pip-third", "pip-half", "pip-tab",
+           # P3.3 TV mode: remote / handlebar focus states, the overscan frame, the layout setting.
+           "tv-settings", "tv-home", "tv-ride-hud", "tv-ride-hud-open", "tv-ride-hud-paused", "tv-finish", "tv-devices"]
 # Screens that are a state of another mockup: name -> (page, query).
 VARIANTS = {"ride-hud-open": ("ride-hud", "tray=open"), "ride-hud-lost": ("ride-hud", "state=lost"),
             # P2.3 ride over anything: the floating window over another tab, and the Velo tab meanwhile.
-            "pip-third": ("pip", "size=third"), "pip-half": ("pip", "size=half"), "pip-tab": ("pip", "state=tab")}
-VIEWPORTS = {"1440": (1440, 900, 1), "1280": (1280, 648, 2), "390": (390, 844, 2), "tv": (1920, 1080, 1)}
+            "pip-third": ("pip", "size=third"), "pip-half": ("pip", "size=half"), "pip-tab": ("pip", "state=tab"),
+            "tv-settings": ("tv-settings", "focus=tv"), "tv-home": ("home", "focus=ride&safe=1"),
+            "tv-ride-hud": ("ride-hud", "focus=pause&safe=1"), "tv-ride-hud-open": ("ride-hud", "tray=open&focus=camera&safe=1"),
+            "tv-ride-hud-paused": ("ride-hud", "state=paused&focus=resume&safe=1"),
+            "tv-finish": ("finish", "focus=home&safe=1"), "tv-devices": ("devices", "focus=ride&safe=1")}
+# tv4k: a browser that reports the full 3840x2160 (P3.3: the root scales, so it is the tv picture, sharper).
+VIEWPORTS = {"1440": (1440, 900, 1), "1280": (1280, 648, 2), "390": (390, 844, 2), "tv": (1920, 1080, 1),
+             "tv4k": (3840, 2160, 1)}
 
 MEASURE = """() => {
   const vis = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el);

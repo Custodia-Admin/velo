@@ -16,6 +16,7 @@
  * 1 W), the same contract as the legacy RideHUD (lib/hudThrottle).
  */
 
+import { useEffect, useRef } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, Flag, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn, formatDistance, formatDuration } from '@/lib/utils';
@@ -26,6 +27,8 @@ import { useControllerStore, type ControllerStatus } from '@/stores/controllerSt
 import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { remoteFirst } from '@/hooks/useNavPrimary';
+import { focusedControl, NAV_PRIMARY_ATTR } from '@/lib/tv/remoteNav';
 import { Figure } from './Figure';
 import { HUD_PANEL } from './v2';
 
@@ -183,6 +186,12 @@ export function DetailsToggle() {
 /**
  * Pause / Resume / Start + Finish for the current ride state: modest h-10
  * buttons, labelled from lg, icon-only below.
+ *
+ * Remote navigation (P3.3): Pause / Resume is one button (the same element
+ * across the toggle, so a ring on it stays), the HUD's primary control (the
+ * first arrow press rings it). When the ride pauses on a TV or under remote
+ * input with nothing ringed, the ring lands on Resume, so OK carries on and
+ * the D-pad reaches Finish right beside it.
  */
 export function Transport() {
   const rideState = useRideStore((s) => s.rideState);
@@ -190,13 +199,19 @@ export function Transport() {
   const pause = useRideStore((s) => s.pause);
   const resume = useRideStore((s) => s.resume);
   const finish = useRideStore((s) => s.finish);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const primary = { [NAV_PRIMARY_ATTR]: '' };
+
+  useEffect(() => {
+    if (rideState === 'paused' && remoteFirst() && !focusedControl()) toggleRef.current?.focus({ preventScroll: true });
+  }, [rideState]);
 
   const label = 'hidden lg:inline';
   const btn = 'w-10 px-0 lg:w-auto lg:px-3';
 
   if (rideState === 'ready') {
     return (
-      <Button variant="primary" className="px-3" aria-label="Start ride" onClick={start}>
+      <Button variant="primary" className="px-3" aria-label="Start ride" onClick={start} {...primary}>
         <Play className="h-5 w-5" aria-hidden="true" />
         Start
       </Button>
@@ -206,12 +221,12 @@ export function Transport() {
   return (
     <>
       {rideState === 'running' ? (
-        <Button variant="outline" className={btn} aria-label="Pause ride" title="Pause" onClick={pause}>
+        <Button ref={toggleRef} variant="outline" className={btn} aria-label="Pause ride" title="Pause" onClick={pause} {...primary}>
           <Pause className="h-5 w-5" aria-hidden="true" />
           <span className={label}>Pause</span>
         </Button>
       ) : (
-        <Button variant="primary" className={btn} aria-label="Resume ride" title="Resume" onClick={resume}>
+        <Button ref={toggleRef} variant="primary" className={btn} aria-label="Resume ride" title="Resume" onClick={resume} {...primary}>
           <Play className="h-5 w-5" aria-hidden="true" />
           <span className={label}>Resume</span>
         </Button>

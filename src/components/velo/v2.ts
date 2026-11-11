@@ -21,6 +21,9 @@ export const WORDMARK = 'font-display text-2xl font-bold tracking-tight';
  */
 export const HUD_PANEL = 'rounded-lg hud-surface text-hud-foreground';
 
-/** Page column and gutters (UI-RULES §4). */
-export const PAGE_X = 'px-4 sm:px-10';
+/** Page gutters (UI-RULES §4: spacing 4, 10 from sm; outside the TV's overscan frame, index.css `.page-x`). */
+export const PAGE_X = 'page-x';
+/** The TV overscan frame's top and bottom on full-screen pages (nothing off the TV layout). */
+export const PAGE_Y_SAFE = 'page-y-safe';
+/** Page column (UI-RULES §4). */
 export const COLUMN = 'mx-auto w-full max-w-5xl';

@@ -1,7 +1,10 @@
 // Velo v2 mockup runtime: theme + TV layout switch, lucide icons, route SVGs.
 // ?theme=night -> deep night theme (class="dark"); default paper day.
-// data-layout="tv" when the viewport is >= 1600 px wide (stand-in for the P3.3
-// useLayoutMode hook) or ?layout=tv.
+// data-layout="tv" when the viewport is >= 1600 px wide or ?layout=tv. (The app's
+// rule, src/hooks/useLayoutMode.ts, also needs "no fine pointer" or the Settings
+// choice; a mockup has neither, so width alone stands in.)
+// TV mode states (P3.3): ?focus=<id> draws the focus ring on [data-focus="<id>"]
+// (where the remote / handlebars point); ?safe=1 draws the 5 % overscan frame.
 (function () {
   const q = new URLSearchParams(location.search);
   const html = document.documentElement;
@@ -9,6 +12,18 @@
   const tv = q.get('layout') === 'tv' || (q.get('layout') !== 'default' && window.innerWidth >= 1600);
   if (tv) html.setAttribute('data-layout', 'tv');
   document.addEventListener('DOMContentLoaded', () => {
+    const focus = q.get('focus');
+    if (focus) {
+      const el = document.querySelector(`[data-focus="${focus}"]`);
+      if (!el) throw new Error('missing focus target ' + focus);
+      el.classList.add('focused');
+    }
+    if (q.get('safe') === '1') {
+      const g = document.createElement('div');
+      g.className = 'safe-guide';
+      g.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(g);
+    }
     const D = window.V2_DATA;
     const NS = 'http://www.w3.org/2000/svg';
     // theme-dependent sources: <img data-night-src="...">

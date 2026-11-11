@@ -1,0 +1,101 @@
+<!doctype html>
+<!--
+  Velo v2 TV mode (P3.3): the layout choice in Settings → Visual, and what the
+  remote and the handlebars do outside the ride map.
+
+  - Layout: Auto (default) | TV | Standard, as one radio row under Colours.
+    Auto turns the TV layout on for a screen at least 1600 px wide with no
+    mouse or touchpad (an Android tablet stays Standard below 1600 px).
+  - "In menus" rows join the handlebar legend ("What the buttons do" on the
+    Devices handlebar row): D-pad moves, A picks, B goes back, Y opens the ride
+    details. While riding, the ride map (gears, hills, camera, A pause) is
+    unchanged; the menus are Home, Devices, a paused ride and the finish page.
+
+  ?focus=auto|tv|standard draws the remote focus ring; ?safe=1 the overscan frame.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — TV mode: layout setting and remote map (v2 mockup, P3.3)</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="v2-kit.css" />
+<script src="v2-data.js"></script>
+<script src="v2-kit.js"></script>
+<style>
+  body { min-height: 100vh; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: var(--s-6);
+         padding: var(--s-10) var(--s-4); background: hsl(var(--background)); }
+  html[data-layout='tv'] body { padding-left: var(--overscan-x); padding-right: var(--overscan-x); }
+  .where { display: block; margin-bottom: var(--s-2); }
+  .sheet.legend-card { width: min(26rem, calc(100vw - var(--s-8))); }
+  .sheet { width: min(32rem, calc(100vw - var(--s-8))); border: var(--hairline) solid hsl(var(--border)); border-radius: var(--radius);
+           background: hsl(var(--card)); box-shadow: var(--shadow-md); padding: var(--s-5); display: flex; flex-direction: column; gap: var(--s-6); }
+  .sheet header { display: flex; align-items: center; justify-content: space-between; }
+  .sec { display: flex; flex-direction: column; gap: var(--s-2); }
+  .sec-title { display: flex; align-items: center; gap: var(--s-2); font-size: var(--text-xs); line-height: var(--lh-xs);
+               text-transform: uppercase; letter-spacing: 0.06em; color: hsl(var(--muted-foreground)); }
+  .radios { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+  .radios .pill { padding: 0 var(--s-4); }
+  /* the Devices row's Legend: dt over dd, two columns from sm */
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2) var(--s-6); font-size: var(--text-sm); line-height: var(--lh-sm); }
+  .legend > div { display: flex; flex-direction: column; gap: var(--s-1); }
+  .legend dt { font-weight: 600; }
+  .legend dd { color: hsl(var(--muted-foreground)); margin: 0; }
+  .group-head { padding-top: var(--s-2); }
+  @media (max-width: 639px) { .legend { grid-template-columns: 1fr; } }
+  @media (max-width: 639px) { .sheet { padding: var(--s-4); } }
+</style>
+</head>
+<body>
+<div>
+<span class="kicker where">Settings → Visual</span>
+<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="t">
+  <header>
+    <span id="t" class="t-lg semi">Settings</span>
+    <button class="btn ghost icon-only" aria-label="Close settings"><i data-icon="x" class="lg"></i></button>
+  </header>
+
+  <section class="sec" aria-labelledby="colours">
+    <span id="colours" class="sec-title"><i data-icon="moon"></i>Colours</span>
+    <div class="radios" role="radiogroup" aria-labelledby="colours">
+      <button class="pill" role="radio" aria-checked="true">Day</button>
+      <button class="pill" role="radio" aria-checked="false">Night</button>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="layout">
+    <span id="layout" class="sec-title"><i data-icon="monitor"></i>Layout</span>
+    <div class="radios" role="radiogroup" aria-labelledby="layout" aria-describedby="layout-hint">
+      <button class="pill" role="radio" aria-checked="true" data-focus="auto">Auto</button>
+      <button class="pill" role="radio" aria-checked="false" data-focus="tv">TV</button>
+      <button class="pill" role="radio" aria-checked="false" data-focus="standard">Standard</button>
+    </div>
+    <span id="layout-hint" class="t-sm muted">Auto uses the TV layout on a big screen with no mouse or touchpad. On this screen: Standard.</span>
+  </section>
+
+</div>
+</div>
+
+<div>
+<span class="kicker where">Devices → Handlebars → What the buttons do</span>
+<div class="sheet legend-card">
+  <section class="sec" aria-labelledby="buttons">
+    <span id="buttons" class="sec-title"><i data-icon="gauge"></i>What the buttons do</span>
+    <dl class="legend">
+      <div><dt>Shift paddles</dt><dd>Gears: up is harder, down is easier</dd></div>
+      <div><dt>Up / down</dt><dd>How hard the hills feel</dd></div>
+      <div><dt>Left / right</dt><dd>Change camera</dd></div>
+      <div><dt>A</dt><dd>Pause or carry on</dd></div>
+    </dl>
+    <p class="t-sm semi group-head">Menus: Home, Devices, a paused ride, the finish page</p>
+    <dl class="legend">
+      <div><dt>D-pad</dt><dd>Move the ring between buttons</dd></div>
+      <div><dt>A</dt><dd>Press the ringed button</dd></div>
+      <div><dt>B</dt><dd>Back: close what is open</dd></div>
+      <div><dt>Y</dt><dd>Ride details, open or closed (while riding too)</dd></div>
+    </dl>
+  </section>
+</div>
+</div>
+</body>
+</html>

@@ -19,6 +19,8 @@ const ICONS = [
   'loader-circle', 'cloud-fog', 'sun', 'moon', 'gauge', 'picture-in-picture-2', 'maximize-2',
   'volume-2', 'skip-forward', 'trophy', 'mail', 'image', 'circle-alert',
   'chevron-up', 'chevron-down', 'ghost', 'mic', 'arrow-right',
+  // P3.3 TV mode: the finish actions as built, the Settings layout picker.
+  'rotate-ccw', 'house', 'monitor',
 ];
 
 function icon(name) {

@@ -1,7 +1,10 @@
 /**
- * Handlebar buttons during a ride. Mounted by the Ride page only, so presses
- * on Home do nothing. Gears start neutral every ride. The button map and
- * what each action does live in src/lib/controllers/controllerActions.ts.
+ * Handlebar buttons during a ride. Mounted by the Ride page; off the ride
+ * (Home, Devices) useRemoteNavigation turns presses into focus moves only.
+ * Gears start neutral every ride. The button map and what each action does
+ * live in src/lib/controllers/controllerActions.ts; the menu layer on top
+ * (Y ride details, B back, the D-pad and A in a paused ride or on the finish
+ * page) in src/lib/tv/handlebarNav.ts.
  */
 
 import { useEffect } from 'react';
@@ -11,6 +14,8 @@ import { useControllerStore } from '@/stores/controllerStore';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { sendShowPlayerCommand, useShowStore } from '@/stores/showStore';
+import { handlebarIntent } from '@/lib/tv/handlebarNav';
+import { runNavIntent } from '@/lib/tv/runNavIntent';
 
 /** The stores, as the action runner sees them. */
 export const storeActionTarget: ActionTarget = {
@@ -36,7 +41,14 @@ export function useRideControllerActions(): void {
     useControllerStore.getState().resetGear();
 
     return onControllerButton((button) => {
-      const action = actionFor(button, { show: useShowStore.getState().active });
+      const show = useShowStore.getState().active;
+      const intent = handlebarIntent(button, { inRide: true, rideState: useRideStore.getState().rideState, show });
+      if (intent === 'swallow') return;
+      if (intent) {
+        runNavIntent(intent, { inRide: true });
+        return;
+      }
+      const action = actionFor(button, { show });
       if (action) runControllerAction(action, storeActionTarget);
     });
   }, []);

@@ -2,19 +2,19 @@
   "world": "perugia",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 0.5,
-    "heightfield+routes": 0.1,
+    "dem": 0.7,
     "osm": 0.2,
-    "vectors": 8.1,
-    "write": 11.5,
-    "validate": 0,
-    "total": 20.4
+    "heightfield+routes": 0.1,
+    "vectors": 10,
+    "write": 14.8,
+    "validate": 0.1,
+    "total": 25.9
   },
   "sizes": {
     "height.bin.gz": {
       "stored": 2395967,
       "content": 4314156,
-      "brotli": 1802313
+      "brotli": 1802161
     },
     "roads.json.gz": {
       "stored": 773792,
@@ -42,30 +42,30 @@
       "brotli": 1511846
     },
     "routes.json.gz": {
-      "stored": 42541,
-      "content": 104922,
-      "brotli": 27836
+      "stored": 42625,
+      "content": 105029,
+      "brotli": 27937
     },
     "manifest.json": {
       "stored": 44439,
       "content": 44439,
-      "brotli": 7464
+      "brotli": 7511
     }
   },
   "totals": {
-    "stored": 5817377,
-    "content": 11480073,
-    "brotli": 4581924
+    "stored": 5817461,
+    "content": 11480180,
+    "brotli": 4581920
   },
   "hashes": {
-    "height.bin.gz": "61c641b85e6d1b7010b88642450a5def020ff313259a634fd8d87e56f4b1f550",
+    "height.bin.gz": "f19fb17c6de10058ee3c8cf990c24209059c2dcfe2f7ab871eab0581c23dd70e",
     "roads.json.gz": "6f46377f0eb796943649cf2914472b65c7c658160548e9768adb037889a09f31",
     "water.json.gz": "336e1fa7740ce2525f6f53ef7f2dc92f4143649a79f745244cd562006faf31b8",
     "landcover.json.gz": "bdf6cd0a665e6b828281ca1dfa88648c9715f5a2154c5e949bab40c702dfb0be",
     "buildings.bin.gz": "63536fb5bdde92f0630d1780ab143970e951d266e53fe5e9a28aea430595cc7e",
     "vegetation.bin.gz": "b226f342c23b7a7a28195c50200b32335631e2bebc686e21a70a9918e0a45ed1",
-    "routes.json.gz": "327c5eef82e0e0d33ef2d7e45a92cf1ad8fb7de19950169b4f92450f203caa34",
-    "manifest.json": "2bb0fe9a1f82e58b2dd4b9b4edde44bdba39c4e2f6cb533a20e41e24019973a3"
+    "routes.json.gz": "49c1bd66a6cf3e82b0746f1e15039a578ccb7f8e33782e479fa60f9c2b106530",
+    "manifest.json": "aac8b54646bd5ae60c94ec4bdbb8ecf03f9f18be6b93d2fb704d02cae41d2be5"
   },
   "routes": [
     {
@@ -94,10 +94,10 @@
       "name": "Assisi valley floor",
       "lengthM": 15257.06,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.153,
+      "gradeMeanAbsDiffPct": 0.156,
       "report": {
         "samples": 1527,
-        "gradeMaxAbsDiffPct": 3.021,
+        "gradeMaxAbsDiffPct": 0.712,
         "rawDemGradeMeanAbsDiffPct": 0.748,
         "maxRenderMinusProfileM": 5.76
       },
