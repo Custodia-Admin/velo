@@ -125,13 +125,42 @@ export interface GhostVerdict {
 }
 
 /**
+ * How far short of the route's end a ghost's track may stop and still count
+ * as a ride that reached the end, in seconds of its own riding at its end
+ * speed. A saved track ends at its last 1 Hz sample. Rides saved before P3.2
+ * have no closing sample, and their last sample's position is the one before
+ * that frame's step, so their track stops up to one sample interval (1 s of
+ * riding, less on slow frames, plus one ≤0.1 s frame step) before the point
+ * where the ride actually ended: 0.06–5.9 m on the world routes. 2 s covers
+ * that with margin; a ride that stopped further short really stopped short
+ * (Finish pressed early), and gets no invented finishing time.
+ */
+const GHOST_END_SLACK_S = 2;
+
+/**
+ * The ghost's ride time at `distanceM`. Past the end of its track, a ghost
+ * whose ride reached the route's end (see GHOST_END_SLACK_S) gets its time
+ * carried on over the last metres at its end speed; otherwise null.
+ */
+function ghostTimeAt(replay: GhostReplay, distanceM: number, routeLengthM: number): number | null {
+  const sec = replay.timeAt(distanceM);
+  if (sec !== null || !(routeLengthM > 0)) return sec;
+  const spanS = Math.min(GHOST_END_SLACK_S, replay.durationSec);
+  const endSpeed = spanS > 0 ? (replay.endM - replay.distanceAt(replay.durationSec - spanS)) / spanS : 0;
+  const shortM = routeLengthM - replay.endM;
+  if (shortM > Math.max(1, endSpeed * GHOST_END_SLACK_S)) return null;
+  const restM = Math.max(0, Math.min(distanceM, routeLengthM) - replay.endM);
+  return replay.durationSec + (endSpeed > 0 ? restM / endSpeed : 0);
+}
+
+/**
  * How the live ride compares with the ghost at the live rider's distance:
  * the ghost's ride time to that point against the live ride time.
  */
 export function ghostVerdict(replay: GhostReplay, liveDistanceM: number, liveSec: number, routeLengthM: number): GhostVerdict | null {
   if (!(liveDistanceM > 0) || !(liveSec > 0)) return null;
   const finished = routeLengthM > 0 && liveDistanceM >= routeLengthM - 1;
-  const ghostSec = replay.timeAt(liveDistanceM);
+  const ghostSec = ghostTimeAt(replay, liveDistanceM, routeLengthM);
   if (ghostSec === null) return { kind: 'further', seconds: 0, atM: liveDistanceM, finished };
   const delta = Math.round(ghostSec - liveSec);
   if (delta === 0) return { kind: 'level', seconds: 0, atM: liveDistanceM, finished };

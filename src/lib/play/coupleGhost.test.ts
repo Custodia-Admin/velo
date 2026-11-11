@@ -111,4 +111,25 @@ describe('couple ghost: the Finish comparison', () => {
     // Nothing ridden, nothing to compare.
     expect(ghostVerdict(g.replay, 0, 0, route.totalDistance)).toBeNull();
   });
+
+  it('compares finishing times with a complete ride saved before P3.2 (no ride clock, no closing sample)', async () => {
+    const full = recordRide(route, { lengthM: route.totalDistance, speed: () => 11 });
+    // How older builds saved it: no rideMs, and no closing sample at the end.
+    const legacy = full.samples.slice(0, -1).map(({ rideMs: _rideMs, ...s }) => s);
+    const g = (await loadCoupleGhost(route, 'last', other, [record({ id: 'old', startedAt: full.startedAt, samples: legacy, sampleCount: legacy.length })]))!;
+    // Its track stops a few metres short of where the ride ended (3.7 m here).
+    expect(g.replay.endM).toBeLessThan(route.totalDistance - 1);
+    const theirFinish = full.frames[full.frames.length - 1].rideSec;
+    const end = route.totalDistance;
+    expect(ghostVerdict(g.replay, end, theirFinish + 30, end)).toMatchObject({ kind: 'behind', seconds: 30, finished: true });
+    expect(ghostVerdict(g.replay, end, theirFinish - 12, end)).toMatchObject({ kind: 'ahead', seconds: 12, finished: true });
+    expect(ghostVerdict(g.replay, end, theirFinish + 0.2, end)).toMatchObject({ kind: 'level', finished: true });
+    // A ride that stopped 60 m short really stopped short: no invented finishing time.
+    const stopped = recordRide(route, { lengthM: route.totalDistance - 60, speed: () => 11 });
+    const stoppedLegacy = stopped.samples.slice(0, -1).map(({ rideMs: _rideMs, ...s }) => s);
+    const short = (await loadCoupleGhost(route, 'last', other, [
+      record({ id: 'short', startedAt: stopped.startedAt, samples: stoppedLegacy, sampleCount: stoppedLegacy.length }),
+    ]))!;
+    expect(ghostVerdict(short.replay, end, theirFinish, end)).toMatchObject({ kind: 'further', finished: true });
+  });
 });
