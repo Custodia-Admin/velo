@@ -13,6 +13,7 @@
 
 import { useEffect } from 'react';
 import { useRideStore } from '@/stores/rideStore';
+import { isNavBack } from '@/lib/tv/remoteNav';
 
 function isTypingTarget(t: EventTarget | null): boolean {
   const el = t as HTMLElement | null;
@@ -34,6 +35,9 @@ export function useRideKeyboardShortcuts({
     function onKey(e: KeyboardEvent) {
       // Let the browser handle Cmd/Ctrl/Alt-stacked combos (copy/paste/etc).
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // A handlebar Back press (B) closes what is open; it never pauses or
+      // finishes the ride.
+      if (isNavBack(e)) return;
       if (isTypingTarget(e.target)) return;
 
       const state = useRideStore.getState().rideState;

@@ -14,6 +14,7 @@ import {
 import { DEFAULT_TRAINER_DIFFICULTY, clampDifficulty } from '@/lib/trainerComfort';
 import { DEFAULT_WIND_FEEL, isWindFeel, type WindFeel } from '@/lib/meteo/windFeel';
 import { DEFAULT_RENDERER, isRendererKind, type RendererKind } from '@/lib/world/renderer';
+import { DEFAULT_LAYOUT_PREFERENCE, isLayoutPreference, type LayoutPreference } from '@/lib/tvLayout';
 
 /** Unit system for HUD + Settings UI. The physics engine is always SI. */
 export type UnitSystem = 'metric' | 'imperial';
@@ -90,6 +91,13 @@ export interface RiderSettings {
   // ---- Camera mode ----
   /** Active cinematic camera mode — persisted between rides. */
   cameraMode: CameraMode;
+  // ---- Layout ----
+  /**
+   * TV (10-foot) layout: 'auto' follows the screen (at least 1600 px wide and
+   * no fine pointer), 'tv' / 'default' force it (Settings → Visual → Layout).
+   * Household-wide: a screen, not a rider, so the rider switch keeps it.
+   */
+  layoutMode: LayoutPreference;
   /** How close the follow cameras sit to the rider (chase framing + scale). */
   cameraDistance: CameraDistance;
   // ---- Voice control ----
@@ -156,6 +164,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   gestureControlsEnabled: true,
   climbAnnouncementsEnabled: true,
   cameraMode: 'chase',
+  layoutMode: DEFAULT_LAYOUT_PREFERENCE,
   cameraDistance: DEFAULT_CAMERA_DISTANCE,
   voiceControlEnabled: true,
   rideAudioEnabled: true,
@@ -314,6 +323,9 @@ export const useSettingsStore = create<SettingsStoreState>()(
         renderer: isRendererKind((persisted as Partial<RiderSettings>).renderer)
           ? (persisted as Partial<RiderSettings>).renderer!
           : DEFAULT_SETTINGS.renderer,
+        layoutMode: isLayoutPreference((persisted as Partial<RiderSettings>).layoutMode)
+          ? (persisted as Partial<RiderSettings>).layoutMode!
+          : DEFAULT_SETTINGS.layoutMode,
       }),
       partialize: (s) =>
         ({
@@ -346,6 +358,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           gestureControlsEnabled: s.gestureControlsEnabled,
           climbAnnouncementsEnabled: s.climbAnnouncementsEnabled,
           cameraMode: s.cameraMode,
+          layoutMode: s.layoutMode,
           cameraDistance: s.cameraDistance,
           voiceControlEnabled: s.voiceControlEnabled,
           rideAudioEnabled: s.rideAudioEnabled,

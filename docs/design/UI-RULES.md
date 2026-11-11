@@ -118,15 +118,25 @@ UI scaled up, not a second design (direction: `docs/design/v2-identity.md` §4).
   1 rem = 28 px. Every type, space and size token is in rem, so the whole UI
   scales with it. Never size anything for TV in px. Use `tv:` (the
   `[data-layout="tv"] &` variant) only for layout changes, not for type sizes.
-- When the attribute is set (auto rule and user setting) is decided in P3.3.
-  Until then, mockups switch at ≥ 1600 px wide.
+- When the attribute is set (P3.3, `src/lib/tvLayout.ts`): by itself on a
+  screen ≥ 1600 px wide with no fine pointer (no mouse or touchpad; a tablet
+  under 1600 px stays standard), or Settings → Visual → Layout → TV, or
+  `?layout=tv`. The root grows with the screen (56 px when the browser
+  reports 3840×2160), so a 4K TV shows the 1080p picture, sharper.
+- Overscan: keep every control 5 % + 0.5rem inside each edge on TV. Use the
+  `--overscan-x/y` utilities (`.page-x`, `.page-y-safe`, the `hud-inset-*`
+  and `show-inset-*` classes, `.max-h-dialog-fit`), never a TV-only px value.
+- Focus on TV: the ring is 0.25rem of ink with a paper gap (index.css). One
+  primary per view takes it when the view opens (`useNavPrimary`). Arrow keys,
+  a remote and the handlebars move it (`src/lib/tv/`); Escape / Back closes
+  what is open and never pauses a ride.
 - On a 1920×1080 TV, body copy (`text-sm`) is 24.5 px, labels (`text-xs`) are
   21 px and in-ride figures (`text-2xl`+) are ≥ 42 px. Don't use `text-2xs` on
   TV-facing surfaces (Home, in-ride HUD, show mode, finish).
 - Nothing relies on hover. Every action is reachable and visibly focusable with a
   keyboard or remote.
-- HUD panels stay at least spacing `4` (`top-4`, `left-4`; 28 px on TV) inside the screen edges, to allow
-  for overscan.
+- HUD panels stay at least spacing `4` (`top-4`, `left-4`) inside the screen edges, and on TV
+  outside the overscan frame above (the `hud-inset-*` classes do both).
 - **Design gate:** TV-facing surfaces add a **1920×1080** render to the 1440 and
   390 mockups and shots.
 
