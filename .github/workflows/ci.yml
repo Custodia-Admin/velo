@@ -49,10 +49,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      # --with-deps needs the Ubuntu archive; when the runner can't reach it (DNS
-      # outages), install the browser alone: the hosted image already carries
-      # its system libraries, and a missing one still fails the tests.
-      - run: npx playwright install --with-deps chromium || npx playwright install chromium
+      - run: npx playwright install chromium
+      # System libraries via apt. The ubuntu-latest image already ships Chromium's libraries and xvfb,
+      # so an Ubuntu mirror outage (11 Nov 2026) must not fail the job: warn and carry on.
+      - run: timeout 300 npx playwright install-deps chromium || echo "::warning::playwright install-deps failed (Ubuntu apt mirrors unreachable?); using the runner image's libraries"
       - run: npx playwright test --project=chromium
       - if: failure()
         uses: actions/upload-artifact@v4
@@ -77,10 +77,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      # --with-deps needs the Ubuntu archive; when the runner can't reach it (DNS
-      # outages), install the browser alone: the hosted image already carries
-      # its system libraries, and a missing one still fails the tests.
-      - run: npx playwright install --with-deps chromium || npx playwright install chromium
+      - run: npx playwright install chromium
+      # System libraries via apt. The ubuntu-latest image already ships Chromium's libraries and xvfb,
+      # so an Ubuntu mirror outage (11 Nov 2026) must not fail the job: warn and carry on.
+      - run: timeout 300 npx playwright install-deps chromium || echo "::warning::playwright install-deps failed (Ubuntu apt mirrors unreachable?); using the runner image's libraries"
       - run: xvfb-run -a -s "-screen 0 2560x1600x24" npx playwright test --project=show-mode
       - if: failure()
         uses: actions/upload-artifact@v4
