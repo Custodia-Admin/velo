@@ -769,14 +769,20 @@ Station Road Bridge), both on the Ohio & Erie Canal Towpath Trail. Baked
 
 | Check | Result |
 | --- | --- |
-| Bake time | 15 s from cache |
+| Bake time | 14 s from cache |
 | Determinism | an `--out` bake and the committed bake: identical bytes for all 9 files |
-| Size | 4.06 MB as shipped (gzip), 3.39 MB brotli, 7.43 MB raw |
+| Size | 3.21 MB as shipped (gzip), 2.58 MB brotli, 5.75 MB raw |
 | Routes | 17.43 km and 10.35 km: max gap 0 m; grade Δ 0.328 / 0.177 pp; 100 % within 1 m of mapped roads; guide 100 % on drawn roads (218 m and 219 m eased, no joins) |
 | Heightfield vs Open-Meteo, 50 seeded points (seed 41292) | P1.3 v2: `standard` (steep fraction 0.1254), registered **1.69 m ≤ 6.00 m, PASS**; point RMS 4.37 m |
 | Heightfield range | 168.6–389.6 m; 22,182 nodes carved under the routes (max 26.1 m) |
 | Bridges | 207 decks, 19 pieces ridden (the Beaver Marsh boardwalk, 514 m, and the trail's creek bridges); the towpath passes under the Ohio Turnpike (I-80) with 40 m clearance, I-271 with 15–19 m, the Brecksville–Northfield High Level Bridge with 41 m; Rockside Road, East Pleasant Valley Road, Main Street (Peninsula) and three footbridges were lifted to the 4.5 m headroom; 96 piers |
-| Content | 8,176 road pieces, 353 water areas + 257 waterways, 1,763 landcover areas, 1,755 buildings, 480,000 trees |
+| Content | 8,176 road pieces, 353 water areas + 257 waterways, 1,763 landcover areas, 1,755 buildings, 200,000 trees |
+
+Tree budget: 200,000 trees (1,050 per km², against Perugia's 1,320 and
+Lugano's 710). At 480,000 the forest along the towpath held so many crowns
+in the medium tier's tree range that the ride ran at 43–48 fps on the laptop,
+where Perugia runs at 57–60. At 200,000 it runs on par with Perugia. The
+terrain's canopy texture carries the far woods.
 
 Known limit: GLO-30 is a surface model, and in this forested valley the
 canopy pulls the route fit's offset up 10–17 m. Where the towpath leaves the

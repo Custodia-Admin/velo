@@ -33,7 +33,7 @@
   },
   "vegetation": {
     "seed": 41292,
-    "maxInstances": 480000,
+    "maxInstances": 200000,
     "spacingM": {
       "forest": 11,
       "wood": 11,
