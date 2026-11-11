@@ -85,6 +85,21 @@ async function ringOn(page: Page, label: string | RegExp, what: string) {
     .toBe('solid 7 on screen');
 }
 
+test('Devices: Escape closes the pairing guide and stays on Devices; a second Escape goes Home', async ({ page }) => {
+  await page.addInitScript(init('auto'));
+  await page.goto('/devices');
+  // The trainer row's guide link ("Why not?" in a browser without Web Bluetooth, as here).
+  await page.getByTestId('device-trainer').getByRole('button', { name: /^(How do I pair a KICKR\?|Why not\?)$/ }).click();
+  const guide = page.getByRole('dialog', { name: 'Pair a smart trainer' });
+  await expect(guide).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(guide).toHaveCount(0);
+  await expect(page).toHaveURL(/\/devices$/);
+  await expect(page.getByTestId('device-trainer')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.waitForURL('**/app');
+});
+
 test.describe('keys only at 1920×1080', () => {
   test.use({ viewport: { width: W, height: H } });
 

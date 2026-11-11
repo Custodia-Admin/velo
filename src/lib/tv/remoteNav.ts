@@ -71,6 +71,14 @@ export function navScope(doc: Document = document): Element {
   return dialogs[dialogs.length - 1] ?? doc.body;
 }
 
+/**
+ * A modal dialog is open (Settings, the pairing guide, the finish page). Back
+ * then closes the dialog, never the page under it.
+ */
+export function dialogOpen(doc: Document = document): boolean {
+  return navScope(doc) !== doc.body;
+}
+
 export function focusablesIn(scope: Element): HTMLElement[] {
   return Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(isNavigable);
 }

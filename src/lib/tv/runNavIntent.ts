@@ -7,7 +7,16 @@
 import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideStore } from '@/stores/rideStore';
 import type { NavIntent } from './handlebarNav';
-import { activateFocused, focusedControl, focusPrimary, markRemoteInput, moveFocus, remoteInput, sendBack } from './remoteNav';
+import {
+  activateFocused,
+  dialogOpen,
+  focusedControl,
+  focusPrimary,
+  markRemoteInput,
+  moveFocus,
+  remoteInput,
+  sendBack,
+} from './remoteNav';
 
 export interface NavIntentOptions {
   /** The Ride page is open. */
@@ -53,7 +62,11 @@ export function runNavIntent(intent: NavIntent, { inRide, backPage }: NavIntentO
       return;
     }
     case 'back': {
-      if (sendBack()) return;
+      // A dialog takes Back and the page stays, also when its Escape
+      // handler (the pairing guide's, on the window) lets the event through.
+      // Read before the Escape closes it.
+      const dialog = dialogOpen();
+      if (sendBack() || dialog) return;
       if (inRide) {
         const hud = useRideHudStore.getState();
         if (hud.expanded) hud.setExpanded(false);

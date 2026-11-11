@@ -5,10 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const nav = vi.hoisted(() => ({
   input: false,
+  dialog: false,
   focused: null as { matches: (sel: string) => boolean } | null,
   activateFocused: vi.fn(() => true),
   focusPrimary: vi.fn(() => true),
-  moveFocus: vi.fn(() => true),
   sendBack: vi.fn(() => false),
 }));
 
@@ -18,9 +18,10 @@ vi.mock('./remoteNav', () => ({
     nav.input = true;
   },
   focusedControl: () => nav.focused,
+  dialogOpen: () => nav.dialog,
   activateFocused: () => nav.activateFocused(),
   focusPrimary: () => nav.focusPrimary(),
-  moveFocus: (d: string) => nav.moveFocus(d),
+  moveFocus: () => true,
   sendBack: () => nav.sendBack(),
 }));
 
@@ -59,5 +60,20 @@ describe('runNavIntent select on a paused ride', () => {
     runNavIntent('select', { inRide: true });
     expect(nav.activateFocused).toHaveBeenCalledTimes(2);
     expect(resume).not.toHaveBeenCalled();
+  });
+});
+
+describe('runNavIntent back off the ride', () => {
+  it('with a dialog open (the pairing guide closes on Escape at the window), B closes it and stays on the page', () => {
+    const backPage = vi.fn();
+    nav.dialog = true;
+    nav.sendBack.mockReturnValue(false);
+    runNavIntent('back', { inRide: false, backPage });
+    expect(nav.sendBack).toHaveBeenCalledTimes(1);
+    expect(backPage).not.toHaveBeenCalled();
+
+    nav.dialog = false;
+    runNavIntent('back', { inRide: false, backPage });
+    expect(backPage).toHaveBeenCalledTimes(1);
   });
 });

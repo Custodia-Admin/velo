@@ -20,6 +20,7 @@ import { rideSessionActive } from '@/lib/controllers/rideSession';
 import { handlebarIntent } from '@/lib/tv/handlebarNav';
 import {
   clearRemoteInput,
+  dialogOpen,
   focusedControl,
   isNavBack,
   markRemoteInput,
@@ -81,7 +82,9 @@ export function useRemoteNavigation(): void {
 
       if (e.key === 'Escape') {
         // An open panel stops Escape before it gets here; the ride has its own.
-        if (e.defaultPrevented || rideSessionActive()) return;
+        // A dialog that lets it through (the pairing guide listens on the
+        // window too, after this) still keeps the page: this Escape is its.
+        if (e.defaultPrevented || rideSessionActive() || dialogOpen()) return;
         goBackPage();
         return;
       }
