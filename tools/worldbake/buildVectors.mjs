@@ -743,6 +743,29 @@ export function routeWaterDrops(water, { routeLines = [], routeClear = null, rou
 }
 
 /**
+ * Coast worlds: which of the water areas a route dried (`routeWaterDrops`)
+ * become beach. Those are the ones whose outline touches a beach: a vertex
+ * lies inside one or within `tolM` of its outline. OSM cuts such lagoons and
+ * storm-drain channels out of the beach, so without this the default ground
+ * (grass green) would show where they were. `areas` and `beaches` are in dm,
+ * as in the layers. Returns the areas that touch, in order. Pure.
+ */
+export function waterOnBeach(areas, beaches, tolM = 2) {
+  const bs = beaches.map((b) => b.r.map((r) => r.map((v) => v / 10)));
+  return areas.filter((a) => {
+    const ring = a.r[0].map((v) => v / 10);
+    for (let i = 0; i + 1 < ring.length; i += 2) {
+      const x = ring[i], y = ring[i + 1];
+      for (const rings of bs) {
+        if (pointInPolygon(x, y, rings)) return true;
+        if (rings.some((r) => segmentRingDistance(x, y, x, y, r) <= tolM)) return true;
+      }
+    }
+    return false;
+  });
+}
+
+/**
  * Buildings → binary (see WORLD-FORMAT.md "buildings.bin"; VWB2 = VWB1 plus
  * one district byte per building). Outer rings only. Also returns the
  * footprints in metres so the vegetation pass keeps trees out of houses.

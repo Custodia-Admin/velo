@@ -22,6 +22,7 @@ import {
   buildingClearance,
   routeClearances,
   routeWaterDrops,
+  waterOnBeach,
   clipLine,
   clipRing,
   segmentRingDistance,
@@ -224,6 +225,21 @@ describe('worldbake: nothing the rider follows runs through a building', () => {
     const narrow = routeClearances(routeLines, { roads: [{ c: 0, p: [-500, 0, 9000, 0] }], widths: [5] });
     expect(routeWaterDrops(water, { routeLines: narrow.lines, routeClear: narrow.clear })).toEqual([0, 6]);
     expect(routeWaterDrops(water, {})).toEqual([]);
+  });
+
+  it('paints a dried lagoon as beach only where it touches the sand', () => {
+    const box = (x0: number, y0: number, w: number, h: number) => [x0, y0, x0 + w, y0, x0 + w, y0 + h, x0, y0 + h].map((v) => v * 10);
+    // A beach with a channel cut out of it (hole), and a second beach far off.
+    const beaches = [
+      { k: 9, r: [box(0, 0, 200, 100), box(50, -1, 12, 102)] },
+      { k: 9, r: [box(1000, 0, 50, 50)] },
+    ];
+    const channel = { k: 0, r: [box(50, -1, 12, 102)] }; // the hole itself: on the beach
+    const lagoon = { k: 2, r: [box(201, 20, 30, 30)] }; // 1 m off the beach's edge: on it
+    const pool = { k: 0, r: [box(400, 20, 10, 10)] }; // 200 m from any sand: not
+    expect(waterOnBeach([channel, lagoon, pool], beaches)).toEqual([channel, lagoon]);
+    expect(waterOnBeach([lagoon], beaches, 0.5)).toEqual([]);
+    expect(waterOnBeach([channel, pool], [])).toEqual([]);
   });
 
   it('buildBuildings drops them from the bundle and keeps the rest in order', () => {
