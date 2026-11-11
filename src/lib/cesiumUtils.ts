@@ -170,8 +170,8 @@ const OSM_TILE_URL = 'https://tile.openstreetmap.org/';
 export { IMAGERY_FALLBACK_EVENT };
 
 /**
- * Milliseconds to wait for the Bing Aerial provider to produce any tile
- * progress signal before we consider it stalled and swap in OSM.
+ * Milliseconds of the scene running (see armBingTileStallWatchdog) to wait
+ * for the first Bing Aerial tile before we consider it stalled and swap in OSM.
  *
  * Real-browser verification on production showed Bing tile requests staying
  * in the `pending` state indefinitely on some networks/CSP configurations —
@@ -242,43 +242,60 @@ function dispatchImageryFallback(): void {
 }
 
 /**
- * Watchdog that swaps the Bing Aerial layer for OSM if no tile progress is
- * observed within {@link BING_TILE_STALL_TIMEOUT_MS}.
+ * The stall deadline is counted in slots of this length, and a slot counts
+ * only if the scene updated at least once in it (see armBingTileStallWatchdog).
+ */
+export const BING_TILE_STALL_SLOT_MS = 1000;
+
+/**
+ * Watchdog that swaps the Bing Aerial layer for OSM when not one Bing tile
+ * has arrived after {@link BING_TILE_STALL_TIMEOUT_MS} of the scene running.
  *
- * Cesium's `globe.tileLoadProgressEvent` fires every time the tile load
- * queue length changes. We track *whether any progress event has fired at
- * all* — a healthy network triggers many of them in the first second; a
- * silent stall produces zero.
+ * The deadline counts only time in which the scene updates. Cesium requests
+ * imagery tiles from the scene update, and the scene only updates while a
+ * render loop runs: the viewer's default loop, or a WebXR session's. The
+ * loop is off while the finish page covers the view (CesiumWorldView
+ * `covered`; a viewer can even be created there, e.g. in journey mode or on a
+ * context restore), and the browser stops it in a background tab. In that
+ * time no tile is ever asked for, so it says nothing about Bing. Every
+ * {@link BING_TILE_STALL_SLOT_MS} the watchdog adds the slot to the count if
+ * `scene.preUpdate` fired in it. At a frame rate of 1 fps or more, counted
+ * time is wall time while the scene runs.
  *
- * State transitions:
- *   - `armed`             — timer running, listener subscribed, no progress
- *                           observed yet.
- *   - `disarmed-ok`       — progress observed before the deadline → no
- *                           fallback fires, timer cleared.
- *   - `disarmed-fallback` — deadline hit with zero progress and tiles still
- *                           not loaded → Bing layer removed, OSM added,
- *                           IMAGERY_FALLBACK_EVENT dispatched.
- *
- * Once the watchdog enters either disarmed state it tears down its timer
- * and listener; subsequent progress events are ignored so we never
- * double-add the OSM layer.
+ * At the deadline it judges once: Bing is kept if `globe.tilesLoaded` or any
+ * Bing tile arrived; otherwise the Bing layer is removed, OSM added and
+ * IMAGERY_FALLBACK_EVENT dispatched. Either way the timer and the listener
+ * go, so the OSM layer is never added twice. A destroyed viewer stops it.
  */
 function armBingTileStallWatchdog(
   viewer: Cesium.Viewer,
   bingLayer: Cesium.ImageryLayer,
 ): void {
   // Globe stub may not exist in some test paths — guard defensively.
-  const globe = viewer.scene?.globe;
-  if (!globe) return;
+  const scene = viewer.scene;
+  const globe = scene?.globe;
+  const preUpdate = scene?.preUpdate;
+  if (!globe || typeof preUpdate?.addEventListener !== 'function') return;
 
-  let disarmed = false;
-  let timer: ReturnType<typeof setTimeout> | null = null;
+  let timer: ReturnType<typeof setInterval> | null = null;
   const bingTilesLoaded = countLoadedTiles(bingLayer);
+
+  // Did the scene update (so could it ask for tiles) in the current slot?
+  let sceneUpdated = false;
+  let runMs = 0;
+  const removeUpdateListener = preUpdate.addEventListener(() => {
+    sceneUpdated = true;
+  });
 
   const cleanup = (): void => {
     if (timer !== null) {
-      clearTimeout(timer);
+      clearInterval(timer);
       timer = null;
+    }
+    try {
+      removeUpdateListener();
+    } catch {
+      // The scene went with its viewer: nothing left to unsubscribe.
     }
   };
 
@@ -291,12 +308,17 @@ function armBingTileStallWatchdog(
   // catch. Check the authoritative `globe.tilesLoaded` flag at the deadline
   // instead — it's only true when tiles have actually finished loading.
 
-  timer = setTimeout(() => {
-    if (disarmed) return;
-    disarmed = true;
+  timer = setInterval(() => {
+    if (viewer.isDestroyed()) {
+      cleanup();
+      return;
+    }
+    // A slot with no scene update asked for no tiles: it does not count.
+    if (sceneUpdated) runMs += BING_TILE_STALL_SLOT_MS;
+    sceneUpdated = false;
+    if (runMs < BING_TILE_STALL_TIMEOUT_MS) return;
     cleanup();
 
-    if (viewer.isDestroyed()) return;
     // Re-check `tilesLoaded` at the deadline: if Cesium already finished
     // loading everything (rare but possible on a tiny visible area), don't
     // fall back — the photoreal layer is actually working.
@@ -323,7 +345,7 @@ function armBingTileStallWatchdog(
           'the globe will render without a base layer.',
       );
     }
-  }, BING_TILE_STALL_TIMEOUT_MS);
+  }, BING_TILE_STALL_SLOT_MS);
 }
 
 export async function setupBaseImagery(viewer: Cesium.Viewer): Promise<void> {

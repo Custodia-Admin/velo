@@ -872,7 +872,10 @@ export function CesiumScene({
   // the default render loop goes off while covered and back on for Ride
   // again; the viewer, its primitives and entities stay as they are. A loop
   // that is already off belongs to a WebXR session (lib/webxr): left alone.
-  // Not a stop for renderLoopWatch: no frame threw.
+  // Not a stop for renderLoopWatch: no frame threw. With the loop off no
+  // imagery tile is requested either; the Bing stall watchdog counts only
+  // time the scene runs (cesiumUtils), so a viewer created under the page
+  // keeps Bing.
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!covered || !viewer || viewer.isDestroyed() || !viewer.useDefaultRenderLoop) return;
