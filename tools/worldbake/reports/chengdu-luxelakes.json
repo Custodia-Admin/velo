@@ -5,16 +5,16 @@
     "dem": 0.2,
     "osm": 0,
     "heightfield+routes": 0,
-    "vectors": 1.4,
-    "write": 4.1,
+    "vectors": 1.5,
+    "write": 4.2,
     "validate": 0,
-    "total": 9.9
+    "total": 10.2
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 914506,
+      "stored": 914519,
       "content": 1581720,
-      "brotli": 751726
+      "brotli": 752015
     },
     "roads.json.gz": {
       "stored": 201300,
@@ -42,30 +42,30 @@
       "brotli": 507031
     },
     "routes.json.gz": {
-      "stored": 30269,
-      "content": 74275,
-      "brotli": 20029
+      "stored": 30264,
+      "content": 74196,
+      "brotli": 20127
     },
     "manifest.json": {
-      "stored": 8076,
-      "content": 8076,
-      "brotli": 2455
+      "stored": 8077,
+      "content": 8077,
+      "brotli": 2474
     }
   },
   "totals": {
-    "stored": 1838048,
-    "content": 3408937,
-    "brotli": 1514130
+    "stored": 1838057,
+    "content": 3408859,
+    "brotli": 1514536
   },
   "hashes": {
-    "height.bin.gz": "3a7994b4cf1518877b87c0cce87405227cb4c34e055c4e5ea8eb3eb1b7e3f9c7",
+    "height.bin.gz": "62a323f28117d1533522eb18c8e9f4bcc6d2b65018d16f3dba931554f22919e5",
     "roads.json.gz": "ab01076a24135f4cc7f364c5cd93bab3d78aee25f37bcf70e8a7842d7f488f82",
     "water.json.gz": "9a6313ae22ede4ae1f30c004bb7cd2774a918340e9b7bd3dd36e6ab85685cddd",
     "landcover.json.gz": "82f5d43d351f639c723e11520743013f6b7914d3d903f838ce1ef8bdbf16a1db",
     "buildings.bin.gz": "63468a6f71d952fc10624b06e45136b82e609c207ae08feeceee2638dfe55204",
     "vegetation.bin.gz": "2effa20caddb5f739625b66e7427bac698a4460c6c50f7b5b269a4c39ae683cb",
-    "routes.json.gz": "33aa751e02eb35aac8e5c8f5591fcc6da081b880fe2f4a60978388e8b2338adc",
-    "manifest.json": "5c30ac89c31cd3d225299f8e6a4172295e1888c0affaeaa6baea102ff8600bea"
+    "routes.json.gz": "800f9d10f550702fd9fb8e989544520c3a481e6dfd74fbd0f5fbca3937c41bd4",
+    "manifest.json": "80e66bc0c3354d4bf4e9466e683ccd356e97cda7a185d37ffca454b85c8358cd"
   },
   "routes": [
     {
@@ -73,12 +73,12 @@
       "name": "Luxe Lakes loop",
       "lengthM": 11178.84,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.31,
+      "gradeMeanAbsDiffPct": 0.315,
       "report": {
         "samples": 1119,
-        "gradeMaxAbsDiffPct": 2.337,
+        "gradeMaxAbsDiffPct": 1.006,
         "rawDemGradeMeanAbsDiffPct": 3.163,
-        "maxRenderMinusProfileM": 13.12
+        "maxRenderMinusProfileM": 13.26
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -94,10 +94,10 @@
       "name": "Xinglong Lake loop",
       "lengthM": 8188.89,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.575,
+      "gradeMeanAbsDiffPct": 0.585,
       "report": {
         "samples": 820,
-        "gradeMaxAbsDiffPct": 3.645,
+        "gradeMaxAbsDiffPct": 1.506,
         "rawDemGradeMeanAbsDiffPct": 2.745,
         "maxRenderMinusProfileM": 14.07
       },
