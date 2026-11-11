@@ -11,9 +11,12 @@
  *
  * Counted at the source: every WebGL draw call in the page (both renderers,
  * every context), from an init script. Runs against the token-free
- * production build (playwright.config.ts) on the medium tier, as riders do.
- * On main before the fix the world drew ~500 calls (5–6 frames) in 5 s behind
- * the finish page, photoreal 340–1,200 (on-demand frames for arriving tiles).
+ * production build (playwright.config.ts). On main before the fix, at
+ * medium, the world drew ~500 calls (5–6 frames) in 5 s behind the finish
+ * page, photoreal 340–1,200 (on-demand frames for arriving tiles). The pause
+ * is the same on every tier; low (as context-loss.spec.ts) keeps the GPU
+ * work Playwright's headless shell queues while riding short (see the end of
+ * the world test), so the next test in the worker isn't held up by it.
  */
 import { expect, test, type Page } from '@playwright/test';
 
@@ -23,7 +26,7 @@ const H = 1080;
 const INIT = `
   localStorage.removeItem('globeride.cesiumIonToken');
   localStorage.setItem('globeride.onboarding.v2', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 2 }));
-  localStorage.setItem('globeride.settings.v1', JSON.stringify({ state: { graphicsQuality: 'medium', graphicsQualityAuto: false }, version: 1 }));
+  localStorage.setItem('globeride.settings.v1', JSON.stringify({ state: { graphicsQuality: 'low', graphicsQualityAuto: false }, version: 1 }));
   // Every draw call into any WebGL context in the page.
   window.__e2eDraws = 0;
   for (const C of [window.WebGLRenderingContext, window.WebGL2RenderingContext]) {
@@ -106,15 +109,12 @@ test.describe('the finish screen at 1920×1080', () => {
 
     await finish(page);
     expect(await drawsIn(page, 2_000), 'draw calls behind the second finish page').toBe(0);
-    const t0 = Date.now();
-    await press(page, 'Home');
-    await page.waitForURL('**/app');
-    await expect(page.locator('#home-title')).toBeVisible();
-    // The route change used to wait 15 s and more behind the hidden frames on
-    // a CI runner. How long it takes now depends on what else the runner is
-    // doing (a second worker's software GL starves the compositor too), so
-    // it is logged; the zero draws above are what fail if the world draws.
-    console.info(`[finish-cover] world: Finish → Home ${Date.now() - t0} ms`);
+    // No Home step here. Playwright's headless shell has no swap-chain back
+    // pressure, so riding on SwiftShader queues GPU work faster than it runs
+    // (40-75 s of it at medium), and leaving the ride waits for all of it while
+    // the WebGL context is destroyed. The queue drains while the finish page
+    // is up (nothing new joins it), but that is not this spec's subject:
+    // tv-remote.spec.ts covers Finish -> Home.
     expect(pageErrors).toEqual([]);
   });
 
