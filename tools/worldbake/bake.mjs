@@ -51,7 +51,7 @@ import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid } from './snapRoutes.mjs';
-import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckThickness, densifyPiece, footprintConflicts, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork } from './bridges.mjs';
+import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork } from './bridges.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
 import { P13_SAMPLE_COUNT, validationInputs } from './p13Criterion.mjs';
@@ -411,10 +411,18 @@ export async function bake(opts) {
     const rides = rideRoads.map((list) => rideSurface(roads, list, zdm, hfGround));
     // What the app does: the deck wherever the route's ridden decks are under it.
     surface = (ri, x, y) => rides[ri](x, y);
-    const conflicts = footprintConflicts({ routes: decks.prepared, surfaces: rides, groundAt: hfGround });
+    // Walked every metre of the app's own line, not only at the route samples.
+    const conflicts = footprintConflicts({
+      routes: routeSamples.map((r, i) => ({ ...r, spans: spans[i] })),
+      surfaces: rides,
+      own: spans.map((list) => list.map((sp) => rideSurface(roads, sp.pieces, zdm, hfGround))),
+      groundAt: hfGround,
+    });
     if (conflicts.length) {
-      throw new Error(`bridges: a route passes through the footprint of a deck it rides elsewhere, off the ground there (the app would lift the rider onto it): ${JSON.stringify(conflicts.slice(0, 8))}`);
+      throw new Error(`bridges: a route passes through the footprint of a deck it rides elsewhere, off that deck there (the app would lift the rider onto it): ${JSON.stringify(conflicts.slice(0, 8))}`);
     }
+    const kinks = deckKinks({ roads, zdm, groundAt: hfGround });
+    if (kinks.length) throw new Error(`bridges: pins fight on a deck (its ribbon changes more than 2 m within 6 m, standing over 1 m above the ground): ${JSON.stringify(kinks.slice(0, 8))}`);
     const failures = headroomFailures({ roads, routes: decks.prepared, zdm, surfaces: rides, groundAt: hfGround, rides: rideRoads, approaches: approachSet });
     if (failures.length) throw new Error(`bridges: a route passes under a deck without ${DECK_HEADROOM_M} m headroom: ${JSON.stringify(failures.slice(0, 8))}`);
     const piers = [

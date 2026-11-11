@@ -64,6 +64,12 @@ export const RIDE_SLACK_M = 1.5;
 export const RIDE_HEADING_DEG = 35;
 /** Shorter rides (a route crossing a bridge end) are ignored, metres. */
 export const RIDE_MIN_M = 4;
+/**
+ * Road classes a scenic route (a bike route) never rides: a route beside or
+ * under one of these decks is on a road of its own (motorway and trunk,
+ * their `_link`s included: buildVectors maps a link to its class).
+ */
+export const NEVER_RIDDEN_CLASSES = new Set(['motorway', 'trunk']);
 /** Piers stand where the underside is at least this high, metres. */
 export const PIER_MIN_CLEARANCE_M = 2.5;
 /** No pier within this distance of a route centreline, metres. */
@@ -228,16 +234,22 @@ function pieceIndex(roads, pieces, cell = 50) {
   return { paths, near };
 }
 
-/** Nearest point of segment k of `path` to (x, y): distance, arclength, unit direction. */
+/** Nearest point of segment k of `path` to (x, y): distance, arclength, unit direction, and whether it is past an end of the piece. */
 function onSegment(path, k, x, y) {
   const { xy, s } = path;
   const ax = xy[2 * k], ay = xy[2 * k + 1], bx = xy[2 * k + 2], by = xy[2 * k + 3];
   const dx = bx - ax, dy = by - ay;
   const l2 = dx * dx + dy * dy;
   let t = l2 > 0 ? ((x - ax) * dx + (y - ay) * dy) / l2 : 0;
+  const past = (k === 0 && t < 0) || (k === s.length - 2 && t > 1);
   t = t < 0 ? 0 : t > 1 ? 1 : t;
   const l = Math.sqrt(l2) || 1;
-  return { d: Math.hypot(ax + dx * t - x, ay + dy * t - y), s: s[k] + (s[k + 1] - s[k]) * t, ux: dx / l, uy: dy / l };
+  return { d: Math.hypot(ax + dx * t - x, ay + dy * t - y), s: s[k] + (s[k + 1] - s[k]) * t, ux: dx / l, uy: dy / l, past };
+}
+
+/** Can a scenic route ride this road (a bike route: never a motorway or trunk)? */
+export function ridable(roads, road) {
+  return !NEVER_RIDDEN_CLASSES.has(roads.classes[road.c]);
 }
 
 /**
@@ -245,31 +257,59 @@ function onSegment(path, k, x, y) {
  * routeCoverage.sampleAppRoute) within a piece's half-width + RIDE_SLACK_M
  * and heading along it. Returns per route `[{ s0, s1, net, pieces }]`
  * (`pieces`: the road indices ridden).
+ *
+ * A route rides only a deck it can be on, and only where the deck is its
+ * road: never a motorway or trunk deck (`NEVER_RIDDEN_CLASSES`), and not
+ * where it runs alongside a deck off the deck's surface (beyond its
+ * half-width, not past its end) with a ground road heading the same way
+ * nearer: that ground road is the route's own (the route fit,
+ * routeCoverage.easeRoadsOntoRoutes, lays every route on a drawn road). So
+ * a path beside a deck or under one is on the ground, a route on a deck's
+ * surface stays on it whatever runs under it, and a ride still reaches past
+ * a deck's ends, where the road on the ground continues it.
  */
 export function riddenSpans(routeSamples, roads, nets) {
   const netOf = new Map();
-  nets.forEach((n, i) => n.pieces.forEach((ri) => netOf.set(ri, i)));
+  nets.forEach((n, i) => n.pieces.forEach((ri) => {
+    if (ridable(roads, roads.roads[ri])) netOf.set(ri, i);
+  }));
   const idx = pieceIndex(roads, [...netOf.keys()]);
+  const groundPieces = [];
+  roads.roads.forEach((r, ri) => {
+    if (!(r.f && r.f & (ROAD_FLAGS.bridge | ROAD_FLAGS.tunnel)) && r.p.length >= 4 && ridable(roads, r)) groundPieces.push(ri);
+  });
+  const groundIdx = pieceIndex(roads, groundPieces);
   const cosMax = Math.cos((RIDE_HEADING_DEG * Math.PI) / 180);
+  // Nearest piece of `index` along the heading within half-width + RIDE_SLACK_M.
+  const nearestAlong = (index, x, y, hx, hy, hl) => {
+    let best = null;
+    for (const [ri, k] of index.near(x, y, 25)) {
+      const road = roads.roads[ri];
+      const q = onSegment(index.paths.get(ri), k, x, y);
+      const half = roadWidth(roads, road) / 2;
+      if (q.d > half + RIDE_SLACK_M) continue;
+      if (Math.abs((q.ux * hx + q.uy * hy) / hl) < cosMax) continue;
+      if (!best || q.d < best.d) best = { ri, d: q.d, half, past: q.past };
+    }
+    return best;
+  };
   return routeSamples.map((r) => {
     const on = new Array(r.x.length).fill(-1);
     const pieceAt = new Array(r.x.length).fill(-1);
+    const onSurface = new Array(r.x.length).fill(false);
     for (let i = 0; i < r.x.length; i++) {
       const j = Math.min(r.x.length - 1, i + 1), h = Math.max(0, i - 1);
       const hx = r.x[j] - r.x[h], hy = r.y[j] - r.y[h];
       const hl = Math.hypot(hx, hy) || 1;
-      let best = Infinity;
-      for (const [ri, k] of idx.near(r.x[i], r.y[i], 25)) {
-        const road = roads.roads[ri];
-        const q = onSegment(idx.paths.get(ri), k, r.x[i], r.y[i]);
-        if (q.d > roadWidth(roads, road) / 2 + RIDE_SLACK_M) continue;
-        if (Math.abs((q.ux * hx + q.uy * hy) / hl) < cosMax) continue;
-        if (q.d < best) {
-          best = q.d;
-          on[i] = netOf.get(ri);
-          pieceAt[i] = ri;
-        }
+      const deck = nearestAlong(idx, r.x[i], r.y[i], hx, hy, hl);
+      if (!deck) continue;
+      if (!deck.past && deck.d > deck.half) {
+        const own = nearestAlong(groundIdx, r.x[i], r.y[i], hx, hy, hl);
+        if (own && own.d < deck.d) continue;
       }
+      on[i] = netOf.get(deck.ri);
+      pieceAt[i] = deck.ri;
+      onSurface[i] = deck.d <= deck.half;
     }
     const spans = [];
     let i = 0;
@@ -286,7 +326,8 @@ export function riddenSpans(routeSamples, roads, nets) {
         j++;
         for (let k = j + 1; k < on.length && k <= j + 4; k++) if (on[k] === net) j = k;
       }
-      if (r.s[j] - r.s[i] >= RIDE_MIN_M) {
+      // A ride puts the route on the deck's surface somewhere, not only within its reach.
+      if (r.s[j] - r.s[i] >= RIDE_MIN_M && onSurface.slice(i, j + 1).some(Boolean)) {
         const pieces = [...new Set(pieceAt.slice(i, j + 1).filter((ri) => ri >= 0))].sort((a, b) => a - b);
         spans.push({ s0: r.s[i], s1: r.s[j], net, pieces });
       }
@@ -827,23 +868,96 @@ export function ridePins({ roads, routes, skip, groundAt }) {
   return pins;
 }
 
+/** footprintConflicts walks each route at least this often, metres. */
+export const FOOTPRINT_STEP_M = 1;
+
 /**
  * The app finds the deck a route rides by footprint alone (any point within
- * a ridden piece's half-width + RIDE_SLACK_M), not by route distance. So a
- * route sample outside its ridden spans that falls in such a footprint must
- * be where the deck meets the ground. Returns the worst offenders.
+ * a ridden piece's half-width + RIDE_SLACK_M), not by route distance. So,
+ * walked every FOOTPRINT_STEP_M along each route (between its samples too):
+ * off its ridden spans a footprint the route passes through must be where
+ * the deck meets the ground, and on a span the surface must be that span's
+ * own deck (`own[route][span]`, the same reading over the span's pieces),
+ * never another ridden deck nearer there. Returns the offenders.
  */
-export function footprintConflicts({ routes, surfaces, groundAt, tolM = 0.3 }) {
+export function footprintConflicts({ routes, surfaces, own, groundAt, tolM = 0.3, stepM = FOOTPRINT_STEP_M }) {
   const out = [];
   routes.forEach((r, i) => {
+    const check = (x, y, s) => {
+      const si = r.spans.findIndex((sp) => s >= sp.s0 && s <= sp.s1);
+      const z = surfaces[i](x, y);
+      const g = groundAt(x, y);
+      if (si < 0) {
+        if (z !== null && Math.abs(z - g) > tolM) out.push({ route: r.id, s: Math.round(s * 10) / 10, deckM: Math.round((z - g) * 100) / 100 });
+        return;
+      }
+      const want = own[i][si](x, y) ?? g;
+      const got = z ?? g;
+      if (Math.abs(got - want) > tolM) out.push({ route: r.id, s: Math.round(s * 10) / 10, deckM: Math.round((got - want) * 100) / 100, span: si });
+    };
     for (let k = 0; k < r.s.length; k++) {
-      if (r.spans.some((sp) => r.s[k] >= sp.s0 && r.s[k] <= sp.s1)) continue;
-      const z = surfaces[i](r.x[k], r.y[k]);
-      if (z === null) continue;
-      const g = groundAt(r.x[k], r.y[k]);
-      if (Math.abs(z - g) > tolM) out.push({ route: r.id, s: Math.round(r.s[k]), deckM: Math.round((z - g) * 100) / 100 });
+      if (k > 0) {
+        const n = Math.ceil((r.s[k] - r.s[k - 1]) / stepM);
+        for (let j = 1; j < n; j++) {
+          const t = j / n;
+          check(r.x[k - 1] + (r.x[k] - r.x[k - 1]) * t, r.y[k - 1] + (r.y[k] - r.y[k - 1]) * t, r.s[k - 1] + (r.s[k] - r.s[k - 1]) * t);
+        }
+      }
+      check(r.x[k], r.y[k], r.s[k]);
     }
   });
+  return out;
+}
+
+/** A deck's ribbon may change at most KINK_RISE_M within KINK_RUN_M where it stands over KINK_ABOVE_M above the ground. */
+export const KINK_RUN_M = 6;
+export const KINK_RISE_M = 2;
+export const KINK_ABOVE_M = 1;
+/** A piece within this of the straight line between its end heights is straight (dm quantisation), metres. */
+export const KINK_STRAIGHT_M = 0.15;
+
+/**
+ * Pins that fight each other: a deck piece whose ribbon changes more than
+ * KINK_RISE_M within any KINK_RUN_M of its length while standing more than
+ * KINK_ABOVE_M above the ground somewhere there (a motorway deck held up by
+ * a headroom pin and pinned down to a path beside it 6 m on). A piece that
+ * is one straight line from end to end carries no pin: its grade is the
+ * ground's at its two ends (a footbridge up a hillside), so it never counts.
+ * `zdm`: road → per-vertex heights (dm). Returns the worst window per piece.
+ */
+export function deckKinks({ roads, zdm, groundAt, stepM = 0.5 }) {
+  const out = [];
+  for (const [ri, zq] of zdm) {
+    const road = roads.roads[ri];
+    const path = piecePath(road);
+    if (path.len <= 0) continue;
+    const zs = zq.map((v) => v / 10);
+    const z0 = zs[0], z1 = zs[zs.length - 1];
+    if (path.s.every((s, k) => Math.abs(zs[k] - (z0 + ((z1 - z0) * s) / path.len)) <= KINK_STRAIGHT_M)) continue;
+    const n = Math.max(1, Math.ceil(path.len / stepM));
+    const S = [], Z = [], A = [];
+    for (let k = 0; k <= n; k++) {
+      const s = (path.len * k) / n;
+      const [x, y] = pointAt(path, s);
+      const z = zAlong(path, zs, s);
+      S.push(s);
+      Z.push(z);
+      A.push(z - groundAt(x, y));
+    }
+    let worst = null;
+    for (let a = 0; a < n; a++) {
+      let hi = -Infinity, lo = Infinity, above = -Infinity;
+      for (let b = a; b <= n && S[b] - S[a] <= KINK_RUN_M + 1e-9; b++) {
+        hi = Math.max(hi, Z[b]);
+        lo = Math.min(lo, Z[b]);
+        above = Math.max(above, A[b]);
+      }
+      if (above > KINK_ABOVE_M && hi - lo > KINK_RISE_M && (!worst || hi - lo > worst.riseM)) {
+        worst = { road: ri, name: roads.names[road.n] ?? null, s: Math.round(S[a] * 10) / 10, riseM: Math.round((hi - lo) * 100) / 100, aboveM: Math.round(above * 100) / 100 };
+      }
+    }
+    if (worst) out.push(worst);
+  }
   return out;
 }
 

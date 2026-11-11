@@ -57,11 +57,11 @@
     },
     {
       "path": "roads.json.gz",
-      "bytes": 349465,
-      "sha256": "b392df279a67abfb0561ce6e11c4e2c30865b9328f0c179a35ee10fd06a4158d",
+      "bytes": 349458,
+      "sha256": "8548a1796be17b344e75f1ad3cf1552388d398538d9e97a05f87427335e34456",
       "compression": "gzip",
-      "contentBytes": 1036465,
-      "contentSha256": "d4839d9ff75097943cd3199dd6ae6641af67da8efadf3c92ceaec3ec50a98825"
+      "contentBytes": 1036453,
+      "contentSha256": "ffc1fc1355bac2bb84a8edb22c50521559758832878f09cc3ce86fdd5fdb39b7"
     },
     {
       "path": "water.json.gz",
@@ -105,11 +105,11 @@
     },
     {
       "path": "bridges.json.gz",
-      "bytes": 13991,
-      "sha256": "646ca111c7830a67f560d1ddfc04fe5ab2ba4f62422c32761c9126899a3a1e43",
+      "bytes": 13957,
+      "sha256": "5b0aba46f4ff569876736b60fda081b95b5df6891a9e7fdb1e01d11142d5b49a",
       "compression": "gzip",
-      "contentBytes": 57383,
-      "contentSha256": "0a1cc09c1072e67b62ff75c136b66b612ce4a24e45e149c65423862fe8dafa21"
+      "contentBytes": 57339,
+      "contentSha256": "dfc0fddb67fcac102ac6cbe30e323173a39bfd9c322206ccc23406247654248e"
     }
   ],
   "moods": [

@@ -4,11 +4,11 @@
   "timingsS": {
     "dem": 0.2,
     "osm": 0.3,
-    "heightfield+routes": 1.8,
+    "heightfield+routes": 2,
     "vectors": 0.5,
-    "write": 4.1,
+    "write": 4,
     "validate": 0,
-    "total": 6.9
+    "total": 7
   },
   "sizes": {
     "height.bin.gz": {
@@ -17,9 +17,9 @@
       "brotli": 329455
     },
     "roads.json.gz": {
-      "stored": 349465,
-      "content": 1036465,
-      "brotli": 247446
+      "stored": 349458,
+      "content": 1036453,
+      "brotli": 247333
     },
     "water.json.gz": {
       "stored": 9637,
@@ -47,31 +47,31 @@
       "brotli": 24212
     },
     "bridges.json.gz": {
-      "stored": 13991,
-      "content": 57383,
-      "brotli": 10153
+      "stored": 13957,
+      "content": 57339,
+      "brotli": 10110
     },
     "manifest.json": {
       "stored": 11984,
       "content": 11984,
-      "brotli": 3135
+      "brotli": 3147
     }
   },
   "totals": {
-    "stored": 1351349,
-    "content": 3667417,
-    "brotli": 1054868
+    "stored": 1351308,
+    "content": 3667361,
+    "brotli": 1054724
   },
   "hashes": {
     "height.bin.gz": "4dcbb45368016717f344227c9f7224c79d5e509b9f05387df4e3f376b8cc51f6",
-    "roads.json.gz": "b392df279a67abfb0561ce6e11c4e2c30865b9328f0c179a35ee10fd06a4158d",
+    "roads.json.gz": "8548a1796be17b344e75f1ad3cf1552388d398538d9e97a05f87427335e34456",
     "water.json.gz": "3421a6d47707a40d2f1501ce563861238dec7b6cc9d61fcb90a0b6fce935a2f1",
     "landcover.json.gz": "052d7f2a270dc0878eded01c6db5ecb87f2f5961c834ab602db35253c745de2b",
     "buildings.bin.gz": "c13d90fedb1651c1a9e4b959cf7e039e3b6052c7362f987bb20bd1b7d9be3ec5",
     "vegetation.bin.gz": "580aeb34e75d36f09a502bdf54f5017f8e482d21d486035eb639ab2095ab8bf7",
     "routes.json.gz": "0fb4f9d930ff15ca2aed9d3ea2873a50ac85fd0353ad61f7055d56e856eb80a9",
-    "bridges.json.gz": "646ca111c7830a67f560d1ddfc04fe5ab2ba4f62422c32761c9126899a3a1e43",
-    "manifest.json": "ce8ae47fe3276bbec475a7993a2d00e9a24ed4541aab458f4b6d641665038d49"
+    "bridges.json.gz": "5b0aba46f4ff569876736b60fda081b95b5df6891a9e7fdb1e01d11142d5b49a",
+    "manifest.json": "ea575d8369357cb08811b3a77d237b9b6889d0ba783f59b2a7b7f42878a39576"
   },
   "routes": [
     {
@@ -483,13 +483,6 @@
           "r": [
             4748,
             13047
-          ]
-        },
-        {
-          "s0": 2623.86,
-          "s1": 2630.09,
-          "r": [
-            1014
           ]
         },
         {

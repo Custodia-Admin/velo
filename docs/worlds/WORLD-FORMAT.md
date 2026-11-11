@@ -263,14 +263,35 @@ How the bake decides, once and offline:
   (a deck shorter than two end zones of 1.5 cells, the end zones of a longer
   one) the deck is pinned to the carved ground, so the rider never steps
   between ground and deck.
+- **Which decks a route rides** (`riddenSpans`). A route rides a deck where,
+  for at least 4 m, it is within the deck's half-width + 1.5 m heading along
+  it (within 35°), and it is on the deck's surface (within its half-width)
+  somewhere along that stretch. It never rides a deck it only passes under
+  or beside:
+  - never a motorway or trunk deck (their `_link`s too): a scenic route is a
+    bike route, so a path along under or beside one is on a road of its own;
+  - not where it runs alongside a deck off its surface (beyond its
+    half-width, not past its end) while a ground road heading its way is
+    nearer: the route fit lays every route on a drawn road, so that road is
+    the route's own. The Cleveland lakefront bikeway runs 6.2 m off the
+    Memorial Shoreway's centreline (half-width 6 m) on its own cycleway.
+  A route on a deck's surface stays on it whatever runs under it, and a ride
+  still reaches up to half-width + 1.5 m past the deck's ends, where the
+  road on the ground continues it (the app's footprint reaches that far).
 - **Ground under decks.** Terrain under a deck's middle stays 0.4 m under its
   underside, with a 1:1 bank out to 30 m beside it (a DSM that carries a
   viaduct loses its ridge), never touching a route's carved core.
 - **Checks** (bake errors): every route crossing under a deck it does not
-  ride keeps the headroom (tolerance 0.15 m); a route never passes through
-  the footprint of a deck it rides elsewhere while off the ground there (the
-  app finds the ridden deck by footprint). The report has `bridges` with the
-  pins, lifts and ridden spans.
+  ride keeps the headroom (tolerance 0.15 m). Walked every metre of the
+  line the rider follows (not only at the 10 m route samples), the surface
+  the app gives the rider is the ground (within 0.3 m) off the route's
+  ridden spans, and that span's own deck on them, never another ridden deck
+  nearer (the app finds the ridden deck by footprint). No deck kinks where
+  pins fight: a deck piece's ribbon never changes more than 2 m within 6 m
+  while standing over 1 m above the ground, unless the piece is one straight
+  line from end to end (it then carries no pin: a footbridge up a hillside
+  takes the hillside's grade). The report has `bridges` with the pins,
+  lifts and ridden spans.
 
 The renderer (`src/renderers/three/bridgeDecks.ts`, `Bridges.tsx`) draws
 each deck's ribbon at these heights and a concrete slab, parapets and the
@@ -819,7 +840,7 @@ GLO-30 and OSM as of 1 Nov 2026, with `bridges`.
 | Routes | 13.51 km and 8.11 km: max gap 0 m; grade Δ 0.339 / 0.362 pp; 100 % within 1 m of mapped roads; guide 100 % on drawn roads (37 m and 202 m eased, no joins) |
 | Heightfield vs Open-Meteo, 50 seeded points (seed 41505) | P1.3 v2: `standard` (steep fraction 0.0095), registered **0.52 m ≤ 6.00 m, PASS**; point RMS 2.02 m |
 | Heightfield range | 163.5–228.4 m; 16,591 nodes carved (max 25.1 m) |
-| Bridges | 222 decks, 12 pieces ridden, among them the Detroit–Superior Bridge (792 m, up to 18.6 m over the Flats) and West 3rd Street over the railway; the route passes under the Memorial Shoreway at six places and the Lakeland Freeway at two, each lifted onto 64–154 m approach ramps (lift ≤ 6.2 m) to keep 4.5 m headroom; 1,343 nodes lowered under decks (the Main Avenue viaduct's DSM ridge, max 14.1 m); 442 piers and abutment blocks |
+| Bridges | 222 decks, 11 pieces ridden, among them the Detroit–Superior Bridge (792 m, up to 18.6 m over the Flats) and West 3rd Street over the railway; the route passes under the Memorial Shoreway at six places (and at 2.62 km runs beside it on its own cycleway, never on the motorway deck) and the Lakeland Freeway at two, each lifted onto 64–154 m approach ramps (lift ≤ 6.2 m) to keep 4.5 m headroom; 1,343 nodes lowered under decks (the Main Avenue viaduct's DSM ridge, max 14.1 m); 442 piers and abutment blocks |
 | Content | 15,627 road pieces, 30 water areas + 6 waterways, 1,376 landcover areas, 16,014 buildings, 26,469 trees |
 
 Lake Erie is the world's largest water area (61.6 km² of lake polygon in the

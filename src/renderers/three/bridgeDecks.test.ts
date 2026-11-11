@@ -3,15 +3,21 @@
  * ground where it comes down to it, the ridden route stands on its decks and
  * only on those, and the structure is drawn where the deck stands clear.
  * Plus every shipped world baked with bridges: no route passes under a deck
- * with less than the bake's headroom, and every ridden deck carries the rider.
+ * with less than the bake's headroom, every ridden deck carries the rider,
+ * walked every half metre of the line the rider follows the rider is on the
+ * ground off its ridden spans and on that span's own deck on them, and no
+ * deck kinks where pins fight.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { readableWorldBundles } from '../../../tools/worldbake/worldBundles.mjs';
+import { sampleAppRoute } from '../../../tools/worldbake/routeCoverage.mjs';
+import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { Heightfield } from '@/lib/world/heightfield';
 import { loadWorld, type BridgesLayer, type LoadedWorld, type RoadsLayer } from '@/lib/world/loadWorld';
+import { createProjection } from '@/lib/world/projection';
 import {
   AT_GRADE_BLEND_M,
   alongVertices,
@@ -132,6 +138,51 @@ const BUNDLES = readableWorldBundles().filter((b: { manifestPath: string }) => {
 
 /** The bake's DECK_HEADROOM_M (tools/worldbake/bridges.mjs) less its 0.15 m tolerance. */
 const MIN_HEADROOM_M = 4.35;
+/** Off its ridden decks the rider never stands more than this above the ground (bake: footprintConflicts tolM). */
+const OFF_DECK_TOL_M = 0.3;
+/** The line the rider follows is walked this often, metres. */
+const WALK_M = 0.5;
+/** Pins fight on a deck: its ribbon changes more than KINK_RISE_M within KINK_RUN_M, standing over KINK_ABOVE_M up (bake: deckKinks). */
+const KINK_RUN_M = 6;
+const KINK_RISE_M = 2;
+const KINK_ABOVE_M = 1;
+const KINK_STRAIGHT_M = 0.15;
+
+/** The worst window of a deck piece by the bake's kink rule; null when straight end to end or no window qualifies. */
+function worstKink(p: DeckPiece, hf: Heightfield): { s: number; riseM: number; aboveM: number } | null {
+  const z0 = p.z[0];
+  const z1 = p.z[p.z.length - 1];
+  if (p.len <= 0 || Array.from(p.s).every((s, k) => Math.abs(p.z[k] - (z0 + ((z1 - z0) * s) / p.len)) <= KINK_STRAIGHT_M)) return null;
+  const n = Math.max(1, Math.ceil(p.len / 0.5));
+  const S: number[] = [];
+  const Z: number[] = [];
+  const A: number[] = [];
+  for (let k = 0; k <= n; k++) {
+    const s = (p.len * k) / n;
+    let j = 1;
+    while (j < p.s.length - 1 && p.s[j] < s) j++;
+    const t = p.s[j] > p.s[j - 1] ? Math.min(1, Math.max(0, (s - p.s[j - 1]) / (p.s[j] - p.s[j - 1]))) : 0;
+    const x = p.xy[2 * j - 2] + (p.xy[2 * j] - p.xy[2 * j - 2]) * t;
+    const y = p.xy[2 * j - 1] + (p.xy[2 * j + 1] - p.xy[2 * j - 1]) * t;
+    const z = alongVertices(p.s, p.z, s);
+    S.push(s);
+    Z.push(z);
+    A.push(z - hf.sampleHeight(x, y));
+  }
+  let worst: { s: number; riseM: number; aboveM: number } | null = null;
+  for (let a = 0; a < n; a++) {
+    let hi = -Infinity;
+    let lo = Infinity;
+    let above = -Infinity;
+    for (let b = a; b <= n && S[b] - S[a] <= KINK_RUN_M + 1e-9; b++) {
+      hi = Math.max(hi, Z[b]);
+      lo = Math.min(lo, Z[b]);
+      above = Math.max(above, A[b]);
+    }
+    if (above > KINK_ABOVE_M && hi - lo > KINK_RISE_M && (!worst || hi - lo > worst.riseM)) worst = { s: S[a], riseM: hi - lo, aboveM: above };
+  }
+  return worst;
+}
 
 describe('shipped worlds with bridges', () => {
   it('include the Ohio worlds', () => {
@@ -186,5 +237,48 @@ describe.each(BUNDLES.map((b: { id: string; dir: string }) => [b.id, b.dir]))('s
         }
       }
     }
+  }, 60_000);
+
+  it('walked every half metre of the line the rider follows: on the ground off its ridden spans, on that span’s own deck on them', async () => {
+    const w = await loadWorld(`/worlds/${id}/`, { fetch: diskFetch });
+    const pieces = deckPieces(w);
+    const hf = w.heightfield;
+    const ground = (x: number, y: number) => hf.sampleHeight(x, y);
+    const projection = createProjection(w.manifest.projection);
+    const bad: string[] = [];
+    for (const r of w.routes) {
+      const spans = w.bridges!.rides[r.id] ?? [];
+      const surface = rideSurface(w, hf, r.id, ground, pieces);
+      // The same reading over one span's decks only.
+      const own = spans.map((span) => rideSurface({ roads: w.roads, bridges: { ...w.bridges!, rides: { [r.id]: [span] } } }, hf, r.id, ground, pieces));
+      const line = sampleAppRoute(SCENIC_ROUTE_GEOMETRY[r.id].points, projection, WALK_M);
+      let off = { s: 0, m: 0 };
+      let on = { s: 0, m: 0 };
+      for (let i = 0; i < line.s.length; i++) {
+        const x = line.x[i];
+        const y = line.y[i];
+        const s = line.s[i];
+        const si = spans.findIndex((sp) => s >= sp.s0 && s <= sp.s1);
+        if (si < 0) {
+          const m = surface(x, y) - ground(x, y);
+          if (m > off.m) off = { s, m };
+        } else {
+          const m = Math.abs(surface(x, y) - own[si](x, y));
+          if (m > on.m) on = { s, m };
+        }
+      }
+      if (off.m > OFF_DECK_TOL_M) bad.push(`${r.id}: ${off.m.toFixed(2)} m above the ground at ${off.s.toFixed(1)} m, off its ridden spans`);
+      if (on.m > OFF_DECK_TOL_M) bad.push(`${r.id}: ${on.m.toFixed(2)} m off its span's own deck at ${on.s.toFixed(1)} m (another ridden deck is nearer)`);
+    }
+    expect(bad).toEqual([]);
+  }, 60_000);
+
+  it('has no deck where pins fight (its ribbon never changes more than 2 m within 6 m standing over 1 m up, unless straight end to end)', async () => {
+    const w = await loadWorld(`/worlds/${id}/`, { fetch: diskFetch });
+    const kinks = [...deckPieces(w)]
+      .map(([road, p]) => [road, worstKink(p, w.heightfield)] as const)
+      .filter(([, k]) => k)
+      .map(([road, k]) => `road ${road}: ${k!.riseM.toFixed(2)} m within 6 m at ${k!.s.toFixed(1)} m, ${k!.aboveM.toFixed(2)} m up`);
+    expect(kinks).toEqual([]);
   }, 60_000);
 });
