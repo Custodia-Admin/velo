@@ -11,7 +11,7 @@ Card t_f684b0be, a follow-up to the PR #42 review (VERDICT APPROVE-WITH-NITS @f6
 4. **The fill probe sees short pieces** (test side).
 5. **The bake reports the final shift.** That is the Hausdorff distance between each moved road's mapped and shipped line, not the first-pass demand. The report's new `routeFit.bent[]` also carries each moved road's mapped polyline, so `routeFit.test.ts` can compare it with the bundle.
 
-**Before** is main with PR #42's bundle (f64dcc8). **After** is this branch. Both use one build (`index-UViO8Y6E.js`); only `worlds/*/roads.json.gz` and `manifest.json` are swapped. Shots are from cat-bed (gl-egl iGPU), world renderer at medium, noon, clear, with the rider held by `__veloWorldLight.place(d)`.
+**Before** is main with PR #42's bundle (f64dcc8). **After** is this branch. Both use one build (`index-UViO8Y6E.js`); only `worlds/*/roads.json.gz` and `manifest.json` are swapped. Shots are from the test host (gl-egl iGPU), world renderer at medium, noon, clear, with the rider held by `__veloWorldLight.place(d)`.
 
 ## What changed in the bundles
 
@@ -33,7 +33,7 @@ Lugano's 20 moved roads break down as:
 
 Perugia's 21 are 17 paths, footways and one cycleway bent under 1.6 km of route, plus 4 road ends grown.
 
-Buildings, routes, terrain, water, landcover and vegetation are byte-identical to main. Each world was baked twice on cat-bed, and the two bakes are byte-identical. Lugano is 7.12 MB brotli and Perugia 4.58 MB.
+Buildings, routes, terrain, water, landcover and vegetation are byte-identical to main. Each world was baked twice on the test host, and the two bakes are byte-identical. Lugano is 7.12 MB brotli and Perugia 4.58 MB.
 
 ## Plan views (mapped | PR #42 | this branch)
 
@@ -64,7 +64,7 @@ Pixel difference before → after (fraction of pixels changed by more than 30 in
 
 At Locarno 2,060 m in chase, route-paint pixels behind the rider are equal or higher after in every 100 px column.
 
-## Fps (cat-bed, gl-egl iGPU, medium, 1920×1080, Tiber park, interleaved)
+## Fps (test host, gl-egl iGPU, medium, 1920×1080, Tiber park, interleaved)
 
 Three before/after pairs, each with two rounds of HUD, HUD-glass and canvas windows. Every window held 60 fps, p95 16.7–16.8 ms, 0 frames over 20 ms, before and after. The ≥ 58 HUD-on budget holds.
 
@@ -79,7 +79,7 @@ Three before/after pairs, each with two rounds of HUD, HUD-glass and canvas wind
 
 The synthetic tests pin each rule on a small fixture.
 
-The mutation list is `~/.hermes/handoffs/velo/t_f684b0be/mutations.py`, run in a second detached worktree. Code mutations re-fit both worlds with the mutated code, which reproduces the cat-bed bake byte for byte, so the shipped pins bite too. Results: 35 of 36 killed. Killed:
+The mutation list is `mutations.py` (kept outside the repo), run in a second detached worktree. Code mutations re-fit both worlds with the mutated code, which reproduces the bake-host bake byte for byte, so the shipped pins bite too. Results: 35 of 36 killed. Killed:
 - F1–F9 (the N3 list);
 - the reviewer's X1a–X4, including X3b, the 3 m fill;
 - PR #42's own bundles, Lugano (D1) and Perugia (D2), which fail paint, overlap and junction pins;

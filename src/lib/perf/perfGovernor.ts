@@ -5,7 +5,7 @@ import type * as Cesium from 'cesium';
  *
  * The quality tiers (lib/graphicsQuality) are static: the GPU-based picker
  * puts discrete cards on 'high', but even an RTX 5090 misses 60 fps at
- * 1080p with the full photoreal scene (measured on cat-bed, CDP A/B):
+ * 1080p with the full photoreal scene (measured on the test host, CDP A/B):
  * the frame budget goes into Cesium draw-command processing — the sun
  * shadow pass roughly doubles per-frame command work, and the tileset /
  * globe screen-space-error budgets set how many commands exist at all.
@@ -101,7 +101,7 @@ const STEPS: Step[] = [
   {
     // Terrain quadtree detail (the 'low' tier value). Under the photoreal
     // drape the globe surface is barely visible; one of the biggest single
-    // wins in the cat-bed A/B.
+    // wins in the test-host A/B.
     name: 'globe-sse-4',
     apply: (d) => {
       const g = d.viewer.scene.globe;

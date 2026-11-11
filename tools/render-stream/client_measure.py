@@ -5,8 +5,8 @@ from playwright.sync_api import sync_playwright
 label = sys.argv[1]; secs = int(sys.argv[2]); mode = sys.argv[3] if len(sys.argv) > 3 else 'client'
 room = sys.argv[4] if len(sys.argv) > 4 else 'a'
 headed = len(sys.argv) > 5 and sys.argv[5] == '1'
-base = sys.argv[6] if len(sys.argv) > 6 else 'https://cat-bed.tail6f8715.ts.net:8443'
-pw = subprocess.check_output(['ssh', 'cat-bed', 'cut -d= -f2 ~/velo-stream/auth.conf']).decode().strip()
+base = sys.argv[6] if len(sys.argv) > 6 else os.environ['RENDER_URL']
+pw = subprocess.check_output(['ssh', os.environ['RENDER_HOST'], 'cut -d= -f2 ~/velo-stream/auth.conf']).decode().strip()
 url = f'{base}/velo-relay/client.html?room={room}' if mode == 'client' else f'{base}/'
 here = pathlib.Path(__file__).parent
 measure = (here / 'www' / 'measure.js').read_text()

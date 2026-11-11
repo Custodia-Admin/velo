@@ -24,7 +24,7 @@ height (target), the smallest font and target inside the disclosure, the rows
 
 BEFORE=1 shoots only the page foot of a pre-change build (e.g. BASE=main's
 preview) as OUT/before-credits-<vp>[-night].jpg. MOCKUP=1 shoots only the
-mockup. OUT defaults to ~/.hermes/cache/scratch/home-credits; ONLY=1440,390
+mockup. OUT defaults to $TMPDIR/home-credits; ONLY=1440,390
 and THEMES=day narrow the run.
 """
 from __future__ import annotations
@@ -32,6 +32,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import tempfile
 import sys
 from pathlib import Path
 
@@ -40,7 +41,7 @@ import common  # noqa: E402
 from PIL import Image, ImageDraw  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
-OUT = Path(os.environ.get("OUT", Path.home() / ".hermes/cache/scratch/home-credits"))
+OUT = Path(os.environ.get("OUT", Path(tempfile.gettempdir()) / "home-credits"))
 MOCKUP = common.REPO / "docs/design/mockups/v2-home-credits.html"
 BEFORE = os.environ.get("BEFORE") == "1"
 MOCKUP_ONLY = os.environ.get("MOCKUP") == "1"

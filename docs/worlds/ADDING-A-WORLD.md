@@ -1,8 +1,11 @@
 # Adding a world
 
-How to bake a place as a three.js world and ship it without growing the repo.
-Chengdu Luxe Lakes (card t_55f6c646, blueprint §P3.1) was the first world done
-this way. The other wishlist worlds follow the same steps.
+How to bake a place (your hometown, say) as a three.js world that rides with
+no token. Everything comes from open data and needs no API key: OpenStreetMap
+for the roads, water, buildings and trees, Copernicus GLO-30 or the AWS
+terrain tiles for the ground, and OSRM for routes that aren't a signed cycle
+route. Chengdu Luxe Lakes (blueprint §P3.1) was the first world done this way;
+Perugia and Lugano ship in the repo.
 
 The details are in [WORLD-FORMAT.md](WORLD-FORMAT.md) (bundle, recipe, bake,
 terrain gate) and [DESTINATIONS.md](DESTINATIONS.md) (how Home shows a place).
@@ -42,7 +45,10 @@ from `chengdu-luxelakes.json`:
 - `osmDate`: a fixed date, so a clean-cache bake downloads the same OSM.
 - `routes`, `moods`, `defaultMood` (a mood from `skyModel.ts`), and
   `"validation": { "sample_seed": <int> }`.
-- `"host": "remote"`: the bundle goes to R2, not to `public/worlds/`.
+- `"host": "remote"`: the bundle goes to an R2 bucket (step 4), not to
+  `public/worlds/`. Leave it out to ship the bundle with the app in
+  `public/worlds/<id>/`, like Perugia and Lugano. That is the simplest choice
+  for your own hometown in a fork; keep it at most 8 MB brotli.
 - `"routeCredits": true`.
 - `"flatLakes": true` if the place has lakes dug after 2015. GLO-30 was flown
   in 2011–2015, so it still carries the land those lakes were dug from, and
@@ -80,13 +86,24 @@ from `chengdu-luxelakes.json`:
   carries it on past the edge to the far plane (`seaApron`). Recipes without
   the flag fetch and bake exactly as before.
 
-## 3. Bake on cat-bed
+## 3. Bake
 
-Heavy work runs on cat-bed, never on the laptop. Copy the tree there and bake:
+The bake needs Node ≥ 22.18 (TypeScript type stripping) and nothing else: no
+npm packages, no keys.
 
 ```bash
-rsync -a --exclude node_modules --exclude .git --exclude dist ./ cat-bed:velo-bake/<card>/repo/
-ssh cat-bed 'cd ~/velo-bake/<card>/repo && node tools/worldbake/bake.mjs <id> --cache ~/velo-bake/repo/tools/worldbake/cache'
+node tools/worldbake/bake.mjs <id>
+```
+
+A clean bake of a Perugia-sized world takes 5–6 minutes, nearly all of it
+Overpass downloads. They are cached under `tools/worldbake/cache/<id>/`
+(git-ignored), so a re-bake takes about 20 seconds. To keep a laptop free,
+bake on another machine: copy the tree there, bake, and copy the outputs
+listed below back.
+
+```bash
+rsync -a --exclude node_modules --exclude .git --exclude dist ./ <bake-host>:velo-bake/repo/
+ssh <bake-host> 'cd ~/velo-bake/repo && node tools/worldbake/bake.mjs <id>'
 ```
 
 To check determinism, run the same bake once more with `--out <dir> --no-docs`.
@@ -108,9 +125,10 @@ names. Chengdu's loops are like this: its only OSM places are districts.
 `threePlayLayer.test.ts` walks every catalog world, so a new world needs no
 test change for this.
 
-Copy these back:
+The bake writes (copy these back if it ran elsewhere):
 
-- `tools/worldbake/remote/<id>/` (the manifest and the layer files);
+- `public/worlds/<id>/`, or `tools/worldbake/remote/<id>/` for a remote world
+  (the manifest and the layer files);
 - `tools/worldbake/reports/<id>.json`;
 - the recipe, which now has its `validation` block;
 - `docs/worlds/CREDITS.md`;
@@ -132,7 +150,9 @@ node tools/worldbake/publish.mjs <id> --dry-run   # shows the target and the fil
 node tools/worldbake/publish.mjs <id>
 ```
 
-- The bundle goes to `worlds/<id>/<hash>/` in the public bucket `velo-worlds`.
+- The bundle goes to `worlds/<id>/<hash>/` in the public bucket `velo-worlds`
+  (in a fork: your own bucket with `--bucket <name> --public-url <base>`, and
+  the same base in `DEFAULT_REMOTE_WORLDS_URL` below).
 - `<hash>` is the first 16 hex digits of the manifest's SHA-256. The manifest
   pins the SHA-256 of every file, so the hash names the whole bundle.
 - A re-bake that changes any byte gets a new directory. A published URL never
@@ -162,8 +182,8 @@ The app reads remote worlds from `DEFAULT_REMOTE_WORLDS_URL` in
 `tools/worldbake/worldBundles.mjs`, and `worldCache.test.ts` pins the two
 together.
 
-- **A different host.** For a household mirror (e.g. cat-bed's nginx,
-  `~/velo-serve/worlds/` with the same `<id>/<hash>/` layout), build with
+- **A different host.** For a self-hosted mirror (e.g. an nginx serving
+  `<root>/worlds/` with the same `<id>/<hash>/` layout), build with
   `VITE_WORLDS_REMOTE_URL=<base>/worlds/`. Worlds in `public/worlds/` are not
   affected.
 - **CSP.** The origin has to be in `connect-src` in `vercel.json`, and a test
@@ -217,14 +237,15 @@ fails instead of being skipped.
   - on a coast world, that the coast reads as coast: pick spots where the
     route runs within ~100 m of the water (a wide beach or a row of hotels
     hides the sea from the road, as it does in life).
-- Measure fps with the HUD on, at medium, on cat-bed's iGPU
-  (`scripts/world-hud-fps.py`). The bar is ≥ 58 fps. Other workers share
-  that iGPU: check that no other `world-hud-fps.py` or
-  `route-clearance-shots.py` runs before and during a measurement (cat-bed's
-  qemu guests also swing it; note `/proc/loadavg`). Buildings are what a
-  dense city costs: each tier draws at most `buildingTris` building
-  triangles, nearest chunks first (`quality.ts`), so a metro world stops
-  short of `buildingM`. If a city's footprints are surveyed to the corner
-  (Los Angeles County: 9.6 vertices a building, against Lugano's 6.4), also
-  set `"buildingSimplifyM": 1` in the recipe.
+- Measure fps with the HUD on, at medium, on an Intel iGPU (the reference is
+  an Arrow Lake iGPU through ANGLE GL-EGL; `scripts/world-hud-fps.py`). The
+  bar is ≥ 58 fps. Measure with nothing else on that GPU: no other
+  `world-hud-fps.py` or `route-clearance-shots.py` before or during a run.
+  Note `/proc/loadavg`, and interleave with a reference world (Perugia reads
+  60). Buildings are what a dense city costs: each tier draws at most
+  `buildingTris` building triangles, nearest chunks first (`quality.ts`), so
+  a metro world stops short of `buildingM`. Past `buildingDetailM`, chunks
+  draw boxes with a plain material and no shadows. If a city's footprints are
+  surveyed to the corner (Los Angeles County: 9.6 vertices a building, against
+  Lugano's 6.4), also set `"buildingSimplifyM": 1` in the recipe.
 - Add a section for the world to WORLD-FORMAT.md with the bake figures.

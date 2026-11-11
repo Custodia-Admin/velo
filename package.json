@@ -1,15 +1,18 @@
 {
-  "name": "globeride",
+  "name": "velo",
   "version": "0.1.0",
   "private": false,
   "license": "MIT",
   "type": "module",
-  "description": "Open-source browser-based virtual cycling simulator. Ride anywhere on Earth with real-world GPX routes, photorealistic 3D terrain, and live FTMS smart trainer integration.",
-  "author": "Mason Wyatt",
-  "homepage": "https://github.com/masonwyatt23/globeride",
+  "description": "Token-free indoor cycling in the browser: ride real places as baked 3D worlds with a Web Bluetooth smart trainer. A fork of GlobeRide.",
+  "author": "Federico Brooks",
+  "contributors": [
+    "Mason Wyatt (GlobeRide, https://github.com/masonwyatt23/globeride)"
+  ],
+  "homepage": "https://github.com/Custodia-Admin/velo",
   "repository": {
     "type": "git",
-    "url": "https://github.com/masonwyatt23/globeride.git"
+    "url": "https://github.com/Custodia-Admin/velo.git"
   },
   "keywords": [
     "cycling",
@@ -21,8 +24,15 @@
     "web-bluetooth",
     "kickr",
     "smart-trainer",
-    "pwa"
+    "pwa",
+    "indoor-cycling",
+    "threejs",
+    "openstreetmap",
+    "token-free"
   ],
+  "bugs": {
+    "url": "https://github.com/Custodia-Admin/velo/issues"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

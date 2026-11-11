@@ -3,6 +3,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_CESIUM_ION_TOKEN?: string;
+  /** "1": label the featured worlds "Home · …"/"Hometown · …" (a household's own build only; ADR-002). */
+  readonly VITE_HOUSEHOLD_LABELS?: string;
 
   // AI Workout Designer
   /** 'xai' | 'ollama' | 'auto' — default 'auto' */

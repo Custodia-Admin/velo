@@ -1,7 +1,8 @@
 /**
  * Home's scenic content: Today's ride, then the sections generated from the
- * destination manifests (src/lib/world/destinations/*.json): "Home · Perugia",
- * "Hometown · Lugano", then "Places we want to go". This file holds no list
+ * destination manifests (src/lib/world/destinations/*.json): "Perugia",
+ * "Lugano" (labelled "Home · …"/"Hometown · …" in a household build), then
+ * "Places we want to go". This file holds no list
  * of places or routes; adding a destination manifest adds its section/tiles.
  * Lazy-loaded by Home so the route geometry stays off the critical path.
  */

@@ -10,7 +10,7 @@ manifest is committed.
 | Gate (P1.3 v2, GLO-30) | Berkeley: registered RMS **0.41 m**, PASS. Santa Monica: **0.55 m**, PASS. Puerto Vallarta: **0.84 m**, PASS. The bound is 6 m (bake log `validate (P1.3 v2)`). |
 | Size (brotli / gzip as shipped) | Berkeley 0.79 / 1.01 MB. Santa Monica 3.80 / 4.83 MB. Puerto Vallarta 1.21 / 1.56 MB. All are ≤ 8 MB. |
 | First ride ≤ 8 MB, second ride offline | Covered by `e2e/remote-world.spec.ts`, which runs in CI on every push (smoke-ride). For each world it rides from the Home card and counts the world bytes. It then rides again with the browser offline and checks that no world request reaches the network. |
-| Deterministic | All on cat-bed (node 26). Each final bake was run twice to `--out`, then once for real: Santa Monica and Puerto Vallarta gave all 8 files identical, and the real bake matched (`beachbake.log`). Berkeley is unchanged since `bakedet3.log`, where all 24 files matched. The pond fix re-bakes Berkeley, Perugia, Lugano and Chengdu byte-identical to their committed bundles (`pondbake.log`). Across machines (laptop on node 24, cat-bed on node 26), every layer's content matches except `roads.json` for Santa Monica and Puerto Vallarta, because the route fit's float steps differ between V8 versions. Publish from cat-bed only. |
+| Deterministic | All on the bake host (node 26). Each final bake was run twice to `--out`, then once for real: Santa Monica and Puerto Vallarta gave all 8 files identical, and the real bake matched. Berkeley is unchanged since its last same-host run, where all 24 files (three worlds) matched. The pond fix re-bakes Berkeley, Perugia, Lugano and Chengdu byte-identical to their committed bundles. Across machines (node 24 vs node 26), every layer's content matches except `roads.json` for Santa Monica and Puerto Vallarta, because the route fit's float steps differ between V8 versions. Publish from the bake host only. |
 | Home | All three worlds appear under "Places we want to go", ahead of the map rides, with world weather and no "Map view" badge. Each rides the baked world by default; photoreal stays opt-in. On a place with two rides, each card names its route (`home-wishlist-1440.jpg`, `home-wishlist-390.jpg`). |
 | Ride shots | Taken on the final build. `sheet-<route>-1280.jpg` holds 3 spots × noon and golden hour at 1280×648@2; `sheet-<route>-390.jpg` holds the same spots at 390×844@2. All 72 frames: the rider is on the drawn road, there is no void, and no label overlaps. See the notes below. |
 | fps (≥ 58, HUD on, medium) | Every coast route: **59.9–60.0**. See below. |
@@ -44,9 +44,9 @@ The route fit bends a few roads and adds **no join pieces** in any of the three 
 - **Nuevo Vallarta–Bucerías.** Resorts stand between the road and the beach, so the sea shows only on Bucerías' last kilometre.
 - **Golden hour on the bay and the Pacific.** These coasts face west, so a low sun over the water blooms the left of some frames (Richmond 4000, Bucerías 9450). That is the sun, not a fault.
 
-## fps (cat-bed Intel iGPU, ANGLE gl-egl, HUD on, medium, vsync)
+## fps (the test host's Intel iGPU, ANGLE gl-egl, HUD on, medium, vsync)
 
-Other workers' fps runs share cat-bed's iGPU, and its sentinel-ci qemu guests swing the CPU: Perugia on main reads 20 fps at load 8. Every number here comes from a run where no other worker's fps or shot driver was alive. The runs are interleaved with main (ce60b13, `index-C7f2mmhH.js`) on the same box. Runs from load spikes (1-minute load 6–10, where main dropped too) are left out. Each figure is the long ride from the route start: 30 s, or 60 s where noted.
+Other fps runs share the test host's iGPU, and other VMs on the host swing its CPU: Perugia on main reads 20 fps at load 8. Every number here comes from a run where no other fps or shot driver was alive. The runs are interleaved with main (ce60b13, `index-C7f2mmhH.js`) on the same box. Runs from load spikes (1-minute load 6–10, where main dropped too) are left out. Each figure is the long ride from the route start: 30 s, or 60 s where noted.
 
 | Route | Final build | main ce60b13 |
 |---|---|---|
@@ -67,9 +67,9 @@ Lugano is not one of these worlds. It is listed because it shows the far-box cha
 
 The uncapped breakdowns come from `catgroups_probe.py`, which hides a group, or the boxes, near or far chunks, and swaps materials, interleaved in one session.
 
-Scripts are in `~/.hermes/handoffs/velo/t_4ee1b9d4/`:
+The probe scripts are kept outside the repo:
 
-- `catfps_final.sh`: capped HUD fps, interleaved with main. A run is retried if another worker's driver overlapped it.
+- `catfps_final.sh`: capped HUD fps (`scripts/world-hud-fps.py`), interleaved with main. A run is retried if another fps or shot driver overlapped it.
 - `catgroups_probe.py`: uncapped fps by group, box/detail/distance and material.
-- `run_shots_final2.sh` and `make_sheets.py`: ride shots and sheets.
-- `home/home_wishlist.py`: the Home shots.
+- `run_shots_final2.sh` (`scripts/route-clearance-shots.py`) and `make_sheets.py`: ride shots and sheets.
+- `home_wishlist.py`: the Home shots.

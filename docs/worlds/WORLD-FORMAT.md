@@ -353,7 +353,7 @@ node tools/worldbake/bake.mjs perugia              # cached inputs
 node tools/worldbake/bake.mjs perugia --clean      # re-download everything first
 ```
 
-Run bakes on the bake host (cat-bed), not the laptop: copy the repo there,
+Big bakes can run on a separate bake host instead of a laptop: copy the repo there,
 bake, copy `public/worlds/<id>/` (or `tools/worldbake/remote/<id>/`),
 `tools/worldbake/reports/<id>.json`,
 `tools/worldbake/worlds/<id>.json` (its `validation` block) and
@@ -386,7 +386,7 @@ keeps its previous block.
   copies the world's bbox, routes, moods, towns and credits into its
   destination manifest (`docs/worlds/DESTINATIONS.md`).
 
-Perugia on cat-bed (Node 26). The first bake (31 Oct 2026) ran from a clean
+Perugia on the bake host (Node 26). The first bake (31 Oct 2026) ran from a clean
 cache; the shipped bundle was re-baked from that cache on 11 Nov 2026, with
 `closeLoop`:
 
@@ -478,7 +478,7 @@ GLO-30 details, checked against the bucket and the tiles' own tags:
   road itself, but expect towns and forests to stand a few metres proud of
   the Terrain Tiles version.
 
-Checks on cat-bed, 4 Nov 2026 (Node 26):
+Checks on the bake host, 4 Nov 2026 (Node 26):
 
 | Check | Result |
 | --- | --- |
@@ -491,7 +491,7 @@ Checks on cat-bed, 4 Nov 2026 (Node 26):
 
 Open-Meteo answers with the nearest north-west GLO-90 node, not an
 interpolated value, so a sharper DEM scores *worse* at the sample point and
-better at the node. The Lugano experiment (`cat-bed:~/velo-bake/glo30.py`) read
+better at the node. The Lugano experiment (a throwaway `glo30.py` on the bake host) read
 the tiles as PixelIsArea, which put it half a pixel (~15 m) off. Its 6.53 m
 "GLO-30 at the GLO-90 node" figure becomes 1.71 m on the tiles' real
 PixelIsPoint grid (and 16.58 m → 20.63 m at the points).
@@ -596,7 +596,7 @@ and `scenic-locarno-brissago`, about 22 km apart across Monte Ceneri. The other
 Ticino and Lombardy routes (Magadino plain, Valle Maggia, Lake Varese, Lake
 Como) are 20–45 km further out; one world reaching them would pass 2048
 nodes a side and the 8 MB budget, so they stay map rides in the Lugano
-destination until they get worlds of their own. Baked 4 Nov 2026 on cat-bed
+destination until they get worlds of their own. Baked 4 Nov 2026 on the bake host
 from Terrain Tiles (EU-DEM), re-baked 6 Nov 2026 from Copernicus GLO-30
 (`"dem": { "source": "copernicus-glo30" }`, card t_49b58e90). The shipped
 bundle is the GLO-30 one:
@@ -689,7 +689,7 @@ The first remote world (card t_55f6c646): 8.8 × 12.9 km at 12 m (`x
 −4400…4408`, `y −6400…6500` around 30.432° N 104.075° E, 735 × 1076 nodes) in
 Tianfu New Area, holding the Luxe Lakes (Luhu) loop and Xinglong Lake's signed
 clockwise cycle loop (OSM relation 18146670), 11 km apart north to south.
-Baked 11 Nov 2026 on cat-bed from Copernicus GLO-30 and OSM as of 1 Nov 2026,
+Baked 11 Nov 2026 on the bake host from Copernicus GLO-30 and OSM as of 1 Nov 2026,
 published as `worlds/chengdu-luxelakes/80e66bc0c3354d4b/`.
 
 | Check | Result |

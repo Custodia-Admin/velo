@@ -63,6 +63,53 @@ jobs:
             test-results/
           retention-days: 7
 
+  # A stranger's first run (blueprint §P4.1, ADR-002): a fresh clone of this
+  # commit from GitHub with no env file, no npm cache and no remote worlds
+  # downloaded, then the README quick start: npm ci, check, build, and a
+  # token-free smoke ride on the build.
+  fresh-clone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Clone from GitHub
+        env:
+          REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          git clone --filter=blob:none --no-checkout "https://github.com/$REPO.git" "$RUNNER_TEMP/velo"
+          git -C "$RUNNER_TEMP/velo" checkout --detach "$SHA"
+          git -C "$RUNNER_TEMP/velo" log -1 --oneline
+      - name: No env file, no VITE_ variables
+        working-directory: ${{ runner.temp }}/velo
+        run: |
+          stray=$(ls -A | grep -E '^\.env($|\.)' | grep -vE '\.example$' || true)
+          if [ -n "$stray" ]; then echo "::error::env file in a fresh clone: $stray"; exit 1; fi
+          if env | grep -q '^VITE_'; then echo "::error::VITE_ variables are set"; exit 1; fi
+      - run: npm ci
+        working-directory: ${{ runner.temp }}/velo
+      - run: npm run check
+        working-directory: ${{ runner.temp }}/velo
+      - run: npm run build
+        working-directory: ${{ runner.temp }}/velo
+      - run: npx playwright install chromium
+        working-directory: ${{ runner.temp }}/velo
+      - run: timeout 300 npx playwright install-deps chromium || echo "::warning::playwright install-deps failed (Ubuntu apt mirrors unreachable?); using the runner image's libraries"
+        working-directory: ${{ runner.temp }}/velo
+      - name: Token-free smoke ride
+        working-directory: ${{ runner.temp }}/velo
+        run: npx playwright test e2e/smoke-ride.spec.ts --project=chromium --grep "token-free smoke ride"
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fresh-clone-report
+          path: |
+            ${{ runner.temp }}/velo/playwright-report/
+            ${{ runner.temp }}/velo/test-results/
+          retention-days: 7
+
   # Journey mode (blueprint §P2.3): the ride in a Document Picture-in-Picture
   # window keeps riding and recording while its tab is in the background.
   # Headed Chrome (no headless PiP window) under xvfb.

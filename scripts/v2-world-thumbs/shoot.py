@@ -15,7 +15,7 @@ Usage (from the repo root):
 
 What it does:
   * three.js is NOT a repo dependency. It is fetched once into a scratch dir
-    (default ~/.hermes/cache/scratch/v2-thumbs/three, override with THREE_DIR)
+    (default $TMPDIR/v2-thumbs/three, override with THREE_DIR)
     with `npm install --prefix <dir> three@0.170.0` and served locally, so
     nothing loads from a CDN at render time.
   * Serves a temp dir of symlinks (tool/ -> this folder, worlds/ -> public/worlds,
@@ -73,7 +73,7 @@ except ImportError:
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
-SCRATCH = Path(os.environ.get("THUMBS_SCRATCH", Path.home() / ".hermes/cache/scratch/v2-thumbs"))
+SCRATCH = Path(os.environ.get("THUMBS_SCRATCH", Path(tempfile.gettempdir()) / "v2-thumbs"))
 THREE_VERSION = "0.170.0"
 GPU_FLAGS = ["--use-angle=vulkan", "--enable-features=Vulkan", "--enable-gpu", "--ignore-gpu-blocklist"]
 MAX_BYTES = 350 * 1024

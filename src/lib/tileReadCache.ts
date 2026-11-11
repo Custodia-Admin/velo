@@ -7,7 +7,7 @@
  * ModelReader.readAttributeAsTypedArray / readIndicesAsTypedArray ->
  * Buffer.getBufferData; on WebGL 2 the tileset keeps no CPU copy) and then
  * walks the triangles. The copies are three quarters of a read's cost (about
- * 7 ms on cat-bed's iGPU), and the sight reads spots a few metres apart in the
+ * 7 ms on the test host's iGPU), and the sight reads spots a few metres apart in the
  * same few tiles ten times a second: on the Lugano shore 98.6 % of the copies
  * were of a tile primitive copied before.
  *

@@ -54,11 +54,11 @@ were 5–9 px off at close.
   heading, `lookAheadM`, heading + framing passed to `applyFollowCam`, the filter reset on route
   change, and `place()` holding `heldRiderPose`.
 - `rideHeading.test.ts` (`stepDrawnHeading`), `rideSim.test.ts` (`heldRiderPose`).
-- Mutations: 33 entries (`~/.hermes/handoffs/velo/t_215ac171/mutations.py`). 31 were killed in the
+- Mutations: 33 entries (`mutations.py`, kept outside the repo). 31 were killed in the
   run; the two survivors (the ±180° wrap and the non-finite guard) were pinned afterwards and both
   are killed now.
 
-## Live: Lugano–Melide 1200 m (cat-bed EGL; every rider material magenta; before = #83 head ef4bbeb)
+## Live: Lugano–Melide 1200 m (test host EGL; every rider material magenta; before = #83 head ef4bbeb)
 
 Photoreal 1 m point minus the world one (dx, dy), and the photoreal box minus the world GLB's
 projected vertex box (left, top, right, bottom), CSS px:
@@ -88,7 +88,7 @@ Green box = world GLB vertices projected, yellow = magenta pixels, white tick = 
 
 The world bbox has no curated non-world route, so these compare the live photoreal frame with the
 world rig's maths (`chaseRig.cameraTarget`) for the same held pose
-(`~/.hermes/handoffs/velo/t_215ac171/cc_compare.scratch.test.ts`).
+(`cc_compare.scratch.test.ts`, kept outside the repo).
 
 | spot | | world maths 1 m pt | after (live) | before (live) |
 |---|---|---|---|---|
@@ -114,7 +114,7 @@ photoreal's flat pitch kept it 43 / 14 px clear. At 390 close the wheel reaches 
 
 Composites: `photoreal-chase-aim/cc-*.jpg` (before | after). Green X = the world rig's maths.
 
-## Probes (before vs after, interleaved, cat-bed)
+## Probes (before vs after, interleaved, test host)
 
 - **Grey transient** (`sideprof.py`, Lugano–Melide, 1440×900, 150 s each): chase had 0 flat windows on both builds (8,352 / 8,340 frames). sideTracking had 1 one-frame flat window before and 0 after.
 - **`ride-surface-probe.py`**, Trasimeno + Santa Monica + Cuyahoga at 1 / 3 / 5 km: the per-spot numbers are identical on both builds. Cuyahoga 3 / 5 km fails on both (the I-80 viaduct, #76).
@@ -126,7 +126,7 @@ Composites: `photoreal-chase-aim/cc-*.jpg` (before | after). Green X = the world
   - **Merge after #84.**
 - **Start probe** (`ride-surface-probe.py`, Santa Monica start). On the stack: before 2/0 under-samples, after 0/1. On the #84 merges ×3: 0/0/0 vs 0/1/0. The one flagged sample has the rider on the mesh top (+0.02 m) at the 36 m step, and the main view's ray to the wheels meets a mesh face 3.7 m in front of them, so it is not a sink.
 
-Data, probes and scripts: `~/.hermes/handoffs/velo/t_215ac171/`. The README there covers `out/`, `compare/`, `mutations.py`, `cc_compare.scratch.test.ts`, `startcam.py` and `underview_84.sh`.
+Data, probes and scripts: a scratch directory outside the repo. The README there covers `out/`, `compare/`, `mutations.py`, `cc_compare.scratch.test.ts`, `startcam.py` and `underview_84.sh`.
 
 ## Rework (review R1, card t_e1563c34): the look height doesn't nod with the stored profile
 
@@ -162,7 +162,7 @@ profile's double integral, flat beyond the ends, walks only the points in the wi
   rise is closer than the raw one: Lugano 1170–1250 rms 0.12 m / max 0.17 m (raw 0.27 / 0.63),
   Valle Maggia 5100–5300 rms 0.51 / max 0.81 m (raw 0.53 / 0.87).
 
-**Live, cat-bed EGL, interleaved** (`nodprobe.py`, `place()` at 8 m/s; x = the placed distance).
+**Live, test-host EGL, interleaved** (`nodprobe.py`, `place()` at 8 m/s; x = the placed distance).
 "2 s" = worst swing of the 1 m point in any 2 s; "stretch" = max − min over the 300 m; "resid" =
 max − min of live − maths prediction for that build.
 
@@ -203,11 +203,11 @@ the maths predicts (22.6 px; a half-window of 60 or 200 m gives 22.5 / 21.4 px).
   gives 38.6 / 50.3 and 173 / 207 px there.
 - `chaseCam.wiring.test.ts`: the view feeds `sceneEle(chaseLookRise(r, pose.distance,
   aheadDistance))`, and `ahead.ele - sampled.ele` is gone.
-- Mutations (`~/.hermes/handoffs/velo/t_e1563c34/mutations.py`: t_215ac171's 33 + 16 new):
+- Mutations (`mutations.py`, kept outside the repo: t_215ac171's 33 + 16 new):
   **49/49 killed** on 174f8e8, in a second detached worktree. The helper going back to the raw
   difference (window 0) fails both nod tests (38.6 and 173 px); the view going back to
   `ahead.ele - sampled.ele` fails the wiring pin. On the #87 merge, 47/47 applicable (2 anchors that
   #87 rewrote are skipped) and #87's own 15/15.
 
 Plot (before/after, live): `photoreal-chase-aim/nod-valle-maggia-como.png`. Data and scripts:
-`~/.hermes/handoffs/velo/t_e1563c34/`.
+a scratch directory outside the repo.

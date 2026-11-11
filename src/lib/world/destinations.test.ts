@@ -6,7 +6,7 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SCENIC_ROUTES } from '@/lib/scenicRoutes';
 import {
@@ -15,6 +15,7 @@ import {
   destinationForRoute,
   destinationLabel,
   homeSections,
+  householdLabels,
   loadDestinations,
   validateDestination,
   type Destination,
@@ -152,9 +153,11 @@ describe('destinations ↔ baked worlds', () => {
 });
 
 describe('Home sections are generated from the manifests', () => {
-  it('Home · Perugia, Hometown · Lugano, then Places we want to go', () => {
-    const s = homeSections();
-    expect(s.map((x) => x.title)).toEqual(['Home · Perugia', 'Hometown · Lugano', 'Places we want to go']);
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('Perugia, Lugano, then Places we want to go: the public build labels no place as home', () => {
+    const s = homeSections(DESTINATIONS, false);
+    expect(s.map((x) => x.title)).toEqual(['Perugia', 'Lugano', 'Places we want to go']);
     expect(s.map((x) => x.role)).toEqual(['home', 'hometown', 'wishlist']);
     // Every route is on Home once; world routes lead their section.
     const all = s.flatMap((x) => x.entries.map((e) => e.routeId));
@@ -163,6 +166,25 @@ describe('Home sections are generated from the manifests', () => {
       const flags = sec.entries.map((e) => e.hasWorld);
       expect(flags, sec.id).toEqual([...flags].sort((a, b) => Number(b) - Number(a)));
     }
+  });
+
+  it('a household build labels the featured worlds Home · Perugia and Hometown · Lugano', () => {
+    const s = homeSections(DESTINATIONS, true);
+    expect(s.map((x) => x.title)).toEqual(['Home · Perugia', 'Hometown · Lugano', 'Places we want to go']);
+    // Only the titles change: same sections, same routes, same order.
+    const pub = homeSections(DESTINATIONS, false);
+    expect(s.map(({ title: _t, ...rest }) => rest)).toEqual(pub.map(({ title: _t, ...rest }) => rest));
+  });
+
+  it('household labels come from VITE_HOUSEHOLD_LABELS and are off unless it is 1 or true', () => {
+    expect(householdLabels({})).toBe(false);
+    for (const v of ['', '0', 'false', 'no', 'yes']) expect(householdLabels({ VITE_HOUSEHOLD_LABELS: v }), v).toBe(false);
+    for (const v of ['1', 'true', ' TRUE ']) expect(householdLabels({ VITE_HOUSEHOLD_LABELS: v }), v).toBe(true);
+    // homeSections() reads the build's env by default.
+    vi.stubEnv('VITE_HOUSEHOLD_LABELS', '');
+    expect(homeSections()[0].title).toBe('Perugia');
+    vi.stubEnv('VITE_HOUSEHOLD_LABELS', '1');
+    expect(homeSections()[0].title).toBe('Home · Perugia');
   });
 
   it('the wishlist leads with the places that have a world, then the map rides, each in manifest order', () => {
@@ -185,7 +207,8 @@ describe('Home sections are generated from the manifests', () => {
     const s = homeSections([...DESTINATIONS, extra]);
     expect(s.at(-1)!.entries.at(-1)).toMatchObject({ routeId: 'scenic-zz', hasWorld: false });
     const hometown2 = validateDestination(base({ id: 'como', name: 'Como', role: 'hometown', order: 2, routes: ['scenic-como'] }));
-    expect(homeSections([...DESTINATIONS, hometown2]).map((x) => x.title)).toContain('Hometown · Como');
+    expect(homeSections([...DESTINATIONS, hometown2], false).map((x) => x.title)).toContain('Como');
+    expect(homeSections([...DESTINATIONS, hometown2], true).map((x) => x.title)).toContain('Hometown · Como');
     // Once a wishlist place gets a world, the section line stops saying "map".
     const baked = validateDestination(
       base({ id: 'w', world: { id: 'w', dir: 'w/', bbox: { south: 0, west: 0, north: 1, east: 1 }, routes: ['scenic-test'] } }),
