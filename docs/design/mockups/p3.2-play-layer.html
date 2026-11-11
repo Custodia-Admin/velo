@@ -1,0 +1,169 @@
+<!doctype html>
+<!--
+  Velo P3.2 play layer — mockup (design gate, UI-RULES §0).
+  ?screen=setup  : Build your own ride, step 3 open: "Who rides with you" —
+                   the other rider's ghost (last / best / none) above the pace partners.
+  ?screen=finish : Finish with the ghost comparison and the postcards' places.
+  ?state=none    : setup with no ride by Anna on this route.
+  Pace partner icons are stand-ins (the kit has no trending-up/zap/flame).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — P3.2 play layer (mockup)</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="v2-kit.css" />
+<script src="v2-data.js"></script>
+<script src="v2-kit.js"></script>
+<style>
+  .screen { display: none; }
+  body[data-screen='setup'] .screen.setup, body[data-screen='finish'] .screen.finish { display: block; }
+  main { padding-bottom: var(--s-10); }
+  .disclosure { display: flex; align-items: baseline; gap: var(--s-3); margin-top: var(--s-6); }
+  .disclosure b { font-size: var(--text-base); }
+  .steps { display: flex; flex-direction: column; gap: var(--s-3); margin-top: var(--s-3); }
+  .step { border: var(--hairline) solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--card)); }
+  .step.open { box-shadow: var(--shadow-md); }
+  .step-head { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-2) var(--s-4); min-height: var(--s-14); }
+  .badge-n { width: var(--s-8); height: var(--s-8); border-radius: 9999px; display: grid; place-items: center; font-size: var(--text-sm); font-weight: 700;
+             background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); flex: none; }
+  .step.open .badge-n { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+  .step-head .grow { flex: 1; min-width: 0; }
+  .step-body { padding: 0 var(--s-4) var(--s-4); display: flex; flex-direction: column; gap: var(--s-4); }
+  .sub { font-size: var(--text-sm); line-height: var(--lh-sm); color: hsl(var(--muted-foreground)); max-width: var(--max-prose); }
+  .grid2 { display: grid; gap: var(--s-2); grid-template-columns: 1fr 1fr; }
+  .grid3 { display: grid; gap: var(--s-2); grid-template-columns: 1fr 1fr 1fr; }
+  .tile { display: flex; align-items: center; gap: var(--s-3); min-height: var(--s-16); padding: var(--s-2) var(--s-3); text-align: left;
+          border: var(--hairline) solid hsl(var(--border)); border-radius: calc(var(--radius) - 0.125rem); background: hsl(var(--card)); }
+  .tile[aria-checked='true'], .tile[aria-pressed='true'] { border-color: hsl(var(--primary)); background: hsl(var(--primary) / 0.1); }
+  .tile .grow { flex: 1; min-width: 0; }
+  .tile .name { display: block; font-size: var(--text-base); line-height: var(--lh-base); font-weight: 600; }
+  .tile .meta { display: block; font-size: var(--text-sm); line-height: var(--lh-sm); color: hsl(var(--muted-foreground)); }
+  .tile .icon { color: hsl(var(--muted-foreground)); }
+  .tile[aria-checked='true'] .icon, .tile[aria-pressed='true'] .icon { color: hsl(var(--primary)); }
+  .radio { width: var(--s-6); height: var(--s-6); border-radius: 9999px; border: calc(var(--hairline) * 2) solid hsl(var(--muted-foreground)); flex: none; display: grid; place-items: center; }
+  .tile[aria-checked='true'] .radio { border-color: hsl(var(--primary)); }
+  .tile[aria-checked='true'] .radio::after { content: ''; width: var(--s-3); height: var(--s-3); border-radius: 9999px; background: hsl(var(--primary)); }
+  .check { width: var(--s-6); height: var(--s-6); border-radius: 0.25rem; border: calc(var(--hairline) * 2) solid hsl(var(--muted-foreground)); flex: none; display: grid; place-items: center; }
+  .tile[aria-pressed='true'] .check { border-color: hsl(var(--primary)); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+  .part-head { display: flex; flex-direction: column; gap: var(--s-1); }
+  .part-head b { font-size: var(--text-sm); line-height: var(--lh-sm); }
+  .hair { border-top: var(--hairline) solid hsl(var(--border)); padding-top: var(--s-4); }
+  .foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: var(--s-10); flex-wrap: wrap; }
+  .cta { display: flex; gap: var(--s-3); align-items: center; padding-top: var(--s-1); margin-top: var(--s-3); }
+  [data-state='none'] .has-rides { display: none; }
+  body:not([data-state='none']) .no-rides { display: none; }
+
+  /* Finish */
+  .fin { display: flex; flex-direction: column; min-height: 100vh; }
+  .fin main { flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: var(--s-4); }
+  .fin .col { width: 100%; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .fin .plate { margin-top: var(--s-2); aspect-ratio: 21 / 9; min-height: var(--s-24); flex: 0 1 auto; }
+  .summary { margin-top: var(--s-4); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-3) var(--s-10); align-items: end; }
+  h1 { font-size: var(--text-4xl); line-height: var(--lh-4xl); margin-top: var(--s-1); }
+  .figs { display: flex; gap: var(--s-10); margin-top: var(--s-3); }
+  .sec { display: flex; gap: var(--s-6); flex-wrap: wrap; margin-top: var(--s-3); }
+  .sec dt { color: hsl(var(--muted-foreground)); display: inline; }
+  .sec dd { display: inline; font-weight: 600; margin-left: var(--s-1-5); }
+  .actions { display: flex; gap: var(--s-3); flex-wrap: wrap; justify-content: flex-end; }
+  .profile-wrap { grid-column: 1 / -1; }
+  .profile { height: var(--s-10); }
+  .after { grid-column: 1 / -1; display: flex; flex-direction: column; gap: var(--s-1-5); border-top: var(--hairline) solid hsl(var(--border)); padding-top: var(--s-2); }
+  .after .line { display: flex; gap: var(--s-2); align-items: flex-start; }
+  .after .line .icon { margin-top: 0.2rem; }
+  .after .split { display: flex; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+  .places { color: hsl(var(--muted-foreground)); }
+  @media (max-width: 1023px) { .summary { grid-template-columns: 1fr; } .actions { justify-content: flex-start; } }
+  @media (max-width: 639px) {
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+    .fin .plate { aspect-ratio: 4 / 3; }
+    h1 { font-size: var(--text-3xl); line-height: var(--lh-3xl); }
+    .figs { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-4); }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .actions .primary { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+<script>
+  const q = new URLSearchParams(location.search);
+  document.body.dataset.screen = q.get('screen') || 'setup';
+  if (q.get('state')) document.body.dataset.state = q.get('state');
+</script>
+
+<!-- ======================================================= SETUP, STEP 3 -->
+<div class="screen setup">
+<header class="page-x"><div class="col topbar"><span class="wordmark">Velo</span><span class="t-sm muted">Federico</span></div></header>
+<main class="page-x"><div class="col">
+  <div class="disclosure"><i data-icon="chevron-down"></i><b>Build your own ride</b><span class="t-sm muted">search a place, upload a GPX, add pace partners</span></div>
+  <div class="steps">
+    <div class="step"><div class="step-head"><span class="badge-n">1</span><div class="grow"><b>Choose your route</b><div class="t-sm muted">Tiber river park</div></div><i data-icon="chevron-down"></i></div></div>
+    <div class="step"><div class="step-head"><span class="badge-n">2</span><div class="grow"><b>Pair trainer</b><div class="t-sm muted">Demo mode (no trainer)</div></div><i data-icon="chevron-down"></i></div></div>
+    <div class="step open">
+      <div class="step-head"><span class="badge-n">3</span><div class="grow"><b>Who rides with you</b></div><i data-icon="chevron-up"></i></div>
+      <div class="step-body">
+        <!-- The other rider's ghost -->
+        <div class="part-head">
+          <b>Anna's ghost</b>
+          <span class="sub has-rides">Anna's ride here, replayed beside you as a ghost.</span>
+          <span class="sub no-rides">Anna hasn't ridden Tiber river park yet. Once she has, you can ride against her.</span>
+        </div>
+        <div class="grid3 has-rides" role="radiogroup" aria-label="Anna's ghost">
+          <button class="tile" role="radio" aria-checked="true"><i data-icon="ghost" class="lg"></i><span class="grow"><span class="name">Last ride</span><span class="meta">3 Nov · 36:40</span></span><span class="radio"></span></button>
+          <button class="tile" role="radio" aria-checked="false"><i data-icon="trophy" class="lg"></i><span class="grow"><span class="name">Best ride</span><span class="meta">28 Oct · 34:12</span></span><span class="radio"></span></button>
+          <button class="tile" role="radio" aria-checked="false"><i data-icon="x" class="lg"></i><span class="grow"><span class="name">No ghost</span><span class="meta">Ride without her</span></span><span class="radio"></span></button>
+        </div>
+        <!-- Pace partners (unchanged) -->
+        <div class="part-head hair">
+          <b>Pace partners</b>
+          <span class="sub">AI riders on the route with you, up to 3. Ride close behind one to draft.</span>
+        </div>
+        <div class="grid2">
+          <button class="tile" aria-pressed="true"><i data-icon="gauge" class="lg"></i><span class="grow"><span class="name">The Diesel</span><span class="meta"><b class="medium" style="color:hsl(var(--foreground))">Pacer</b> · Holds an even pace close to you.</span></span><span class="check"><i data-icon="check"></i></span></button>
+          <button class="tile" aria-pressed="false"><i data-icon="mountain" class="lg"></i><span class="grow"><span class="name">Niki</span><span class="meta"><b class="medium" style="color:hsl(var(--foreground))">Climber</b> · Easy on the flat, strong up every hill.</span></span><span class="check"></span></button>
+          <button class="tile" aria-pressed="false"><i data-icon="wind" class="lg"></i><span class="grow"><span class="name">Yuki</span><span class="meta"><b class="medium" style="color:hsl(var(--foreground))">Sprinter</b> · Cruises easy, then sprints hard on the flat.</span></span><span class="check"></span></button>
+          <button class="tile" aria-pressed="false"><i data-icon="trophy" class="lg"></i><span class="grow"><span class="name">Attila</span><span class="meta"><b class="medium" style="color:hsl(var(--foreground))">Attacker</b> · Sits just ahead of you and keeps attacking.</span></span><span class="check"></span></button>
+        </div>
+        <div class="foot"><span class="t-sm muted">1 of 3 riding with you</span><button class="btn outline">Remove partners</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="cta"><button class="btn lg primary">Start ride<i data-icon="arrow-right" class="lg"></i></button><span class="t-sm muted row"><i data-icon="bluetooth"></i>Demo mode</span></div>
+</div></main>
+</div>
+
+<!-- =============================================================== FINISH -->
+<div class="screen finish">
+<div class="fin">
+<header class="page-x"><div class="col topbar"><span class="wordmark">Velo</span><span class="t-sm muted">Federico</span></div></header>
+<main class="page-x"><div class="col">
+  <div class="plate"><picture><source media="(max-width: 639px)" srcset="../screenshots/v2/thumbs/finish-arrival-portrait.jpg" /><img src="../screenshots/v2/thumbs/finish-arrival.jpg" alt="The Tiber valley at golden hour" /></picture></div>
+  <section class="summary">
+    <div>
+      <span class="kicker">Ride finished · saved on this device</span>
+      <h1 class="display">Tiber river park</h1>
+      <div class="figs">
+        <div class="fig"><span class="v">10.9<small>km</small></span><span class="l">Distance</span></div>
+        <div class="fig"><span class="v">35:28</span><span class="l">Time</span></div>
+        <div class="fig"><span class="v">162<small>W</small></span><span class="l">Avg power</span></div>
+      </div>
+      <dl class="sec t-sm"><div><dt>Climbed</dt><dd>22 m</dd></div><div><dt>Average</dt><dd>18.4 km/h</dd></div></dl>
+    </div>
+    <div class="actions">
+      <button class="btn lg outline"><i data-icon="download" class="lg"></i>Save .FIT</button>
+      <button class="btn lg outline"><i data-icon="refresh-cw" class="lg"></i>Ride again</button>
+      <button class="btn lg primary">Home</button>
+    </div>
+    <div class="profile-wrap"><svg class="profile" data-profile="scenic-perugia-tiber-park" data-at="1" data-h="40"></svg></div>
+    <div class="after t-sm">
+      <span class="line"><i data-icon="ghost"></i><span><b class="semi">1:12 ahead</b> of Anna's last ride (3 Nov)</span></span>
+      <span class="line"><i data-icon="mail"></i><span>7 of 7 postcards <span class="places">· Ponte San Giovanni, Ponte di legno e vista del Tevere, Valtiera, Ponte Valleceppi, Pretola, Torre di Pretola, Ponte Felcino</span></span></span>
+      <span class="split muted"><span></span><span>Tomorrow, maybe: <button class="btn link">Assisi valley floor · 15.3 km · flat</button></span></span>
+    </div>
+  </section>
+</div></main>
+</div>
+</div>
+</body>
+</html>

@@ -2,8 +2,9 @@
  * Play mode UI: the Home switch, the in-ride panel and the finish-card line.
  *
  * The panel is one glanceable card: postcard count as the figure, and a
- * single note line that briefly says "Postcard N collected" after a pickup,
- * otherwise how far the next one is. The buddy line sits under it.
+ * single note line that briefly says "Postcard from <place>" after a pickup
+ * ("Postcard N collected" where postcards have no place), otherwise how far
+ * the next one is. The buddy line sits under it.
  */
 
 import { useEffect, useId, useState } from 'react';
@@ -91,13 +92,17 @@ export function PlayPanel({ className, compact = false }: { className?: string; 
   const collected = usePlayStore((s) => s.collected);
   const toNextM = usePlayStore((s) => s.toNextM);
   const buddyLine = usePlayStore((s) => s.buddyLine);
+  const names = usePlayStore((s) => s.names);
   const units = useSettingsStore((s) => s.units);
   const recent = useRecentPickup();
 
   if (!active || total === 0) return null;
 
+  const place = names[collected - 1];
   const note = recent
-    ? `Postcard ${collected} collected`
+    ? place
+      ? `Postcard from ${place}`
+      : `Postcard ${collected} collected`
     : toNextM === null
       ? 'All postcards collected'
       : `Next one in ${formatNextDistance(toNextM, units)}`;

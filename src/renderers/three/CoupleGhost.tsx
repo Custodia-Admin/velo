@@ -51,6 +51,8 @@ export function CoupleGhost({
       .catch(() => undefined);
     return () => {
       cancelled = true;
+      // Leaving the ride (or a new pick) drops it: the Finish screen of a later ride never compares with it.
+      useCoupleGhostStore.getState().setGhost(null);
     };
   }, [route, choice]);
 
