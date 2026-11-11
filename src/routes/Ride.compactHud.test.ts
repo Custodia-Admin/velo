@@ -92,6 +92,12 @@ describe('compact ride HUD: one bottom column', () => {
     expect(hudSection()).toContain('{rideHudOn && (');
   });
 
+  it('the world under the finish page draws nothing: RideView is covered exactly while the finish page shows', () => {
+    expect(rideSrc).toContain("const finishShown = rideState === 'finished';");
+    expect(rideSrc).toContain('<RideView ionToken={token} onRendererReady={setWorldRenderer} covered={finishShown} />');
+    expect(rideSrc).toContain('{finishShown && <FinishCard />}');
+  });
+
   it('show mode keeps one status chip (alerts and notices only) above the show strip, so no toast card covers the video', () => {
     const showHudSrc = read('src/components/velo/ShowHud.tsx');
     expect(rideSrc).toContain('<ShowHud dimmed={dimmed} />');

@@ -11,9 +11,10 @@
  *    sends Enter.
  *
  * Runs against the token-free production build (playwright.config.ts).
- * Graphics on low (as context-loss.spec.ts): software GL at 1920×1080 on a
- * CI runner otherwise takes so long per frame that the ride never ticks and
- * the route change back to Home waits behind the 3D frames.
+ * Graphics on medium, as riders have it. The world draws nothing behind the
+ * finish page (finish-cover.spec.ts), so on software GL at 1920×1080 the way
+ * back Home no longer waits behind hidden 3D frames (CI run 43026470671 hit
+ * that and ran on low until it was fixed).
  */
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
@@ -23,7 +24,7 @@ const H = 1080;
 const init = (layoutMode: 'auto' | 'tv' | 'default') => `
   localStorage.removeItem('globeride.cesiumIonToken');
   localStorage.setItem('globeride.onboarding.v2', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 2 }));
-  localStorage.setItem('globeride.settings.v1', JSON.stringify({ state: { layoutMode: '${layoutMode}', graphicsQuality: 'low', graphicsQualityAuto: false }, version: 1 }));
+  localStorage.setItem('globeride.settings.v1', JSON.stringify({ state: { layoutMode: '${layoutMode}', graphicsQuality: 'medium', graphicsQualityAuto: false }, version: 1 }));
 `;
 
 async function layoutOf(browser: Browser, opts: Parameters<Browser['newContext']>[0], layoutMode: 'auto' | 'tv' = 'auto') {
