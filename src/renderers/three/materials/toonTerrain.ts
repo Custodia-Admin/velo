@@ -24,6 +24,12 @@ export interface TerrainMaterialOptions {
   /** World extent in metres (x east, y north). */
   extent: { xMin: number; xMax: number; yMin: number; yMax: number };
   atmo?: WorldAtmosphere;
+  /**
+   * The aux map marks sand (a coast world's beaches). Off elsewhere: a
+   * woodland edge ramps the aux class through sand's value, and without
+   * beaches that would read as a thin strip of sand round every wood.
+   */
+  sand?: boolean;
 }
 
 /** GLSL: hash + value noise robust at world-metre coordinates (no sin hash). */
@@ -59,12 +65,13 @@ export function createTerrainMaterial(opts: TerrainMaterialOptions): THREE.MeshS
     uAux: { value: opts.aux ?? null },
     uHasLandcover: { value: opts.landcover ? 1 : 0 },
     uHasAux: { value: opts.aux ? 1 : 0 },
+    uHasSand: { value: opts.sand ? 1 : 0 },
     uExtent: { value: new THREE.Vector4(xMin, yMin, 1 / (xMax - xMin), 1 / (yMax - yMin)) },
     uNoise: { value: worldNoiseTexture() },
   };
   mat.userData.uniforms = uniforms;
   patchWorldMaterial(mat, opts.atmo ?? createAtmosphere(), {
-    key: 'terrain-v4',
+    key: 'terrain-v5',
     uniforms,
     vertexPars: 'varying vec3 vTerrainNormal;',
     vertexMain: 'vTerrainNormal = normalize(mat3(modelMatrix) * objectNormal);',
@@ -73,6 +80,7 @@ uniform sampler2D uLandcover;
 uniform sampler2D uAux;
 uniform float uHasLandcover;
 uniform float uHasAux;
+uniform float uHasSand;
 uniform vec4 uExtent;
 varying vec3 vTerrainNormal;
 float gWater = 0.0;
@@ -111,8 +119,9 @@ ${NOISE_GLSL}`,
     gWater = smoothstep(0.02, 0.07, col.b - max(col.r, col.g));
     gForest = smoothstep(0.8, 0.97, aux.b);
     float scrub = smoothstep(0.6, 0.75, aux.b) * (1.0 - gForest);
-    // Sand: aux class 90/255.
-    gSand = (1.0 - smoothstep(0.05, 0.11, abs(aux.b - 0.353))) * (1.0 - gWater);
+    // Sand: aux class 90/255, ramping in across the whole texel blend from
+    // open ground (0) and out towards scrub (0.7), so its edge is soft.
+    gSand = uHasSand * smoothstep(0.03, 0.3, aux.b) * (1.0 - smoothstep(0.4, 0.62, aux.b)) * (1.0 - gWater);
     float open_ = (1.0 - gWater) * (1.0 - gForest) * (1.0 - gSand);
     // Broad tone across the valley and the hills.
     col *= 0.84 + 0.32 * (nA.r * 0.5 + nA.g * 0.3 + nA.b * 0.2);
@@ -170,7 +179,7 @@ ${NOISE_GLSL}`,
     // Canopy relief on woods, lumpy grass and soil on open ground: bump from
     // screen-space derivatives of a height built from the fetched noise (no extra fetches).
     float h = gNC.r * 0.9 + gNC.g * 0.5 * (1.0 - gForest) + gNC.b * 0.25 * (1.0 - gForest);
-    h *= (1.0 - gWater) * (1.0 - 0.75 * gSand);
+    h *= 1.0 - gWater;
     vec3 vp = -vViewPosition;
     vec3 dpdx = dFdx(vp);
     vec3 dpdy = dFdy(vp);
@@ -178,7 +187,9 @@ ${NOISE_GLSL}`,
     vec3 r2 = cross(normal, dpdx);
     float det = dot(dpdx, r1);
     vec3 grad = sign(det) * (dFdx(h) * r1 + dFdy(h) * r2);
-    normal = normalize(abs(det) * normal - grad * (0.9 + 1.4 * gForest));
+    // Sand is smoother: scale the relief, not the height (a height that steps
+    // at the sand's edge would put a bright-and-dark dash along it).
+    normal = normalize(abs(det) * normal - grad * (0.9 + 1.4 * gForest) * (1.0 - 0.75 * gSand));
   }`,
       ],
     ],

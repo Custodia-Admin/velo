@@ -19,6 +19,9 @@ import { NOISE_GLSL } from './materials/toonTerrain';
 import { buildWaterGeometry, levelLakes, seaApron, WATER_EDGE_M, type WaterGeometryData } from './waterMesh';
 import type { SceneWorld } from './worldScene';
 
+/** The sea hazes over as if it were this fraction of its distance away. */
+export const SEA_HAZE = 0.5;
+
 export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color('#1d2a1e'),
@@ -30,10 +33,10 @@ export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMa
     polygonOffsetUnits: -2,
   });
   return patchWorldMaterial(mat, atmo, {
-    key: 'water-v4',
+    key: 'water-v6',
     vertexPars: 'attribute float aKind;\nattribute float aShore;\nattribute float aOpen;\nvarying float vKind;\nvarying float vShore;\nvarying float vOpen;',
     vertexMain: 'vKind = aKind;\nvShore = aShore;\nvOpen = aOpen;',
-    fragmentPars: `varying float vKind;\nvarying float vShore;\nvarying float vOpen;\nfloat gFoam = 0.0;\n${NOISE_GLSL}`,
+    fragmentPars: `varying float vKind;\nvarying float vShore;\nvarying float vOpen;\nfloat gFoam = 0.0;\n#define SEA_HAZE ${SEA_HAZE.toFixed(2)}\n${NOISE_GLSL}`,
     fragmentReplace: [
       [
         '#include <color_fragment>',
@@ -61,9 +64,9 @@ export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMa
       float edge = 1.0 - smoothstep(edgeW * 0.5, edgeW, vShore);
       float lace = smoothstep(0.2, 0.75, vNoise(wp * 0.25 + vec2(uTime * 0.08, 0.0)));
       float roll = 0.5 + 0.5 * sin(6.2832 * (vShore / 24.0 + uTime * 0.07) + vNoise(wp * 0.02) * 3.0);
-      float crest = smoothstep(0.84, 0.97, roll) * (1.0 - smoothstep(18.0, 70.0, vShore)) * exposed;
+      float crest = smoothstep(0.84, 0.97, roll) * smoothstep(4.0, 10.0, vShore) * (1.0 - smoothstep(18.0, 55.0, vShore)) * exposed;
       float wave = crest * smoothstep(0.25, 0.7, vNoise(wp * 0.06 + vec2(0.0, uTime * 0.05)));
-      gFoam = clamp(edge * (0.55 + 0.45 * lace) + wave * 0.8, 0.0, 1.0) * octF(12.0, pxM);
+      gFoam = clamp(edge * (0.55 + 0.45 * lace) + wave * 0.6, 0.0, 1.0) * octF(12.0, pxM);
       diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.8, 0.84, 0.84), gFoam);
     }
   }`,
@@ -74,11 +77,18 @@ export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMa
   roughnessFactor = mix(vKind > 1.5 ? 0.24 : roughnessFactor, 0.85, gFoam);`,
       ],
       [
-        // The sea mirrors less of the sky than a pond: at a beach's grazing
-        // angles a full mirror reads as a white plane, not water.
+        // The sea hazes over half as fast as the land: seen past a beach it is
+        // all far water, and land-strength haze turns it the colour of the sky.
+        'gl_FragColor.rgb = applyAtmo(gl_FragColor.rgb, vWPos);',
+        `gl_FragColor.rgb = applyAtmo(gl_FragColor.rgb, vKind > 1.5 ? mix(cameraPosition, vWPos, SEA_HAZE) : vWPos);`,
+      ],
+      [
+        // The sea mirrors less of the sky than a pond, and through its own
+        // blue: at a beach's grazing angles a full mirror of the hazy horizon
+        // reads as a white plane, not water.
         '#include <lights_fragment_end>',
         `#include <lights_fragment_end>
-  if (vKind > 1.5) reflectedLight.indirectSpecular *= 0.55;`,
+  if (vKind > 1.5) reflectedLight.indirectSpecular *= vec3(0.3, 0.4, 0.5);`,
       ],
       [
         '#include <normal_fragment_maps>',

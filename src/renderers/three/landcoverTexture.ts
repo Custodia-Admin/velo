@@ -27,11 +27,11 @@ export const LANDCOVER_COLORS: Readonly<Record<string, string>> = {
   residential: '#a69c8a',
   industrial: '#9a958c',
   cemetery: '#6f7a52',
-  beach: '#dcb97f',
+  beach: '#d6a65a',
 };
 
 /** Wet sand along the sea's edge on a beach, and how wide the band is, metres. */
-export const WET_SAND_COLOR = '#ad9064';
+export const WET_SAND_COLOR = '#a2814d';
 export const WET_SAND_M = 7;
 
 /** Field colours: ripe wheat, stubble, ploughed earth, young green, fodder. */
