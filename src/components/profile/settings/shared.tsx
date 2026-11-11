@@ -17,15 +17,20 @@ export function PickerButton({
   onClick,
   label,
   sub,
+  radio = false,
 }: {
   selected: boolean;
   onClick: () => void;
   label: string;
   sub: string;
+  /** One of a radiogroup: role="radio" with aria-checked. */
+  radio?: boolean;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      {...(radio ? { role: 'radio', 'aria-checked': selected } : {})}
       className={cn(
         'flex flex-col items-center justify-center gap-0.5 rounded-lg border px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
         selected
@@ -34,7 +39,7 @@ export function PickerButton({
       )}
     >
       <span className="text-sm font-semibold">{label}</span>
-      <span className="text-[10px] num">{sub}</span>
+      <span className="text-xs num">{sub}</span>
     </button>
   );
 }

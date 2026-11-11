@@ -370,6 +370,13 @@ AVC:
 Files: `src/components/velo/TvLayout.tsx`, `src/hooks/useLayoutMode.ts(.test.ts)`, `src/stores/settingsStore.ts`.
 Scope: `data-layout="tv"` auto when viewport ≥ 1600 and coarse pointer absent or user-set; HUD margins for overscan; companion phone/tablet stays the control surface via existing `lib/companion`.
 AVC: screenshots at 1920×1080 and 3840×2160 (scaled), text sizes per UI-RULES §5 TV addendum (added in P1.5), no interactive element relies on hover.
+As built (PR for t_fe045c45; the companion was deleted in PR #37, so the control surface is the handlebars and a keyboard / TV remote):
+- Rule `src/lib/tvLayout.ts`: TV when ≥ 1600 px wide and no fine pointer at all (`(min-width: 1600px) and (not (any-pointer: fine))`; the Android tablet is TV only from 1600 px), or Settings → Visual → Layout (Auto | TV | Standard, household-wide `layoutMode`), or `?layout=tv|default` (kept for the tab). Applied before first paint (`main.tsx`), followed live by `useLayoutMode` (App).
+- TV root font `max(175%, min(100vw·7/480, 100vh·7/270))`: 28 px at 1080p, 56 px when the browser reports 3840×2160. Overscan `--overscan-x/y` = 5 % + 0.5rem: `.page-x`, `.page-y-safe`, the HUD and show insets, dialogs (`.max-h-dialog-fit`), `scroll-padding`.
+- Focus ring on TV: 0.25rem ink with a paper gap, no ease-in; `html[data-input=remote]` shows it on whatever has focus (handlebar presses move focus by script).
+- Navigation (`src/lib/tv/`): arrow keys / remote D-pad = spatial nav (`spatialNav.ts`), Enter / A presses, Escape / Back / B closes what is open (never pauses), Devices → Home. Handlebars (`handlebarNav.ts`) only take what the P2.5 ride map leaves free: off the ride D-pad/A/B; riding Y = details, B = back; ready/paused also D-pad/A; finished the finish page only. `src/lib/controllers/*` untouched.
+- Each view's primary takes the ring on open (Home Ride, Devices Ride, finish Home; Resume on pause).
+- Evidence: `docs/design/screenshots/v2/build/tv-mode/` (composites, EVIDENCE.md), `e2e/tv-remote.spec.ts` (keys-only walk at 1920×1080).
 
 ### Phase 4 — Open source (depends on P2; can start docs in parallel)
 
