@@ -85,6 +85,8 @@ export interface WorldLayers {
   buildings: string;
   vegetation: string;
   routes: string;
+  /** Bridge decks, piers and ridden spans (recipe `bridges`); absent in bundles baked without it. */
+  bridges?: string;
 }
 
 export type WorldPoiKind = 'town' | 'village' | 'peak' | 'viewpoint' | 'landmark' | 'church';
@@ -155,6 +157,8 @@ export interface WorldManifest {
     demTiles: number;
     /** True when the bake levelled every lake and pond (recipe `flatLakes`); the renderer then draws them level. */
     flatLakes?: boolean;
+    /** True when the bake built bridges as structures (recipe `bridges`): the `bridges` layer is present. */
+    bridges?: boolean;
   };
 }
 
@@ -272,6 +276,7 @@ export function validateManifest(input: unknown): WorldManifest {
 
   const layers = obj(m.layers, 'layers');
   for (const k of LAYER_KEYS) str(layers, k, 'layers');
+  const optionalLayers = layers.bridges === undefined ? [] : [str(layers, 'bridges', 'layers')];
 
   const files = arr(m, 'files', 'manifest');
   const paths = new Set<string>();
@@ -288,7 +293,7 @@ export function validateManifest(input: unknown): WorldManifest {
       if (!HEX64.test(str(e, k, `files[${i}]`))) fail(`files[${i}].${k} must be 64 hex chars`);
     }
   });
-  for (const p of [hf.file as string, ...LAYER_KEYS.map((k) => layers[k] as string)]) {
+  for (const p of [hf.file as string, ...LAYER_KEYS.map((k) => layers[k] as string), ...optionalLayers]) {
     if (!paths.has(p)) fail(`${p} is referenced but not listed in files`);
   }
 

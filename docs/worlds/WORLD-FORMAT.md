@@ -38,6 +38,7 @@ public/worlds/perugia/
   buildings.bin.gz     building footprints + heights
   vegetation.bin.gz    tree instance seeds
   routes.json.gz       scenic routes snapped onto the heightfield
+  bridges.json.gz      bridge decks, piers, ridden spans (recipe "bridges" only)
 ```
 
 A world baked with `"host": "remote"` (Chengdu and the other wishlist
@@ -83,7 +84,7 @@ Validated by `validateManifest()`; schema in
 | `extent` | `{ xMin, xMax, yMin, yMax }` metres: exactly the heightfield grid. |
 | `bbox` | WGS84 box of the extent, rounded outward to 1e-5°. The OSM query box. |
 | `heightfield` | `{ file, cols, rows, cellSize, encoding: "u16-delta", heightOffset, heightScale, minHeight, maxHeight }`. |
-| `layers` | File name per layer: `roads`, `water`, `landcover`, `buildings`, `vegetation`, `routes`. |
+| `layers` | File name per layer: `roads`, `water`, `landcover`, `buildings`, `vegetation`, `routes`, and `bridges` in a world baked with bridges as structures (`generator.bridges`). |
 | `files[]` | `{ path, bytes, sha256, compression, contentBytes, contentSha256 }` for every file except the manifest. |
 | `moods`, `defaultMood` | Scene moods that suit the world (ids from the mood catalogue). |
 | `pois[]` | `{ name, kind, rank?, x, y, h, osm }`, kind ∈ town, village, peak, viewpoint, landmark, church. `h` is the ground height there. `rank` (1–3) is label prominence: 3 towns, 2 places with a Wikipedia/Wikidata tag or ≥ 1,000 people, 1 the rest. Bundles baked before ranks omit it; renderers then rank by kind. |
@@ -217,6 +218,68 @@ natively, without Node's web-stream wrapper.
   `"x,y x,y …"`). `src/lib/world/routeFit.test.ts` compares those mapped
   lines with the bundle: no moved road may newly lie over another drawn road
   and no junction end may leave the road it lay in.
+
+## bridges.json: bridges as structures
+
+Only in a world baked with `"bridges": true` (manifest `generator.bridges`,
+`tools/worldbake/bridges.mjs`). Without it a bridge is a road ribbon drawn
+straight between the ground at its two ends, and a route that rides it fills
+the valley under it with an earth dam. With it:
+
+```json
+{ "version": 1, "units": "dm",
+  "decks": [ { "r": 12, "t": 14, "a": 1, "z": [2249, 2252, …] } ],
+  "piers": [ [x, y, ux, uy, halfAlong, halfAcross, bottom, top] ],
+  "rides": { "<route id>": [ { "s0": 3007.1, "s1": 3799.32, "r": [12, 13] } ] } }
+```
+
+- `decks[]`: one per bridge road and per approach ramp. `r` indexes
+  `roads.json` `roads`, `z` is the deck top at each of that road's vertices
+  (dm, so the deck pieces carry a vertex at least every 6 m), `t` the deck
+  thickness (top to underside, dm), `a: 1` marks an approach ramp: a ground
+  road lifted to meet a raised deck.
+- `piers[]`: boxes centred on (x, y), `halfAlong` along (ux, uy) (×1000),
+  `halfAcross` across, from `bottom` to `top` (dm). Abutment blocks (where a
+  ramp has no road to land on) use the same format.
+- `rides`: per route, the stretches (route distance, metres) that ride decks,
+  and the roads ridden.
+
+How the bake decides, once and offline:
+
+- **Deck heights.** Bridge pieces joined end to end form one deck. It stands
+  on the ground at its abutments; inner joints take a length-weighted solve,
+  so a chain is a straight line from abutment to abutment.
+- **Headroom.** Where a route passes under a deck, the deck's underside
+  stays 4.5 m over the route (`DECK_HEADROOM_M`): the deck is pinned there
+  (with a vertex at the pin). GLO-30 carries no embankments and OSM maps an
+  overpass as a short piece over the path, so its abutments come out at
+  valley level: the bake lifts each abutment so the pin is reached at no more
+  than the road class's grade (`DECK_GRADE`: 4 % motorway, 5 % primary and
+  secondary, 6 % other roads, 8 % paths), and the road beyond becomes an
+  approach ramp at that grade until it meets the ground (at most 450 m; a
+  ramp onto a road a route rides is a bake error). Where the road ends first,
+  an abutment block carries the deck down.
+- **Ridden decks.** On a deck a route rides, the rider is on the deck. The
+  carve leaves the ground under its middle alone; where the carve still ran
+  (a deck shorter than two end zones of 1.5 cells, the end zones of a longer
+  one) the deck is pinned to the carved ground, so the rider never steps
+  between ground and deck.
+- **Ground under decks.** Terrain under a deck's middle stays 0.4 m under its
+  underside, with a 1:1 bank out to 30 m beside it (a DSM that carries a
+  viaduct loses its ridge), never touching a route's carved core.
+- **Checks** (bake errors): every route crossing under a deck it does not
+  ride keeps the headroom (tolerance 0.15 m); a route never passes through
+  the footprint of a deck it rides elsewhere while off the ground there (the
+  app finds the ridden deck by footprint). The report has `bridges` with the
+  pins, lifts and ridden spans.
+
+The renderer (`src/renderers/three/bridgeDecks.ts`, `Bridges.tsx`) draws
+each deck's ribbon at these heights and a concrete slab, parapets and the
+piers under it; where a deck comes down to the ground it blends into the
+drawn terrain over 1 m of height, and a landed approach is a plain road. The
+ridden route's surface (`worldScene.routeSurface`) is its decks where it
+rides them and the drawn ground everywhere else, under every other deck too:
+the rider, the chase camera, the partners and the painted guide stand on it.
 
 ## water.json
 
@@ -398,8 +461,9 @@ most.
 `id`, `name`, `description`, `origin` (world `(0, 0)`), `grid` (`xMin`, `yMax`,
 `cellSize`, `cols`, `rows`, ≤ 2048 a side), `dem` (below), `osmDate`, `routes`
 (+ `routesOutside` with reasons), `snap`, `vegetation`, `moods`,
-`defaultMood`, the optional `host` (`"remote"`), `routeCredits` and
-`flatLakes` ([ADDING-A-WORLD.md](ADDING-A-WORLD.md)), and `validation`
+`defaultMood`, the optional `host` (`"remote"`), `routeCredits`,
+`flatLakes` and `bridges` ([ADDING-A-WORLD.md](ADDING-A-WORLD.md),
+[bridges.json](#bridgesjson-bridges-as-structures)), and `validation`
 (`sample_seed`, plus an optional mountain
 override; the bake writes the rest, see
 [Terrain accuracy check](#terrain-accuracy-check-p13-v2)).
@@ -692,6 +756,58 @@ published as `worlds/chengdu-luxelakes/80e66bc0c3354d4b/`.
 Tianfu's towers are thinly mapped in OSM (794 buildings over 114 km²), so the
 skyline is sparser than the real one; parks, lakes and the planted lakeshore
 carry the world.
+
+### Cuyahoga Valley (Ohio & Erie towpath)
+
+Remote world `ohio-erie-towpath` (card t_0e76502b): 8.0 × 23.7 km at 12 m
+(`x −4000…4016`, `y −11836…11900` around 41.292° N 81.587° W, 669 × 1979
+nodes) down the Cuyahoga Valley from Rockside Road to Peninsula, holding
+`scenic-cuyahoga-towpath` and `scenic-cuyahoga-towpath-north` (Lock 39 to
+Station Road Bridge), both on the Ohio & Erie Canal Towpath Trail. Baked
+11 Nov 2026 on cat-bed from Copernicus GLO-30 and OSM as of 1 Nov 2026, with
+`bridges`.
+
+| Check | Result |
+| --- | --- |
+| Bake time | 15 s from cache |
+| Determinism | an `--out` bake and the committed bake: identical bytes for all 9 files |
+| Size | 4.06 MB as shipped (gzip), 3.39 MB brotli, 7.43 MB raw |
+| Routes | 17.43 km and 10.35 km: max gap 0 m; grade Δ 0.328 / 0.177 pp; 100 % within 1 m of mapped roads; guide 100 % on drawn roads (218 m and 219 m eased, no joins) |
+| Heightfield vs Open-Meteo, 50 seeded points (seed 41292) | P1.3 v2: `standard` (steep fraction 0.1254), registered **1.69 m ≤ 6.00 m, PASS**; point RMS 4.37 m |
+| Heightfield range | 168.6–389.6 m; 22,182 nodes carved under the routes (max 26.1 m) |
+| Bridges | 207 decks, 19 pieces ridden (the Beaver Marsh boardwalk, 514 m, and the trail's creek bridges); the towpath passes under the Ohio Turnpike (I-80) with 40 m clearance, I-271 with 15–19 m, the Brecksville–Northfield High Level Bridge with 41 m; Rockside Road, East Pleasant Valley Road, Main Street (Peninsula) and three footbridges were lifted to the 4.5 m headroom; 96 piers |
+| Content | 8,176 road pieces, 353 water areas + 257 waterways, 1,763 landcover areas, 1,755 buildings, 480,000 trees |
+
+Known limit: GLO-30 is a surface model, and in this forested valley the
+canopy pulls the route fit's offset up 10–17 m. Where the towpath leaves the
+trees (Peninsula) it stands 6–9 m over the open ground, so Main Street's
+bridge over it has a 15 m lift at its west abutment and a 300 m approach
+viaduct into the village. It is drawn as a structure, but real Main Street is
+at grade there; a canopy-aware route offset is the fix.
+
+### Cleveland lakefront
+
+Remote world `cleveland-lakefront` (card t_0e76502b): 14.7 × 7.1 km at 12 m
+(`x −7400…7276`, `y −2640…4500` around 41.505° N 81.718° W, 1224 × 596
+nodes) along Lake Erie from Lakewood Park to Gordon Park, holding
+`scenic-cleveland-lakefront` (the Lakefront Bikeway, OSM relation 13620723)
+and `scenic-wendy-park-lakewood` (Wendy Park, Whiskey Island, Edgewater and
+Lake Avenue to Lakewood Park). Baked 11 Nov 2026 on cat-bed from Copernicus
+GLO-30 and OSM as of 1 Nov 2026, with `bridges`.
+
+| Check | Result |
+| --- | --- |
+| Bake time | 7 s from cache |
+| Determinism | an `--out` bake and the committed bake: identical bytes for all 9 files |
+| Size | 1.35 MB as shipped (gzip), 1.05 MB brotli, 3.67 MB raw |
+| Routes | 13.51 km and 8.11 km: max gap 0 m; grade Δ 0.339 / 0.362 pp; 100 % within 1 m of mapped roads; guide 100 % on drawn roads (37 m and 202 m eased, no joins) |
+| Heightfield vs Open-Meteo, 50 seeded points (seed 41505) | P1.3 v2: `standard` (steep fraction 0.0095), registered **0.52 m ≤ 6.00 m, PASS**; point RMS 2.02 m |
+| Heightfield range | 163.5–228.4 m; 16,591 nodes carved (max 25.1 m) |
+| Bridges | 222 decks, 12 pieces ridden, among them the Detroit–Superior Bridge (792 m, up to 18.6 m over the Flats) and West 3rd Street over the railway; the route passes under the Memorial Shoreway at six places and the Lakeland Freeway at two, each lifted onto 64–154 m approach ramps (lift ≤ 6.2 m) to keep 4.5 m headroom; 1,343 nodes lowered under decks (the Main Avenue viaduct's DSM ridge, max 14.1 m); 442 piers and abutment blocks |
+| Content | 15,627 road pieces, 30 water areas + 6 waterways, 1,376 landcover areas, 16,014 buildings, 26,469 trees |
+
+Lake Erie is the world's largest water area (61.6 km² of lake polygon in the
+extent), drawn level with the shore; the route stays on the shore paths.
 
 ### Adding a world
 

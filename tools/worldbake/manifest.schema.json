@@ -162,7 +162,8 @@
         "demSource": { "type": "string" },
         "demZoom": { "type": "integer", "description": "Terrain Tiles zoom (aws-terrain-tiles source only)" },
         "demTiles": { "type": "integer", "minimum": 1 },
-        "flatLakes": { "const": true, "description": "The bake levelled every lake and pond (recipe flatLakes); the renderer draws them level" }
+        "flatLakes": { "const": true, "description": "The bake levelled every lake and pond (recipe flatLakes); the renderer draws them level" },
+        "bridges": { "const": true, "description": "The bake built bridges as structures (recipe bridges); layers.bridges holds the decks, piers and ridden spans" }
       }
     }
   }

@@ -44,6 +44,15 @@ from `chengdu-luxelakes.json`:
   `"validation": { "sample_seed": <int> }`.
 - `"host": "remote"`: the bundle goes to R2, not to `public/worlds/`.
 - `"routeCredits": true`.
+- `"bridges": true` if a route rides a bridge or passes under one (any
+  viaduct, overpass or footbridge over it). The bake then builds bridges as
+  structures ([WORLD-FORMAT.md](WORLD-FORMAT.md#bridgesjson-bridges-as-structures)):
+  decks over every route with 4.5 m headroom, approach ramps where that lifts
+  an abutment, the rider on the decks the route rides and on the ground under
+  every other one. The log line `bridges:` gives the decks, pins and lifts;
+  the bake fails when a route would pass under a deck without the headroom.
+  A route that starts or ends on a spiral ramp under its own bridge (Wendy
+  Park) cannot be fitted: move that end of the route off the ramp.
 - `"flatLakes": true` if the place has lakes dug after 2015. GLO-30 was flown
   in 2011–2015, so it still carries the land those lakes were dug from, and
   the water would be drawn as a tilted, bulging sheet. The step
@@ -76,6 +85,9 @@ The log must show:
 
 - every route with max gap 0 m and grade Δ ≤ 1 pp;
 - every route 100 % on drawn roads;
+- with `bridges`, no bake error, and the report's `bridges.approaches` read
+  through: a lift of many metres means the route fit sits above the ground
+  there (see the Cuyahoga Valley notes in WORLD-FORMAT.md);
 - a bundle of at most 8 MB brotli;
 - `validate (P1.3 v2): … PASS`. The bound is registered RMS ≤ 6.00 m for a
   standard world, or ≤ 6.24 m for a mountain world.

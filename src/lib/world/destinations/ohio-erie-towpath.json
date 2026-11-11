@@ -7,16 +7,47 @@
   "order": 90,
   "place": "Ohio, USA",
   "detail": "The Ohio & Erie Canal Towpath between Cleveland and Akron",
-  "world": null,
+  "world": {
+    "id": "ohio-erie-towpath",
+    "dir": "ohio-erie-towpath/d7b6306066f1b71d/",
+    "host": "remote",
+    "bbox": {
+      "south": 41.18541,
+      "west": -81.63484,
+      "north": 41.39915,
+      "east": -81.53897
+    },
+    "routes": [
+      "scenic-cuyahoga-towpath",
+      "scenic-cuyahoga-towpath-north"
+    ]
+  },
   "routes": [
     "scenic-cuyahoga-towpath",
     "scenic-cuyahoga-towpath-north"
   ],
   "moods": [
-    "clear-afternoon"
+    "clear-afternoon",
+    "golden-hour",
+    "clear-noon",
+    "overcast",
+    "valley-fog"
   ],
   "defaultMood": "clear-afternoon",
-  "pois": [],
+  "pois": [
+    {
+      "name": "Brecksville",
+      "kind": "town",
+      "lat": 41.31978,
+      "lon": -81.62679
+    },
+    {
+      "name": "Sagamore Hills",
+      "kind": "town",
+      "lat": 41.33651,
+      "lon": -81.56178
+    }
+  ],
   "credits": [
     {
       "id": "osm",
@@ -24,6 +55,13 @@
       "licence": "ODbL-1.0",
       "url": "https://www.openstreetmap.org/copyright",
       "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
     },
     {
       "id": "copernicus-glo90",
@@ -38,6 +76,20 @@
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
       "url": "https://routing.openstreetmap.de/about.html",
       "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-cuyahoga-towpath",
+      "name": "Ohio & Erie Canal Towpath: OSRM bike route through 8 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-81.5858,41.318;-81.5719,41.3;-81.5616,41.2799;-81.5585,41.2633;-81.5504,41.2428;-81.5524,41.23;-81.567,41.21;-81.5773,41.19?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-cuyahoga-towpath-north",
+      "name": "Towpath: Lock 39 to Station Road: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-81.6278,41.394;-81.6123,41.3742;-81.5967,41.356;-81.5887,41.3335;-81.5859,41.3195?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     }
   ]
 }

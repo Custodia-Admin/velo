@@ -138,8 +138,11 @@ export const SCENIC_ROUTE_SOURCES = [
     // West from Wendy Park at the river mouth: Whiskey Island, the lakefront
     // bikeway's first stretch, the Edgewater Park trail, Edgewater Drive and
     // Lake Avenue to Lakewood Park. Points are on those paths and streets
-    // (taken from a routed-bike run), so nothing snaps into the lake.
-    waypoints: [[41.4995, -81.7125], [41.4968, -81.7160], [41.48916, -81.73612], [41.48683, -81.74532], [41.48824, -81.75776], [41.49136, -81.77326], [41.49256, -81.78893], [41.49350, -81.79834]],
+    // (taken from a routed-bike run), so nothing snaps into the lake. It
+    // starts at the foot of the Wendy Park bridge's spiral ramp: riding the
+    // spiral down would pass under the bridge 30 m from its abutment, at
+    // ground the DEM doesn't lift.
+    waypoints: [[41.49905, -81.71255], [41.4968, -81.7160], [41.48916, -81.73612], [41.48683, -81.74532], [41.48824, -81.75776], [41.49136, -81.77326], [41.49256, -81.78893], [41.49350, -81.79834]],
   },
   {
     id: 'scenic-berkeley-bay-trail',

@@ -7,17 +7,47 @@
   "order": 80,
   "place": "Ohio, USA",
   "detail": "The Lake Erie lakefront",
-  "world": null,
+  "world": {
+    "id": "cleveland-lakefront",
+    "dir": "cleveland-lakefront/ce8ae47fe3276bbe/",
+    "host": "remote",
+    "bbox": {
+      "south": 41.48119,
+      "west": -81.80669,
+      "north": 41.54552,
+      "east": -81.63079
+    },
+    "routes": [
+      "scenic-cleveland-lakefront",
+      "scenic-wendy-park-lakewood"
+    ]
+  },
   "routes": [
     "scenic-cleveland-lakefront",
     "scenic-wendy-park-lakewood"
   ],
   "moods": [
     "dusk-cool",
-    "golden-hour"
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast"
   ],
   "defaultMood": "dusk-cool",
-  "pois": [],
+  "pois": [
+    {
+      "name": "Cleveland",
+      "kind": "town",
+      "lat": 41.49966,
+      "lon": -81.69368
+    },
+    {
+      "name": "Lakewood",
+      "kind": "town",
+      "lat": 41.48199,
+      "lon": -81.79819
+    }
+  ],
   "credits": [
     {
       "id": "osm",
@@ -25,6 +55,13 @@
       "licence": "ODbL-1.0",
       "url": "https://www.openstreetmap.org/copyright",
       "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
     },
     {
       "id": "copernicus-glo90",
@@ -39,6 +76,20 @@
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
       "url": "https://routing.openstreetmap.de/about.html",
       "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-cleveland-lakefront",
+      "name": "Cleveland lakefront: OSRM bike route through 9 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-81.7351,41.4896;-81.72,41.4889;-81.7057,41.4923;-81.6898,41.51;-81.68,41.5169;-81.6696,41.5213;-81.6611,41.5258;-81.6501,41.5326;-81.6399,41.5386?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-wendy-park-lakewood",
+      "name": "Wendy Park to Lakewood Park: OSRM bike route through 8 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-81.71255,41.49905;-81.716,41.4968;-81.73612,41.48916;-81.74532,41.48683;-81.75776,41.48824;-81.77326,41.49136;-81.78893,41.49256;-81.79834,41.4935?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     }
   ]
 }

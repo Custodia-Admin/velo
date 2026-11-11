@@ -1,0 +1,409 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "ohio-erie-towpath",
+  "name": "Cuyahoga Valley",
+  "origin": {
+    "lat": 41.292,
+    "lon": -81.587
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 41.292,
+    "lon0": -81.587,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -4000,
+    "xMax": 4016,
+    "yMin": -11836,
+    "yMax": 11900
+  },
+  "bbox": {
+    "south": 41.18541,
+    "west": -81.63484,
+    "north": 41.39915,
+    "east": -81.53897
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 669,
+    "rows": 1979,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": 167,
+    "heightScale": 0.015625,
+    "minHeight": 168.609375,
+    "maxHeight": 389.578125
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz",
+    "bridges": "bridges.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 1744781,
+      "sha256": "52a451289d4544f1a5d282446f9046410f7b06f8f7fb825b7bbe8ddeb70dec62",
+      "compression": "gzip",
+      "contentBytes": 2647902,
+      "contentSha256": "9bdd02d01a9b92563fff27439fdafd52f21a78cbbc00dc51dc3c379289339a84"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 366904,
+      "sha256": "09a5b82807bb08a2d28669611d7b819361046f4efb0db53580d73a5ee5ffb7f0",
+      "compression": "gzip",
+      "contentBytes": 941454,
+      "contentSha256": "535408dd5c8a6ef438bf792461971fe4b0a24c35a566859d5526ff49a4422451"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 87253,
+      "sha256": "ad9a7493642b2e637ec12f451e5dbba460762fbc9b6256d9fc1eb01372a2a569",
+      "compression": "gzip",
+      "contentBytes": 202177,
+      "contentSha256": "61ea3d11c92d69becc215aabb9af7490370263475b942a32d30d4c57778e4bf5"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 223799,
+      "sha256": "04755fcdaefa498b3b5f3ef4bebc6dada42accc9c092a962d9bd6d8107c7be6d",
+      "compression": "gzip",
+      "contentBytes": 544874,
+      "contentSha256": "c7184685a570c074690560d073761a1f9445011fba8decc511c3edc29dbf1238"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 39522,
+      "sha256": "69f33381f382a9d9e90bd966e358c92d495165b9b6d5bb41078453b3918058d2",
+      "compression": "gzip",
+      "contentBytes": 67696,
+      "contentSha256": "0e8ce2a01b8a9eba4a97b8cf43518c938bb08c1230371f6570a1d13f84fa2c9f"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 1536863,
+      "sha256": "5d21bebf8ef228654ce4bf23c5fc8f67a2c9122770ea0facd50658b0742379af",
+      "compression": "gzip",
+      "contentBytes": 2880016,
+      "contentSha256": "c78c350ce68bdc395e24448dedef313781a84267280f8298f5ccad56c0c1d36a"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 43995,
+      "sha256": "4fa9e1a5d3d62fd74355ffadf9f3a192d853821f99dc85e48a79155486656502",
+      "compression": "gzip",
+      "contentBytes": 107117,
+      "contentSha256": "ce9a1e1530ef7bee386ca17bd49a7c248d5cc03e6dd776f91b4146a2165e3773"
+    },
+    {
+      "path": "bridges.json.gz",
+      "bytes": 7617,
+      "sha256": "c090c339c4859e05921854815145a44265b366942f8478c6bab84df1bd9db45f",
+      "compression": "gzip",
+      "contentBytes": 24177,
+      "contentSha256": "d421dfed47aea7df5944e26573b956b02c032b02823577fe7b21d0e50cb0483e"
+    }
+  ],
+  "moods": [
+    "clear-afternoon",
+    "golden-hour",
+    "clear-noon",
+    "overcast",
+    "valley-fog"
+  ],
+  "defaultMood": "clear-afternoon",
+  "pois": [
+    {
+      "name": "Peninsula",
+      "kind": "village",
+      "rank": 2,
+      "x": 2882.2,
+      "y": -5644.9,
+      "osm": "node/153837537",
+      "h": 232.94
+    },
+    {
+      "name": "Sagamore Hills",
+      "kind": "town",
+      "rank": 3,
+      "x": 2111.1,
+      "y": 4943.1,
+      "osm": "node/153938090",
+      "h": 286.01
+    },
+    {
+      "name": "Northfield Center",
+      "kind": "village",
+      "rank": 2,
+      "x": 4014.1,
+      "y": 2418,
+      "osm": "node/153982324",
+      "h": 298.82
+    },
+    {
+      "name": "Valley View",
+      "kind": "village",
+      "rank": 2,
+      "x": -1469.4,
+      "y": 10643.2,
+      "osm": "node/153999069",
+      "h": 199.2
+    },
+    {
+      "name": "Jaite",
+      "kind": "village",
+      "rank": 2,
+      "x": 1166.8,
+      "y": -369.7,
+      "osm": "node/154037217",
+      "h": 198.73
+    },
+    {
+      "name": "East Center",
+      "kind": "village",
+      "rank": 1,
+      "x": -3986.7,
+      "y": -4348.8,
+      "osm": "node/154131149",
+      "h": 310.06
+    },
+    {
+      "name": "Brecksville",
+      "kind": "town",
+      "rank": 3,
+      "x": -3331.5,
+      "y": 3085.6,
+      "osm": "node/154174767",
+      "h": 271.16
+    },
+    {
+      "name": "Boston",
+      "kind": "village",
+      "rank": 2,
+      "x": 2299.2,
+      "y": -3177.2,
+      "osm": "node/154297182",
+      "h": 203.47
+    },
+    {
+      "name": "Walton Hills",
+      "kind": "village",
+      "rank": 2,
+      "x": 2156,
+      "y": 8175.5,
+      "osm": "node/154309775",
+      "h": 302.45
+    },
+    {
+      "name": "Richfield Heights",
+      "kind": "village",
+      "rank": 1,
+      "x": -3640.2,
+      "y": -9778.5,
+      "osm": "node/154336748",
+      "h": 366.6
+    },
+    {
+      "name": "Everett",
+      "kind": "village",
+      "rank": 2,
+      "x": 1229.5,
+      "y": -9717.5,
+      "osm": "node/154358623",
+      "h": 223.84
+    },
+    {
+      "name": "Deer Lick Cave",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -1959,
+      "y": 1483.3,
+      "osm": "node/1511399783",
+      "h": 273.28
+    },
+    {
+      "name": "Tinker's Creek Gorge Scenic Overlook",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 2360,
+      "y": 9496.8,
+      "osm": "node/2141917791",
+      "h": 277.98
+    },
+    {
+      "name": "Bridal Veil Falls Overlook",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 3125.4,
+      "y": 9048.8,
+      "osm": "node/2519251489",
+      "h": 277.74
+    },
+    {
+      "name": "Chippewa Creek Gorge Overlook",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -2909.6,
+      "y": 3094.6,
+      "osm": "node/2765824033",
+      "h": 255.54
+    },
+    {
+      "name": "Linda Falls",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 870,
+      "y": 6641.5,
+      "osm": "node/2789307070",
+      "h": 256.94
+    },
+    {
+      "name": "Tallgrass Prairie",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -2537.1,
+      "y": 2885.2,
+      "osm": "node/2931873368",
+      "h": 261.71
+    },
+    {
+      "name": "My Mountain Overlook",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -651.5,
+      "y": 2663.8,
+      "osm": "node/4057487060",
+      "h": 244.61
+    },
+    {
+      "name": "Overlook",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 1090.4,
+      "y": 1714.5,
+      "osm": "node/4078900819",
+      "h": 257.59
+    },
+    {
+      "name": "Little Overlook",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 3396.7,
+      "y": 10089.1,
+      "osm": "node/4937617707",
+      "h": 277.55
+    },
+    {
+      "name": "Oak Hill",
+      "kind": "peak",
+      "rank": 1,
+      "x": 1623.1,
+      "y": -8107.4,
+      "osm": "node/7125388282",
+      "h": 317.01
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-cuyahoga-towpath",
+      "name": "Ohio & Erie Canal Towpath",
+      "lengthM": 17429.69,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.328
+    },
+    {
+      "id": "scenic-cuyahoga-towpath-north",
+      "name": "Towpath: Lock 39 to Station Road",
+      "lengthM": 10353.07,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.177
+    }
+  ],
+  "stats": {
+    "roads": 8176,
+    "waterAreas": 353,
+    "waterLines": 257,
+    "landcoverAreas": 1763,
+    "buildings": 1755,
+    "buildingVertices": 12533,
+    "buildings:suburb": 1168,
+    "buildings:old-town": 3,
+    "buildings:rural": 205,
+    "buildings:industrial": 379,
+    "trees": 480000,
+    "trees:broadleaf": 405711,
+    "trees:conifer": 0,
+    "trees:scrub": 8020,
+    "trees:olive": 830,
+    "trees:park": 938,
+    "trees:cypress": 238,
+    "trees:riparian": 10535,
+    "trees:hedgerow": 1521,
+    "trees:garden": 52207,
+    "pois": 21,
+    "carvedNodes": 22182,
+    "bridgeDecks": 233,
+    "bridgePiers": 96
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-cuyahoga-towpath",
+      "name": "Ohio & Erie Canal Towpath: OSRM bike route through 8 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-81.5858,41.318;-81.5719,41.3;-81.5616,41.2799;-81.5585,41.2633;-81.5504,41.2428;-81.5524,41.23;-81.567,41.21;-81.5773,41.19?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-cuyahoga-towpath-north",
+      "name": "Towpath: Lock 39 to Station Road: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-81.6278,41.394;-81.6123,41.3742;-81.5967,41.356;-81.5887,41.3335;-81.5859,41.3195?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "6ff755e6121add261068634e211056f91412bb14616e19c508f06b41925f6eff",
+    "osmDate": "2026-11-01T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 1,
+    "bridges": true
+  }
+}
