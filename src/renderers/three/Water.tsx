@@ -20,7 +20,7 @@ import { buildWaterGeometry, levelLakes, seaApron, WATER_EDGE_M, type WaterGeome
 import type { SceneWorld } from './worldScene';
 
 /** The sea hazes over as if it were this fraction of its distance away. */
-export const SEA_HAZE = 0.5;
+export const SEA_HAZE = 0.35;
 
 export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMaterial {
   const mat = new THREE.MeshStandardMaterial({
@@ -33,7 +33,7 @@ export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMa
     polygonOffsetUnits: -2,
   });
   return patchWorldMaterial(mat, atmo, {
-    key: 'water-v6',
+    key: 'water-v7',
     vertexPars: 'attribute float aKind;\nattribute float aShore;\nattribute float aOpen;\nvarying float vKind;\nvarying float vShore;\nvarying float vOpen;',
     vertexMain: 'vKind = aKind;\nvShore = aShore;\nvOpen = aOpen;',
     fragmentPars: `varying float vKind;\nvarying float vShore;\nvarying float vOpen;\nfloat gFoam = 0.0;\n#define SEA_HAZE ${SEA_HAZE.toFixed(2)}\n${NOISE_GLSL}`,
@@ -49,7 +49,7 @@ export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMa
     if (vKind > 1.5) {
       // The sea: blue, turning teal over the shallows near the coast.
       float pxM = max(length(fwidth(wp)), 1e-3);
-      vec3 deep = vec3(0.02, 0.085, 0.15);
+      vec3 deep = vec3(0.015, 0.07, 0.16);
       vec3 shallow = vec3(0.05, 0.21, 0.23);
       vec3 sea = mix(deep, shallow, (1.0 - smoothstep(4.0, 90.0, vShore)) * 0.9);
       diffuseColor.rgb = sea * (0.9 + 0.2 * vNoise(wp * 0.006));

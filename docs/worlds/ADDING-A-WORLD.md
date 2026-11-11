@@ -218,5 +218,13 @@ fails instead of being skipped.
     route runs within ~100 m of the water (a wide beach or a row of hotels
     hides the sea from the road, as it does in life).
 - Measure fps with the HUD on, at medium, on cat-bed's iGPU
-  (`scripts/world-hud-fps.py`). The bar is ≥ 58 fps.
+  (`scripts/world-hud-fps.py`). The bar is ≥ 58 fps. Other workers share
+  that iGPU: check that no other `world-hud-fps.py` or
+  `route-clearance-shots.py` runs before and during a measurement (cat-bed's
+  qemu guests also swing it; note `/proc/loadavg`). Buildings are what a
+  dense city costs: each tier draws at most `buildingTris` building
+  triangles, nearest chunks first (`quality.ts`), so a metro world stops
+  short of `buildingM`. If a city's footprints are surveyed to the corner
+  (Los Angeles County: 9.6 vertices a building, against Lugano's 6.4), also
+  set `"buildingSimplifyM": 1` in the recipe.
 - Add a section for the world to WORLD-FORMAT.md with the bake figures.

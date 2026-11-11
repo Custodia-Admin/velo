@@ -9,7 +9,7 @@
   "detail": "The beach path past Venice to Hermosa",
   "world": {
     "id": "santa-monica-venice",
-    "dir": "santa-monica-venice/c3292e044c833846/",
+    "dir": "santa-monica-venice/96646be0bdff695d/",
     "host": "remote",
     "bbox": {
       "south": 33.85615,
@@ -99,14 +99,14 @@
       "id": "route-scenic-santa-monica-strand",
       "name": "Santa Monica to Hermosa Beach: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
-      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.4974,34.0089;-118.4741,33.9867;-118.4523,33.9587;-118.4132,33.8839;-118.4037,33.8616?overview=full&geometries=geojson&steps=true",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.49619,34.00905;-118.4741,33.9867;-118.4523,33.9587;-118.415,33.89;-118.40137,33.86199?overview=full&geometries=geojson&steps=true",
       "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     },
     {
       "id": "route-scenic-will-rogers-venice",
       "name": "Will Rogers to Venice: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
-      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.5361,34.0354;-118.51691,34.02553;-118.4974,34.0089;-118.47677,33.98981;-118.4672,33.97939?overview=full&geometries=geojson&steps=true",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.5361,34.0354;-118.51691,34.02553;-118.49526,34.00842;-118.47677,33.98981;-118.4672,33.97939?overview=full&geometries=geojson&steps=true",
       "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     }
   ]

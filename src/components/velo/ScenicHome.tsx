@@ -91,10 +91,12 @@ export function homeSectionViews(
         if (!info) continue;
         routes.push(info);
         if (s.role === 'wishlist') {
-          // "Peschiera to Lazise · Veneto, Italy"; a route named after its place
-          // ("Berkeley shoreline") would only repeat the title, so just the region.
+          // "Peschiera to Lazise · Veneto, Italy"; a place's only route named
+          // after it ("Berkeley shoreline") would only repeat the title, so just
+          // the region. A place with two rides names both, to tell them apart.
           const d = e.destination;
-          const repeats = info.name.toLowerCase().includes(d.name.toLowerCase());
+          const alone = s.entries.filter((x) => x.destination === d).length === 1;
+          const repeats = alone && info.name.toLowerCase().includes(d.name.toLowerCase());
           placeById[e.routeId] = { title: d.name, line: repeats ? d.place : `${info.name} · ${d.place}` };
         }
       }

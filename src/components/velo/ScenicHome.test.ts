@@ -88,6 +88,10 @@ describe('homeSectionViews', () => {
       title: 'Berkeley',
       line: 'California, USA',
     });
+    // With its second ride, each card names its route.
+    const wish = homeSectionViews(null).find((v) => v.id === 'wishlist')!;
+    expect(wish.placeById['scenic-berkeley-bay-trail'].line).toBe('Berkeley shoreline · California, USA');
+    expect(wish.placeById['scenic-richmond-marina-bay'].line).toBe('Richmond Marina Bay · California, USA');
   });
 });
 

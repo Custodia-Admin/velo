@@ -4,7 +4,11 @@
  * frustum-culled by chunk). The wall shader adds plaster stains and rain
  * streaks, damp plinths, stone coursing, windows with wooden shutters (lit
  * at night) and roof-tile mottling, all fading out before they alias.
- * Chunks are built nearest first, a few per frame.
+ * Chunks are built nearest first, a few per frame, out to the tier's
+ * `buildingM`: as surveyed within `buildingDetailM`, as boxes beyond (a
+ * house a kilometre off is a few pixels; its box is 4 walls and a roof), and
+ * up to `buildingTris` in all, so a dense metro world stops short of the view
+ * distance. Chunks the camera rides away from hide or turn to boxes again.
  */
 
 import { useEffect, useMemo } from 'react';
@@ -102,23 +106,43 @@ function toGeometry(d: ReturnType<typeof buildBuildingGeometry>): THREE.BufferGe
 export interface BuildingsHandle {
   group: THREE.Group;
   buckets: number[][];
+  /** Per chunk: the detailed mesh (footprints as surveyed), built once the camera comes within `detailM`. */
   meshes: (THREE.Mesh | null)[];
-  built: boolean[];
+  /** Per chunk: the far mesh (every footprint as its box, `footprintBox`). */
+  boxes: (THREE.Mesh | null)[];
+  /** Triangles per chunk, detailed / boxes: estimated until built, then exact. */
+  tris: number[];
+  boxTris: number[];
   material: THREE.MeshStandardMaterial;
-  /** Frames to skip before looking for unbuilt chunks again (nothing was in range). */
+  /** Frames to skip before looking again (nothing was left to build). */
   pendingCheck: number;
 }
 
+/**
+ * Triangles a footprint of `n` vertices extrudes to, at most: two per wall
+ * and up to two per edge of roof (a hipped four-corner roof is 6).
+ */
+export function buildingTriangles(n: number): number {
+  return 4 * n;
+}
+
 export function createBuildings(sw: SceneWorld, atmo: WorldAtmosphere): BuildingsHandle {
-  const buckets = bucketBuildings(sw.world.buildings, sw.locate, sw.chunks.length);
+  const layer = sw.world.buildings;
+  const buckets = bucketBuildings(layer, sw.locate, sw.chunks.length);
+  const tris = buckets.map((b) => b.reduce((s, i) => s + buildingTriangles(layer.start[i + 1] - layer.start[i]), 0));
+  const boxTris = buckets.map((b) => b.length * buildingTriangles(4));
   const group = new THREE.Group();
   group.name = 'buildings';
-  return { group, buckets, meshes: sw.chunks.map(() => null), built: sw.chunks.map(() => false), material: createBuildingMaterial(atmo), pendingCheck: 0 };
+  const none = () => sw.chunks.map(() => null);
+  return { group, buckets, meshes: none(), boxes: none(), tris, boxTris, material: createBuildingMaterial(atmo), pendingCheck: 0 };
 }
 
 /**
- * Build chunks nearest first within `radius` of the camera: at most `budget`
- * per call and none after `timeBudgetMs` (one is always allowed). Exported for tests.
+ * Chunks within `radius` of the camera, nearest first: detailed within
+ * `detailM`, boxes beyond, and none past `maxTris` triangles counted from the
+ * camera out. Builds what's missing, at most `budget` per call and none after
+ * `timeBudgetMs` (one is always allowed); until a chunk's wanted mesh is
+ * built it keeps showing the other one if it has it. Exported for tests.
  */
 export function updateBuildings(
   handle: BuildingsHandle,
@@ -129,6 +153,8 @@ export function updateBuildings(
   budget: number,
   shadows: boolean,
   timeBudgetMs = Infinity,
+  maxTris = Infinity,
+  detailM = Infinity,
 ): number {
   if (handle.pendingCheck > 0) {
     handle.pendingCheck--;
@@ -136,31 +162,62 @@ export function updateBuildings(
   }
   const t0 = performance.now();
   let left = budget;
-  const order = sw.chunks
+  const near = sw.chunks
     .map((c, i) => ({ i, d: Math.hypot(Math.max(c.minX - camX, 0, camX - c.maxX), Math.max(c.minZ - camZ, 0, camZ - c.maxZ)) }))
-    .filter((o) => !handle.built[o.i] && o.d <= radius)
+    .filter((o) => o.d <= radius && handle.buckets[o.i].length > 0)
     .sort((a, b) => a.d - b.d);
+  /** Chunk → wants its detailed mesh (true) or its boxes (false); absent = hidden. */
+  const want = new Map<number, boolean>();
+  let total = 0;
+  for (const { i, d } of near) {
+    const detailed = d <= detailM;
+    const t = detailed ? handle.tris[i] : handle.boxTris[i];
+    if (total > 0 && total + t > maxTris) break;
+    total += t;
+    want.set(i, detailed);
+  }
+  const show = () => {
+    for (let i = 0; i < handle.meshes.length; i++) {
+      const m = handle.meshes[i];
+      const b = handle.boxes[i];
+      if (!m && !b) continue;
+      const w = want.get(i);
+      // The wanted one, else the other while the wanted one is being built.
+      const pick = w === undefined ? null : ((w ? m : b) ?? m ?? b);
+      if (m) m.visible = m === pick;
+      if (b) b.visible = b === pick;
+    }
+  };
+  const order = near.filter((o) => want.has(o.i) && !(want.get(o.i) ? handle.meshes[o.i] : handle.boxes[o.i]));
+  // Nothing left to build: look again in 30 frames (the camera will have moved).
   if (order.length === 0) handle.pendingCheck = 30;
   for (const { i } of order) {
     if (left <= 0 || (left < budget && performance.now() - t0 > timeBudgetMs)) break;
-    handle.built[i] = true;
-    if (handle.buckets[i].length === 0) continue;
     left--;
+    const detailed = want.get(i)!;
     const chunk = sw.chunks[i];
-    const data = buildBuildingGeometry(sw.world.buildings, handle.buckets[i], sw.heightfield, chunk.centerX, chunk.centerZ);
+    const data = buildBuildingGeometry(sw.world.buildings, handle.buckets[i], sw.heightfield, chunk.centerX, chunk.centerZ, !detailed);
     const mesh = new THREE.Mesh(toGeometry(data), handle.material);
-    mesh.name = `buildings-${i}`;
+    mesh.name = `buildings-${i}${detailed ? '' : '-boxes'}`;
     mesh.position.set(chunk.centerX, 0, chunk.centerZ);
     mesh.castShadow = shadows;
     mesh.receiveShadow = shadows;
     handle.group.add(mesh);
-    handle.meshes[i] = mesh;
+    if (detailed) {
+      handle.meshes[i] = mesh;
+      handle.tris[i] = data.positions.length / 9;
+    } else {
+      handle.boxes[i] = mesh;
+      handle.boxTris[i] = data.positions.length / 9;
+    }
   }
+  show();
   return budget - left;
 }
 
 export function disposeBuildings(handle: BuildingsHandle) {
   for (const m of handle.meshes) m?.geometry.dispose();
+  for (const m of handle.boxes) m?.geometry.dispose();
   handle.material.dispose();
 }
 
@@ -169,7 +226,7 @@ export function Buildings({ sceneWorld, quality, atmo }: { sceneWorld: SceneWorl
   const handle = useMemo(() => createBuildings(sceneWorld, shared), [sceneWorld, shared]);
   useEffect(() => () => disposeBuildings(handle), [handle]);
   useFrame(({ camera }) => {
-    updateBuildings(handle, sceneWorld, camera.position.x, camera.position.z, quality.buildingM, 3, quality.shadows, 4);
+    updateBuildings(handle, sceneWorld, camera.position.x, camera.position.z, quality.buildingM, 3, quality.shadows, 4, quality.buildingTris, quality.buildingDetailM);
   });
   return <primitive object={handle.group} />;
 }

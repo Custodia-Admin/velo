@@ -9,7 +9,7 @@
   "detail": "Banderas Bay",
   "world": {
     "id": "puerto-vallarta",
-    "dir": "puerto-vallarta/bd088f9d01bb2449/",
+    "dir": "puerto-vallarta/ebb5404d2921e97b/",
     "host": "remote",
     "bbox": {
       "south": 20.5898,
@@ -117,7 +117,7 @@
       "id": "route-scenic-puerto-vallarta-malecon",
       "name": "Puerto Vallarta bayfront: OSRM bike route through 6 waypoints, routing.openstreetmap.de",
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
-      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-105.2385,20.6043;-105.23756,20.60657;-105.23509,20.60998;-105.23271,20.61441;-105.23294,20.61537;-105.2487,20.6684?overview=full&geometries=geojson&steps=true",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-105.2381,20.60553;-105.23756,20.60657;-105.23509,20.60998;-105.23271,20.61441;-105.23294,20.61537;-105.2487,20.6684?overview=full&geometries=geojson&steps=true",
       "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     },
     {

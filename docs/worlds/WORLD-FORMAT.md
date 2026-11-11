@@ -261,7 +261,9 @@ byte per building; loaders read both (a `VWB1` bundle reads as all suburb):
 
 Rings are counter-clockwise (walls extrude outward), open, at least 3
 vertices. Heights come from `height`, else `building:levels × 3.2 + 1` m, else
-a default per building type. Buildings under 8 m² are dropped.
+a default per building type. Buildings under 8 m² are dropped. Footprints
+are simplified at 0.3 m, or at the recipe's `buildingSimplifyM` (Santa
+Monica: 1 m, for Los Angeles County's surveyed footprints).
 
 Nothing the rider follows runs through a building (`buildingClearance` in
 `tools/worldbake/buildVectors.mjs`):
@@ -408,8 +410,8 @@ most.
 `id`, `name`, `description`, `origin` (world `(0, 0)`), `grid` (`xMin`, `yMax`,
 `cellSize`, `cols`, `rows`, ≤ 2048 a side), `dem` (below), `osmDate`, `routes`
 (+ `routesOutside` with reasons), `snap`, `vegetation`, `moods`,
-`defaultMood`, the optional `host` (`"remote"`), `routeCredits`, `coast` and
-`flatLakes` ([ADDING-A-WORLD.md](ADDING-A-WORLD.md)), and `validation`
+`defaultMood`, the optional `host` (`"remote"`), `routeCredits`, `coast`,
+`buildingSimplifyM` and `flatLakes` ([ADDING-A-WORLD.md](ADDING-A-WORLD.md)), and `validation`
 (`sample_seed`, plus an optional mountain
 override; the bake writes the rest, see
 [Terrain accuracy check](#terrain-accuracy-check-p13-v2)).

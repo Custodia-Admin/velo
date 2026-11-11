@@ -17,6 +17,7 @@ import {
   ROUTE_CLEAR_MIN_M,
   ROUTE_TREE_HALF_M,
   buildBuildings,
+  BUILDING_SIMPLIFY_M,
   buildVegetation,
   buildingClearance,
   routeClearances,
@@ -220,6 +221,33 @@ describe('worldbake: nothing the rider follows runs through a building', () => {
     expect(cleared.dropped).toEqual({ route: 1, road: 0 });
     expect(cleared.footprints.map((f: { cx: number }) => Math.round(f.cx) + 0)).toEqual([0, 100]);
     expect(cleared.bytes.subarray(0, 4).toString('latin1')).toBe('VWB2');
+  });
+
+  it("buildBuildings simplifies footprints at the recipe's tolerance (0.3 m unless set)", () => {
+    const proj = createProjection({ type: 'tmerc', ellipsoid: 'WGS84', lat0: 43, lon0: 12, k0: 1 });
+    const ext = { xMin: -500, xMax: 500, yMin: -500, yMax: 500 };
+    // A 20 m square house whose sides jog 0.6 m in and out: a surveyed footprint.
+    const ring: number[] = [];
+    const side = (x0: number, y0: number, dx: number, dy: number) => {
+      for (let k = 0; k < 4; k++) {
+        const j = k % 2 ? 0.6 : 0;
+        ring.push(x0 + dx * k * 5 - dy * j, y0 + dy * k * 5 + dx * j);
+      }
+    };
+    side(-10, -10, 1, 0);
+    side(10, -10, 0, 1);
+    side(10, 10, -1, 0);
+    side(-10, 10, 0, -1);
+    const geometry = [];
+    for (let i = 0; i <= ring.length; i += 2) {
+      const [lat, lon] = proj.inverse(ring[i % ring.length], ring[(i + 1) % ring.length]);
+      geometry.push({ lat, lon });
+    }
+    const els = [{ type: 'way', id: 1, tags: { building: 'house' }, geometry }];
+    const verts = (b: { bytes: Buffer }) => b.bytes.readUInt32LE(8);
+    expect(BUILDING_SIMPLIFY_M).toBe(0.3);
+    expect(verts(buildBuildings(els, proj, ext))).toBe(16);
+    expect(verts(buildBuildings(els, proj, ext, [], null, 1))).toBe(4);
   });
 
   it('keeps trees off the route corridor too', () => {

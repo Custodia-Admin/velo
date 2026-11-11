@@ -50,7 +50,7 @@ import { fetchOsm, osmLayersFor, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { BEACH_KIND, buildSea, flattenSea, relevelSea, slopeBeaches } from './coast.mjs';
-import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
+import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
@@ -375,7 +375,7 @@ export async function bake(opts) {
     routeLines: routeClear.lines,
     routeClear: routeClear.clear,
     roadLines,
-  });
+  }, recipe.buildingSimplifyM ?? BUILDING_SIMPLIFY_M);
   const vegetation = buildVegetation({
     polys: landcover.polys,
     ext: extent,

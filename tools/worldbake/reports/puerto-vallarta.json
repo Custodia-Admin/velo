@@ -5,21 +5,21 @@
     "dem": 0.5,
     "osm": 0.1,
     "heightfield+routes": 0.1,
-    "vectors": 1.3,
-    "write": 4.1,
+    "vectors": 1.6,
+    "write": 5.3,
     "validate": 0,
-    "total": 6.2
+    "total": 7.8
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 864691,
+      "stored": 864673,
       "content": 3818196,
-      "brotli": 685433
+      "brotli": 685647
     },
     "roads.json.gz": {
-      "stored": 287346,
-      "content": 785122,
-      "brotli": 205728
+      "stored": 287143,
+      "content": 784580,
+      "brotli": 205470
     },
     "water.json.gz": {
       "stored": 29592,
@@ -42,50 +42,50 @@
       "brotli": 143964
     },
     "routes.json.gz": {
-      "stored": 27864,
-      "content": 67285,
-      "brotli": 18238
+      "stored": 27780,
+      "content": 66993,
+      "brotli": 17761
     },
     "manifest.json": {
       "stored": 10598,
       "content": 10598,
-      "brotli": 2844
+      "brotli": 2843
     }
   },
   "totals": {
-    "stored": 1564026,
-    "content": 5340851,
-    "brotli": 1212471
+    "stored": 1563721,
+    "content": 5340017,
+    "brotli": 1211949
   },
   "hashes": {
-    "height.bin.gz": "f39397a094d4e0b3f05f0796fcb3c339763d61b53e8c1c1d2fc9d7ac5ba55085",
-    "roads.json.gz": "eac80f5b6b170777c9f01ffe85c5618f13f9b77c5f6b805f005649efdebbe98b",
+    "height.bin.gz": "07c508b2e81771113a02ff3dd0afa3f8bf1d22a9f0653fa228a28e26a8fcfece",
+    "roads.json.gz": "55606aa89b6e865f8fceb07a3aa429215c682e39615f055d96f5babd740f2db4",
     "water.json.gz": "15f480d3576e9b841ac3180a5a50a41007d9944aaccd2815790cff7994d7e09c",
     "landcover.json.gz": "18de26aef77f30a15ddc0288b8d539089ec08958b7c783c18fdf5434281e7fd4",
     "buildings.bin.gz": "5538bd91967fa70dc2acedc931128a585b84d0131cf9c089832e2a447c116052",
     "vegetation.bin.gz": "e0b752bba90e60a81d2630041dc86040231fd660c52bf4aa5578243ea6a56d0b",
-    "routes.json.gz": "9b4dde4f87049b616108380fab09375629e609178fe8e956778607f23d3dc9c6",
-    "manifest.json": "bd088f9d01bb2449ed2005abd1954fe68fe3d11e00dfb9fc3a96e40aca5d1edb"
+    "routes.json.gz": "3275ede328579e949526eb9796555d15e8d0837b5d42054fd0267bfd14a37e2f",
+    "manifest.json": "ebb5404d2921e97bf93e0eab086063b51a2e7fdbee0bb17afba51205ad4aaf9f"
   },
   "routes": [
     {
       "id": "scenic-puerto-vallarta-malecon",
       "name": "Puerto Vallarta bayfront",
-      "lengthM": 8857.63,
+      "lengthM": 8716.76,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.184,
+      "gradeMeanAbsDiffPct": 0.178,
       "report": {
-        "samples": 887,
-        "gradeMaxAbsDiffPct": 0.747,
-        "rawDemGradeMeanAbsDiffPct": 1.24,
-        "maxRenderMinusProfileM": 7.93
+        "samples": 873,
+        "gradeMaxAbsDiffPct": 0.704,
+        "rawDemGradeMeanAbsDiffPct": 1.258,
+        "maxRenderMinusProfileM": 7.55
       },
       "roadCoverage": {
-        "mappedPct": 99.28,
-        "paintPctBefore": 99.06,
+        "mappedPct": 100,
+        "paintPctBefore": 99.94,
         "paintPct": 100,
-        "easedM": 26.6,
-        "joinedM": 57.4,
+        "easedM": 4.8,
+        "joinedM": 0,
         "tunnelM": 0
       }
     },
@@ -112,24 +112,14 @@
     }
   ],
   "routeFit": {
-    "roadsBent": 12,
-    "maxShiftM": 3,
-    "joins": 1,
+    "roadsBent": 10,
+    "maxShiftM": 0.61,
+    "joins": 0,
     "bent": [
-      {
-        "road": 6,
-        "shiftM": 2.65,
-        "mapped": "45365,-83736 45469,-83720"
-      },
       {
         "road": 53,
         "shiftM": 0.2,
         "mapped": "46321,-81285 46345,-81129 46631,-80390 47163,-79363 47560,-78789 48178,-78547 48280,-78456 48897,-77517 48856,-77232 48884,-77066 49152,-76505 50550,-73767 51225,-72647 51378,-72614"
-      },
-      {
-        "road": 1646,
-        "shiftM": 3,
-        "mapped": "45761,-82445 45483,-83083 45425,-83445 45365,-83736 45560,-84537 45734,-85155"
       },
       {
         "road": 1714,
@@ -185,10 +175,10 @@
     "encoding": "u16-delta",
     "heightOffset": -7,
     "heightScale": 0.015625,
-    "minHeight": -5.125,
+    "minHeight": -5.25,
     "maxHeight": 427.015625,
-    "carvedNodes": 14859,
-    "maxCutM": 18.06
+    "carvedNodes": 14746,
+    "maxCutM": 18.47
   },
   "coast": {
     "seaPolygons": 1,

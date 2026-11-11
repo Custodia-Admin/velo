@@ -713,9 +713,12 @@ export function buildingClearance(rings, { routeLines = [], routeClear = null, r
  *
  * `clear` drops footprints on the scenic routes and roads (see
  * `buildingClearance`); districts are classified before the drop so the
- * remaining buildings keep their palettes.
+ * remaining buildings keep their palettes. Footprints are simplified at
+ * `simplifyM` (Douglas-Peucker, the recipe's `buildingSimplifyM`).
  */
-export function buildBuildings(elements, projection, ext, landcoverPolys = [], clear = null) {
+export const BUILDING_SIMPLIFY_M = 0.3;
+
+export function buildBuildings(elements, projection, ext, landcoverPolys = [], clear = null, simplifyM = BUILDING_SIMPLIFY_M) {
   const list = [];
   for (const el of elements) {
     const t = el.tags ?? {};
@@ -727,7 +730,7 @@ export function buildBuildings(elements, projection, ext, landcoverPolys = [], c
       for (let i = 0; i < n; i++) { cx += outer[2 * i]; cy += outer[2 * i + 1]; }
       cx /= n; cy /= n;
       if (cx < ext.xMin || cx > ext.xMax || cy < ext.yMin || cy > ext.yMax) continue;
-      const ring = simplifyLine([...outer, outer[0], outer[1]], 0.3).slice(0, -2).map(dm);
+      const ring = simplifyLine([...outer, outer[0], outer[1]], simplifyM).slice(0, -2).map(dm);
       if (ring.length < 6 || ring.length / 2 > 65535) continue;
       // Counter-clockwise outer rings, so renderers extrude walls outward.
       let a = 0;

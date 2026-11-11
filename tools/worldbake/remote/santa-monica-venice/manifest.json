@@ -48,19 +48,19 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 967776,
-      "sha256": "15696997d6ca8e3f29afad6129a84939e9b6ecf5c81f6468886fcd839af72d22",
+      "bytes": 967459,
+      "sha256": "30bbb878cd5e8239912ed13f8612931b60427ef853978f4b7cd017f81ef03da2",
       "compression": "gzip",
       "contentBytes": 4351984,
-      "contentSha256": "d66bdf0418f4911bdf17755ef4c3c4e85f764899e26867ae1439e1bc0627e853"
+      "contentSha256": "263fbbf1ce6c5dcacf2b66df7c7ad60d7d8b1eee4941d1ccdb6de05a589bb1cc"
     },
     {
       "path": "roads.json.gz",
-      "bytes": 996351,
-      "sha256": "aa8bed33011ab36f7c0b272220464b2ee2869eb741c98ede385dd8a6c36c7e2f",
+      "bytes": 995800,
+      "sha256": "dba3ddf2c11a5880d4c4e1291affc9d553d050130348b325c377e3639849a653",
       "compression": "gzip",
-      "contentBytes": 2952510,
-      "contentSha256": "ff75486464db958cd0e3ccb3b96469b9ab37e7c77db7209be37669ce74e006a4"
+      "contentBytes": 2951127,
+      "contentSha256": "2fac4b04b9e6cb5f838c548f4be5dbd0256f8b5dab31fdc78bc45b9cc4bd341b"
     },
     {
       "path": "water.json.gz",
@@ -80,27 +80,27 @@
     },
     {
       "path": "buildings.bin.gz",
-      "bytes": 3188533,
-      "sha256": "64bfbc2fd684f3cefe01a82ac8e7b0ede44e71731313ddea6777bcca4c812499",
+      "bytes": 2518741,
+      "sha256": "c5569570939a96c2dc3dd61d63ee490c00f396ab4c3103046d9e54534f1b800f",
       "compression": "gzip",
-      "contentBytes": 5838112,
-      "contentSha256": "228c326de1f5b247e038c5a1331deaae42097d7c39a6beefb9d99a0f6bac8e05"
+      "contentBytes": 4424620,
+      "contentSha256": "d0fc21f5a5cd01f3cce33323c417c42fdac3b9048d9fdc4447192cf4a8148aa3"
     },
     {
       "path": "vegetation.bin.gz",
-      "bytes": 146087,
-      "sha256": "bb1bdf8c5c8c10c8109603f0fee43f3f10cad75f2ae7c595cb4b201c896e9dbd",
+      "bytes": 146595,
+      "sha256": "f42dbb894e92478fd050a6186d87fa67f2495257cb6fc7f0aca8b45f64d54603",
       "compression": "gzip",
-      "contentBytes": 199114,
-      "contentSha256": "2b07a0a5a874aa77fbc1700b57c1678661fd72d71ef258e3a59584e014656d8f"
+      "contentBytes": 199936,
+      "contentSha256": "a9893ec3ed7694ef2e85ae8b485cadff8fc8349e82d636a37a8763dd9eae5012"
     },
     {
       "path": "routes.json.gz",
-      "bytes": 52423,
-      "sha256": "6ea94374fab9da2cf10d1a9b0befb2764fc49ed1f48c35956474e34004c5ff20",
+      "bytes": 50682,
+      "sha256": "18d6cbecbda66d09f44319e8aa0348cb8c2dc3a81cf41cc16d5ec065c822333b",
       "compression": "gzip",
-      "contentBytes": 125677,
-      "contentSha256": "05bb302ac867b094f23477f9c413caeada2d68998cd21a2c41b5d82ee7f778cf"
+      "contentBytes": 122927,
+      "contentSha256": "b60d4a648ff59f5603c7d58357c88e0840e3c01b2295894b8f509af7ffac6d7d"
     }
   ],
   "moods": [
@@ -209,7 +209,7 @@
       "x": -639.8,
       "y": 4259.5,
       "osm": "node/1595724846",
-      "h": 5.04
+      "h": 5.23
     },
     {
       "name": "Santa Monica",
@@ -254,7 +254,7 @@
       "x": -1017.1,
       "y": 5006.5,
       "osm": "node/5695538351",
-      "h": 6.12
+      "h": 5.93
     },
     {
       "name": "On LA & Malibu",
@@ -369,41 +369,41 @@
     {
       "id": "scenic-santa-monica-strand",
       "name": "Santa Monica to Hermosa Beach",
-      "lengthM": 23247.35,
+      "lengthM": 22888.25,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.121
+      "gradeMeanAbsDiffPct": 0.114
     },
     {
       "id": "scenic-will-rogers-venice",
       "name": "Will Rogers to Venice",
-      "lengthM": 9936.53,
+      "lengthM": 9786.68,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.115
+      "gradeMeanAbsDiffPct": 0.081
     }
   ],
   "stats": {
-    "roads": 48879,
+    "roads": 48874,
     "waterAreas": 104,
     "waterLines": 75,
     "landcoverAreas": 2834,
-    "buildings": 120877,
-    "buildingVertices": 1157332,
-    "buildings:suburb": 98952,
-    "buildings:old-town": 14277,
-    "buildings:rural": 347,
-    "buildings:industrial": 7301,
-    "trees": 33183,
+    "buildings": 120817,
+    "buildingVertices": 804109,
+    "buildings:suburb": 99277,
+    "buildings:old-town": 13904,
+    "buildings:rural": 346,
+    "buildings:industrial": 7290,
+    "trees": 33320,
     "trees:broadleaf": 1190,
     "trees:conifer": 0,
-    "trees:scrub": 9536,
+    "trees:scrub": 9537,
     "trees:olive": 4,
-    "trees:park": 3731,
+    "trees:park": 3735,
     "trees:cypress": 313,
     "trees:riparian": 999,
     "trees:hedgerow": 372,
-    "trees:garden": 17038,
+    "trees:garden": 17170,
     "pois": 28,
-    "carvedNodes": 23491
+    "carvedNodes": 23241
   },
   "credits": [
     {
@@ -438,21 +438,21 @@
       "id": "route-scenic-santa-monica-strand",
       "name": "Santa Monica to Hermosa Beach: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
-      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.4974,34.0089;-118.4741,33.9867;-118.4523,33.9587;-118.4132,33.8839;-118.4037,33.8616?overview=full&geometries=geojson&steps=true",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.49619,34.00905;-118.4741,33.9867;-118.4523,33.9587;-118.415,33.89;-118.40137,33.86199?overview=full&geometries=geojson&steps=true",
       "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     },
     {
       "id": "route-scenic-will-rogers-venice",
       "name": "Will Rogers to Venice: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
-      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.5361,34.0354;-118.51691,34.02553;-118.4974,34.0089;-118.47677,33.98981;-118.4672,33.97939?overview=full&geometries=geojson&steps=true",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.5361,34.0354;-118.51691,34.02553;-118.49526,34.00842;-118.47677,33.98981;-118.4672,33.97939?overview=full&geometries=geojson&steps=true",
       "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     }
   ],
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "5ee1900e68f15009871414d7914a82e3d9ae2c2620d0e813ea75ac2761d9fea3",
+    "recipeSha256": "3edab6b197fb4435dbb01bc3a65224ec46d06afd746ff066d513fbfc6ff7e24f",
     "osmDate": "2026-11-01T00:00:00Z",
     "demSource": "copernicus-dem-30m/glo30-cog",
     "demTiles": 2

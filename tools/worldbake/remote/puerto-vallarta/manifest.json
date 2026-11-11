@@ -34,7 +34,7 @@
     "encoding": "u16-delta",
     "heightOffset": -7,
     "heightScale": 0.015625,
-    "minHeight": -5.125,
+    "minHeight": -5.25,
     "maxHeight": 427.015625
   },
   "layers": {
@@ -48,19 +48,19 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 864691,
-      "sha256": "f39397a094d4e0b3f05f0796fcb3c339763d61b53e8c1c1d2fc9d7ac5ba55085",
+      "bytes": 864673,
+      "sha256": "07c508b2e81771113a02ff3dd0afa3f8bf1d22a9f0653fa228a28e26a8fcfece",
       "compression": "gzip",
       "contentBytes": 3818196,
-      "contentSha256": "07045e4794d044fc2a0dcfa4e4179e60a5d83eb95fce0b11df264702d506cdf9"
+      "contentSha256": "503768221cfc24b50183779e984074288db1861b262e1d7aeb439ee4b9227a00"
     },
     {
       "path": "roads.json.gz",
-      "bytes": 287346,
-      "sha256": "eac80f5b6b170777c9f01ffe85c5618f13f9b77c5f6b805f005649efdebbe98b",
+      "bytes": 287143,
+      "sha256": "55606aa89b6e865f8fceb07a3aa429215c682e39615f055d96f5babd740f2db4",
       "compression": "gzip",
-      "contentBytes": 785122,
-      "contentSha256": "8328f79db1eb1704c3f61839ebb2f307474335629f11134845fec6701ce195a9"
+      "contentBytes": 784580,
+      "contentSha256": "a2dede454d350835ecc90da2860fb934387c23f2c978b550bb34c2042469fa6c"
     },
     {
       "path": "water.json.gz",
@@ -96,11 +96,11 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 27864,
-      "sha256": "9b4dde4f87049b616108380fab09375629e609178fe8e956778607f23d3dc9c6",
+      "bytes": 27780,
+      "sha256": "3275ede328579e949526eb9796555d15e8d0837b5d42054fd0267bfd14a37e2f",
       "compression": "gzip",
-      "contentBytes": 67285,
-      "contentSha256": "0bec14bb50a1d171161ac3accc52376c01cdf186c85b1e97b04247f63ffb4df0"
+      "contentBytes": 66993,
+      "contentSha256": "1bb878257ce0cf56992d5714f2bbdaeb771fa7fd397480385425258ab92b3f99"
     }
   ],
   "moods": [
@@ -119,7 +119,7 @@
       "x": 4783.5,
       "y": -7872.2,
       "osm": "node/269553482",
-      "h": 3.69
+      "h": 3.96
     },
     {
       "name": "Las Mojoneras",
@@ -279,9 +279,9 @@
     {
       "id": "scenic-puerto-vallarta-malecon",
       "name": "Puerto Vallarta bayfront",
-      "lengthM": 8857.63,
+      "lengthM": 8716.76,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.184
+      "gradeMeanAbsDiffPct": 0.178
     },
     {
       "id": "scenic-nuevo-vallarta-bucerias",
@@ -292,7 +292,7 @@
     }
   ],
   "stats": {
-    "roads": 9977,
+    "roads": 9976,
     "waterAreas": 100,
     "waterLines": 43,
     "landcoverAreas": 652,
@@ -313,7 +313,7 @@
     "trees:hedgerow": 1849,
     "trees:garden": 6909,
     "pois": 18,
-    "carvedNodes": 14859
+    "carvedNodes": 14746
   },
   "credits": [
     {
@@ -348,7 +348,7 @@
       "id": "route-scenic-puerto-vallarta-malecon",
       "name": "Puerto Vallarta bayfront: OSRM bike route through 6 waypoints, routing.openstreetmap.de",
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
-      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-105.2385,20.6043;-105.23756,20.60657;-105.23509,20.60998;-105.23271,20.61441;-105.23294,20.61537;-105.2487,20.6684?overview=full&geometries=geojson&steps=true",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-105.2381,20.60553;-105.23756,20.60657;-105.23509,20.60998;-105.23271,20.61441;-105.23294,20.61537;-105.2487,20.6684?overview=full&geometries=geojson&steps=true",
       "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     },
     {
