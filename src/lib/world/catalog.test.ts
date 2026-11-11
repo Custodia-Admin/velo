@@ -78,11 +78,11 @@ describe('world catalog', () => {
   });
 
   it('VITE_WORLDS_REMOTE_URL moves only the remote worlds (a household mirror with the same layout)', () => {
-    const env = { VITE_WORLDS_REMOTE_URL: 'https://cat-bed.example/worlds' };
-    expect(remoteWorldsBaseUrl(env)).toBe('https://cat-bed.example/worlds/');
+    const env = { VITE_WORLDS_REMOTE_URL: 'https://worlds.example/worlds' };
+    expect(remoteWorldsBaseUrl(env)).toBe('https://worlds.example/worlds/');
     expect(remoteWorldsBaseUrl({})).toBe(DEFAULT_REMOTE_WORLDS_URL);
     const chengdu = WORLD_CATALOG.find((w) => w.id === 'chengdu-luxelakes')!;
-    expect(worldUrl(chengdu, env)).toBe(`https://cat-bed.example/worlds/${chengdu.dir}`);
+    expect(worldUrl(chengdu, env)).toBe(`https://worlds.example/worlds/${chengdu.dir}`);
     expect(worldUrl(WORLD_CATALOG[0], env)).toBe('/worlds/perugia/');
   });
 });

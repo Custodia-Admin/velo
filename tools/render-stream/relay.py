@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Velo render-streaming spike: state relay between ride clients and render pages.
 
-Runs on cat-bed (system python3 + aiohttp), bound to 127.0.0.1; exposed on the
+Runs on the render host (system python3 + aiohttp), bound to 127.0.0.1; exposed on the
 tailnet only via `tailscale serve --bg --https=8444 http://127.0.0.1:8095`.
 
   GET /ws?role=client|render&room=<id>   JSON messages, relayed to the other role in the room

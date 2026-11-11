@@ -11,8 +11,8 @@
  *
  * Before the avatar took the GLB's proportions its helmet topped out at
  * 1.36 m (the GLB's at 1.645 m): the photoreal box's top sat 22–55 px under
- * the world rider's while the wheels matched to 0.4 px. Live check (cat-bed,
- * every rider material painted magenta): ~/.hermes/handoffs/velo/t_dfa07725/tabframe2.py.
+ * the world rider's while the wheels matched to 0.4 px. Live check (test host,
+ * every rider material painted magenta) with a probe script kept outside the repo.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
@@ -440,8 +440,8 @@ describe('chase aim: photoreal frames a bend and a slope as the world rig does',
 
 /**
  * Top of the ride HUD strip under the rider, CSS px, at each gate viewport:
- * `[data-testid=ride-strip]` measured live in the tab (tabframe2.py
- * `hudUnderRider`, ~/.hermes/handoffs/velo/t_215ac171/out/tab-*). The status
+ * `[data-testid=ride-strip]` measured live in the tab (the probe's
+ * `hudUnderRider` reading; probe kept outside the repo). The status
  * chip above it sits left of the rider.
  */
 const HUD_STRIP_TOP: Record<string, number> = { '1440x900': 810, '1280x648': 558, tv: 923, '390x844': 734 };

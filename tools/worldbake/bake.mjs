@@ -29,7 +29,7 @@
 //
 // Same recipe + same cached inputs → byte-identical bundle (sha256 per file in
 // manifest.json). OSM queries are pinned to the recipe's osmDate, so a clean
-// cache re-downloads the same data. Runs on the bake host (cat-bed), not the
+// cache re-downloads the same data. Runs on a bake host with room to spare, not a
 // laptop: see docs/worlds/WORLD-FORMAT.md "Baking".
 //
 // The P1.3 check (validateDem.mjs, blueprint §P1.3 v2) writes its block back

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Sample GPU/NVENC and container CPU on cat-bed for N seconds. Usage: host_sample.sh <seconds> <label>
+# Sample GPU/NVENC and container CPU on the render host for N seconds. Usage: host_sample.sh <seconds> <label>
 N=${1:-20}; L=${2:-run}; OUT=~/velo-stream/samples/$L; mkdir -p "$OUT"
 nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.encoder,utilization.decoder,encoder.stats.sessionCount,encoder.stats.averageFps,encoder.stats.averageLatency,memory.used,power.draw,clocks.gr,temperature.gpu --format=csv,noheader -l 1 > "$OUT/nvsmi.csv" &
 NV=$!

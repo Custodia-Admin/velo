@@ -81,7 +81,7 @@ export const SIGHT_READS_PER_FRAME = 1;
 /**
  * With segment casts (`seenAt`: one cast from the bars to the camera spot and
  * one under it, lib/segmentHit) a spot costs about 0.1 ms once its tiles are
- * copied: p50 0.1 ms, p90 0.2 ms a cast on cat-bed's iGPU over 300 s on the
+ * copied: p50 0.1 ms, p90 0.2 ms a cast on the test host's iGPU over 300 s on the
  * Lugano shore, against 1.7-2.4 ms for Cesium3DTileset.pick / getHeight on
  * the same segments (t_ee2165b8). A whole side's spots fit in one frame. A
  * cast that first copies a tile back from the GPU takes up to 15 ms, so a

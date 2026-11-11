@@ -1,6 +1,6 @@
 #!/bin/bash
-# One-time setup of the render-streaming spike on cat-bed. Run from the deployed dir:
-#   rsync -a tools/render-stream/ cat-bed:velo-stream/ && ssh cat-bed 'bash ~/velo-stream/setup.sh'
+# One-time setup of the render-streaming spike on the render host. Run from the deployed dir:
+#   rsync -a tools/render-stream/ "$RENDER_HOST":velo-stream/ && ssh "$RENDER_HOST" 'bash ~/velo-stream/setup.sh'
 # Creates the basic-auth secret (auth.conf, 0600, never committed), the no-STUN/TURN rtc.json,
 # a patched copy of Selkies' entrypoint that binds 127.0.0.1 instead of every interface,
 # pulls the pinned image, and puts the tailnet-only HTTPS listener on :8443.

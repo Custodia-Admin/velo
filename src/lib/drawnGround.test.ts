@@ -291,7 +291,7 @@ describe('the rider stands on the drawn ground over the photoreal mesh', () => {
 });
 
 describe("the globe as drawn, not its deepest loaded tile (Santa Monica start, t_b6dbd3d2)", () => {
-  // Measured per frame at the Santa Monica start (1280×648 @2, cat-bed, main
+  // Measured per frame at the Santa Monica start (1280×648 @2, test host, main
   // and PR #74): no photoreal tile under the rider yet, the globe drew a
   // level-14 tile at -32.15 m while globe.getHeight read the level-15 tile
   // loaded under it at -33.70 m. The rider stood on getHeight for 4 frames,
@@ -472,7 +472,7 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
   });
 
   it('a coarser tile drawing the road under a crown edge taken as road is no tile refined higher (Cuyahoga 4.74 km)', () => {
-    // As logged on cat-bed: the towpath at 163.5, terrain 164.2, then a crown.
+    // As logged on the test host: the towpath at 163.5, terrain 164.2, then a crown.
     // At 8 m the finest tile draws its edge 1.76 m up with nothing under it
     // (taken, unproven); 40 m on, a crown layer 168.8 m with nothing under
     // it, 3.5 m over the edge. By then a coarser tile draws the edge's spot:
@@ -602,7 +602,7 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
   });
 
   it('a tile changing under the rider from the towpath to a crown top with nothing under it is no tile refined higher (Cuyahoga 4.724 km)', () => {
-    // As logged on cat-bed: read under the crown, the towpath (162.79 m);
+    // As logged on the test host: read under the crown, the towpath (162.79 m);
     // the next read at the same spot, a tile with the crown top 13 m over
     // the terrain and nothing under it.
     const f = createMeshRoadFilter();
@@ -631,7 +631,7 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
   });
 
   it('a crown layer under the structure line is no tile refined higher where the road spot turned into a crown (Cuyahoga 4.736 km)', () => {
-    // As logged on cat-bed: the towpath taken at 162.79 m (terrain 163.34);
+    // As logged on the test host: the towpath taken at 162.79 m (terrain 163.34);
     // the tile there now draws the crown top 13 m up and nothing under it;
     // 10 m on, a crown layer 169.12 m (5.8 m over the terrain), nothing under.
     const f = createMeshRoadFilter();
@@ -718,7 +718,7 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
       lugano5k(Cesium.Math.toDegrees(c.latitude)),
     );
     // The globe there as the rider's sampler reads it (hidden by the gate, its
-    // stale tiles 10 m over the path: cat-bed drill).
+    // stale tiles 10 m over the path: test-host drill).
     const { s } = scene(tileset, { height: 336.6, show: false });
     const sampler = createGroundSampler(s);
     sampler.sample(lon0, at(0), 330, 0);
@@ -728,7 +728,7 @@ describe('overhangs: only the road is ground, not what stands over it', () => {
   });
 
   // The mesh down the vertical along the route, every half metre, as the
-  // rider's tiles drew it (cat-bed, PR #52 follow-up; linear in between, as
+  // rider's tiles drew it (test host, PR #52 follow-up; linear in between, as
   // the mesh's triangles are).
   /** A height profile sampled every half metre from `m0`; flat beyond its ends. */
   const profile = (m0: number, h: number[]) => (m: number) => {
@@ -1234,7 +1234,7 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
     }
   });
 
-  // Lugano–Melide 7.57–7.63 km (t_6a69c279, cat-bed): the route runs on the
+  // Lugano–Melide 7.57–7.63 km (t_6a69c279, test host): the route runs on the
   // shore road (321.5 m) under the railway and A2 bridges, drawn as one slab
   // 327.8 m with nothing under it. Ridden from the start, the hidden globe
   // still has the coarse tile it last loaded there: 317.1 m in one run, 323.6
@@ -1396,7 +1396,7 @@ describe('one drawn ground: the globe hidden, the rider on the mesh (Lugano–Me
 
   it('held under crowns 1.3–1.7 m over the finest terrain (Cuyahoga 3.11–3.16 km): the globe stands in all the way, is drawn at once, and the rider stands on it', async () => {
     setIonToken('eyJ_test');
-    // cat-bed roll (t_c92a4576): the towpath taken at 162.92 m, then crowns
+    // test-host roll (t_c92a4576): the towpath taken at 162.92 m, then crowns
     // 180–190 m with nothing drawn under them for 60 m. The finest terrain
     // under them alternates 1.32 / 1.72 m under the road held: with a 1.5 m
     // bound both ways the stand-in flipped every sample, the gate's show
@@ -1781,7 +1781,7 @@ describe('Ride again on photoreal: the finish line road is not the ground on the
 });
 
 describe('the mesh is read straight down the vertical (Cesium3DTileset.getHeight leans up to 0.19°)', () => {
-  // Lugano–Melide 2940 m, measured on cat-bed: the road is drawn at 363.41 m
+  // Lugano–Melide 2940 m, measured on the test host: the road is drawn at 363.41 m
   // (GPU pick and the main view's depth at the wheels agree), with a kerb
   // about 0.5 m south and the mesh 362.8 m beyond it. getHeight's ray runs
   // through the Earth's centre, so it crosses 363 m 1.21 m south of the spot:
@@ -1869,7 +1869,7 @@ describe('groundSettled: the ride start waits for the ground under the rider', (
 });
 
 describe('under what stands over the road: the rider rides the road under it (t_148e9796)', () => {
-  // Drill profiles from cat-bed: every up-facing surface down the vertical,
+  // Drill profiles from the test host: every up-facing surface down the vertical,
   // top first, as the rider's tiles drew them, with the globe there (World
   // Terrain as loaded) and the road (the surface that runs on; interpolated
   // where none is drawn). Each row: metres along, globe, road, surfaces….
@@ -2216,7 +2216,7 @@ describe('under what stands over the road: the rider rides the road under it (t_
   it('Lugano–Melide 4.93 km: the rider rides the road onto the embankment, never the layer under it (read 2–8 m apart, rolled in or jumped in)', () => {
     // Taken as "the road under something" (the first look-under did, from
     // 4934 m on), that layer put the rider up to 8.7 m inside the embankment:
-    // on cat-bed the camera saw no sky and the wheels 2.27 m inside the mesh.
+    // on the test host the camera saw no sky and the wheels 2.27 m inside the mesh.
     for (const from of ['road', 'jump'] as const) {
       for (const reads of everyRide(lugano4900, 1, from)) {
         expect(Math.abs(worst(reads)), `${from} read ${reads[1].m - reads[0].m} m apart from ${reads[0].m} m`).toBeLessThanOrEqual(0.3);
@@ -2403,7 +2403,7 @@ describe('under what stands over the road: the rider rides the road under it (t_
     }
   });
 
-  // Lugano–Melide 7550–7640 m (drill, cat-bed): the shore road (321.5–322.1 m)
+  // Lugano–Melide 7550–7640 m (drill, test host): the shore road (321.5–322.1 m)
   // under the railway and A2 bridges, drawn as one slab 327.0–328.5 m (the A2
   // deck 335–338 m over part of it) with nothing under it, 7574–7624 m. The
   // globe as drilled there, refined (320.0–321.8 m); after the slab the drill's
@@ -2459,7 +2459,7 @@ describe('under what stands over the road: the rider rides the road under it (t_
 
   /**
    * The filter rolled through the slab every `spacing` m from `phase` on, as
-   * in a continuous ride (t_2c318b9d, cat-bed): ridden from the start, the
+   * in a continuous ride (t_2c318b9d, test host): ridden from the start, the
    * globe is hidden with the coarse tile it last loaded (`stale` everywhere:
    * 317.1 m in one ride, 323.4 in another), and from `showAt` on it is drawn
    * (the stand-in) and refines to the drilled terrain. `terrainAt` reads it as
@@ -2492,7 +2492,7 @@ describe('under what stands over the road: the rider rides the road under it (t_
     // Read 2–8 m apart at every phase, over any stale tile a hidden globe
     // kept there (317.1, 323.4, 337.9 and 370.7 m in rides; 446 m, a chord the
     // sampler gives no terrain for), the globe drawn 4, 8 or 12 m under the
-    // slab (the stand-in drew it 4.5–9.5 m in, 10 rides on cat-bed; the
+    // slab (the stand-in drew it 4.5–9.5 m in, 10 rides on the test host; the
     // allowance reaches the slab ~20 m in): the road held, never the slab top.
     for (const stale of [317.13, 323.4, 337.9, 370.71, undefined]) {
       for (const showAt of [7576, 7580, 7584]) {

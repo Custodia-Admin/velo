@@ -99,7 +99,7 @@ describe('service worker runtimeCaching for remote worlds (vite.config.ts)', () 
     for (const w of remote) {
       for (const f of ['manifest.json', 'height.bin.gz', 'routes.json.gz']) expect(worldUrl(w) + f).toMatch(pattern);
       // A household mirror under another host and path prefix works the same.
-      expect(worldUrl(w, { VITE_WORLDS_REMOTE_URL: 'http://cat-bed:4180/velo/worlds' }) + 'roads.json.gz').toMatch(pattern);
+      expect(worldUrl(w, { VITE_WORLDS_REMOTE_URL: 'http://worlds-host:4180/velo/worlds' }) + 'roads.json.gz').toMatch(pattern);
     }
     for (const w of WORLD_CATALOG.filter((x) => !x.remote)) {
       expect(`https://velo.example${worldUrl(w)}manifest.json`).not.toMatch(pattern);

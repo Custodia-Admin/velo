@@ -1,6 +1,6 @@
 /**
  * Adaptive perf governor — pure logic over fake scene objects.
- * Mirrors the degrade ladder validated by CDP A/B on cat-bed (RTX 5090):
+ * Mirrors the degrade ladder validated by CDP A/B on the test host (RTX 5090):
  * tier 'high' defaults ~18-36 fps → full ladder ~56 fps sustained.
  */
 import { describe, it, expect } from 'vitest';
