@@ -9,7 +9,8 @@
   "detail": "The Ohio & Erie Canal Towpath between Cleveland and Akron",
   "world": null,
   "routes": [
-    "scenic-cuyahoga-towpath"
+    "scenic-cuyahoga-towpath",
+    "scenic-cuyahoga-towpath-north"
   ],
   "moods": [
     "clear-afternoon"

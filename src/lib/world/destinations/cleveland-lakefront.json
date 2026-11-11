@@ -9,10 +9,12 @@
   "detail": "The Lake Erie lakefront",
   "world": null,
   "routes": [
-    "scenic-cleveland-lakefront"
+    "scenic-cleveland-lakefront",
+    "scenic-wendy-park-lakewood"
   ],
   "moods": [
-    "dusk-cool"
+    "dusk-cool",
+    "golden-hour"
   ],
   "defaultMood": "dusk-cool",
   "pois": [],
