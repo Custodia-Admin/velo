@@ -100,6 +100,14 @@ The log must show:
 - `validate (P1.3 v2): … PASS`. The bound is registered RMS ≤ 6.00 m for a
   standard world, or ≤ 6.24 m for a mountain world.
 
+Play mode's postcards come from the manifest's named places (`pois`) that
+each route passes (`routeLandmarks`). A route that passes fewer than 3 gets
+evenly spaced, unnamed postcards instead (`worldPostcards` in
+`src/lib/play/threePlayLayer.ts`), so it still plays, but without place
+names. Chengdu's loops are like this: its only OSM places are districts.
+`threePlayLayer.test.ts` walks every catalog world, so a new world needs no
+test change for this.
+
 Copy these back:
 
 - `tools/worldbake/remote/<id>/` (the manifest and the layer files);

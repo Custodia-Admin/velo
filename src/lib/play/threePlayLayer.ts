@@ -9,6 +9,12 @@
  * the place's own plain pin, in the accent colour until it is collected
  * (renderers/three/Landmarks reads `pending`): nothing floats as text.
  *
+ * A route that passes fewer than POSTCARD_MIN named places (a world whose
+ * OSM places are only districts, e.g. Chengdu's 街道) gets photoreal's
+ * evenly spaced postcards instead, so Play mode never goes blank on a world.
+ * Those have no place and no pin: the Play panel counts down to the next
+ * one and Finish gives the count without names. Still nothing in the world.
+ *
  * Engine-free: no three.js, no Cesium, no React. The renderer calls
  * `update` once per frame; the layer only reads the frame and writes
  * playStore, never the ride store or the trainer.
@@ -20,7 +26,7 @@ import type { ProjectionParams } from '@/lib/world/projection';
 import { routeLandmarks } from '@/lib/world/routeLandmarks';
 import type { RideFrame, WorldLayer } from '@/lib/world/worldLayer';
 import { usePlayStore } from '@/stores/playStore';
-import { collectedAt, metresToNext, type Postcard } from './postcards';
+import { collectedAt, metresToNext, placePostcards, POSTCARD_MIN, type Postcard } from './postcards';
 
 /** The "next in" figure updates in steps of this many metres (as on photoreal). */
 const TO_NEXT_STEP_M = 50;
@@ -45,8 +51,26 @@ export function postcardsAtPlaces(
   }));
 }
 
+/**
+ * A world route's postcards, in route order: at its named places, or evenly
+ * spaced (`placePostcards`, as on photoreal) when it passes fewer than
+ * POSTCARD_MIN of them. Never a mix.
+ */
+export type WorldPostcards =
+  | { atPlaces: true; cards: PlacePostcard[] }
+  | { atPlaces: false; cards: Postcard[] };
+
+export function worldPostcards(
+  route: Pick<Route, 'points' | 'isLive' | 'totalDistance'>,
+  world: { projection: ProjectionParams; pois: readonly WorldPoi[] },
+): WorldPostcards {
+  const places = postcardsAtPlaces(route, world);
+  if (route.isLive || places.length >= POSTCARD_MIN) return { atPlaces: true, cards: places };
+  return { atPlaces: false, cards: placePostcards(route.totalDistance) };
+}
+
 export interface ThreePlayLayer extends WorldLayer {
-  readonly postcards: readonly PlacePostcard[];
+  readonly postcards: WorldPostcards;
   /** How many are collected. */
   readonly collected: number;
   /** Is the place with this POI index a postcard not yet collected? */
@@ -57,8 +81,11 @@ export function createThreePlayLayer(
   route: Route,
   world: { projection: ProjectionParams; pois: readonly WorldPoi[] },
 ): ThreePlayLayer {
-  const postcards = postcardsAtPlaces(route, world);
-  const byPoi = new Map(postcards.map((c, i) => [c.poi, i]));
+  const set = worldPostcards(route, world);
+  const postcards: readonly Postcard[] = set.cards;
+  // Only a postcard at a place has a pin to colour, and a name for the panel and Finish.
+  const byPoi = new Map(set.atPlaces ? set.cards.map((c, i) => [c.poi, i]) : []);
+  const names = set.atPlaces ? set.cards.map((c) => c.name) : [];
   let collected = 0;
   let lastBucket = -1;
   let lastElapsedMs = 0;
@@ -70,18 +97,14 @@ export function createThreePlayLayer(
     lastBucket = -1;
     restoring = true;
     const store = usePlayStore.getState();
-    store.start(
-      postcards.length,
-      null,
-      postcards.map((c) => c.name),
-    );
+    store.start(postcards.length, null, names);
     store.progress(0, metresToNext(postcards, 0, 0), false);
   };
   start();
 
   return {
     id: 'three-play',
-    postcards,
+    postcards: set,
     get collected() {
       return collected;
     },
