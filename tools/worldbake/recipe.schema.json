@@ -73,7 +73,14 @@
         "seed": { "type": "integer" },
         "maxInstances": { "type": "integer", "minimum": 0 },
         "spacingM": { "type": "object", "additionalProperties": { "type": "number" } },
-        "character": { "type": "object" }
+        "character": { "type": "object" },
+        "corridor": {
+          "description": "Woodland within m of a route keeps the share keep first; the rest of the world shares what is left of maxInstances (buildVectors.mjs buildVegetation).",
+          "type": "object",
+          "required": ["m", "keep"],
+          "additionalProperties": false,
+          "properties": { "m": { "type": "number", "exclusiveMinimum": 0 }, "keep": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 } }
+        }
       }
     },
     "moods": { "type": "array", "items": { "type": "string" }, "minItems": 1 },

@@ -469,7 +469,7 @@ export async function bake(opts) {
   });
   const pois = buildPois([...osm.elements.pois, ...osm.elements.landmarks], projection, extent).map((p) => ({ ...p, h: round(height.hf.sampleHeight(p.x, p.y)) }));
   lap('vectors', t);
-  log(`vectors: ${roads.roads.length} road pieces, ${water.areas.length} water areas + ${water.lines.length} lines, ${landcover.layer.areas.length} landcover, ${buildings.count} buildings ${JSON.stringify(buildings.districts)} (dropped ${buildings.dropped.route} on routes, ${buildings.dropped.road} astride roads), ${vegetation.count} trees (woodland lattice ${vegetation.lattice}, character ${vegetation.character}) ${JSON.stringify(vegetation.byKind)}, ${pois.length} POIs`);
+  log(`vectors: ${roads.roads.length} road pieces, ${water.areas.length} water areas + ${water.lines.length} lines, ${landcover.layer.areas.length} landcover, ${buildings.count} buildings ${JSON.stringify(buildings.districts)} (dropped ${buildings.dropped.route} on routes, ${buildings.dropped.road} astride roads), ${vegetation.count} trees (woodland lattice ${vegetation.lattice}, character ${vegetation.character}${vegetation.corridor ? `, route corridor ${vegetation.corridor.kept} of ${vegetation.corridor.lattice}, elsewhere ${vegetation.corridor.farKept} of ${vegetation.corridor.farLattice}` : ''}) ${JSON.stringify(vegetation.byKind)}, ${pois.length} POIs`);
 
   // 4. Write the bundle.
   t = Date.now();
