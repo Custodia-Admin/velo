@@ -780,9 +780,9 @@ function TrainerStep() {
 function RideWithStep({ offer }: { offer: CoupleGhostOffer }) {
   const ghostShown = offer.status === 'no-route' || offer.status === 'no-rides' || offer.status === 'ready';
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <CoupleGhostPicker offer={offer} />
-      <section aria-label="Pace partners" className={cn('flex flex-col gap-3', ghostShown && 'border-t border-border pt-5')}>
+      <section aria-label="Pace partners" className={cn('flex flex-col gap-1', ghostShown && 'border-t border-border pt-4')}>
         <h3 className={SECTION_LABEL}>Pace partners</h3>
         <PacePartners />
       </section>

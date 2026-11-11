@@ -86,8 +86,8 @@ export function useCoupleGhostOffer(): CoupleGhostOffer {
 
 const ICON: Record<CoupleGhostChoice, typeof History> = { last: History, best: Trophy, off: CircleSlash };
 
-/** Section label shared with the pace partners below it (step 3). */
-export const SECTION_LABEL = 'text-xs font-semibold uppercase tracking-widest text-muted-foreground';
+/** Sub-heading shared with the pace partners below it (step 3). */
+export const SECTION_LABEL = 'text-sm font-semibold text-foreground';
 
 export function CoupleGhostPicker({ offer, className }: { offer: CoupleGhostOffer; className?: string }) {
   const setChoice = useCoupleGhostStore((s) => s.setChoice);
@@ -106,7 +106,7 @@ export function CoupleGhostPicker({ offer, className }: { offer: CoupleGhostOffe
   };
 
   return (
-    <section aria-labelledby={labelId} className={cn('flex flex-col gap-3', className)} data-couple-ghost={status}>
+    <section aria-labelledby={labelId} className={cn('flex flex-col gap-1', className)} data-couple-ghost={status}>
       <h3 id={labelId} className={SECTION_LABEL}>
         {name}&apos;s ghost
       </h3>
@@ -121,7 +121,7 @@ export function CoupleGhostPicker({ offer, className }: { offer: CoupleGhostOffe
       {status === 'ready' && (
         <>
           <p className="max-w-prose text-sm text-muted-foreground">Ride against a replay of {name}&apos;s ride on this route.</p>
-          <div role="radiogroup" aria-labelledby={labelId} className={cn('grid gap-2', tiles.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2')}>
+          <div role="radiogroup" aria-labelledby={labelId} className={cn('mt-3 grid gap-2', tiles.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2')}>
             {tiles.map((t, i) => {
               const on = t.choice === picked;
               const Icon = ICON[t.choice];

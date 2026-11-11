@@ -54,9 +54,13 @@ export function togglePartner(bots: readonly PaceBot[], id: string, route?: Rout
   return [...bots, createPaceBot(partner.id, partner.preset, route)];
 }
 
-/** The line under the picker: how many ride along, and why the rest are off at the cap. */
+/**
+ * The line under the picker: how many ride along, and why the rest are off
+ * at the cap. None picked says so, not "riding alone": the other rider's
+ * ghost may still ride (step 3 above the partners).
+ */
 export function partnersStatus(count: number): string {
-  if (count === 0) return 'Riding alone';
+  if (count === 0) return `None picked, up to ${MAX_PARTNERS}`;
   const line = `${count} of ${MAX_PARTNERS} riding with you`;
   return count >= MAX_PARTNERS ? `${line}. Remove one to pick another.` : line;
 }

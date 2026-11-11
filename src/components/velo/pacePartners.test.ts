@@ -77,7 +77,7 @@ describe('pace partners', () => {
   });
 
   it('says how many ride along, and why the rest are off at the cap', () => {
-    expect(partnersStatus(0)).toBe('Riding alone');
+    expect(partnersStatus(0)).toBe('None picked, up to 3');
     expect(partnersStatus(1)).toBe(`1 of ${MAX_PARTNERS} riding with you`);
     expect(partnersStatus(MAX_PARTNERS)).toBe(`${MAX_PARTNERS} of ${MAX_PARTNERS} riding with you. Remove one to pick another.`);
   });

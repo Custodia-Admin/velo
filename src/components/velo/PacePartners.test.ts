@@ -90,7 +90,7 @@ describe('PacePartners', () => {
   it('a partner picked, then a route, then the auto-pick and Start: a real bot rides', () => {
     const steady = PARTNERS[0];
     expect(render().tile(steady.id)['aria-pressed']).toBe(false);
-    expect(render().status).toBe('Riding alone');
+    expect(render().status).toBe('None picked, up to 3');
 
     render().tile(steady.id).onClick();
     const picked = useRideStore.getState().paceBots;
@@ -149,7 +149,7 @@ describe('PacePartners', () => {
     expect(view.remove).not.toBeNull();
     view.remove!.onClick();
     expect(useRideStore.getState().paceBots).toEqual([]);
-    expect(render().status).toBe('Riding alone');
+    expect(render().status).toBe('None picked, up to 3');
   });
 
   it('shows every partner as a toggle in one labelled group', () => {
