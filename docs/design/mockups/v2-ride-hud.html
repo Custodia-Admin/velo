@@ -19,7 +19,10 @@
     - Phones, details open: route card + map at the top edge (above the band
       there is no room clear of the rider's wheels), the tools above the band.
   States: default (collapsed), ?tray=open (details open), ?state=lost
-  (trainer lost mid-ride). Scene: offline still from the Perugia world bake.
+  (trainer lost mid-ride), ?state=paused (P3.3: Resume is the filled button).
+  TV mode (P3.3): the column keeps inside the 5 % overscan frame (?safe=1
+  draws it); ?focus=resume|finish|details|camera|chip draws the remote /
+  handlebar focus ring. Scene: offline still from the Perugia world bake.
   HUD surfaces are translucent paper without backdrop-filter (blur over the
   live canvas cost 10–25 fps).
 -->
@@ -35,6 +38,11 @@
 <style>
   body { overflow: hidden; }
   .hud-col { position: fixed; left: var(--s-4); right: var(--s-4); bottom: var(--s-6); display: flex; flex-direction: column; align-items: center; }
+  /* TV: inside the overscan frame (5 % of each edge) */
+  html[data-layout='tv'] .hud-col { left: max(var(--s-4), var(--overscan-x)); right: max(var(--s-4), var(--overscan-x)); bottom: max(var(--s-6), var(--overscan-y)); }
+  .paused-only { display: none; }
+  html[data-state='paused'] .paused-only { display: inline-flex; }
+  html[data-state='paused'] .running-only { display: none; }
   /* one group as wide as the band: details, chip and band share its left edge */
   .group { width: max-content; max-width: calc(100vw - var(--s-8)); display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); }
   /* ride details (collapsed by default) */
@@ -111,7 +119,7 @@
   (function () {
     const q = new URLSearchParams(location.search);
     if (q.get('tray') === 'open') document.documentElement.setAttribute('data-tray', 'open');
-    if (q.get('state') === 'lost') document.documentElement.setAttribute('data-state', 'lost');
+    if (q.get('state') === 'lost' || q.get('state') === 'paused') document.documentElement.setAttribute('data-state', q.get('state'));
   })();
 </script>
 </head>
@@ -138,7 +146,7 @@
     </div>
     <div class="tools" role="group" aria-label="Ride tools">
       <button class="btn hud icon-only" aria-label="Watch a show while you ride"><i data-icon="clapperboard" class="lg"></i></button>
-      <button class="btn hud icon-only" aria-label="Camera: chase"><i data-icon="camera" class="lg"></i></button>
+      <button class="btn hud icon-only" aria-label="Camera: chase" data-focus="camera"><i data-icon="camera" class="lg"></i></button>
       <button class="btn hud icon-only pressed" aria-pressed="true" aria-label="Ghost riders on"><i data-icon="ghost" class="lg"></i></button>
       <button class="btn hud icon-only" aria-label="Voice control: off"><i data-icon="mic" class="lg"></i></button>
       <button class="btn hud icon-only" aria-label="Ride settings"><i data-icon="settings" class="lg"></i></button>
@@ -146,7 +154,7 @@
     </div>
   </div>
 
-    <button class="hud chip" aria-label="Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.">
+    <button class="hud chip" data-focus="chip" aria-label="Trainer connected: KICKR CORE 78C1, hills feel 35 percent. Tap for devices.">
       <span class="ok row"><span class="dot on"></span>KICKR CORE · hills 35 %</span>
       <span class="lost row"><span class="dot warn"></span>Trainer lost · tap to reconnect</span>
     </button>
@@ -161,9 +169,10 @@
         <div class="fig minor"><span class="v">6<small>/ 11</small></span><span class="l">Gear</span></div>
       </div>
       <div class="controls">
-        <button class="btn outline icon-only labelled" aria-label="Pause ride"><i data-icon="pause" class="lg"></i><span class="label">Pause</span></button>
-        <button class="btn quiet icon-only labelled" aria-label="Finish ride"><i data-icon="flag" class="lg"></i><span class="label">Finish</span></button>
-        <button class="btn quiet icon-only" aria-label="Show ride details: route, map and ride tools" aria-expanded="false"><i data-icon="chevron-up" class="lg tray-closed"></i><i data-icon="chevron-down" class="lg tray-open"></i></button>
+        <button class="btn outline icon-only labelled running-only" aria-label="Pause ride" data-focus="pause"><i data-icon="pause" class="lg"></i><span class="label">Pause</span></button>
+        <button class="btn primary icon-only labelled paused-only" aria-label="Resume ride" data-focus="resume"><i data-icon="play" class="lg"></i><span class="label">Resume</span></button>
+        <button class="btn quiet icon-only labelled" aria-label="Finish ride" data-focus="finish"><i data-icon="flag" class="lg"></i><span class="label">Finish</span></button>
+        <button class="btn quiet icon-only" data-focus="details" aria-label="Show ride details: route, map and ride tools" aria-expanded="false"><i data-icon="chevron-up" class="lg tray-closed"></i><i data-icon="chevron-down" class="lg tray-open"></i></button>
       </div>
       <span class="compact num"><span><b>1.2</b><small>%</small></span><span><b>142</b><small>W</small></span><span><small class="pre">gear</small><b>6</b></span></span>
     </section>
