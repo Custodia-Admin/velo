@@ -24,7 +24,7 @@ deploy.
 2. **Licence and credit.** MIT with both copyright lines: GlobeRide's and
    Velo's. GlobeRide is credited in the README's
    first paragraph, `LICENSE`, `NOTICE.md`, `package.json` (`contributors`)
-   and the app footer (UI-RULES §6). Data credits live in `NOTICE.md` and
+   and the app's Settings → About line (UI-RULES §6). Data credits live in `NOTICE.md` and
    [`docs/worlds/CREDITS.md`](../worlds/CREDITS.md).
 3. **The public build is neutral.**
    - The two riders start as "Rider 1" and "Rider 2". People rename them on
