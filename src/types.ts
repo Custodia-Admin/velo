@@ -74,6 +74,11 @@ export interface TelemetrySample {
   cadence?: number;
   /** Heart rate in bpm, when available. */
   heartRate?: number;
+  /**
+   * Ride clock (pauses excluded) at `lat`/`lon`, ms. Ghost replays run on
+   * it (lib/play/ghostReplay). Absent on samples recorded before P3.2.
+   */
+  rideMs?: number;
 }
 
 /** Live data published from the connected smart trainer. */

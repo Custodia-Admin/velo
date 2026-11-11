@@ -1,0 +1,90 @@
+{
+ "vp": "1440",
+ "win_s": 12.0,
+ "runs": [
+  {
+   "fps": 25.5,
+   "frameP50": 16.7,
+   "frameP95": 133.4,
+   "frameWorst": 249.9,
+   "over17": 35.6,
+   "tickN": 307,
+   "tickP50": 0.3,
+   "tickP95": 0.6,
+   "tickWorst": 2,
+   "renderer": {
+    "fps": 24.9,
+    "avgMs": 40.2,
+    "p95Ms": 138.1,
+    "drawCalls": 120
+   },
+   "ghost": true,
+   "postcards": 7,
+   "mode": "on",
+   "round": 0
+  },
+  {
+   "fps": 29.3,
+   "frameP50": 16.7,
+   "frameP95": 133.4,
+   "frameWorst": 233.4,
+   "over17": 25.1,
+   "tickN": 355,
+   "tickP50": 0.2,
+   "tickP95": 0.5,
+   "tickWorst": 2.6,
+   "renderer": {
+    "fps": 25.3,
+    "avgMs": 39.6,
+    "p95Ms": 163.8,
+    "drawCalls": 123
+   },
+   "ghost": false,
+   "postcards": 0,
+   "mode": "off",
+   "round": 0
+  },
+  {
+   "fps": 12.9,
+   "frameP50": 33.2,
+   "frameP95": 350.1,
+   "frameWorst": 583.3,
+   "over17": 50,
+   "tickN": 155,
+   "tickP50": 0.2,
+   "tickP95": 0.6,
+   "tickWorst": 1,
+   "renderer": {
+    "fps": 12,
+    "avgMs": 83.6,
+    "p95Ms": 346.1,
+    "drawCalls": 123
+   },
+   "ghost": false,
+   "postcards": 0,
+   "mode": "off",
+   "round": 1
+  },
+  {
+   "fps": 18.5,
+   "frameP50": 16.7,
+   "frameP95": 283.3,
+   "frameWorst": 599.9,
+   "over17": 36.8,
+   "tickN": 224,
+   "tickP50": 0.3,
+   "tickP95": 0.5,
+   "tickWorst": 1.6,
+   "renderer": {
+    "fps": 18.8,
+    "avgMs": 53.1,
+    "p95Ms": 290.4,
+    "drawCalls": 123
+   },
+   "ghost": true,
+   "postcards": 7,
+   "mode": "on",
+   "round": 1
+  }
+ ]
+}

@@ -3,7 +3,7 @@
  *
  * Step 1: Pick route    (city search → generate, a scenic pick, GPX upload)
  * Step 2: Pair trainer  (optional; the Devices page's trainer row + a link to /devices)
- * Step 3: Pace partners (optional AI riders alongside)
+ * Step 3: Who rides with you (optional: the other rider's ghost, AI pace partners)
  * CTA: Start ride (always enabled; defaults fill in if nothing picked)
  *
  * On-system per docs/design/UI-RULES.md (tokens only; checked by
@@ -50,6 +50,8 @@ import type { Route } from '@/types';
 import type { ScenicRouteInfo } from '@/lib/scenicRoutes';
 import { GPXUploader } from '@/components/setup/GPXUploader';
 import { PacePartners } from '@/components/velo/PacePartners';
+import { CoupleGhostPicker, SECTION_LABEL, useCoupleGhostOffer, type CoupleGhostOffer } from '@/components/velo/CoupleGhostPicker';
+import { rideWithSubtitle } from '@/components/velo/coupleGhostText';
 import { scenicFigures } from '@/components/velo/ScenicRoutes';
 import { DISPLAY } from '@/components/velo/v2';
 import { TrainerRow } from '@/components/velo/TrainerPanel';
@@ -772,10 +774,20 @@ function TrainerStep() {
   );
 }
 
-// ─── Step 3: Pace partners ────────────────────────────────────────────────────
+// ─── Step 3: Who rides with you ───────────────────────────────────────────────
 
-function PaceStep() {
-  return <PacePartners />;
+/** The other rider's ghost (when this route can have one), then the pace partners. */
+function RideWithStep({ offer }: { offer: CoupleGhostOffer }) {
+  const ghostShown = offer.status === 'no-route' || offer.status === 'no-rides' || offer.status === 'ready';
+  return (
+    <div className="flex flex-col gap-4">
+      <CoupleGhostPicker offer={offer} />
+      <section aria-label="Pace partners" className={cn('flex flex-col gap-1', ghostShown && 'border-t border-border pt-4')}>
+        <h3 className={SECTION_LABEL}>Pace partners</h3>
+        <PacePartners />
+      </section>
+    </div>
+  );
 }
 
 // ─── Main wizard ──────────────────────────────────────────────────────────────
@@ -788,6 +800,8 @@ export function RideSetupWizard() {
   // Names of the picked pace partners ('' when riding alone): read from the
   // store, which is what rides.
   const partnerNames = useRideStore((s) => s.paceBots.map((b) => b.name).join(', '));
+  // The other rider's ghost on this route (step 3), and whether one will ride.
+  const ghostOffer = useCoupleGhostOffer();
 
   // Which step is expanded
   const [openStep, setOpenStep] = useState<WizardStep>(1);
@@ -795,12 +809,12 @@ export function RideSetupWizard() {
   // Step completion flags
   const step1Done = route !== null;
   const step2Done = connection === 'connected';
-  const step3Done = partnerNames !== '';
+  const step3Done = partnerNames !== '' || ghostOffer.riding !== null;
 
   // Subtitle text for collapsed steps
   const step1Subtitle = route ? route.name : 'None yet: Start picks an easy scenic ride';
   const step2Subtitle = step2Done ? 'Trainer connected' : 'Demo mode (no trainer)';
-  const step3Subtitle = step3Done ? `With ${partnerNames}` : 'Riding alone';
+  const step3Subtitle = rideWithSubtitle(ghostOffer.riding, partnerNames);
 
   const handleRouteSelected = useCallback(() => {
     setOpenStep(2);
@@ -874,7 +888,7 @@ export function RideSetupWizard() {
         {openStep === 2 && <TrainerStep />}
       </div>
 
-      {/* ── Step 3: Pace partners (collapsible) ── */}
+      {/* ── Step 3: Who rides with you (collapsible) ── */}
       <div
         className={stepCard(openStep === 3)}
         data-wizard-step={3}
@@ -882,7 +896,7 @@ export function RideSetupWizard() {
         <div className="px-4 py-2">
           <StepHeader
             n={3}
-            title="Pace partners"
+            title="Who rides with you"
             subtitle={openStep !== 3 ? step3Subtitle : undefined}
             done={step3Done}
             active={openStep === 3}
@@ -892,7 +906,7 @@ export function RideSetupWizard() {
 
         {openStep === 3 && (
           <div className="px-4 pb-4">
-            <PaceStep />
+            <RideWithStep offer={ghostOffer} />
           </div>
         )}
       </div>

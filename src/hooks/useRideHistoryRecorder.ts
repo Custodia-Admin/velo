@@ -17,8 +17,10 @@ import {
   computeAvgPower,
   computeAvgSpeed,
   computeAscentM,
+  withClosingSample,
   type RideRecord,
 } from '@/lib/rideHistory';
+import { sampleRouteAtDistance } from '@/lib/gpxParser';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRiderRosterStore } from '@/stores/riderRosterStore';
 import { computeRideMetrics } from '@/lib/metrics';
@@ -52,7 +54,25 @@ export function useRideHistoryRecorder(): void {
       savedRef.current = true;
 
         const s = useRideStore.getState();
-        const { samples, elapsedMs, route, startedAt } = s;
+        const { elapsedMs, route, startedAt } = s;
+        // Close the track where the ride ended (the last once-a-second sample
+        // can be up to a second earlier), so its ghost reaches the finish.
+        const end = route && s.rideMode !== 'outdoor' ? sampleRouteAtDistance(route, s.distance) : null;
+        const samples = end
+          ? withClosingSample(s.samples, {
+              t: Date.now(),
+              lat: end.lat,
+              lon: end.lon,
+              ele: end.ele,
+              distance: s.distance,
+              speed: s.speed,
+              grade: s.grade,
+              power: s.power,
+              cadence: s.cadence,
+              heartRate: s.heartRate ?? undefined,
+              rideMs: elapsedMs,
+            })
+          : s.samples;
 
         // Skip trivially short rides.
         if (elapsedMs / 1000 < MIN_DURATION_SEC) return;

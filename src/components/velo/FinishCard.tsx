@@ -18,7 +18,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Download, Home, Image, RotateCcw } from 'lucide-react';
+import { Download, Ghost, Home, Mail, RotateCcw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Figure } from '@/components/velo/Figure';
@@ -26,12 +26,15 @@ import { MapPlate } from '@/components/velo/MapPlate';
 import { Plate } from '@/components/velo/Plate';
 import { RouteProfile } from '@/components/velo/RouteProfile';
 import { COLUMN, DISPLAY, KICKER, PAGE_X, WORDMARK } from '@/components/velo/v2';
+import { postcardsLine, verdictLine } from '@/components/velo/coupleGhostText';
 import { useRideExport } from '@/hooks/useRideExport';
 import { computeMetrics } from '@/lib/metrics';
+import { ghostVerdict } from '@/lib/play/coupleGhost';
 import { computeAscentM, listRides } from '@/lib/rideHistory';
 import { SCENIC_ROUTES, scenicRoutesWithRole, todaysScenicRoute, type ScenicRouteInfo } from '@/lib/scenicRoutes';
 import { cn, formatDuration } from '@/lib/utils';
 import { postersFor } from '@/lib/world/posters';
+import { useCoupleGhostStore } from '@/stores/coupleGhostStore';
 import { usePlayStore } from '@/stores/playStore';
 import { useRideStore } from '@/stores/rideStore';
 import { selectActiveRider, useRiderRosterStore } from '@/stores/riderRosterStore';
@@ -168,6 +171,8 @@ export function FinishCard() {
   const riderName = useRiderRosterStore((s) => selectActiveRider(s).name);
   const postcardsTotal = usePlayStore((s) => s.total);
   const postcardsFound = usePlayStore((s) => s.collected);
+  const postcardNames = usePlayStore((s) => s.names);
+  const ghost = useCoupleGhostStore((s) => s.ghost);
 
   const exp = useRideExport();
   const saved = useSavedOnDevice(startedAt);
@@ -186,6 +191,10 @@ export function FinishCard() {
   const dist = distanceFigure(distance, units);
   const time = formatDuration(seconds);
   const secondary = secondaryStats(climbedFigure(ascentM, units), averageFigure(distance, seconds, units), power);
+  // The couple ghost: how this ride compares with the other rider's at the distance ridden.
+  const verdict = ghost && route ? ghostVerdict(ghost.replay, distance, seconds, route.totalDistance) : null;
+  const ghostLine = ghost && verdict ? verdictLine(verdict, ghost, units) : null;
+  const postcards = postcardsLine(postcardsFound, postcardsTotal, postcardNames);
 
   const rideNext = (info: ScenicRouteInfo) => {
     useRideStore.getState().setRoute(info.route);
@@ -309,24 +318,39 @@ export function FinishCard() {
               </div>
             )}
 
-            <div className="order-4 mt-1 flex flex-wrap items-center justify-between gap-x-4 border-t border-border pt-2 text-sm lg:basis-full">
-              {postcardsTotal > 0 ? (
-                <span className="flex items-center gap-2">
-                  <Image className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  {postcardsFound} of {postcardsTotal} postcards found
-                </span>
-              ) : (
-                <span aria-hidden="true" />
+            <div className="order-4 mt-1 flex flex-col gap-1 border-t border-border pt-2 text-sm lg:basis-full">
+              {ghostLine && (
+                <p className="flex items-start gap-2" data-testid="finish-ghost">
+                  <Ghost className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>
+                    {ghostLine.lead}
+                    <span className="num font-semibold">{ghostLine.strong}</span>
+                    {ghostLine.rest}
+                  </span>
+                </p>
               )}
-              {next && (
-                <span className="flex flex-wrap items-center gap-x-2 text-muted-foreground">
-                  Tomorrow, maybe:
-                  <Button variant="textlink" className="px-0" onClick={() => rideNext(next)}>
-                    {next.name} · {distanceFigure(next.route.totalDistance, units).value}{' '}
-                    {distanceFigure(next.route.totalDistance, units).unit} · {next.character}
-                  </Button>
-                </span>
-              )}
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                {postcardsTotal > 0 ? (
+                  <span className="flex items-start gap-2" data-testid="finish-postcards">
+                    <Mail className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>
+                      {postcards.count}
+                      {postcards.places && <span className="text-muted-foreground"> · {postcards.places}</span>}
+                    </span>
+                  </span>
+                ) : (
+                  <span aria-hidden="true" />
+                )}
+                {next && (
+                  <span className="flex flex-wrap items-center gap-x-2 text-muted-foreground">
+                    Tomorrow, maybe:
+                    <Button variant="textlink" className="px-0" onClick={() => rideNext(next)}>
+                      {next.name} · {distanceFigure(next.route.totalDistance, units).value}{' '}
+                      {distanceFigure(next.route.totalDistance, units).unit} · {next.character}
+                    </Button>
+                  </span>
+                )}
+              </div>
             </div>
           </section>
         </div>
