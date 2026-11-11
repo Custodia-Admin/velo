@@ -6,29 +6,31 @@ manifest is committed.
 
 | Check | Result |
 |---|---|
+| Bundles (R2) | `berkeley/7a3a25f44a1d86e7`, `santa-monica-venice/155c646e205b51fd`, `puerto-vallarta/9d190b96b345ea2b`. Each superseded bundle has been deleted from R2 (it now returns 404). |
 | Gate (P1.3 v2, GLO-30) | Berkeley: registered RMS **0.41 m**, PASS. Santa Monica: **0.55 m**, PASS. Puerto Vallarta: **0.84 m**, PASS. The bound is 6 m (bake log `validate (P1.3 v2)`). |
 | Size (brotli / gzip as shipped) | Berkeley 0.79 / 1.01 MB. Santa Monica 3.80 / 4.83 MB. Puerto Vallarta 1.21 / 1.56 MB. All are ≤ 8 MB. |
-| First ride ≤ 8 MB, second ride offline | Covered by `e2e/remote-world.spec.ts`, run in CI on every push (smoke-ride). For each world it rides from its Home card, counts the world bytes, then rides again with the browser offline and checks that no world request goes to the network. |
-| Deterministic | Same machine (cat-bed, node 26): `bakedet.sh` bakes each world twice. All 24 files are byte-identical, and the bake reproduces the published manifests exactly. Across machines (laptop on node 24, cat-bed on node 26): every layer's content is identical except Santa Monica's and Puerto Vallarta's `roads.json`, where the route fit's float steps differ between V8 versions. Publish from cat-bed only. |
-| Home | All three appear under "Places we want to go", ahead of the map rides, with world weather and no "Map view" badge. They ride the baked world by default, and photoreal stays opt-in. Each card of a place with two rides now names its route (`home-wishlist-1440.jpg`, `home-wishlist-390.jpg`). |
-| Ride shots | `sheet-<route>-1280.jpg` holds 3 spots × noon and golden hour at 1280×648@2. `sheet-<route>-390.jpg` holds the same spots at 390×844@2. In every frame the rider is on the drawn road and there is no void. See the notes below. |
-| fps | See below. |
+| First ride ≤ 8 MB, second ride offline | Covered by `e2e/remote-world.spec.ts`, which runs in CI on every push (smoke-ride). For each world it rides from the Home card and counts the world bytes. It then rides again with the browser offline and checks that no world request reaches the network. |
+| Deterministic | All on cat-bed (node 26). Each final bake was run twice to `--out`, then once for real: Santa Monica and Puerto Vallarta gave all 8 files identical, and the real bake matched (`beachbake.log`). Berkeley is unchanged since `bakedet3.log`, where all 24 files matched. The pond fix re-bakes Berkeley, Perugia, Lugano and Chengdu byte-identical to their committed bundles (`pondbake.log`). Across machines (laptop on node 24, cat-bed on node 26), every layer's content matches except `roads.json` for Santa Monica and Puerto Vallarta, because the route fit's float steps differ between V8 versions. Publish from cat-bed only. |
+| Home | All three worlds appear under "Places we want to go", ahead of the map rides, with world weather and no "Map view" badge. Each rides the baked world by default; photoreal stays opt-in. On a place with two rides, each card names its route (`home-wishlist-1440.jpg`, `home-wishlist-390.jpg`). |
+| Ride shots | Taken on the final build. `sheet-<route>-1280.jpg` holds 3 spots × noon and golden hour at 1280×648@2; `sheet-<route>-390.jpg` holds the same spots at 390×844@2. All 72 frames: the rider is on the drawn road, there is no void, and no label overlaps. See the notes below. |
+| fps (≥ 58, HUD on, medium) | Every coast route: **59.9–60.0**. See below. |
 
 ## Routes
 
 | World | Routes |
 |---|---|
-| Berkeley | `scenic-berkeley-bay-trail` (12.7 km), and new `scenic-richmond-marina-bay` (9.3 km, the Bay Trail round Richmond's Marina Bay). |
-| Santa Monica / Venice | `scenic-santa-monica-strand` (22.9 km). It now starts on the beach path south of the pier: a start on the pier climbed its stairs and came back down. It ends on the Hermosa pier plaza. Also new `scenic-will-rogers-venice` (9.8 km), which passes the pier through the underpass. |
-| Puerto Vallarta | `scenic-puerto-vallarta-malecon` (8.7 km). It now rides the Malecón itself, over the Puente del Malecón, where it used to take Calle Juárez a block inland. Also new `scenic-nuevo-vallarta-bucerias` (9.6 km), which ends on Bucerías' beachfront street. |
+| Berkeley | `scenic-berkeley-bay-trail` (12.7 km). New: `scenic-richmond-marina-bay` (9.3 km), the Bay Trail around Richmond's Marina Bay. |
+| Santa Monica / Venice | `scenic-santa-monica-strand` (22.9 km) now starts on the beach path south of the pier, because a start on the pier climbed its stairs and came back down. It ends on the Hermosa pier plaza. New: `scenic-will-rogers-venice` (9.8 km), which passes the pier through the underpass. |
+| Puerto Vallarta | `scenic-puerto-vallarta-malecon` (8.7 km) now rides the Malecón itself, over the Puente del Malecón. Before, it took Calle Juárez a block inland. New: `scenic-nuevo-vallarta-bucerias` (9.6 km), which ends on Bucerías' beachfront street. |
 
 The route fit bends a few roads and adds **no join pieces** in any of the three worlds.
 
 ## Coast
 
-- **Sea.** Sea polygons are built from OSM `natural=coastline` (`tools/worldbake/coast.mjs`, enabled by the recipe flag `"coast": true`). Nodes under the sea are set to 0 m.
-- **Beaches.** `natural=beach` is sloped down to the water at 1:25. GLO-30 gives Santa Monica's beach as a shelf 4–7 m high, which hid the sea from the path.
-- **Sand.** Beach and sand areas are drawn as sand, with a wet band at the waterline.
+- **Sea.** Sea polygons come from OSM `natural=coastline` (`tools/worldbake/coast.mjs`, turned on by the recipe flag `"coast": true`). Nodes under the sea are set to 0 m.
+- **Beaches.** `natural=beach` slopes down to the water at 1:25. GLO-30 gives Santa Monica's beach as a shelf 4–7 m high, which hid the sea from the path.
+- **Sand.** Beach and sand areas draw as sand, with a wet band at the waterline. Streams run under the sand in the landcover texture. Otherwise the 2.5 m Pico outlet, stroked at ~5 m texels, smeared grey-blue across the Strand. The water ribbon still draws the stream.
+- **Route-dry water (all worlds).** The bake drops small ponds and lagoons that a route runs through or brushes: lakes and ponds only, under 1 ha, within the building clearance. In a coast world, a dried lagoon that touches the beach becomes beach, because OSM cuts it out of the sand and the default green would otherwise show through. In Santa Monica this dries the Pico storm-drain pond (Strand spot 500, Will Rogers 5510) and Santa Monica Lagoon (Will Rogers 1790). In Puerto Vallarta it dries a 28 m² pool beside the Malecón. Inland worlds bake byte-identical. Before and after: `sm500-pond-before-after.jpg`.
 - **Sea shading.** The sea is blue, teal over the shallows, and hazes at half the land's rate.
 - **Surf.** Surf breaks on open shores only, so marinas and channels just lap.
 - **Horizon.** An apron carries the sea out to the far plane.
@@ -36,35 +38,38 @@ The route fit bends a few roads and adds **no join pieces** in any of the three 
 
 ### Notes on the shots
 
-- **Santa Monica.** The beach is 100–200 m wide, so from the path the sea is a band along the horizon, as it is in life. **Open defect at spot 500:** the path crosses the Pico storm-drain lagoon on its bridge. OSM maps that lagoon as a 4-corner `water=pond` box, about 70 × 60 m. In chase view it reads as a flood across the path with a hard straight edge, not as a lagoon. The fix belongs in the bake: drop or reshape small ponds that a route crosses on a bridge in a coast world. Spots 11000 and 13000 read as beach with sea and surf.
+- **Santa Monica.** The beach is 100–200 m wide, so from the path the sea is a band along the horizon, as it is in life. Spot 500 is the old pond, which now reads as beach. Spots 11000 and 13000 read as beach with sea and surf.
+- **Will Rogers–Venice.** Spot 1790 is the dried Santa Monica Lagoon and spot 5510 the Pico channel. Both read as sand.
 - **Puerto Vallarta.** The Malecón and Paseo Díaz Ordaz interleave at Los Arcos (spot 600), so the drawn roads cross there as mapped. From spot 1100 on, the hotel zone puts hotels between the boulevard and the sea.
 - **Nuevo Vallarta–Bucerías.** Resorts stand between the road and the beach, so the sea shows only on Bucerías' last kilometre.
+- **Golden hour on the bay and the Pacific.** These coasts face west, so a low sun over the water blooms the left of some frames (Richmond 4000, Bucerías 9450). That is the sun, not a fault.
 
-## fps (cat-bed Intel iGPU, ANGLE gl-egl, HUD on, medium)
+## fps (cat-bed Intel iGPU, ANGLE gl-egl, HUD on, medium, vsync)
 
-Other workers' fps runs share cat-bed's iGPU, and its qemu guests swing it: Perugia reads 19 fps at load 9. Every number here comes from a run where no other worker's driver was alive. The 1-minute load is given with each run.
+Other workers' fps runs share cat-bed's iGPU, and its sentinel-ci qemu guests swing the CPU: Perugia on main reads 20 fps at load 8. Every number here comes from a run where no other worker's fps or shot driver was alive. The runs are interleaved with main (ce60b13, `index-C7f2mmhH.js`) on the same box. Runs from load spikes (1-minute load 6–10, where main dropped too) are left out. Each figure is the long ride from the route start: 30 s, or 60 s where noted.
 
-| Route | Long ride (60 s) | Load |
+| Route | Final build | main ce60b13 |
 |---|---|---|
-| Berkeley Bay Trail | 60.0 fps, 0 % over 20 ms | 0.9 |
-| Richmond Marina Bay | 60.0 fps, 0 % over 20 ms | 0.6 |
-| Puerto Vallarta Malecón | 60.0 fps, 0 % over 20 ms | 0.6 |
-| Nuevo Vallarta–Bucerías | 60.0 fps, 0 % over 20 ms | 1.0 |
-| Perugia (reference) | 60.0 fps | 2.6 |
+| Santa Monica Strand | **60.0** (load 1.1). The build before the far-box material read 59.9, 60.0 and 60.0. | — |
+| Will Rogers–Venice | **59.9**, 59.9, 0.1 % of frames over 20 ms (load 0.8, 0.6). The build before the far-box material read 55.9 and 56.1. | — |
+| Perugia (control) | 60.0 in every uncontended pair (4) | 60.0 in the same pairs |
+| Lugano Melide (control) | 51.4, 53.1 | 49.9, 50.5 |
+| Berkeley Bay Trail, Richmond Marina Bay, Puerto Vallarta Malecón, Nuevo Vallarta–Bucerías | 60.0 each, 0 % over 20 ms, 60 s rides at load 0.6–1.0. Measured on the building-cap build (`fps-final1.out`). Every later change only removes building work: far boxes, the 0.8 M cap, the far-box material. | — |
 
-**Santa Monica** was the hard one, because of Los Angeles County's surveyed footprints: 121 k houses, 9.6 vertices each. Uncapped at the start of the Strand, buildings took it from 194 fps with buildings hidden to 41 fps with them shown (1.83 M triangles). Three fixes, each general and opt-in where it touches a bake:
+Lugano is not one of these worlds. It is listed because it shows the far-box changes don't cost an inland world anything: main reads under 58 on this iGPU, and the branch reads a little better.
 
-1. **Footprint simplification.** The recipe sets `buildingSimplifyM: 1`, so SM footprints are simplified at 1 m: 1.16 M → 0.80 M footprint vertices.
-2. **Far chunks as boxes.** Chunks beyond `buildingDetailM` (1.2 km at medium) draw each footprint as its box. Will Rogers went from 937 k to 573 k building triangles, and Lugano from 981 k to 744 k.
-3. **Triangle cap.** Each tier caps building triangles, `buildingTris`: 0.8 M at medium, nearest chunks first. Lugano's start (0.74 M) fits under it.
+**Why Santa Monica was hard.** Los Angeles County surveys its footprints: 121 k houses at 9.6 vertices each. Uncapped at the start of the Strand, buildings took the scene from 194 fps (buildings hidden) to 41 fps (1.83 M triangles). Four fixes, each general:
 
-Uncapped at the start, at load 1–3: the Strand went 41 → 77 fps, Will Rogers 65 → 82, and Lugano 60 → 68. These are from `catgroups.py`.
+1. **Footprint simplification.** The recipe sets `buildingSimplifyM: 1`, so Santa Monica's footprints are simplified at 1 m: 1.16 M → 0.80 M footprint vertices.
+2. **Far chunks as boxes.** Chunks beyond `buildingDetailM` (1.2 km at medium) draw each footprint as its box.
+3. **Triangle cap.** Each tier caps building triangles with `buildingTris`: 0.8 M at medium, nearest chunks first.
+4. **Plain far-box material.** Far boxes use a plain material: vertex colours, light and atmosphere, no wall or roof detail, no shadows (`createFarBuildingMaterial`). At Will Rogers' start, 0.51 M box triangles past 3 km were shaded with the full wall shader. That was 6.8 ms of a 12 ms frame, while hiding the boxes nearest the camera made no difference. Uncapped, the plain material takes that frame from 83 to 104 fps, and capped from 56.0–56.1 to 59.9. At a box's distance the wall detail has already faded to its mean. Will Rogers 300 and 1000, noon, before against after: 0.1–0.2 % of pixels differ, and those are the rider's pedal stroke, cloud drift and a HUD digit.
 
-The capped HUD runs on the final build (`fps-cap8`) wait for an idle cat-bed (load < 1.5). Their results are appended below once they finish.
+The uncapped breakdowns come from `catgroups_probe.py`, which hides a group, or the boxes, near or far chunks, and swaps materials, interleaved in one session.
 
 Scripts are in `~/.hermes/handoffs/velo/t_4ee1b9d4/`:
 
-- `catfps_ab.sh`: capped HUD fps. A run is retried if another worker's driver overlapped it.
-- `catgroups.py`: uncapped fps and triangles, with each group shown or hidden.
-- `run_shots.sh`
-- `home/home_wishlist.py`
+- `catfps_final.sh`: capped HUD fps, interleaved with main. A run is retried if another worker's driver overlapped it.
+- `catgroups_probe.py`: uncapped fps by group, box/detail/distance and material.
+- `run_shots_final2.sh` and `make_sheets.py`: ride shots and sheets.
+- `home/home_wishlist.py`: the Home shots.
