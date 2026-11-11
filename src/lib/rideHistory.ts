@@ -105,6 +105,21 @@ export function computeAscentM(samples: TelemetrySample[]): number {
   return Math.round(gain);
 }
 
+/**
+ * The samples with one more at the moment the ride ended, when the last
+ * once-a-second sample came before it. Without it a saved ride stops up to
+ * a second (about 10 m) short of where it ended, and a ghost of a finished
+ * ride never reaches the finish line.
+ */
+export function withClosingSample(
+  samples: TelemetrySample[],
+  end: Omit<TelemetrySample, 'rideMs'> & { rideMs: number },
+): TelemetrySample[] {
+  const last = samples[samples.length - 1];
+  if (!last || (last.rideMs ?? -Infinity) >= end.rideMs || end.distance < last.distance) return samples;
+  return [...samples, end];
+}
+
 // ---------------------------------------------------------------------------
 // CRUD — IndexedDB
 // ---------------------------------------------------------------------------

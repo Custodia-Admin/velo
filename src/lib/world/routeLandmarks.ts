@@ -23,6 +23,8 @@ export interface RouteLandmark {
   distance: number;
   /** How far the POI is from the road there, metres. */
   offset: number;
+  /** Index of the POI in the manifest's `pois`. */
+  poi: number;
 }
 
 /** Furthest a POI may sit from the road and still be "on the route", metres. */
@@ -48,9 +50,9 @@ export function routeLandmarks(
   const xy = points.map((p) => proj.forward(p.lat, p.lon));
 
   const found: RouteLandmark[] = [];
-  for (const poi of world.pois) {
+  world.pois.forEach((poi, poiIndex) => {
     const max = MAX_OFFSET_M[poi.kind] ?? 0;
-    if (!(max > 0)) continue;
+    if (!(max > 0)) return;
     let best = Infinity;
     let at = 0;
     for (let i = 0; i < xy.length - 1; i++) {
@@ -66,8 +68,8 @@ export function routeLandmarks(
         at = points[i].distance + t * (points[i + 1].distance - points[i].distance);
       }
     }
-    if (best <= max) found.push({ name: poi.name, kind: poi.kind, distance: at, offset: best });
-  }
+    if (best <= max) found.push({ name: poi.name, kind: poi.kind, distance: at, offset: best, poi: poiIndex });
+  });
 
   found.sort((a, b) => a.distance - b.distance);
   const out: RouteLandmark[] = [];

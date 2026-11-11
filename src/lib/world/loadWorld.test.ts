@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { encodeHeightDeltas } from './heightfield';
-import { loadWorld, WorldLoadError, type WorldLoadProgress } from './loadWorld';
+import { loadWorld, loadWorldManifest, WorldLoadError, type WorldLoadProgress } from './loadWorld';
+import type { WorldFileCache } from './worldCache';
 
 const sha = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
 const json = (v: unknown) => new TextEncoder().encode(JSON.stringify(v));
@@ -278,5 +279,91 @@ describe('loadWorld', () => {
     const host = hostFor(b);
     await expectWorldError(loadWorld('/worlds/test/', { fetch: host.fetchFn, signal: ctrl.signal }), 'aborted');
     expect(host.requested).toEqual([]);
+  });
+});
+
+/** An in-memory WorldFileCache that records what was read, stored and dropped. */
+function memoryCache(seed: Record<string, Uint8Array> = {}) {
+  const store = new Map(Object.entries(seed));
+  const log: string[] = [];
+  const cache: WorldFileCache = {
+    async match(url) {
+      log.push(`match ${url}`);
+      return store.get(url);
+    },
+    async put(url, bytes) {
+      log.push(`put ${url}`);
+      store.set(url, bytes);
+    },
+    async delete(url) {
+      log.push(`delete ${url}`);
+      store.delete(url);
+    },
+  };
+  return { cache, store, log };
+}
+
+describe('loadWorld through the world cache (remote, content-hashed bundles)', () => {
+  const FILES = ['height.bin.gz', 'roads.json.gz', 'water.json.gz', 'landcover.json.gz', 'buildings.bin.gz', 'vegetation.bin.gz', 'routes.json.gz'];
+
+  it('the first load stores every file it checked; the second needs no network at all', async () => {
+    const b = makeBundle();
+    const mem = memoryCache();
+    const first = hostFor(b);
+    const a = await loadWorld('/worlds/test/', { fetch: first.fetchFn, cache: mem.cache });
+    expect([...mem.store.keys()].sort()).toEqual(['manifest.json', ...FILES].map((f) => `/worlds/test/${f}`).sort());
+    expect(mem.store.get('/worlds/test/height.bin.gz')).toEqual(b.stored['height.bin.gz']);
+
+    const offline = async () => {
+      throw new TypeError('Failed to fetch');
+    };
+    const progress: WorldLoadProgress[] = [];
+    const again = await loadWorld('/worlds/test/', { fetch: offline, cache: mem.cache, onProgress: (p) => progress.push(p) });
+    expect(again.heightfield.data).toEqual(a.heightfield.data);
+    expect(again.routes[0].h).toEqual(a.routes[0].h);
+    // Progress still reaches the full byte count from the cached copies.
+    expect(progress.at(-1)).toMatchObject({ phase: 'done', loadedBytes: progress.at(-1)!.totalBytes });
+  });
+
+  it('stores nothing that fails its checks', async () => {
+    const b = makeBundle();
+    const mem = memoryCache();
+    const bad = new Uint8Array(b.stored['roads.json.gz']);
+    bad[bad.length - 9] ^= 0xff;
+    const host = hostFor(b, { 'roads.json.gz': bad });
+    await expectWorldError(loadWorld('/worlds/test/', { fetch: host.fetchFn, cache: mem.cache }), 'corrupt', 'roads.json.gz');
+    expect(mem.store.has('/worlds/test/roads.json.gz')).toBe(false);
+  });
+
+  it('a cached copy that fails its check is dropped and fetched again, then stored', async () => {
+    const b = makeBundle();
+    const bad = new Uint8Array(b.stored['water.json.gz']);
+    bad[bad.length - 9] ^= 0xff;
+    const mem = memoryCache({ '/worlds/test/water.json.gz': bad, '/worlds/test/manifest.json': json(b.manifest) });
+    const host = hostFor(b);
+    const world = await loadWorld('/worlds/test/', { fetch: host.fetchFn, cache: mem.cache });
+    expect(world.water.areas).toHaveLength(1);
+    expect(mem.log).toContain('delete /worlds/test/water.json.gz');
+    expect(host.requested).toContain('water.json.gz');
+    expect(host.requested).not.toContain('manifest.json');
+    expect(mem.store.get('/worlds/test/water.json.gz')).toEqual(b.stored['water.json.gz']);
+  });
+
+  it('a cached manifest that is not JSON is dropped and fetched again', async () => {
+    const b = makeBundle();
+    const mem = memoryCache({ '/worlds/test/manifest.json': new TextEncoder().encode('{"format":') });
+    const host = hostFor(b);
+    const m = await loadWorldManifest('/worlds/test/', { fetch: host.fetchFn, cache: mem.cache });
+    expect(m.id).toBe('test');
+    expect(host.requested).toEqual(['manifest.json']);
+    expect(mem.store.get('/worlds/test/manifest.json')).toEqual(json(b.manifest));
+  });
+
+  it('without a cache it only fetches (worlds shipped in public/worlds)', async () => {
+    const b = makeBundle();
+    const host = hostFor(b);
+    await loadWorld('/worlds/test/', { fetch: host.fetchFn });
+    await loadWorld('/worlds/test/', { fetch: host.fetchFn });
+    expect(host.requested.filter((p) => p === 'height.bin.gz')).toHaveLength(2);
   });
 });

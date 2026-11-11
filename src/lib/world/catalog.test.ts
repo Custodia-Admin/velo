@@ -1,16 +1,14 @@
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import type { Route } from '@/types';
-import { WORLD_CATALOG, worldForRoute, worldsBaseUrl, worldUrl } from './catalog';
+import { worldBundle } from '../../../tools/worldbake/worldBundles.mjs';
+import { DEFAULT_REMOTE_WORLDS_URL, remoteWorldsBaseUrl, WORLD_CATALOG, worldForRoute, worldsBaseUrl, worldUrl } from './catalog';
 
-const manifestOf = (dir: string) =>
-  JSON.parse(
-    readFileSync(fileURLToPath(new URL(`../../../public/worlds/${dir}manifest.json`, import.meta.url)), 'utf8'),
-  ) as { id: string; bbox: unknown; routes: { id: string }[] };
+const manifestOf = (id: string) =>
+  JSON.parse(readFileSync(worldBundle(id)!.manifestPath, 'utf8')) as { id: string; bbox: unknown; routes: { id: string }[] };
 
 const scenic = (id: string): Route => routeFromGeometry(id, id, SCENIC_ROUTE_GEOMETRY[id]);
 
@@ -29,7 +27,7 @@ const line = (id: string, pts: [number, number][]): Route => ({
 describe('world catalog', () => {
   it('mirrors every shipped manifest (id, bbox, baked routes)', () => {
     for (const entry of WORLD_CATALOG) {
-      const m = manifestOf(entry.dir);
+      const m = manifestOf(entry.id);
       expect(m.id).toBe(entry.id);
       expect(entry.bbox).toEqual(m.bbox);
       expect([...entry.routeIds].sort()).toEqual(m.routes.map((r) => r.id).sort());
@@ -64,5 +62,27 @@ describe('world catalog', () => {
   it('resolves bundle URLs under the app base', () => {
     expect(worldsBaseUrl().endsWith('/worlds/')).toBe(true);
     expect(worldUrl(WORLD_CATALOG[0])).toMatch(/\/worlds\/perugia\/$/);
+    expect(worldsBaseUrl({ BASE_URL: '/velo' })).toBe('/velo/worlds/');
+    expect(worldsBaseUrl({ VITE_WORLDS_BASE_URL: 'https://cdn.example/w' })).toBe('https://cdn.example/w/');
+  });
+
+  it('draws both Chengdu routes in the Chengdu world, a remote world loaded from the R2 bucket', () => {
+    const chengdu = worldForRoute(scenic('scenic-chengdu-luxe-lakes'));
+    expect(chengdu?.id).toBe('chengdu-luxelakes');
+    expect(worldForRoute(scenic('scenic-chengdu-xinglong-lake'))?.id).toBe('chengdu-luxelakes');
+    expect(chengdu!.remote).toBe(true);
+    expect(worldUrl(chengdu!, {})).toBe(`${DEFAULT_REMOTE_WORLDS_URL}${chengdu!.dir}`);
+    expect(worldUrl(chengdu!, {})).toMatch(/^https:\/\/pub-[0-9a-f]{32}\.r2\.dev\/worlds\/chengdu-luxelakes\/[0-9a-f]{16}\/$/);
+    // Perugia and Lugano stay in public/worlds.
+    expect(WORLD_CATALOG.filter((w) => !w.remote).map((w) => w.id)).toEqual(['perugia', 'lugano']);
+  });
+
+  it('VITE_WORLDS_REMOTE_URL moves only the remote worlds (a household mirror with the same layout)', () => {
+    const env = { VITE_WORLDS_REMOTE_URL: 'https://cat-bed.example/worlds' };
+    expect(remoteWorldsBaseUrl(env)).toBe('https://cat-bed.example/worlds/');
+    expect(remoteWorldsBaseUrl({})).toBe(DEFAULT_REMOTE_WORLDS_URL);
+    const chengdu = WORLD_CATALOG.find((w) => w.id === 'chengdu-luxelakes')!;
+    expect(worldUrl(chengdu, env)).toBe(`https://cat-bed.example/worlds/${chengdu.dir}`);
+    expect(worldUrl(WORLD_CATALOG[0], env)).toBe('/worlds/perugia/');
   });
 });

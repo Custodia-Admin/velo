@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import type { CameraMode } from '@/lib/cesiumCameras';
 import { isVoiceRecognitionSupported } from '@/lib/voice/voiceControl';
 import { useAudioStore } from '@/stores/audioStore';
+import { useCoupleGhostStore } from '@/stores/coupleGhostStore';
 import { useGhostStore } from '@/stores/ghostStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -66,7 +67,8 @@ export interface RideToolsProps {
 
 export function RideTools({ onExit, onInvite, onShortcuts, voice, xr, className }: RideToolsProps & { className?: string }) {
   const ghosts = useGhostStore((s) => s.ghostsEnabled);
-  const ghostCount = useGhostStore((s) => s.ghostCount);
+  // Past-ride ghosts plus the other rider's (the couple ghost, world renderer).
+  const ghostCount = useGhostStore((s) => s.ghostCount) + useCoupleGhostStore((s) => (s.ghost ? 1 : 0));
   const setGhosts = useGhostStore((s) => s.setGhostsEnabled);
   const voiceEnabled = useSettingsStore((s) => s.voiceControlEnabled);
   const showVoice = voiceEnabled && isVoiceRecognitionSupported();

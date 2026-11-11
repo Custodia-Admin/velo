@@ -1,0 +1,1109 @@
+{
+ "play-finish-1280-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "finish": {
+   "after": [
+    128,
+    548,
+    1024,
+    76
+   ],
+   "ghost": "1:41 ahead of Anna's last ride (3 Nov)",
+   "postcards": "7 of 7 postcards found \u00b7 Ponte San Giovanni, Valtiera, Ponte Valleceppi and 4 more"
+  },
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 40,
+  "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+  "overflow": false,
+  "scrollWidth": 1280,
+  "tv": false
+ },
+ "play-finish-1280.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "finish": {
+   "after": [
+    128,
+    548,
+    1024,
+    76
+   ],
+   "ghost": "1:41 ahead of Anna's last ride (3 Nov)",
+   "postcards": "7 of 7 postcards found \u00b7 Ponte San Giovanni, Valtiera, Ponte Valleceppi and 4 more"
+  },
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 40,
+  "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+  "overflow": false,
+  "scrollWidth": 1280,
+  "tv": false
+ },
+ "play-finish-1440-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "finish": {
+   "after": [
+    208,
+    762,
+    1024,
+    75
+   ],
+   "ghost": "1:41 ahead of Anna's last ride (3 Nov)",
+   "postcards": "7 of 7 postcards found \u00b7 Ponte San Giovanni, Valtiera, Ponte Valleceppi and 4 more"
+  },
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 40,
+  "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+  "overflow": false,
+  "scrollWidth": 1440,
+  "tv": false
+ },
+ "play-finish-1440.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "finish": {
+   "after": [
+    208,
+    762,
+    1024,
+    75
+   ],
+   "ghost": "1:41 ahead of Anna's last ride (3 Nov)",
+   "postcards": "7 of 7 postcards found \u00b7 Ponte San Giovanni, Valtiera, Ponte Valleceppi and 4 more"
+  },
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 40,
+  "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+  "overflow": false,
+  "scrollWidth": 1440,
+  "tv": false
+ },
+ "play-finish-390-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "finish": {
+   "after": [
+    16,
+    705,
+    358,
+    123
+   ],
+   "ghost": "1:41 ahead of Anna's last ride (3 Nov)",
+   "postcards": "7 of 7 postcards found \u00b7 Ponte San Giovanni, Valtiera, Ponte Valleceppi and 4 more"
+  },
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 40,
+  "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+  "overflow": false,
+  "scrollWidth": 390,
+  "tv": false
+ },
+ "play-finish-390.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "finish": {
+   "after": [
+    16,
+    705,
+    358,
+    123
+   ],
+   "ghost": "1:41 ahead of Anna's last ride (3 Nov)",
+   "postcards": "7 of 7 postcards found \u00b7 Ponte San Giovanni, Valtiera, Ponte Valleceppi and 4 more"
+  },
+  "minFont": 12,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 40,
+  "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+  "overflow": false,
+  "scrollWidth": 390,
+  "tv": false
+ },
+ "play-finish-tv-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "finish": {
+   "after": [
+    70,
+    908,
+    1780,
+    130
+   ],
+   "ghost": "1:41 ahead of Anna's last ride (3 Nov)",
+   "postcards": "7 of 7 postcards found \u00b7 Ponte San Giovanni, Valtiera, Ponte Valleceppi and 4 more"
+  },
+  "minFont": 21,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 70,
+  "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+  "overflow": false,
+  "scrollWidth": 1920,
+  "tv": true
+ },
+ "play-finish-tv.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "finish": {
+   "after": [
+    70,
+    908,
+    1780,
+    130
+   ],
+   "ghost": "1:41 ahead of Anna's last ride (3 Nov)",
+   "postcards": "7 of 7 postcards found \u00b7 Ponte San Giovanni, Valtiera, Ponte Valleceppi and 4 more"
+  },
+  "minFont": 21,
+  "minFontEl": "Ride finished \u00b7 saved on this device",
+  "minTarget": 70,
+  "minTargetEl": "Assisi valley floor \u00b7 15.3 km \u00b7 flat",
+  "overflow": false,
+  "scrollWidth": 1920,
+  "tv": true
+ },
+ "play-ride-1280.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "hud": {
+   "budget": "ok",
+   "rects": [
+    {
+     "area": 54745,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 829,
+     "x": 225,
+     "y": 558
+    },
+    {
+     "area": 16000,
+     "h": 50,
+     "name": "Next one in 100 m2 of 7",
+     "w": 320,
+     "x": 225,
+     "y": 452
+    },
+    {
+     "area": 8018,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 200,
+     "x": 225,
+     "y": 510
+    }
+   ],
+   "sumPct": 9.5,
+   "unionPct": 9.5
+  },
+  "minFont": 14,
+  "minFontEl": "Next one in 100 m",
+  "minTarget": 40,
+  "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+  "overflow": false,
+  "panel": [
+   {
+    "rect": [
+     225,
+     452,
+     320,
+     50
+    ],
+    "text": "Next one in 100 m | 2 of 7"
+   }
+  ],
+  "scrollWidth": 1280,
+  "staged": {
+   "cards": [
+    [
+     "Ponte San Giovanni",
+     109
+    ],
+    [
+     "Ponte di legno e vista del Tevere",
+     1133
+    ],
+    [
+     "Valtiera",
+     1419
+    ],
+    [
+     "Ponte Valleceppi",
+     6739
+    ],
+    [
+     "Pretola",
+     8479
+    ],
+    [
+     "Torre di Pretola",
+     8653
+    ],
+    [
+     "Ponte Felcino",
+     11022
+    ]
+   ],
+   "jump": [
+    1349,
+    271.56641099450366
+   ],
+   "target": [
+    "Valtiera",
+    1419
+   ]
+  },
+  "state": {
+   "ghost": {
+    "at": 1365.3431092809403,
+    "gapM": 10.421342614273044,
+    "kind": "last",
+    "rider": "Anna"
+   },
+   "postcards": {
+    "collected": 2,
+    "names": [
+     "Ponte San Giovanni",
+     "Ponte di legno e vista del Tevere",
+     "Valtiera",
+     "Ponte Valleceppi",
+     "Pretola",
+     "Torre di Pretola",
+     "Ponte Felcino"
+    ],
+    "total": 7
+   },
+   "rider": 1354.9217666666673,
+   "t": 272.43301099450355
+  },
+  "tv": false
+ },
+ "play-ride-1440.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "hud": {
+   "budget": "ok",
+   "rects": [
+    {
+     "area": 54745,
+     "h": 66,
+     "name": "ride-strip",
+     "w": 829,
+     "x": 305,
+     "y": 810
+    },
+    {
+     "area": 16190,
+     "h": 51,
+     "name": "Next one in 50 m2 of 7",
+     "w": 320,
+     "x": 305,
+     "y": 703
+    },
+    {
+     "area": 8018,
+     "h": 40,
+     "name": "ride-status-chip",
+     "w": 200,
+     "x": 305,
+     "y": 762
+    }
+   ],
+   "sumPct": 6.1,
+   "unionPct": 6.1
+  },
+  "minFont": 14,
+  "minFontEl": "Next one in 50 m",
+  "minTarget": 40,
+  "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+  "overflow": false,
+  "panel": [
+   {
+    "rect": [
+     305,
+     703,
+     320,
+     51
+    ],
+    "text": "Next one in 50 m | 2 of 7"
+   }
+  ],
+  "scrollWidth": 1440,
+  "staged": {
+   "cards": [
+    [
+     "Ponte San Giovanni",
+     109
+    ],
+    [
+     "Ponte di legno e vista del Tevere",
+     1133
+    ],
+    [
+     "Valtiera",
+     1419
+    ],
+    [
+     "Ponte Valleceppi",
+     6739
+    ],
+    [
+     "Pretola",
+     8479
+    ],
+    [
+     "Torre di Pretola",
+     8653
+    ],
+    [
+     "Ponte Felcino",
+     11022
+    ]
+   ],
+   "jump": [
+    1349,
+    271.56641099450366
+   ],
+   "target": [
+    "Valtiera",
+    1419
+   ]
+  },
+  "state": {
+   "ghost": {
+    "at": 1367.4319714414958,
+    "gapM": 9.66207144149439,
+    "kind": "last",
+    "rider": "Anna"
+   },
+   "postcards": {
+    "collected": 2,
+    "names": [
+     "Ponte San Giovanni",
+     "Ponte di legno e vista del Tevere",
+     "Valtiera",
+     "Ponte Valleceppi",
+     "Pretola",
+     "Torre di Pretola",
+     "Ponte Felcino"
+    ],
+    "total": 7
+   },
+   "rider": 1357.7699000000014,
+   "t": 272.8498109945035
+  },
+  "tv": false
+ },
+ "play-ride-390.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "hud": {
+   "budget": "ok",
+   "rects": [
+    {
+     "area": 35868,
+     "h": 98,
+     "name": "ride-strip",
+     "w": 366,
+     "x": 12,
+     "y": 734
+    },
+    {
+     "area": 5396,
+     "h": 50,
+     "name": "Next one in 50 m2 of 7",
+     "w": 108,
+     "x": 12,
+     "y": 676
+    }
+   ],
+   "sumPct": 12.5,
+   "unionPct": 12.5
+  },
+  "minFont": 14,
+  "minFontEl": "Next one in 50 m",
+  "minTarget": 40,
+  "minTargetEl": "Pause ride",
+  "overflow": false,
+  "panel": [
+   {
+    "rect": [
+     12,
+     676,
+     108,
+     50
+    ],
+    "text": "Next one in 50 m | 2 of 7"
+   }
+  ],
+  "scrollWidth": 390,
+  "staged": {
+   "cards": [
+    [
+     "Ponte San Giovanni",
+     109
+    ],
+    [
+     "Ponte di legno e vista del Tevere",
+     1133
+    ],
+    [
+     "Valtiera",
+     1419
+    ],
+    [
+     "Ponte Valleceppi",
+     6739
+    ],
+    [
+     "Pretola",
+     8479
+    ],
+    [
+     "Torre di Pretola",
+     8653
+    ],
+    [
+     "Ponte Felcino",
+     11022
+    ]
+   ],
+   "jump": [
+    1349,
+    271.56641099450366
+   ],
+   "target": [
+    "Valtiera",
+    1419
+   ]
+  },
+  "state": {
+   "ghost": {
+    "at": 1366.847611249748,
+    "gapM": 9.874477916414207,
+    "kind": "last",
+    "rider": "Anna"
+   },
+   "postcards": {
+    "collected": 2,
+    "names": [
+     "Ponte San Giovanni",
+     "Ponte di legno e vista del Tevere",
+     "Valtiera",
+     "Ponte Valleceppi",
+     "Pretola",
+     "Torre di Pretola",
+     "Ponte Felcino"
+    ],
+    "total": 7
+   },
+   "rider": 1356.9731333333339,
+   "t": 272.7332109945037
+  },
+  "tv": false
+ },
+ "play-ride-pickup-1280.jpg": {
+  "hud": {
+   "budget": "ok",
+   "sumPct": 9.5
+  },
+  "panel": [
+   {
+    "rect": [
+     225,
+     452,
+     320,
+     50
+    ],
+    "text": "Postcard from Ponte di legno e vista del Tevere | 2 of 7"
+   }
+  ]
+ },
+ "play-ride-pickup-1440.jpg": {
+  "hud": {
+   "budget": "ok",
+   "sumPct": 6.1
+  },
+  "panel": [
+   {
+    "rect": [
+     305,
+     703,
+     320,
+     51
+    ],
+    "text": "Postcard from Ponte di legno e vista del Tevere | 2 of 7"
+   }
+  ]
+ },
+ "play-ride-pickup-390.jpg": {
+  "hud": {
+   "budget": "ok",
+   "sumPct": 14.8
+  },
+  "panel": [
+   {
+    "rect": [
+     12,
+     676,
+     256,
+     50
+    ],
+    "text": "Postcard from | Ponte di legno e vista del Tevere | 2 of 7"
+   }
+  ]
+ },
+ "play-ride-pickup-tv.jpg": {
+  "hud": {
+   "budget": "ok",
+   "sumPct": 11.6
+  },
+  "panel": [
+   {
+    "rect": [
+     237,
+     739,
+     560,
+     86
+    ],
+    "text": "Postcard from Ponte di legno e vista del Tevere | 2 of 7"
+   }
+  ]
+ },
+ "play-ride-tv.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "hud": {
+   "budget": "ok",
+   "rects": [
+    {
+     "area": 167129,
+     "h": 116,
+     "name": "ride-strip",
+     "w": 1447,
+     "x": 237,
+     "y": 923
+    },
+    {
+     "area": 48160,
+     "h": 86,
+     "name": "Next one in 50 m2 of 7",
+     "w": 560,
+     "x": 237,
+     "y": 739
+    },
+    {
+     "area": 24451,
+     "h": 70,
+     "name": "ride-status-chip",
+     "w": 349,
+     "x": 237,
+     "y": 839
+    }
+   ],
+   "sumPct": 11.6,
+   "unionPct": 11.8
+  },
+  "minFont": 24.5,
+  "minFontEl": "Next one in 50 m",
+  "minTarget": 70,
+  "minTargetEl": "Trainer connected: KICKR CORE 78C1, hill",
+  "overflow": false,
+  "panel": [
+   {
+    "rect": [
+     237,
+     739,
+     560,
+     86
+    ],
+    "text": "Next one in 50 m | 2 of 7"
+   }
+  ],
+  "scrollWidth": 1920,
+  "staged": {
+   "cards": [
+    [
+     "Ponte San Giovanni",
+     109
+    ],
+    [
+     "Ponte di legno e vista del Tevere",
+     1133
+    ],
+    [
+     "Valtiera",
+     1419
+    ],
+    [
+     "Ponte Valleceppi",
+     6739
+    ],
+    [
+     "Pretola",
+     8479
+    ],
+    [
+     "Torre di Pretola",
+     8653
+    ],
+    [
+     "Ponte Felcino",
+     11022
+    ]
+   ],
+   "jump": [
+    1349,
+    271.56641099450366
+   ],
+   "target": [
+    "Valtiera",
+    1419
+   ]
+  },
+  "state": {
+   "ghost": {
+    "at": 1366.3449412048737,
+    "gapM": 10.057191204873561,
+    "kind": "last",
+    "rider": "Anna"
+   },
+   "postcards": {
+    "collected": 2,
+    "names": [
+     "Ponte San Giovanni",
+     "Ponte di legno e vista del Tevere",
+     "Valtiera",
+     "Ponte Valleceppi",
+     "Pretola",
+     "Torre di Pretola",
+     "Ponte Felcino"
+    ],
+    "total": 7
+   },
+   "rider": 1356.2877500000002,
+   "t": 272.63291099450373
+  },
+  "tv": true
+ },
+ "play-setup-1280-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "minFont": 14,
+  "minFontEl": "2",
+  "minTarget": 40,
+  "minTargetEl": "Remove partners",
+  "overflow": false,
+  "scrollWidth": 1280,
+  "setup": {
+   "ghost": [
+    145,
+    142,
+    990,
+    128
+   ],
+   "header": "3 | Who rides with you",
+   "status": "ready",
+   "step": [
+    128,
+    77,
+    1024,
+    501
+   ],
+   "tiles": [
+    [
+     "last",
+     "true",
+     "Last ride | 3 Nov \u00b7 36:40",
+     65
+    ],
+    [
+     "best",
+     "false",
+     "Best ride | 28 Oct \u00b7 34:12",
+     65
+    ],
+    [
+     "off",
+     "false",
+     "No ghost | Ride without Anna",
+     65
+    ]
+   ]
+  },
+  "tv": false
+ },
+ "play-setup-1280.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "minFont": 14,
+  "minFontEl": "2",
+  "minTarget": 40,
+  "minTargetEl": "Remove partners",
+  "overflow": false,
+  "scrollWidth": 1280,
+  "setup": {
+   "ghost": [
+    145,
+    142,
+    990,
+    128
+   ],
+   "header": "3 | Who rides with you",
+   "status": "ready",
+   "step": [
+    128,
+    77,
+    1024,
+    501
+   ],
+   "tiles": [
+    [
+     "last",
+     "true",
+     "Last ride | 3 Nov \u00b7 36:40",
+     65
+    ],
+    [
+     "best",
+     "false",
+     "Best ride | 28 Oct \u00b7 34:12",
+     65
+    ],
+    [
+     "off",
+     "false",
+     "No ghost | Ride without Anna",
+     65
+    ]
+   ]
+  },
+  "tv": false
+ },
+ "play-setup-1440-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "minFont": 12,
+  "minFontEl": "World stills rendered from the Perugia w",
+  "minTarget": 40,
+  "minTargetEl": "Remove partners",
+  "overflow": false,
+  "scrollWidth": 1440,
+  "setup": {
+   "ghost": [
+    225,
+    274,
+    990,
+    128
+   ],
+   "header": "3 | Who rides with you",
+   "status": "ready",
+   "step": [
+    208,
+    209,
+    1024,
+    501
+   ],
+   "tiles": [
+    [
+     "last",
+     "true",
+     "Last ride | 3 Nov \u00b7 36:40",
+     65
+    ],
+    [
+     "best",
+     "false",
+     "Best ride | 28 Oct \u00b7 34:12",
+     65
+    ],
+    [
+     "off",
+     "false",
+     "No ghost | Ride without Anna",
+     65
+    ]
+   ]
+  },
+  "tv": false
+ },
+ "play-setup-1440.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "minFont": 12,
+  "minFontEl": "World stills rendered from the Perugia w",
+  "minTarget": 40,
+  "minTargetEl": "Remove partners",
+  "overflow": false,
+  "scrollWidth": 1440,
+  "setup": {
+   "ghost": [
+    225,
+    274,
+    990,
+    128
+   ],
+   "header": "3 | Who rides with you",
+   "status": "ready",
+   "step": [
+    208,
+    209,
+    1024,
+    501
+   ],
+   "tiles": [
+    [
+     "last",
+     "true",
+     "Last ride | 3 Nov \u00b7 36:40",
+     65
+    ],
+    [
+     "best",
+     "false",
+     "Best ride | 28 Oct \u00b7 34:12",
+     65
+    ],
+    [
+     "off",
+     "false",
+     "No ghost | Ride without Anna",
+     65
+    ]
+   ]
+  },
+  "tv": false
+ },
+ "play-setup-390-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "minFont": 14,
+  "minFontEl": "Tiber river park",
+  "minTarget": 48,
+  "minTargetEl": "1Choose your routeTiber river park",
+  "overflow": false,
+  "scrollWidth": 390,
+  "setup": {
+   "ghost": [
+    33,
+    166,
+    324,
+    275
+   ],
+   "header": "3 | Who rides with you",
+   "status": "ready",
+   "step": [
+    16,
+    101,
+    358,
+    902
+   ],
+   "tiles": [
+    [
+     "last",
+     "true",
+     "Last ride | 3 Nov \u00b7 36:40",
+     65
+    ],
+    [
+     "best",
+     "false",
+     "Best ride | 28 Oct \u00b7 34:12",
+     65
+    ],
+    [
+     "off",
+     "false",
+     "No ghost | Ride without Anna",
+     65
+    ]
+   ]
+  },
+  "tv": false
+ },
+ "play-setup-390.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "minFont": 14,
+  "minFontEl": "Tiber river park",
+  "minTarget": 48,
+  "minTargetEl": "1Choose your routeTiber river park",
+  "overflow": false,
+  "scrollWidth": 390,
+  "setup": {
+   "ghost": [
+    33,
+    166,
+    324,
+    275
+   ],
+   "header": "3 | Who rides with you",
+   "status": "ready",
+   "step": [
+    16,
+    101,
+    358,
+    902
+   ],
+   "tiles": [
+    [
+     "last",
+     "true",
+     "Last ride | 3 Nov \u00b7 36:40",
+     65
+    ],
+    [
+     "best",
+     "false",
+     "Best ride | 28 Oct \u00b7 34:12",
+     65
+    ],
+    [
+     "off",
+     "false",
+     "No ghost | Ride without Anna",
+     65
+    ]
+   ]
+  },
+  "tv": false
+ },
+ "play-setup-none-1440.jpg": {
+  "setup": {
+   "ghost": [
+    225,
+    333,
+    990,
+    69
+   ],
+   "header": "3 | Who rides with you",
+   "status": "no-rides",
+   "step": [
+    208,
+    268,
+    1024,
+    441
+   ],
+   "tiles": []
+  }
+ },
+ "play-setup-tv-night.jpg": {
+  "backdrop": 0,
+  "dark": true,
+  "errors": [],
+  "minFont": 24.5,
+  "minFontEl": "2",
+  "minTarget": 70,
+  "minTargetEl": "Remove partners",
+  "overflow": false,
+  "scrollWidth": 1920,
+  "setup": {
+   "ghost": [
+    99,
+    243,
+    1722,
+    223
+   ],
+   "header": "3 | Who rides with you",
+   "status": "ready",
+   "step": [
+    70,
+    130,
+    1780,
+    870
+   ],
+   "tiles": [
+    [
+     "last",
+     "true",
+     "Last ride | 3 Nov \u00b7 36:40",
+     113
+    ],
+    [
+     "best",
+     "false",
+     "Best ride | 28 Oct \u00b7 34:12",
+     113
+    ],
+    [
+     "off",
+     "false",
+     "No ghost | Ride without Anna",
+     113
+    ]
+   ]
+  },
+  "tv": true
+ },
+ "play-setup-tv.jpg": {
+  "backdrop": 0,
+  "dark": false,
+  "errors": [],
+  "minFont": 24.5,
+  "minFontEl": "2",
+  "minTarget": 70,
+  "minTargetEl": "Remove partners",
+  "overflow": false,
+  "scrollWidth": 1920,
+  "setup": {
+   "ghost": [
+    99,
+    243,
+    1722,
+    223
+   ],
+   "header": "3 | Who rides with you",
+   "status": "ready",
+   "step": [
+    70,
+    130,
+    1780,
+    870
+   ],
+   "tiles": [
+    [
+     "last",
+     "true",
+     "Last ride | 3 Nov \u00b7 36:40",
+     113
+    ],
+    [
+     "best",
+     "false",
+     "Best ride | 28 Oct \u00b7 34:12",
+     113
+    ],
+    [
+     "off",
+     "false",
+     "No ghost | Ride without Anna",
+     113
+    ]
+   ]
+  },
+  "tv": true
+ }
+}

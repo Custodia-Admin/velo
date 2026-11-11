@@ -23,8 +23,15 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # Same gate as Vercel: typecheck + lint + unit tests.
+      # Remote worlds (docs/worlds/ADDING-A-WORLD.md, "Hosting"): only their
+      # manifest is in git; download the published layers, checked against
+      # it, so the bundle tests cover every shipped world.
+      - run: node tools/worldbake/fetchPublished.mjs
+      # Same gate as Vercel: typecheck + lint + unit tests. Here a remote world
+      # without its files fails the tests instead of being skipped.
       - run: npm run check
+        env:
+          VELO_REQUIRE_REMOTE_WORLDS: '1'
       - run: npm run build
       # /app shell ≤ 600 kB gzip and no Cesium in it (blueprint §P1.2).
       - run: node scripts/check-bundle-budget.mjs

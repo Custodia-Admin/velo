@@ -90,7 +90,7 @@ describe('PacePartners', () => {
   it('a partner picked, then a route, then the auto-pick and Start: a real bot rides', () => {
     const steady = PARTNERS[0];
     expect(render().tile(steady.id)['aria-pressed']).toBe(false);
-    expect(render().status).toBe('Riding alone');
+    expect(render().status).toBe('None picked, up to 3');
 
     render().tile(steady.id).onClick();
     const picked = useRideStore.getState().paceBots;
@@ -149,7 +149,7 @@ describe('PacePartners', () => {
     expect(view.remove).not.toBeNull();
     view.remove!.onClick();
     expect(useRideStore.getState().paceBots).toEqual([]);
-    expect(render().status).toBe('Riding alone');
+    expect(render().status).toBe('None picked, up to 3');
   });
 
   it('shows every partner as a toggle in one labelled group', () => {
@@ -164,9 +164,11 @@ describe('PacePartners', () => {
 
   it("is what Home's Build your own ride shows as step 3", () => {
     const src = readFileSync(join(resolve(__dirname, '../../..'), 'src/components/setup/RideSetupWizard.tsx'), 'utf8');
-    expect(src).toMatch(/function PaceStep\(\) \{\n\s+return <PacePartners \/>;\n\}/);
+    // Step 3 "Who rides with you": the other rider's ghost, then the pace partners.
+    const step = src.slice(src.indexOf('function RideWithStep('));
+    expect(step.slice(0, step.indexOf('\n}\n'))).toMatch(/<CoupleGhostPicker offer=\{offer\} \/>[\s\S]*<PacePartners \/>/);
     const step3 = src.slice(src.indexOf('data-wizard-step={3}'));
-    expect(step3).toMatch(/openStep === 3 && \(\s*<div[^>]*>\s*<PaceStep \/>/);
+    expect(step3).toMatch(/openStep === 3 && \(\s*<div[^>]*>\s*<RideWithStep offer=\{ghostOffer\} \/>/);
     expect(src).not.toMatch(/PaceBotsPanel|globalThis/);
   });
 });

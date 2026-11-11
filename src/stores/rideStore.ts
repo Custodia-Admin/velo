@@ -686,6 +686,8 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
               power: input.powerNow ?? undefined,
               cadence: input.cadenceNow ?? undefined,
               heartRate: input.heartRateNow ?? undefined,
+              // The ride clock where `positionNow` was taken (before this step), for ghost replays.
+              rideMs: st.elapsedMs,
             },
           ]
         : st.samples;

@@ -11,7 +11,7 @@ import * as THREE from 'three';
 
 import { createAtmosphere, patchWorldMaterial, type WorldAtmosphere } from './materials/atmosphere';
 import { NOISE_GLSL } from './materials/toonTerrain';
-import { buildWaterGeometry, WATER_EDGE_M } from './waterMesh';
+import { buildWaterGeometry, levelLakes, WATER_EDGE_M } from './waterMesh';
 import type { SceneWorld } from './worldScene';
 
 export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMaterial {
@@ -70,7 +70,10 @@ export function createWaterMaterial(atmo: WorldAtmosphere): THREE.MeshStandardMa
 export function Water({ sceneWorld, atmo }: { sceneWorld: SceneWorld; atmo?: WorldAtmosphere }) {
   const shared = useMemo(() => atmo ?? createAtmosphere(), [atmo]);
   const mesh = useMemo(() => {
-    const data = buildWaterGeometry(sceneWorld.world.water, sceneWorld.heightfield, WATER_EDGE_M);
+    const data = buildWaterGeometry(sceneWorld.world.water, sceneWorld.heightfield, WATER_EDGE_M, {
+      levelLakes: levelLakes(sceneWorld.world),
+      dryRoutes: sceneWorld.world.routes,
+    });
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
     g.setAttribute('aKind', new THREE.BufferAttribute(data.kinds, 1));

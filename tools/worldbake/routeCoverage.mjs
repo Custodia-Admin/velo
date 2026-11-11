@@ -920,9 +920,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   const world = args.find((a) => !a.startsWith('-'));
   const bi = args.indexOf('--bundle');
-  const dir = resolve(bi >= 0 ? args[bi + 1] : join(ROOT, 'public/worlds', world));
-  const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
   const recipe = JSON.parse(readFileSync(join(ROOT, 'tools/worldbake/worlds', `${world}.json`), 'utf8'));
+  const dir = resolve(bi >= 0 ? args[bi + 1] : join(ROOT, recipe.host === 'remote' ? 'tools/worldbake/remote' : 'public/worlds', world));
+  const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
   const roads = JSON.parse(gunzipSync(readFileSync(join(dir, manifest.layers.roads))).toString('utf8'));
   const projection = createProjection(manifest.projection);
   const geometry = loadScenicGeometry(join(ROOT, 'src/lib/scenicRouteData.ts'));

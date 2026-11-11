@@ -14,7 +14,7 @@ import type { Vec3 } from './chaseRig';
 import { bucketLines, chunkLocator, roadLines, type RibbonLine } from './roadRibbons';
 import type { RiderPlacement, WorldGround } from './riderRig';
 import { lodHeightAt, planChunks, type ChunkInfo } from './terrainMesh';
-import { waterDepression } from './waterMesh';
+import { levelLakes, waterDepression } from './waterMesh';
 
 /** Road ribbons are densified to this spacing (≈ half a heightfield cell). */
 export const ROAD_MAX_SEG_M = 6;
@@ -34,7 +34,7 @@ export function createSceneWorld(world: LoadedWorld): SceneWorld {
   const chunks = planChunks(heightfield);
   const locate = chunkLocator(heightfield, chunks);
   const roadBuckets = bucketLines(roadLines(world.roads), locate, chunks.length, ROAD_MAX_SEG_M);
-  const waterBed = waterDepression(world.water, heightfield);
+  const waterBed = waterDepression(world.water, heightfield, levelLakes(world));
   return { world, heightfield, projection: world.projection, chunks, locate, roadBuckets, waterBed };
 }
 

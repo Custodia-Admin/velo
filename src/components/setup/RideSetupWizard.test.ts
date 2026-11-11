@@ -193,7 +193,7 @@ afterEach(() => {
 
 describe('RideSetupWizard — pace partners', () => {
   it('the collapsed step 3 header names the partners picked in the store', () => {
-    expect(render().header(3)).toMatchObject({ title: 'Pace partners', subtitle: 'Riding alone', done: false });
+    expect(render().header(3)).toMatchObject({ title: 'Who rides with you', subtitle: 'Riding alone', done: false });
 
     pick(...picked.map((p) => p.id));
     expect(render().header(3)).toMatchObject({

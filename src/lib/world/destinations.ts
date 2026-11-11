@@ -35,12 +35,25 @@ export const DESTINATION_FORMAT_VERSION = 1;
 export type DestinationRole = 'home' | 'hometown' | 'wishlist';
 export const DESTINATION_ROLES: readonly DestinationRole[] = ['home', 'hometown', 'wishlist'];
 
+/**
+ * Where a world bundle is served from. Absent: shipped with the app under
+ * `public/worlds/<id>/`. `remote`: published off-repo, content-hashed, under
+ * the remote worlds base URL (`VITE_WORLDS_REMOTE_URL`, a public R2 bucket by
+ * default) at `<id>/<hash>/`, and kept in the Cache API after the first ride.
+ */
+export type DestinationWorldHost = 'remote';
+
+/** `<id>/<hash>/`: hash = the first 16 hex digits of the bundle manifest's SHA-256. */
+export const REMOTE_WORLD_DIR = /^([a-z0-9-]+)\/([0-9a-f]{16})\/$/;
+
 /** The world bundle that draws a destination (mirrors its manifest.json). */
 export interface DestinationWorld {
   /** World id: folder under the worlds base URL and `tools/worldbake/worlds/<id>.json`. */
   id: string;
-  /** Directory under the worlds base URL that holds manifest.json, e.g. "lugano/". */
+  /** Directory under the worlds base URL that holds manifest.json: "lugano/", or "<id>/<hash>/" when remote. */
   dir: string;
+  /** 'remote' for a world published off-repo; absent for one shipped in public/worlds. */
+  host?: DestinationWorldHost;
   /** manifest.bbox: deciding whether a route is inside needs no download. */
   bbox: WorldBbox;
   /** manifest.routes[].id: the scenic routes snapped into the bundle. */
@@ -144,14 +157,18 @@ export function validateDestination(json: unknown, source?: string): Destination
     const wid = str(w, 'id');
     if (!ID.test(wid)) fail('world.id must match [a-z0-9-]+');
     const dir = str(w, 'dir');
-    if (dir !== `${wid}/`) fail('world.dir must be "<world.id>/"');
+    const host = w.host;
+    if (host !== undefined && host !== 'remote') fail('world.host must be "remote" or absent');
+    if (host === 'remote') {
+      if (REMOTE_WORLD_DIR.exec(dir)?.[1] !== wid) fail('a remote world.dir must be "<world.id>/<16 hex digit hash>/"');
+    } else if (dir !== `${wid}/`) fail('world.dir must be "<world.id>/"');
     if (!isObj(w.bbox)) return fail('world.bbox must be an object');
     const b = w.bbox;
     const bbox: WorldBbox = { south: num(b, 'south'), west: num(b, 'west'), north: num(b, 'north'), east: num(b, 'east') };
     if (!(bbox.south < bbox.north && bbox.west < bbox.east)) fail('world.bbox is empty');
     const wroutes = strings(w, 'routes', { nonEmpty: true });
     for (const r of wroutes) if (!routes.includes(r)) fail(`world route ${r} is not in routes`);
-    world = { id: wid, dir, bbox, routes: wroutes };
+    world = host === 'remote' ? { id: wid, dir, host, bbox, routes: wroutes } : { id: wid, dir, bbox, routes: wroutes };
   }
 
   const poisRaw = m.pois;
@@ -275,17 +292,19 @@ function wishlistDetail(list: readonly Destination[]): string {
 /**
  * Home's sections: one per home and hometown destination ("Home · Perugia",
  * "Hometown · Lugano"), then "Places we want to go" with every wishlist
- * destination. Inside a section, routes drawn by a 3D world come first.
+ * destination. Inside a section, routes drawn by a 3D world come first
+ * (in the wishlist: the places with a world, in manifest order, then the
+ * places that ride on the map, in manifest order).
  */
 export function homeSections(list: readonly Destination[] = DESTINATIONS): DestinationSection[] {
-  const entriesOf = (d: Destination) => {
-    const all = d.routes.map((routeId) => ({ destination: d, routeId, hasWorld: routeHasWorld(d, routeId) }));
-    return [...all.filter((e) => e.hasWorld), ...all.filter((e) => !e.hasWorld)];
-  };
+  type Entry = DestinationSection['entries'][number];
+  const worldFirst = (all: Entry[]) => [...all.filter((e) => e.hasWorld), ...all.filter((e) => !e.hasWorld)];
+  const entriesOf = (d: Destination): Entry[] =>
+    d.routes.map((routeId) => ({ destination: d, routeId, hasWorld: routeHasWorld(d, routeId) }));
   const sections: DestinationSection[] = [];
   for (const d of list) {
     if (d.role === 'wishlist') continue;
-    sections.push({ id: d.id, role: d.role, title: `${ROLE_LABEL[d.role]} · ${d.name}`, detail: d.detail, entries: entriesOf(d) });
+    sections.push({ id: d.id, role: d.role, title: `${ROLE_LABEL[d.role]} · ${d.name}`, detail: d.detail, entries: worldFirst(entriesOf(d)) });
   }
   const wish = list.filter((d) => d.role === 'wishlist');
   if (wish.length > 0) {
@@ -294,7 +313,7 @@ export function homeSections(list: readonly Destination[] = DESTINATIONS): Desti
       role: 'wishlist',
       title: ROLE_LABEL.wishlist,
       detail: wishlistDetail(wish),
-      entries: wish.flatMap(entriesOf),
+      entries: worldFirst(wish.flatMap(entriesOf)),
     });
   }
   return sections;

@@ -4,7 +4,8 @@
 //
 //   node tools/worldbake/validate.mjs <world> [--bundle dir] [--cache dir] [--no-write]
 //
-//   --bundle <dir>   the baked bundle (default public/worlds/<world>)
+//   --bundle <dir>   the baked bundle (default public/worlds/<world>, or
+//                    tools/worldbake/remote/<world> for a "host": "remote" recipe)
 //   --cache <dir>    download cache (default tools/worldbake/cache, env WORLDBAKE_CACHE);
 //                    Open-Meteo answers are cached under <cache>/<world>/open-meteo
 //   --no-write       print the result only; leave the recipe and the report alone
@@ -87,7 +88,7 @@ export async function validateBaked(opts) {
   const root = opts.root ?? ROOT;
   const recipePath = join(root, 'tools/worldbake/worlds', `${opts.world}.json`);
   const { recipe } = readRecipe(recipePath);
-  const bundleDir = resolve(opts.bundle ?? join(root, 'public/worlds', recipe.id));
+  const bundleDir = resolve(opts.bundle ?? join(root, recipe.host === 'remote' ? 'tools/worldbake/remote' : 'public/worlds', recipe.id));
   const cacheDir = resolve(opts.cache ?? join(root, 'tools/worldbake/cache'), recipe.id);
   const { demSource, hf, projection, extent, routes } = loadBakedWorld(bundleDir, recipe);
   const core = recipe.snap.coreCells * recipe.grid.cellSize + recipe.snap.falloffM;

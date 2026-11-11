@@ -1,8 +1,9 @@
 /**
  * Velo's own world renderer ('world', the default): a token-free three.js
  * scene built from a baked world bundle (public/worlds/<id>/) — chunked
- * terrain, road ribbons, the route line, the stylized GLTF rider, ghosts and
- * pace bots, sky, sun and fog — driven by the same ride state as the HUD
+ * terrain, road ribbons, the route line, the stylized GLTF rider, ghosts, the
+ * couple ghost and pace bots, Play mode's postcards, sky, sun and fog — driven
+ * by the same ride state as the HUD
  * (rideStore + lib/ride/rideSim.ridePose + handlebar lane steering).
  *
  * Lazy: only src/renderers/registry.ts imports this module, via import(), so
@@ -23,6 +24,7 @@ import { scenicRouteById } from '@/lib/scenicRoutes';
 import { chaseFraming, RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
 import { worldForRoute, worldUrl, type WorldCatalogEntry } from '@/lib/world/catalog';
 import { loadWorld, type LoadedWorld } from '@/lib/world/loadWorld';
+import { openWorldCache } from '@/lib/world/worldCache';
 import { TIME_PRESETS, type TimePreset, type WorldLightInput } from '@/lib/world/moods';
 import type { RiderPose, WorldRenderer, WorldViewProps } from '@/lib/world/renderer';
 import { activeSteer } from '@/stores/controllerStore';
@@ -35,11 +37,13 @@ import { Buildings, StreetLights } from './Buildings';
 import { fillContainer } from './canvasSize';
 import { ChaseCamera } from './ChaseCamera';
 import { ContextLossWatch } from './contextLoss';
+import { CoupleGhost } from './CoupleGhost';
 import { sceneLandmarks } from './directorCamera';
 import { Ghosts } from './Ghosts';
 import { Landmarks } from './Landmarks';
 import { buildLandcoverCanvas } from './landcoverTexture';
 import { createAtmosphere } from './materials/atmosphere';
+import { createPostcardPins, PlayLayer } from './PlayLayer';
 import { renderDpr, threeQuality, type ThreeQuality } from './quality';
 import { LiveRider, PaceBots, preloadRider } from './Rider';
 import { createRideDriverMemo, driveRideFrame } from './rideDriver';
@@ -57,12 +61,14 @@ import { ChunkVisibility, createRideFrame, createSceneWorld, drawnGround, type R
 preloadRider();
 
 // One download + decode per world per session (a world is ~5 MB on the wire).
+// A remote world's files also go to the Cache API, so the next session
+// (offline included) reads them from disk (lib/world/worldCache).
 const worldCache = new Map<string, Promise<LoadedWorld>>();
 
 export function loadCatalogWorld(entry: WorldCatalogEntry): Promise<LoadedWorld> {
   let p = worldCache.get(entry.id);
   if (!p) {
-    p = loadWorld(worldUrl(entry));
+    p = (entry.remote ? openWorldCache() : Promise.resolve(null)).then((cache) => loadWorld(worldUrl(entry), { cache }));
     worldCache.set(entry.id, p);
     p.catch(() => worldCache.delete(entry.id));
   }
@@ -385,6 +391,8 @@ export function WorldScene({
   );
   // Named places the route passes (manifest POIs), for the show director's landmark orbits.
   const directorLandmarks = useMemo(() => sceneLandmarks(route, sceneWorld), [route, sceneWorld]);
+  // Play mode: which of those places are postcards still to collect (PlayLayer writes, Landmarks reads).
+  const postcardPins = useMemo(() => createPostcardPins(), []);
   return (
     <>
       <DprController quality={quality} onDpr={onDpr} />
@@ -398,12 +406,14 @@ export function WorldScene({
       <StreetLights sceneWorld={sceneWorld} atmo={atmo} />
       <Vegetation sceneWorld={sceneWorld} quality={quality} atmo={atmo} stats={stats} />
       <Weather quality={quality} atmo={atmo} lightState={lightState} />
-      <Landmarks sceneWorld={sceneWorld} quality={quality} />
+      <Landmarks sceneWorld={sceneWorld} quality={quality} postcards={postcardPins} />
+      <PlayLayer sceneWorld={sceneWorld} route={route} pins={postcardPins} />
       <ChaseCamera frame={frame} heightfield={sceneWorld.heightfield} landmarks={directorLandmarks} ground={ground} />
       <Ghosts sceneWorld={sceneWorld} route={route} ground={ground} />
       <Suspense fallback={null}>
         <LiveRider frame={frame} castShadow={quality.shadows} />
         <PaceBots sceneWorld={sceneWorld} route={route} ground={ground} frame={frame} />
+        <CoupleGhost sceneWorld={sceneWorld} route={route} ground={ground} frame={frame} />
         <ReadySignal onReady={onReady} />
       </Suspense>
       {quality.postFx && <PostFx />}

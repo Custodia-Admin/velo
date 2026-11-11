@@ -8,12 +8,18 @@
  * 'unsupported' | 'network' | 'aborted') and the offending file, so the ride
  * view can tell "world not shipped" from "download broke" from "bad bake".
  *
+ * With `cache` (worldCache.ts; remote worlds only, whose content-hashed URLs
+ * never change) every file is read from the Cache API first and stored there
+ * once it passes its checks, so the second ride needs no network. A cached
+ * copy that fails its checks is dropped and fetched again.
+ *
  * Engine-free (no three.js/Cesium/React): renderers consume the decoded data.
  */
 
 import { Heightfield, decodeHeightDeltas } from './heightfield';
 import { createProjection, type WorldProjection } from './projection';
 import { validateManifest, WorldLoadError, type WorldFileEntry, type WorldManifest } from './manifest';
+import type { WorldFileCache } from './worldCache';
 
 export { WorldLoadError } from './manifest';
 export type { WorldErrorCode } from './manifest';
@@ -52,6 +58,8 @@ export interface LoadWorldOptions {
   signal?: AbortSignal;
   /** Check each file's SHA-256 (needs crypto.subtle; skipped where unavailable). Default true. */
   verifyHashes?: boolean;
+  /** Read files from here first and store them once checked (immutable, content-hashed URLs only). */
+  cache?: WorldFileCache | null;
 }
 
 export interface WorldRoad {
@@ -192,6 +200,60 @@ async function fetchBytes(
   } catch (err) {
     rethrow(err, file, signal);
   }
+}
+
+type FetchFn = NonNullable<LoadWorldOptions['fetch']>;
+
+/**
+ * One file through the cache: a cached copy that `decode` accepts is used
+ * as is; one it rejects as corrupt/unsupported is dropped and the network
+ * copy is fetched, decoded and stored. Without a cache this is a fetch.
+ */
+async function readThrough<T>(
+  fetchFn: FetchFn,
+  cache: WorldFileCache | null | undefined,
+  url: string,
+  file: string,
+  signal: AbortSignal | undefined,
+  onChunk: (n: number) => void,
+  decode: (bytes: Uint8Array) => Promise<T> | T,
+): Promise<T> {
+  if (cache) {
+    const hit = await cache.match(url);
+    if (hit) {
+      onChunk(hit.byteLength);
+      try {
+        return await decode(hit);
+      } catch (err) {
+        if (!(err instanceof WorldLoadError) || (err.code !== 'corrupt' && err.code !== 'unsupported')) throw err;
+        onChunk(-hit.byteLength);
+        await cache.delete(url);
+      }
+    }
+  }
+  const bytes = await fetchBytes(fetchFn, url, file, signal, onChunk);
+  const out = await decode(bytes);
+  if (cache) await cache.put(url, bytes);
+  return out;
+}
+
+function parseManifest(bytes: Uint8Array): WorldManifest {
+  let json: unknown;
+  try {
+    json = JSON.parse(new TextDecoder().decode(bytes));
+  } catch (err) {
+    throw new WorldLoadError('corrupt', 'manifest.json is not valid JSON', 'manifest.json', { cause: err });
+  }
+  return validateManifest(json);
+}
+
+/** Fetch and validate only a world's manifest.json (through `cache` when given). */
+export async function loadWorldManifest(
+  baseUrl: string,
+  opts: Pick<LoadWorldOptions, 'fetch' | 'signal' | 'cache'> = {},
+): Promise<WorldManifest> {
+  const fetchFn: FetchFn = opts.fetch ?? ((url, init) => fetch(url, init));
+  return readThrough(fetchFn, opts.cache, joinUrl(baseUrl, 'manifest.json'), 'manifest.json', opts.signal, () => {}, parseManifest);
 }
 
 async function gunzip(bytes: Uint8Array, file: string): Promise<Uint8Array> {
@@ -404,22 +466,15 @@ function decodeRoutes(json: Json, file: string): WorldRoute[] {
  * Load the world bundle at `baseUrl` (directory URL containing manifest.json).
  */
 export async function loadWorld(baseUrl: string, opts: LoadWorldOptions = {}): Promise<LoadedWorld> {
-  const fetchFn = opts.fetch ?? ((url: string, init?: { signal?: AbortSignal }) => fetch(url, init));
-  const { signal, onProgress } = opts;
+  const fetchFn: FetchFn = opts.fetch ?? ((url, init) => fetch(url, init));
+  const { signal, onProgress, cache } = opts;
   const verify = opts.verifyHashes ?? true;
   const check = (file: string) => {
     if (signal?.aborted) throw new WorldLoadError('aborted', `loading ${file} was aborted`, file);
   };
 
   check('manifest.json');
-  const manifestBytes = await fetchBytes(fetchFn, joinUrl(baseUrl, 'manifest.json'), 'manifest.json', signal, () => {});
-  let manifestJson: unknown;
-  try {
-    manifestJson = JSON.parse(new TextDecoder().decode(manifestBytes));
-  } catch (err) {
-    throw new WorldLoadError('corrupt', 'manifest.json is not valid JSON', 'manifest.json', { cause: err });
-  }
-  const manifest = validateManifest(manifestJson);
+  const manifest = await loadWorldManifest(baseUrl, { fetch: fetchFn, signal, cache });
   const files = manifest.files;
   const totalBytes = files.reduce((a, f) => a + f.bytes, 0);
   let loadedBytes = 0;
@@ -432,11 +487,21 @@ export async function loadWorld(baseUrl: string, opts: LoadWorldOptions = {}): P
   await Promise.all(
     files.map(async (entry) => {
       check(entry.path);
-      const stored = await fetchBytes(fetchFn, joinUrl(baseUrl, entry.path), entry.path, signal, (n) => {
-        loadedBytes += n;
-      });
-      check(entry.path);
-      contents.set(entry.path, await decodeFile(entry, stored, verify));
+      const content = await readThrough(
+        fetchFn,
+        cache,
+        joinUrl(baseUrl, entry.path),
+        entry.path,
+        signal,
+        (n) => {
+          loadedBytes += n;
+        },
+        (stored) => {
+          check(entry.path);
+          return decodeFile(entry, stored, verify);
+        },
+      );
+      contents.set(entry.path, content);
       loadedFiles++;
       emit('file', entry.path);
     }),

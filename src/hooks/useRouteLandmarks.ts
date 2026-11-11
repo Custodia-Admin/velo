@@ -10,21 +10,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Route } from '@/types';
 import { worldForRoute, worldUrl } from '@/lib/world/catalog';
-import { validateManifest, type WorldManifest } from '@/lib/world/manifest';
+import type { WorldManifest } from '@/lib/world/manifest';
+import { loadWorldManifest } from '@/lib/world/loadWorld';
+import { openWorldCache } from '@/lib/world/worldCache';
 import { routeLandmarks, type RouteLandmark } from '@/lib/world/routeLandmarks';
 import { findClimbs } from '@/lib/climbDetection';
 import { nextLandmark, type Landmark, type NextLandmarkParts, type Units } from '@/components/velo/rideHudText';
 
 const manifests = new Map<string, Promise<WorldManifest | null>>();
 
-function loadManifest(url: string): Promise<WorldManifest | null> {
-  let p = manifests.get(url);
+/** A remote world's manifest comes through the world cache (offline after one ride). */
+function loadManifest(baseUrl: string, remote: boolean): Promise<WorldManifest | null> {
+  let p = manifests.get(baseUrl);
   if (!p) {
-    p = fetch(url)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => (j ? validateManifest(j) : null))
+    p = (remote ? openWorldCache() : Promise.resolve(null))
+      .then((cache) => loadWorldManifest(baseUrl, { cache }))
       .catch(() => null);
-    manifests.set(url, p);
+    manifests.set(baseUrl, p);
   }
   return p;
 }
@@ -36,7 +38,7 @@ export function useRouteLandmarks(route: Route | null): RouteLandmark[] {
   useEffect(() => {
     if (!route || !entry) return;
     let live = true;
-    void loadManifest(`${worldUrl(entry)}manifest.json`).then((m) => {
+    void loadManifest(worldUrl(entry), entry.remote).then((m) => {
       if (!live || !m) return;
       setState({ id: route.id, list: routeLandmarks(route.points, m) });
     });

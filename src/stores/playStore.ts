@@ -1,7 +1,8 @@
 /**
  * Live Play mode state for the HUD: postcard count and the buddy line.
  *
- * Written by the Cesium play layer, read by PlayPanel and the finish card.
+ * Written by the play layers (Cesium: lib/play/cesiumPlayLayer; world
+ * renderer: lib/play/threePlayLayer), read by PlayPanel and the finish card.
  * Transient: nothing here is persisted. The on/off switch itself is the
  * per-rider `playMode` setting.
  */
@@ -19,8 +20,10 @@ export interface PlayState {
   lastPickupAt: number;
   /** One-line buddy status, or null when there's no buddy. */
   buddyLine: string | null;
+  /** The postcards' place names in route order (world renderer), or [] when they have none. */
+  names: string[];
 
-  start: (total: number, buddyLine: string | null) => void;
+  start: (total: number, buddyLine: string | null, names?: string[]) => void;
   progress: (collected: number, toNextM: number | null, pickedUp: boolean) => void;
   setBuddyLine: (line: string | null) => void;
   /** Layer gone (route change, toggle off). Keeps the last count for the finish card. */
@@ -35,12 +38,13 @@ const INITIAL = {
   toNextM: null,
   lastPickupAt: 0,
   buddyLine: null,
+  names: [] as string[],
 } satisfies Partial<PlayState>;
 
 export const usePlayStore = create<PlayState>()((set) => ({
   ...INITIAL,
-  start: (total, buddyLine) =>
-    set({ ...INITIAL, active: true, total, buddyLine }),
+  start: (total, buddyLine, names = []) =>
+    set({ ...INITIAL, active: true, total, buddyLine, names }),
   progress: (collected, toNextM, pickedUp) =>
     set((s) => ({
       collected,

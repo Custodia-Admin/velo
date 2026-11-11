@@ -5,7 +5,9 @@
 //   --no-validate      skip the P1.3 heightfield check (Open-Meteo); the report's
 //                      `validation` is then null, and the recipe keeps its
 //                      previous `validation` block untouched
-//   --out <dir>        bundle dir (default public/worlds/<world>); see below
+//   --out <dir>        bundle dir (default public/worlds/<world>, or
+//                      tools/worldbake/remote/<world> for a recipe with
+//                      "host": "remote"); see below
 //   --cache <dir>      download cache (default tools/worldbake/cache, env WORLDBAKE_CACHE)
 //   --no-docs          don't rewrite this world's block in docs/worlds/CREDITS.md
 //
@@ -18,6 +20,12 @@
 // The heightfield comes from the recipe's `dem.source`: AWS Terrain Tiles by
 // default (`dem.zoom`), or Copernicus GLO-30 COGs with "copernicus-glo30"
 // (demSource.mjs, fetchGlo30.mjs).
+//
+// A recipe with "host": "remote" bakes a world that is published off-repo
+// (publish.mjs uploads it to `worlds/<id>/<hash>/` in the public R2 bucket;
+// worldBundles.mjs, docs/worlds/ADDING-A-WORLD.md). Its manifest.json is
+// committed, its layer files are not. "routeCredits": true adds one credit
+// per route with the OSM relation or OSRM query that reproduces it.
 //
 // Same recipe + same cached inputs → byte-identical bundle (sha256 per file in
 // manifest.json). OSM queries are pinned to the recipe's osmDate, so a clean
@@ -40,12 +48,15 @@ import { fetchGlo30, GLO30_CREDIT, GLO30_URL_TEMPLATE } from './fetchGlo30.mjs';
 import { demSourceOf, GLO30_DEM_SOURCE } from './demSource.mjs';
 import { fetchOsm, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
+import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames } from './snapRoutes.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
 import { P13_SAMPLE_COUNT, validationInputs } from './p13Criterion.mjs';
 import { syncDestinations } from './syncDestinations.mjs';
+import { BUNDLED_WORLDS_DIR, REMOTE_WORLDS_DIR } from './worldBundles.mjs';
+import { routeSourceCredit } from '../../scripts/scenicRouteSources.mjs';
 import { brotliSize, ensureDir, gzip, here, sha256, stableJson, writeFileAtomic } from './util.mjs';
 
 const TOOL_VERSION = 1;
@@ -115,12 +126,31 @@ export function creditsFor(demSource) {
 }
 
 /**
+ * The manifest credits of a bake: `creditsFor(demSource)`, then with the
+ * recipe's `routeCredits` one credit per route (in recipe order) linking
+ * the OSM relation or OSRM query its geometry came from
+ * (scripts/scenicRouteSources.mjs). Recipes without the flag keep exactly
+ * `creditsFor` (same bytes).
+ */
+export function bundleCredits(recipe, demSource, names) {
+  const base = creditsFor(demSource);
+  if (!recipe.routeCredits) return base;
+  return [...base, ...recipe.routes.map((id) => routeSourceCredit(id, names[id] ?? id))];
+}
+
+/** Where a recipe's bundle goes without --out: public/worlds/<id>, or tools/worldbake/remote/<id> when remote. */
+export function defaultOutDir(recipe) {
+  return join(recipe.host === 'remote' ? REMOTE_WORLDS_DIR : BUNDLED_WORLDS_DIR, recipe.id);
+}
+
+/**
  * The recipe bytes `generator.recipeSha256` hashes: the parsed recipe without
  * its `validation` block (the P1.3 check's seed and results never touch the
- * bundle, and the bake writes its results back into the recipe).
+ * bundle, and the bake writes its results back into the recipe) and without
+ * `host` (where the bundle is served from doesn't shape it either).
  */
 export function recipeBundleBytes(recipe) {
-  const { validation: _validation, ...rest } = recipe;
+  const { validation: _validation, host: _host, ...rest } = recipe;
   return stableJson(rest);
 }
 
@@ -139,6 +169,7 @@ export function generatorFor(demSource, recipe, dem) {
     osmDate: recipe.osmDate,
     ...(demSource === GLO30_DEM_SOURCE ? { demSource: dem.source } : { demSource: DEM_SOURCE, demZoom: recipe.dem.zoom }),
     demTiles: dem.tiles.length,
+    ...(recipe.flatLakes ? { flatLakes: true } : {}),
   };
 }
 
@@ -224,7 +255,7 @@ export async function bake(opts) {
   const recipePath = join(ROOT, 'tools/worldbake/worlds', `${opts.world}.json`);
   const { recipe, demSource } = readRecipe(recipePath);
   const glo30 = demSource === GLO30_DEM_SOURCE;
-  const outDir = resolve(opts.out ?? join(ROOT, 'public/worlds', recipe.id));
+  const outDir = resolve(opts.out ?? defaultOutDir(recipe));
   const cacheDir = resolve(opts.cache ?? join(ROOT, 'tools/worldbake/cache'), recipe.id);
   if (opts.clean && existsSync(cacheDir)) {
     rmSync(cacheDir, { recursive: true, force: true });
@@ -254,6 +285,19 @@ export async function bake(opts) {
   const heights = sampleGrid({ grid: g, projection, dem });
   lap('dem', t);
 
+  // OSM first: the water areas shape the terrain under them (flatLakes).
+  t = Date.now();
+  const osm = await fetchOsm({ bbox, osmDate: recipe.osmDate, cacheDir, log });
+  const water = buildWater(osm.elements.water, projection, extent);
+  lap('osm', t);
+  let lakes = null;
+  if (recipe.flatLakes) {
+    const flat = flattenLakes({ grid: g, heights, water });
+    lakes = flat.lakes;
+    const cut = lakes.reduce((mx, l) => Math.max(mx, l.maxCutM), 0);
+    log(`flatLakes: ${lakes.length} lakes and ponds levelled (${lakes.reduce((n, l) => n + l.inNodes, 0)} nodes under water, ${flat.changedNodes} changed, max cut ${cut.toFixed(1)} m)`);
+  }
+
   // 2. Routes: carve corridors into the float grid, then quantise.
   t = Date.now();
   const geometry = loadScenicGeometry(join(ROOT, 'src/lib/scenicRouteData.ts'));
@@ -263,6 +307,10 @@ export async function bake(opts) {
     return { id, name: names[id] ?? id, points: geometry[id].points };
   });
   const carve = carveRoutes({ grid: g, heights, projection, routes: routesIn, snap: recipe.snap });
+  if (lakes) {
+    const keep = routeCoreNodes(g, carve.prepared, recipe.snap.coreCells * g.cellSize);
+    log(`flatLakes: ${relevelLakes({ heights, lakes, keep: (i) => keep.has(i) })} lake nodes re-levelled after the route carve (route core kept)`);
+  }
   const height = buildHeightfield({ grid: g, heights });
   const snapped = finishRoutes({ prepared: carve.prepared, hf: height.hf, snap: recipe.snap });
   for (const r of snapped.info) {
@@ -272,9 +320,6 @@ export async function bake(opts) {
   lap('heightfield+routes', t);
 
   // 3. Vectors.
-  t = Date.now();
-  const osm = await fetchOsm({ bbox, osmDate: recipe.osmDate, cacheDir, log });
-  lap('osm', t);
   t = Date.now();
   const roads = buildRoads(osm.elements.roads, projection, extent);
   // The route's painted guide must sit on ONE drawn road, never on grass and
@@ -303,7 +348,6 @@ export async function bake(opts) {
     log(`route ${id}: ${c.mappedPct}% within 1 m of mapped roads; guide on drawn roads ${c.paintPctBefore}% → ${c.paintPct}% (${c.easedM} m eased, ${c.joinedM} m joined${c.tunnelM ? `, ${c.tunnelM} m in tunnels` : ''})`);
   }
   log(`route fit: ${fit.roadsEased} roads bent (up to ${fit.maxShiftM} m), ${fit.joins} join pieces`);
-  const water = buildWater(osm.elements.water, projection, extent);
   const landcover = buildLandcover(osm.elements.landcover, projection, extent);
   // What the rider follows must never run through a building: every scenic
   // route at full resolution (the app's own polyline), plus every drawn road.
@@ -400,7 +444,7 @@ export async function bake(opts) {
       pois: pois.length,
       carvedNodes: carve.carvedNodes,
     },
-    credits: creditsFor(demSource),
+    credits: bundleCredits(recipe, demSource, names),
     generator: generatorFor(demSource, recipe, dem),
   };
   validateManifest(JSON.parse(JSON.stringify(manifest)));
@@ -430,6 +474,7 @@ export async function bake(opts) {
     routes: snapped.info.map((r) => ({ ...r, roadCoverage: roadCoverage[r.id] })),
     routeFit: routeFitReport(fit),
     heightfield: { ...height.info, carvedNodes: carve.carvedNodes, maxCutM: round(carve.maxCutM) },
+    ...(lakes ? { flatLakes: lakes.map(({ nodes: _nodes, ...l }) => ({ ...l, level: round(l.level), before: { min: round(l.before.min), max: round(l.before.max) }, maxCutM: round(l.maxCutM) })) } : {}),
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
     ...(glo30 ? { demSource: dem.source } : {}),
     demTiles: dem.tiles,
@@ -462,15 +507,27 @@ function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 }) 
   const tiles = dem.tiles.map((id) => `\`${id}\``).join(', ');
   const block = [
     start,
-    `### ${recipe.name} (\`public/worlds/${recipe.id}/\`)`,
+    recipe.host === 'remote'
+      ? `### ${recipe.name} (\`worlds/${recipe.id}/<hash>/\` in the public R2 bucket; manifest \`tools/worldbake/remote/${recipe.id}/manifest.json\`)`
+      : `### ${recipe.name} (\`public/worlds/${recipe.id}/\`)`,
     '',
     `- Bounding box (WGS84): south ${bbox.south}, west ${bbox.west}, north ${bbox.north}, east ${bbox.east}.`,
     `- World extent: x ${extent.xMin}…${extent.xMax} m, y ${extent.yMin}…${extent.yMax} m, local transverse Mercator at ${recipe.origin.lat}, ${recipe.origin.lon}.`,
     glo30
-      ? `- Elevation: ${dem.tiles.length} Copernicus DEM GLO-30 tiles (1″ COG), \`${GLO30_URL_TEMPLATE}\`: ${tiles}${dem.missing.length ? ` (${dem.missing.map((id) => `\`${id}\``).join(', ')} absent from the bucket: open ocean, read as 0 m)` : ''}. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.`
+      ? `- Elevation: ${dem.tiles.length} Copernicus DEM GLO-30 tile${dem.tiles.length === 1 ? '' : 's'} (1″ COG), \`${GLO30_URL_TEMPLATE}\`: ${tiles}${dem.missing.length ? ` (${dem.missing.map((id) => `\`${id}\``).join(', ')} absent from the bucket: open ocean, read as 0 m)` : ''}. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.`
       : `- Elevation: ${dem.tiles.length} Terrain Tiles (terrarium) at zoom ${dem.zoom}, \`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png\`: ${tiles}.`,
     `- OpenStreetMap: Overpass API (\`${OVERPASS_URL}\`), data as of ${recipe.osmDate} (attic query), layers ${Object.keys(osm.queries).join(', ')} over the bounding box above. Queries are recorded in \`tools/worldbake/reports/${recipe.id}.json\`.`,
-    `- Routes: ${manifest.routes.map((r) => `\`${r.id}\``).join(', ')} from \`src/lib/scenicRouteData.ts\` (OSRM bike geometry + Copernicus GLO-90 profile via Open-Meteo).`,
+    ...(recipe.routeCredits
+      ? [
+          `- Routes from \`src/lib/scenicRouteData.ts\` (profiles: Copernicus GLO-90 via Open-Meteo), geometry sources:`,
+          ...manifest.routes.map((r) => {
+            const c = manifest.credits.find((x) => x.id === `route-${r.id}`);
+            return `  - \`${r.id}\`: ${c.name}, <${c.url}>.`;
+          }),
+        ]
+      : [
+          `- Routes: ${manifest.routes.map((r) => `\`${r.id}\``).join(', ')} from \`src/lib/scenicRouteData.ts\` (OSRM bike geometry + Copernicus GLO-90 profile via Open-Meteo).`,
+        ]),
     `- Validation: ${P13_SAMPLE_COUNT} seeded Open-Meteo elevation samples (Copernicus GLO-90), not shipped.`,
     end,
   ].join('\n');

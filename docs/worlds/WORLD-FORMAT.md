@@ -40,6 +40,12 @@ public/worlds/perugia/
   routes.json.gz       scenic routes snapped onto the heightfield
 ```
 
+A world baked with `"host": "remote"` (Chengdu and the other wishlist
+worlds) has the same files under `tools/worldbake/remote/<id>/`, where only
+`manifest.json` is committed; the app loads it from
+`<remote base>/<id>/<hash>/`, the public R2 bucket by default
+([ADDING-A-WORLD.md](ADDING-A-WORLD.md), "Hosting").
+
 Every file except the manifest is gzip-compressed by the bake (gzip level 9,
 mtime 0, so the bytes are reproducible). The loader recognises the gzip magic
 bytes; when a host has already removed the compression (Content-Encoding
@@ -84,7 +90,7 @@ Validated by `validateManifest()`; schema in
 | `routes[]` | `{ id, name, lengthM, maxGapM, gradeMeanAbsDiffPct }` per snapped scenic route (ids match `src/lib/scenicRoutes.ts`). |
 | `stats` | Counts (roads, buildings, trees, …) for logs and UI. |
 | `credits[]` | `{ id, name, licence, url, attribution }`: show these wherever the world is shown. |
-| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count). |
+| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry). |
 
 ## height.bin: the heightfield (`u16-delta`)
 
@@ -142,7 +148,12 @@ natively, without Node's web-stream wrapper.
   feel, the bake re-grades the terrain under each route (`snapRoutes.mjs`):
   1. target = route profile + a slowly varying offset (400 m median, then
      1600 m mean of terrain − profile), so the road keeps the profile's shape
-     but sits at the real terrain's level;
+     but sits at the real terrain's level. A loop (its ends within one
+     step) has the target ramped over 400 m at each end so both ends meet
+     at their mean (`closeLoop`): the ground at the start/finish has one
+     height, and without the ramp Chengdu's Xinglong loop stepped 3 m in
+     its first 10 m. Perugia's Assisi loop was baked before this and still
+     steps 2.2 m (a test names it until it is re-baked);
   2. nodes within `1.5 × cellSize` of the route take the target; the next
      40 m blend back to the natural terrain (smoothstep), like a road
      embankment or cutting.
@@ -332,7 +343,8 @@ node tools/worldbake/bake.mjs perugia --clean      # re-download everything firs
 ```
 
 Run bakes on the bake host (cat-bed), not the laptop: copy the repo there,
-bake, copy `public/worlds/<id>/`, `tools/worldbake/reports/<id>.json`,
+bake, copy `public/worlds/<id>/` (or `tools/worldbake/remote/<id>/`),
+`tools/worldbake/reports/<id>.json`,
 `tools/worldbake/worlds/<id>.json` (its `validation` block) and
 `docs/worlds/CREDITS.md` back. Downloads are cached under
 `tools/worldbake/cache/<id>/` (git-ignored). Needs Node ≥ 22.18 (TypeScript
@@ -357,7 +369,9 @@ keeps its previous block.
   world's terrain class. See [Terrain accuracy check](#terrain-accuracy-check-p13-v2).
   The result is written into the recipe's `validation` and the report; a
   FAIL is reported, it doesn't stop the bake.
-- After writing to `public/worlds/`, it runs `syncDestinations.mjs`, which
+- After writing to its default place (`public/worlds/<id>/`, or
+  `tools/worldbake/remote/<id>/` for `"host": "remote"`), it runs
+  `syncDestinations.mjs`, which
   copies the world's bbox, routes, moods, towns and credits into its
   destination manifest (`docs/worlds/DESTINATIONS.md`).
 
@@ -384,7 +398,9 @@ most.
 `id`, `name`, `description`, `origin` (world `(0, 0)`), `grid` (`xMin`, `yMax`,
 `cellSize`, `cols`, `rows`, ≤ 2048 a side), `dem` (below), `osmDate`, `routes`
 (+ `routesOutside` with reasons), `snap`, `vegetation`, `moods`,
-`defaultMood` and `validation` (`sample_seed`, plus an optional mountain
+`defaultMood`, the optional `host` (`"remote"`), `routeCredits` and
+`flatLakes` ([ADDING-A-WORLD.md](ADDING-A-WORLD.md)), and `validation`
+(`sample_seed`, plus an optional mountain
 override; the bake writes the rest, see
 [Terrain accuracy check](#terrain-accuracy-check-p13-v2)).
 `manifest.generator.recipeSha256` is the SHA-256 of the parsed recipe without
@@ -654,7 +670,32 @@ buildings, and the rider on the road. The steep slopes get more relief, and
 more of the pale steep-face shading. Four of them are in
 `docs/design/screenshots/v2/build/lugano-glo30/`.
 
+### Chengdu Luxe Lakes
+
+The first remote world (card t_55f6c646): 8.8 × 12.9 km at 12 m (`x
+−4400…4408`, `y −6400…6500` around 30.432° N 104.075° E, 735 × 1076 nodes) in
+Tianfu New Area, holding the Luxe Lakes (Luhu) loop and Xinglong Lake's signed
+clockwise cycle loop (OSM relation 18146670), 11 km apart north to south.
+Baked 11 Nov 2026 on cat-bed from Copernicus GLO-30 and OSM as of 1 Nov 2026,
+published as `worlds/chengdu-luxelakes/80e66bc0c3354d4b/`.
+
+| Check | Result |
+| --- | --- |
+| Bake time | 10 s from cache |
+| Determinism | an `--out` bake and the committed bake from cache: identical bytes for all 8 files (checked at each of the six bakes on this card) |
+| Size | 1.84 MB as shipped (gzip), 1.51 MB brotli, 3.41 MB raw; the first ride downloads 1.78 MB (`e2e/remote-world.spec.ts`) |
+| Routes | Luxe Lakes 11.18 km, Xinglong Lake 8.19 km: max gap 0 m; grade Δ 0.315 / 0.585 pp; both loops meet themselves at one height (steepest 10 m step 5.8 % / 4.2 %); 100 % within 1 m of mapped roads; painted guide 100 % on drawn roads (37.3 m and 1 m eased; the fit bends 8 roads by at most 0.45 m, no joins) |
+| Heightfield vs Open-Meteo, 50 seeded points (seed 30432) | P1.3 v2: `standard` (steep fraction 0.0638), registered **2.35 m ≤ 6.00 m, PASS**; point RMS 5.66 m, max \|registered\| 11.06 m (reported only); 0/50 answers from another node. The two worst points (−11.06 m, −9.73 m) lie on dug lakes, where the GLO-90 reference also has the land the lakes were dug from; the 39 points more than 100 m from any water give 0.99 m. Before `flatLakes` the whole set gave 1.09 m |
+| Heightfield range | 451.0–538.5 m; 157 lakes and ponds levelled (37,926 nodes under water; Xinglong Lake spanned 455.7–483.7 m and now lies at 456.26 m; max cut 33.6 m); 15,339 nodes carved under the routes (max 19.6 m), 260 lake nodes put back to level after the carve; 120 m and 68 m of the routes run in mapped underpasses |
+| Content | 4,913 road pieces, 165 water areas + 72 waterways, 776 landcover areas, 794 buildings, 154,675 trees |
+
+Tianfu's towers are thinly mapped in OSM (794 buildings over 114 km²), so the
+skyline is sparser than the real one; parks, lakes and the planted lakeshore
+carry the world.
+
 ### Adding a world
+
+The full procedure, hosting included, is [ADDING-A-WORLD.md](ADDING-A-WORLD.md).
 
 1. Write `tools/worldbake/worlds/<id>.json`. Set `origin` near the middle and
    size the `grid` to cover the routes plus 100 m (≤ 2048 nodes a side, about

@@ -153,6 +153,8 @@ export interface WorldManifest {
     /** Slippy-map zoom of the terrain tiles; absent for sources without one (Copernicus GLO-30). */
     demZoom?: number;
     demTiles: number;
+    /** True when the bake levelled every lake and pond (recipe `flatLakes`); the renderer then draws them level. */
+    flatLakes?: boolean;
   };
 }
 
@@ -324,6 +326,7 @@ export function validateManifest(input: unknown): WorldManifest {
   str(gen, 'demSource', 'generator');
   if (gen.demZoom !== undefined) int(gen, 'demZoom', 'generator');
   int(gen, 'demTiles', 'generator', 1);
+  if (gen.flatLakes !== undefined && gen.flatLakes !== true) fail('generator.flatLakes must be true when present');
 
   return m as unknown as WorldManifest;
 }
