@@ -45,8 +45,9 @@ export interface ThreeQuality {
   buildingM: number;
   /**
    * At most this many building triangles, nearest chunks first: a dense metro
-   * world stops short of `buildingM`. Lugano's old town and lakefront at the
-   * start of the Melide ride draw 1.0 M; Santa Monica's houses would draw 1.8 M.
+   * world stops short of `buildingM`. With far chunks as boxes, Lugano at the
+   * start of the Melide ride draws 0.74 M; downtown Santa Monica would draw
+   * over 1 M, which costs the medium tier its 60 fps on an iGPU.
    */
   buildingTris: number;
   /** Buildings as surveyed within this distance, metres; boxes beyond (`footprintBox`). */
@@ -104,7 +105,7 @@ export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
     maxTrees: 150_000,
     treeShadowM: 70,
     buildingM: 8000,
-    buildingTris: 1_100_000,
+    buildingTris: 800_000,
     buildingDetailM: 1200,
     rainDrops: 6000,
     occlusionScale: 0.5,
