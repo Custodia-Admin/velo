@@ -44,6 +44,10 @@
     "character": {
       "gardenKeep": 0.3,
       "riparianM": 30
+    },
+    "corridor": {
+      "m": 300,
+      "keep": 0.3
     }
   },
   "moods": [

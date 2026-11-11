@@ -44,6 +44,14 @@ from `chengdu-luxelakes.json`:
   `"validation": { "sample_seed": <int> }`.
 - `"host": "remote"`: the bundle goes to R2, not to `public/worlds/`.
 - `"routeCredits": true`.
+- `vegetation.corridor` (`{ "m": 300, "keep": 0.3 }`) if the routes run
+  through forest. Measure the render workload against Perugia first: ride
+  with `velo.debug.three` and read `__veloRideDebug().triangles` every
+  kilometre at medium, 1920×1080. If the new world draws much more than
+  Perugia (1.31 M triangles on average, 1.54 M at most), keep the woods along
+  the routes and thin the rest with the corridor rather than thinning
+  everything: uniform thinning leaves the ride in open parkland (Cuyahoga
+  Valley, WORLD-FORMAT.md).
 - `"bridges": true` if a route rides a bridge or passes under one (any
   viaduct, overpass or footbridge over it). The bake then builds bridges as
   structures ([WORLD-FORMAT.md](WORLD-FORMAT.md#bridgesjson-bridges-as-structures)):

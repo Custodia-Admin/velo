@@ -373,7 +373,11 @@ in fields (broadleaf). Every seed keeps 1.8 m clear of road edges (scenic
 routes count as 5 m wide roads, `ROUTE_TREE_HALF_M`), 1.5 m of building walls
 and out of open water. Character kinds are kept whole;
 woodland is thinned uniformly to fit the recipe's `maxInstances` (480,000
-for Perugia). Renderers draw a subset around the camera (the three.js
+for Perugia). With `vegetation.corridor` (`{ "m": 300, "keep": 0.3 }`), the
+woodland within `m` of a route keeps the share `keep` first and the rest of
+the world shares what is left: the woods along the ride stay dense while the
+far woods, which the renderer draws low-poly and the terrain's canopy texture
+carries, cost less. Renderers draw a subset around the camera (the three.js
 'balanced' tier caps at 150,000).
 
 ## Loading
@@ -769,20 +773,25 @@ Station Road Bridge), both on the Ohio & Erie Canal Towpath Trail. Baked
 
 | Check | Result |
 | --- | --- |
-| Bake time | 14 s from cache |
+| Bake time | 15 s from cache |
 | Determinism | an `--out` bake and the committed bake: identical bytes for all 9 files |
-| Size | 3.21 MB as shipped (gzip), 2.58 MB brotli, 5.75 MB raw |
+| Size | 3.22 MB as shipped (gzip), 2.59 MB brotli, 5.75 MB raw |
 | Routes | 17.43 km and 10.35 km: max gap 0 m; grade Δ 0.328 / 0.177 pp; 100 % within 1 m of mapped roads; guide 100 % on drawn roads (218 m and 219 m eased, no joins) |
 | Heightfield vs Open-Meteo, 50 seeded points (seed 41292) | P1.3 v2: `standard` (steep fraction 0.1254), registered **1.69 m ≤ 6.00 m, PASS**; point RMS 4.37 m |
 | Heightfield range | 168.6–389.6 m; 22,182 nodes carved under the routes (max 26.1 m) |
 | Bridges | 207 decks, 19 pieces ridden (the Beaver Marsh boardwalk, 514 m, and the trail's creek bridges); the towpath passes under the Ohio Turnpike (I-80) with 40 m clearance, I-271 with 15–19 m, the Brecksville–Northfield High Level Bridge with 41 m; Rockside Road, East Pleasant Valley Road, Main Street (Peninsula) and three footbridges were lifted to the 4.5 m headroom; 96 piers |
 | Content | 8,176 road pieces, 353 water areas + 257 waterways, 1,763 landcover areas, 1,755 buildings, 200,000 trees |
 
-Tree budget: 200,000 trees (1,050 per km², against Perugia's 1,320 and
-Lugano's 710). At 480,000 the forest along the towpath held so many crowns
-in the medium tier's tree range that the ride ran at 43–48 fps on the laptop,
-where Perugia runs at 57–60. At 200,000 it runs on par with Perugia. The
-terrain's canopy texture carries the far woods.
+Tree budget: 200,000 trees, the route corridor first (`vegetation.corridor`:
+30 % of the woodland lattice within 300 m of either route, 25,551 trees; 12.6 %
+elsewhere). At 480,000 trees, thinned uniformly, the medium tier drew 1.95 M
+triangles on average along the towpath (53,000 trees) against Perugia's
+1.31 M, and the ride ran at 43–48 fps on the laptop where Perugia runs at
+57–60. 200,000 trees thinned uniformly (1.00 M) ran on par with Perugia but
+left the towpath in open parkland. The corridor keeps the woods the rider
+rides through at 1.18 M triangles on average (1.55 M at the densest spot,
+Perugia 1.54 M; the north route 1.28 M / 1.59 M). The figures come from
+`__veloRideDebug` every kilometre at 1920×1080.
 
 Known limit: GLO-30 is a surface model, and in this forested valley the
 canopy pulls the route fit's offset up 10–17 m. Where the towpath leaves the

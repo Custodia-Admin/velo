@@ -1,7 +1,7 @@
 # Evidence: Cuyahoga Valley and Cleveland lakefront worlds (P3.1b, card t_0e76502b, PR #103)
 
 Two remote worlds with bridges built as structures. The bundles are on R2 (`velo-worlds`, public r2.dev):
-- `worlds/ohio-erie-towpath/694af0ee45adbc5e/`
+- `worlds/ohio-erie-towpath/4d29e49bad1fa163/`
 - `worlds/cleveland-lakefront/ce8ae47fe3276bbe/`
 
 Figures and bake details:
@@ -13,7 +13,7 @@ How bridges are built: [WORLD-FORMAT.md § bridges.json](../../../../worlds/WORL
 | Acceptance | Cuyahoga Valley (`ohio-erie-towpath`) | Cleveland lakefront |
 | --- | --- | --- |
 | P1.3 v2 gate | `standard`, registered **1.69 m ≤ 6.00 m, PASS** | `standard`, registered **0.52 m ≤ 6.00 m, PASS** |
-| Bundle | 2.58 MB brotli; deterministic (an `--out` bake is byte-identical for all 9 files) | 1.05 MB brotli; deterministic (9/9 files identical) |
+| Bundle | 2.59 MB brotli; deterministic (an `--out` bake is byte-identical for all 9 files) | 1.05 MB brotli; deterministic (9/9 files identical) |
 | First ride downloads ≤ 8 MB | 3.87 MB (`e2e/remote-world.spec.ts`) | 1.29 MB |
 | Offline after one ride | The second ride starts with the network offline; no world request reaches the network | same |
 | Routes | `scenic-cuyahoga-towpath` 17.43 km, `scenic-cuyahoga-towpath-north` 10.35 km | `scenic-cleveland-lakefront` 13.51 km, `scenic-wendy-park-lakewood` 8.11 km |
