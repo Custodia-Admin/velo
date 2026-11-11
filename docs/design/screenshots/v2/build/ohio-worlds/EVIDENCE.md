@@ -14,14 +14,16 @@ How bridges are built: [WORLD-FORMAT.md § bridges.json](../../../../worlds/WORL
 | --- | --- | --- |
 | P1.3 v2 gate | `standard`, registered **1.69 m ≤ 6.00 m, PASS** | `standard`, registered **0.52 m ≤ 6.00 m, PASS** |
 | Bundle | 2.59 MB brotli; deterministic (an `--out` bake is byte-identical for all 9 files) | 1.05 MB brotli; deterministic (9/9 files identical) |
-| First ride downloads ≤ 8 MB | 3.87 MB (`e2e/remote-world.spec.ts`) | 1.29 MB |
+| First ride downloads ≤ 8 MB | 3.07 MB (`e2e/remote-world.spec.ts`) | 1.29 MB |
 | Offline after one ride | The second ride starts with the network offline; no world request reaches the network | same |
 | Routes | `scenic-cuyahoga-towpath` 17.43 km, `scenic-cuyahoga-towpath-north` 10.35 km | `scenic-cleveland-lakefront` 13.51 km, `scenic-wendy-park-lakewood` 8.11 km |
 | Home | Both world rides are in "Places we want to go" after Chengdu, with no "Map view" pill (`home-wishlist-*.jpg`, 1440 / 1280×648@2 / 390). No component code changed: each world's destination manifest now names it | same |
 
 ## Ride shots
 
-There are 13 spots across the 4 routes, each shot at noon and golden hour, at 1280×648@2 and 390×844 (`ride-*.jpg`). The cat-bed build is `index-WP0LN-kS.js`, made by `scripts/route-clearance-shots.py` with ANGLE gl-egl. Every shot ran at 60 fps (one at 59.7).
+There are 13 spots across the 4 routes, each shot at noon and golden hour, at 1280×648@2 and 390×844 (`ride-*.jpg`, made by `scripts/route-clearance-shots.py`):
+- Cleveland: on cat-bed, build `index-WP0LN-kS.js`.
+- Cuyahoga Valley: after the tree re-bake (bundle `4d29e49bad1fa163`), on the laptop, build `index-0rY12TR2.js`.
 
 | Route | Spots | What each shows |
 | --- | --- | --- |
