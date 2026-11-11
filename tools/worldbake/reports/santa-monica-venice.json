@@ -3,12 +3,12 @@
   "bakedWith": "node v26.12.1",
   "timingsS": {
     "dem": 0.6,
-    "osm": 0.6,
+    "osm": 0.7,
     "heightfield+routes": 0.1,
-    "vectors": 7.1,
-    "write": 12.7,
+    "vectors": 7.4,
+    "write": 13.3,
     "validate": 0,
-    "total": 21.2
+    "total": 22.3
   },
   "sizes": {
     "height.bin.gz": {
@@ -27,9 +27,9 @@
       "brotli": 9428
     },
     "landcover.json.gz": {
-      "stored": 119394,
-      "content": 297922,
-      "brotli": 84277
+      "stored": 119494,
+      "content": 298203,
+      "brotli": 84206
     },
     "buildings.bin.gz": {
       "stored": 2518741,
@@ -49,23 +49,23 @@
     "manifest.json": {
       "stored": 12402,
       "content": 12402,
-      "brotli": 3174
+      "brotli": 3154
     }
   },
   "totals": {
-    "stored": 4825075,
-    "content": 12393062,
-    "brotli": 3798609
+    "stored": 4825175,
+    "content": 12393343,
+    "brotli": 3798518
   },
   "hashes": {
     "height.bin.gz": "30bbb878cd5e8239912ed13f8612931b60427ef853978f4b7cd017f81ef03da2",
     "roads.json.gz": "dba3ddf2c11a5880d4c4e1291affc9d553d050130348b325c377e3639849a653",
     "water.json.gz": "e7344c039c505b5a43742e542e7e477ac2e5d3ffdae7108d9d1581407408ff16",
-    "landcover.json.gz": "4f015bd928c27738a185bec6ec0d16bfd62bcb2326c8ebd316281ae34d1e5355",
+    "landcover.json.gz": "48665c2d6cf7b12b4f9b315d897e0351fcf46d8484010b635424022933aef13b",
     "buildings.bin.gz": "c5569570939a96c2dc3dd61d63ee490c00f396ab4c3103046d9e54534f1b800f",
     "vegetation.bin.gz": "f42dbb894e92478fd050a6186d87fa67f2495257cb6fc7f0aca8b45f64d54603",
     "routes.json.gz": "18d6cbecbda66d09f44319e8aa0348cb8c2dc3a81cf41cc16d5ec065c822333b",
-    "manifest.json": "1e1897deb71a3d9bf954f480ac5baddc9fbf606d496d1a9081a388492fef2c0f"
+    "manifest.json": "155c646e205b51fd7a2ef38005631c2f0c2ffdb507d424c62c89e2e760e3f08b"
   },
   "routes": [
     {
@@ -211,7 +211,7 @@
       "min": -0.01,
       "max": 4.09
     },
-    "beachAreas": 46
+    "beachAreas": 48
   },
   "buildingsDropped": {
     "route": 20,
@@ -220,6 +220,7 @@
     "routeClearMaxM": 6
   },
   "waterDroppedOnRoutes": 2,
+  "waterDroppedToBeach": 2,
   "demSource": "copernicus-dem-30m/glo30-cog",
   "demTiles": [
     "N34_00_W119_00",

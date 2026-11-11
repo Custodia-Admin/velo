@@ -72,11 +72,11 @@
     },
     {
       "path": "landcover.json.gz",
-      "bytes": 119394,
-      "sha256": "4f015bd928c27738a185bec6ec0d16bfd62bcb2326c8ebd316281ae34d1e5355",
+      "bytes": 119494,
+      "sha256": "48665c2d6cf7b12b4f9b315d897e0351fcf46d8484010b635424022933aef13b",
       "compression": "gzip",
-      "contentBytes": 297922,
-      "contentSha256": "5ca2386dbf45a0f1904c51daffa17df33a0940ba6e8779967caec47c9a1ba93f"
+      "contentBytes": 298203,
+      "contentSha256": "a5ee7e5eb8396fd326218383877a12a229bae898098ccc836cc4d78e949b2d9d"
     },
     {
       "path": "buildings.bin.gz",
@@ -385,7 +385,7 @@
     "roads": 48874,
     "waterAreas": 102,
     "waterLines": 75,
-    "landcoverAreas": 2834,
+    "landcoverAreas": 2836,
     "buildings": 120817,
     "buildingVertices": 804109,
     "buildings:suburb": 99277,

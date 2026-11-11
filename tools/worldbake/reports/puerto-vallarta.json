@@ -5,8 +5,8 @@
     "dem": 0.4,
     "osm": 0.1,
     "heightfield+routes": 0.1,
-    "vectors": 1.2,
-    "write": 4.3,
+    "vectors": 1.3,
+    "write": 4.2,
     "validate": 0,
     "total": 6.2
   },
@@ -200,6 +200,7 @@
     "routeClearMaxM": 6
   },
   "waterDroppedOnRoutes": 1,
+  "waterDroppedToBeach": 0,
   "demSource": "copernicus-dem-30m/glo30-cog",
   "demTiles": [
     "N20_00_W106_00"
