@@ -3,28 +3,30 @@
 Velo is a fork of [GlobeRide](https://github.com/masonwyatt23/globeride)
 (MIT, © Mason Wyatt): a browser cycling app on a photoreal Cesium globe with a
 Web-Bluetooth FTMS trainer. Velo keeps everything GlobeRide does and changes the
-default experience for one household. From v2, Velo rides its own 3D worlds,
-baked from open data, and needs no token wherever a world is baked
+default experience for one household: two riders who wanted Zwift's fun
+without its subscription, and a 3D world without a token. From v2, Velo rides
+its own 3D worlds, baked from open data, and needs no token wherever a world is
+baked
 ([ADR-001](architecture/ADR-001-rendering.md)). Today that is Perugia; see
 [Known gaps](#known-gaps-tracked-for-later-cards) for every other route.
 
 ## Who rides
 
-- **Two riders**, Federico and his wife, sharing one trainer.
-- **Both have low motivation.** Training plans, FTP tests, streaks and TSS
-  don't get them on the bike. Pretty places and something to watch do.
-- What they said "enjoyable" means: **easy rides, amazing visuals, interactive
-  elements**, or **set a journey and then watch our shows**.
+- **Two riders** sharing one trainer.
+- **Low motivation.** Training plans, FTP tests, streaks and TSS don't get
+  them on the bike. Pretty places and something to watch do.
+- "Enjoyable" means **easy rides, amazing visuals, interactive elements**, or
+  **set a journey and then watch our shows**.
 
-## Where they ride
+## Reference setup
 
 | Thing | Detail |
 | --- | --- |
 | Bike | Zwift Ride V2 frame (handlebar controllers) on a Wahoo KICKR CORE 2 |
 | Trainer control | FTMS verified 29 Oct 2026: Request Control, SIM (0x11) and ERG (0x05) all answered Success. 0x04 resistance level fails (known KICKR quirk, not needed). |
 | Screens | Laptop, TV, tablet. All Chrome, installed as a PWA. |
-| Home | **Perugia**, Umbria (Italy). The first world bake and the "near home" routes. |
-| Hometown | **Lugano**, Ticino (Switzerland), where Federico grew up. Ticino and the Lombardy lakes are the "hometown" area; Lugano will be the second world bake (P2.2). |
+| Featured world 1 | **Perugia**, Umbria (Italy): the first world bake (manifest role `home`). |
+| Featured world 2 | **Lugano**, Ticino (Switzerland), with the Ticino and Lombardy lake rides: the second world bake (manifest role `hometown`, P2.2). |
 
 Velo never sends trainer commands outside a ride the rider started, and agents
 never send BLE control commands while someone may be on the bike.
@@ -39,8 +41,8 @@ never send BLE control commands while someone may be on the bike.
    - The home screen never asks for training effort: no plans, FTP, TSS or
      streaks. Those stay in the Advanced view for whoever wants them.
 2. **Scenic over sporty.** The home screen leads with *Easy & Scenic* rides:
-   flat or gently rolling routes with a big view. Near home first (Lake
-   Trasimeno, the Tiber river park, the Assisi valley floor), then hometown
+   flat or gently rolling routes with a big view. Umbria first (Lake
+   Trasimeno, the Tiber river park, the Assisi valley floor), then Ticino
    (Lugano, Locarno, Valle Maggia, the Magadino plain, Lake Varese, Lake
    Como), further afield (Engadin lakes, Lavaux to Chillon, the Riviera dei
    Fiori, Lake Annecy, Lake Garda) and travels (Chengdu's Luxe Lakes,

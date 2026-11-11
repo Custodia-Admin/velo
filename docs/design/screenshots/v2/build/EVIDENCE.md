@@ -134,7 +134,7 @@ change (18d98f2): every figure label now shares one baseline, so the build's sta
 React scheduling stubbed) and clicks its own `onClick`; `rideHudText.test.ts` pins `rideChip()`
 and the tap mapping `chipTap()`; `rideHudStore.test.ts` rehydrates the persisted details state
 from a fake storage. 17 mutations, all killed (script:
-`~/.hermes/handoffs/velo/pr27-rework-t_30f22778/mutations.py`): the reconnect branch deleted
+`mutations.py`, kept outside the repo): the reconnect branch deleted
 in `chipTap` or no-op'd in `RideChip`, the tap bypassing `chipTap`, the lost state calm again
 or not an alert, the alert chip hidden below sm, the notice not run / not dismissed, the
 devices tap not toggling, persistence dropped or not partialized, `alertsOnly` ignored, a
@@ -151,7 +151,7 @@ and dropped when the controls left idle, the Pair link and Try again afterwards,
 disclosure, and the wake watch reaching the asleep copy. `RideChip.test.ts` adds the `failed`
 grant phase (still "tap to reconnect") and older toasts dismissed; `DeviceRow.test.ts` the
 row alignment. 28 mutations, all killed, including the review's X1–X12 (script:
-`~/.hermes/handoffs/velo/pr27-rework-t_72c0ad16/rework2-mutations.py`).
+`rework2-mutations.py`, kept outside the repo).
 
 ### Staging (rework round 2)
 

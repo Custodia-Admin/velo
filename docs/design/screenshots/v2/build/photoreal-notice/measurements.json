@@ -9,7 +9,7 @@
   "hudAreaPct": "scripts/v2-build-shots/hud_area.py HUD_AREA: sum of visible HUD surface rects / viewport (owner budget <= 15 %)",
   "riderBox": "__veloRideDebug(): riderScreen (1 m above ground) and riderHeightPx (1.7 m); box = x +/- 0.3 h, foot = y + h/1.7, head = foot - h (the e2e uses the same box)",
   "states": "riding = 6 s after Cesium frame 30; 3D view stopped = WEBGL_lose_context.loseContext() on the viewer + 3 s (PR #66 chip); back = after the chip tap",
-  "probe": "~/.hermes/handoffs/velo/t_375b203d/notice_probe.py"
+  "probe": "notice_probe.py (kept outside the repo)"
  },
  "tab": {
   "1440": {
@@ -1001,7 +1001,7 @@
   }
  },
  "settings": {
-  "probe": "~/.hermes/handoffs/velo/t_375b203d/settings_reach.py (real pointer click at the target centre)",
+  "probe": "settings_reach.py (kept outside the repo) (real pointer click at the target centre)",
   "before390": {
    "vp": "390",
    "variant": "old",

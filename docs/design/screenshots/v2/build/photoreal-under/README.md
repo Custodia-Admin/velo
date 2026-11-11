@@ -2,8 +2,8 @@
 
 Each image shows three panels side by side: **main 039a962 | before: PR #76 b4ba361 | after: this rework**.
 - All three are shot from the same rider spot and the same chase camera.
-- All come from one cat-bed session on 6 Nov 2026, on the Intel iGPU via ANGLE GL-EGL.
-- The probe is `pr76probe.py`, run with `PAINT=1 SHOT=1`; it lives in `~/.hermes/handoffs/velo/t_ad6a338a/`.
+- All come from one test-host session on 6 Nov 2026, on the Intel iGPU via ANGLE GL-EGL.
+- The probe is `pr76probe.py`, run with `PAINT=1 SHOT=1`; it lives in a scratch directory outside the repo.
 - Bundles: main `index-lcBpN1Fk.js`, b4ba361 `index-Ciaeha6x.js`, rework `index-o0LXSY5f.js`.
 
 The painted road is the asphalt corridor, the centre line and the edge stripes. It is a ground classification, so it paints whatever stands in its footprint.

@@ -1,6 +1,6 @@
 # Velo v2 visual identity — "warm atlas"
 
-Status: **approved** by Federico on 1 Nov 2026 (P1.5 design gate, PR #22:
+Status: **approved** by the owner on 1 Nov 2026 (P1.5 design gate, PR #22:
 "omg they look so good!!! Let's do it") and **built in P2.4**: tokens in
 `src/index.css` + `tailwind.config.ts`, screens in `src/components/velo/`.
 Build vs mockup composites: `docs/design/screenshots/v2/build/compare/`.
@@ -117,7 +117,7 @@ target 40 px (70 px on TV), smallest text 12 px (21 px on TV).
   `screenshots/v2/thumbs/`, each ≤ 350 KB.
 - **Proposed production path (P2.4 + P2.2):** stills are baked assets, not live
   renders. Each world bundle gains `posters/<view>.jpg`, made by this tool at
-  bake time on cat-bed. Home then never starts a WebGL context, which avoids the
+  bake time on the test host. Home then never starts a WebGL context, which avoids the
   mobile OOM risk of several live mini-globes. New destinations get posters
   when they are baked. Until then they show the map plate.
 - **Framing rules:**
@@ -130,7 +130,7 @@ target 40 px (70 px on TV), smallest text 12 px (21 px on TV).
   4/10 for "photographic" (the old renders were about 2/10). The light and the
   grade work. Ground textures, buildings and the rider still read as CG. They are
   good enough to judge layout and mood, not the final look. The real-time world
-  look belongs to P2.1, and its acceptance shots are Federico's "would I want to
+  look belongs to P2.1, and its acceptance shots are the owner's "would I want to
   ride here" check.
 
 ## 7. Token delta for P2.4 (names + HSL only)
@@ -190,7 +190,7 @@ token table gains the new rows in the P2.4 PR that applies them.
 - Don't put text directly on photographs. It always goes on a `background` /
   `hud` label.
 
-## 9. Questions for Federico (sign-off)
+## 9. Questions for the owner (sign-off)
 
 1. Is the direction right: warm paper and umber night, terracotta as the single
    accent, a serif for place names?

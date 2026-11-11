@@ -3,8 +3,8 @@
 Usage (vite preview or dev server already running):
     uv run --with playwright python scripts/play-shots.py <out-dir> [base-url] [route-id]
 
-Seeds two riders (Federico active, Anna with her own avatar colours), turns
-Play mode on for Federico and stores one earlier ride by Anna on the route so
+Seeds two riders (Marco active, Anna with her own avatar colours), turns
+Play mode on for Marco and stores one earlier ride by Anna on the route so
 the buddy follows her recorded pace. Then: Home (full page), the ride just
 before the first postcard, the moment it is collected, and the finish card.
 Prints the panel text, element rects and overflow checks. Demo Mode only: no
@@ -43,7 +43,7 @@ if (!localStorage.getItem('globeride.settings.v1')) {{
 }}
 if (!localStorage.getItem('globeride.velo.riders.v1')) {{
   localStorage.setItem('globeride.velo.riders.v1', JSON.stringify({{state:{{activeRiderId:'rider-1', riders:[
-    {{id:'rider-1', name:'Federico', settings:null, profile:null}},
+    {{id:'rider-1', name:'Marco', settings:null, profile:null}},
     {{id:'rider-2', name:'Anna', settings:{{avatar:{json.dumps(SUNSET)}}}, profile:null}}
   ]}}, version:1}}));
 }}

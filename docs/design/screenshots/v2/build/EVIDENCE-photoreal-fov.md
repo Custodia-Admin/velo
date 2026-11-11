@@ -42,7 +42,7 @@ look was never a choice:
   - for an orthographic frustum;
   - in portrait, where Cesium's fov is already vertical (390 is unchanged).
 
-## Measured (Lugano–Melide 1200 m, token build, cat-bed, `pip-photoreal.mjs` + `fovperf.py`)
+## Measured (Lugano–Melide 1200 m, token build, test host, `pip-photoreal.mjs` + `fovperf.py`)
 
 ### Tab
 
@@ -83,7 +83,7 @@ Wheels are measured with the bar hidden. The world renderer's gap is given for c
 The window field is 60° (`__veloRideDebug().fovYDeg`) at every size. The crop and lens shift are
 unchanged from PR #49.
 
-### Photoreal cost (same spot, same governor level 7 on cat-bed)
+### Photoreal cost (same spot, same governor level 7 on the test host)
 
 The wider field selects fewer and coarser tiles, because the screen-space error per pixel grows.
 
@@ -96,12 +96,12 @@ The wider field selects fewer and coarser tiles, because the screen-space error 
 There is a cost: the close ground is visibly coarser, because there is more of it in the frame at
 a lower level of detail.
 
-I am not reporting frame rate. cat-bed swings between 19 and 60 fps on identical back-to-back
+I am not reporting frame rate. The test host swings between 19 and 60 fps on identical back-to-back
 runs (tv-before 1200 m: 38, 57 and 19 fps), so it can't tell before from after.
 
 ### Probes that must still pass
 
-All of these ran on the production dists on cat-bed:
+All of these ran on the production dists on the test host:
 
 - **before** = main;
 - **after** = the field only;
@@ -179,7 +179,7 @@ same as after.
   - a finer tile landing over the globe is stood on the next frame;
   - the throttle holds while the mesh is the ground, or while the globe is within
     `GLOBE_OVER_MESH_M` of it.
-- Mutation run: **34/34 killed** (`~/.hermes/handoffs/velo/t_a67fb090/mutations.py`).
+- Mutation run: **34/34 killed** (`mutations.py`, kept outside the repo).
 - `e2e/show-mode.spec.ts`, test 3 (PR #49 review N2):
   - a token-free photoreal ride floated to S at DPR 2;
   - asserts the crop (`top: −2·shift`), `lensShiftPx`, and a 60° field in the tab and the window.

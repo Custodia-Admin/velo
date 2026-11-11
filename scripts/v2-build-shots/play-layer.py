@@ -43,7 +43,7 @@ ROUTE = "scenic-perugia-tiber-park"
 ANNA = {"frame": "#1e293b", "wheel": "#0b1220", "kit": "#f97316", "skin": "#d8a877", "helmet": "#fbbf24", "accent": "#ef4444"}
 ROSTER = f"""
 localStorage.setItem('globeride.velo.riders.v1', JSON.stringify({{state:{{activeRiderId:'rider-1', riders:[
-  {{id:'rider-1', name:'Federico', settings:null, profile:null}},
+  {{id:'rider-1', name:'Marco', settings:null, profile:null}},
   {{id:'rider-2', name:'Anna', settings:{{avatar:{json.dumps(ANNA)}}}, profile:null}}
 ]}}, version:1}}));
 localStorage.setItem('globeride.velo.coupleGhost.v1', JSON.stringify({{state:{{choice:'last'}}, version:0}}));

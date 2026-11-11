@@ -39,7 +39,7 @@ on any failure. Needs a build with the scene handles (localStorage velo.debug.th
 usage: uv run --with playwright python scripts/ride-surface-probe.py <out> <base> [route-id,...]
 env: SPOTS=1000,3000,5000 (held, metres; reached by rolling in over the last 60 m)  START_M=100 (ridden from the start, then shot)  SIZE=1280x648@2
      TOL=0.3  UNDERSIDE_MAX=10  QUALITY=medium  SHOTS=1  SETTLE=8 (s per held spot; photoreal tiles stream)  SAMPLES=6
-     GLARGS (Chromium GPU flags; cat-bed: "--use-gl=angle --use-angle=gl-egl --enable-gpu --ignore-gpu-blocklist")
+     GLARGS (Chromium GPU flags; Intel iGPU over EGL: "--use-gl=angle --use-angle=gl-egl --enable-gpu --ignore-gpu-blocklist")
      PW_CHROMIUM (browser binary; empty = Playwright's own)
 """
 import json
@@ -70,7 +70,7 @@ QUALITY = os.environ.get("QUALITY", "medium")
 SHOTS = os.environ.get("SHOTS", "1") == "1"
 SETTLE = float(os.environ.get("SETTLE", "8"))
 SAMPLES = int(os.environ.get("SAMPLES", "6"))
-# Laptop Arc via Vulkan by default; on cat-bed (the perf/probe host) use its iGPU:
+# Laptop Arc via Vulkan by default; on a perf/probe host, its Intel iGPU over EGL:
 # GLARGS="--use-gl=angle --use-angle=gl-egl --enable-gpu --ignore-gpu-blocklist" PW_CHROMIUM=
 GLARGS = os.environ.get("GLARGS", "--use-angle=vulkan --enable-features=Vulkan --enable-gpu --ignore-gpu-blocklist")
 out.mkdir(parents=True, exist_ok=True)
