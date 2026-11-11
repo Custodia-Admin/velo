@@ -54,7 +54,8 @@ Other fps runs share the test host's iGPU, and other VMs on the host swing its C
 | Will Rogers–Venice | **59.9**, 59.9, 0.1 % of frames over 20 ms (load 0.8, 0.6). The build before the far-box material read 55.9 and 56.1. | — |
 | Perugia (control) | 60.0 in every uncontended pair (4) | 60.0 in the same pairs |
 | Lugano Melide (control) | 51.4, 53.1 | 49.9, 50.5 |
-| Berkeley Bay Trail, Richmond Marina Bay, Puerto Vallarta Malecón, Nuevo Vallarta–Bucerías | 60.0 each, 0 % over 20 ms, 60 s rides at load 0.6–1.0. Measured on the building-cap build (`fps-final1.out`). Every later change only removes building work: far boxes, the 0.8 M cap, the far-box material. | — |
+| Berkeley Bay Trail, Richmond Marina Bay | **60.0** each, 0 % over 20 ms (load 1.3, 1.7; the Perugia control just before read 60.0). The building-cap build gave the same over 60 s rides. | — |
+| Puerto Vallarta Malecón, Nuevo Vallarta–Bucerías | 60.0 each, 0 % over 20 ms, 60 s rides at load 0.6–1.0, on the building-cap build (`fps-final1.out`). Every later change only removes building work: far boxes, the 0.8 M cap, the far-box material. A final-build rerun hit a CPU load burst from other VMs (the Perugia control fell to 41.8), so it is left out. | — |
 
 Lugano is not one of these worlds. It is listed because it shows the far-box changes don't cost an inland world anything: main reads under 58 on this iGPU, and the branch reads a little better.
 
