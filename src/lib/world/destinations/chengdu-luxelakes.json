@@ -9,7 +9,7 @@
   "detail": "The Luxe Lakes, Tianfu New Area",
   "world": {
     "id": "chengdu-luxelakes",
-    "dir": "chengdu-luxelakes/db08a9559e98640a/",
+    "dir": "chengdu-luxelakes/2e00c73073dda8fd/",
     "host": "remote",
     "bbox": {
       "south": 30.37426,
@@ -92,7 +92,7 @@
     },
     {
       "id": "route-scenic-chengdu-xinglong-lake",
-      "name": "Xinglong Lake loop: OpenStreetMap cycle route relation 18146670",
+      "name": "Xinglong Lake loop: OpenStreetMap cycle route relation 18146670, ridden against its member order",
       "licence": "ODbL-1.0",
       "url": "https://www.openstreetmap.org/relation/18146670",
       "attribution": "Route geometry from OpenStreetMap relation 18146670, © OpenStreetMap contributors"

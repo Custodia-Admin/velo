@@ -5,16 +5,16 @@
     "dem": 0.2,
     "heightfield+routes": 0,
     "osm": 0,
-    "vectors": 1.5,
-    "write": 4.4,
+    "vectors": 1.4,
+    "write": 4,
     "validate": 0,
-    "total": 6.2
+    "total": 5.7
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 943205,
+      "stored": 943243,
       "content": 1581720,
-      "brotli": 774887
+      "brotli": 775235
     },
     "roads.json.gz": {
       "stored": 201300,
@@ -42,30 +42,30 @@
       "brotli": 507031
     },
     "routes.json.gz": {
-      "stored": 30304,
-      "content": 74383,
-      "brotli": 20196
+      "stored": 30348,
+      "content": 74398,
+      "brotli": 20407
     },
     "manifest.json": {
-      "stored": 8021,
-      "content": 8021,
-      "brotli": 2434
+      "stored": 8054,
+      "content": 8054,
+      "brotli": 2484
     }
   },
   "totals": {
-    "stored": 1866727,
-    "content": 3408990,
-    "brotli": 1537437
+    "stored": 1866842,
+    "content": 3409038,
+    "brotli": 1538046
   },
   "hashes": {
-    "height.bin.gz": "3b8267c2402bf1535382d596ee87ee0a7e26319fcfac8190b60d570d007703fb",
+    "height.bin.gz": "38cfc9d4352694f0fdcff6a0a3adcfc467bb9ec52e629580bac77a00173f2aec",
     "roads.json.gz": "ab01076a24135f4cc7f364c5cd93bab3d78aee25f37bcf70e8a7842d7f488f82",
     "water.json.gz": "9a6313ae22ede4ae1f30c004bb7cd2774a918340e9b7bd3dd36e6ab85685cddd",
     "landcover.json.gz": "82f5d43d351f639c723e11520743013f6b7914d3d903f838ce1ef8bdbf16a1db",
     "buildings.bin.gz": "63468a6f71d952fc10624b06e45136b82e609c207ae08feeceee2638dfe55204",
     "vegetation.bin.gz": "2effa20caddb5f739625b66e7427bac698a4460c6c50f7b5b269a4c39ae683cb",
-    "routes.json.gz": "482abae1b15a364d317ad5145aa20dc2ccbdc3b0b57a9d2e042d019a0574f605",
-    "manifest.json": "db08a9559e98640a672b466dfbaee0a30bb76bbcdcf114703a9265045f393f80"
+    "routes.json.gz": "98f9ebb7de201813f1a30d9fbd14cc302d7b96c097d6ae187e93fc0567e2b22e",
+    "manifest.json": "2e00c73073dda8fd7c2f7e9b69b118067c0bb56232b9dca82d65df6d37acf453"
   },
   "routes": [
     {
@@ -94,12 +94,12 @@
       "name": "Xinglong Lake loop",
       "lengthM": 8188.89,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.593,
+      "gradeMeanAbsDiffPct": 0.576,
       "report": {
         "samples": 820,
-        "gradeMaxAbsDiffPct": 4.904,
-        "rawDemGradeMeanAbsDiffPct": 2.652,
-        "maxRenderMinusProfileM": 13.84
+        "gradeMaxAbsDiffPct": 3.645,
+        "rawDemGradeMeanAbsDiffPct": 2.636,
+        "maxRenderMinusProfileM": 14.07
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -168,7 +168,7 @@
     "minHeight": 451,
     "maxHeight": 538.5,
     "carvedNodes": 15339,
-    "maxCutM": 19.62
+    "maxCutM": 19.64
   },
   "buildingsDropped": {
     "route": 2,
@@ -210,9 +210,9 @@
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
     "bound_m": 6,
-    "registered_rms_m": 1.1,
+    "registered_rms_m": 1.09,
     "point_rms_m": 5.64,
-    "max_abs_registered_err_m": 3.37,
+    "max_abs_registered_err_m": 3.36,
     "pass": true,
     "diagnostics": {
       "note": "not gating (blueprint §P1.3.4)",
@@ -501,10 +501,10 @@
         "lat": 30.40646,
         "lon": 104.07491,
         "openMeteo": 460,
-        "heightfield": 462.65,
+        "heightfield": 462.67,
         "nodeLat": 30.40666667,
         "nodeLon": 104.07416667,
-        "nodeHeightfield": 462.86,
+        "nodeHeightfield": 462.88,
         "nodeOpenMeteo": 460,
         "onRouteCorridor": true
       },
@@ -512,10 +512,10 @@
         "lat": 30.40705,
         "lon": 104.09379,
         "openMeteo": 478,
-        "heightfield": 479.15,
+        "heightfield": 479.16,
         "nodeLat": 30.4075,
         "nodeLon": 104.09333333,
-        "nodeHeightfield": 474.63,
+        "nodeHeightfield": 474.64,
         "nodeOpenMeteo": 478,
         "onRouteCorridor": true
       },
@@ -636,7 +636,7 @@
         "heightfield": 458.86,
         "nodeLat": 30.40333333,
         "nodeLon": 104.07166667,
-        "nodeHeightfield": 461.91,
+        "nodeHeightfield": 461.95,
         "nodeOpenMeteo": 459,
         "onRouteCorridor": false
       },
@@ -713,7 +713,7 @@
         "heightfield": 481.77,
         "nodeLat": 30.3925,
         "nodeLon": 104.08333333,
-        "nodeHeightfield": 486.19,
+        "nodeHeightfield": 486.48,
         "nodeOpenMeteo": 488,
         "onRouteCorridor": false
       },

@@ -73,3 +73,17 @@ describe('scenic route geometry', () => {
     expect(retracedStubs(g.points).map((x) => `${Math.round(x.tipM)} m`)).toEqual([]);
   });
 });
+
+describe('the Xinglong Lake loop rides the way it is signed', () => {
+  it('goes clockwise (OSM relation 18146670 lists its ways counter-clockwise; the source rides them reversed)', () => {
+    const pts = SCENIC_ROUTE_GEOMETRY['scenic-chengdu-xinglong-lake'].points;
+    // Shoelace over (lon, lat): negative = clockwise seen from above, north up.
+    let twiceArea = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const [lat1, lon1] = pts[i];
+      const [lat2, lon2] = pts[(i + 1) % pts.length];
+      twiceArea += lon1 * lat2 - lon2 * lat1;
+    }
+    expect(twiceArea).toBeLessThan(0);
+  });
+});

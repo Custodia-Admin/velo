@@ -40,6 +40,12 @@ public/worlds/perugia/
   routes.json.gz       scenic routes snapped onto the heightfield
 ```
 
+A world baked with `"host": "remote"` (Chengdu and the other wishlist
+worlds) has the same files under `tools/worldbake/remote/<id>/`, where only
+`manifest.json` is committed; the app loads it from
+`<remote base>/<id>/<hash>/`, the public R2 bucket by default
+([ADDING-A-WORLD.md](ADDING-A-WORLD.md), "Hosting").
+
 Every file except the manifest is gzip-compressed by the bake (gzip level 9,
 mtime 0, so the bytes are reproducible). The loader recognises the gzip magic
 bytes; when a host has already removed the compression (Content-Encoding
@@ -332,7 +338,8 @@ node tools/worldbake/bake.mjs perugia --clean      # re-download everything firs
 ```
 
 Run bakes on the bake host (cat-bed), not the laptop: copy the repo there,
-bake, copy `public/worlds/<id>/`, `tools/worldbake/reports/<id>.json`,
+bake, copy `public/worlds/<id>/` (or `tools/worldbake/remote/<id>/`),
+`tools/worldbake/reports/<id>.json`,
 `tools/worldbake/worlds/<id>.json` (its `validation` block) and
 `docs/worlds/CREDITS.md` back. Downloads are cached under
 `tools/worldbake/cache/<id>/` (git-ignored). Needs Node ≥ 22.18 (TypeScript
@@ -357,7 +364,9 @@ keeps its previous block.
   world's terrain class. See [Terrain accuracy check](#terrain-accuracy-check-p13-v2).
   The result is written into the recipe's `validation` and the report; a
   FAIL is reported, it doesn't stop the bake.
-- After writing to `public/worlds/`, it runs `syncDestinations.mjs`, which
+- After writing to its default place (`public/worlds/<id>/`, or
+  `tools/worldbake/remote/<id>/` for `"host": "remote"`), it runs
+  `syncDestinations.mjs`, which
   copies the world's bbox, routes, moods, towns and credits into its
   destination manifest (`docs/worlds/DESTINATIONS.md`).
 
@@ -654,7 +663,32 @@ buildings, and the rider on the road. The steep slopes get more relief, and
 more of the pale steep-face shading. Four of them are in
 `docs/design/screenshots/v2/build/lugano-glo30/`.
 
+### Chengdu Luxe Lakes
+
+The first remote world (card t_55f6c646): 8.8 × 12.9 km at 12 m (`x
+−4400…4408`, `y −6400…6500` around 30.432° N 104.075° E, 735 × 1076 nodes) in
+Tianfu New Area, holding the Luxe Lakes (Luhu) loop and Xinglong Lake's signed
+clockwise cycle loop (OSM relation 18146670), 11 km apart north to south.
+Baked 11 Nov 2026 on cat-bed from Copernicus GLO-30 and OSM as of 1 Nov 2026,
+published as `worlds/chengdu-luxelakes/2e00c73073dda8fd/`.
+
+| Check | Result |
+| --- | --- |
+| Bake time | 6 s from cache |
+| Determinism | an `--out` bake and the committed bake from cache: identical bytes for all 8 files (checked at each of the three bakes on this card) |
+| Size | 1.87 MB as shipped (gzip), 1.54 MB brotli, 3.41 MB raw; the first ride downloads 1.78 MB (`e2e/remote-world.spec.ts`) |
+| Routes | Luxe Lakes 11.18 km, Xinglong Lake 8.19 km: max gap 0 m; grade Δ 0.305 / 0.576 pp; 100 % within 1 m of mapped roads; painted guide 100 % on drawn roads (37.3 m and 1 m eased; the fit bends 8 roads by at most 0.45 m, no joins) |
+| Heightfield vs Open-Meteo, 50 seeded points (seed 30432) | P1.3 v2: `standard` (steep fraction 0.0492), registered **1.09 m ≤ 6.00 m, PASS**; point RMS 5.64 m, max \|registered\| 3.36 m (reported only); 0/50 answers from another node |
+| Heightfield range | 451.0–538.5 m; 15,339 nodes carved under the routes (max 19.6 m); 120 m and 68 m of the routes run in mapped underpasses |
+| Content | 4,913 road pieces, 165 water areas + 72 waterways, 776 landcover areas, 794 buildings, 154,675 trees |
+
+Tianfu's towers are thinly mapped in OSM (794 buildings over 114 km²), so the
+skyline is sparser than the real one; parks, lakes and the planted lakeshore
+carry the world.
+
 ### Adding a world
+
+The full procedure, hosting included, is [ADDING-A-WORLD.md](ADDING-A-WORLD.md).
 
 1. Write `tools/worldbake/worlds/<id>.json`. Set `origin` near the middle and
    size the `grid` to cover the routes plus 100 m (≤ 2048 nodes a side, about

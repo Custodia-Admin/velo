@@ -103,7 +103,11 @@ export const SCENIC_ROUTE_SOURCES = [
     // Round Xinglong Lake on the lakeside road (Hupan Lu) and its bike lanes,
     // clockwise with the lake on the right: the signed local cycle route,
     // OSM relation 18146670 "环兴隆湖（顺时针）" (Around Xinglong Lake, clockwise).
+    // Its ways are listed counter-clockwise (member order is no riding
+    // direction: no forward/backward roles), so ride the chain reversed, as
+    // signed.
     relation: 18146670,
+    reverse: true,
   },
   {
     id: 'scenic-hangzhou-west-lake',
@@ -160,7 +164,7 @@ export function routeSourceCredit(id, name) {
   if (src.relation) {
     return {
       id: `route-${id}`,
-      name: `${name}: OpenStreetMap cycle route relation ${src.relation}`,
+      name: `${name}: OpenStreetMap cycle route relation ${src.relation}${src.reverse ? ', ridden against its member order' : ''}`,
       licence: 'ODbL-1.0',
       url: `https://www.openstreetmap.org/relation/${src.relation}`,
       attribution: `Route geometry from OpenStreetMap relation ${src.relation}, © OpenStreetMap contributors`,

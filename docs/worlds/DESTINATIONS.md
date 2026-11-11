@@ -57,12 +57,15 @@ It shows on Home with a map plate of its route and rides on the map
 (the photoreal renderer; without a Cesium ion token, the OpenStreetMap map).
 Nothing about it is a dead end. When its world is baked (P3.1):
 
-1. write `tools/worldbake/worlds/<id>.json` and bake it on cat-bed
-   (`docs/worlds/WORLD-FORMAT.md`, "Baking");
-2. set the manifest's `world` to `{ "id": "<id>", "dir": "<id>/", "bbox": …, "routes": [] }`
-   (any bbox) and run `node tools/worldbake/syncDestinations.mjs`, which copies
-   the bbox, routes, moods, towns and credits from the bundle. `bake.mjs` does
-   this itself when it writes to `public/worlds/`.
+1. set the manifest's `world` to `{ "id": "<id>" }`;
+2. write `tools/worldbake/worlds/<id>.json` and bake it on cat-bed
+   ([ADDING-A-WORLD.md](ADDING-A-WORLD.md)). A bake that writes to its default
+   place runs `syncDestinations.mjs`, which copies the bbox, routes, moods,
+   towns and credits from the bundle and sets `dir`: `<id>/` for a world in
+   `public/worlds/`, `<id>/<hash>/` plus `"host": "remote"` for a world
+   published to R2 (`"host": "remote"` in the recipe). Run
+   `node tools/worldbake/syncDestinations.mjs` yourself after copying a bundle
+   in by hand.
 
 `destinations.test.ts` fails while a manifest is out of step with its bundle,
 when a shipped world has no destination, or when a route has no destination.

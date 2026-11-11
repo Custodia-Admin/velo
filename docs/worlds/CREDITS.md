@@ -182,7 +182,7 @@ The in-app credits line comes from each bundle's `manifest.json` `credits`.
 - OpenStreetMap: Overpass API (`https://overpass-api.de/api/interpreter`), data as of 2026-11-01T00:00:00Z (attic query), layers roads, water, landcover, buildings, treerows, pois, landmarks over the bounding box above. Queries are recorded in `tools/worldbake/reports/chengdu-luxelakes.json`.
 - Routes from `src/lib/scenicRouteData.ts` (profiles: Copernicus GLO-90 via Open-Meteo), geometry sources:
   - `scenic-chengdu-luxe-lakes`: Luxe Lakes loop: OSRM bike route through 5 waypoints, routing.openstreetmap.de, <https://routing.openstreetmap.de/routed-bike/route/v1/driving/104.06,30.472;104.07,30.458;104.06,30.4445;104.0495,30.458;104.06,30.472?overview=full&geometries=geojson&steps=true>.
-  - `scenic-chengdu-xinglong-lake`: Xinglong Lake loop: OpenStreetMap cycle route relation 18146670, <https://www.openstreetmap.org/relation/18146670>.
+  - `scenic-chengdu-xinglong-lake`: Xinglong Lake loop: OpenStreetMap cycle route relation 18146670, ridden against its member order, <https://www.openstreetmap.org/relation/18146670>.
 - Validation: 50 seeded Open-Meteo elevation samples (Copernicus GLO-90), not shipped.
 <!-- world:chengdu-luxelakes:end -->
 
