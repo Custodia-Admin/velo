@@ -456,11 +456,11 @@ describe('glo30: recipe option and credits', () => {
   });
 
   // GLO-30 licence Art. 6(c): whoever distributes the data, modified or not, puts this sentence in the licence or
-  // legal notice covering the distribution. The bundle's credit and docs/worlds/CREDITS.md both carry it.
+  // legal notice covering the distribution. The bundle's credit, docs/worlds/CREDITS.md and NOTICE.md carry it.
   const ART_6C =
     'The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30';
 
-  it('carries the licence\'s liability disclaimer, verbatim, in the GLO-30 credit and CREDITS.md', () => {
+  it('carries the licence\'s liability disclaimer, verbatim, in the GLO-30 credit, CREDITS.md and NOTICE.md', () => {
     expect(GLO30_DISCLAIMER).toBe(ART_6C);
     expect(GLO30_CREDIT.licence).toContain(ART_6C);
     expect(creditsFor('copernicus-glo30').find((c: { id: string }) => c.id === 'copernicus-glo30')).toBe(GLO30_CREDIT);
@@ -468,6 +468,8 @@ describe('glo30: recipe option and credits', () => {
     const section = doc.slice(doc.indexOf('### Copernicus DEM GLO-30 Public'), doc.indexOf('### Copernicus DEM GLO-90'));
     const prose = section.replace(/\n\s*>\s*/g, ' ').replace(/\s+/g, ' ');
     expect(prose).toContain(ART_6C);
+    const notice = readFileSync(fileURLToPath(new URL('../../../NOTICE.md', import.meta.url)), 'utf8');
+    expect(notice.replace(/\s+/g, ' ')).toContain(ART_6C);
     // The default credits don't mention GLO-30 at all.
     expect(JSON.stringify(CREDITS)).not.toContain('WorldDEM-30');
   });

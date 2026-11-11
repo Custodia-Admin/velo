@@ -16,10 +16,11 @@ cd velo
 npm install
 ```
 
-## 3. Cesium ion token (Federico does this step)
+## 3. Cesium ion token (optional)
 
-The 3D globe streams terrain and imagery from Cesium ion. It needs a token from
-your own free account. Agents must not create the account or the token.
+Velo's own worlds (Perugia, Lugano, Chengdu) need no token. A Cesium ion token
+from your own free account adds the photoreal Cesium view for routes outside a
+baked world; without one, those routes ride on an OpenStreetMap map.
 
 1. Sign in or sign up at <https://ion.cesium.com/> (free personal tier, no card).
 2. Open <https://ion.cesium.com/tokens> and click **Create token**. The default
@@ -56,11 +57,11 @@ the trainer from the browser running on the laptop, or serve over HTTPS.
 
 ## 5. Pair the trainer and ride
 
-1. Pick who's riding at the top of Home (Federico or the second rider; rename
-   with the pencil).
+1. Pick who's riding at the top of Home (Rider 1 or Rider 2; rename them in
+   Settings → Rider).
 2. Set **Hills feel** (35 % is easy, 100 % is the real road).
-3. Under **Trainer**, press the pair button and choose the KICKR in Chrome's
-   Bluetooth picker. Close Zwift and the Wahoo app first: the trainer accepts
+3. Open **Devices** (the trainer button at the top of Home), press **Pair** and
+   choose the trainer in Chrome's Bluetooth picker. Close Zwift and the Wahoo app first: the trainer accepts
    one controller at a time.
 4. Press **Ride** on Today's ride or any Easy & Scenic route.
 

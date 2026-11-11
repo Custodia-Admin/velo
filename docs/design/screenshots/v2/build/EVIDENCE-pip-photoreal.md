@@ -73,6 +73,6 @@ the laptop's S, +25 % at L), in a window a fraction of the screen.
   - The CesiumWorldView wiring.
 - `src/lib/world/hudLens.test.ts` (4): the shared shift rule. `directorCamera.test.ts` still passes
   on it.
-- Mutations: 19 of 19 killed (`~/.hermes/handoffs/velo/t_2926df77/mutations.py`). They cover the
+- Mutations: 19 of 19 killed (`mutations.py`, kept outside the repo). They cover the
   wiring, the window-px rider point, extend = shift, the fov compensation, height/top/sign, the
   resize, the self-measure, the base fov, the state, the undo, the cap, and three ignoring the rule.

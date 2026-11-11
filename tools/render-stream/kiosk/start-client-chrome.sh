@@ -1,5 +1,5 @@
 #!/bin/bash
-# Runs inside the selkies container: a headless measuring CLIENT Chrome (loopback client on cat-bed).
+# Runs inside the selkies container: a headless measuring CLIENT Chrome (loopback client on the render host).
 CDP=${1:-9230}
 PROFILE=/tmp/chrome-client-$CDP
 pkill -f "user-data-dir=$PROFILE" 2>/dev/null; sleep 0.5; mkdir -p "$PROFILE"

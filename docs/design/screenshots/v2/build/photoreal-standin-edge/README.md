@@ -2,7 +2,7 @@
 
 Each image has three panels: **main c83ff3c | PR #89 3dcb7d7 merged with main | this PR (merged with main)**.
 - All three are shot from the same rider spot with the same chase camera (`pr76probe.py` `spot:M`: roll in over the last 60 m, settle, roll in again over the last 20 m, 6 samples).
-- The shots come from cat-bed on 6 Nov 2026 (Intel iGPU via ANGLE GL-EGL). The probe and queues live in `~/.hermes/handoffs/velo/t_c92a4576/`.
+- The shots come from the test host on 6 Nov 2026 (Intel iGPU via ANGLE GL-EGL). The probe and queues live in a scratch directory outside the repo.
 - Bundles: main `index-Wh2kzbqs.js`, PR #89 + main `index-vfXvJqAy.js`, this PR + main `index-D1pQGIV9.js`.
 
 On the Cuyahoga towpath at 3.11–3.16, 4.08–4.10 and 4.70–4.73 km the rider is held under tree crowns that the tiles draw with nothing under them. The towpath it holds sits 1.3–2.0 m over the finest World Terrain there.

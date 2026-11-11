@@ -3,7 +3,7 @@
 The scripts that produced these files are `scripts/v2-build-shots/play-layer.py` (the shots and `measurements.json`) and `scripts/play-layer-perf.py` (`perf.json`). Both ran against the dev server, with a fake KICKR at 142 W and no hardware.
 
 The data is staged as follows:
-- There are two riders: Federico (active) and Anna, who has her own colours.
+- There are two riders: the active rider and Anna, who has her own colours.
 - Anna has two rides stored on Tiber river park: her last ride (3 Nov, 36:40) and her best (28 Oct, 34:12). Each has real positions along the route and the ride clock.
 - Play mode is on.
 
@@ -62,7 +62,7 @@ How to read these numbers:
 ## Chengdu: spaced postcards on a world without named places (card t_99351c07)
 The Chengdu loops pass none of the world's named places (only 街道 districts and a peak), so Play mode showed nothing there. With fewer than `POSTCARD_MIN` named places, a world route now gets photoreal's evenly spaced postcards. No UI file changed: the Play panel and Finish already handle unnamed postcards (the photoreal path).
 
-Setup: a token-free prod build, Luxe Lakes loop from Home's wishlist, demo ride, Play mode on, remote world from R2. Probe: `~/.hermes/handoffs/velo/t_99351c07/chengdu_play.py`. It was 01:10 in Chengdu, so the world is at night in both runs.
+Setup: a token-free prod build, Luxe Lakes loop from Home's wishlist, demo ride, Play mode on, remote world from R2. Probe: `chengdu_play.py` (kept outside the repo). It was 01:10 in Chengdu, so the world is at night in both runs.
 
 | Build | Shot | Play panel |
 | --- | --- | --- |

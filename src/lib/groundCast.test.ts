@@ -624,7 +624,7 @@ describe('the ramp onto the Chengdu Luxe Lakes bridge (1.26 km), a coarse tile d
   // ground (479 m), so the plausible floor is 35 m under the ground. Along
   // with the ramp's tiles Cesium draws coarse ones for the distance (levels
   // 8 and 11, bounding spheres 209 and 52 km in radius), and their surfaces
-  // run under the ramp: 54 and 280–340 m under it on cat-bed (t_5649bf24
+  // run under the ramp: 54 and 280–340 m under it on the test host (t_5649bf24
   // logs), and in the rides where the rider fell, 40 m under it, 0.6 m over
   // the floor. Their spheres are the biggest, so pick read them first: the
   // rider took the fall, rode 40 m under the ramp for a second with nothing

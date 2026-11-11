@@ -557,7 +557,7 @@ type TilesetPick = (ray: Cesium.Ray, frameState: unknown, result?: Cesium.Cartes
  * Each tile's triangles are crossed in the tile's own frame
  * ({@link meshRayCast}): Cesium's pickModel moves every vertex of every tile
  * under the ray into world space and tests every triangle, 1.7 ms a pick at
- * p50 and 3.8 ms at p90 on cat-bed's iGPU even with the tile geometry already
+ * p50 and 3.8 ms at p90 on the test host's iGPU even with the tile geometry already
  * copied, and the rider reads its ground about nine times a second. The
  * nearest hit over all of them answers, not pick's first tile with any hit
  * (a coarse tile drawn under the fine ones, see meshRayCast). Tileset.pick

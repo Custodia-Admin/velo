@@ -1,8 +1,8 @@
 #!/bin/bash
-# Bring the render-streaming spike up on cat-bed. Usage: demo-up.sh [gpu|velo] [W] [H] [FPS] [ENC]
+# Bring the render-streaming spike up on the render host. Usage: demo-up.sh [gpu|velo] [W] [H] [FPS] [ENC]
 #   gpu  = synthetic GPU scene with the latency marker (no CDP needed)
 #   velo = the Velo demo ride from ~/velo-serve/dist (driven over CDP with uv + Playwright)
-# Client: https://cat-bed.tail6f8715.ts.net:8443/velo-relay/client.html  (login ubuntu / password in ~/velo-stream/auth.conf)
+# Client: ${RENDER_URL:-https://<render host>:8443}/velo-relay/client.html  (login ubuntu / password in ~/velo-stream/auth.conf)
 # Stop with demo-down.sh. Nothing listens beyond 127.0.0.1 except WebRTC media (UDP, host candidates).
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -20,4 +20,4 @@ else
   uv run -q --with playwright python apply_patch.py 9223 kiosk/sample-memo.js
 fi
 tailscale serve status | grep -q ':8443' || { tailscale serve --bg --https=8443 http://127.0.0.1:8090; tailscale serve --bg --https=8443 --set-path=/velo-relay http://127.0.0.1:8095; }
-echo "up: $MODE ${W}x${H}@${FPS} $ENC -> https://cat-bed.tail6f8715.ts.net:8443/velo-relay/client.html"
+echo "up: $MODE ${W}x${H}@${FPS} $ENC -> ${RENDER_URL:-https://<render host>:8443}/velo-relay/client.html"

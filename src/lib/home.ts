@@ -1,6 +1,6 @@
 /**
- * Where the household rides from. The family lives in Perugia; Federico grew
- * up in Lugano, so the Ticino rides stay in the library as "hometown".
+ * The featured places: Perugia (the `home` destination) and Lugano (the
+ * `hometown` destination, with the Ticino rides).
  *
  * Use HOME for anything that needs a default place before a route is picked
  * (map centre, a weather fallback). The routes of the home destination

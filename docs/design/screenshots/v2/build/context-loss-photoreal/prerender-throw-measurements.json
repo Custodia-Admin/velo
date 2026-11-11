@@ -1,5 +1,5 @@
 {
- "what": "A throw from a scene.preRender listener on the photoreal view (where the ride's per-frame code runs: rider, chase camera, partners, ghosts). Cesium raises preRender outside its tryAndCatchError, so no scene.renderError: the throw escapes scene.render() and the widget's default render loop catches it and stops. The WebGL context stays. Token-free production builds, route scenic-magadino-plain, real Intel Arc GPU (Vulkan), card t_0342cba8. Probe: ~/.hermes/handoffs/velo/t_0342cba8/probe.py LOSS=preRender.",
+ "what": "A throw from a scene.preRender listener on the photoreal view (where the ride's per-frame code runs: rider, chase camera, partners, ghosts). Cesium raises preRender outside its tryAndCatchError, so no scene.renderError: the throw escapes scene.render() and the widget's default render loop catches it and stops. The WebGL context stays. Token-free production builds, route scenic-magadino-plain, real Intel Arc GPU (Vulkan), card t_0342cba8. Probe: probe.py (kept outside the repo) LOSS=preRender.",
  "main": {
   "build": "9340f35 (index-CwoZKY8X.js)",
   "1440": {

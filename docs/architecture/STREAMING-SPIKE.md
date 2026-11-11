@@ -1,8 +1,8 @@
-# Streaming spike: render on cat-bed, stream to the devices
+# Streaming spike: render on a desktop GPU, stream to the devices
 
 Status: spike, 31 Oct 2026. Kanban t_fcc1b1a4. Input for Fable consult #2, which folds
 streaming into the v2 phases. Tooling: `tools/render-stream/`. Raw results:
-`~/velo-stream/samples/` on cat-bed plus the `result-*.json` files described under
+`~/velo-stream/samples/` on the render host plus the `result-*.json` files described under
 [How to reproduce](#how-to-reproduce).
 
 ## Verdict
@@ -10,9 +10,9 @@ streaming into the v2 phases. Tooling: `tools/render-stream/`. Raw results:
 | Bar | Result |
 | --- | --- |
 | 1080p60 stable | **Pass for the pipeline.** A GPU-heavy WebGL scene renders, encodes on NVENC and arrives at 60 fps, with 0 packet loss, a 2.6 % NVENC load and 16 % GPU. 1440p60 and AV1 1080p60 hold too. **Fail for today's Velo ride.** The Cesium ride renders only 15–20 fps on the 5090 because its JS main thread is saturated. The GPU is not the limit (follow-up t_0bf516d2). |
-| < 80 ms glass-to-glass on LAN | **Not met reliably.** State→display on cat-bed loopback is p50 62–90 ms per run at 1080p60 (AV1 75 ms, 1440p 90 ms). LAN adds about 5–10 ms and the panel 5–15 ms. Expected LAN glass-to-glass on a client that can decode: about 75–115 ms. **Closest setting:** 1080p60, AV1 or H.264, one session, CPU kept out of deep idle (p50 62 ms loopback). |
+| < 80 ms glass-to-glass on LAN | **Not met reliably.** State→display on the render host loopback is p50 62–90 ms per run at 1080p60 (AV1 75 ms, 1440p 90 ms). LAN adds about 5–10 ms and the panel 5–15 ms. Expected LAN glass-to-glass on a client that can decode: about 75–115 ms. **Closest setting:** 1080p60, AV1 or H.264, one session, CPU kept out of deep idle (p50 62 ms loopback). |
 | Laptop client | **Fail on this ThinkPad.** Chrome decodes WebRTC H.264 in software here (19–47 ms per frame), so 1080p60 backs up the jitter buffer by seconds. The CPU is also heavily thermal-throttled (see [The laptop](#the-laptop-as-a-client)). The best frames still arrived 70–85 ms after the state was sent. |
-| Android / tablet client | **Not measured.** The only Android device on the tailnet (Oppo Find N6) was dozing behind a secure lock screen, and agents can't unlock it. A 2-command owner test is below; results land on cat-bed automatically. |
+| Android / tablet client | **Not measured.** The only Android device available was locked, so it couldn't be measured. A 2-command test is below; results land on the render host automatically. |
 | 2 concurrent household streams | **Feasible.** Two 1080p60 sessions: GPU 46 % average (79 % peak on the heavy shader), NVENC 8–11 %, about one CPU core and about 0.6 GB VRAM per session. |
 
 **Recommendation.** Keep the split-plane design. Build streaming on Selkies 2.1 (NVENC, WebRTC, zero-copy
@@ -25,21 +25,21 @@ because each one alone defeats streaming today:
 
 ## Setup that was measured
 
-- **Server.** cat-bed: Intel Core Ultra 9 290HX Plus (8P + 16E), 188 GB RAM, RTX 5090 Laptop 24 GB, driver
+- **Server** (the "render host"): Intel Core Ultra 9 290HX Plus (8P + 16E), 188 GB RAM, RTX 5090 Laptop 24 GB, driver
   615.78.08, CachyOS, Docker with nvidia-container-toolkit 1.20.1. llama-server holds 10.7 GB VRAM. The
-  measurements ran alongside it and alongside up to 12 `sentinel-ci` qemu VMs at nice 9, so they are
+  measurements ran alongside it and alongside up to 12 CI qemu VMs at nice 9, so they are
   conservative. velo-web (nginx, :4180) and the :443 tailscale serve were never touched.
 - **Stack.** Selkies 2.1.0 desktop image, pinned by digest
   `ghcr.io/selkies-project/selkies/desktop@sha256:558fb9d6…1aec2e`. Inside it:
   - Xvfb with glamor/DRI3 on the 5090.
   - Google Chrome 156 kiosk rendering the page.
   - pixelflux zero-copy capture → NVENC (H.264 constrained baseline, `profile-level-id=42001f`, or AV1) → WebRTC (vendored aiortc), CBR 20 Mbit/s, congestion control off.
-- **Network.** The laptop is on Wi-Fi 192.168.0.0/24 (5.6 GHz, 160 MHz, −55 dBm, power-save on). cat-bed is
-  on 2.5 GbE 192.168.8.0/24 behind a second router (WAN side 192.168.0.4). This is not one L2 LAN: the
-  laptop cannot reach 192.168.8.240 directly. Tailscale goes direct through 192.168.0.4 (no DERP).
+- **Network.** The laptop is on 5 GHz Wi-Fi (160 MHz, −55 dBm, power-save on). The render host is on
+  2.5 GbE behind a second router, so the two are not on one L2 LAN and the laptop can't reach the render
+  host's LAN address. Tailscale goes direct through that router (no DERP).
   - ICMP over the tailnet: min 3.0, avg 7–9, max 19–27 ms. Wi-Fi alone: 1.4 / 7.3 / 38 ms to the laptop's own gateway.
   - WebSocket RTT to the relay, idle: p50 9.4, p95 23.4 ms (n=200).
-  - WebRTC picked host candidates on the tailnet addresses (`100.81.41.68` / `fd7a:…`). No STUN, no TURN; the ICE server list is empty.
+  - WebRTC picked host candidates on the tailnet addresses (IPv4 and IPv6). No STUN, no TURN; the ICE server list is empty.
 - **Exposure.** Selkies is bound to 127.0.0.1 (the image hard-codes `--public`, so setup patches its
   entrypoint) and published with `tailscale serve --https=8443` (tailnet only, basic auth). The relay is on
   127.0.0.1:8095, published as `/velo-relay` on the same origin. WebRTC media uses UDP host candidates.
@@ -92,7 +92,7 @@ Breakdowns:
 
 Server side: `nvidia-smi` (GPU, NVENC, power) and `docker stats` once per second.
 
-**Loopback runs.** The client is a second headless Chrome on cat-bed, using the same https URL through
+**Loopback runs.** The client is a second headless Chrome on the render host, using the same https URL through
 tailscale serve. These isolate the server pipeline from Wi-Fi and from the laptop's decoder.
 
 **Sources:**
@@ -126,7 +126,7 @@ Notes:
   two-session run gave a physically impossible 8 ms minimum on one side and was discarded; its other side
   read 104.5 ms.
 - Treat the ranges as the honest answer, and pin the deployment: performance governor or `cpu_dma_latency`
-  on cat-bed, and a capture triggered by Chrome's present instead of a timer.
+  on the render host, and a capture triggered by Chrome's present instead of a timer.
 - `--disable-gpu-vsync --disable-frame-rate-limit` on the render Chrome breaks capture. It renders about
   600 fps at 100 % GPU and the stream freezes. Keep vsync on.
 
@@ -180,11 +180,11 @@ per-frame budget. Follow-up card: t_0bf516d2.
    - Loopback bind, published only through `tailscale serve`.
 2. **Render page** = the Velo app at a world-only route, driven by the incoming state through the existing
    `WorldRenderer.setRider()` seam. No CDP or Playwright in production; CDP was spike-only.
-3. **Relay** = a small WebSocket service on cat-bed. The spike's `relay.py` (aiohttp) already does rooms,
+3. **Relay** = a small WebSocket service on the render host. The spike's `relay.py` (aiohttp) already does rooms,
    presence, clock ping and report logging. It grows into the session manager: start/stop containers, idle
    timeout.
 4. **Not recommended now:**
-   - Raw GStreamer `webrtcbin`. cat-bed has gst 1.28 with `nvcodec` and `webrtc`, but it means writing
+   - Raw GStreamer `webrtcbin`. the render host has gst 1.28 with `nvcodec` and `webrtc`, but it means writing
      signalling, capture and congestion handling ourselves for no measured gain.
    - TURN or any public exposure.
 5. **Worth one more experiment** (Fable #2 to decide): the render page publishes its own canvas with
@@ -198,7 +198,7 @@ per-frame budget. Follow-up card: t_0bf516d2.
 Split planes, as the card asks:
 
 ```
-client (laptop / tablet / TV)                         cat-bed
+client (laptop / tablet / TV)                         render host
 ┌───────────────────────────────┐   pose 20 Hz (WSS)   ┌──────────────────────────────┐
 │ FTMS + handlebars (Web BT)    │ ───────────────────▶ │ relay / session manager      │
 │ rideFsm + rideSim (pure)      │ ◀─── presence/acks ── │   └▶ render page /render     │
@@ -216,7 +216,7 @@ not a third kind. So, in the next phase (not in this PR):
 ```ts
 // src/stores/settingsStore.ts
 renderHost: 'local' | 'remote';            // orthogonal to `renderer`
-remoteRenderUrl: string;                   // e.g. https://cat-bed.tail6f8715.ts.net:8443
+remoteRenderUrl: string;                   // e.g. https://render-box.example.ts.net:8443
 
 // src/renderers/registry.ts — RideView picks the remote view when renderHost === 'remote'
 // and the health check passes, otherwise the local loader for `renderer`.
@@ -297,20 +297,21 @@ JSON over WSS through `tailscale serve` (same origin as the stream). `room` = se
 
 ## How to reproduce
 
-On the laptop, from the repo root:
+On the laptop, from the repo root, with `RENDER_HOST` (the render host's ssh alias) and `RENDER_URL`
+(its tailnet-only https base, e.g. `https://render-box.example.ts.net:8443`) set:
 
 ```bash
-rsync -a tools/render-stream/ cat-bed:velo-stream/
-ssh cat-bed 'bash ~/velo-stream/setup.sh'                       # once: secret, rtc.json, entrypoint patch, tailnet :8443
-ssh cat-bed 'bash ~/velo-stream/demo-up.sh gpu 1920 1080 60'     # or: demo-up.sh velo | … 2560 1440 60 | … av1enc
-# client:  https://cat-bed.tail6f8715.ts.net:8443/  (log in: ubuntu / password in cat-bed:~/velo-stream/auth.conf)
-#          then https://cat-bed.tail6f8715.ts.net:8443/velo-relay/client.html  — HUD shows fps/latency;
-#          every 5 s a report is appended to cat-bed:~/velo-stream/reports.jsonl (with the user agent)
-ssh cat-bed 'bash ~/velo-stream/demo-down.sh --serve'            # stop containers + relay, drop :8443/:8445
+rsync -a tools/render-stream/ "$RENDER_HOST":velo-stream/
+ssh "$RENDER_HOST" 'bash ~/velo-stream/setup.sh'                   # once: secret, rtc.json, entrypoint patch, tailnet :8443
+ssh "$RENDER_HOST" 'bash ~/velo-stream/demo-up.sh gpu 1920 1080 60' # or: demo-up.sh velo | … 2560 1440 60 | … av1enc
+# client:  $RENDER_URL/  (log in: ubuntu / password in ~/velo-stream/auth.conf on the render host)
+#          then $RENDER_URL/velo-relay/client.html  — HUD shows fps/latency;
+#          every 5 s a report is appended to ~/velo-stream/reports.jsonl on the render host (with the user agent)
+ssh "$RENDER_HOST" 'bash ~/velo-stream/demo-down.sh --serve'        # stop containers + relay, drop :8443/:8445
 ```
 
-Measurement harness (laptop, `cd tools/render-stream`; needs `ssh -L 9223/9224/9230/9231` tunnels to cat-bed):
-- `bash run_case.sh <label> <W> <H> <FPS> gpu|velo <secs> catbed|laptop` runs one case. `ENC=av1enc`
+Measurement harness (laptop, `cd tools/render-stream`; needs `ssh -L 9223/9224/9230/9231` tunnels to the render host):
+- `bash run_case.sh <label> <W> <H> <FPS> gpu|velo <secs> host|laptop` runs one case. `ENC=av1enc`
   switches the codec; `BUSY=1` keeps two cores busy.
 - `bash run_dual.sh <label> 1920 1080 60 30 gpu gpu` runs two concurrent sessions.
 - Each run writes `result-<label>.json` (client series + raw latencies) and `host-<label>.txt`

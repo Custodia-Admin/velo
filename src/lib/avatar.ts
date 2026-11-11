@@ -2186,7 +2186,7 @@ function roseAt(readAt: MeshRead, base: number, baseLon: number, baseLat: number
  * counts: the next step is measured from it.
  *
  * Each read is a vertical tile pick, run in the frame that samples: 3.7–5.9 ms
- * a pick on cat-bed (median of a burst of 10 picks a metre apart along the
+ * a pick on the test host (median of a burst of 10 picks a metre apart along the
  * route at Cuyahoga 3 and 3.1 km and Lugano–Melide 5 km: 37–59 ms). The chain
  * stops reading as soon as `reading` is out of reach of the steps left, which
  * gives the same answer on every replayed sample and cuts Cuyahoga's re-reads
