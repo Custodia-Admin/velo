@@ -411,7 +411,7 @@ export async function bake(opts) {
     const rides = rideRoads.map((list) => rideSurface(roads, list, zdm, hfGround));
     // What the app does: the deck wherever the route's ridden decks are under it.
     surface = (ri, x, y) => rides[ri](x, y);
-    const conflicts = footprintConflicts({ roads, routes: decks.prepared, surfaces: rides, groundAt: hfGround });
+    const conflicts = footprintConflicts({ routes: decks.prepared, surfaces: rides, groundAt: hfGround });
     if (conflicts.length) {
       throw new Error(`bridges: a route passes through the footprint of a deck it rides elsewhere, off the ground there (the app would lift the rider onto it): ${JSON.stringify(conflicts.slice(0, 8))}`);
     }

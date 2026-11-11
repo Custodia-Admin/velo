@@ -611,7 +611,8 @@ export function planApproaches({ roads, nets, pins, groundAt, ridden }) {
     // in the air, so an abutment block carries it down to the ground there.
     let block = null;
     if (walked < rampM) {
-      let x = node.x, y = node.y, ux = dir[0], uy = dir[1];
+      let x = node.x, y = node.y;
+      const ux = dir[0], uy = dir[1];
       if (walk.length) {
         const last = walk[walk.length - 1];
         const lp = roads.roads[last.ri].p;
@@ -832,7 +833,7 @@ export function ridePins({ roads, routes, skip, groundAt }) {
  * route sample outside its ridden spans that falls in such a footprint must
  * be where the deck meets the ground. Returns the worst offenders.
  */
-export function footprintConflicts({ roads, routes, surfaces, groundAt, tolM = 0.3 }) {
+export function footprintConflicts({ routes, surfaces, groundAt, tolM = 0.3 }) {
   const out = [];
   routes.forEach((r, i) => {
     for (let k = 0; k < r.s.length; k++) {
