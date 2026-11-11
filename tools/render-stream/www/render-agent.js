@@ -1,4 +1,4 @@
-// Velo render-streaming spike — injected into the render Chrome's Velo page on cat-bed.
+// Velo render-streaming spike — injected into the render Chrome's Velo page on the render host.
 // 1. hides the DOM HUD (world-only render; the client keeps the HUD), 2. connects to the
 // relay as role=render, 3. paints the latest state seq as a 18-block marker (top-left,
 // 32 px blocks: white, black, seq bits 7..0, then their complement as a check) for the client's input-echo latency

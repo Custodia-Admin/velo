@@ -1,0 +1,60 @@
+name: Bake validate
+
+# The world bake and what it ships (blueprint §P4.1): runs when the bake
+# tools, a bundle, a recipe, a destination manifest or the route data change.
+# Offline apart from the published remote bundles: no Overpass, no DEM tiles,
+# no Open-Meteo (the bake itself runs on a bake host; docs/worlds/ADDING-A-WORLD.md).
+on:
+  pull_request:
+    paths:
+      - 'tools/worldbake/**'
+      - 'public/worlds/**'
+      - 'src/lib/world/**'
+      - 'src/lib/scenicRouteData.ts'
+      - 'src/lib/routeReversals.ts'
+      - 'docs/worlds/CREDITS.md'
+      - '.github/workflows/bake-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/worldbake/**'
+      - 'public/worlds/**'
+      - 'src/lib/world/**'
+      - 'src/lib/scenicRouteData.ts'
+      - 'src/lib/routeReversals.ts'
+      - 'docs/worlds/CREDITS.md'
+      - '.github/workflows/bake-validate.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bake-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bake-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # The bake runs on plain Node (type stripping, no npm packages).
+      - name: Every bake tool parses
+        run: for f in tools/worldbake/*.mjs; do node --check "$f" || exit 1; done
+      # Remote worlds: only the manifest is in git; fetch the published layers (checked against it).
+      - run: node tools/worldbake/fetchPublished.mjs
+      - name: Bundles match their manifests and the recipes that baked them
+        run: node tools/worldbake/checkBundles.mjs
+      - name: Destination manifests in step with the bundles
+        run: node tools/worldbake/syncDestinations.mjs --check
+      - name: Bake and world tests (every shipped world, remote ones included)
+        run: npx vitest run src/lib/world src/renderers/three/waterMesh.test.ts
+        env:
+          VELO_REQUIRE_REMOTE_WORLDS: '1'
+      - name: Route coverage report
+        run: for w in tools/worldbake/worlds/*.json; do node tools/worldbake/routeCoverage.mjs "$(basename "$w" .json)" || exit 1; done

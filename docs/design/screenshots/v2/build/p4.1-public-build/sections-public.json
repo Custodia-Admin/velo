@@ -1,0 +1,50 @@
+{
+ "1440": {
+  "titles": [
+   {
+    "text": "Perugia",
+    "w": 86,
+    "h": 32
+   },
+   {
+    "text": "Lugano",
+    "w": 83,
+    "h": 32
+   },
+   {
+    "text": "Places we want to go",
+    "w": 227,
+    "h": 32
+   }
+  ],
+  "riders": [
+   "RRider 1",
+   "RRider 2"
+  ],
+  "overflowX": false
+ },
+ "390": {
+  "titles": [
+   {
+    "text": "Perugia",
+    "w": 86,
+    "h": 32
+   },
+   {
+    "text": "Lugano",
+    "w": 83,
+    "h": 32
+   },
+   {
+    "text": "Places we want to go",
+    "w": 227,
+    "h": 32
+   }
+  ],
+  "riders": [
+   "RRider 1",
+   "RRider 2"
+  ],
+  "overflowX": false
+ }
+}

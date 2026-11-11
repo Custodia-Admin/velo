@@ -32,13 +32,12 @@ export const OWN_ERROR_ALLOWANCE_M = 6.0;
  * of Lugano's 50 validation samples (seed 46059), against Open-Meteo's
  * answer for the sample: 1.71 m RMS (bias −0.02 m, max 3.9 m).
  *
- * Measured on card t_045a5081 (PR #38). Repro: laptop
- * ~/.hermes/handoffs/velo/t_045a5081/xcheck.{mjs,py} (Node decoder vs
- * tifffile + numpy, bit-identical tiles, samples within 3e-10 m); copies on
- * cat-bed under ~/velo-bake/t_045a5081-x/.
+ * Measured on card t_045a5081 (PR #38). Cross-checked
+ * with a Node decoder vs tifffile + numpy (bit-identical tiles, samples
+ * within 3e-10 m); the check scripts are kept outside the repo.
  *
  * The ruling (t_f639e915) wrote 6.53 m here: the t_5a07c68a prototype
- * (cat-bed ~/velo-bake/glo30.py) read the PixelIsPoint tiles as PixelIsArea,
+ * (a throwaway glo30.py on the bake host) read the PixelIsPoint tiles as PixelIsArea,
  * half a pixel north-west. The coordinator kept the ruling's formula and
  * replaced only this input. Never re-measured per world inside the gate
  * (P1.3.6): changing it takes a card with the measurement and a blueprint

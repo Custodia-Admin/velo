@@ -1,6 +1,6 @@
 /**
  * The mesh road filter (lib/avatar createMeshRoadFilter) on stretches cut from
- * the drilled photoreal mesh (t_148e9796, cat-bed): every up-facing surface
+ * the drilled photoreal mesh (t_148e9796, test host): every up-facing surface
  * down the vertical every half metre, top first, as the rider's tiles drew
  * them, with the globe there (World Terrain as loaded) and the road line (the
  * surface that runs on; interpolated where none is drawn). Rows live in
@@ -225,7 +225,7 @@ describe('the mesh road filter on drilled stretches: each rule that moved the dr
     // the lowest layer of a crown is 5–6 m over the towpath with nothing
     // under it: under OVERHANG_MIN_M over the edge, so measured from the edge
     // it was ridden over, and the rider rode 5.6 m over the towpath for 24 m
-    // (cat-bed, every build). Measured from the towpath before the edge
+    // (test host, every build). Measured from the towpath before the edge
     // (climbsOnto's stepFrom) it is a climb onto a structure.
     //
     // Read up to GROUND_SAMPLE_MOVE_M apart (plus a frame's travel), as the

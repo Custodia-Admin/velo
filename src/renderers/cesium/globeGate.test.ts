@@ -254,7 +254,7 @@ describe('GroundGate: the globe, and the painted road only where the globe is th
  * of three samples between stand-ins (a crown edge on the Cuyahoga towpath)
  * hid the globe a frame or three before the fourth sample said 'standIn',
  * and the globe was drawn again on the next frame: 5–36 ms drop-outs in every
- * cat-bed ride, up to a quarter of the frame black.
+ * test-host ride, up to a quarter of the frame black.
  */
 describe('GroundGate on the sample cadence: the globe hides only on a sample', () => {
   const PROFILES = {

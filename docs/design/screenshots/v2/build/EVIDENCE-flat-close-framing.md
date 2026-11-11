@@ -42,12 +42,12 @@ Why a lower aim and not the other two candidates (pinhole maths, TV, to the same
   - The climb and descent pins now read `framing.aimM`. The climb rule still keeps the (new)
     flat-road framing at every grade.
 - `src/renderers/three/chaseRig.test.ts`: the close look point on a climb or descent uses `aimM`.
-- Mutations: `~/.hermes/handoffs/velo/t_4c664b25/mutations.py`, 10 entries, 10 killed. They cover:
+- Mutations: `mutations.py` (kept outside the repo), 10 entries, 10 killed. They cover:
   close back at 1 m; 0.9 m; 0.7 m; a lower camera instead; a shorter look-ahead instead; the flat
   look or the climb pitch ignoring `aimM`; standard aiming lower; and either renderer looking 1 m
   over the point on the flat.
 
-## Live (cat-bed EGL; before = PR #87 runtime, after = this card; Lugano–Melide 1,200 m, "close")
+## Live (test host EGL; before = PR #87 runtime, after = this card; Lugano–Melide 1,200 m, "close")
 
 Wheel bottom over the top of the HUD strip under the rider, CSS px. Each rider was shot painted
 magenta, then again with the HUD hidden, so the box reaches the wheels behind the strip. The world
@@ -86,5 +86,5 @@ Composites in `flat-close-framing/`:
   for a moment (~10 px at 12 % at 390 close). This card doesn't change the rule behind it and didn't
   re-measure it. The extra flat clearance (+6–11 px) also raises where that dip starts.
 
-Data, scripts and the full composites are in `~/.hermes/handoffs/velo/t_4c664b25/`:
+Data, scripts and the full composites are in a scratch directory outside the repo:
 `out/*/tabframe.json`, `compare/`, `tabframe3.py`, `queue.sh`, `compose.py`, `mutations.py`.

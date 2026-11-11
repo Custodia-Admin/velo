@@ -67,7 +67,7 @@ Each plan view is drawn from the bundles: a 50 × 34 m window, north up. Grey an
 
 **Locarno 2,072 m.** A 13 m connector path is bent by up to 2.51 m (OSM way geometry from the 1 Oct snapshot; the route is today's OSRM line). Its corner now follows the route into the junction with the wide road, and the 2.9 m join covers the last metre. It reads as one path, but it hugs the wide road for a few metres. It is the only bend over 1 m in either world.
 
-## Frame rate (cat-bed, Arrow Lake iGPU, gl-egl, 1920×1080, medium, Tiber park, HUD on)
+## Frame rate (test host, Arrow Lake iGPU, gl-egl, 1920×1080, medium, Tiber park, HUD on)
 
 Before and after runs were interleaved, 3 pairs × 2 windows each, on an idle host (load 0.8–1.6).
 

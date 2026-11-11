@@ -81,7 +81,7 @@ export function treeNearFadeKeep(distM: number): number {
  * It only fills what the light leaves dark (`TREE_LEAF_TRANSMIT_KNEE`): a
  * crown the sun or the sky already lights keeps its look. At noon the median
  * near crown moves about 3 levels of luminance, but its darkest shade
- * pockets still lift by about 9 (cat-bed numbers: vegetationLeafLight.test.ts).
+ * pockets still lift by about 9 (test-host numbers: vegetationLeafLight.test.ts).
  */
 export const TREE_LEAF_TRANSMIT = 0.025;
 

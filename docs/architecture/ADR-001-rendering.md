@@ -3,7 +3,7 @@
 - **Status:** Accepted. Implemented by #10 (renderer seam, P1.2), #12 (world
   bake, P1.3) and #16 (three.js world renderer, P1.4).
 - **Date:** 2026-10-31
-- **Deciders:** Federico Brooks (owner); architect consult 1 of 3
+- **Deciders:** the project owner; architect consult 1 of 3
 - **Full reasoning:** [`VELO-V2-BLUEPRINT.md`](./VELO-V2-BLUEPRINT.md) §0–1
 
 ## Context
@@ -69,9 +69,10 @@ upstream credit.
 - **Rider:** stylized GLTF (not the upstream billboard avatar).
 
 These answer open questions 1–3 of the blueprint (§5). P1.5 mocked only the
-warm-atlas direction (#22; Federico signed it off on 1 Nov). P1.4 ships the
-stylized GLTF rider as `public/models/velo-rider.glb` (#16). P4.1 will
-publish under `Custodia-Admin/velo` instead of moving to another org.
+warm-atlas direction (#22; the owner signed it off on 1 Nov). P1.4 ships the
+stylized GLTF rider as `public/models/velo-rider.glb` (#16). P4.1
+publishes under `Custodia-Admin/velo` instead of moving to another org
+([ADR-002](./ADR-002-publishing.md)).
 
 ## Consequences
 

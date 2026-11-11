@@ -5,7 +5,7 @@
  * rider's bars to a camera spot is open. Cesium3DTileset.pick answers that
  * for an endless ray and only in the tile whose bounding sphere is nearest
  * the ray's origin, and its pickModel moves every vertex of a tile into world
- * space before testing it: p50 1.7 ms, p90 3.8 ms a ray on cat-bed's iGPU on
+ * space before testing it: p50 1.7 ms, p90 3.8 ms a ray on the test host's iGPU on
  * the Lugano shore, about a height read's cost (getHeight p50 1.9 ms). Here
  * the segment is moved into the tile's own frame once instead, and a
  * triangle whose corners all lie on one side of the segment's box is dropped

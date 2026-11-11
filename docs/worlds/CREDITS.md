@@ -8,6 +8,8 @@ followed by the exact tiles, bounding box and OSM snapshot each world used
 
 The app code is MIT. The world bundles are data and carry the licences below.
 The in-app credits line comes from each bundle's `manifest.json` `credits`.
+The repository-wide notice (upstream GlobeRide credit, data, optional
+services, trademarks) is [NOTICE.md](../../NOTICE.md).
 
 ## Sources and licences
 
@@ -147,6 +149,26 @@ The in-app credits line comes from each bundle's `manifest.json` `credits`.
   own OSRM or Valhalla.
 - The output is derived from OpenStreetMap: ODbL 1.0, **© OpenStreetMap
   contributors**.
+
+## Services the app calls at ride time
+
+These are not baked into any bundle; the app calls them from the rider's
+browser.
+
+- **Open-Meteo forecast API** (`https://api.open-meteo.com/v1/forecast`):
+  live weather at each route's start (`src/lib/meteo/`). Free, keyless, no
+  account. Data under **CC BY 4.0**; attribution: weather data by
+  Open-Meteo.com.
+- **OpenStreetMap standard tiles** (`https://tile.openstreetmap.org/`): the
+  map under routes that no baked world covers, when no Cesium ion token is set
+  (`src/lib/cesiumUtils.ts`). **© OpenStreetMap contributors**, used under the
+  OSM Foundation tile usage policy
+  (https://operations.osmfoundation.org/policies/tiles/).
+- **Cesium ion** (imagery, World Terrain and Google Photorealistic 3D Tiles):
+  only with the rider's own token. Their terms apply.
+- **Remote world bundles**: published to a public Cloudflare R2 bucket
+  (`tools/worldbake/publish.mjs`) and fetched on the first ride of that world.
+  Same data licences as above.
 
 ## Per-world inputs
 

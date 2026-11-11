@@ -30,7 +30,7 @@
  * stand-in onset (Cuyahoga towpath 2–6 km at 30 km/h: 22 of them, about a
  * second each, a fifth to two fifths of the frame black). Drawn at once, it
  * buries nothing (the mesh draws over it), it lowers the rider by at most
- * GLOBE_STANDIN_UNDER_M, and it is no jump: in the cat-bed rides along those
+ * GLOBE_STANDIN_UNDER_M, and it is no jump: in the test-host rides along those
  * 4 km it was never drawn over the wheels. Under something with no road held
  * (a jump, the start), with the finest terrain still on its way, or with it
  * over the road held, where it buries the street around it ('under'), it

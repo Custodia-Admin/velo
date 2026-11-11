@@ -27,10 +27,11 @@ export const DESTINATION_FORMAT = 'velo-destination';
 export const DESTINATION_FORMAT_VERSION = 1;
 
 /**
- * Where a place sits for the household: `home` (where they live),
- * `hometown` (where Federico grew up), `wishlist` (places they want to go).
- * Home shows one section per home/hometown destination, then one
- * "Places we want to go" section for every wishlist destination.
+ * Where a place sits on Home: `home` and `hometown` are the featured worlds
+ * (one Home section each, home first), `wishlist` places share one
+ * "Places we want to go" section. The public build titles a featured section
+ * with the place name alone; a private deploy can show the roles as labels
+ * ("Home · Perugia", "Hometown · Lugano") with VITE_HOUSEHOLD_LABELS=1.
  */
 export type DestinationRole = 'home' | 'hometown' | 'wishlist';
 export const DESTINATION_ROLES: readonly DestinationRole[] = ['home', 'hometown', 'wishlist'];
@@ -261,19 +262,29 @@ export function routeHasWorld(d: Destination, routeId: string): boolean {
   return d.world?.routes.includes(routeId) ?? false;
 }
 
-/** Section labels per role. */
-const ROLE_LABEL: Record<DestinationRole, string> = {
+/** Labels a private deploy puts before a featured place's name (VITE_HOUSEHOLD_LABELS=1). */
+const HOUSEHOLD_LABEL: Record<Exclude<DestinationRole, 'wishlist'>, string> = {
   home: 'Home',
   hometown: 'Hometown',
-  wishlist: 'Places we want to go',
 };
+const WISHLIST_TITLE = 'Places we want to go';
+
+/**
+ * True when this build labels the featured worlds for a household
+ * ("Home · Perugia"). Off unless the build sets VITE_HOUSEHOLD_LABELS to "1"
+ * or "true": the public build and CI never do (ADR-002).
+ */
+export function householdLabels(env: { readonly VITE_HOUSEHOLD_LABELS?: string } = import.meta.env): boolean {
+  const v = env.VITE_HOUSEHOLD_LABELS?.trim().toLowerCase();
+  return v === '1' || v === 'true';
+}
 
 /** One Home section, generated from the manifests. */
 export interface DestinationSection {
   /** Stable id for anchors and tests: the destination id, or the role for the wishlist. */
   id: string;
   role: DestinationRole;
-  /** "Home · Perugia", "Hometown · Lugano", "Places we want to go". */
+  /** "Perugia", "Lugano", "Places we want to go" ("Home · Perugia"… with household labels). */
   title: string;
   detail: string;
   /** One entry per route, in display order. */
@@ -290,13 +301,14 @@ function wishlistDetail(list: readonly Destination[]): string {
 }
 
 /**
- * Home's sections: one per home and hometown destination ("Home · Perugia",
- * "Hometown · Lugano"), then "Places we want to go" with every wishlist
- * destination. Inside a section, routes drawn by a 3D world come first
- * (in the wishlist: the places with a world, in manifest order, then the
- * places that ride on the map, in manifest order).
+ * Home's sections: one per home and hometown destination ("Perugia",
+ * "Lugano"; "Home · Perugia", "Hometown · Lugano" with household labels),
+ * then "Places we want to go" with every wishlist destination. Inside a
+ * section, routes drawn by a 3D world come first (in the wishlist: the places
+ * with a world, in manifest order, then the places that ride on the map, in
+ * manifest order).
  */
-export function homeSections(list: readonly Destination[] = DESTINATIONS): DestinationSection[] {
+export function homeSections(list: readonly Destination[] = DESTINATIONS, labels: boolean = householdLabels()): DestinationSection[] {
   type Entry = DestinationSection['entries'][number];
   const worldFirst = (all: Entry[]) => [...all.filter((e) => e.hasWorld), ...all.filter((e) => !e.hasWorld)];
   const entriesOf = (d: Destination): Entry[] =>
@@ -304,14 +316,15 @@ export function homeSections(list: readonly Destination[] = DESTINATIONS): Desti
   const sections: DestinationSection[] = [];
   for (const d of list) {
     if (d.role === 'wishlist') continue;
-    sections.push({ id: d.id, role: d.role, title: `${ROLE_LABEL[d.role]} · ${d.name}`, detail: d.detail, entries: worldFirst(entriesOf(d)) });
+    const title = labels ? `${HOUSEHOLD_LABEL[d.role]} · ${d.name}` : d.name;
+    sections.push({ id: d.id, role: d.role, title, detail: d.detail, entries: worldFirst(entriesOf(d)) });
   }
   const wish = list.filter((d) => d.role === 'wishlist');
   if (wish.length > 0) {
     sections.push({
       id: 'wishlist',
       role: 'wishlist',
-      title: ROLE_LABEL.wishlist,
+      title: WISHLIST_TITLE,
       detail: wishlistDetail(wish),
       entries: worldFirst(wish.flatMap(entriesOf)),
     });

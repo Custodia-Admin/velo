@@ -1,204 +1,144 @@
 <div align="center">
 
-# GlobeRide
+# Velo
 
-**Ride anywhere on Earth — real terrain, real smart trainers, real racing. No account, no backend, open source.**
+**Ride real places in your browser, on your own smart trainer. No subscription, no account, no token.**
 
-[![MIT License](https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square)](LICENSE)
-[![Built with Vite](https://img.shields.io/badge/built%20with-Vite%206-646cff?style=flat-square)](https://vitejs.dev/)
-[![Cesium](https://img.shields.io/badge/3D%20globe-Cesium%20ion-2e5f9e?style=flat-square)](https://cesium.com)
-[![FTMS](https://img.shields.io/badge/trainer-FTMS%20%2F%20Web%20Bluetooth-5eead4?style=flat-square)](https://www.bluetooth.com/specifications/specs/fitness-machine-service-1-0/)
-
-Live at **https://globeride.vercel.app** · **https://globeri.de**
+[![MIT License](https://img.shields.io/badge/license-MIT-2f6b4f?style=flat-square)](LICENSE)
+[![CI](https://github.com/Custodia-Admin/velo/actions/workflows/ci.yml/badge.svg)](https://github.com/Custodia-Admin/velo/actions/workflows/ci.yml)
 
 </div>
 
----
+Velo is a fork of [GlobeRide](https://github.com/masonwyatt23/globeride) by
+Mason Wyatt, an open-source browser cycling simulator with a Cesium 3D globe
+and Web Bluetooth trainer control. Velo keeps GlobeRide's ride engine (trainer
+control, physics, FIT export) and adds its own 3D worlds, baked from open data,
+so the 3D ride needs no map token.
 
-## What it is
+## Why it exists
 
-GlobeRide is a browser-based virtual cycling simulator that renders your route on a photoreal Cesium 3D Earth — real satellite imagery, real terrain, real OSM buildings — and drives any FTMS-compatible smart trainer (Wahoo Kickr Core, Tacx Neo, Elite Suito, Zwift Hub, …) with live gradient simulation. Load a GPX, pick a curated climb, draw a route on the map, or record one outdoors via phone GPS. No account, no subscription, no data leaves your device.
+A household with one smart trainer wanted what Zwift gives (somewhere pretty
+to ride, something to watch, a trainer that feels the hills) without a
+monthly subscription, and without signing up to a map provider for a token
+either. So Velo bakes real places into small 3D worlds from open data and
+ships them with the app. Everything runs in the browser. Rides, riders and
+settings stay on the device.
 
----
+![Riding along the Tiber river park in the Perugia world at golden hour](docs/design/screenshots/readme/ride-perugia-1440.jpg)
 
-## Feature matrix
+| | |
+| --- | --- |
+| ![Home: pick a rider, then a ride in a featured world](docs/design/screenshots/readme/home-1440.jpg) | ![Riding the Lugano lakefront towards Melide](docs/design/screenshots/readme/ride-lugano-1440.jpg) |
+| Home: pick who's riding, then a ride | The Lugano lakefront, Lugano world |
 
-### Cesium scene
-- Photoreal globe: Bing Aerial imagery + Cesium World Terrain + Google 3D Tiles
-- 8 cinematic atmospheric moods (golden hour, alpine storm, Mediterranean mist, fjord rain, …) auto-assigned per route
-- Weather particle systems: rain, snow, dust, mist; wind speed/direction HUD
-- Real-time sun position from wall clock + route GPS; dynamic ground shadow tracking sun azimuth
-- Volumetric cumulus clouds drifting with wind
-- Wet-road GLSL custom material on rain rides
-- Tour-style spectator crowds on the final 2 km of named climbs
-- Post-processing: bloom, ambient occlusion, vignette, tone grading, FXAA/MSAA
+## What it does
 
-### 3D avatar and cameras
-- Animated procedural cyclist — pedaling legs sync to cadence, wheels spin at speed, body leans into corners, head turns toward heading, forward sway above 8% grade
-- Road, gravel, and TT glTF 2.0 models with PBR materials and colourway picker
-- 5 camera modes with eased transitions: chase, first-person POV, overhead, side-tracking, cinematic orbit
+- **Baked 3D worlds.** Perugia (Umbria) and Lugano (Ticino) ship in the repo;
+  Chengdu's Luxe Lakes is fetched on its first ride. Terrain, roads, water,
+  buildings and trees come from OpenStreetMap and Copernicus elevation data.
+  22 scenic routes, most of them flat or gently rolling; the ones outside a
+  baked world ride on an OpenStreetMap map.
+- **Your trainer feels the road.** Any FTMS smart trainer over Web Bluetooth
+  (Wahoo KICKR, Tacx, Elite, Zwift Hub and others) gets the route's gradient,
+  with virtual gears and a "hills feel" setting to soften climbs. Heart-rate
+  straps work too. Handlebar controllers can shift and steer.
+- **Time of day and weather.** Live weather at the route's start, or pick the
+  light and the sky yourself.
+- **Something to watch.** Show mode plays your own videos over the ride.
+  Journey mode floats the ride in a small window over another tab (Chrome and
+  Edge on desktop), so you can ride while a show plays.
+- **Big-screen layout.** A TV layout with overscan-safe margins and
+  remote/keyboard navigation.
+- **No trainer?** A demo rider rides the route so you can look around.
+- **Two riders, one trainer.** Each rider has their own name, colours and
+  ride history, kept in the browser only.
+- **Export** finished rides as .FIT files, ready for Strava or Garmin Connect.
 
-### AI
-- xAI-powered live race commentary — 8 trigger types, throttled at 45 s, punchy play-by-play via Web Speech TTS; auto-pauses against voice control
-- AI coach — daily ride recommendations and adaptive weekly training review
-- AI workout designer — describe what you want, get a structured interval session
-- AI scenic route discovery on the Explore globe
+## Quick start
 
-### Multiplayer and racing
-- WebRTC mesh pelotons — up to 4 peers via shareable room codes; binary state codec at 10 Hz; aerodynamic drafting extends to real peers
-- Signed P2P race manifests (`.race.json` / `?race=` URL) — no server, no accounts required to publish or join a race
-- Race Lobby with live leaderboard and 1080x1350 PNG shareable result cards
-- Pro Peloton Ghosts — ride alongside actual finishers of curated Grand Tour stages at their real-world pace
-- AI pace partners (PaceBots) with personality presets: steady / climber / sprinter / attacker
-
-### Strava integration
-- Live segment overlay — fetches your actual Strava segments, renders 3D portal gates, shows live "vs PR" delta, celebrates PRs on exit
-- One-tap `.FIT` export and Strava auto-upload; 429-retry with exponential backoff; upload deduplication
-
-### Sensors and hardware
-- Web Bluetooth FTMS — SIM mode (live gradient) and ERG mode (target power) for any FTMS-compliant trainer
-- BLE heart-rate monitor and cadence sensor pairing
-- Phone companion screen (`/companion`) — BroadcastChannel HR/cadence bridge and remote ride control
-
-### Outdoor mode
-- `navigator.geolocation.watchPosition()` real-ride recording — turns the app into a GPS bike computer
-- Inverse-physics power estimation from speed + grade; same `.FIT` exporter as indoor rides
-
-### WebXR — VR and AR
-- VR on Quest 3 and Chromium desktop — stereo rendering, full 6DOF room-scale head tracking decoupled from chase-cam, interactive DOM-overlay HUD in-headset
-- AR passthrough on Quest 3 and Vision Pro — `immersive-ar` session overlays your route on the real world
-- Hand tracking on Quest 3 — pinch any HUD button to tap, no controllers needed (transient-pointer fallback for Vision Pro Safari)
-- Graceful no-op on unsupported browsers; no permission prompt on the landing page
-
-### Replay
-- Record any ride; replay at 0.5x-8x speed with a scrubbable timeline
-- Auto-detected highlight reel: climbs, descents, sprints, max-power moments
-- Cinematic sequencer assigns camera modes per highlight type
-- MP4 export via WebCodecs
-
-### Routes and library
-- 19 iconic climbs built-in: Alpe d'Huez, Mont Ventoux, Stelvio, Mortirolo, Tourmalet, Angliru, Zoncolan, Galibier, Hautacam, Sa Calobra, Trollstigen, Mauna Kea, Pico de Veleta, Col d'Izoard, Willunga Hill, Box Hill, Old La Honda, Central Park Loop, Promenade des Anglais
-- 6 curated Grand Tour stages (Tour de France, Giro, Vuelta) with authentic summit data and hero narratives
-- Upload any GPX from Strava, Komoot, or Garmin
-- Draw a route on the map via OSRM real-road cycling routing
-
-### Training
-- 100 curated workouts across every zone: recovery, Z2, tempo, sweet spot, threshold, over-under, VO2 max, sprints, Tabata, climbing repeats, FTP ramp test
-- Periodization tags (base / build / peak / recovery) + intensity-factor sort in the picker so the workout that fits today's plan is always one tap away
-- Manual coach plan editor: 7-day grid, drag workouts onto days, weekly TSS + IF roll-up, shift week forward, today highlighted
-- 6 multi-week training plans with calendar view, streaks, and today/next-up CTAs
-- Power-profile preview before every workout (Zwift-style interval graph)
-- CTL/ATL/TSB Performance Management Chart
-- Post-ride analytics: power curve, time-in-zones, per-km splits; personal records board; weekly/monthly trend charts
-
-### Voice and gestures
-- Voice control: "pause", "resume", "lap", "switch camera", "first person", "end ride" with verbal confirmation
-- Handlebar gestures: double-tap pause/resume, long-press quick actions, two-finger swipe ±10 W ERG adjust
-
-### Gamification and UX
-- XP, levels, and gear garage with road/gravel/TT bikes and helmets; 25 achievements (bronze to platinum)
-- Ghost riders — translucent avatars of past attempts on the same course
-- Gradient-coloured route line, 2D minimap, climb-name HUD banners, achievement poppers
-- Synthesised ambient soundscape with effort cues and zone chimes
-- PWA installable + offline; screen wake-lock; keyboard shortcuts
-
----
-
-## Quickstart
+You need Node 24 (what CI uses) and npm. No `.env` file, key or token is needed.
 
 ```bash
-# 1. Clone and install
-git clone https://github.com/masonwyatt23/globeride.git
-cd globeride
-npm install
-
-# 2. Add your free Cesium ion token
-#    Get one at https://ion.cesium.com/tokens  (free, unlimited personal use)
-echo "VITE_CESIUM_ION_TOKEN=your_token_here" > .env.local
-
-# 3. Start the dev server
-npm run dev          # → http://localhost:5173
+git clone https://github.com/Custodia-Admin/velo.git
+cd velo
+npm ci
+npm run dev          # http://localhost:5173
 ```
 
-If you skip `.env.local`, the app prompts for a token in-browser and saves it to `localStorage` — no restart needed. The landing page shows a stylised SVG Earth fallback when no token is present. `npm install`, `npm run typecheck`, `npm run build`, and `npm test` all work without a token.
+Open http://localhost:5173/app, pick a ride, and the demo rider starts. To
+ride for real, open **Devices** (the trainer button at the top of Home) and
+press **Pair**.
 
-### Commands
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Dev server on :5173 |
+| `npm run check` | Typecheck, lint and unit tests: run it before you push |
+| `npm run build` | Static build in `dist/` |
+| `npm run preview` | Serve the build on :4173 |
+| `npx playwright test` | End-to-end tests (Chromium) |
 
-```bash
-npm run dev          # Vite dev server → :5173
-npm run build        # Production build → ./dist (static, no server needed)
-npm run preview      # Serve the production build → :4173
-npm run typecheck    # TypeScript strict check (no emit)
-npm run test         # vitest run
-npm run lint         # ESLint (zero errors required)
-npm run check        # typecheck + lint + test (the CI gate)
-```
+### Self-hosting
 
-### Strava setup (optional)
+`npm run build` writes a static site to `dist/`. Serve it from any static host
+that falls back to `index.html` for unknown paths (`vercel.json` does this on
+Vercel). Remote worlds load from the project's public bucket; point
+`VITE_WORLDS_REMOTE_URL` at your own mirror if you'd rather host them.
 
-The Vercel deployment includes edge proxy routes at `/strava-api/*` for the Strava OAuth callback. For local development, set `VITE_STRAVA_CLIENT_ID` and `VITE_STRAVA_CLIENT_SECRET` in `.env.local` and register `http://localhost:5173` as a redirect domain in your [Strava API app](https://www.strava.com/settings/api).
+### Optional settings
 
----
+All optional; see [`.env.example`](.env.example). A free
+[Cesium ion](https://ion.cesium.com/tokens) token adds the photoreal Cesium
+globe for routes outside a baked world. The AI coach and commentary that
+came with GlobeRide need an xAI key or a local Ollama.
 
-## Browser support
+## Add your own hometown
 
-| Feature | Chrome / Edge desktop | Firefox | Safari desktop | Chrome Android | Safari iOS | Quest 3 | Vision Pro |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Core ride (Demo Mode) | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Web Bluetooth trainer | Yes | No | No | Yes | No | No | No |
-| BLE HR / cadence | Yes | No | No | Yes | No | No | No |
-| VR (WebXR immersive-vr) | Yes | No | No | No | No | Yes | No |
-| AR (WebXR immersive-ar) | No | No | No | No | No | Yes | Yes |
-| Outdoor GPS recording | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Voice control | Yes | No | Partial | Yes | Partial | Yes | Partial |
-| MP4 export (WebCodecs) | Yes | Partial | No | Yes | No | Yes | No |
-| PWA install | Yes | No | Yes | Yes | Yes | Yes | Yes |
+A world is a recipe (a bounding box, the routes to fit, a few choices) and a
+bake that turns open data into a bundle the app loads: OpenStreetMap for roads,
+water, buildings and land cover, Copernicus GLO-30 or AWS terrain tiles for
+elevation. No API key. The guide walks through it, from the recipe to a ride:
+[docs/worlds/ADDING-A-WORLD.md](docs/worlds/ADDING-A-WORLD.md). The bundle
+format is in [docs/worlds/WORLD-FORMAT.md](docs/worlds/WORLD-FORMAT.md).
 
-Safari and iOS always fall back to Demo Mode for trainer pairing. All non-BLE features work across every listed browser.
+## Web Bluetooth
 
----
+Trainer, heart-rate and controller pairing use Web Bluetooth.
 
-## Tech stack
+- **Works in** Chrome and Edge on Windows, macOS, ChromeOS and Android.
+- **Not in** Safari, Firefox or any browser on iOS/iPadOS. Velo still runs
+  there, with the demo rider.
+- **Linux:** turn on `chrome://flags/#enable-web-bluetooth` and nothing else.
+  The neighbouring `#enable-web-bluetooth-new-permissions-backend` flag breaks
+  the device chooser (it scans for half a second and lists nothing). Without
+  it, Chrome on Linux can't reconnect a device silently after a reload, so
+  Velo shows a Reconnect button instead. Details:
+  [docs/devices/zwift-ride-v2.md](docs/devices/zwift-ride-v2.md#platforms-what-reconnects-silently-where).
+- Only one app can control a trainer at a time: close Zwift, the maker's app
+  or another tab before you pair.
 
-| Layer | Technology |
-|---|---|
-| Framework | React 19 + TypeScript strict (project refs) |
-| Build | Vite 6 + vite-plugin-cesium |
-| 3D globe | CesiumJS 1.131 + Cesium World Terrain |
-| State | Zustand 5 |
-| Styling | Tailwind CSS 3 + shadcn-style UI primitives |
-| Charts | Recharts |
-| Persistence | IndexedDB via `idb`, localStorage |
-| PWA | vite-plugin-pwa (installable, offline-capable) |
-| Trainer | Web Bluetooth FTMS (service `0x1826`) |
-| Road routing | OSRM |
-| Multiplayer | WebRTC DataChannel mesh |
-| XR | WebXR Device API |
-| Voice | Web Speech API (TTS + recognition) |
-| Video export | WebCodecs |
-| Testing | vitest |
+## Privacy
 
----
-
-## Architecture
-
-For a full subsystem map — FTMS client, physics model, Cesium scene layers, AI modules, WebRTC codec, WebXR session lifecycle, replay pipeline, outdoor GPS mode, and coding conventions — see [CLAUDE.md](CLAUDE.md).
-
----
+No accounts and no backend. Riders, rides and settings live in the browser's
+localStorage and IndexedDB. The app talks to the network for world bundles,
+for the weather forecast (Open-Meteo, which you can turn off), and for the
+optional services you set up yourself. The full list is in
+[docs/worlds/CREDITS.md](docs/worlds/CREDITS.md#services-the-app-calls-at-ride-time).
 
 ## Contributing
 
-Bug reports, route additions, and PRs are welcome. Before opening a PR:
+Issues and pull requests are welcome; read [CONTRIBUTING.md](CONTRIBUTING.md)
+first. The project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-1. Run `npm run check` — typecheck + lint + tests must all pass.
-2. Match existing conventions: functional React, Zustand selectors, Tailwind + `ui/` primitives, `@/` path alias.
-3. No backend, no new accounts, no data leaving the device — local-first is a hard constraint.
-4. Every `viewer.scene.primitives.add()` or `viewer.entities.add()` must have a matched cleanup on route change and viewer destroy.
+## Credits and licence
 
----
+- Code: [MIT](LICENSE), © Mason Wyatt (GlobeRide) and © Federico Brooks (Velo).
+- World data: © OpenStreetMap contributors (ODbL); produced using Copernicus
+  WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH
+  2014-2018 provided under COPERNICUS by the European Union and ESA, all
+  rights reserved; Mapzen/AWS terrain tiles; OSRM. Weather data by
+  Open-Meteo.com (CC BY 4.0).
+- Every source, licence and attribution: [NOTICE.md](NOTICE.md) and
+  [docs/worlds/CREDITS.md](docs/worlds/CREDITS.md).
 
-## License
-
-[MIT](LICENSE) — free to use, fork, and self-host.
-
-Repo: [github.com/masonwyatt23/globeride](https://github.com/masonwyatt23/globeride)
+Velo isn't affiliated with Zwift, Wahoo or any trainer maker. Their names
+appear only to say what works.

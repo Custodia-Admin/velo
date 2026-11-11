@@ -57,7 +57,7 @@ localStorage.setItem('globeride.theme', {json.dumps(theme)});
 localStorage.removeItem('globeride.cesiumIonToken');
 if (!localStorage.getItem('globeride.velo.riders.v1')) {{
   localStorage.setItem('globeride.velo.riders.v1', JSON.stringify({{state:{{activeRiderId:'rider-1', riders:[
-    {{id:'rider-1', name:'Federico', settings:null, profile:null}},
+    {{id:'rider-1', name:'Marco', settings:null, profile:null}},
     {{id:'rider-2', name:'Rider 2', settings:null, profile:null}}
   ]}}, version:1}}));
 }}

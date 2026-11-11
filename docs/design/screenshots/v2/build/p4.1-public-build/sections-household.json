@@ -1,0 +1,50 @@
+{
+ "1440": {
+  "titles": [
+   {
+    "text": "Home \u00b7 Perugia",
+    "w": 170,
+    "h": 32
+   },
+   {
+    "text": "Hometown \u00b7 Lugano",
+    "w": 224,
+    "h": 32
+   },
+   {
+    "text": "Places we want to go",
+    "w": 227,
+    "h": 32
+   }
+  ],
+  "riders": [
+   "RRider 1",
+   "RRider 2"
+  ],
+  "overflowX": false
+ },
+ "390": {
+  "titles": [
+   {
+    "text": "Home \u00b7 Perugia",
+    "w": 170,
+    "h": 32
+   },
+   {
+    "text": "Hometown \u00b7 Lugano",
+    "w": 224,
+    "h": 32
+   },
+   {
+    "text": "Places we want to go",
+    "w": 227,
+    "h": 32
+   }
+  ],
+  "riders": [
+   "RRider 1",
+   "RRider 2"
+  ],
+  "overflowX": false
+ }
+}

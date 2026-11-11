@@ -2,7 +2,7 @@
 
 Each image has two panels: **main 0123703 | this PR**. Each panel is the canvas (no HUD) at the same metre of a continuous ride at 8.33 m/s (30 km/h).
 - The rider is driven from an in-page timer, so the ground sampler and the globe gate run on real time, as in a ride (`entryride.py` with `SHOTS`). Each shot is taken the first time the ride passes that metre.
-- Captured on cat-bed, 6 Nov 2026 (Intel iGPU via ANGLE GL-EGL). Probe and queues: `~/.hermes/handoffs/velo/t_16592284/`.
+- Captured on the test host, 6 Nov 2026 (Intel iGPU via ANGLE GL-EGL). Probe and queues: a scratch directory outside the repo.
 - Bundles: main `index-CZpiDRKJ.js`, this PR `index-CCfmgKR5.js`.
 - Each label gives the metre, the sampler's ground kind, whether the globe is drawn, and the share of the panel darker than luminance 12.
 
