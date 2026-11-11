@@ -18,7 +18,7 @@ Tiber river park):
 and writes OUT/measurements-home-destinations.json: horizontal overflow, the
 smallest font and target inside the sections, section/tile counts and titles.
 BEFORE=1 shoots only the full page (for a pre-change build, e.g. BASE=main's
-preview). OUT defaults to ~/.hermes/cache/scratch/p22-shots; ONLY=1440,tv and
+preview). OUT defaults to $TMPDIR/p22-shots; ONLY=1440,tv and
 THEMES=day narrow the run.
 """
 from __future__ import annotations
@@ -26,6 +26,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import tempfile
 import sys
 from pathlib import Path
 
@@ -34,7 +35,7 @@ import common  # noqa: E402
 from PIL import Image, ImageDraw  # noqa: E402
 from playwright.sync_api import sync_playwright  # noqa: E402
 
-OUT = Path(os.environ.get("OUT", Path.home() / ".hermes/cache/scratch/p22-shots"))
+OUT = Path(os.environ.get("OUT", Path(tempfile.gettempdir()) / "p22-shots"))
 MOCKUP = common.REPO / "docs/design/mockups/v2-home-destinations.html"
 BEFORE = os.environ.get("BEFORE") == "1"
 SECTION_IDS = ["perugia", "lugano", "wishlist"]

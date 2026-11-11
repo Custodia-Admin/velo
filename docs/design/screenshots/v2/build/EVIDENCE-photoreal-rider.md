@@ -63,9 +63,9 @@ the world rider's.
 - `AVATAR_RIG` equals the GLB `RIG` for wheels, wheelbase, bottom bracket, crank, hips and thigh.
   The avatar's shin equals the GLB's shin plus its ankle height.
 - The legs reach the pedals all the way round, so the knee IK never clamps.
-- Mutations: 15/15 killed (`~/.hermes/handoffs/velo/t_dfa07725/mutations.py <detached worktree>`).
+- Mutations: 15/15 killed (`mutations.py <detached worktree>`, kept outside the repo).
 
-## Live (cat-bed EGL, token prod dists, Lugano–Melide 1200 m, noon clear, every rider material magenta)
+## Live (test host EGL, token prod dists, Lugano–Melide 1200 m, noon clear, every rider material magenta)
 
 Box edges in CSS px (left, top, right, bottom). The world reference is the GLB's vertices projected
 through the live camera; its magenta box misses 1–3 px of the lit helmet crown.
@@ -118,7 +118,7 @@ the rider with the boxes, the strip and the 1 m point, plus the full frames belo
 - `photoreal-rider/rider-colours-1280-close.jpg`: side-on and chase, close, in the rider's own
   colours.
 
-## Probes (before = 1bd0bb1, after = this branch, interleaved on cat-bed)
+## Probes (before = 1bd0bb1, after = this branch, interleaved on the test host)
 
 The ground placement code is untouched. These runs check that a taller avatar changes nothing about where the rider stands or what the camera sees.
 

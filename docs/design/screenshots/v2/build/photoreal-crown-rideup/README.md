@@ -2,7 +2,7 @@
 
 Each image has two panels: **main 126597d + #90 b5072bb | this PR (f001955)**.
 - Both panels are shot from the same rider spot with the same chase camera. The probe is `pr76probe.py` `spot:M`: it rolls in over the last 60 m, settles, then rolls in again over the last 20 m and takes 6 samples.
-- The shots come from cat-bed on 6 Nov 2026 (Intel iGPU via ANGLE GL-EGL), with base and head in the same session. The probe and queues live in `~/.hermes/handoffs/velo/t_2835af4b/` (`queue.sh`, output `cat/q6/`).
+- The shots come from the test host on 6 Nov 2026 (Intel iGPU via ANGLE GL-EGL), with base and head in the same session. The probe and queues live in a scratch directory outside the repo (`queue.sh`, output `cat/q6/`).
 - Bundles: base `index-CZpiDRKJ.js`, this PR `index-Dqtteiv9.js`.
 
 On the Cuyahoga towpath at 4.73–4.76 km, every build took a crown as the road and rode it 5.5–10.5 m over the towpath. This PR keeps the rider on the drawn ground: the globe stand-in, at the towpath's height.

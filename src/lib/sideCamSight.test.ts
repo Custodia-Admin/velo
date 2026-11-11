@@ -2,7 +2,7 @@
  * The side / orbit camera's sight over the photoreal mesh (t_1ec01b75).
  *
  * Profiles are real readings from a sideTracking ride on the Lugano shore
- * (main + PR #40, cat-bed): the top of what is drawn, metres over the rider's
+ * (main + PR #40, test host): the top of what is drawn, metres over the rider's
  * ground, 1..14 m out on the camera's side and on the other side, at each
  * spot where the camera filmed a flat frame.
  */

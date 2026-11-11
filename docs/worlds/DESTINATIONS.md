@@ -21,9 +21,18 @@ a manifest.
 
 | Role | Home section |
 | --- | --- |
-| `home` | one section per destination: "Home · Perugia" |
-| `hometown` | one section per destination: "Hometown · Lugano" |
+| `home` | one section per destination, first: "Perugia" |
+| `hometown` | one section per destination, next: "Lugano" |
 | `wishlist` | one section for all of them: "Places we want to go", ordered by `order`; its tiles lead with the place name |
+
+`home` and `hometown` are the featured worlds. The public build titles their
+sections with the place name only. A private deploy can label them
+"Home · Perugia" and "Hometown · Lugano" by building with
+`VITE_HOUSEHOLD_LABELS=1` (`homeSections` in `src/lib/world/destinations.ts`;
+[ADR-002](../architecture/ADR-002-publishing.md)). Put it in
+`.env.production.local` (and `.env.development.local` for the dev server):
+`vitest` runs in mode `test`, reads neither file, and so keeps testing the
+public titles.
 
 Today's ride sits above the sections and is skipped in its own section.
 Inside a section, routes drawn by a 3D world come first. Where a section mixes
@@ -58,7 +67,7 @@ It shows on Home with a map plate of its route and rides on the map
 Nothing about it is a dead end. When its world is baked (P3.1):
 
 1. set the manifest's `world` to `{ "id": "<id>" }`;
-2. write `tools/worldbake/worlds/<id>.json` and bake it on cat-bed
+2. write `tools/worldbake/worlds/<id>.json` and bake it
    ([ADDING-A-WORLD.md](ADDING-A-WORLD.md)). A bake that writes to its default
    place runs `syncDestinations.mjs`, which copies the bbox, routes, moods,
    towns and credits from the bundle and sets `dir`: `<id>/` for a world in

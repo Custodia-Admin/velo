@@ -19,10 +19,10 @@ P1.5). Full suites run in GitHub CI.
 - [x] P1.2 Renderer seam: `WorldRenderer` interface, pure `rideSim.step()`, Cesium moved behind the seam, `renderer: 'world' | 'photoreal'` (default `'world'`), Cesium chunk lazy (PR #10)
 - [x] P1.3 World bake v0, Perugia: `tools/worldbake/` (terrarium DEM + OSM Overpass + p2e routes), ≤ 8 MB, deterministic, credits (PR #12; Perugia is 5.6 MB in `public/worlds/perugia/`)
 - [x] P1.4 three.js renderer v0 (needs P1.2 + P1.3): terrain chunks, roads, stylized GLTF rider, chase cam, sky; token-free ride with no request to cesium.com (PR #16: token-free Perugia ride; the CI smoke ride asserts zero cesium.com requests)
-- [x] P1.5 Visual identity v2, warm atlas: mockups for five screens at 1440/390/TV; Federico signs off before any P2 UI packet (PR #22; signed off 1 Nov: "omg they look so good!!! Let's do it")
+- [x] P1.5 Visual identity v2, warm atlas: mockups for five screens at 1440/390/TV; the owner signs off before any P2 UI packet (PR #22; signed off 1 Nov: "omg they look so good!!! Let's do it")
 
 ## Phase 2 — Beautiful (after P1)
-- [x] P2.1 World materials, light, weather, time of day: water, trees, buildings, landmarks, live Open-Meteo (PR #28; Federico approved it "as an MVP" on 2 Nov)
+- [x] P2.1 World materials, light, weather, time of day: water, trees, buildings, landmarks, live Open-Meteo (PR #28; the owner approved it "as an MVP" on 2 Nov)
 - [x] P2.2 Lugano world + destination system (Home generated from manifests: Home · Perugia, Hometown · Lugano, Places we want to go) (PR #32)
 - [x] P2.3 Show & journey mode v2: local video overlay, Document PiP ride-over-anything, cinematic director (PR #36)
 - [x] P2.4 Visual identity v2 build (tokens + `src/components/velo/`, after P1.5 sign-off) (PR #27)
@@ -34,13 +34,13 @@ P1.5). Full suites run in GitHub CI.
 - [ ] P3.3 TV mode polish (`data-layout="tv"`, overscan, companion control)
 
 ## Phase 4 — Open source (after P2; docs can start earlier)
-- [ ] P4.1 Repo hygiene and attribution: name, LICENSE (both copyright lines), NOTICE, README, CONTRIBUTING, CI, privacy scrub. Publish under `Custodia-Admin/velo` (owner decision, ADR-001)
+- [x] P4.1 Repo hygiene and attribution: name, LICENSE (both copyright lines), NOTICE, README, CONTRIBUTING, CI (fresh clone, bake-validate), privacy scrub. Published under `Custodia-Admin/velo` (owner decision, [ADR-002](docs/architecture/ADR-002-publishing.md))
 - [ ] P4.2 Release v2.0.0: Cloudflare Pages, R2 worlds, fresh-clone check
 
 Critical path: P0.1 → P1.2/P1.3 → P1.4 → P2.1 → P4.
 
 ## Also shipped in v2 (outside the packets)
-- [x] GPU render-streaming spike on cat-bed: numbers and integration sketch (PR #11, `docs/architecture/STREAMING-SPIKE.md`)
+- [x] GPU render-streaming spike on a desktop RTX GPU: numbers and integration sketch (PR #11, `docs/architecture/STREAMING-SPIKE.md`)
 - [x] Ride perf: no GPU ground pick, `?perf=1` overlay, adaptive quality governor, HUD render-rate quantisation (PRs #13, #17)
 - [x] Mobile ride HUD: detail dock at 390 and a one-row transport bar (PRs #18, #19)
 - [x] Corridor-aware side-tracking camera (PR #21)

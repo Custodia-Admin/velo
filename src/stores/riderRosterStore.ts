@@ -72,8 +72,13 @@ export function cleanName(name: string, fallback: string): string {
   return trimmed || fallback;
 }
 
+/**
+ * The seed roster: neutral names that people rename on first run (Settings →
+ * Rider → Rename). Names and profiles are saved in this browser only
+ * (localStorage, key below); the public build ships no one's name (ADR-002).
+ */
 export const INITIAL_RIDERS: RosterRider[] = [
-  { id: 'rider-1', name: 'Federico', settings: null, profile: null },
+  { id: 'rider-1', name: 'Rider 1', settings: null, profile: null },
   { id: 'rider-2', name: 'Rider 2', settings: null, profile: null },
 ];
 

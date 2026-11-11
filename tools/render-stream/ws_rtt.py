@@ -1,8 +1,8 @@
 # WS RTT to the relay (no video): laptop -> tailscale serve -> relay. Usage: ws_rtt.py [n] [url]
-import asyncio, json, sys, time, statistics
+import asyncio, json, sys, time, statistics, os
 import aiohttp
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 100
-URL = sys.argv[2] if len(sys.argv) > 2 else 'wss://cat-bed.tail6f8715.ts.net:8443/velo-relay/ws?role=client&room=rtt'
+URL = sys.argv[2] if len(sys.argv) > 2 else os.environ['RENDER_URL'].replace('https://', 'wss://', 1) + '/velo-relay/ws?role=client&room=rtt'
 async def main():
     async with aiohttp.ClientSession() as s:
         async with s.ws_connect(URL) as ws:

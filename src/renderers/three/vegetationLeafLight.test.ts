@@ -130,10 +130,10 @@ describe('skylight through the leaves lights a crown where the sky does not', ()
 type Rgb = readonly [number, number, number];
 
 /**
- * Measured on cat-bed: ANGLE gl-egl on the Intel Arrow Lake iGPU, the token-free build of main
+ * Measured on the test host: ANGLE gl-egl on the Intel Arrow Lake iGPU, the token-free build of main
  * 84b7d85, Tiber park at 1440×900, medium tier. The rider is held with `__veloWorldLight.place(d)`,
  * the light pinned with `.set({ time, weather })` and the tree sway frozen. Taken 5 Nov 2026, so
- * autumn is 0.45. Probe: ~/.hermes/handoffs/velo/t_7553665c/leaf_probe.py; pick2.py picks the rows.
+ * autumn is 0.45. The probe scripts are kept outside the repo.
  *
  * - `skyUp`: the sky irradiance from straight up that the tree shader sees (env IBL + hemisphere,
  *   before three's ÷π). It is read back exactly from the scene's own environment and hemisphere light.
@@ -299,7 +299,7 @@ function displayRow(light: MeasuredLight, row: number[]) {
   };
 }
 
-describe('skylight through the leaves, against the cat-bed measurements', () => {
+describe('skylight through the leaves, against the test-host measurements', () => {
   it.each(MEASURED.filter((m) => m.term.length > 0).map((m) => [m.what, m] as const))(
     'adds the light the shader added, pixel by pixel (%s)',
     (_, light) => {

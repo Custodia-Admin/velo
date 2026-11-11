@@ -1,4 +1,4 @@
-# Drive the render Chrome on cat-bed (CDP via ssh tunnel) into a Velo demo ride and inject the render agent.
+# Drive the render Chrome on the render host (CDP via ssh tunnel) into a Velo demo ride and inject the render agent.
 # Usage: server_page.py [cdp_port] [room] [route_index]
 import sys, time, json, pathlib
 from playwright.sync_api import sync_playwright

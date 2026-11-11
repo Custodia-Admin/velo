@@ -37,9 +37,9 @@ from about 2.5 % grade.
   `cameraTarget` → `CameraRig`) on the Lugano world, up Locarno–Brissago's 6–7 % climb
   (2,740–2,850 m) at close and standard. The rear tyre stays over the strip at all 4 gate viewports
   on every frame.
-- Mutations: 15 entries (`~/.hermes/handoffs/velo/t_54dc80e6/mutations.py`), 15 killed.
+- Mutations: 15 entries (`mutations.py`, kept outside the repo), 15 killed.
 
-## Live (cat-bed EGL; before = PR #86 runtime, after = this card; distance "close")
+## Live (test host EGL; before = PR #86 runtime, after = this card; distance "close")
 
 Wheel bottom over the top of the HUD strip under the rider, CSS px. Each rider was shot painted
 magenta, then shot again with the HUD hidden so the box reaches the wheels behind the strip. World
@@ -82,6 +82,6 @@ Composites in `climb-framing/`:
   drops by the bike's pitch (~10 px at 12 % at 390). At the foot of a climb it is the reverse: the
   rider rides a little higher.
 
-Data, scripts and the full composites are in `~/.hermes/handoffs/velo/t_54dc80e6/`:
+Data, scripts and the full composites are in a scratch directory outside the repo:
 `out/*/tabframe.json`, `compare/`, `tabframe3.py`, `queue.sh`, `compose.py`, `summ.py`,
 `mutations.py`, and `spots-maths.json` (the rule's maths at each spot).

@@ -5,7 +5,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
@@ -13,6 +13,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { SCENIC_ROUTES, todaysScenicRoute } from '@/lib/scenicRoutes';
 import { DESTINATIONS, homeSections, validateDestination } from '@/lib/world/destinations';
 import { ScenicHomeSections, homeSectionViews } from './ScenicHome';
+
+// The public build (no VITE_HOUSEHOLD_LABELS), whatever a local env file says.
+vi.stubEnv('VITE_HOUSEHOLD_LABELS', '');
 
 const html = () => renderToStaticMarkup(createElement(MemoryRouter, null, createElement(ScenicHomeSections)));
 
@@ -24,7 +27,7 @@ describe('ScenicHomeSections', () => {
     expect(out).toContain('data-testid="featured-scenic-ride"');
     expect(out).toMatch(/Today’s ride · (Perugia)</);
     const titles = [...out.matchAll(/<h3 id="destination-[^"]+"[^>]*>([^<]+)<\/h3>/g)].map((m) => m[1]);
-    expect(titles).toEqual(['Home · Perugia', 'Hometown · Lugano', 'Places we want to go']);
+    expect(titles).toEqual(['Perugia', 'Lugano', 'Places we want to go']);
     expect(out).toContain('data-destination-section="perugia"');
     expect(out).toContain('data-destination-section="lugano"');
     expect(out).toContain('data-destination-section="wishlist"');

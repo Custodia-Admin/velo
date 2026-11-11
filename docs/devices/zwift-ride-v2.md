@@ -2,7 +2,7 @@
 
 Status: research done 29 Oct 2026, before any code. Hardware session still
 pending (see "Hardware session checklist" at the end). Nothing here has been
-checked against Federico's own controllers yet; every protocol fact below comes
+checked against the owner's own controllers yet; every protocol fact below comes
 from the public sources listed, cross-checked between at least two of them.
 
 Velo's UI never shows the maker's brand (UI-RULES §6). This document names the
@@ -450,7 +450,7 @@ on the tailnet), because the laptop browser has no `getDevices()` /
 Show mode, if there is time: Y plays/pauses, Z skips, B toggles the auto
 camera; the hood buttons move the camera closer / further.
 
-## Hardware session checklist (Federico)
+## Hardware session checklist (owner)
 
 Do this with nobody on the bike for steps 1 to 6.
 

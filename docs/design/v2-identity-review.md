@@ -61,7 +61,7 @@ measurement disproved are listed as such below.
 1. **World stills read as CG** (targeted vision check about 4/10 photographic;
    the old renders were about 2/10). Light and grade work; ground texture,
    buildings and the rider model are the weak parts. P2.1 owns the world look.
-   Federico's comment that the current visuals are "cartooney" is only
+   The owner's comment that the current visuals are "cartooney" is only
    partially answered by these stills.
 2. **The video frame in show mode is a placeholder** (no third-party footage in
    mockups).
