@@ -189,6 +189,15 @@ const SCENIC_META: ScenicMeta[] = [
     mood: 'mediterranean-mist',
   },
   {
+    id: 'scenic-chengdu-xinglong-lake',
+    name: 'Xinglong Lake loop',
+    place: 'Chengdu · Tianfu New Area',
+    description:
+      'Clockwise round Xinglong Lake on the lakeside road and its bike lanes, the signed local cycle loop, with the water on your right.',
+    scenery: 'lake',
+    mood: 'mediterranean-mist',
+  },
+  {
     id: 'scenic-hangzhou-west-lake',
     name: 'West Lake loop',
     place: 'Hangzhou · West Lake',

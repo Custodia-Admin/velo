@@ -121,6 +121,13 @@ const ROUTES = [
     waypoints: [[30.4720, 104.0600], [30.4580, 104.0700], [30.4445, 104.0600], [30.4580, 104.0495], [30.4720, 104.0600]],
   },
   {
+    id: 'scenic-chengdu-xinglong-lake',
+    // Round Xinglong Lake on the lakeside road (Hupan Lu) and its bike lanes,
+    // clockwise with the lake on the right: the signed local cycle route,
+    // OSM relation 18146670 "环兴隆湖（顺时针）" (Around Xinglong Lake, clockwise).
+    relation: 18146670,
+  },
+  {
     id: 'scenic-hangzhou-west-lake',
     // Lakeshore roads and the Yanggong causeway (the Su causeway is foot-only).
     // Starts and ends on Beishan Street at the Broken Bridge, so the loop
