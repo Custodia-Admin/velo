@@ -53,7 +53,10 @@ vi.mock('./Rider', () => ({
 
 import { useRideStore } from '@/stores/rideStore';
 import { ChaseCamera } from './ChaseCamera';
+import { CoupleGhost } from './CoupleGhost';
 import { Ghosts } from './Ghosts';
+import { Landmarks } from './Landmarks';
+import { PlayLayer, type PostcardPins } from './PlayLayer';
 import { threeQuality } from './quality';
 import { PaceBots } from './Rider';
 import { syntheticSceneWorld } from './syntheticWorld';
@@ -129,6 +132,9 @@ describe('ThreeWorldView: one drawn ground for everything that stands on it', ()
     expect(one(ChaseCamera).ground).toBe(ground);
     expect(one(PaceBots).ground).toBe(ground);
     expect(one(Ghosts).ground).toBe(ground);
+    // The couple ghost stands on the same ground and fades against the same rider frame.
+    expect(one(CoupleGhost).ground).toBe(ground);
+    expect(one(CoupleGhost).frame).toBe(one(RideDriver).frame);
 
     // It is the terrain's own visibility: flip a chunk's LOD and the ground follows it.
     const visibility = one(Terrain).visibility as ChunkVisibility;
@@ -163,6 +169,16 @@ describe('ThreeWorldView: one drawn ground for everything that stands on it', ()
     expect(p.position.y).toBeCloseTo(ground(p.worldX, p.worldY), 6);
     expect(frame.ahead.y).toBeCloseTo(ground(frame.ahead.x, -frame.ahead.z), 6);
     useRideStore.setState({ route: null, distance: 0, rideState: 'idle', speed: 0 });
+  });
+});
+
+describe('ThreeWorldView: Play mode postcards are the places\' own pins', () => {
+  it('the play layer and the pins share one postcard state, on the scene\'s route', () => {
+    const { one } = scene();
+    const pins = one(PlayLayer).pins as PostcardPins;
+    expect(one(Landmarks).postcards).toBe(pins);
+    expect((one(PlayLayer).route as Route).id).toBe('synthetic');
+    expect(pins.pending(0)).toBe(false);
   });
 });
 

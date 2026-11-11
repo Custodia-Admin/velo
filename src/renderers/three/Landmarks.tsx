@@ -7,6 +7,10 @@
  * never hard-coded. Pins keep a constant on-screen size by rank, fade in and
  * out, hide behind hills (heightfield line-of-sight), and are decluttered
  * on screen every frame so two pins can never overlap.
+ *
+ * In Play mode a place on the route is also a postcard (PlayLayer): its pin
+ * is drawn in the accent colour (`--primary`) until the rider passes it,
+ * then pops once and turns back into a plain pin. Still no text.
  */
 
 import { useEffect, useMemo } from 'react';
@@ -17,6 +21,7 @@ import type { Heightfield } from '@/lib/world/heightfield';
 import type { WorldPoi } from '@/lib/world/manifest';
 
 import { PIN_ASPECT, PIN_PX, declutterPins, pickPins, pinPriority, pinRect, type PinPick, type PinRect } from './landmarks';
+import type { PostcardPins } from './PlayLayer';
 import type { ThreeQuality } from './quality';
 import type { SceneWorld } from './worldScene';
 
@@ -29,6 +34,16 @@ function token(name: string, fallback: string): string {
 
 /** Texture pixels per CSS pixel of the largest pin. */
 const TEX_SCALE = 3;
+/** A collected postcard's pin pops (grows and settles back) over this long, seconds. */
+export const POSTCARD_POP_S = 0.6;
+/** How much bigger it gets at the top of the pop. */
+export const POSTCARD_POP_SCALE = 0.5;
+
+/** Size factor of a pin `since` seconds after its postcard was collected (1 outside the pop). */
+export function postcardPop(since: number): number {
+  if (!(since >= 0) || since >= POSTCARD_POP_S) return 1;
+  return 1 + POSTCARD_POP_SCALE * Math.sin((Math.PI * since) / POSTCARD_POP_S);
+}
 
 /**
  * One map pin (round head, point at the bottom centre, a hole in the head):
@@ -78,6 +93,10 @@ interface PinSprite {
   /** World anchor (three.js) of the pin's tip. */
   anchor: THREE.Vector3;
   ground: THREE.Vector3;
+  /** Drawn as a postcard still to collect (accent pin). */
+  postcard: boolean;
+  /** Clock time its postcard was collected (NaN: not this session). */
+  poppedAt: number;
 }
 
 /** Is the straight line from the camera to `to` above the terrain? (12 samples) */
@@ -97,18 +116,31 @@ function liftFor(p: WorldPoi): number {
   return p.kind === 'town' ? 70 : p.kind === 'peak' ? 25 : 34;
 }
 
-export function Landmarks({ sceneWorld, quality }: { sceneWorld: SceneWorld; quality: ThreeQuality }) {
+export function Landmarks({
+  sceneWorld,
+  quality,
+  postcards,
+}: {
+  sceneWorld: SceneWorld;
+  quality: ThreeQuality;
+  /** Play mode: which places are postcards still to collect. */
+  postcards?: PostcardPins;
+}) {
   const size = useThree((s) => s.size);
   const state = useMemo(() => {
-    const texture = new THREE.CanvasTexture(typeof document === 'undefined' ? undefined : document.createElement('canvas'));
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    const canvasTexture = () => {
+      const t = new THREE.CanvasTexture(typeof document === 'undefined' ? undefined : document.createElement('canvas'));
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.minFilter = THREE.LinearMipmapLinearFilter;
+      return t;
+    };
     return {
       pins: new Map<number, PinSprite>(),
       nextPick: 0,
       ink: new THREE.Color(),
       palette: '',
-      texture,
+      texture: canvasTexture(),
+      postcardTexture: canvasTexture(),
       group: new THREE.Group(),
       fwd: new THREE.Vector3(),
       ndc: new THREE.Vector3(),
@@ -133,6 +165,7 @@ export function Landmarks({ sceneWorld, quality }: { sceneWorld: SceneWorld; qua
       for (const p of state.pins.values()) p.sprite.material.dispose();
       state.pins.clear();
       state.texture.dispose();
+      state.postcardTexture.dispose();
       leaders.geometry.dispose();
       (leaders.material as THREE.Material).dispose();
     };
@@ -148,12 +181,16 @@ export function Landmarks({ sceneWorld, quality }: { sceneWorld: SceneWorld; qua
       // Theme colours read twice a second, not per frame (getComputedStyle forces a style pass).
       const fill = token('--card-foreground', '#2a2018');
       const rim = token('--card', '#fbf8f2');
-      if (`${fill}|${rim}` !== state.palette) {
+      const accent = token('--primary', '#b04727');
+      if (`${fill}|${rim}|${accent}` !== state.palette) {
         const canvas = drawPin(fill, rim);
-        if (canvas) {
-          state.palette = `${fill}|${rim}`;
+        const postcard = drawPin(accent, rim);
+        if (canvas && postcard) {
+          state.palette = `${fill}|${rim}|${accent}`;
           state.texture.image = canvas;
           state.texture.needsUpdate = true;
+          state.postcardTexture.image = postcard;
+          state.postcardTexture.needsUpdate = true;
         }
       }
       state.ink.set(fill);
@@ -179,6 +216,8 @@ export function Landmarks({ sceneWorld, quality }: { sceneWorld: SceneWorld; qua
             wanted: false,
             anchor: new THREE.Vector3(pick.poi.x, groundY + liftFor(pick.poi), -pick.poi.y),
             ground: new THREE.Vector3(pick.poi.x, groundY + 2, -pick.poi.y),
+            postcard: false,
+            poppedAt: NaN,
           };
           state.pins.set(pick.index, p);
           state.group.add(sprite);
@@ -212,7 +251,16 @@ export function Landmarks({ sceneWorld, quality }: { sceneWorld: SceneWorld; qua
         state.pins.delete(p.pick.index);
         return;
       }
-      const hWorld = (PIN_PX[p.pick.rank] ?? PIN_PX[1]) * pxToWorld * camera.position.distanceTo(p.anchor);
+      // A postcard still to collect wears the accent; the frame it is collected it pops back to a plain pin.
+      const postcard = postcards?.pending(p.pick.index) ?? false;
+      if (postcard !== p.postcard) {
+        if (p.postcard) p.poppedAt = t;
+        p.postcard = postcard;
+        p.sprite.material.map = postcard ? state.postcardTexture : state.texture;
+        p.sprite.material.needsUpdate = true;
+      }
+      const pop = postcardPop(t - p.poppedAt);
+      const hWorld = (PIN_PX[p.pick.rank] ?? PIN_PX[1]) * pop * pxToWorld * camera.position.distanceTo(p.anchor);
       p.sprite.scale.set(hWorld * PIN_ASPECT, hWorld, 1);
       p.sprite.position.copy(p.anchor);
       p.sprite.material.opacity = p.opacity * 0.96;

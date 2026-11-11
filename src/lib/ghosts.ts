@@ -7,15 +7,16 @@
  * works because the ride recorder stores route.name and the last sample's
  * distance which equals route.totalDistance at finish.
  *
- * Playback is driven by the live rider's elapsed wall-clock seconds. For each
- * frame the ghost's distance along the route is obtained by linearly
- * interpolating the ghost's recorded sample `distance` values keyed on their
- * wall-clock offset from the ghost's startedAt.
+ * Playback is driven by the live rider's ride clock (pauses excluded): the
+ * ghost at ride time T is where the past ride was after T seconds of its own
+ * riding (lib/play/ghostReplay).
  */
 
 import type { Route, TelemetrySample } from '@/types';
 import { listRides } from '@/lib/rideHistory';
 import type { RideRecord } from '@/lib/rideHistory';
+import { buildGhostReplay } from '@/lib/play/ghostReplay';
+import { useRiderRosterStore } from '@/stores/riderRosterStore';
 
 // Max ghosts rendered simultaneously.
 export const MAX_GHOSTS = 3;
@@ -32,9 +33,9 @@ export interface GhostRide {
   /** Total duration of the past ride, seconds. */
   durationSec: number;
   /**
-   * Given the live rider's elapsed seconds, returns the ghost's cumulative
-   * distance along the route in metres, clamped to [0, route.totalDistance].
-   * Returns null only when the ghost has not yet started (elapsedSec < 0).
+   * Given the live rider's ride seconds (pauses excluded), returns the
+   * ghost's cumulative distance along the route in metres, clamped to
+   * [0, route.totalDistance]. The renderers hide a ghost on null.
    */
   distanceAt: (elapsedSec: number) => number | null;
 }
@@ -42,9 +43,9 @@ export interface GhostRide {
 // ---- Internal helpers -------------------------------------------------------
 
 /**
- * Build a fast interpolation function over the sample array.
- * The ghost samples are keyed by seconds-since-ride-start so we can look up
- * any elapsed time in O(log n) via binary search.
+ * Wall-clock interpolation over the sample array (the Cesium riding buddy's
+ * pace, lib/play/buddy). Ghosts use lib/play/ghostReplay, which runs on the
+ * ride clock instead.
  */
 export function buildInterpolator(
   samples: TelemetrySample[],
@@ -118,29 +119,44 @@ function isEligible(record: RideRecord, route: Route): boolean {
  * Load up to MAX_GHOSTS ghost rides for the given route from IndexedDB.
  * Selects the best past attempts (fastest average speed) and returns them
  * sorted fastest-first. Returns an empty array when no eligible rides exist.
+ *
+ * Only `riderId`'s own rides (default: the active rider) and records saved
+ * before rides carried a rider count: the other rider's ride is the couple
+ * ghost (lib/play/coupleGhost), not an anonymous one. Playback runs on the
+ * ride clock and through the recorded positions (lib/play/ghostReplay).
  */
-export async function loadGhosts(route: Route): Promise<GhostRide[]> {
+export async function loadGhosts(
+  route: Route,
+  riderId: string = useRiderRosterStore.getState().activeRiderId,
+): Promise<GhostRide[]> {
   let all: RideRecord[];
   try {
     all = await listRides();
   } catch {
     return [];
   }
+  return pastGhosts(all, route, riderId);
+}
 
-  const eligible = all.filter((r) => isEligible(r, route));
+/** The ghosts `loadGhosts` returns, from a list of records (pure). */
+export function pastGhosts(all: readonly RideRecord[], route: Route, riderId: string): GhostRide[] {
+  const eligible = all.filter(
+    (r) => (r.riderId === undefined || r.riderId === riderId) && isEligible(r, route),
+  );
   if (eligible.length === 0) return [];
 
   // Sort by average speed descending (fastest first) — pick up to MAX_GHOSTS.
   eligible.sort((a, b) => b.avgSpeed - a.avgSpeed);
-  const picked = eligible.slice(0, MAX_GHOSTS);
-
-  return picked.map((record): GhostRide => {
-    const interpolate = buildInterpolator(record.samples, record.startedAt);
+  return eligible.slice(0, MAX_GHOSTS).flatMap((record): GhostRide[] => {
+    const replay = buildGhostReplay(record.samples, record.startedAt, route);
+    if (!replay) return [];
     const date = new Date(record.startedAt).toLocaleDateString();
-    return {
-      label: `${record.name} · ${date}`,
-      durationSec: record.durationSec,
-      distanceAt: interpolate,
-    };
+    return [
+      {
+        label: `${record.name} · ${date}`,
+        durationSec: record.durationSec,
+        distanceAt: replay.distanceAt,
+      },
+    ];
   });
 }
