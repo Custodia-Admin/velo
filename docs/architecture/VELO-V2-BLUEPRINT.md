@@ -1,7 +1,7 @@
 # Velo v2 — Architectural Blueprint
 
-Architect consult 1 of 3 (claude-fable-5-1), 2026-10-31. Owner: Federico Brooks.
-Repo: `/home/federicob/Projects/velo` (fork of masonwyatt23/globeride, MIT).
+Architect consult 1 of 3 (claude-fable-5-1), 2026-10-31.
+Repo: [Custodia-Admin/velo](https://github.com/Custodia-Admin/velo) (fork of masonwyatt23/globeride, MIT).
 Running tonight: `velo/ride-tonight` worktree, 2,001 tests green.
 
 Mandate: full creative liberty, best riding app in the world, real 3D is
@@ -29,7 +29,7 @@ for it later.
 | Option | Verdict | Reason |
 | --- | --- | --- |
 | (a) Cesium + ion | Opt-in only, never default | Violates the token-free hard requirement; the "photoreal" the household liked was Google Photorealistic 3D Tiles (ion asset 2275207), which is Google-owned, token-gated and **cannot be self-hosted** under any plan. Tonight's black globe is the structural outcome, not a bug. |
-| (b) Cesium + self-hosted terrain | Deferred | Removes the token, but at bike-seat height a 30 m DEM draped with free imagery (OSM raster, EOX Sentinel-2 at 10 m/px, Esri with attribution caveats) looks worse than tonight's flat-map fallback with buildings. Baking quantized-mesh (ctb-tile) is fine; the **imagery** is the dead end. Free orthophotos at ≤0.5 m/px don't exist globally. Beauty would still depend on ion. |
+| (b) Cesium + self-hosted terrain | Deferred | Removes the token, but at bike-seat height a 30 m DEM draped with free imagery (OSM raster, EOX s2cloudless at 10 m/px, Esri with attribution caveats) looks worse than tonight's flat-map fallback with buildings. Baking quantized-mesh (ctb-tile) is fine; the **imagery** is the dead end. Free orthophotos at ≤0.5 m/px don't exist globally. Beauty would still depend on ion. |
 | (c) MapLibre + terrarium + three overlay | Rejected | MapLibre's terrain is a map camera (pitch cap, no true ground-level chase cam); a synced three.js overlay is fragile and still reads as 2.5D. Full ride-view rewrite for a worse ceiling than (d). |
 | (d) Own stylized worlds | **Core** | Zwift's actual recipe, but generated from real data instead of hand-built. Token-free, self-hosted, offline-cacheable per world (a bundle is MBs, not GBs), art-directable (time of day, moods, weather, game layer), and the **route sim and the terrain come from the same bake**, which structurally fixes the avatar-vs-terrain mismatch. |
 | (e) Hybrid | **Chosen** | (d) as the product; Cesium photoreal retained behind a seam for people who bring a token (and for the upstream community). No second feature track: new ride features target the renderer interface, and the Cesium path only gets what falls out of the seam for free. |
@@ -67,7 +67,7 @@ heightfield, ≤2048²), `roads.json`, `water.json`, `vegetation.bin`
   zero egress). `VITE_WORLDS_BASE_URL` points there; a world is fetched on
   first ride and stored in the Cache API via workbox `runtimeCaching`
   (CacheFirst, 180 days). Offline rides work for any world ridden once.
-- No sentinel-pro-max involvement. No new subscriptions.
+- No extra servers. No new subscriptions.
 
 ### Licensing summary (goes into `docs/worlds/CREDITS.md`)
 
@@ -148,7 +148,7 @@ AVC:
 Files: `docs/architecture/ADR-001-rendering.md` (this decision, condensed),
 `docs/VELO-BRIEF.md` (home = Perugia, hometown = Lugano; "no paid services"
 → "no tokens required; photoreal is opt-in with your own token"), `ROADMAP.md`.
-AVC: docs reviewed by Federico; brief non-goals no longer mention the ion
+AVC: docs reviewed by the owner; brief non-goals no longer mention the ion
 token as a requirement.
 
 ### Phase 1 — Foundations (depends on P0)
@@ -273,7 +273,7 @@ The floor is never re-measured per world inside the gate. Re-deriving it require
 
 Every output field is mandatory in both the recipe and the report; a missing field is a validation error (`p13Criterion.test.ts` checks every committed world). `bound_m`, `floor_rms_m`, `floor_source`, `own_error_allowance_m`, `slope_threshold_deg` and `steep_fraction_threshold` come from constants in code, never from the recipe. `validation` is left out of `manifest.generator.recipeSha256`, so writing it back never changes a bundle.
 
-First results under v2 (2026-11-05, cat-bed; the bundles re-baked from cache are byte-identical to the committed ones apart from `recipeSha256`): Perugia `standard` (steep 0.0972), registered 4.54 m ≤ 6.00 m → **PASS** (point 5.96 m, as under v1). Lugano `mountain` (steep 0.5177), registered 8.88 m > 6.24 m → **FAIL** (point 18.17 m). In quadrature that is an own error of √(8.88² − 1.71²) = 8.71 m against the 6.00 m allowance; card t_49b58e90 re-bakes Lugano from GLO-30.
+First results under v2 (2026-11-05, on the bake host; the bundles re-baked from cache are byte-identical to the committed ones apart from `recipeSha256`): Perugia `standard` (steep 0.0972), registered 4.54 m ≤ 6.00 m → **PASS** (point 5.96 m, as under v1). Lugano `mountain` (steep 0.5177), registered 8.88 m > 6.24 m → **FAIL** (point 18.17 m). In quadrature that is an own error of √(8.88² − 1.71²) = 8.71 m against the 6.00 m allowance; card t_49b58e90 re-bakes Lugano from GLO-30.
 
 Lugano re-baked from Copernicus GLO-30 (2026-11-06, card t_49b58e90, same samples and cache): `mountain` (steep 0.5503), registered **1.81 m ≤ 6.24 m → PASS** (bias −0.05 m, max 7.49 m; point 19.47 m, reported only), an own error of √(1.81² − 1.71²) = 0.59 m. On the shipped extent's samples raw GLO-30 at the node scores 2.41 m; the 1.71 m floor was measured on the pre-#32 extent's draws (docs/worlds/WORLD-FORMAT.md § "Lugano").
 
@@ -297,7 +297,7 @@ from the three.js worlds themselves (no stock imagery), no cards-in-cards,
 no gradient blobs (UI-RULES §7).
 AVC:
 - Mockups at 1440×900, 390×844 **and 1920×1080 "TV"** for all five screens; vision review written against UI-RULES §9 with each rubric line answered.
-- Federico signs off on the direction before any P2 UI packet starts.
+- The owner signs off on the direction before any P2 UI packet starts.
 - Token delta documented (names only, HSL values) so P2.4 can apply it without raw values in components.
 
 ### Phase 2 — Beautiful (depends on P1)
@@ -311,7 +311,7 @@ and the light, time of day follows the clock with a "golden hour" override
 from the route mood.
 AVC:
 - Draw calls ≤ 400 and ≤ 150 k instanced trees at "balanced"; frame budget from P1.4 holds (same measurement, same laptop).
-- Four reference screenshots (dawn, noon, golden, night; one in rain) at 1920×1080 of Perugia committed under `docs/design/screenshots/world/` and vision-reviewed as "would I want to ride here" by Federico.
+- Four reference screenshots (dawn, noon, golden, night; one in rain) at 1920×1080 of Perugia committed under `docs/design/screenshots/world/` and vision-reviewed as "would I want to ride here" by the owner.
 - All of p2c's wind→FTMS behaviour unchanged (tests green).
 
 **P2.2 Lugano world + destination system.** (M, depends on P1.3)
@@ -348,7 +348,7 @@ AVC:
 - Protocol parsers 100 % branch-covered with recorded frames; no BLE control command sent outside a rider-started ride (existing rule, tested).
 - Reconnect test: simulated `gattserverdisconnected` → reconnected within 3 attempts, FTMS control re-requested, SIM grade re-applied.
 - Battery shown in ControllerPanel/TrainerPanel through the design gate; copy for pairing rewritten (the misleading troubleshooting text goes).
-- Hardware check by Federico on the Ride V2 + KICKR CORE 2, recorded in the PR.
+- Hardware check by the owner on the Ride V2 + KICKR CORE 2, recorded in the PR.
 
 ### Phase 3 — Destinations and play (depends on P2)
 
@@ -385,9 +385,9 @@ Files: `package.json` (name `velo`, author Federico Brooks, `contributors` Mason
 Privacy: `riderRosterStore` seed becomes `Rider 1`/`Rider 2` (rename on first run); family names/profile data live only in IndexedDB; `docs/VELO-BRIEF.md` scrubbed of personal detail beyond "two riders"; remove `scripts/vercel-env-push.sh` secrets paths from history if any (`git log -p` audit, documented result).
 AVC:
 - `npm run check` + build pass on a fresh clone with no `.env`.
-- `grep -ri "federico\|custodia\|sentinel" src tools docs` returns only LICENSE/NOTICE/README author lines.
+- A grep of `src tools docs README.md` for the owner's and household's names, company names, internal host names and agent paths returns only author, copyright and repository lines ([ADR-002](./ADR-002-publishing.md)).
 - Upstream is credited in README first paragraph, LICENSE, footer (existing UI-RULES §6 rule), and `package.json`.
-- Owner decision recorded: publish under `Custodia-Admin/velo` or transfer to a personal org (architect note: the job-search rule hides founder work from the employer; a personal namespace avoids tying this to Custodia).
+- Owner decision recorded in [ADR-002](./ADR-002-publishing.md): publish under `Custodia-Admin/velo`, the owner's personal GitHub account; no transfer.
 
 **P4.2 Release.** (S)
 Files: `CHANGELOG.md`, GitHub release `v2.0.0`, Cloudflare Pages deploy, R2 worlds published.
@@ -409,7 +409,7 @@ P2.* → P4.1 → P4.2
 ```
 
 Critical path: P0.1 → P1.2/P1.3 → P1.4 → P2.1 → P4. Everything UI-facing waits
-on P1.5 sign-off, which Federico should do early.
+on P1.5 sign-off, which the owner should do early.
 
 ## 4. Invariants through the migration
 
@@ -420,13 +420,15 @@ on P1.5 sign-off, which Federico should do early.
 5. No raw px/hex in `src/components/velo/`; screenshots at 1440/390 (+TV) looked at before "done".
 6. No new spend: Cloudflare Pages + R2 free tier, laptop bakes, CI in GitHub; spot VMs only via the standard skill if a bake batch outgrows the laptop.
 
-## 5. Open questions for Federico (answer before P1.5 / P4.1)
+## 5. Open questions for the owner (answer before P1.5 / P4.1)
 
 Answers 1–3 are owner decisions, recorded in
 [ADR-001](./ADR-001-rendering.md) (2026-10-31).
 
 1. Publish namespace: `Custodia-Admin/velo` or a personal org?
-   **Answered:** publication stays at Custodia-Admin/velo (MIT, upstream credit kept).
+   **Answered, closed by [ADR-002](./ADR-002-publishing.md) (2026-11-11):** publication stays at
+   Custodia-Admin/velo, the owner's personal GitHub account (already public, MIT, a GitHub fork of
+   GlobeRide, upstream credit kept). No transfer, no new organisation.
 2. Visual direction preference between "warm atlas" and "night-first cinema" (P1.5 will mock both; a one-word steer saves a round).
    **Answered:** "warm atlas" (calm, paper-day/deep-night, one accent). P1.5 mocks this direction only.
 3. Is a stylized rider GLTF acceptable, or do you want the upstream avatar look preserved?
