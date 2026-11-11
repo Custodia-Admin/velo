@@ -5,10 +5,10 @@
  * the 4-way midpoint split made Lugano 5.19 M water triangles (415 MB of
  * vertex buffers, half the frame rate).
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { readableWorldBundles, worldBundles } from '../../../tools/worldbake/worldBundles.mjs';
 
 import { loadWorld, type LoadedWorld, type WaterLayer } from '@/lib/world/loadWorld';
 import { buildWaterGeometry, tessellateWaterPolygon, WATER_EDGE_M } from './waterMesh';
@@ -74,10 +74,11 @@ describe('tessellateWaterPolygon', () => {
   });
 });
 
-const WORLDS = fileURLToPath(new URL('../../../public/worlds', import.meta.url));
-const SHIPPED = readdirSync(WORLDS)
-  .filter((d) => existsSync(join(WORLDS, d, 'manifest.json')))
-  .sort();
+/** Every bundle in public/worlds, plus each remote one whose files are on disk (worldBundles.mjs). */
+const BUNDLE_DIRS = new Map<string, string>(readableWorldBundles().map((b: { id: string; dir: string }) => [b.id, b.dir]));
+const SHIPPED = [...BUNDLE_DIRS.keys()].sort();
+/** Every world that ships, remote ones included even before their files are fetched. */
+const ALL_WORLDS = worldBundles().map((b: { id: string }) => b.id);
 
 /**
  * Shipped water budgets, triangles (polygons + stream ribbons). Lugano was
@@ -86,6 +87,7 @@ const SHIPPED = readdirSync(WORLDS)
  * needs an entry: a new world fails until its measured count is pinned here.
  */
 const BUDGET: Record<string, { max?: number; expected?: number }> = {
+  'chengdu-luxelakes': { expected: 36_767 },
   lugano: { max: 400_000 },
   perugia: { expected: 26_752 },
 };
@@ -142,15 +144,15 @@ function polygonArea(water: WaterLayer) {
 describe('shipped water budgets', () => {
   it('has an entry for every world that ships, and only for those', () => {
     expect(SHIPPED.length).toBeGreaterThan(0);
-    expect(SHIPPED.filter((id) => !(id in BUDGET)), 'shipped worlds without a water BUDGET entry').toEqual([]);
-    expect(Object.keys(BUDGET).filter((id) => !SHIPPED.includes(id)), 'BUDGET entries for worlds that do not ship').toEqual([]);
+    expect(ALL_WORLDS.filter((id: string) => !(id in BUDGET)), 'shipped worlds without a water BUDGET entry').toEqual([]);
+    expect(Object.keys(BUDGET).filter((id) => !ALL_WORLDS.includes(id)), 'BUDGET entries for worlds that do not ship').toEqual([]);
   });
 });
 
 describe.each(SHIPPED)('shipped world %s water mesh', (id) => {
   let world: LoadedWorld;
   beforeAll(async () => {
-    const dir = join(WORLDS, id);
+    const dir = BUNDLE_DIRS.get(id)!;
     world = await loadWorld(`/worlds/${id}/`, {
       fetch: async (url: string) => new Response(readFileSync(join(dir, url.replace(/^.*\//, ''))), { status: 200 }),
     });

@@ -23,6 +23,7 @@ import { scenicRouteById } from '@/lib/scenicRoutes';
 import { chaseFraming, RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
 import { worldForRoute, worldUrl, type WorldCatalogEntry } from '@/lib/world/catalog';
 import { loadWorld, type LoadedWorld } from '@/lib/world/loadWorld';
+import { openWorldCache } from '@/lib/world/worldCache';
 import { TIME_PRESETS, type TimePreset, type WorldLightInput } from '@/lib/world/moods';
 import type { RiderPose, WorldRenderer, WorldViewProps } from '@/lib/world/renderer';
 import { activeSteer } from '@/stores/controllerStore';
@@ -57,12 +58,14 @@ import { ChunkVisibility, createRideFrame, createSceneWorld, drawnGround, type R
 preloadRider();
 
 // One download + decode per world per session (a world is ~5 MB on the wire).
+// A remote world's files also go to the Cache API, so the next session
+// (offline included) reads them from disk (lib/world/worldCache).
 const worldCache = new Map<string, Promise<LoadedWorld>>();
 
 export function loadCatalogWorld(entry: WorldCatalogEntry): Promise<LoadedWorld> {
   let p = worldCache.get(entry.id);
   if (!p) {
-    p = loadWorld(worldUrl(entry));
+    p = (entry.remote ? openWorldCache() : Promise.resolve(null)).then((cache) => loadWorld(worldUrl(entry), { cache }));
     worldCache.set(entry.id, p);
     p.catch(() => worldCache.delete(entry.id));
   }

@@ -40,6 +40,7 @@ import { DEM_SOURCES, demSourceOf } from '../../../tools/worldbake/demSource.mjs
 import { nodeQueryPoints, openMeteoCacheKey, openMeteoUrl, samplePoints, validateHeightfield } from '../../../tools/worldbake/validateDem.mjs';
 import { finishBake, generatorFor, readRecipe } from '../../../tools/worldbake/bake.mjs';
 import { loadBakedWorld, validateBaked } from '../../../tools/worldbake/validate.mjs';
+import { readableWorldBundles, worldBundle } from '../../../tools/worldbake/worldBundles.mjs';
 import { buildHeightfield } from '../../../tools/worldbake/buildHeightfield.mjs';
 import { gzip, stableJson } from '../../../tools/worldbake/util.mjs';
 
@@ -525,9 +526,12 @@ describe('P1.3 v2: validate.mjs on a baked world', () => {
   const read = (id: string) => readJson(`tools/worldbake/worlds/${id}.json`);
 
   it('loads every committed bundle with the recipe that baked it', () => {
-    for (const id of WORLDS) {
+    // Remote worlds (tools/worldbake/remote) count once their files are on disk.
+    const readable = new Map<string, string>(readableWorldBundles().map((b: { id: string; dir: string }) => [b.id, b.dir]));
+    expect(WORLDS.filter((id) => !worldBundle(id)), 'recipes without a bundle').toEqual([]);
+    for (const id of WORLDS.filter((w) => readable.has(w))) {
       const recipe = read(id);
-      const world = loadBakedWorld(repo(`public/worlds/${id}`), recipe);
+      const world = loadBakedWorld(readable.get(id)!, recipe);
       expect(world.demSource, id).toBe(demSourceOf(recipe));
       expect(world.hf.spec.cols, id).toBe(recipe.grid.cols);
     }

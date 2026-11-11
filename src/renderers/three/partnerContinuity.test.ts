@@ -38,8 +38,8 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { readableWorldBundles } from '../../../tools/worldbake/worldBundles.mjs';
 
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { baseSlotM, PARTNER_SLOT_FLOOR_M } from '@/lib/ride/partnerSlots';
@@ -51,7 +51,8 @@ import { PARTNER_SLOT_MAX_RATE_MPS } from '@/lib/ride/partnerSlots';
 import { createBotDriverMemo, createRideDriverMemo, driveRideFrame, placeBot, placeBots, riderBeside } from './rideDriver';
 import { createRideFrame, createSceneWorld, type SceneWorld } from './worldScene';
 
-const ROOT = fileURLToPath(new URL('../../../public/worlds/', import.meta.url));
+/** Every bundle in public/worlds, plus each remote one whose files are on disk (worldBundles.mjs). */
+const BUNDLE_DIRS = new Map<string, string>(readableWorldBundles().map((b: { id: string; dir: string }) => [b.id, b.dir]));
 const SPEED = 8;
 const DT = 1 / 60;
 const PARTNERS = [0, 1, 2];
@@ -60,8 +61,8 @@ const MAX_STEP_M = 0.05;
 /** Closest any partner rides to the line and to another partner, metres. */
 const MIN_GAP_M = PARTNER_SLOT_FLOOR_M;
 
-async function sceneOf(dir: string): Promise<SceneWorld> {
-  const base = join(ROOT, dir.replace(/^.*worlds\//, '').replace(/\/$/, ''));
+async function sceneOf(id: string, dir: string): Promise<SceneWorld> {
+  const base = BUNDLE_DIRS.get(id)!;
   const fetch = async (url: string) => {
     try {
       return new Response(readFileSync(join(base, url.replace(/^.*\//, ''))), { status: 200 });
@@ -121,7 +122,7 @@ function rideAll(sw: SceneWorld, routeId: string): Worst {
 }
 
 describe('pace partner slots, frame by frame on the shipped worlds', () => {
-  const cases = WORLD_CATALOG.flatMap((world) => world.routeIds.map((routeId) => ({ world, routeId })));
+  const cases = WORLD_CATALOG.filter((w) => BUNDLE_DIRS.has(w.id)).flatMap((world) => world.routeIds.map((routeId) => ({ world, routeId })));
 
   it('covers every route of every world', () => {
     expect(cases.length).toBeGreaterThanOrEqual(4);
@@ -131,7 +132,7 @@ describe('pace partner slots, frame by frame on the shipped worlds', () => {
   const scenes = new Map<string, Promise<SceneWorld>>();
   for (const { world, routeId } of cases) {
     it(`${routeId}: partners keep their sides, 0.9 m clear of the rider and each other, never jump`, async () => {
-      if (!scenes.has(world.id)) scenes.set(world.id, sceneOf(world.dir));
+      if (!scenes.has(world.id)) scenes.set(world.id, sceneOf(world.id, world.dir));
       const w = rideAll(await scenes.get(world.id)!, routeId);
       expect(w.frames).toBeGreaterThan(10_000);
       expect(w.wrongM, `wrong side ${w.wrongAt}`).toBeLessThan(0);
@@ -250,7 +251,7 @@ function rideSteering(sw: SceneWorld, routeId: string, seed: number, drift: bool
 }
 
 describe('pace partners giving way to a steering rider, frame by frame on the shipped worlds', () => {
-  const cases = WORLD_CATALOG.flatMap((world) => world.routeIds.map((routeId) => ({ world, routeId })));
+  const cases = WORLD_CATALOG.filter((w) => BUNDLE_DIRS.has(w.id)).flatMap((world) => world.routeIds.map((routeId) => ({ world, routeId })));
   const scenes = new Map<string, Promise<SceneWorld>>();
   /** Drawn positions, through the projection (≤ 0.5 % apart), as above. */
   const DRAWN_TOL_M = 0.01;
@@ -259,7 +260,7 @@ describe('pace partners giving way to a steering rider, frame by frame on the sh
     for (const drift of [false, true]) {
       const title = drift ? 'partners riding past' : 'level partners';
       it(`${routeId}, ${title}: never within 0.9 m of the steering rider, never swap sides, ≤ 2.5 m/s sideways`, async () => {
-        if (!scenes.has(world.id)) scenes.set(world.id, sceneOf(world.dir));
+        if (!scenes.has(world.id)) scenes.set(world.id, sceneOf(world.id, world.dir));
         const w = rideSteering(await scenes.get(world.id)!, routeId, drift ? 11 : 7, drift);
         expect(w.frames).toBeGreaterThan(10_000);
         expect(w.clearM, `closest to the rider: ${w.clearAt}`).toBeGreaterThanOrEqual(MIN_GAP_M - DRAWN_TOL_M);

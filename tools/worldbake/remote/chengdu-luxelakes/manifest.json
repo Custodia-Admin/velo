@@ -1,0 +1,253 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "chengdu-luxelakes",
+  "name": "Chengdu",
+  "origin": {
+    "lat": 30.432,
+    "lon": 104.075
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 30.432,
+    "lon0": 104.075,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -4400,
+    "xMax": 4408,
+    "yMin": -6400,
+    "yMax": 6500
+  },
+  "bbox": {
+    "south": 30.37426,
+    "west": 104.02917,
+    "north": 30.49064,
+    "east": 104.12092
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 735,
+    "rows": 1076,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": 450,
+    "heightScale": 0.015625,
+    "minHeight": 451,
+    "maxHeight": 538.5
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 943205,
+      "sha256": "3b8267c2402bf1535382d596ee87ee0a7e26319fcfac8190b60d570d007703fb",
+      "compression": "gzip",
+      "contentBytes": 1581720,
+      "contentSha256": "e1e86086a1d8ed9a19bf05e4c81a49fbd4383842ffb57318e0e0b343aa531500"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 201300,
+      "sha256": "ab01076a24135f4cc7f364c5cd93bab3d78aee25f37bcf70e8a7842d7f488f82",
+      "compression": "gzip",
+      "contentBytes": 523956,
+      "contentSha256": "ba8d3320cd08c18b0eda16363f9e68dabb21b4cdbae8e217228592b9a460dbfb"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 46321,
+      "sha256": "9a6313ae22ede4ae1f30c004bb7cd2774a918340e9b7bd3dd36e6ab85685cddd",
+      "compression": "gzip",
+      "contentBytes": 107320,
+      "contentSha256": "03265f857f832cb292602def015f4d5334bedc257b4bdc400357dbb0f74e01cb"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 65233,
+      "sha256": "82f5d43d351f639c723e11520743013f6b7914d3d903f838ce1ef8bdbf16a1db",
+      "compression": "gzip",
+      "contentBytes": 156072,
+      "contentSha256": "8757a141bdd59542c150cf297cb86d95e9760c80ad0a33d5f473556b8001ee10"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 17479,
+      "sha256": "63468a6f71d952fc10624b06e45136b82e609c207ae08feeceee2638dfe55204",
+      "compression": "gzip",
+      "contentBytes": 29452,
+      "contentSha256": "5b1df7ea1c9aa92520853d4a910dee9b75e5066f81bdb8225cde4ebba8368b95"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 554864,
+      "sha256": "2effa20caddb5f739625b66e7427bac698a4460c6c50f7b5b269a4c39ae683cb",
+      "compression": "gzip",
+      "contentBytes": 928066,
+      "contentSha256": "a0026449b0e603bb0dc76f715c98ee39a059ef187a2aa94c3ba96cefc5ed8227"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 30304,
+      "sha256": "482abae1b15a364d317ad5145aa20dc2ccbdc3b0b57a9d2e042d019a0574f605",
+      "compression": "gzip",
+      "contentBytes": 74383,
+      "contentSha256": "f5698e7e5f2135bb73707b68c78745f31729f2445679b9b324ac7cd0f475425e"
+    }
+  ],
+  "moods": [
+    "mediterranean-mist",
+    "overcast",
+    "clear-afternoon",
+    "golden-hour",
+    "clear-noon"
+  ],
+  "defaultMood": "mediterranean-mist",
+  "pois": [
+    {
+      "name": "兴隆街道",
+      "kind": "town",
+      "rank": 3,
+      "x": 2761.7,
+      "y": -1265.1,
+      "osm": "node/3488318917",
+      "h": 500.67
+    },
+    {
+      "name": "正兴街道",
+      "kind": "village",
+      "rank": 2,
+      "x": -3498.7,
+      "y": 1091.7,
+      "osm": "node/4759796878",
+      "h": 468.57
+    },
+    {
+      "name": "云顶山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -3057.8,
+      "y": 1083.5,
+      "osm": "node/4759797147",
+      "h": 500.85
+    },
+    {
+      "name": "天府新区",
+      "kind": "town",
+      "rank": 3,
+      "x": 730.5,
+      "y": 22.7,
+      "osm": "node/6151464703",
+      "h": 490.64
+    },
+    {
+      "name": "煎茶街道",
+      "kind": "town",
+      "rank": 3,
+      "x": -2324.7,
+      "y": -5959.3,
+      "osm": "node/7655355810",
+      "h": 459.82
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-chengdu-luxe-lakes",
+      "name": "Luxe Lakes loop",
+      "lengthM": 11178.84,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.305
+    },
+    {
+      "id": "scenic-chengdu-xinglong-lake",
+      "name": "Xinglong Lake loop",
+      "lengthM": 8188.89,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.593
+    }
+  ],
+  "stats": {
+    "roads": 4913,
+    "waterAreas": 165,
+    "waterLines": 72,
+    "landcoverAreas": 776,
+    "buildings": 794,
+    "buildingVertices": 5375,
+    "buildings:suburb": 431,
+    "buildings:old-town": 8,
+    "buildings:rural": 188,
+    "buildings:industrial": 167,
+    "trees": 154675,
+    "trees:broadleaf": 111017,
+    "trees:conifer": 0,
+    "trees:scrub": 495,
+    "trees:olive": 0,
+    "trees:park": 20087,
+    "trees:cypress": 0,
+    "trees:riparian": 1786,
+    "trees:hedgerow": 682,
+    "trees:garden": 20608,
+    "pois": 5,
+    "carvedNodes": 15339
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-chengdu-luxe-lakes",
+      "name": "Luxe Lakes loop: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/104.06,30.472;104.07,30.458;104.06,30.4445;104.0495,30.458;104.06,30.472?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-chengdu-xinglong-lake",
+      "name": "Xinglong Lake loop: OpenStreetMap cycle route relation 18146670",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/relation/18146670",
+      "attribution": "Route geometry from OpenStreetMap relation 18146670, © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "0b00c287e22402c4142ae3f8a2bd6d992c480233a59fe16760007ccb1adc0378",
+    "osmDate": "2026-11-01T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 1
+  }
+}

@@ -39,14 +39,22 @@ describe('ScenicHomeSections', () => {
   it('leads wishlist tiles with the place and keeps map-view honest per section', () => {
     expect(out).toMatch(/<h4[^>]*>Hangzhou<\/h4>/);
     expect(out).toContain('West Lake loop · Zhejiang, China');
-    expect(out).toContain('3D worlds coming; these ride on the map today');
     // Hometown mixes the Lugano world with map rides: those carry the badge.
     const hometown = out.slice(out.indexOf('data-destination-section="lugano"'), out.indexOf('data-destination-section="wishlist"'));
     expect(hometown.match(/Map view/g)).toHaveLength(4);
     expect(hometown).toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*"/);
     expect(hometown).not.toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*, map view"/);
-    // The wishlist is all map: no per-tile badge.
-    expect(out.slice(out.indexOf('data-destination-section="wishlist"'))).not.toContain('Map view');
+    // The wishlist now mixes too: Chengdu's world leads, the map rides carry the badge.
+    const wishlist = out.slice(out.indexOf('data-destination-section="wishlist"'));
+    const wishTiles = [...wishlist.matchAll(/data-scenic-route="([^"]+)"/g)].map((m) => m[1]);
+    expect(wishTiles.slice(0, 2)).toEqual(['scenic-chengdu-luxe-lakes', 'scenic-chengdu-xinglong-lake']);
+    expect(wishlist).toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*"/);
+    expect(wishlist).toMatch(/aria-label="Ride Xinglong Lake loop in Chengdu, [^"]*"/);
+    expect(wishlist).not.toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*, map view"/);
+    expect(wishlist).not.toMatch(/aria-label="Ride Xinglong Lake loop in Chengdu, [^"]*, map view"/);
+    expect(wishlist).toMatch(/aria-label="Ride West Lake loop in Hangzhou, [^"]*, map view"/);
+    expect(wishlist.match(/>Map view</g)).toHaveLength(wishTiles.length - 2);
+    expect(out).not.toContain('3D worlds coming; these ride on the map today');
   });
 });
 

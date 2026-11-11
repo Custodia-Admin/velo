@@ -1,0 +1,48 @@
+{
+  "id": "chengdu-luxelakes",
+  "name": "Chengdu",
+  "description": "Tianfu New Area south of central Chengdu: the Luxe Lakes (Luhu) and Xinglong Lake with the Tianfu Park greenways between them.",
+  "origin": { "lat": 30.432, "lon": 104.075 },
+  "grid": { "xMin": -4400, "yMax": 6500, "cellSize": 12, "cols": 735, "rows": 1076 },
+  "dem": { "source": "copernicus-glo30" },
+  "osmDate": "2026-11-01T00:00:00Z",
+  "routes": ["scenic-chengdu-luxe-lakes", "scenic-chengdu-xinglong-lake"],
+  "host": "remote",
+  "routeCredits": true,
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 400,
+    "offsetMeanM": 1600,
+    "coreCells": 1.5,
+    "falloffM": 40
+  },
+  "vegetation": {
+    "seed": 30432,
+    "maxInstances": 320000,
+    "spacingM": { "forest": 11, "wood": 11, "scrub": 16, "orchard": 7, "park": 20 },
+    "character": { "gardenKeep": 0.3, "riparianM": 30 }
+  },
+  "moods": ["mediterranean-mist", "overcast", "clear-afternoon", "golden-hour", "clear-noon"],
+  "defaultMood": "mediterranean-mist",
+  "validation": {
+    "sample_seed": 30432,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "copernicus-glo30",
+    "terrain_class": "standard",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.0492,
+    "floor_source": "none",
+    "floor_rms_m": 0,
+    "own_error_allowance_m": 6,
+    "bound_m": 6,
+    "registered_rms_m": 1.1,
+    "point_rms_m": 5.64,
+    "max_abs_registered_err_m": 3.37,
+    "pass": true
+  }
+}

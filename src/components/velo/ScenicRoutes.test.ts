@@ -9,6 +9,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { SCENIC_ROUTES, scenicRouteById, scenicRoutesWithRole } from '@/lib/scenicRoutes';
+import { worldForRoute } from '@/lib/world/catalog';
 import { FeaturedScenicRide, ScenicRouteGrid, ScenicRouteGridSkeleton } from './ScenicRoutes';
 import { ComfortControls, RiderRename, RiderSwitch } from './RiderPanel';
 import { HomeHeader, devicesButtonText } from './HomeHeader';
@@ -73,7 +74,9 @@ describe('ScenicRouteGrid (area tiles)', () => {
   });
 
   it('does not repeat the Map view badge in a section where every route is a map ride', () => {
-    const travels = scenicRoutesWithRole('wishlist');
+    // The wishlist places without a 3D world (Chengdu has one).
+    const travels = scenicRoutesWithRole('wishlist').filter((r) => !worldForRoute(r.route));
+    expect(travels.length).toBeGreaterThan(3);
     const all = html(createElement(ScenicRouteGrid, { routes: travels, onRide: noop }));
     expect(all.match(/data-scenic-route="/g)).toHaveLength(travels.length);
     expect(all).not.toContain('Map view');

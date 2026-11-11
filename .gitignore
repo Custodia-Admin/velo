@@ -39,3 +39,9 @@ test-results/
 tools/worldbake/cache/
 
 __pycache__/
+
+# Remote world bundles (recipe "host": "remote"): only manifest.json is
+# committed; publish.mjs uploads the layers to R2, fetchPublished.mjs
+# downloads them again (docs/worlds/ADDING-A-WORLD.md).
+tools/worldbake/remote/*/*
+!tools/worldbake/remote/*/manifest.json

@@ -9,11 +9,18 @@
 // a download. bake.mjs runs this after writing a bundle; `--check` exits 1
 // when a manifest is out of step (destinations.test.ts checks the same).
 // Destinations without a world are left as they are.
+//
+// A world shipped in public/worlds/<id>/ gets `dir` "<id>/". A remote world
+// (tools/worldbake/remote/<id>/, published off-repo by publish.mjs) gets
+// `host` "remote" and `dir` "<id>/<hash>/" (worldBundles.mjs bundleHash), the
+// content-hashed directory it is served from. To link a new world, set the
+// destination's `world` to `{ "id": "<world id>" }` and run this.
 
-import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createProjection } from '../../src/lib/world/projection.ts';
 import { here } from './util.mjs';
+import { BUNDLED_WORLDS_DIR, REMOTE_WORLDS_DIR, remoteDir, worldBundle } from './worldBundles.mjs';
 
 const ROOT = resolve(here(import.meta.url), '../..');
 export const DESTINATIONS_DIR = join(ROOT, 'src/lib/world/destinations');
@@ -23,8 +30,12 @@ export const HEADLINE_POIS = 8;
 
 const round5 = (v) => Math.round(v * 1e5) / 1e5;
 
-/** The destination with its world-derived fields taken from `world` (a velo-world manifest). */
-export function destinationFromWorld(dest, world) {
+/**
+ * The destination with its world-derived fields taken from `world` (a
+ * velo-world manifest). `remote`, for a world published off-repo, is
+ * `{ dir }`: its content-hashed "<id>/<hash>/" directory.
+ */
+export function destinationFromWorld(dest, world, remote = null) {
   if (!dest.world || dest.world.id !== world.id) throw new Error(`destination ${dest.id} does not link world ${world.id}`);
   const projection = createProjection(world.projection);
   const pois = world.pois
@@ -47,7 +58,9 @@ export function destinationFromWorld(dest, world) {
     order: dest.order,
     place: dest.place,
     detail: dest.detail,
-    world: { id: world.id, dir: `${world.id}/`, bbox: world.bbox, routes: worldRoutes },
+    world: remote
+      ? { id: world.id, dir: remote.dir, host: 'remote', bbox: world.bbox, routes: worldRoutes }
+      : { id: world.id, dir: `${world.id}/`, bbox: world.bbox, routes: worldRoutes },
     routes,
     moods: world.moods,
     defaultMood: world.defaultMood,
@@ -58,21 +71,32 @@ export function destinationFromWorld(dest, world) {
 
 export const serialize = (obj) => `${JSON.stringify(obj, null, 2)}\n`;
 
-/** Sync every destination that links a world under `worldsDir`. Returns the changed file names. */
-export function syncDestinations({ worldsDir = join(ROOT, 'public/worlds'), check = false, log = () => {} } = {}) {
+/**
+ * The destination as synced from its world's bundle on disk (public/worlds
+ * or tools/worldbake/remote), or the destination unchanged without a world.
+ */
+export function syncedDestination(dest, { worldsDir = BUNDLED_WORLDS_DIR, remoteDir: remoteRoot = REMOTE_WORLDS_DIR } = {}) {
+  if (!dest.world) return dest;
+  const bundle = worldBundle(dest.world.id, { bundled: worldsDir, remote: remoteRoot });
+  if (!bundle) throw new Error(`destination ${dest.id}: world ${dest.world.id} has no manifest.json in ${worldsDir} or ${remoteRoot}`);
+  const bytes = readFileSync(bundle.manifestPath);
+  const remote = bundle.host === 'remote' ? { dir: remoteDir(dest.world.id, bytes) } : null;
+  return destinationFromWorld(dest, JSON.parse(bytes.toString('utf8')), remote);
+}
+
+/** Sync every destination that links a world (public/worlds or tools/worldbake/remote). Returns the changed file names. */
+export function syncDestinations({ worldsDir = BUNDLED_WORLDS_DIR, remoteDir: remoteRoot = REMOTE_WORLDS_DIR, check = false, log = () => {} } = {}) {
   const changed = [];
   for (const file of readdirSync(DESTINATIONS_DIR).filter((f) => f.endsWith('.json')).sort()) {
     const path = join(DESTINATIONS_DIR, file);
     const before = readFileSync(path, 'utf8');
     const dest = JSON.parse(before);
     if (!dest.world) continue;
-    const manifestPath = join(worldsDir, dest.world.id, 'manifest.json');
-    if (!existsSync(manifestPath)) throw new Error(`${file}: world ${dest.world.id} has no ${manifestPath}`);
-    const after = serialize(destinationFromWorld(dest, JSON.parse(readFileSync(manifestPath, 'utf8'))));
+    const after = serialize(syncedDestination(dest, { worldsDir, remoteDir: remoteRoot }));
     if (after !== before) {
       changed.push(file);
       if (!check) writeFileSync(path, after);
-      log(`destinations: ${file} ${check ? 'is out of step with' : 'synced from'} worlds/${dest.world.id}/manifest.json`);
+      log(`destinations: ${file} ${check ? 'is out of step with' : 'synced from'} world ${dest.world.id}'s manifest.json`);
     }
   }
   return changed;

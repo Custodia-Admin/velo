@@ -20,10 +20,10 @@ import {
   type Destination,
 } from './destinations';
 import { WORLD_CATALOG, worldCatalogFrom, worldForRoute } from './catalog';
-import { destinationFromWorld, serialize } from '../../../tools/worldbake/syncDestinations.mjs';
+import { destinationFromWorld, serialize, syncedDestination } from '../../../tools/worldbake/syncDestinations.mjs';
+import { bundleHash, worldBundle, worldBundles } from '../../../tools/worldbake/worldBundles.mjs';
 
 const DIR = fileURLToPath(new URL('./destinations/', import.meta.url));
-const WORLDS = fileURLToPath(new URL('../../../public/worlds/', import.meta.url));
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
 const files = readdirSync(DIR).filter((f) => f.endsWith('.json')).sort();
 
@@ -93,22 +93,47 @@ describe('destinations ↔ baked worlds', () => {
 
   it('links only worlds that ship, with a bake recipe', () => {
     for (const d of linked) {
-      expect(existsSync(`${WORLDS}${d.world.dir}manifest.json`), d.id).toBe(true);
+      expect(worldBundle(d.world.id), d.id).not.toBeNull();
       expect(existsSync(fileURLToPath(new URL(`../../../tools/worldbake/worlds/${d.world.id}.json`, import.meta.url))), d.id).toBe(true);
     }
   });
 
   it('every shipped world is linked by a destination (Home can reach it)', () => {
-    const shipped = readdirSync(WORLDS).filter((f) => existsSync(`${WORLDS}${f}/manifest.json`)).sort();
+    const shipped = worldBundles().map((w) => w.id);
+    expect(shipped).toEqual(expect.arrayContaining(['perugia', 'lugano', 'chengdu-luxelakes']));
     expect(linked.map((d) => d.world.id).sort()).toEqual(shipped);
   });
 
   it('world-derived fields equal the bundle manifest (syncDestinations is a no-op)', () => {
     for (const d of linked) {
-      const world = readJson(`${WORLDS}${d.world.dir}manifest.json`);
       const onDisk = readFileSync(`${DIR}${d.id}.json`, 'utf8');
-      expect(serialize(destinationFromWorld(JSON.parse(onDisk), world)), `${d.id}: run node tools/worldbake/syncDestinations.mjs`).toBe(onDisk);
+      expect(serialize(syncedDestination(JSON.parse(onDisk))), `${d.id}: run node tools/worldbake/syncDestinations.mjs`).toBe(onDisk);
     }
+  });
+
+  it('a world in public/worlds is served from "<id>/"; a remote one from its content-hashed "<id>/<hash>/"', () => {
+    for (const d of linked) {
+      const bundle = worldBundle(d.world.id)!;
+      if (bundle.host === 'app') {
+        expect(d.world.dir, d.id).toBe(`${d.world.id}/`);
+        expect(d.world.host, d.id).toBeUndefined();
+      } else {
+        expect(d.world.host, d.id).toBe('remote');
+        expect(d.world.dir, d.id).toBe(`${d.world.id}/${bundleHash(readFileSync(bundle.manifestPath))}/`);
+      }
+    }
+    // Perugia and Lugano ship with the app; Chengdu is the first remote world.
+    expect(linked.filter((d) => d.world.host === 'remote').map((d) => d.id)).toEqual(['chengdu-luxelakes']);
+  });
+
+  it('a re-bake that changes any byte of a remote manifest moves its directory', () => {
+    const d = linked.find((x) => x.world.host === 'remote')!;
+    const bytes = readFileSync(worldBundle(d.world.id)!.manifestPath);
+    const changed = Buffer.from(bytes.toString('utf8').replace('"stats": {', '"stats": { '));
+    expect(bundleHash(changed)).not.toBe(bundleHash(bytes));
+    const world = JSON.parse(bytes.toString('utf8'));
+    const synced = destinationFromWorld(d, world, { dir: `${d.world.id}/${bundleHash(changed)}/` });
+    expect(synced.world.dir).not.toBe(d.world.dir);
   });
 
   it('the world catalog is exactly the linked worlds', () => {
@@ -140,11 +165,19 @@ describe('Home sections are generated from the manifests', () => {
     }
   });
 
-  it('the wishlist follows manifest order and says once that it rides on the map', () => {
+  it('the wishlist leads with the places that have a world, then the map rides, each in manifest order', () => {
     const wish = homeSections().find((x) => x.role === 'wishlist')!;
     const order = DESTINATIONS.filter((d) => d.role === 'wishlist');
-    expect(wish.entries.map((e) => e.destination.id)).toEqual(order.flatMap((d) => d.routes.map(() => d.id)));
-    expect(wish.detail).toBe('3D worlds coming; these ride on the map today');
+    const routesOf = (baked: boolean) =>
+      order.flatMap((d) => d.routes.filter((r) => (d.world?.routes.includes(r) ?? false) === baked).map((r) => `${d.id}:${r}`));
+    expect(wish.entries.map((e) => `${e.destination.id}:${e.routeId}`)).toEqual([...routesOf(true), ...routesOf(false)]);
+    // Chengdu is the first wishlist place with a 3D world: its two routes lead.
+    expect(wish.entries.slice(0, 2).map((e) => e.routeId)).toEqual(['scenic-chengdu-luxe-lakes', 'scenic-chengdu-xinglong-lake']);
+    expect(wish.entries.slice(0, 2).every((e) => e.hasWorld)).toBe(true);
+    // Not every place rides on the map any more, so the line stops saying so.
+    expect(wish.detail).toBe('Lakes, coasts and cities on our list');
+    const allMap = order.map((d) => ({ ...d, world: null }));
+    expect(homeSections(allMap).at(-1)!.detail).toBe('3D worlds coming; these ride on the map today');
   });
 
   it('a new manifest becomes a new section or tile, with no code change', () => {
@@ -181,6 +214,11 @@ describe('validateDestination / loadDestinations', () => {
     ['dup routes', { routes: ['a', 'a'] }],
     ['defaultMood', { defaultMood: 'foggy' }],
     ['world.dir', { world: { id: 'w', dir: 'x/', bbox: { south: 0, west: 0, north: 1, east: 1 }, routes: ['scenic-test'] } }],
+    ['remote world.dir without its hash', { world: { id: 'w', dir: 'w/', host: 'remote', bbox: { south: 0, west: 0, north: 1, east: 1 }, routes: ['scenic-test'] } }],
+    ['remote world.dir of another world', { world: { id: 'w', dir: 'v/0123456789abcdef/', host: 'remote', bbox: { south: 0, west: 0, north: 1, east: 1 }, routes: ['scenic-test'] } }],
+    ['remote world.dir with a short hash', { world: { id: 'w', dir: 'w/0123abc/', host: 'remote', bbox: { south: 0, west: 0, north: 1, east: 1 }, routes: ['scenic-test'] } }],
+    ['hashed world.dir without host', { world: { id: 'w', dir: 'w/0123456789abcdef/', bbox: { south: 0, west: 0, north: 1, east: 1 }, routes: ['scenic-test'] } }],
+    ['world.host', { world: { id: 'w', dir: 'w/', host: 'cdn', bbox: { south: 0, west: 0, north: 1, east: 1 }, routes: ['scenic-test'] } }],
     ['world bbox', { world: { id: 'w', dir: 'w/', bbox: { south: 1, west: 0, north: 0, east: 1 }, routes: ['scenic-test'] } }],
     ['world route not in routes', { world: { id: 'w', dir: 'w/', bbox: { south: 0, west: 0, north: 1, east: 1 }, routes: ['other'] } }],
     ['poi kind', { pois: [{ name: 'X', kind: 'pub', lat: 1, lon: 1 }] }],
@@ -194,6 +232,14 @@ describe('validateDestination / loadDestinations', () => {
     }
     expect(err).toBeInstanceOf(DestinationError);
     expect((err as DestinationError).code).toBe('invalid');
+  });
+
+  it('accepts a remote world under "<id>/<16 hex>/" and keeps its host', () => {
+    const world = { id: 'w', dir: 'w/0123456789abcdef/', host: 'remote', bbox: { south: 0, west: 0, north: 1, east: 1 }, routes: ['scenic-test'] };
+    expect(validateDestination(base({ world })).world).toEqual(world);
+    // A world shipped with the app carries no host at all.
+    const bundled = validateDestination(base({ world: { ...world, dir: 'w/', host: undefined } })).world!;
+    expect('host' in bundled).toBe(false);
   });
 
   it('reports an unknown version as unsupported', () => {
