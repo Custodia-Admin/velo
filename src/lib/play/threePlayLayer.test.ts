@@ -90,14 +90,16 @@ describe('postcards at the places on the route', () => {
     }
     const cd = WORLD_CATALOG.find((w) => w.id === 'chengdu-luxelakes')!;
     expect(cd.routeIds).toEqual(['scenic-chengdu-luxe-lakes', 'scenic-chengdu-xinglong-lake']);
+    const counts: Record<string, number> = {};
     for (const id of cd.routeIds) {
       const r = scenic(id);
       expect(postcardsAtPlaces(r, chengdu), id).toEqual([]);
       const set = worldPostcards(r, chengdu);
       expect(set.atPlaces, id).toBe(false);
-      // 11.2 km and 8.2 km loops: a card every ~800 m, as on photoreal.
-      expect(set.cards.length, id).toBeGreaterThanOrEqual(10);
+      counts[id] = set.cards.length;
     }
+    // The 11.2 km loop hits POSTCARD_MAX; the 8.2 km one gets one every ~800 m.
+    expect(counts).toEqual({ 'scenic-chengdu-luxe-lakes': 12, 'scenic-chengdu-xinglong-lake': 10 });
   });
 
   it('spaced postcards take over below POSTCARD_MIN named places, never at or above it', () => {

@@ -58,3 +58,16 @@ How to read these numbers:
 - The frame intervals are bound by the host, not by this code. The load average was 11–18 on 22 cores while shared agents were running. The variance between rounds of the same mode (12.9 vs 29.3 fps with the layer off) is far larger than any difference between on and off.
 - The play layer adds microseconds of CPU per frame and a single GLB rider (draw calls 120–123 in both modes).
 - I did not run a 60 fps number on an idle machine, so the frame-time figures above are the only browser frame-time evidence.
+
+## Chengdu: spaced postcards on a world without named places (card t_99351c07)
+The Chengdu loops pass none of the world's named places (only 街道 districts and a peak), so Play mode showed nothing there. With fewer than `POSTCARD_MIN` named places, a world route now gets photoreal's evenly spaced postcards. No UI file changed: the Play panel and Finish already handle unnamed postcards (the photoreal path).
+
+Setup: a token-free prod build, Luxe Lakes loop from Home's wishlist, demo ride, Play mode on, remote world from R2. Probe: `~/.hermes/handoffs/velo/t_99351c07/chengdu_play.py`. It was 01:10 in Chengdu, so the world is at night in both runs.
+
+| Build | Shot | Play panel |
+| --- | --- | --- |
+| main 96a8b0d (served bundle `index-Bsl4MHS2.js`) | `play-ride-chengdu-main-96a8b0d-1440.jpg` | none |
+| this branch | `play-ride-chengdu-spaced-1440.jpg` | "Next one in 300 m · 0 of 12", 320×51 px card above the HUD band (1.3 % of 1440×900) |
+| this branch | `play-ride-chengdu-spaced-390.jpg` | the phone count only, "0 of 12", 117×51 px (1.8 % of 390×844) |
+
+In the world there is no pin and no floating card: a spaced postcard has no place.
