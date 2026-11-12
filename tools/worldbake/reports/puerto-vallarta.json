@@ -2,19 +2,20 @@
   "world": "puerto-vallarta",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 0.4,
+    "dem": 0.6,
     "osm": 0.1,
-    "heightfield+routes": 0.1,
-    "vectors": 1.3,
-    "write": 4.2,
+    "bareGround": 0.4,
+    "heightfield+routes": 1.4,
+    "vectors": 0.5,
+    "write": 5.9,
     "validate": 0,
-    "total": 6.2
+    "total": 9
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 864673,
+      "stored": 856119,
       "content": 3818196,
-      "brotli": 685647
+      "brotli": 679778
     },
     "roads.json.gz": {
       "stored": 287143,
@@ -42,30 +43,30 @@
       "brotli": 143964
     },
     "routes.json.gz": {
-      "stored": 27780,
-      "content": 66993,
-      "brotli": 17761
+      "stored": 30359,
+      "content": 71457,
+      "brotli": 19999
     },
     "manifest.json": {
-      "stored": 10597,
-      "content": 10597,
-      "brotli": 2826
+      "stored": 11234,
+      "content": 11234,
+      "brotli": 3050
     }
   },
   "totals": {
-    "stored": 1563680,
-    "content": 5339909,
-    "brotli": 1211932
+    "stored": 1558342,
+    "content": 5345010,
+    "brotli": 1208525
   },
   "hashes": {
-    "height.bin.gz": "07c508b2e81771113a02ff3dd0afa3f8bf1d22a9f0653fa228a28e26a8fcfece",
+    "height.bin.gz": "271dcee515b0aaf814e5c15db0a9cea1228a8e6d70186b11ce17001c88ec0b73",
     "roads.json.gz": "55606aa89b6e865f8fceb07a3aa429215c682e39615f055d96f5babd740f2db4",
     "water.json.gz": "06f56324eb57e13e0029ccdbc5331aa2c9941e78329ee17d6e15de1735d8b865",
     "landcover.json.gz": "18de26aef77f30a15ddc0288b8d539089ec08958b7c783c18fdf5434281e7fd4",
     "buildings.bin.gz": "5538bd91967fa70dc2acedc931128a585b84d0131cf9c089832e2a447c116052",
     "vegetation.bin.gz": "e0b752bba90e60a81d2630041dc86040231fd660c52bf4aa5578243ea6a56d0b",
-    "routes.json.gz": "3275ede328579e949526eb9796555d15e8d0837b5d42054fd0267bfd14a37e2f",
-    "manifest.json": "9d190b96b345ea2bc039cb346068bf443d475a597fe4a2c48008b49361e62db5"
+    "routes.json.gz": "2b4f9cfd95aff6616931dba19df128c7af6ebd2f17a2a1927f0b4c355b32d1fc",
+    "manifest.json": "1f75dbdd7d98163d699ac89e5c7ebddacd7b05dff1f3214d205fd364dd61fe08"
   },
   "routes": [
     {
@@ -73,12 +74,30 @@
       "name": "Puerto Vallarta bayfront",
       "lengthM": 8716.76,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.178,
+      "gradeMeanAbsDiffPct": 0.577,
       "report": {
         "samples": 873,
-        "gradeMaxAbsDiffPct": 0.704,
-        "rawDemGradeMeanAbsDiffPct": 1.258,
-        "maxRenderMinusProfileM": 7.55
+        "gradeMaxAbsDiffPct": 3.803,
+        "rawDemGradeMeanAbsDiffPct": 0.758,
+        "maxRenderMinusProfileM": 10.75,
+        "structureSpans": [
+          {
+            "s0": 0,
+            "s1": 150
+          },
+          {
+            "s0": 3820,
+            "s1": 3890
+          },
+          {
+            "s0": 5750,
+            "s1": 5900
+          },
+          {
+            "s0": 7640,
+            "s1": 7790
+          }
+        ]
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -94,12 +113,18 @@
       "name": "Nuevo Vallarta to Bucerías",
       "lengthM": 9619.83,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.051,
+      "gradeMeanAbsDiffPct": 0.291,
       "report": {
         "samples": 963,
-        "gradeMaxAbsDiffPct": 0.293,
-        "rawDemGradeMeanAbsDiffPct": 0.776,
-        "maxRenderMinusProfileM": 2.08
+        "gradeMaxAbsDiffPct": 1.489,
+        "rawDemGradeMeanAbsDiffPct": 0.461,
+        "maxRenderMinusProfileM": 4.97,
+        "structureSpans": [
+          {
+            "s0": 8940,
+            "s1": 8990
+          }
+        ]
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -173,25 +198,120 @@
     "rows": 1583,
     "cellSize": 12,
     "encoding": "u16-delta",
-    "heightOffset": -7,
+    "heightOffset": -3,
     "heightScale": 0.015625,
-    "minHeight": -5.25,
+    "minHeight": -1.890625,
     "maxHeight": 427.015625,
     "carvedNodes": 14746,
-    "maxCutM": 18.47
+    "maxCutM": 9
   },
   "coast": {
     "seaPolygons": 1,
     "islands": 0,
     "seaNodes": 1114077,
-    "shoreNodesLowered": 1772,
-    "beachNodesSloped": 758,
+    "shoreNodesLowered": 2201,
+    "beachNodesSloped": 888,
     "beachMaxCutM": 9.37,
     "demUnderSea": {
       "min": -0.94,
       "max": 4.86
     },
     "beachAreas": 28
+  },
+  "bareGround": {
+    "source": "inegi-mdt-10k",
+    "tiles": [
+      "F13C58F4@794551192740",
+      "F13C59D3@702825005098",
+      "F13C68C2@702825005105",
+      "F13C69A1@702825005106",
+      "F13C69A4@702825005109",
+      "F13C69B3@702825005112",
+      "F13C69D2@889463163459",
+      "F13C69E1@889463518204"
+    ],
+    "corridorM": 150,
+    "blendM": 300,
+    "biasFrom": "beach",
+    "biasM": -0.22,
+    "openNodes": 969,
+    "nodes": 119515,
+    "nodata": 0,
+    "maxLowerM": 20.66,
+    "maxLowerAt": [
+      -4124,
+      6708
+    ],
+    "meanLowerM": 2.25,
+    "maxRaiseM": 8.85,
+    "maxRaiseAt": [
+      4600,
+      -8304
+    ],
+    "routes": [
+      {
+        "id": "scenic-puerto-vallarta-malecon",
+        "samples": 873,
+        "medianM": -0.02,
+        "p95M": 1.09,
+        "maxM": 3.11,
+        "maxAtS": 5850,
+        "minM": -2.93,
+        "over3M": 1,
+        "woodland": {
+          "samples": 0,
+          "p95M": null,
+          "maxM": null
+        }
+      },
+      {
+        "id": "scenic-nuevo-vallarta-bucerias",
+        "samples": 963,
+        "medianM": 0,
+        "p95M": 0.66,
+        "maxM": 2.48,
+        "maxAtS": 20,
+        "minM": -4.3,
+        "over3M": 0,
+        "woodland": {
+          "samples": 0,
+          "p95M": null,
+          "maxM": null
+        }
+      }
+    ],
+    "surface": [
+      {
+        "id": "scenic-puerto-vallarta-malecon",
+        "samples": 873,
+        "medianM": 2.76,
+        "p95M": 7.14,
+        "maxM": 11.44,
+        "maxAtS": 3220,
+        "minM": -1,
+        "over3M": 374,
+        "woodland": {
+          "samples": 0,
+          "p95M": null,
+          "maxM": null
+        }
+      },
+      {
+        "id": "scenic-nuevo-vallarta-bucerias",
+        "samples": 963,
+        "medianM": 3.22,
+        "p95M": 6.05,
+        "maxM": 8.1,
+        "maxAtS": 6980,
+        "minM": -2.33,
+        "over3M": 519,
+        "woodland": {
+          "samples": 0,
+          "p95M": null,
+          "maxM": null
+        }
+      }
+    ]
   },
   "buildingsDropped": {
     "route": 16,
@@ -231,19 +351,19 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.0144,
+    "steep_fraction": 0.014,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
     "bound_m": 6,
-    "registered_rms_m": 0.84,
-    "point_rms_m": 1.99,
-    "max_abs_registered_err_m": 3.97,
+    "registered_rms_m": 1.44,
+    "point_rms_m": 2.01,
+    "max_abs_registered_err_m": 7.57,
     "pass": true,
     "diagnostics": {
       "note": "not gating (blueprint §P1.3.4)",
-      "registered_mean_bias_m": 0.01,
-      "point_mean_bias_m": 0.06,
+      "registered_mean_bias_m": -0.19,
+      "point_mean_bias_m": -0.33,
       "point_max_abs_err_m": 9.63,
       "node_answer_mismatches": 1
     },
@@ -307,10 +427,10 @@
         "lat": 20.64682,
         "lon": -105.2343,
         "openMeteo": 7,
-        "heightfield": 5.11,
+        "heightfield": 4.78,
         "nodeLat": 20.6475,
         "nodeLon": -105.235,
-        "nodeHeightfield": 5.5,
+        "nodeHeightfield": 4.06,
         "nodeOpenMeteo": 7,
         "onRouteCorridor": false
       },
@@ -329,10 +449,10 @@
         "lat": 20.71777,
         "lon": -105.30464,
         "openMeteo": 12,
-        "heightfield": 15.34,
+        "heightfield": 5.62,
         "nodeLat": 20.71833333,
         "nodeLon": -105.305,
-        "nodeHeightfield": 9.7,
+        "nodeHeightfield": 4.43,
         "nodeOpenMeteo": 12,
         "onRouteCorridor": false
       },
@@ -604,10 +724,10 @@
         "lat": 20.70759,
         "lon": -105.30039,
         "openMeteo": 8,
-        "heightfield": 14.28,
+        "heightfield": 4.69,
         "nodeLat": 20.70833333,
         "nodeLon": -105.30083333,
-        "nodeHeightfield": 7.95,
+        "nodeHeightfield": 4.81,
         "nodeOpenMeteo": 8,
         "onRouteCorridor": false
       },

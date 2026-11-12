@@ -684,14 +684,19 @@ P1.3 gate compares it with GLO-90, itself a surface model.
     the fix needs both: GLO-30 reads the town's roofs ~3 m over the streets
     (the first look, with the bias read over the town, put the route only
     5.2 m up and GLO-30 on the ground), and 400/1600 m windows can't follow
-    the Malecón's dip (4.4 → 1.3 m) and 10 m climb at 1.05–1.55 km. On the MDT with
-    400/1600 the Malecón still reads 4.4 m (49 over 3 m); at 100/400 it reads
-    median −0.06 m, p95 1.16 m, max 2.07 m, none over 3 m. Nuevo
-    Vallarta–Bucerías reads median −0.01 m, p95 0.77 m; its first 30 m read
-    3.2 m (the start sits on the estuary bank, where the MDT is INEGI's 0 m
-    sea fill). INEGI's Continuo de Elevaciones Mexicano is not an
-    alternative: CEM 3.0 is interpolated from 1:50 000 contours (whole
-    metres, RMSE 4.8 m), CEM 4.0 is the ALOS PALSAR RTC DEM (resampled SRTM).
+    the Malecón's dip (4.4 → 1.3 m) and 10 m climb at 1.05–1.55 km. On the
+    MDT with 400/1600 the Malecón still reads 4.4 m (49 over 3 m). The bundle
+    (1f75dbdd: MDT, 60/240 m, `spanStructures`) reads median −0.03 m, p95
+    0.75 m, max 1.61 m on the Malecón and −0.00 / 0.64 / 2.48 m on Nuevo
+    Vallarta–Bucerías, none over 3 m. Left over: the Malecón at 0.25–0.55 km
+    rides 0.6–1.0 m above the sea where the MDT reads 1.5–2.9 m, because it
+    runs 13–20 m from the waterline and the 12 m grid holds the shore nodes
+    beside it at sea level; it cuts 2.9 m through a 6 m hump at 1.61–1.68 km;
+    Nuevo Vallarta–Bucerías starts 2.5 m up on the estuary bank (INEGI's 0 m
+    water fill) and cuts 4.3 m at 9.30 km. INEGI's Continuo de Elevaciones
+    Mexicano is not an alternative: CEM 3.0 is interpolated from 1:50 000
+    contours (whole metres, RMSE 4.8 m), CEM 4.0 is the ALOS PALSAR RTC DEM
+    (resampled SRTM).
   - Chengdu: no open DTM for China; landcover puts the routes in the open.
 - **Embankments (`snap.embankment`, card t_e9889d5e).** The target keeps the
   profile's shape, and the profile (Open-Meteo GLO-90) misses relief the DTM

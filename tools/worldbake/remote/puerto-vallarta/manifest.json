@@ -32,9 +32,9 @@
     "rows": 1583,
     "cellSize": 12,
     "encoding": "u16-delta",
-    "heightOffset": -7,
+    "heightOffset": -3,
     "heightScale": 0.015625,
-    "minHeight": -5.25,
+    "minHeight": -1.890625,
     "maxHeight": 427.015625
   },
   "layers": {
@@ -48,11 +48,11 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 864673,
-      "sha256": "07c508b2e81771113a02ff3dd0afa3f8bf1d22a9f0653fa228a28e26a8fcfece",
+      "bytes": 856119,
+      "sha256": "271dcee515b0aaf814e5c15db0a9cea1228a8e6d70186b11ce17001c88ec0b73",
       "compression": "gzip",
       "contentBytes": 3818196,
-      "contentSha256": "503768221cfc24b50183779e984074288db1861b262e1d7aeb439ee4b9227a00"
+      "contentSha256": "19bac2ae7aae42a47a3670b8959ed7f45fb8d59f0830af7014a4eaa5d818ae62"
     },
     {
       "path": "roads.json.gz",
@@ -96,11 +96,11 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 27780,
-      "sha256": "3275ede328579e949526eb9796555d15e8d0837b5d42054fd0267bfd14a37e2f",
+      "bytes": 30359,
+      "sha256": "2b4f9cfd95aff6616931dba19df128c7af6ebd2f17a2a1927f0b4c355b32d1fc",
       "compression": "gzip",
-      "contentBytes": 66993,
-      "contentSha256": "1bb878257ce0cf56992d5714f2bbdaeb771fa7fd397480385425258ab92b3f99"
+      "contentBytes": 71457,
+      "contentSha256": "8de1f876c8c663ca845f496c70b9400134fa0cb6bba4b3ac74de3e00487f6fd8"
     }
   ],
   "moods": [
@@ -119,7 +119,7 @@
       "x": 4783.5,
       "y": -7872.2,
       "osm": "node/269553482",
-      "h": 3.96
+      "h": 0.76
     },
     {
       "name": "Las Mojoneras",
@@ -155,7 +155,7 @@
       "x": -5451.8,
       "y": 8369.5,
       "osm": "node/1540740851",
-      "h": 25.56
+      "h": 23.77
     },
     {
       "name": "Mezcales",
@@ -209,7 +209,7 @@
       "x": 5045.6,
       "y": -7857.7,
       "osm": "node/4006589311",
-      "h": 34.52
+      "h": 31.61
     },
     {
       "name": "La Cruz",
@@ -281,14 +281,14 @@
       "name": "Puerto Vallarta bayfront",
       "lengthM": 8716.76,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.178
+      "gradeMeanAbsDiffPct": 0.577
     },
     {
       "id": "scenic-nuevo-vallarta-bucerias",
       "name": "Nuevo Vallarta to Bucerías",
       "lengthM": 9619.83,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.051
+      "gradeMeanAbsDiffPct": 0.291
     }
   ],
   "stats": {
@@ -331,6 +331,13 @@
       "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
     },
     {
+      "id": "inegi-mdt",
+      "name": "INEGI Modelo Digital de Elevación tipo terreno 1:10 000, 5 m, bare earth, along the routes",
+      "licence": "Términos de Libre Uso de la Información del INEGI (free use, commercial included, with attribution)",
+      "url": "https://www.inegi.org.mx/inegi/terminos.html",
+      "attribution": "Fuente: INEGI, Modelo Digital de Elevación tipo terreno con resolución de 5 m, escala 1:10 000. Transformed by Velo, not by INEGI: averaged onto the world grid, shifted to the Copernicus DEM height level and blended into it beside the routes."
+    },
+    {
       "id": "copernicus-glo90",
       "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
       "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
@@ -362,9 +369,10 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "8501ed6b2fd3ab6fcc390ec361d4ee09e268f5ab7e359515baf5a9c40cd2e474",
+    "recipeSha256": "797092e63b9f2654f1a940100cbaa37bdae540d3020569e9e1f573ed422e6432",
     "osmDate": "2026-11-01T00:00:00Z",
     "demSource": "copernicus-dem-30m/glo30-cog",
-    "demTiles": 1
+    "demTiles": 1,
+    "bareGround": "inegi-mdt-10k"
   }
 }
