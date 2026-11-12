@@ -92,9 +92,26 @@ function run(gpu: ReturnType<typeof simGpu>, gate: FrameGate, ticks: number, fro
   return { drawn, worstBacklog, worstInFlight, end: from + ticks * RAF_MS };
 }
 
+/** A plain two-frame count limit on the same fences (the first version of the gate): frames held in `ticks` rAFs. */
+function countLimited(gpu: ReturnType<typeof simGpu>, ticks: number): number {
+  const syncs: WebGLSync[] = [];
+  let held = 0;
+  for (let k = 0; k < ticks; k++) {
+    gpu.now = k * RAF_MS;
+    while (syncs.length > 0 && gpu.gl.clientWaitSync(syncs[0], 0, 0) !== TIMEOUT_EXPIRED) gpu.gl.deleteSync(syncs.shift()!);
+    if (syncs.length >= 2) {
+      held++;
+      continue;
+    }
+    gpu.draw();
+    syncs.push(gpu.gl.fenceSync(gpu.gl.SYNC_GPU_COMMANDS_COMPLETE, 0)!);
+  }
+  return held;
+}
+
 describe('FrameGate', () => {
-  it('defaults: two frames always, then up to 3 s of GPU work', () => {
-    expect(FRAME_GATE_DEFAULTS).toEqual({ minInFlight: 2, budgetMs: 3000, smoothing: 0.2 });
+  it('defaults: two frames until the GPU is timed, then up to 3 s of GPU work', () => {
+    expect(FRAME_GATE_DEFAULTS).toEqual({ untimedInFlight: 2, budgetMs: 3000, smoothing: 0.2 });
   });
 
   it('never holds back a GPU that keeps up', () => {
@@ -119,9 +136,7 @@ describe('FrameGate', () => {
       expect(gate.held - held, `lag ${lagMs} ms`).toBe(0);
       expect(r.worstInFlight).toBeGreaterThan(lagMs / RAF_MS - 1);
       // The same GPU behind a two-frame count limit loses frames.
-      const counted = new FrameGate({ budgetMs: 0 });
-      run(simGpu({ gpuMs: 14, lagMs }), counted, 1380);
-      expect(counted.held, `lag ${lagMs} ms, two-frame limit`).toBeGreaterThan(600);
+      expect(countLimited(simGpu({ gpuMs: 14, lagMs }), 1380), `lag ${lagMs} ms, two-frame limit`).toBeGreaterThan(600);
     }
   });
 
@@ -168,6 +183,20 @@ describe('FrameGate', () => {
     expect(600 * 2000).toBeGreaterThan(1_000_000);
   });
 
+  it("a GPU slower than the budget per frame gets one frame at a time once timed (CI's runners: 6.6 s)", () => {
+    const gpu = simGpu({ gpuMs: 6600, lagMs: 20 });
+    const gate = new FrameGate();
+    // Two frames until two are seen done and the second is timed (~13 s), then one at a time.
+    const warm = run(gpu, gate, 60 * 15);
+    expect(gate.gpuFrameMs).toBeCloseTo(6600, -2);
+    const r = run(gpu, gate, 60 * 60, warm.end);
+    expect(r.worstInFlight).toBe(1);
+    // Leaving the ride never waits for more than the one frame on the GPU.
+    expect(r.worstBacklog).toBeLessThanOrEqual(6600 + 1e-6);
+    // And the GPU stays busy: ~9 frames a minute.
+    expect(r.drawn).toBeGreaterThanOrEqual(8);
+  });
+
   it('a mid-speed GPU queues up to the budget, not past it', () => {
     const gpu = simGpu({ gpuMs: 300 });
     const gate = new FrameGate();
@@ -212,7 +241,7 @@ describe('FrameGate', () => {
 
   it('frees every finished frame in one poll, oldest first, and stops at the first unfinished one', () => {
     const gpu = simGpu({ gpuMs: 10 });
-    const gate = new FrameGate({ minInFlight: 10 });
+    const gate = new FrameGate({ untimedInFlight: 10 });
     for (let k = 0; k < 4; k++) gate.submit(gpu.gl, 0, gpu.draw);
     gpu.now = 25; // frames 0 and 1 done (10, 20), 2 and 3 not (30, 40)
     gpu.gl.polls = 0;
@@ -225,7 +254,7 @@ describe('FrameGate', () => {
   it('times a frame from when the GPU could start it: the frame before done, or its submit if later', () => {
     // Queued behind the frame before: from that frame's done.
     const a = simGpu({ gpuMs: 100 });
-    const queued = new FrameGate({ smoothing: 1, minInFlight: 10 });
+    const queued = new FrameGate({ smoothing: 1, untimedInFlight: 10 });
     a.now = 0;
     queued.submit(a.gl, 0, a.draw); // GPU 0-100
     a.now = 10;

@@ -14,12 +14,15 @@
  * back is not drawn at all; the scene still updates, and the next frame the
  * GPU has room for draws the latest state.
  *
- * It holds a frame when `minInFlight` or more frames are unfinished and they
- * add up to `budgetMs` or more of GPU work, at the time the GPU has recently
- * taken per frame. That time comes from the fences: from when the GPU could
- * start a frame (the frame before it seen done, or the frame submitted,
- * whichever came later) to when it was seen done, smoothed. Until a frame has
- * been timed, `minInFlight` frames is the limit.
+ * It holds a frame while the unfinished frames add up to `budgetMs` or more of
+ * GPU work, at the time the GPU has recently taken per frame. That time comes
+ * from the fences: from when the GPU could start a frame (the frame before it
+ * seen done, or the frame submitted, whichever came later) to when it was seen
+ * done, smoothed. Until a frame has been timed, `untimedInFlight` frames is
+ * the limit. A GPU slower than the budget per frame gets one frame at a time:
+ * CI's runners took 6.6 s per 1080p frame on SwiftShader with a second test
+ * running (run 43130528642), and two in flight there kept the way Home waiting
+ * 13 s.
  *
  * Why not a frame count alone: Chrome reports a fence done well after the
  * frame was submitted on a real GPU, up to 1.2 s with vsync off on cat-bed's
@@ -28,7 +31,7 @@
  * cat-bed down to as little as half its frames with vsync off. Counted in GPU
  * time, those frames stay far under the budget and a real GPU is not held
  * back, while a software rasterizer taking ~1.5 s per 1080p frame (SwiftShader
- * on 4 cores) is held to 2–3 frames.
+ * on 4 cores) is held to 2 frames.
  *
  * A GPU that suddenly gets much slower is caught once its slower frames are
  * seen done; until then frames go in at the old pace. Only a browser with no
@@ -43,15 +46,15 @@
 export const TIMED_POLL_GAP_MS = 250;
 
 export interface FrameGateOptions {
-  /** Unfinished frames below which every frame draws (two keep a GPU busy: one drawing, one queued). */
-  minInFlight: number;
+  /** Unfinished frames allowed before the GPU's time per frame is known (two keep a GPU busy: one drawing, one queued). */
+  untimedInFlight: number;
   /** GPU work (ms) the unfinished frames may add up to before the next frame is held. */
   budgetMs: number;
   /** Weight of the newest frame in the smoothed GPU time per frame (0–1). */
   smoothing: number;
 }
 
-export const FRAME_GATE_DEFAULTS: FrameGateOptions = { minInFlight: 2, budgetMs: 3000, smoothing: 0.2 };
+export const FRAME_GATE_DEFAULTS: FrameGateOptions = { untimedInFlight: 2, budgetMs: 3000, smoothing: 0.2 };
 
 /** The WebGL 2 sync calls the gate uses (a WebGL2RenderingContext has them all). */
 export interface FenceGL {
@@ -132,12 +135,11 @@ export class FrameGate {
         }
         this.lastDoneAt = nowMs;
       }
-      if (this.frames.length >= this.options.minInFlight) {
-        const queued = this.queuedMs();
-        if (queued === null || queued >= this.options.budgetMs) {
-          this.held++;
-          return false;
-        }
+      const queued = this.queuedMs();
+      const behind = queued === null ? this.frames.length >= this.options.untimedInFlight : queued > 0 && queued >= this.options.budgetMs;
+      if (behind) {
+        this.held++;
+        return false;
       }
     }
     draw();

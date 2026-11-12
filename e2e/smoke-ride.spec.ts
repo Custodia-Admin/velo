@@ -108,7 +108,10 @@ test('token-free smoke ride: Home → Perugia route → riding in the world rend
   const b = await worldDebug(page);
   expect(a?.renderer).toBe('world');
   expect(a?.world).toBe('perugia');
-  expect(b!.frames).toBeGreaterThan(0);
+  // Frames on screen: the meter counts drawn frames. The ride runs at the rAF
+  // rate whether or not the GPU has room for a frame (renderers/three/frameGate.ts),
+  // and a CI runner's SwiftShader can take 6 s or more per frame, so poll.
+  await expect.poll(async () => (await worldDebug(page))?.frames ?? 0, { message: 'drawn frames', timeout: 90_000 }).toBeGreaterThan(0);
   expect(b!.distance!).toBeGreaterThan(a!.distance!);
   expect(b!.riderXZ).not.toEqual(a!.riderXZ);
   expect(Math.abs(b!.riderGroundGap!)).toBeLessThan(0.05);
