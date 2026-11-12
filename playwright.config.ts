@@ -13,8 +13,13 @@ import { defineConfig, devices } from '@playwright/test';
  * hidden tab behaves as it does for a rider:
  *   xvfb-run -a -s "-screen 0 2560x1600x24" npx playwright test --project=show-mode
  * (2560 px wide: the second test is a 1280 CSS px screen at DPR 2)
+ *
+ * Against a deployed site instead of a local preview (DEPLOY.md, "Verify a
+ * release"): VELO_BASE_URL=https://velo-trainer.pages.dev npx playwright test …
+ * Every test opens a fresh browser context: no storage, caches or service worker.
  */
 const PORT = Number(process.env.SMOKE_PORT ?? 4199);
+const BASE_URL = process.env.VELO_BASE_URL?.replace(/\/+$/, '');
 const glArgs = (process.env.PW_GL_ARGS ?? '--use-angle=swiftshader --enable-unsafe-swiftshader')
   .split(' ')
   .filter(Boolean);
@@ -26,7 +31,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: BASE_URL ?? `http://localhost:${PORT}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -50,7 +55,7 @@ export default defineConfig({
       testMatch: /show-mode\.spec\.ts$/,
     },
   ],
-  webServer: {
+  webServer: BASE_URL ? undefined : {
     command: `npm run preview -- --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}/app`,
     reuseExistingServer: !process.env.CI,

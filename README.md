@@ -15,6 +15,9 @@ and Web Bluetooth trainer control. Velo keeps GlobeRide's ride engine (trainer
 control, physics, FIT export) and adds its own 3D worlds, baked from open data,
 so the 3D ride needs no map token.
 
+**Try it: https://velo-trainer.pages.dev.** Nothing to install and no
+account. Pair a trainer from Chrome or Edge, or let the demo rider ride.
+
 ## Why it exists
 
 A household with one smart trainer wanted what Zwift gives (somewhere pretty
@@ -33,10 +36,12 @@ settings stay on the device.
 
 ## What it does
 
-- **Baked 3D worlds.** Perugia (Umbria) and Lugano (Ticino) ship in the repo;
-  Chengdu's Luxe Lakes is fetched on its first ride. Terrain, roads, water,
-  buildings and trees come from OpenStreetMap and Copernicus elevation data.
-  22 scenic routes, most of them flat or gently rolling; the ones outside a
+- **Baked 3D worlds.** Perugia (Umbria) and Lugano (Ticino) ship in the repo.
+  Chengdu's Luxe Lakes, the Cuyahoga Valley towpath, the Cleveland lakefront,
+  the Berkeley Bay Trail, Santa Monica and Venice, and Puerto Vallarta are
+  fetched on their first ride and ride offline after that. Terrain, roads,
+  water, buildings and trees come from OpenStreetMap and open elevation data.
+  27 scenic routes, most of them flat or gently rolling; the ones outside a
   baked world ride on an OpenStreetMap map.
 - **Your trainer feels the road.** Any FTMS smart trainer over Web Bluetooth
   (Wahoo KICKR, Tacx, Elite, Zwift Hub and others) gets the route's gradient,
@@ -80,9 +85,11 @@ press **Pair**.
 ### Self-hosting
 
 `npm run build` writes a static site to `dist/`. Serve it from any static host
-that falls back to `index.html` for unknown paths (`vercel.json` does this on
-Vercel). Remote worlds load from the project's public bucket; point
-`VITE_WORLDS_REMOTE_URL` at your own mirror if you'd rather host them.
+that falls back to `index.html` for unknown paths. The public site runs on
+Cloudflare Pages, deployed from each release tag; [DEPLOY.md](DEPLOY.md) has
+the steps, for this site and for your own copy. Remote worlds load from the
+project's public bucket; point `VITE_WORLDS_REMOTE_URL` at your own mirror if
+you'd rather host them.
 
 ### Optional settings
 
@@ -135,8 +142,9 @@ first. The project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 - World data: © OpenStreetMap contributors (ODbL); produced using Copernicus
   WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH
   2014-2018 provided under COPERNICUS by the European Union and ESA, all
-  rights reserved; Mapzen/AWS terrain tiles; OSRM. Weather data by
-  Open-Meteo.com (CC BY 4.0).
+  rights reserved; U.S. Geological Survey 3DEP; Source: Federal Office of
+  Topography swisstopo (swissALTI3D); Mapzen/AWS terrain tiles; OSRM. Weather
+  data by Open-Meteo.com (CC BY 4.0).
 - Every source, licence and attribution: [NOTICE.md](NOTICE.md) and
   [docs/worlds/CREDITS.md](docs/worlds/CREDITS.md).
 
