@@ -1,0 +1,12 @@
+Running 6 tests using 2 workers
+  ✓  2 [chromium] › e2e/tv-remote.spec.ts:43:1 › the TV layout turns on by itself on a TV-sized screen with no fine pointer, and from Settings (2.0s)
+  ✓  3 [chromium] › e2e/tv-remote.spec.ts:98:1 › Devices: Escape closes the pairing guide and stays on Devices; a second Escape goes Home (1.4s)
+  ✓  4 [chromium] › e2e/tv-remote.spec.ts:116:3 › keys only at 1920×1080 › Home → ride → details → pause → finish → Home with the arrow keys, Enter and Escape (10.9s)
+[finish-cover] world: frame gate {"drawn":10,"held":727,"inFlight":2,"gpuFrameMs":1627}
+[finish-cover] world: Finish → Home 48 ms
+  ✓  1 [chromium] › e2e/finish-cover.spec.ts:91:3 › the finish screen at 1920×1080 › the world (three.js) draws nothing behind the finish page and draws again for Ride again (27.5s)
+  ✓  5 [chromium] › e2e/tv-remote.spec.ts:179:3 › keys only at 1920×1080 › the ride HUD keeps inside the TV overscan frame (5 % of each edge) (15.6s)
+  ✓  6 [chromium] › e2e/finish-cover.spec.ts:127:3 › the finish screen at 1920×1080 › the photoreal view (Cesium) draws nothing behind the finish page and draws again for Ride again (24.4s)
+  6 passed (1.2m)
+EXIT 0
+ALLDONE

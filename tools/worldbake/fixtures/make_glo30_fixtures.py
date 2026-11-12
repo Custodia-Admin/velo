@@ -90,3 +90,46 @@ write_overviews('glo30-overviews.tif', values(8), 8)
 nodata = write('glo30-nodata.tif', values(8), 8, extra=[(42113, 's', 0, '-32767', True)], byteorder='<', tile=(16, 16))
 with tifffile.TiffFile(nodata) as t:
     assert t.pages[0].tags[42113].value == '-32767', 'nodata tag'
+
+# LZW (TIFF Compression 5), the codec of the USGS 3DEP and swissALTI3D tiles
+# (tools/worldbake/bareGround.mjs). imagecodecs' LZW is libtiff's, so the
+# decoder is checked against the early-change code widths libtiff writes.
+#   lzw-n42w082.tif  a scaled-down 3DEP 1/3" tile: 12 px per degree with the
+#                    6-pixel overlap round the 1-degree cell (24x24 px),
+#                    PixelIsArea, NAD83 (4269), nodata "-999999" at row 10, col 10,
+#                    LZW + floating-point predictor, 16x16 tiles
+#   lzw-noise-be.tif 128x64 float32 noise, big-endian, LZW without predictor,
+#                    one strip: 32 KiB of incompressible bytes, so the code
+#                    table fills and the encoder sends ClearCode several times
+#                    (the raw pixels are in lzw-noise-be.f32, little-endian)
+USGS_KEYS = (1, 1, 0, 4,
+             1024, 0, 1, 2,      # GTModelType: geographic
+             1025, 0, 1, 1,      # GTRasterType: PixelIsArea
+             2048, 0, 1, 4269,   # GeographicType: NAD83
+             2054, 0, 1, 9102)
+
+
+def usgs_values():
+    j, i = np.mgrid[0:24, 0:24]
+    v = (200 + 0.75 * i - 0.5 * j + ((5 * i + 11 * j) % 7) * 0.125).astype(np.float32)
+    v[10, 10] = -999999
+    return v
+
+
+usgs = os.path.join(HERE, 'lzw-n42w082.tif')
+tifffile.imwrite(usgs, usgs_values(), photometric='minisblack', compression='lzw', predictor=3, metadata=None, byteorder='<', tile=(16, 16),
+                 extratags=[(33550, 'd', 3, (1 / 12, 1 / 12, 0.0), True),
+                            (33922, 'd', 6, (0.0, 0.0, 0.0, -82 - 6 / 12, 42 + 6 / 12, 0.0), True),
+                            (34735, 'H', len(USGS_KEYS), USGS_KEYS, True),
+                            (42113, 's', 0, '-999999', True)])
+with tifffile.TiffFile(usgs) as t:
+    assert np.array_equal(t.pages[0].asarray(), usgs_values()), 'lzw-n42w082'
+    report('lzw-n42w082.tif', usgs, t)
+
+noise = np.random.default_rng(20261111).standard_normal((128, 64)).astype(np.float32) * 100
+path = os.path.join(HERE, 'lzw-noise-be.tif')
+tifffile.imwrite(path, noise, photometric='minisblack', compression='lzw', predictor=False, metadata=None, byteorder='>', rowsperstrip=128)
+noise.astype('<f4').tofile(os.path.join(HERE, 'lzw-noise-be.f32'))
+with tifffile.TiffFile(path) as t:
+    assert np.array_equal(t.pages[0].asarray(), noise), 'lzw-noise-be'
+    print('lzw-noise-be.tif', os.path.getsize(path), 'bytes', t.byteorder, t.pages[0].compression, t.pages[0].predictor)

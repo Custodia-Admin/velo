@@ -91,7 +91,7 @@ Validated by `validateManifest()`; schema in
 | `routes[]` | `{ id, name, lengthM, maxGapM, gradeMeanAbsDiffPct }` per snapped scenic route (ids match `src/lib/scenicRoutes.ts`). |
 | `stats` | Counts (roads, buildings, trees, …) for logs and UI. |
 | `credits[]` | `{ id, name, licence, url, attribution }`: show these wherever the world is shown. |
-| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry). |
+| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry), `bareGround` (`usgs-3dep-13` or `swissalti3d`) when the routes and the ground along them stand on an open bare-earth DTM instead of the surface model (recipe `bareGround`, see "Bare ground" below). |
 
 ## height.bin: the heightfield (`u16-delta`)
 
@@ -258,6 +258,15 @@ How the bake decides, once and offline:
   approach ramp at that grade until it meets the ground (at most 450 m; a
   ramp onto a road a route rides is a bake error). Where the road ends first,
   an abutment block carries the deck down.
+- **Abutments over a route's cutting** (`uncarvedAbutments`). The route
+  carve re-grades the ground within `coreCells` + `falloffM` of a route, so
+  the end of a deck over a route can land in the carved cutting, metres under
+  the street it carries. An abutment of a deck a route passes under (and no
+  route rides) stands on the terrain from before the carve wherever that is
+  more than 0.3 m higher, and the road beyond crosses the cutting on an
+  approach ramp. The report's `bridges.approaches[].liftM` is measured from
+  that built-on ground; `rampM` is the length the ramp holds above the drawn
+  ground.
 - **Ridden decks.** On a deck a route rides, the rider is on the deck. The
   carve leaves the ground under its middle alone; where the carve still ran
   (a deck shorter than two end zones of 1.5 cells, the end zones of a longer
@@ -553,7 +562,46 @@ GLO-30 details, checked against the bucket and the tiles' own tags:
 - **It is a surface model.** Copernicus DEM includes buildings and tree
   canopy (water is flattened). The route corridor carve still re-grades the
   road itself, but expect towns and forests to stand a few metres proud of
-  the Terrain Tiles version.
+  the Terrain Tiles version. Under a forest the route fit followed the
+  canopy (the Cuyahoga towpath rode 6–21 m over the ground); a recipe with
+  `bareGround` puts the routes back on the ground (next section).
+
+### Bare ground (`bareGround`)
+
+`tools/worldbake/bareGround.mjs`, card t_06b010ec. Where an open bare-earth
+DTM covers a world, the bake swaps it in along the routes **before** the
+route fit: every node within `corridorM` (150 m) of a route takes the DTM,
+and the next `blendM` (300 m) blend back to GLO-30 with a smoothstep. The fit
+and the carve then work on the ground, and so do the trees, buildings and
+decks beside the routes. Further out the world stays on GLO-30, because the
+P1.3 gate compares it with GLO-90, itself a surface model.
+
+- **Datum.** The DTM is shifted by the median of GLO-30 − DTM over flat
+  (slope < 5 %) open corridor nodes (no woodland polygon within 30 m), so open
+  ground keeps GLO-30's level and the blend has no step there. It comes out at
+  −0.2 m (towpath), −0.09 m (Cleveland) and −0.4 m (Lugano).
+- **`usgs-3dep-13`**: USGS 3DEP 1/3″ (≈ 10 m) bare earth, 1° Cloud Optimized
+  GeoTIFFs (LZW, floating-point predictor, NAD83, PixelIsArea, 6-pixel
+  overlap, nodata −999999), read bilinear. The recipe pins each tile's dated
+  release (`"tiles": { "n42w082": "20230911" }`), fetched from the immutable
+  `historical/` path; an unpinned tile the corridor needs stops the bake.
+- **`swissalti3d`**: swisstopo swissALTI3D 2 m, 1 km LV95 tiles of one
+  release `year`, each node the mean of the k × k pixels round it (k = 7 at
+  15 m). Nodes go into LV95 with swisstopo's approximate formulas (≈ 1 m). A
+  tile that 404s is looked up in the STAC catalogue: no release at all means
+  outside Switzerland (no DTM there); releases of other years stop the bake.
+- **LZW.** Both sources are LZW TIFFs, so `geotiff.mjs` gained a TIFF LZW
+  decoder (libtiff's early code-width change), checked against tifffile
+  fixtures in `tools/worldbake/fixtures/`.
+- **Report.** `bareGround` in `tools/worldbake/reports/<id>.json`: tiles,
+  bias, how far the swap lowered and raised the ground, and for each route how
+  far it stands over the bare ground after the bake (`routes`: median, p95,
+  max, samples over 3 m, the woodland share), against the same figures for a
+  route lying on GLO-30's surface (`surface`). Ridden decks are left out.
+- **Offset windows.** With the ground under the route, the fit's offset can
+  follow it closer. The bareGround worlds use the shortest windows that keep
+  every route's grade Δ ≤ 1 pp: 200/800 m (towpath, Cleveland), 300/1200 m
+  (Lugano, whose Locarno–Brissago reads 1.18 pp at 200/800).
 
 Checks on the bake host, 4 Nov 2026 (Node 26):
 
@@ -683,7 +731,7 @@ bundle is the GLO-30 one:
 | Bake time | 516 s from an empty cache (Overpass ≈ 7 min of it); the GLO-30 re-bake takes 87 s from cache (2 tiles, `N46_00_E008_00` and `N45_00_E008_00`) |
 | Determinism | two bakes from cache and one from an empty cache: identical bytes for all 8 files (re-bake after the route fixes: two bakes from cache, identical). GLO-30: two `--out` bakes and the committed bake, identical bytes for all 8 files |
 | Size | 9.73 MB as shipped (gzip), 7.41 MB brotli, 19.26 MB raw (EU-DEM: 9.46 / 7.12 / 19.26 MB). Only `height.bin.gz`, `routes.json.gz` and `manifest.json` change; the 2-D layers are byte-identical |
-| Routes | max gap 0 m; grade Δ 0.86 pp (Lugano–Melide), 0.68 pp (Locarno–Brissago); painted guide 100 % on drawn roads, checked every 0.1 m across the band (Locarno–Brissago: 99.98 % within 1 m of mapped roads; the route fit moves 20 roads by at most 0.85 m: 8 bent under 247 m of route, 7 junction neighbours moved with them, 5 road ends grown ≤ 0.22 m; at the 2,072 m junction it adds one 7.6 m join instead of bending the connector path onto the wide road; a 116 m route fill used to lie beside the paths) |
+| Routes | max gap 0 m; grade Δ 0.86 pp (Lugano–Melide), 0.68 pp (Locarno–Brissago) (0.60 / 0.865 pp on bare ground); painted guide 100 % on drawn roads, checked every 0.1 m across the band (Locarno–Brissago: 99.98 % within 1 m of mapped roads; the route fit moves 20 roads by at most 0.85 m: 8 bent under 247 m of route, 7 junction neighbours moved with them, 5 road ends grown ≤ 0.22 m; at the 2,072 m junction it adds one 7.6 m join instead of bending the connector path onto the wide road; a 116 m route fill used to lie beside the paths) |
 | Heightfield vs Open-Meteo, 50 seeded points | P1.3 v2: `mountain` (steep fraction 0.5503), registered **1.81 m ≤ 6.24 m, PASS**; at the points 19.47 m (reported only) |
 
 Before and after, same 50 samples (seed 46059), same cache, same rule
@@ -739,7 +787,25 @@ quadrature that is an own error of √(1.81² − 1.71²) = 0.59 m against the
   picks (`node_answer_mismatches` 0). The per-point rows are in
   `tools/worldbake/reports/lugano.json`.
 
-**On the routes.** swissALTI3D (2 m lidar terrain, `api3.geo.admin.ch`,
+**Bare ground** (re-baked 12 Nov 2026, card t_06b010ec). With
+`bareGround: swissalti3d` (release 2022, 46 tiles) and 300/1200 m offset
+windows, the routes stand on swissALTI3D: Lugano–Melide median +0.17 m, p95
++5.6 m, max +8.9 m over it (published GLO-30 bundle: +0.03 / +16.3 / +21.0 m);
+Locarno–Brissago −0.12 / +8.0 / +19.0 m (was +0.89 / +13.9 / +22.3 m).
+Woodland is a small part of either route (169 and 46 of the samples), and the
+rest of what remains is the fit, not canopy: on 30–40° shore slopes the
+route profile (the GLO-90 north-west node) rises or falls a few hundred
+metres away from where the road does (Locarno–Brissago at 2.7–2.9 km climbs
+11 m on swissALTI3D, 9 m on the profile, 100 m earlier), and the 15 m grid
+cannot hold a road terrace. Shorter windows close more of it but break the
+1 pp grade budget (1.18 pp at 200/800). The swap reaches 91 m at a node
+under the Arbostora cliffs above Melide, where a 30 m DSM and a 2 m DTM
+disagree by a cliff's height; P1.3 reads 1.84 m (1.81 m before). Size is
+unchanged at 7.41 MB brotli. Shots at Lugano–Melide 3.30 km and
+Locarno–Brissago 2.80 km, before and after, show the rider on the road and
+no new artefacts.
+
+**On the routes (GLO-30, 6 Nov).** swissALTI3D (2 m lidar terrain, `api3.geo.admin.ch`,
 LN02 heights) every 250 m puts the GLO-30 route 4.7–4.9 m high on average.
 The EU-DEM route was 7.8–11.1 m high. The GLO-90 profile itself is 16.0 m RMS
 off on Locarno–Brissago (mean +10.9 m), most likely because Open-Meteo's
@@ -797,11 +863,11 @@ Station Road Bridge), both on the Ohio & Erie Canal Towpath Trail. Baked
 | --- | --- |
 | Bake time | 15 s from cache |
 | Determinism | an `--out` bake and the committed bake: identical bytes for all 9 files |
-| Size | 3.22 MB as shipped (gzip), 2.59 MB brotli, 5.75 MB raw |
-| Routes | 17.43 km and 10.35 km: max gap 0 m; grade Δ 0.328 / 0.177 pp; 100 % within 1 m of mapped roads; guide 100 % on drawn roads (218 m and 219 m eased, no joins) |
-| Heightfield vs Open-Meteo, 50 seeded points (seed 41292) | P1.3 v2: `standard` (steep fraction 0.1254), registered **1.69 m ≤ 6.00 m, PASS**; point RMS 4.37 m |
-| Heightfield range | 168.6–389.6 m; 22,182 nodes carved under the routes (max 26.1 m) |
-| Bridges | 207 decks, 19 pieces ridden (the Beaver Marsh boardwalk, 514 m, and the trail's creek bridges); the towpath passes under the Ohio Turnpike (I-80) with 40 m clearance, I-271 with 15–19 m, the Brecksville–Northfield High Level Bridge with 41 m; Rockside Road, East Pleasant Valley Road, Main Street (Peninsula) and three footbridges were lifted to the 4.5 m headroom; 96 piers |
+| Size | 3.21 MB as shipped (gzip), 2.58 MB brotli, 5.74 MB raw |
+| Routes | 17.43 km and 10.35 km: max gap 0 m; grade Δ 0.265 / 0.146 pp (0.328 / 0.177 before bare ground); 100 % within 1 m of mapped roads; guide 100 % on drawn roads (218 m and 219 m eased, no joins) |
+| Heightfield vs Open-Meteo, 50 seeded points (seed 41292) | P1.3 v2: `standard` (steep fraction 0.1213), registered **3.00 m ≤ 6.00 m, PASS**; point RMS 5.35 m (1.69 m / 4.37 m before bare ground; see below) |
+| Heightfield range | 168.6–389.6 m; 175,849 nodes within 450 m of the routes on 3DEP (lowered 6.5 m on average, up to 36.5 m); 22,182 nodes carved under the routes (max 14.2 m; 26.1 m before) |
+| Bridges | 207 decks, 19 pieces ridden (the Beaver Marsh boardwalk, 514 m, and the trail's creek bridges); the towpath passes under the Ohio Turnpike (I-80) with 40 m clearance, I-271 with 15–19 m, the Brecksville–Northfield High Level Bridge with 41 m; 6 headroom pins (lift ≤ 3.8 m), 8 abutments on approach ramps (lift over the built-on ground ≤ 4.0 m, Rockside Road); 105 piers |
 | Content | 8,176 road pieces, 353 water areas + 257 waterways, 1,763 landcover areas, 1,755 buildings, 200,000 trees |
 
 Tree budget: 200,000 trees, the route corridor first (`vegetation.corridor`:
@@ -815,12 +881,34 @@ rides through at 1.18 M triangles on average (1.55 M at the densest spot,
 Perugia 1.54 M; the north route 1.28 M / 1.59 M). The figures come from
 `__veloRideDebug` every kilometre at 1920×1080.
 
-Known limit: GLO-30 is a surface model, and in this forested valley the
-canopy pulls the route fit's offset up 10–17 m. Where the towpath leaves the
-trees (Peninsula) it stands 6–9 m over the open ground, so Main Street's
-bridge over it has a 15 m lift at its west abutment and a 300 m approach
-viaduct into the village. It is drawn as a structure, but real Main Street is
-at grade there; a canopy-aware route offset is the fix.
+**Bare ground** (re-baked 12 Nov 2026, card t_06b010ec, published as
+`worlds/ohio-erie-towpath/dbf897dc31e3c33f/`). GLO-30 is a surface model, and
+in this forested valley the route fit followed the canopy: the towpath stood
+5.8 m over the 3DEP bare earth at the median, 18.4 m at p95 and 21.2 m at
+most, and where it left the trees at Peninsula it still stood 6–11 m over the
+open ground. Main Street's bridge over it was lifted 14.9 m at its west
+abutment onto a 298 m approach viaduct into the village (348 m of ramps over
+3 m round Peninsula). With `bareGround: usgs-3dep-13` and 200/800 m offset
+windows:
+
+| Check | Main (`4d29e49bad1fa163`) | Bare ground (`dbf897dc31e3c33f`) |
+| --- | --- | --- |
+| Towpath over the bare ground: median / p95 / max | +5.83 / +18.35 / +21.17 m (1,412 of 1,669 samples over 3 m) | −0.07 / +0.79 / +2.72 m (none over 3 m) |
+| North route: median / p95 / max | +0.36 / +7.86 / +8.72 m (326 of 1,021 over 3 m) | −0.17 / +0.60 / +1.22 m (none) |
+| Main Street (Peninsula) | deck 15.2 m over the drawn ground, west abutment lifted 14.9 m, 298 m approach | deck 5.7 m over the river and the towpath, both abutments on the ground (west 215.3 m, 3DEP 215.8 m), no lift, 16 m ramp over the route's cutting |
+| Route height at 10.9 km | 222.4 m | 210.3 m (3DEP ≈ 208–210 m) |
+| Other headroom lifts | Rockside Road 5.5 / 4.5 m | Rockside Road 4.0 m (an abutment block at the north route's start), all others ≤ 1.2 m |
+| P1.3 registered RMS | 1.69 m | 3.00 m ≤ 6.00 m, PASS: the 45 points beyond 450 m of a route read 1.77 m in both; of the 5 inside the corridor two now sit on the ground under the woods that GLO-90 measures at the canopy (−7.6 m, −15.7 m) |
+
+The bridges step also changed for every deck a route passes under: an
+abutment the route's carve dug into now stands on the ground the road was
+built on (`uncarvedAbutments` in `bridges.mjs`), and the road beyond it
+crosses the cutting on a short ramp. Main Street's west end lies 16 m from
+the towpath, where the carve's falloff had lowered the ground 5.5 m. The
+report's `liftM` is measured from that uncarved ground; `rampM` is the road
+the ramp holds above the drawn ground. Chase shots at 10.86 and 10.90 km,
+before and after, at 1280×648@2 and 390×844, are in
+`docs/design/screenshots/v2/build/bare-ground/`.
 
 ### Cleveland lakefront
 
@@ -837,14 +925,17 @@ GLO-30 and OSM as of 1 Nov 2026, with `bridges`.
 | Bake time | 7 s from cache |
 | Determinism | an `--out` bake and the committed bake: identical bytes for all 9 files |
 | Size | 1.35 MB as shipped (gzip), 1.05 MB brotli, 3.67 MB raw |
-| Routes | 13.51 km and 8.11 km: max gap 0 m; grade Δ 0.339 / 0.362 pp; 100 % within 1 m of mapped roads; guide 100 % on drawn roads (37 m and 202 m eased, no joins) |
-| Heightfield vs Open-Meteo, 50 seeded points (seed 41505) | P1.3 v2: `standard` (steep fraction 0.0095), registered **0.52 m ≤ 6.00 m, PASS**; point RMS 2.02 m |
-| Heightfield range | 163.5–228.4 m; 16,591 nodes carved (max 25.1 m) |
-| Bridges | 222 decks, 11 pieces ridden, among them the Detroit–Superior Bridge (792 m, up to 18.6 m over the Flats) and West 3rd Street over the railway; the route passes under the Memorial Shoreway at six places (and at 2.62 km runs beside it on its own cycleway, never on the motorway deck) and the Lakeland Freeway at two, each lifted onto 64–154 m approach ramps (lift ≤ 6.2 m) to keep 4.5 m headroom; 1,343 nodes lowered under decks (the Main Avenue viaduct's DSM ridge, max 14.1 m); 442 piers and abutment blocks |
+| Routes | 13.51 km and 8.11 km: max gap 0 m; grade Δ 0.531 / 0.506 pp (0.339 / 0.362 before bare ground); 100 % within 1 m of mapped roads; guide 100 % on drawn roads (37 m and 202 m eased, no joins) |
+| Heightfield vs Open-Meteo, 50 seeded points (seed 41505) | P1.3 v2: `standard` (steep fraction 0.0078), registered **0.67 m ≤ 6.00 m, PASS**; point RMS 1.80 m (0.52 m / 2.02 m before bare ground) |
+| Heightfield range | 163.9–228.4 m; 126,979 nodes within 450 m of the routes on 3DEP (lowered 1.6 m on average); 16,591 nodes carved (max 11.9 m; 25.1 m before) |
+| Bridges | 222 decks, 11 pieces ridden, among them the Detroit–Superior Bridge (792 m, up to 18.6 m over the Flats) and West 3rd Street over the railway; the route passes under the Memorial Shoreway at six places (and at 2.62 km runs beside it on its own cycleway, never on the motorway deck) and the Lakeland Freeway at two; 10 headroom pins, 19 abutments on approach ramps (13 of them on the uncarved ground; lift over the built-on ground ≤ 6.2 m, the Shoreway at 0.24 km, as before) to keep 4.5 m headroom; 1,336 nodes lowered under decks (the Main Avenue viaduct's DSM ridge, max 10.3 m); 437 piers and abutment blocks |
+| Route over the bare ground (3DEP) | lakefront median 0.0 m, p95 2.0 m, max 8.2 m; Wendy Park 0.1 / 2.1 / 4.5 m (before: −0.6 / 3.9 / 10.3 m and 2.3 / 6.2 / 8.0 m). The 8.2 m is the bikeway at 1.1–1.3 km on the rim of the Shoreway's cutting, which the 10 m DTM blurs into the bikeway; the 4.5 m is Wendy Park's path up the Edgewater bluff, steeper than the route profile |
 | Content | 15,627 road pieces, 30 water areas + 6 waterways, 1,376 landcover areas, 16,014 buildings, 26,469 trees |
 
 Lake Erie is the world's largest water area (61.6 km² of lake polygon in the
 extent), drawn level with the shore; the route stays on the shore paths.
+Re-baked 12 Nov 2026 with `bareGround: usgs-3dep-13` (card t_06b010ec),
+published as `worlds/cleveland-lakefront/4c3b6830cb6e1933/`.
 
 ### Adding a world
 

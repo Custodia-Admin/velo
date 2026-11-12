@@ -7,7 +7,7 @@
 //   "MM" big-endian), the whole IFD chain (full resolution + overviews);
 // - tiled or stripped layout via TileOffsets/TileByteCounts or
 //   StripOffsets/StripByteCounts;
-// - compression none (1) or DEFLATE (8, and the old 32946);
+// - compression none (1), LZW (5) or DEFLATE (8, and the old 32946);
 // - predictor none (1) or floating point (3) on 32-bit IEEE float samples;
 // - ModelTiepoint + ModelPixelScale + the GeoKey raster type (PixelIsArea or
 //   PixelIsPoint).
@@ -184,6 +184,89 @@ export function decodeFloatPredictor(raw, width, rows, samplesPerPixel = 1) {
   return out;
 }
 
+/**
+ * TIFF LZW (Compression = 5), as libtiff writes it: codes MSB first, 9 to 12
+ * bits, ClearCode 256, EndOfInformation 257, and the code width growing one
+ * code early (at 511, 1023 and 2047 table entries, not 512/1024/2048 as in
+ * GIF). The USGS 3DEP DTMs (bareGround.mjs) use it. `expected` is the block's
+ * decoded size; a stream that ends without EOI or overruns throws.
+ */
+export function decodeLzw(stored, expected) {
+  if (stored.length >= 2 && stored[0] === 0 && (stored[1] & 1) === 1) throw new Error('old-style (pre-TIFF 6) LZW is not supported');
+  const out = new Uint8Array(expected);
+  const prefix = new Int16Array(4096);
+  const suffix = new Uint8Array(4096);
+  const first = new Uint8Array(4096);
+  const length = new Uint16Array(4096);
+  for (let c = 0; c < 256; c++) {
+    prefix[c] = -1;
+    suffix[c] = c;
+    first[c] = c;
+    length[c] = 1;
+  }
+  let pos = 0;
+  let bitBuf = 0;
+  let bitCount = 0;
+  let at = 0;
+  let width = 9;
+  let free = 258;
+  let old = -1;
+  const read = () => {
+    while (bitCount < width) {
+      if (at >= stored.length) return 257; // a stream may end without EOI once the block is full
+      bitBuf = ((bitBuf << 8) | stored[at++]) >>> 0;
+      bitCount += 8;
+    }
+    bitCount -= width;
+    return (bitBuf >>> bitCount) & ((1 << width) - 1);
+  };
+  const emit = (code) => {
+    const n = length[code];
+    if (pos + n > expected) throw new Error(`LZW block decodes past its ${expected} bytes`);
+    let c = code;
+    for (let k = pos + n - 1; k >= pos; k--) {
+      out[k] = suffix[c];
+      c = prefix[c];
+    }
+    pos += n;
+  };
+  const add = (pre, byte) => {
+    if (free >= 4096) throw new Error('LZW table overflow (no ClearCode)');
+    prefix[free] = pre;
+    suffix[free] = byte;
+    first[free] = first[pre];
+    length[free] = length[pre] + 1;
+    free++;
+    if (free + 1 >= 1 << width && width < 12) width++;
+  };
+  for (;;) {
+    const code = read();
+    if (code === 257) break;
+    if (code === 256) {
+      width = 9;
+      free = 258;
+      old = -1;
+      continue;
+    }
+    if (old < 0) {
+      if (code > 255) throw new Error(`LZW code ${code} right after a ClearCode`);
+      emit(code);
+    } else if (code < free) {
+      emit(code);
+      add(old, first[code]);
+    } else if (code === free) {
+      add(old, first[old]);
+      emit(code);
+    } else {
+      throw new Error(`LZW code ${code} beyond the table (${free})`);
+    }
+    old = code;
+    if (pos === expected) break;
+  }
+  if (pos !== expected) throw new Error(`LZW block decoded to ${pos} bytes, expected ${expected}`);
+  return out;
+}
+
 /** Plain float32 samples in the file's byte order (Predictor = 1). */
 function decodeFloat32(raw, count, le) {
   if (raw.length < count * 4) throw new Error(`float32 block is ${raw.length} bytes, expected ${count * 4}`);
@@ -211,7 +294,7 @@ export function openRaster(tiff, ifdIndex = fullResolutionIfd(tiff)) {
   const predictor = first(tags, TAG.Predictor, 1);
   if (spp !== 1) throw new Error(`SamplesPerPixel ${spp}: only single-band rasters are supported`);
   if (bits.some((b) => b !== 32) || format !== 3) throw new Error(`BitsPerSample ${bits} / SampleFormat ${format}: only float32 is supported`);
-  if (compression !== 1 && compression !== 8 && compression !== 32946) throw new Error(`Compression ${compression}: only none and DEFLATE are supported`);
+  if (compression !== 1 && compression !== 5 && compression !== 8 && compression !== 32946) throw new Error(`Compression ${compression}: only none, LZW and DEFLATE are supported`);
   if (predictor !== 1 && predictor !== 3) throw new Error(`Predictor ${predictor}: only none and floating point (3) are supported`);
 
   const tiled = tags.has(TAG.TileWidth);
@@ -231,9 +314,9 @@ export function openRaster(tiff, ifdIndex = fullResolutionIfd(tiff)) {
     const len = counts[b];
     if (at + len > tiff.bytes.length) throw new Error(`TIFF block ${b} runs past the end of the file`);
     const stored = tiff.bytes.subarray(at, at + len);
-    const raw = compression === 1 ? stored : inflateSync(stored);
     // Tiles are always full size (edge tiles padded); the last strip may be short.
     const rows = tiled ? blockHeight : Math.min(blockHeight, height - Math.floor(b / across) * blockHeight);
+    const raw = compression === 1 ? stored : compression === 5 ? decodeLzw(stored, blockWidth * rows * 4) : inflateSync(stored);
     const data = predictor === 3 ? decodeFloatPredictor(raw, blockWidth, rows) : decodeFloat32(raw, blockWidth * rows, tiff.littleEndian);
     blocks[b] = data;
     return data;

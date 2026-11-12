@@ -2,19 +2,20 @@
   "world": "lugano",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 0.9,
-    "heightfield+routes": 0.1,
+    "dem": 0.8,
     "osm": 0.8,
-    "vectors": 56.8,
-    "write": 28,
+    "bareGround": 0.6,
+    "heightfield+routes": 3.4,
+    "vectors": 40.2,
+    "write": 21.8,
     "validate": 0.1,
-    "total": 86.6
+    "total": 67.7
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 3190257,
+      "stored": 3190382,
       "content": 5525468,
-      "brotli": 2540960
+      "brotli": 2540235
     },
     "roads.json.gz": {
       "stored": 1943671,
@@ -42,30 +43,30 @@
       "brotli": 1400455
     },
     "routes.json.gz": {
-      "stored": 26001,
-      "content": 67806,
-      "brotli": 17970
+      "stored": 26203,
+      "content": 68244,
+      "brotli": 18052
     },
     "manifest.json": {
-      "stored": 136072,
-      "content": 136072,
-      "brotli": 18982
+      "stored": 136483,
+      "content": 136483,
+      "brotli": 19168
     }
   },
   "totals": {
-    "stored": 9728595,
-    "content": 19260460,
-    "brotli": 7411709
+    "stored": 9729333,
+    "content": 19261309,
+    "brotli": 7411252
   },
   "hashes": {
-    "height.bin.gz": "023cfa1c0cb60f25d2bb02e72ba1f0ea86525498323119116aa4608cc5983baa",
+    "height.bin.gz": "92890a36f491ce46dd16ca0fd4e2aca6b57699f0fb543090e5b5edf928360170",
     "roads.json.gz": "5c020878893320b69dc8b42fee70275e4cb71b925a830940c130cb086dd3fe17",
     "water.json.gz": "10108ff003ff77d8fc3d2311bd3e815e88fb20841d85a862f86bf9c444ce79fd",
     "landcover.json.gz": "70f13956230e1b1d15f5fa186cf24967c20c1d0edb0b1f6dc170a8613af27919",
     "buildings.bin.gz": "472f56394d46f8801ad9eb607d8dc4508a364a6f8ce0ac6b396d403f71adc59a",
     "vegetation.bin.gz": "4560365d3b98777974ec171f8c84def53746e6f7113419f2fb3f68b879a427c0",
-    "routes.json.gz": "d376395c6647d82a5131f730440d6a169e04e8fb15bd88eaabfc3eeb65977ec0",
-    "manifest.json": "962e5e1d7c83c68acf006de0ad4ab17f8f528a02ccc34f5d4ac67de028aae8b8"
+    "routes.json.gz": "2cae2365ebe03ff926381be1e8733391dfd0e36f7ce42d80ff140818c22a4efe",
+    "manifest.json": "3c789fdb5bcff0bfa5c54f8cf51d6256bcc3f0fa10eafc1e31a2d97c58c07707"
   },
   "routes": [
     {
@@ -73,12 +74,12 @@
       "name": "Lugano lakefront to Melide",
       "lengthM": 7799.67,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.861,
+      "gradeMeanAbsDiffPct": 0.6,
       "report": {
         "samples": 781,
-        "gradeMaxAbsDiffPct": 3.626,
-        "rawDemGradeMeanAbsDiffPct": 3.62,
-        "maxRenderMinusProfileM": 20.69
+        "gradeMaxAbsDiffPct": 1.914,
+        "rawDemGradeMeanAbsDiffPct": 1.347,
+        "maxRenderMinusProfileM": 11.28
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -94,12 +95,12 @@
       "name": "Locarno to Brissago",
       "lengthM": 9691.39,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.68,
+      "gradeMeanAbsDiffPct": 0.865,
       "report": {
         "samples": 971,
-        "gradeMaxAbsDiffPct": 2.341,
-        "rawDemGradeMeanAbsDiffPct": 2.945,
-        "maxRenderMinusProfileM": 23.08
+        "gradeMaxAbsDiffPct": 3.926,
+        "rawDemGradeMeanAbsDiffPct": 2.094,
+        "maxRenderMinusProfileM": 25.42
       },
       "roadCoverage": {
         "mappedPct": 99.98,
@@ -228,7 +229,139 @@
     "minHeight": 191.25,
     "maxHeight": 1949.1875,
     "carvedNodes": 9695,
-    "maxCutM": 71.96
+    "maxCutM": 57.64
+  },
+  "bareGround": {
+    "source": "swissalti3d",
+    "tiles": [
+      "2697-1108@2022",
+      "2698-1107@2022",
+      "2698-1108@2022",
+      "2698-1109@2022",
+      "2698-1110@2022",
+      "2699-1108@2022",
+      "2699-1109@2022",
+      "2699-1110@2022",
+      "2699-1111@2022",
+      "2699-1112@2022",
+      "2700-1110@2022",
+      "2700-1111@2022",
+      "2700-1112@2022",
+      "2701-1111@2022",
+      "2701-1112@2022",
+      "2702-1111@2022",
+      "2702-1112@2022",
+      "2702-1113@2022",
+      "2703-1112@2022",
+      "2703-1113@2022",
+      "2704-1112@2022",
+      "2704-1113@2022",
+      "2704-1114@2022",
+      "2705-1113@2022",
+      "2705-1114@2022",
+      "2716-1089@2022",
+      "2716-1090@2022",
+      "2716-1091@2022",
+      "2716-1092@2022",
+      "2716-1093@2022",
+      "2716-1094@2022",
+      "2716-1095@2022",
+      "2716-1096@2022",
+      "2717-1089@2022",
+      "2717-1090@2022",
+      "2717-1091@2022",
+      "2717-1092@2022",
+      "2717-1093@2022",
+      "2717-1094@2022",
+      "2717-1095@2022",
+      "2717-1096@2022",
+      "2718-1089@2022",
+      "2718-1090@2022",
+      "2718-1092@2022",
+      "2718-1093@2022",
+      "2718-1094@2022"
+    ],
+    "corridorM": 150,
+    "blendM": 300,
+    "biasM": -0.4,
+    "openNodes": 35594,
+    "nodes": 73543,
+    "nodata": 0,
+    "maxLowerM": 91.47,
+    "maxLowerAt": [
+      8900,
+      -8715
+    ],
+    "meanLowerM": 4.63,
+    "maxRaiseM": 57.62,
+    "maxRaiseAt": [
+      8570,
+      -9510
+    ],
+    "routes": [
+      {
+        "id": "scenic-lugano-melide",
+        "samples": 781,
+        "medianM": 0.17,
+        "p95M": 5.59,
+        "maxM": 8.91,
+        "maxAtS": 3330,
+        "minM": -13.12,
+        "over3M": 98,
+        "woodland": {
+          "samples": 169,
+          "p95M": 6.08,
+          "maxM": 8.4
+        }
+      },
+      {
+        "id": "scenic-locarno-brissago",
+        "samples": 971,
+        "medianM": -0.12,
+        "p95M": 8.01,
+        "maxM": 18.95,
+        "maxAtS": 2800,
+        "minM": -19.29,
+        "over3M": 153,
+        "woodland": {
+          "samples": 46,
+          "p95M": 3.24,
+          "maxM": 3.99
+        }
+      }
+    ],
+    "surface": [
+      {
+        "id": "scenic-lugano-melide",
+        "samples": 781,
+        "medianM": 2.89,
+        "p95M": 31.33,
+        "maxM": 53.7,
+        "maxAtS": 2990,
+        "minM": -18.93,
+        "over3M": 385,
+        "woodland": {
+          "samples": 169,
+          "p95M": 42.3,
+          "maxM": 51.19
+        }
+      },
+      {
+        "id": "scenic-locarno-brissago",
+        "samples": 971,
+        "medianM": 3.57,
+        "p95M": 14.98,
+        "maxM": 27.49,
+        "maxAtS": 5730,
+        "minM": -11.48,
+        "over3M": 555,
+        "woodland": {
+          "samples": 46,
+          "p95M": 23.93,
+          "maxM": 25.68
+        }
+      }
+    ]
   },
   "buildingsDropped": {
     "route": 58,
@@ -271,14 +404,14 @@
     "floor_rms_m": 1.71,
     "own_error_allowance_m": 6,
     "bound_m": 6.24,
-    "registered_rms_m": 1.81,
-    "point_rms_m": 19.47,
+    "registered_rms_m": 1.84,
+    "point_rms_m": 19.5,
     "max_abs_registered_err_m": 7.49,
     "pass": true,
     "diagnostics": {
       "note": "not gating (blueprint §P1.3.4)",
-      "registered_mean_bias_m": -0.05,
-      "point_mean_bias_m": 2.81,
+      "registered_mean_bias_m": -0.09,
+      "point_mean_bias_m": 2.75,
       "point_max_abs_err_m": 47.77,
       "node_answer_mismatches": 0
     },
@@ -628,10 +761,10 @@
         "lat": 45.9988,
         "lon": 8.94429,
         "openMeteo": 329,
-        "heightfield": 321.39,
+        "heightfield": 318.42,
         "nodeLat": 45.99916667,
         "nodeLon": 8.94416667,
-        "nodeHeightfield": 328.49,
+        "nodeHeightfield": 326.58,
         "nodeOpenMeteo": 329,
         "onRouteCorridor": false
       },
@@ -661,10 +794,10 @@
         "lat": 45.95172,
         "lon": 8.95864,
         "openMeteo": 270,
-        "heightfield": 270,
+        "heightfield": 270.06,
         "nodeLat": 45.9525,
         "nodeLon": 8.95833333,
-        "nodeHeightfield": 270,
+        "nodeHeightfield": 270.06,
         "nodeOpenMeteo": 270,
         "onRouteCorridor": false
       },
@@ -741,7 +874,7 @@
         "heightfield": 270,
         "nodeLat": 45.94916667,
         "nodeLon": 8.96166667,
-        "nodeHeightfield": 270,
+        "nodeHeightfield": 270.03,
         "nodeOpenMeteo": 270,
         "onRouteCorridor": false
       },

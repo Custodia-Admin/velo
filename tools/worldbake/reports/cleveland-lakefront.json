@@ -4,22 +4,23 @@
   "timingsS": {
     "dem": 0.2,
     "osm": 0.3,
-    "heightfield+routes": 2,
+    "bareGround": 0.2,
+    "heightfield+routes": 1.9,
     "vectors": 0.5,
     "write": 4,
     "validate": 0,
-    "total": 7
+    "total": 7.1
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 402573,
+      "stored": 400088,
       "content": 1459008,
-      "brotli": 329455
+      "brotli": 327461
     },
     "roads.json.gz": {
-      "stored": 349458,
-      "content": 1036453,
-      "brotli": 247333
+      "stored": 349578,
+      "content": 1036694,
+      "brotli": 247318
     },
     "water.json.gz": {
       "stored": 9637,
@@ -42,36 +43,36 @@
       "brotli": 98228
     },
     "routes.json.gz": {
-      "stored": 33774,
-      "content": 82460,
-      "brotli": 24212
+      "stored": 33634,
+      "content": 82390,
+      "brotli": 24249
     },
     "bridges.json.gz": {
-      "stored": 13957,
-      "content": 57339,
-      "brotli": 10110
+      "stored": 13784,
+      "content": 57268,
+      "brotli": 10039
     },
     "manifest.json": {
-      "stored": 11984,
-      "content": 11984,
-      "brotli": 3147
+      "stored": 12400,
+      "content": 12400,
+      "brotli": 3270
     }
   },
   "totals": {
-    "stored": 1351308,
-    "content": 3667361,
-    "brotli": 1054724
+    "stored": 1349046,
+    "content": 3667877,
+    "brotli": 1052804
   },
   "hashes": {
-    "height.bin.gz": "4dcbb45368016717f344227c9f7224c79d5e509b9f05387df4e3f376b8cc51f6",
-    "roads.json.gz": "8548a1796be17b344e75f1ad3cf1552388d398538d9e97a05f87427335e34456",
+    "height.bin.gz": "35b702ba9bdc00266d030076e09196d77bb4b6b70375e2cd44a35bb6eb2616d0",
+    "roads.json.gz": "fd08a3a6c1b7d272cb578bd8c2c9733e867030151de6f27bdcfd0b9a35834dac",
     "water.json.gz": "3421a6d47707a40d2f1501ce563861238dec7b6cc9d61fcb90a0b6fce935a2f1",
     "landcover.json.gz": "052d7f2a270dc0878eded01c6db5ecb87f2f5961c834ab602db35253c745de2b",
     "buildings.bin.gz": "c13d90fedb1651c1a9e4b959cf7e039e3b6052c7362f987bb20bd1b7d9be3ec5",
     "vegetation.bin.gz": "580aeb34e75d36f09a502bdf54f5017f8e482d21d486035eb639ab2095ab8bf7",
-    "routes.json.gz": "0fb4f9d930ff15ca2aed9d3ea2873a50ac85fd0353ad61f7055d56e856eb80a9",
-    "bridges.json.gz": "5b0aba46f4ff569876736b60fda081b95b5df6891a9e7fdb1e01d11142d5b49a",
-    "manifest.json": "ea575d8369357cb08811b3a77d237b9b6889d0ba783f59b2a7b7f42878a39576"
+    "routes.json.gz": "7d9f80362826247cb5712e26a43c68f461c3317c0f7214d0e68d181148a84891",
+    "bridges.json.gz": "26650858b68b098870707194a65f46f300f28843f1940ca50c875f812c871757",
+    "manifest.json": "4c3b6830cb6e19332844c649e939cbcb350c576ba4b1769945a2cbcde0b81e40"
   },
   "routes": [
     {
@@ -79,12 +80,12 @@
       "name": "Cleveland lakefront",
       "lengthM": 13513.64,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.339,
+      "gradeMeanAbsDiffPct": 0.531,
       "report": {
         "samples": 1353,
-        "gradeMaxAbsDiffPct": 2.299,
-        "rawDemGradeMeanAbsDiffPct": 1.726,
-        "maxRenderMinusProfileM": 19.49
+        "gradeMaxAbsDiffPct": 2.73,
+        "rawDemGradeMeanAbsDiffPct": 1.146,
+        "maxRenderMinusProfileM": 23.32
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -100,12 +101,12 @@
       "name": "Wendy Park to Lakewood Park",
       "lengthM": 8108.03,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.362,
+      "gradeMeanAbsDiffPct": 0.506,
       "report": {
         "samples": 812,
-        "gradeMaxAbsDiffPct": 2.41,
-        "rawDemGradeMeanAbsDiffPct": 1.207,
-        "maxRenderMinusProfileM": 16.1
+        "gradeMaxAbsDiffPct": 2.24,
+        "rawDemGradeMeanAbsDiffPct": 0.803,
+        "maxRenderMinusProfileM": 19.39
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -246,94 +247,87 @@
     "encoding": "u16-delta",
     "heightOffset": 162,
     "heightScale": 0.015625,
-    "minHeight": 163.484375,
+    "minHeight": 163.90625,
     "maxHeight": 228.421875,
     "carvedNodes": 16591,
-    "maxCutM": 25.11
+    "maxCutM": 11.89
   },
   "bridges": {
     "networks": 222,
     "pieces": 329,
-    "piers": 442,
-    "underDeckNodes": 1343,
-    "underDeckMaxCutM": 14.14,
+    "piers": 437,
+    "underDeckNodes": 1336,
+    "underDeckMaxCutM": 10.28,
     "headroomPins": [
       {
         "road": 1492,
         "name": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 4770.45,
-        "liftM": 11.16
+        "liftM": 8.69
       },
       {
         "road": 994,
         "name": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 4780.93,
-        "liftM": 10.38
+        "liftM": 7.57
       },
       {
         "road": 1014,
         "name": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 2616.82,
-        "liftM": 5.71
+        "liftM": 4.22
       },
       {
         "road": 1016,
         "name": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 2573.13,
-        "liftM": 5.57
+        "liftM": 3.24
       },
       {
         "road": 1140,
         "name": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 251.95,
-        "liftM": 6.34
+        "liftM": 6.3
       },
       {
         "road": 1142,
         "name": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 236.46,
-        "liftM": 6.33
+        "liftM": 6.3
       },
       {
         "road": 1333,
         "name": "Lakeland Freeway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 13205.42,
-        "liftM": 6.24
+        "liftM": 1.47
       },
       {
         "road": 1335,
         "name": "Lakeland Freeway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 13228.71,
-        "liftM": 6.2
+        "liftM": 0.63
       },
       {
         "road": 6730,
         "name": "Edgewater Beach House Pedestrian Bridge",
         "route": "scenic-wendy-park-lakewood",
         "routeS": 2584.56,
-        "liftM": 5.63
+        "liftM": 4.77
       },
       {
         "road": 8107,
         "name": null,
         "route": "scenic-cleveland-lakefront",
         "routeS": 4261.66,
-        "liftM": 5.03
-      },
-      {
-        "road": 13466,
-        "name": null,
-        "route": "scenic-cleveland-lakefront",
-        "routeS": 12770.71,
-        "liftM": 2.49
+        "liftM": 4.92
       }
     ],
     "approaches": [
@@ -341,57 +335,116 @@
         "bridge": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 4770.45,
-        "liftM": 4.46,
-        "rampM": 111.47
+        "liftM": 1.47,
+        "rampM": 46.59
       },
       {
         "bridge": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
-        "routeS": 4780.93,
-        "liftM": 2.55,
-        "rampM": 63.76
+        "routeS": 5200,
+        "liftM": 0,
+        "rampM": 42.9
       },
       {
         "bridge": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 2616.82,
-        "liftM": 5.83,
-        "rampM": 145.67
+        "liftM": 3.78,
+        "rampM": 125.67
       },
       {
         "bridge": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 2573.13,
-        "liftM": 4.89,
-        "rampM": 122.17
+        "liftM": 2.09,
+        "rampM": 31.33
       },
       {
         "bridge": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 2573.13,
-        "liftM": 4.92,
-        "rampM": 122.96
+        "liftM": 2.8,
+        "rampM": 122.2
+      },
+      {
+        "bridge": "Lakeland Freeway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 13205.42,
+        "liftM": 0.85,
+        "rampM": 28.56
+      },
+      {
+        "bridge": "Lakeland Freeway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 13205.42,
+        "liftM": 0.68,
+        "rampM": 34.44
+      },
+      {
+        "bridge": "Lakeland Freeway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 13240,
+        "liftM": 0,
+        "rampM": 32.75
+      },
+      {
+        "bridge": "Lakeland Freeway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 13228.71,
+        "liftM": 0.17,
+        "rampM": 22.77
+      },
+      {
+        "bridge": "Edgewater Beach House Pedestrian Bridge",
+        "route": "scenic-wendy-park-lakewood",
+        "routeS": 2584.56,
+        "liftM": 2.13,
+        "rampM": 11.27,
+        "abutmentBlock": true
+      },
+      {
+        "bridge": null,
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 4261.66,
+        "liftM": 3.66,
+        "rampM": 0,
+        "abutmentBlock": true
+      },
+      {
+        "bridge": null,
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 12770,
+        "liftM": 0,
+        "rampM": 0,
+        "abutmentBlock": true
+      },
+      {
+        "bridge": null,
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 12770,
+        "liftM": 0,
+        "rampM": 25.38
       },
       {
         "bridge": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 251.95,
         "liftM": 6.11,
-        "rampM": 152.69
+        "rampM": 148.67
       },
       {
         "bridge": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 251.95,
-        "liftM": 5.68,
-        "rampM": 142.12
+        "liftM": 5.51,
+        "rampM": 137.71
       },
       {
         "bridge": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 236.46,
-        "liftM": 5.75,
-        "rampM": 143.68
+        "liftM": 5.56,
+        "rampM": 139.02
       },
       {
         "bridge": "Cleveland Memorial Shoreway",
@@ -401,69 +454,17 @@
         "rampM": 154.08
       },
       {
-        "bridge": "Lakeland Freeway",
-        "route": "scenic-cleveland-lakefront",
-        "routeS": 13205.42,
-        "liftM": 4.92,
-        "rampM": 123.09
-      },
-      {
-        "bridge": "Lakeland Freeway",
-        "route": "scenic-cleveland-lakefront",
-        "routeS": 13205.42,
-        "liftM": 5.8,
-        "rampM": 145.11
-      },
-      {
-        "bridge": "Lakeland Freeway",
-        "route": "scenic-cleveland-lakefront",
-        "routeS": 13228.71,
-        "liftM": 5.78,
-        "rampM": 144.6
-      },
-      {
-        "bridge": "Lakeland Freeway",
-        "route": "scenic-cleveland-lakefront",
-        "routeS": 13228.71,
-        "liftM": 4.78,
-        "rampM": 119.61
-      },
-      {
         "bridge": "Edgewater Beach House Pedestrian Bridge",
         "route": "scenic-wendy-park-lakewood",
         "routeS": 2584.56,
-        "liftM": 3.28,
-        "rampM": 11.27,
-        "abutmentBlock": true
-      },
-      {
-        "bridge": "Edgewater Beach House Pedestrian Bridge",
-        "route": "scenic-wendy-park-lakewood",
-        "routeS": 2584.56,
-        "liftM": 3.41,
-        "rampM": 42.66
+        "liftM": 3.07,
+        "rampM": 38.36
       },
       {
         "bridge": null,
         "route": "scenic-cleveland-lakefront",
         "routeS": 4261.66,
-        "liftM": 3.97,
-        "rampM": 0,
-        "abutmentBlock": true
-      },
-      {
-        "bridge": null,
-        "route": "scenic-cleveland-lakefront",
-        "routeS": 4261.66,
-        "liftM": 3.57,
-        "rampM": 0,
-        "abutmentBlock": true
-      },
-      {
-        "bridge": null,
-        "route": "scenic-cleveland-lakefront",
-        "routeS": 12770.71,
-        "liftM": 1.23,
+        "liftM": 3.46,
         "rampM": 0,
         "abutmentBlock": true
       }
@@ -528,6 +529,93 @@
       ]
     }
   },
+  "bareGround": {
+    "source": "usgs-3dep-13",
+    "tiles": [
+      "n42w082@20230911"
+    ],
+    "corridorM": 150,
+    "blendM": 300,
+    "biasM": -0.09,
+    "openNodes": 96199,
+    "nodes": 126979,
+    "nodata": 0,
+    "maxLowerM": 22.6,
+    "maxLowerAt": [
+      1636,
+      -336
+    ],
+    "meanLowerM": 1.58,
+    "maxRaiseM": 19.51,
+    "maxRaiseAt": [
+      1828,
+      -864
+    ],
+    "routes": [
+      {
+        "id": "scenic-cleveland-lakefront",
+        "samples": 1247,
+        "medianM": 0,
+        "p95M": 2.03,
+        "maxM": 8.22,
+        "maxAtS": 1190,
+        "minM": -10.34,
+        "over3M": 39,
+        "woodland": {
+          "samples": 35,
+          "p95M": 6.69,
+          "maxM": 7.56
+        }
+      },
+      {
+        "id": "scenic-wendy-park-lakewood",
+        "samples": 809,
+        "medianM": 0.11,
+        "p95M": 2.09,
+        "maxM": 4.5,
+        "maxAtS": 2720,
+        "minM": -6.51,
+        "over3M": 20,
+        "woodland": {
+          "samples": 99,
+          "p95M": 4.17,
+          "maxM": 4.5
+        }
+      }
+    ],
+    "surface": [
+      {
+        "id": "scenic-cleveland-lakefront",
+        "samples": 1247,
+        "medianM": -0.16,
+        "p95M": 3.48,
+        "maxM": 21.7,
+        "maxAtS": 4630,
+        "minM": -5.55,
+        "over3M": 81,
+        "woodland": {
+          "samples": 35,
+          "p95M": 5.85,
+          "maxM": 6.28
+        }
+      },
+      {
+        "id": "scenic-wendy-park-lakewood",
+        "samples": 809,
+        "medianM": 1.37,
+        "p95M": 5.85,
+        "maxM": 7.95,
+        "maxAtS": 3790,
+        "minM": -2.85,
+        "over3M": 224,
+        "woodland": {
+          "samples": 99,
+          "p95M": 6.39,
+          "maxM": 7.95
+        }
+      }
+    ]
+  },
   "buildingsDropped": {
     "route": 0,
     "road": 386,
@@ -563,20 +651,20 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.0095,
+    "steep_fraction": 0.0078,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
     "bound_m": 6,
-    "registered_rms_m": 0.52,
-    "point_rms_m": 2.02,
-    "max_abs_registered_err_m": 2.16,
+    "registered_rms_m": 0.67,
+    "point_rms_m": 1.8,
+    "max_abs_registered_err_m": 3.16,
     "pass": true,
     "diagnostics": {
       "note": "not gating (blueprint §P1.3.4)",
-      "registered_mean_bias_m": 0.02,
-      "point_mean_bias_m": 0.46,
-      "point_max_abs_err_m": 8.82,
+      "registered_mean_bias_m": -0.05,
+      "point_mean_bias_m": 0.33,
+      "point_max_abs_err_m": 8.96,
       "node_answer_mismatches": 1
     },
     "points": [
@@ -628,10 +716,10 @@
         "lat": 41.4988,
         "lon": -81.70966,
         "openMeteo": 178,
-        "heightfield": 177.3,
+        "heightfield": 176.62,
         "nodeLat": 41.49916667,
         "nodeLon": -81.71,
-        "nodeHeightfield": 180.16,
+        "nodeHeightfield": 181.16,
         "nodeOpenMeteo": 178,
         "onRouteCorridor": false
       },
@@ -650,10 +738,10 @@
         "lat": 41.49009,
         "lon": -81.72261,
         "openMeteo": 177,
-        "heightfield": 182.63,
+        "heightfield": 182.47,
         "nodeLat": 41.49083333,
         "nodeLon": -81.72333333,
-        "nodeHeightfield": 176.8,
+        "nodeHeightfield": 177.2,
         "nodeOpenMeteo": 177,
         "onRouteCorridor": false
       },
@@ -749,10 +837,10 @@
         "lat": 41.48494,
         "lon": -81.7576,
         "openMeteo": 200,
-        "heightfield": 198.01,
+        "heightfield": 197.66,
         "nodeLat": 41.485,
         "nodeLon": -81.75833333,
-        "nodeHeightfield": 199.44,
+        "nodeHeightfield": 198.97,
         "nodeOpenMeteo": 200,
         "onRouteCorridor": false
       },
@@ -903,10 +991,10 @@
         "lat": 41.48642,
         "lon": -81.75257,
         "openMeteo": 198,
-        "heightfield": 196.8,
+        "heightfield": 195.76,
         "nodeLat": 41.48666667,
         "nodeLon": -81.75333333,
-        "nodeHeightfield": 198.81,
+        "nodeHeightfield": 195.89,
         "nodeOpenMeteo": 198,
         "onRouteCorridor": false
       },
@@ -936,10 +1024,10 @@
         "lat": 41.50201,
         "lon": -81.69292,
         "openMeteo": 189,
-        "heightfield": 197.82,
+        "heightfield": 197.96,
         "nodeLat": 41.5025,
         "nodeLon": -81.69333333,
-        "nodeHeightfield": 188.38,
+        "nodeHeightfield": 189.97,
         "nodeOpenMeteo": 189,
         "onRouteCorridor": false
       },
@@ -958,10 +1046,10 @@
         "lat": 41.48583,
         "lon": -81.72387,
         "openMeteo": 206,
-        "heightfield": 206.26,
+        "heightfield": 206,
         "nodeLat": 41.48583333,
         "nodeLon": -81.72416667,
-        "nodeHeightfield": 207.43,
+        "nodeHeightfield": 206.81,
         "nodeOpenMeteo": 207,
         "onRouteCorridor": false
       },
@@ -1046,10 +1134,10 @@
         "lat": 41.48372,
         "lon": -81.75215,
         "openMeteo": 199,
-        "heightfield": 199.95,
+        "heightfield": 199.09,
         "nodeLat": 41.48416667,
         "nodeLon": -81.7525,
-        "nodeHeightfield": 200.11,
+        "nodeHeightfield": 198.05,
         "nodeOpenMeteo": 199,
         "onRouteCorridor": false
       },
@@ -1090,10 +1178,10 @@
         "lat": 41.49663,
         "lon": -81.79405,
         "openMeteo": 170,
-        "heightfield": 170,
+        "heightfield": 170.22,
         "nodeLat": 41.49666667,
         "nodeLon": -81.79416667,
-        "nodeHeightfield": 170,
+        "nodeHeightfield": 170.18,
         "nodeOpenMeteo": 170,
         "onRouteCorridor": false
       },
@@ -1123,10 +1211,10 @@
         "lat": 41.53024,
         "lon": -81.64926,
         "openMeteo": 179,
-        "heightfield": 187.47,
+        "heightfield": 183.96,
         "nodeLat": 41.53083333,
         "nodeLon": -81.65,
-        "nodeHeightfield": 178.75,
+        "nodeHeightfield": 178.55,
         "nodeOpenMeteo": 179,
         "onRouteCorridor": false
       }

@@ -24,10 +24,11 @@
   "host": "remote",
   "routeCredits": true,
   "bridges": true,
+  "bareGround": { "source": "usgs-3dep-13", "tiles": { "n42w082": "20230911" } },
   "snap": {
     "stepM": 10,
-    "offsetMedianM": 400,
-    "offsetMeanM": 1600,
+    "offsetMedianM": 200,
+    "offsetMeanM": 800,
     "coreCells": 1.5,
     "falloffM": 40
   },
@@ -65,14 +66,14 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.0095,
+    "steep_fraction": 0.0078,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
     "bound_m": 6,
-    "registered_rms_m": 0.52,
-    "point_rms_m": 2.02,
-    "max_abs_registered_err_m": 2.16,
+    "registered_rms_m": 0.67,
+    "point_rms_m": 1.8,
+    "max_abs_registered_err_m": 3.16,
     "pass": true
   }
 }

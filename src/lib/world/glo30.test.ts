@@ -489,7 +489,8 @@ describe('worldbake: manifest generator and bundle budget', () => {
       expect(demSourceOf(recipe), id).toBe(source);
       const glo30 = source === 'copernicus-glo30';
       const gen = generatorFor(source, recipe, { source: glo30 ? GLO30_SOURCE : 'unused', tiles: new Array(shipped.demTiles) });
-      expect(Object.keys(gen)).toEqual(['tool', 'version', 'recipeSha256', 'osmDate', 'demSource', ...(glo30 ? [] : ['demZoom']), 'demTiles']);
+      // Lugano also stands its routes on swissALTI3D (recipe bareGround, card t_06b010ec).
+      expect(Object.keys(gen)).toEqual(['tool', 'version', 'recipeSha256', 'osmDate', 'demSource', ...(glo30 ? [] : ['demZoom']), 'demTiles', ...(recipe.bareGround ? ['bareGround'] : [])]);
       // recipeSha256 covers the recipe minus its P1.3 `validation` block, so the shipped bundle
       // names the recipe that built it even after the bake writes its check back into the recipe.
       expect(gen.recipeSha256).toBe(sha(bundleBytes));
