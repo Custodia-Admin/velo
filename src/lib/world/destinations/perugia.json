@@ -21,6 +21,22 @@
       "scenic-assisi-valley"
     ]
   },
+  "extraWorlds": [
+    {
+      "id": "trasimeno",
+      "dir": "trasimeno/4ae8b8d719124d10/",
+      "host": "remote",
+      "bbox": {
+        "south": 43.09629,
+        "west": 11.99634,
+        "north": 43.21061,
+        "east": 12.15967
+      },
+      "routes": [
+        "scenic-trasimeno-shore"
+      ]
+    }
+  ],
   "routes": [
     "scenic-perugia-tiber-park",
     "scenic-assisi-valley",
@@ -88,6 +104,27 @@
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
       "url": "https://routing.openstreetmap.de/about.html",
       "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "mase-pst-lidar",
+      "name": "LiDAR DTM 1 m of the Piano Straordinario di Telerilevamento Ambientale, bare earth, along the routes",
+      "licence": "CC BY 4.0 (MASE Geoportale Nazionale); averaged to the world grid",
+      "url": "https://gn.mase.gov.it/portale/distribuzione-dati-pst",
+      "attribution": "Contains LiDAR DTM 1 m data from the Piano Straordinario di Telerilevamento Ambientale, © Ministero dell'Ambiente e della Sicurezza Energetica (MASE) – Geoportale Nazionale"
+    },
+    {
+      "id": "route-scenic-trasimeno-shore",
+      "name": "Lake Trasimeno shore: OpenStreetMap cycle route relation 1172330",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/relation/1172330",
+      "attribution": "Route geometry from OpenStreetMap relation 1172330, © OpenStreetMap contributors"
     }
   ]
 }

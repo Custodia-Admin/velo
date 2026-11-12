@@ -1,0 +1,84 @@
+{
+  "id": "magadino",
+  "name": "Magadino plain",
+  "description": "The Ticino river's Magadino plain from Bellinzona to the Lago Maggiore delta at Tenero and Locarno.",
+  "origin": {
+    "lat": 46.1802,
+    "lon": 8.9075
+  },
+  "grid": {
+    "xMin": -10000,
+    "yMax": 3500,
+    "cellSize": 12,
+    "cols": 1664,
+    "rows": 582
+  },
+  "dem": {
+    "source": "copernicus-glo30"
+  },
+  "osmDate": "2026-11-01T00:00:00Z",
+  "routes": [
+    "scenic-magadino-plain"
+  ],
+  "host": "remote",
+  "routeCredits": true,
+  "bridges": true,
+  "bareGround": {
+    "source": "swissalti3d",
+    "year": 2022
+  },
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 300,
+    "offsetMeanM": 1200,
+    "coreCells": 1.5,
+    "falloffM": 40,
+    "embankment": {
+      "maxM": 1
+    }
+  },
+  "vegetation": {
+    "seed": 46180,
+    "maxInstances": 320000,
+    "spacingM": {
+      "forest": 11,
+      "wood": 11,
+      "scrub": 16,
+      "orchard": 7,
+      "park": 20
+    },
+    "character": {
+      "gardenKeep": 0.35,
+      "riparianM": 30
+    }
+  },
+  "moods": [
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast",
+    "valley-fog"
+  ],
+  "defaultMood": "golden-hour",
+  "validation": {
+    "sample_seed": 46180,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "copernicus-glo30",
+    "terrain_class": "mountain",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.5226,
+    "floor_source": "copernicus-glo30-cog/lugano-t_045a5081",
+    "floor_rms_m": 1.71,
+    "own_error_allowance_m": 6,
+    "bound_m": 6.24,
+    "registered_rms_m": 2.17,
+    "point_rms_m": 27.49,
+    "max_abs_registered_err_m": 7.97,
+    "pass": true
+  }
+}

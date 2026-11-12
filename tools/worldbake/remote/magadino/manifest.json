@@ -1,0 +1,1411 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "magadino",
+  "name": "Magadino plain",
+  "origin": {
+    "lat": 46.1802,
+    "lon": 8.9075
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 46.1802,
+    "lon0": 8.9075,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -10000,
+    "xMax": 9956,
+    "yMin": -3472,
+    "yMax": 3500
+  },
+  "bbox": {
+    "south": 46.14889,
+    "west": 8.77791,
+    "north": 46.21169,
+    "east": 9.03652
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 1664,
+    "rows": 582,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": 189,
+    "heightScale": 0.03125,
+    "minHeight": 190.46875,
+    "maxHeight": 1909.75
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz",
+    "bridges": "bridges.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 1093245,
+      "sha256": "f2add81de6bf3f8d565703e847adb8e57c0e8912fc91d3f9d4c402c92abde23d",
+      "compression": "gzip",
+      "contentBytes": 1936896,
+      "contentSha256": "ceead8225ce0fac61d2968a729653b5f16c035cde5a71502e80cdce2446c0431"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 511949,
+      "sha256": "05f1bd47f6bb470f20fa3bbdab417718cd688901e0f89469b36d23ae9f632824",
+      "compression": "gzip",
+      "contentBytes": 1317297,
+      "contentSha256": "9d6728e99e15b93ab32ff001e43aa2b7524d984bb8a11e2ca72c12b0a2f45b6b"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 45640,
+      "sha256": "eeaa5c610ba532568078d210adaa943f6c2c0e4269f07ebcfc03a28399a63382",
+      "compression": "gzip",
+      "contentBytes": 108265,
+      "contentSha256": "140a2bd04e2aafa7ac44921c4199523f1207931a6d35132e273cb050faa13337"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 167418,
+      "sha256": "bd1c98fb650a1af9a809ee518ce7e03246d838e973b3e2aa1d9655fcfaa70907",
+      "compression": "gzip",
+      "contentBytes": 395929,
+      "contentSha256": "f39d00f535b1c5ec195f1d9ee0ea98bc7a6f398328419f6c2bb31f0d5ab4204a"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 595989,
+      "sha256": "ce9517d513129ef286a6ff6e4306d63fa62ed627d0211f101b651e13092b9d4d",
+      "compression": "gzip",
+      "contentBytes": 1077464,
+      "contentSha256": "254ab932b06b41d18c84321097ee931f1a855a14fcc3aa212e8126d66236ec46"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 1028340,
+      "sha256": "2d61aef682dbba670da47749e29208caee7a2b9aafe892eaccf27e545d6fdd36",
+      "compression": "gzip",
+      "contentBytes": 1920016,
+      "contentSha256": "70483b32b3921cea37135f32113c7e0f851bf5ac0742bbae66e8e2b8dcde9cf4"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 31280,
+      "sha256": "1cbc533347f2c29bb57b363be671c253fb54095f880b36cff89e875475782f20",
+      "compression": "gzip",
+      "contentBytes": 79067,
+      "contentSha256": "e12bdc98191747c99ac68f649bb10c876c6d307d15ff87318c087a6811938e31"
+    },
+    {
+      "path": "bridges.json.gz",
+      "bytes": 11700,
+      "sha256": "5c411911d5d5f8b4f8226644ffa550b48156ad48b8089fd5f8c3ce989f745c09",
+      "compression": "gzip",
+      "contentBytes": 42241,
+      "contentSha256": "0b40ddf0f806f67e0a3d7c94f09a83748469959ca2267791bd0ac2075c1099c2"
+    }
+  ],
+  "moods": [
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast",
+    "valley-fog"
+  ],
+  "defaultMood": "golden-hour",
+  "pois": [
+    {
+      "name": "Muralto",
+      "kind": "village",
+      "rank": 2,
+      "x": -8208.7,
+      "y": -708.2,
+      "osm": "node/59991060",
+      "h": 219.69
+    },
+    {
+      "name": "Minusio",
+      "kind": "village",
+      "rank": 2,
+      "x": -7388.2,
+      "y": -515.2,
+      "osm": "node/59991061",
+      "h": 241.36
+    },
+    {
+      "name": "Orselina",
+      "kind": "village",
+      "rank": 2,
+      "x": -8636.4,
+      "y": -259.1,
+      "osm": "node/60242478",
+      "h": 429.79
+    },
+    {
+      "name": "Cadenazzo",
+      "kind": "village",
+      "rank": 2,
+      "x": 2964.7,
+      "y": -3245.5,
+      "osm": "node/60699709",
+      "h": 210.79
+    },
+    {
+      "name": "Brione sopra Minusio",
+      "kind": "village",
+      "rank": 2,
+      "x": -7280.4,
+      "y": 338.6,
+      "osm": "node/240049854",
+      "h": 443.16
+    },
+    {
+      "name": "Tenero-Contra",
+      "kind": "village",
+      "rank": 2,
+      "x": -4801.6,
+      "y": 437,
+      "osm": "node/240090688",
+      "h": 345.17
+    },
+    {
+      "name": "Gudo",
+      "kind": "village",
+      "rank": 2,
+      "x": 2847.2,
+      "y": -504.9,
+      "osm": "node/240100303",
+      "h": 263.68
+    },
+    {
+      "name": "Sant'Antonino",
+      "kind": "village",
+      "rank": 2,
+      "x": 5164.7,
+      "y": -2993.9,
+      "osm": "node/240128751",
+      "h": 214.1
+    },
+    {
+      "name": "Cardada",
+      "kind": "peak",
+      "rank": 1,
+      "x": -9610.7,
+      "y": 1277.4,
+      "osm": "node/348652049",
+      "h": 1345.72
+    },
+    {
+      "name": "Carasso",
+      "kind": "village",
+      "rank": 2,
+      "x": 8216,
+      "y": 2590.2,
+      "osm": "node/412741122",
+      "h": 244.46
+    },
+    {
+      "name": "Daro",
+      "kind": "village",
+      "rank": 1,
+      "x": 9598.1,
+      "y": 1619.8,
+      "osm": "node/427575130",
+      "h": 264.66
+    },
+    {
+      "name": "Riazzino",
+      "kind": "village",
+      "rank": 1,
+      "x": -1463.3,
+      "y": -359.7,
+      "osm": "node/428748434",
+      "h": 198.99
+    },
+    {
+      "name": "Gerra Piano",
+      "kind": "village",
+      "rank": 1,
+      "x": 6.6,
+      "y": -580,
+      "osm": "node/428748722",
+      "h": 205.2
+    },
+    {
+      "name": "Cugnasco-Gerra",
+      "kind": "village",
+      "rank": 2,
+      "x": 617.7,
+      "y": -316.9,
+      "osm": "node/428749005",
+      "h": 255.31
+    },
+    {
+      "name": "Gordola",
+      "kind": "village",
+      "rank": 2,
+      "x": -3405.8,
+      "y": 133.6,
+      "osm": "node/429196174",
+      "h": 229.83
+    },
+    {
+      "name": "Sementina",
+      "kind": "village",
+      "rank": 2,
+      "x": 6567.1,
+      "y": 286.5,
+      "osm": "node/429196432",
+      "h": 239.5
+    },
+    {
+      "name": "Monte Carasso",
+      "kind": "village",
+      "rank": 2,
+      "x": 7076.9,
+      "y": 825,
+      "osm": "node/429197902",
+      "h": 239.92
+    },
+    {
+      "name": "Cimetta",
+      "kind": "peak",
+      "rank": 2,
+      "x": -8988.1,
+      "y": 2298,
+      "osm": "node/554847668",
+      "h": 1667.15
+    },
+    {
+      "name": "Tenero",
+      "kind": "village",
+      "rank": 1,
+      "x": -4406.5,
+      "y": -87.7,
+      "osm": "node/806507892",
+      "h": 214.03
+    },
+    {
+      "name": "Mergoscia",
+      "kind": "village",
+      "rank": 2,
+      "x": -4653.6,
+      "y": 3386.9,
+      "osm": "node/1083426987",
+      "h": 732.78
+    },
+    {
+      "name": "Lo Stallone",
+      "kind": "peak",
+      "rank": 1,
+      "x": -8402.9,
+      "y": 1939.6,
+      "osm": "node/1151165146",
+      "h": 1489.51
+    },
+    {
+      "name": "Monti di Ditto",
+      "kind": "village",
+      "rank": 1,
+      "x": -1421.6,
+      "y": 812.9,
+      "osm": "node/1213984853",
+      "h": 866.35
+    },
+    {
+      "name": "Giubiasco",
+      "kind": "village",
+      "rank": 2,
+      "x": 8178.2,
+      "y": -693.1,
+      "osm": "node/1376680737",
+      "h": 240.27
+    },
+    {
+      "name": "Bellinzona",
+      "kind": "town",
+      "rank": 3,
+      "x": 8729.9,
+      "y": 1323.8,
+      "osm": "node/1376769424",
+      "h": 238.46
+    },
+    {
+      "name": "Monti Motti",
+      "kind": "village",
+      "rank": 1,
+      "x": -2998.3,
+      "y": 1812.1,
+      "osm": "node/1539430599",
+      "h": 1053.44
+    },
+    {
+      "name": "Cugnasco",
+      "kind": "village",
+      "rank": 2,
+      "x": 1224.2,
+      "y": -411.4,
+      "osm": "node/1675604643",
+      "h": 237.09
+    },
+    {
+      "name": "Locarno",
+      "kind": "town",
+      "rank": 3,
+      "x": -8650.4,
+      "y": -1175,
+      "osm": "node/1839613064",
+      "h": 199.77
+    },
+    {
+      "name": "Agarone",
+      "kind": "village",
+      "rank": 1,
+      "x": -111.3,
+      "y": -152.2,
+      "osm": "node/1927410829",
+      "h": 369.91
+    },
+    {
+      "name": "Sassariente",
+      "kind": "peak",
+      "rank": 2,
+      "x": -889.9,
+      "y": 2647.7,
+      "osm": "node/2000042430",
+      "h": 1651.01
+    },
+    {
+      "name": "Marn",
+      "kind": "village",
+      "rank": 1,
+      "x": 7533.9,
+      "y": 3354.5,
+      "osm": "node/2002343714",
+      "h": 888.05
+    },
+    {
+      "name": "Artore",
+      "kind": "village",
+      "rank": 1,
+      "x": 9764.8,
+      "y": 1283.3,
+      "osm": "node/2149670355",
+      "h": 388.17
+    },
+    {
+      "name": "Cima di Sassello",
+      "kind": "peak",
+      "rank": 2,
+      "x": -94.2,
+      "y": 3088.7,
+      "osm": "node/2332379734",
+      "h": 1888.3
+    },
+    {
+      "name": "Foto-Spot Madonna del Sasso",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -8902.5,
+      "y": -491.1,
+      "osm": "node/2487741485",
+      "h": 376.43
+    },
+    {
+      "name": "Busada",
+      "kind": "village",
+      "rank": 1,
+      "x": -5219.8,
+      "y": 3224.7,
+      "osm": "node/2521148152",
+      "h": 751.6
+    },
+    {
+      "name": "Locarno Monti",
+      "kind": "village",
+      "rank": 1,
+      "x": -9166.6,
+      "y": -777.7,
+      "osm": "node/2892384504",
+      "h": 391.51
+    },
+    {
+      "name": "San Bernardo",
+      "kind": "village",
+      "rank": 1,
+      "x": -8916.2,
+      "y": 742.4,
+      "osm": "node/3197950131",
+      "h": 1015.38
+    },
+    {
+      "name": "Contra",
+      "kind": "village",
+      "rank": 1,
+      "x": -5233.1,
+      "y": 911.6,
+      "osm": "node/3210093744",
+      "h": 478.17
+    },
+    {
+      "name": "Costa",
+      "kind": "village",
+      "rank": 1,
+      "x": -5435.3,
+      "y": 654.9,
+      "osm": "node/3211833835",
+      "h": 479.38
+    },
+    {
+      "name": "barone Giovanni Antonio Marcacci",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -8943.3,
+      "y": -1149.1,
+      "osm": "node/3239093795",
+      "h": 219.39
+    },
+    {
+      "name": "Giovanni Battista Pioda",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -8932,
+      "y": -1331.4,
+      "osm": "node/3239093803",
+      "h": 215.36
+    },
+    {
+      "name": "Castelgrande",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 8819,
+      "y": 1418.3,
+      "osm": "node/3256406527",
+      "h": 277.23
+    },
+    {
+      "name": "Castello di Montebello",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 9191.4,
+      "y": 1239.3,
+      "osm": "node/3256443027",
+      "h": 314.13
+    },
+    {
+      "name": "Castello di Sasso Corbaro",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 9467.2,
+      "y": 888,
+      "osm": "node/3256443038",
+      "h": 460.07
+    },
+    {
+      "name": "Fopiána",
+      "kind": "village",
+      "rank": 1,
+      "x": -1859.1,
+      "y": 2763.5,
+      "osm": "node/3257124773",
+      "h": 1491.23
+    },
+    {
+      "name": "Alpe di Sassello",
+      "kind": "village",
+      "rank": 1,
+      "x": 421.8,
+      "y": 3082.3,
+      "osm": "node/3257124774",
+      "h": 1675.23
+    },
+    {
+      "name": "Curogna",
+      "kind": "village",
+      "rank": 1,
+      "x": -152.3,
+      "y": 506.8,
+      "osm": "node/3257124775",
+      "h": 707.53
+    },
+    {
+      "name": "Medoscio",
+      "kind": "village",
+      "rank": 1,
+      "x": -313.4,
+      "y": 182.6,
+      "osm": "node/3257124776",
+      "h": 550.88
+    },
+    {
+      "name": "Monti Bared",
+      "kind": "village",
+      "rank": 1,
+      "x": -1385.2,
+      "y": 1995.9,
+      "osm": "node/3257124777",
+      "h": 1200.19
+    },
+    {
+      "name": "Golasecca",
+      "kind": "village",
+      "rank": 1,
+      "x": -1049,
+      "y": 1832.2,
+      "osm": "node/3257124778",
+      "h": 1294.92
+    },
+    {
+      "name": "Gana-Berzona",
+      "kind": "village",
+      "rank": 1,
+      "x": -2294.5,
+      "y": 2694,
+      "osm": "node/3257124780",
+      "h": 1325.45
+    },
+    {
+      "name": "Scesa",
+      "kind": "village",
+      "rank": 1,
+      "x": -2100.7,
+      "y": 2281.6,
+      "osm": "node/3257124781",
+      "h": 1293.92
+    },
+    {
+      "name": "Monti Metri",
+      "kind": "village",
+      "rank": 1,
+      "x": -3410.8,
+      "y": 1554.5,
+      "osm": "node/3257124783",
+      "h": 983.4
+    },
+    {
+      "name": "A Vèrtum",
+      "kind": "village",
+      "rank": 1,
+      "x": -3722.3,
+      "y": 1647.6,
+      "osm": "node/3257124785",
+      "h": 863.89
+    },
+    {
+      "name": "Cima della Trosa",
+      "kind": "peak",
+      "rank": 2,
+      "x": -9029.6,
+      "y": 3346.7,
+      "osm": "node/3273594908",
+      "h": 1857.88
+    },
+    {
+      "name": "Mornera",
+      "kind": "village",
+      "rank": 1,
+      "x": 5753.5,
+      "y": 3143,
+      "osm": "node/3295120148",
+      "h": 1367.56
+    },
+    {
+      "name": "Fontanedo",
+      "kind": "village",
+      "rank": 1,
+      "x": 530.5,
+      "y": -88,
+      "osm": "node/3352843917",
+      "h": 359.51
+    },
+    {
+      "name": "Pianrestello",
+      "kind": "village",
+      "rank": 1,
+      "x": 1092.4,
+      "y": -7.7,
+      "osm": "node/3352843918",
+      "h": 403.95
+    },
+    {
+      "name": "Lusanico",
+      "kind": "village",
+      "rank": 1,
+      "x": 8515.9,
+      "y": 2836.2,
+      "osm": "node/3442438382",
+      "h": 233.39
+    },
+    {
+      "name": "Camorino",
+      "kind": "village",
+      "rank": 2,
+      "x": 7589.2,
+      "y": -1835.7,
+      "osm": "node/3574616193",
+      "h": 260.41
+    },
+    {
+      "name": "Pianezzo",
+      "kind": "village",
+      "rank": 2,
+      "x": 9422.6,
+      "y": -1242.9,
+      "osm": "node/3591035447",
+      "h": 468.82
+    },
+    {
+      "name": "Quartino",
+      "kind": "village",
+      "rank": 1,
+      "x": -835.3,
+      "y": -3297.2,
+      "osm": "node/3599512346",
+      "h": 218.1
+    },
+    {
+      "name": "Ponte sospeso Cardada – Aussichtsplattform Cardada",
+      "kind": "viewpoint",
+      "rank": 2,
+      "x": -9815.7,
+      "y": 1047.9,
+      "osm": "node/3770889258",
+      "h": 1310.12
+    },
+    {
+      "name": "Cappella della Resurrezione",
+      "kind": "church",
+      "rank": 2,
+      "x": -8949.9,
+      "y": -517.3,
+      "osm": "node/4213535686",
+      "h": 378.1
+    },
+    {
+      "name": "San Defendente",
+      "kind": "village",
+      "rank": 1,
+      "x": 4477.2,
+      "y": 457.6,
+      "osm": "node/4361661913",
+      "h": 632.98
+    },
+    {
+      "name": "Fontöbia",
+      "kind": "village",
+      "rank": 1,
+      "x": -3681.7,
+      "y": 3085.1,
+      "osm": "node/4477813945",
+      "h": 566.57
+    },
+    {
+      "name": "Diga della Verzasca",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -4551.7,
+      "y": 1826,
+      "osm": "node/4578043191",
+      "h": 460.85
+    },
+    {
+      "name": "Giuseppe Cattori",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -8166.1,
+      "y": -1011,
+      "osm": "node/4794102930",
+      "h": 197.68
+    },
+    {
+      "name": "Cimetta d'Orino",
+      "kind": "peak",
+      "rank": 2,
+      "x": 2197.5,
+      "y": 2978.1,
+      "osm": "node/5633377206",
+      "h": 1809.93
+    },
+    {
+      "name": "Mondacce",
+      "kind": "village",
+      "rank": 1,
+      "x": -5035.1,
+      "y": 235.1,
+      "osm": "node/7106743226",
+      "h": 331.43
+    },
+    {
+      "name": "Monumento a Giovanni Battista Pioda",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -8944.7,
+      "y": -1327.7,
+      "osm": "node/7200789009",
+      "h": 214.92
+    },
+    {
+      "name": "Foto-Spot Castello di Montebello",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 9253.4,
+      "y": 1281.8,
+      "osm": "node/7729168286",
+      "h": 309.94
+    },
+    {
+      "name": "Lignasca",
+      "kind": "village",
+      "rank": 1,
+      "x": -3195.5,
+      "y": 2748.4,
+      "osm": "node/8141381970",
+      "h": 869.02
+    },
+    {
+      "name": "Corte di Sopra",
+      "kind": "village",
+      "rank": 1,
+      "x": -2905.7,
+      "y": 2600.5,
+      "osm": "node/8141381972",
+      "h": 991.45
+    },
+    {
+      "name": "Forcarella",
+      "kind": "peak",
+      "rank": 1,
+      "x": -1540.2,
+      "y": 2907.5,
+      "osm": "node/8141382386",
+      "h": 1637.07
+    },
+    {
+      "name": "Quartéra",
+      "kind": "village",
+      "rank": 1,
+      "x": -2747.5,
+      "y": 2760.6,
+      "osm": "node/8141382387",
+      "h": 1127.43
+    },
+    {
+      "name": "Mattarone",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2483.3,
+      "y": 1780.3,
+      "osm": "node/8143183981",
+      "h": 1197.14
+    },
+    {
+      "name": "Capanna Mognone",
+      "kind": "village",
+      "rank": 1,
+      "x": 3203.9,
+      "y": 1895,
+      "osm": "node/8506253317",
+      "h": 1480.14
+    },
+    {
+      "name": "Alpe d'Orino",
+      "kind": "village",
+      "rank": 1,
+      "x": 1960.2,
+      "y": 1875.9,
+      "osm": "node/8506253678",
+      "h": 1391.21
+    },
+    {
+      "name": "A Laghètt",
+      "kind": "village",
+      "rank": 1,
+      "x": 2032.4,
+      "y": 925.3,
+      "osm": "node/8506253679",
+      "h": 1089.18
+    },
+    {
+      "name": "Vigana",
+      "kind": "village",
+      "rank": 1,
+      "x": 6919.5,
+      "y": -2739.1,
+      "osm": "node/9147048438",
+      "h": 374.75
+    },
+    {
+      "name": "Sira",
+      "kind": "village",
+      "rank": 1,
+      "x": -6939.7,
+      "y": 1364.8,
+      "osm": "node/9187556618",
+      "h": 837.84
+    },
+    {
+      "name": "Mött",
+      "kind": "peak",
+      "rank": 1,
+      "x": 3833.7,
+      "y": 1420,
+      "osm": "node/9264870432",
+      "h": 1303.3
+    },
+    {
+      "name": "E Puncètè",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 6358.4,
+      "y": 1691.5,
+      "osm": "node/10711104322",
+      "h": 685.62
+    },
+    {
+      "name": "Gordemo",
+      "kind": "village",
+      "rank": 2,
+      "x": -4413.8,
+      "y": 743.4,
+      "osm": "node/11191711505",
+      "h": 411.83
+    },
+    {
+      "name": "Madonnina di Pianezzo",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 9396.2,
+      "y": -1224.2,
+      "osm": "node/11247057670",
+      "h": 474.07
+    },
+    {
+      "name": "Cappella",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 9114,
+      "y": -1118.5,
+      "osm": "node/11573406926",
+      "h": 448.53
+    },
+    {
+      "name": "Sotto Prato",
+      "kind": "village",
+      "rank": 1,
+      "x": -5653.2,
+      "y": 2427.2,
+      "osm": "node/11795082135",
+      "h": 1042
+    },
+    {
+      "name": "Frèscen",
+      "kind": "village",
+      "rank": 1,
+      "x": -4877.3,
+      "y": 2393.1,
+      "osm": "node/11795082137",
+      "h": 651.56
+    },
+    {
+      "name": "Fordigia",
+      "kind": "village",
+      "rank": 1,
+      "x": -5657.6,
+      "y": 3313.2,
+      "osm": "node/11795082290",
+      "h": 801.42
+    },
+    {
+      "name": "Tropign",
+      "kind": "village",
+      "rank": 1,
+      "x": -4136.6,
+      "y": 3452.2,
+      "osm": "node/11795082313",
+      "h": 480.44
+    },
+    {
+      "name": "Fontana Pedrazzini",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -8375.4,
+      "y": -1441.6,
+      "osm": "node/11837744216",
+      "h": 196.31
+    },
+    {
+      "name": "Torre Nera",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 8838.6,
+      "y": 1434.2,
+      "osm": "way/43385290",
+      "h": 277.45
+    },
+    {
+      "name": "Torre Bianca",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 8881.2,
+      "y": 1443.9,
+      "osm": "way/43385295",
+      "h": 277.35
+    },
+    {
+      "name": "Chiesa di San Bernardo",
+      "kind": "church",
+      "rank": 2,
+      "x": -8178.8,
+      "y": 6.2,
+      "osm": "way/58692926",
+      "h": 453.25
+    },
+    {
+      "name": "Chiesa di San Giovanni Battista",
+      "kind": "church",
+      "rank": 2,
+      "x": -9839.7,
+      "y": -1128,
+      "osm": "way/66608444",
+      "h": 229.04
+    },
+    {
+      "name": "Santa Maria Assunta",
+      "kind": "church",
+      "rank": 2,
+      "x": 8060.6,
+      "y": -879.5,
+      "osm": "way/157461993",
+      "h": 248.03
+    },
+    {
+      "name": "Chiesa di Santa Maria delle Grazie",
+      "kind": "church",
+      "rank": 2,
+      "x": 8596,
+      "y": 611.4,
+      "osm": "way/158829401",
+      "h": 231.37
+    },
+    {
+      "name": "San Giobbe",
+      "kind": "church",
+      "rank": 2,
+      "x": 7703.4,
+      "y": -902.6,
+      "osm": "way/161515681",
+      "h": 240.45
+    },
+    {
+      "name": "Collegiata dei Santi Pietro et Stefano",
+      "kind": "church",
+      "rank": 2,
+      "x": 8987.7,
+      "y": 1279.7,
+      "osm": "way/183551917",
+      "h": 244.97
+    },
+    {
+      "name": "Chiesa di San Sebastiano",
+      "kind": "church",
+      "rank": 2,
+      "x": 9693.2,
+      "y": 1278.2,
+      "osm": "way/204822459",
+      "h": 389.34
+    },
+    {
+      "name": "Chiesa di San Biagio",
+      "kind": "church",
+      "rank": 2,
+      "x": 8776.6,
+      "y": 597.4,
+      "osm": "way/204825085",
+      "h": 240.97
+    },
+    {
+      "name": "Chiesa di Santa Maria della Neve",
+      "kind": "church",
+      "rank": 2,
+      "x": 9466.9,
+      "y": 617,
+      "osm": "way/204825086",
+      "h": 328.46
+    },
+    {
+      "name": "Chiesa di San Andrea",
+      "kind": "church",
+      "rank": 2,
+      "x": 8471,
+      "y": 2879.3,
+      "osm": "way/204958142",
+      "h": 239.91
+    },
+    {
+      "name": "Santuario della Madonna del Sasso",
+      "kind": "church",
+      "rank": 2,
+      "x": -8767,
+      "y": -552.1,
+      "osm": "way/207798891",
+      "h": 336.18
+    },
+    {
+      "name": "Chiesa dei SS. Quirico e Giulitta",
+      "kind": "church",
+      "rank": 2,
+      "x": 9669.9,
+      "y": 1780,
+      "osm": "way/207972150",
+      "h": 260.62
+    },
+    {
+      "name": "Collegiata di San Vittore",
+      "kind": "church",
+      "rank": 2,
+      "x": -7903.1,
+      "y": -818,
+      "osm": "way/282906612",
+      "h": 211.95
+    },
+    {
+      "name": "Collegiata di Sant'Antonio Abate",
+      "kind": "church",
+      "rank": 2,
+      "x": -8993.7,
+      "y": -1152.9,
+      "osm": "way/307510594",
+      "h": 219.67
+    },
+    {
+      "name": "Chiesa di San Francesco d'Assisi",
+      "kind": "church",
+      "rank": 2,
+      "x": -8936.9,
+      "y": -1365.3,
+      "osm": "way/313187928",
+      "h": 217.29
+    },
+    {
+      "name": "Chiesa dei Santi Pietro e Vincenzo martire",
+      "kind": "church",
+      "rank": 2,
+      "x": -4550.9,
+      "y": 116.9,
+      "osm": "way/315095928",
+      "h": 222.61
+    },
+    {
+      "name": "Castello Visconteo",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -8822.2,
+      "y": -1362,
+      "osm": "way/317356795",
+      "h": 208.69
+    },
+    {
+      "name": "Chiesa dei Santi Giovanni Battista ed Evangelista",
+      "kind": "church",
+      "rank": 2,
+      "x": 9088.2,
+      "y": 1643.3,
+      "osm": "way/318272016",
+      "h": 233.79
+    },
+    {
+      "name": "Chiesa di Santa Maria Lauretana",
+      "kind": "church",
+      "rank": 2,
+      "x": -7195.6,
+      "y": 308.9,
+      "osm": "way/320445557",
+      "h": 434.94
+    },
+    {
+      "name": "Chiese Santissima Trinità",
+      "kind": "church",
+      "rank": 2,
+      "x": 6512.5,
+      "y": 844.9,
+      "osm": "way/322739305",
+      "h": 290.8
+    },
+    {
+      "name": "Chiesa di San Rocco",
+      "kind": "church",
+      "rank": 2,
+      "x": 8922.4,
+      "y": 1086.4,
+      "osm": "way/325935780",
+      "h": 233.54
+    },
+    {
+      "name": "Chiesa del Sacro Cuore",
+      "kind": "church",
+      "rank": 2,
+      "x": 9409.8,
+      "y": 2346.5,
+      "osm": "way/325974653",
+      "h": 231.11
+    },
+    {
+      "name": "Chiesa di San Lorenzo",
+      "kind": "church",
+      "rank": 2,
+      "x": 3411.1,
+      "y": -533.7,
+      "osm": "way/326463880",
+      "h": 226.94
+    },
+    {
+      "name": "Chiesa di Santa Maria",
+      "kind": "church",
+      "rank": 2,
+      "x": 2736.4,
+      "y": -783.6,
+      "osm": "way/344068695",
+      "h": 220.25
+    },
+    {
+      "name": "Chiesa della Sacra Famiglia",
+      "kind": "church",
+      "rank": 2,
+      "x": -8419.5,
+      "y": -2192.9,
+      "osm": "way/344548439",
+      "h": 200.51
+    },
+    {
+      "name": "Chiesa di Santa Maria Assunta",
+      "kind": "church",
+      "rank": 2,
+      "x": -8788.6,
+      "y": -1182.6,
+      "osm": "way/344548440",
+      "h": 217.31
+    },
+    {
+      "name": "Chiesa di Santa Maria in Selva",
+      "kind": "church",
+      "rank": 2,
+      "x": -9214.4,
+      "y": -1137.8,
+      "osm": "way/344548441",
+      "h": 218.16
+    },
+    {
+      "name": "Chiesa dei Santi Rocco e Quirico",
+      "kind": "church",
+      "rank": 2,
+      "x": -7298.6,
+      "y": -381,
+      "osm": "way/345229328",
+      "h": 247.44
+    },
+    {
+      "name": "Chiesa di San Quirico",
+      "kind": "church",
+      "rank": 2,
+      "x": -7061.6,
+      "y": -825.2,
+      "osm": "way/345229329",
+      "h": 206.5
+    },
+    {
+      "name": "Chiesa-Oratorio del Santo Crocefisso",
+      "kind": "church",
+      "rank": 2,
+      "x": -7104.4,
+      "y": -224.1,
+      "osm": "way/345229330",
+      "h": 243.29
+    },
+    {
+      "name": "Chiesa di San Bernardo di Chiaravalle",
+      "kind": "church",
+      "rank": 2,
+      "x": -5197.5,
+      "y": 924.8,
+      "osm": "way/345229331",
+      "h": 484.14
+    },
+    {
+      "name": "Oratorio della Beata Vergine",
+      "kind": "church",
+      "rank": 2,
+      "x": -4520.4,
+      "y": 319.9,
+      "osm": "way/345229333",
+      "h": 297.28
+    },
+    {
+      "name": "Chiesa di San Martino",
+      "kind": "church",
+      "rank": 2,
+      "x": 7524.3,
+      "y": -2086.5,
+      "osm": "way/351653017",
+      "h": 292.14
+    },
+    {
+      "name": "S. Bartolomeo",
+      "kind": "church",
+      "rank": 2,
+      "x": 8121.8,
+      "y": -1332.9,
+      "osm": "way/351889715",
+      "h": 285.61
+    },
+    {
+      "name": "San Defendente",
+      "kind": "church",
+      "rank": 2,
+      "x": 4480.9,
+      "y": 440.5,
+      "osm": "way/352164063",
+      "h": 633.5
+    },
+    {
+      "name": "Chiesa Evangelica Riformata",
+      "kind": "church",
+      "rank": 2,
+      "x": 8762.3,
+      "y": 1041.3,
+      "osm": "way/372077207",
+      "h": 234.17
+    },
+    {
+      "name": "Santi Carpoforo e Gottardo",
+      "kind": "church",
+      "rank": 2,
+      "x": -4540.8,
+      "y": 3391.7,
+      "osm": "way/715058007",
+      "h": 730.62
+    },
+    {
+      "name": "Oratorio di San Martino",
+      "kind": "church",
+      "rank": 2,
+      "x": -1475.6,
+      "y": 736.4,
+      "osm": "way/874532187",
+      "h": 855.89
+    },
+    {
+      "name": "Chiesa di Santa Caterina d'Alessandria",
+      "kind": "church",
+      "rank": 2,
+      "x": -8441.3,
+      "y": -1062.2,
+      "osm": "way/985106630",
+      "h": 205.83
+    },
+    {
+      "name": "Cappella di San Pietro",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 8867,
+      "y": 1438.4,
+      "osm": "way/1370707552",
+      "h": 279.15
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-magadino-plain",
+      "name": "Bellinzona to Locarno",
+      "lengthM": 21037.68,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.423
+    }
+  ],
+  "stats": {
+    "roads": 12619,
+    "waterAreas": 76,
+    "waterLines": 472,
+    "landcoverAreas": 1812,
+    "buildings": 30924,
+    "buildingVertices": 192053,
+    "buildings:suburb": 28539,
+    "buildings:old-town": 657,
+    "buildings:rural": 842,
+    "buildings:industrial": 886,
+    "trees": 320000,
+    "trees:broadleaf": 279911,
+    "trees:conifer": 5358,
+    "trees:scrub": 1775,
+    "trees:olive": 132,
+    "trees:park": 778,
+    "trees:cypress": 814,
+    "trees:riparian": 10006,
+    "trees:hedgerow": 9375,
+    "trees:garden": 11851,
+    "pois": 133,
+    "carvedNodes": 16816,
+    "bridgeDecks": 634,
+    "bridgePiers": 133
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "swissalti3d",
+      "name": "swissALTI3D 2 m, bare earth, along the routes",
+      "licence": "Open Government Data of the Swiss Confederation, free use with source attribution (swisstopo terms of use)",
+      "url": "https://www.swisstopo.admin.ch/en/height-model-swissalti3d",
+      "attribution": "Source: Federal Office of Topography swisstopo"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-magadino-plain",
+      "name": "Bellinzona to Locarno: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/9.017,46.192;8.95,46.165;8.88,46.17;8.85,46.178;8.798,46.167?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "fe68692db00d9a00b5348d4bf50c06b47e84384de7a72808e0ac8047946cdef1",
+    "osmDate": "2026-11-01T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 2,
+    "bridges": true,
+    "bareGround": "swissalti3d"
+  }
+}

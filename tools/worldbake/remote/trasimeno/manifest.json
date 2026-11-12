@@ -1,0 +1,538 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "trasimeno",
+  "name": "Lake Trasimeno",
+  "origin": {
+    "lat": 43.1602,
+    "lon": 12.0751
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 43.1602,
+    "lon0": 12.0751,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -6400,
+    "xMax": 6872,
+    "yMin": -7096,
+    "yMax": 5600
+  },
+  "bbox": {
+    "south": 43.09629,
+    "west": 11.99634,
+    "north": 43.21061,
+    "east": 12.15967
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 1107,
+    "rows": 1059,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": 252,
+    "heightScale": 0.015625,
+    "minHeight": 253.875,
+    "maxHeight": 584.28125
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz",
+    "bridges": "bridges.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 584842,
+      "sha256": "1c0943f470b1441892e5ae2be56a3a6cc844f85876211cf3f3ef330e63f545a6",
+      "compression": "gzip",
+      "contentBytes": 2344626,
+      "contentSha256": "54775354534066dcf058b12e5318760b126c33de8d8b99d3bc731a298fb7e3a0"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 94170,
+      "sha256": "29eb4d9cb598f5d307c8d7bdec1233e9b3f5bd1337002fc2d0c0989091e01e18",
+      "compression": "gzip",
+      "contentBytes": 247837,
+      "contentSha256": "1b58a1898d605b90a93e6eb4df49c42b1a1abe48a4fe2be01e0996474d761276"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 10426,
+      "sha256": "efe4d27311ce0a984c00df5e19be422885dc2ac4139752ae94470dd6fe7f6ae2",
+      "compression": "gzip",
+      "contentBytes": 23380,
+      "contentSha256": "4bf92f42ef450ca238effdc0ba0fa9145626271be5cd1c3f258485427945e373"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 38418,
+      "sha256": "a1b8f79edd314ff9d94ac8157ae2fc4ab424dafdf5e5e90a2519a873d1386cb7",
+      "compression": "gzip",
+      "contentBytes": 95974,
+      "contentSha256": "613b70f2455ccfc792c7f17405cfb910091b92f0fc84012a099201545c57d0e4"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 100691,
+      "sha256": "5871e327b7ebfc9a6b6a2318eabb000a2d0392c3d1a2b8e2599085b624e07f16",
+      "compression": "gzip",
+      "contentBytes": 179356,
+      "contentSha256": "3cca2c84b0f9f188aa89cbe311cdaae86bdc324ef19336e111a9f5ee5d1970f5"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 301001,
+      "sha256": "cf8af48ac79a42d4f986b4a97c1d2487a55c658c01258d3dc405d5da536817a8",
+      "compression": "gzip",
+      "contentBytes": 475156,
+      "contentSha256": "b13ccc48d3a8dd63d99e05ba2f84672b1153f5472dbc1b81e02fb7b8cea14abd"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 32474,
+      "sha256": "aaa01f388b3b3e06d0d745aec7695dfbc6016a90efbc42dd4d1aabf62e4659c0",
+      "compression": "gzip",
+      "contentBytes": 84276,
+      "contentSha256": "7cdab6a43848ee563c60f45c7ec687bd5caa106820f7af1a0167f7929270b034"
+    },
+    {
+      "path": "bridges.json.gz",
+      "bytes": 1798,
+      "sha256": "5509fd21897740b602e18d4969eadd143ce3898ce0b03f29ead355997e7f0c0d",
+      "compression": "gzip",
+      "contentBytes": 5405,
+      "contentSha256": "4a57af41b4cfa7e170a431df62c99839806f63f3a9a1e2ce14da31c973cebd95"
+    }
+  ],
+  "moods": [
+    "clear-afternoon",
+    "clear-noon",
+    "golden-hour",
+    "overcast",
+    "valley-fog"
+  ],
+  "defaultMood": "clear-afternoon",
+  "pois": [
+    {
+      "name": "Tuoro sul Trasimeno",
+      "kind": "village",
+      "rank": 2,
+      "x": -39.4,
+      "y": 5182.4,
+      "osm": "node/68507634",
+      "h": 273.23
+    },
+    {
+      "name": "Castiglione del Lago",
+      "kind": "town",
+      "rank": 3,
+      "x": -2432.3,
+      "y": -3670.7,
+      "osm": "node/68507707",
+      "h": 268.01
+    },
+    {
+      "name": "Passignano sul Trasimeno",
+      "kind": "village",
+      "rank": 2,
+      "x": 5019.1,
+      "y": 2728.4,
+      "osm": "node/68507761",
+      "h": 260.31
+    },
+    {
+      "name": "Frattavecchia",
+      "kind": "village",
+      "rank": 2,
+      "x": -6337.2,
+      "y": -6553.4,
+      "osm": "node/895975197",
+      "h": 328.26
+    },
+    {
+      "name": "Terontola Alta",
+      "kind": "village",
+      "rank": 1,
+      "x": -4144,
+      "y": 5566.7,
+      "osm": "node/1265062054",
+      "h": 314.4
+    },
+    {
+      "name": "Borghetto",
+      "kind": "village",
+      "rank": 2,
+      "x": -4159.9,
+      "y": 2964.1,
+      "osm": "node/3727244940",
+      "h": 260.74
+    },
+    {
+      "name": "Isola Maggiore",
+      "kind": "village",
+      "rank": 2,
+      "x": 1189.4,
+      "y": 1856.9,
+      "osm": "node/3727259164",
+      "h": 262.09
+    },
+    {
+      "name": "Vernazzano Basso",
+      "kind": "village",
+      "rank": 2,
+      "x": 1856.3,
+      "y": 5151.9,
+      "osm": "node/3727401228",
+      "h": 275.27
+    },
+    {
+      "name": "Montecchio",
+      "kind": "village",
+      "rank": 1,
+      "x": -3523.2,
+      "y": 4577.9,
+      "osm": "node/3889821877",
+      "h": 307.53
+    },
+    {
+      "name": "Badiaccia",
+      "kind": "village",
+      "rank": 1,
+      "x": -4797.9,
+      "y": 2462.6,
+      "osm": "node/3966944871",
+      "h": 263.39
+    },
+    {
+      "name": "Banditella",
+      "kind": "village",
+      "rank": 1,
+      "x": -3995.6,
+      "y": -3152.7,
+      "osm": "node/3966944872",
+      "h": 264.23
+    },
+    {
+      "name": "I Bertoni",
+      "kind": "village",
+      "rank": 1,
+      "x": -6157.8,
+      "y": -1086.1,
+      "osm": "node/3966944880",
+      "h": 276.98
+    },
+    {
+      "name": "I Castagni",
+      "kind": "village",
+      "rank": 1,
+      "x": -5254.9,
+      "y": -3225.2,
+      "osm": "node/3966944882",
+      "h": 274.63
+    },
+    {
+      "name": "I Cuffi-Marchetti",
+      "kind": "village",
+      "rank": 1,
+      "x": -4736.1,
+      "y": -2803.4,
+      "osm": "node/3966944883",
+      "h": 276.06
+    },
+    {
+      "name": "I Nonni",
+      "kind": "village",
+      "rank": 1,
+      "x": -4903.6,
+      "y": -5164.5,
+      "osm": "node/3966944887",
+      "h": 302.44
+    },
+    {
+      "name": "Piana",
+      "kind": "village",
+      "rank": 2,
+      "x": -5376.9,
+      "y": -2431,
+      "osm": "node/3966944898",
+      "h": 278.13
+    },
+    {
+      "name": "Rigutini",
+      "kind": "village",
+      "rank": 1,
+      "x": -4081.7,
+      "y": -1284.1,
+      "osm": "node/3966944901",
+      "h": 258.83
+    },
+    {
+      "name": "Vitellino",
+      "kind": "village",
+      "rank": 2,
+      "x": -4726.8,
+      "y": -5518.1,
+      "osm": "node/3966944902",
+      "h": 298.65
+    },
+    {
+      "name": "Fonte Sant'Angelo",
+      "kind": "village",
+      "rank": 1,
+      "x": -2290.7,
+      "y": 4501.3,
+      "osm": "node/4033388938",
+      "h": 320.07
+    },
+    {
+      "name": "Macerone",
+      "kind": "village",
+      "rank": 1,
+      "x": -433.6,
+      "y": 4281.8,
+      "osm": "node/4033388941",
+      "h": 262.62
+    },
+    {
+      "name": "Pieve Confini",
+      "kind": "village",
+      "rank": 1,
+      "x": -1462.6,
+      "y": 4405.1,
+      "osm": "node/4033388942",
+      "h": 269.62
+    },
+    {
+      "name": "Rocca di Passignano",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 5127.3,
+      "y": 2648.5,
+      "osm": "node/4275182975",
+      "h": 287.46
+    },
+    {
+      "name": "Iwan Chiodini",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 4750.1,
+      "y": 3163.9,
+      "osm": "node/4301272131",
+      "h": 263.42
+    },
+    {
+      "name": "Monte Girella",
+      "kind": "peak",
+      "rank": 1,
+      "x": -3702.4,
+      "y": 5328.7,
+      "osm": "node/5475311736",
+      "h": 456.83
+    },
+    {
+      "name": "Monte Gualandro",
+      "kind": "peak",
+      "rank": 1,
+      "x": -2997.6,
+      "y": 5014.2,
+      "osm": "node/5475312678",
+      "h": 444.55
+    },
+    {
+      "name": "Castello di Isola Polvese",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 5170.4,
+      "y": -5120.9,
+      "osm": "node/5974982135",
+      "h": 264.4
+    },
+    {
+      "name": "Cerqueto",
+      "kind": "village",
+      "rank": 1,
+      "x": 6413.9,
+      "y": 3181.1,
+      "osm": "node/12134088577",
+      "h": 316.86
+    },
+    {
+      "name": "Ex Porto dei Frati",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 4545.4,
+      "y": -4423.9,
+      "osm": "node/13450769284",
+      "h": 260.57
+    },
+    {
+      "name": "Chiesa di San Salvatore",
+      "kind": "church",
+      "rank": 2,
+      "x": 1255.7,
+      "y": 1992.8,
+      "osm": "way/58422815",
+      "h": 272.04
+    },
+    {
+      "name": "Chiesa di San Michele Arcangelo",
+      "kind": "church",
+      "rank": 2,
+      "x": 1347.8,
+      "y": 1644.8,
+      "osm": "way/58424567",
+      "h": 308.44
+    },
+    {
+      "name": "Porta Fiorentina",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -1993.5,
+      "y": -3655.8,
+      "osm": "way/390825660",
+      "h": 300.63
+    },
+    {
+      "name": "San Domenico",
+      "kind": "church",
+      "rank": 2,
+      "x": -1840.3,
+      "y": -3702.3,
+      "osm": "way/399513445",
+      "h": 301.89
+    },
+    {
+      "name": "Castello di Monte Gualandro",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -2996.5,
+      "y": 5009.3,
+      "osm": "way/569303285",
+      "h": 444.62
+    },
+    {
+      "name": "Porta Perugina",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -1752.1,
+      "y": -3709.6,
+      "osm": "way/610633503",
+      "h": 294.66
+    },
+    {
+      "name": "Porta Senese",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -2058.4,
+      "y": -3726.1,
+      "osm": "way/610633504",
+      "h": 300.39
+    },
+    {
+      "name": "Torre dell'orologio",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 5079.4,
+      "y": 2636.1,
+      "osm": "way/1112734629",
+      "h": 280.82
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-trasimeno-shore",
+      "name": "Lake Trasimeno shore",
+      "lengthM": 22280.89,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.129
+    }
+  ],
+  "stats": {
+    "roads": 2523,
+    "waterAreas": 55,
+    "waterLines": 16,
+    "landcoverAreas": 478,
+    "buildings": 6069,
+    "buildingVertices": 29663,
+    "buildings:suburb": 5300,
+    "buildings:old-town": 30,
+    "buildings:rural": 628,
+    "buildings:industrial": 111,
+    "trees": 79190,
+    "trees:broadleaf": 46526,
+    "trees:conifer": 0,
+    "trees:scrub": 2378,
+    "trees:olive": 21112,
+    "trees:park": 843,
+    "trees:cypress": 228,
+    "trees:riparian": 319,
+    "trees:hedgerow": 3556,
+    "trees:garden": 4228,
+    "pois": 36,
+    "carvedNodes": 17401,
+    "bridgeDecks": 41,
+    "bridgePiers": 39
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "mase-pst-lidar",
+      "name": "LiDAR DTM 1 m of the Piano Straordinario di Telerilevamento Ambientale, bare earth, along the routes",
+      "licence": "CC BY 4.0 (MASE Geoportale Nazionale); averaged to the world grid",
+      "url": "https://gn.mase.gov.it/portale/distribuzione-dati-pst",
+      "attribution": "Contains LiDAR DTM 1 m data from the Piano Straordinario di Telerilevamento Ambientale, © Ministero dell'Ambiente e della Sicurezza Energetica (MASE) – Geoportale Nazionale"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-trasimeno-shore",
+      "name": "Lake Trasimeno shore: OpenStreetMap cycle route relation 1172330",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/relation/1172330",
+      "attribution": "Route geometry from OpenStreetMap relation 1172330, © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "61412534c5797b4b7f6e61136f08dab29b51a51e762375a55c838d3673c6d4e7",
+    "osmDate": "2026-11-01T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 2,
+    "bridges": true,
+    "bareGround": "mase-pst-lidar"
+  }
+}

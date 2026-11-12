@@ -1,0 +1,2473 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "valle-maggia",
+  "name": "Valle Maggia",
+  "origin": {
+    "lat": 46.252,
+    "lon": 8.6798
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 46.252,
+    "lon0": 8.6798,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -8000,
+    "xMax": 7948,
+    "yMin": -8620,
+    "yMax": 9200
+  },
+  "bbox": {
+    "south": 46.1744,
+    "west": 8.57589,
+    "north": 46.33477,
+    "east": 8.78303
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 1330,
+    "rows": 1486,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": 203,
+    "heightScale": 0.0625,
+    "minHeight": 204.5,
+    "maxHeight": 2605.5
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz",
+    "bridges": "bridges.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 2371331,
+      "sha256": "6e2e2c8e6f74f1e3b859230418dbb639b6305d0c4326c67efac2f75c7b7aa8ba",
+      "compression": "gzip",
+      "contentBytes": 3952760,
+      "contentSha256": "aaa2da8adba8bc54b127a8fbb5ce546cb2949ef8c55f5c58155882b3f3df6a1d"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 382660,
+      "sha256": "db5fa2291d64e824cd2849c1b951454d126f52eac2f16ee92eafb15f78123898",
+      "compression": "gzip",
+      "contentBytes": 925745,
+      "contentSha256": "d3c72ce4567743b680c9f556665c5447d2367dabd440b96f06a11f3e1e5ac12e"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 93970,
+      "sha256": "6d15721661ec54ae9bbcd4b2ab6f7511aa51111bd4197ff398e2fb5ff57faf7a",
+      "compression": "gzip",
+      "contentBytes": 219114,
+      "contentSha256": "d718362341d25db35c69defc7175676bc98613d5150232436c3fad47fcaf4595"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 195671,
+      "sha256": "7331d02fcf9ae605730df44879a8a9676324449f765163b63455605da2a9da32",
+      "compression": "gzip",
+      "contentBytes": 463315,
+      "contentSha256": "a1a6c8689a7f482ea063e8583dd34df7459134cfa9a54e4339354a34857d5330"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 221922,
+      "sha256": "18ecd474ecc4046438c8d20634138037570a731dce63c078ffc31bb513e030e3",
+      "compression": "gzip",
+      "contentBytes": 411028,
+      "contentSha256": "9a88d43bb366e9a319eaebe0ac8f8c5a7db35e32ebfa006dde3a34cb00dafcb3"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 1053908,
+      "sha256": "c7e7e89e70e2e3ac6eb8d2a69b7ed7f53894a7b8c0a430f5ee36187b62109059",
+      "compression": "gzip",
+      "contentBytes": 1920016,
+      "contentSha256": "47e86f8e4c2f18072eca1d0463c52438bc28230fd7d4835e4b592092521aced0"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 34119,
+      "sha256": "15ecd2c58d7dea7807924dfdaf966a948f113318427084f7997e63c620aef4d0",
+      "compression": "gzip",
+      "contentBytes": 82780,
+      "contentSha256": "092918ffb87824ea0d474d1fa09ce260ddc05c262b56b41615db9d551af74e02"
+    },
+    {
+      "path": "bridges.json.gz",
+      "bytes": 6865,
+      "sha256": "00716f1f658d76bf07640fe622c6bf68889b7dcd43384d194b2592af10f2ee30",
+      "compression": "gzip",
+      "contentBytes": 20748,
+      "contentSha256": "a1ea695929f7b34a7b0d5d718c157be01a8ae0d2598ff6105db9c83af5b2182f"
+    }
+  ],
+  "moods": [
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast",
+    "valley-fog"
+  ],
+  "defaultMood": "golden-hour",
+  "pois": [
+    {
+      "name": "Avegno",
+      "kind": "village",
+      "rank": 2,
+      "x": 5121,
+      "y": -5428.7,
+      "osm": "node/59994335",
+      "h": 314.1
+    },
+    {
+      "name": "Maggia",
+      "kind": "village",
+      "rank": 2,
+      "x": 2072.8,
+      "y": -550.3,
+      "osm": "node/59994338",
+      "h": 339.57
+    },
+    {
+      "name": "Cevio",
+      "kind": "village",
+      "rank": 2,
+      "x": -6005.8,
+      "y": 7223.8,
+      "osm": "node/59994340",
+      "h": 420.76
+    },
+    {
+      "name": "Golino",
+      "kind": "village",
+      "rank": 1,
+      "x": 2601.2,
+      "y": -8165.4,
+      "osm": "node/59998944",
+      "h": 274.13
+    },
+    {
+      "name": "Linescio",
+      "kind": "village",
+      "rank": 2,
+      "x": -7423.6,
+      "y": 6254.7,
+      "osm": "node/240111414",
+      "h": 681.54
+    },
+    {
+      "name": "Auressio",
+      "kind": "village",
+      "rank": 2,
+      "x": 304.8,
+      "y": -5615.1,
+      "osm": "node/275923957",
+      "h": 635.08
+    },
+    {
+      "name": "Moghegno",
+      "kind": "village",
+      "rank": 2,
+      "x": 2043.3,
+      "y": -1194.9,
+      "osm": "node/300296949",
+      "h": 326.91
+    },
+    {
+      "name": "Brè sopra Locarno",
+      "kind": "village",
+      "rank": 1,
+      "x": 7401.6,
+      "y": -7525.9,
+      "osm": "node/349090730",
+      "h": 1013.5
+    },
+    {
+      "name": "Gresso",
+      "kind": "village",
+      "rank": 2,
+      "x": -4943,
+      "y": -3007.1,
+      "osm": "node/485184438",
+      "h": 1006.33
+    },
+    {
+      "name": "Vergeletto",
+      "kind": "village",
+      "rank": 2,
+      "x": -5966.4,
+      "y": -2815.9,
+      "osm": "node/485186405",
+      "h": 915.53
+    },
+    {
+      "name": "Chiesa di San Fedele",
+      "kind": "church",
+      "rank": 2,
+      "x": 4028.6,
+      "y": -7515,
+      "osm": "node/690895199",
+      "h": 272.13
+    },
+    {
+      "name": "Terra di Fuori",
+      "kind": "village",
+      "rank": 1,
+      "x": 2963.1,
+      "y": -2730.2,
+      "osm": "node/694591089",
+      "h": 373.05
+    },
+    {
+      "name": "Pizzo Cramalina",
+      "kind": "peak",
+      "rank": 2,
+      "x": -4309.3,
+      "y": 365.9,
+      "osm": "node/767507545",
+      "h": 2281.87
+    },
+    {
+      "name": "Pizzo Ruscada",
+      "kind": "peak",
+      "rank": 2,
+      "x": -6724.7,
+      "y": -8293.9,
+      "osm": "node/771333889",
+      "h": 1975.91
+    },
+    {
+      "name": "Costa sopra Intragna",
+      "kind": "village",
+      "rank": 1,
+      "x": 546,
+      "y": -8401.7,
+      "osm": "node/877243239",
+      "h": 646.45
+    },
+    {
+      "name": "Dunzio",
+      "kind": "village",
+      "rank": 1,
+      "x": 4146.4,
+      "y": -4891.3,
+      "osm": "node/890892359",
+      "h": 544.15
+    },
+    {
+      "name": "Monte di Comino",
+      "kind": "village",
+      "rank": 1,
+      "x": -2662.5,
+      "y": -8274.8,
+      "osm": "node/897900725",
+      "h": 1189.8
+    },
+    {
+      "name": "Sèlna",
+      "kind": "village",
+      "rank": 1,
+      "x": -220.8,
+      "y": -8463,
+      "osm": "node/897901035",
+      "h": 873.46
+    },
+    {
+      "name": "A Dröi",
+      "kind": "village",
+      "rank": 1,
+      "x": -1714.1,
+      "y": -7718.3,
+      "osm": "node/897901358",
+      "h": 1229.87
+    },
+    {
+      "name": "Monte Madone",
+      "kind": "peak",
+      "rank": 1,
+      "x": -1625.3,
+      "y": -2044,
+      "osm": "node/1372949619",
+      "h": 1985.22
+    },
+    {
+      "name": "Poncione della Marcia",
+      "kind": "peak",
+      "rank": 2,
+      "x": 6633.3,
+      "y": 7517.8,
+      "osm": "node/1372954296",
+      "h": 2410.5
+    },
+    {
+      "name": "Punta di Spluga",
+      "kind": "peak",
+      "rank": 2,
+      "x": -1248.5,
+      "y": 7631,
+      "osm": "node/1372954345",
+      "h": 2191.05
+    },
+    {
+      "name": "Pizzo delle Pecore",
+      "kind": "peak",
+      "rank": 2,
+      "x": 129.2,
+      "y": 8105,
+      "osm": "node/1372954512",
+      "h": 2331.31
+    },
+    {
+      "name": "Cima di Broglio",
+      "kind": "peak",
+      "rank": 2,
+      "x": 288.5,
+      "y": 8705.6,
+      "osm": "node/1372954788",
+      "h": 2260.56
+    },
+    {
+      "name": "Verscio",
+      "kind": "village",
+      "rank": 2,
+      "x": 3968.8,
+      "y": -7336.1,
+      "osm": "node/1376859281",
+      "h": 279.58
+    },
+    {
+      "name": "Cima del Masnee",
+      "kind": "peak",
+      "rank": 2,
+      "x": 6615.1,
+      "y": 2928.7,
+      "osm": "node/1455439835",
+      "h": 2181
+    },
+    {
+      "name": "Pizzo Dromegio",
+      "kind": "peak",
+      "rank": 2,
+      "x": 4659.7,
+      "y": 4517.9,
+      "osm": "node/1455439874",
+      "h": 2213.15
+    },
+    {
+      "name": "Pizzo Zucchero",
+      "kind": "peak",
+      "rank": 2,
+      "x": -7849.2,
+      "y": -3584.4,
+      "osm": "node/1458182434",
+      "h": 1878.13
+    },
+    {
+      "name": "Intragna",
+      "kind": "village",
+      "rank": 2,
+      "x": 1591.5,
+      "y": -8280.2,
+      "osm": "node/1546861626",
+      "h": 373.79
+    },
+    {
+      "name": "Aurigeno",
+      "kind": "village",
+      "rank": 2,
+      "x": 2519.3,
+      "y": -2241.8,
+      "osm": "node/1585411815",
+      "h": 340.6
+    },
+    {
+      "name": "Al Barión",
+      "kind": "village",
+      "rank": 1,
+      "x": -3476.4,
+      "y": -5710.2,
+      "osm": "node/1585411816",
+      "h": 804.29
+    },
+    {
+      "name": "Berzona",
+      "kind": "village",
+      "rank": 2,
+      "x": -1304.5,
+      "y": -5317.1,
+      "osm": "node/1585411817",
+      "h": 752.65
+    },
+    {
+      "name": "Cavigliano",
+      "kind": "village",
+      "rank": 2,
+      "x": 3031.5,
+      "y": -7483.6,
+      "osm": "node/1585411820",
+      "h": 313.05
+    },
+    {
+      "name": "Al Ciòss",
+      "kind": "village",
+      "rank": 1,
+      "x": -2515.2,
+      "y": -5845.3,
+      "osm": "node/1585411822",
+      "h": 750.95
+    },
+    {
+      "name": "Comologno",
+      "kind": "village",
+      "rank": 2,
+      "x": -7979.1,
+      "y": -5348.3,
+      "osm": "node/1585411823",
+      "h": 1095.3
+    },
+    {
+      "name": "Crana",
+      "kind": "village",
+      "rank": 2,
+      "x": -5260.3,
+      "y": -5382.4,
+      "osm": "node/1585411824",
+      "h": 885.09
+    },
+    {
+      "name": "Gordevio",
+      "kind": "village",
+      "rank": 2,
+      "x": 4926.7,
+      "y": -2860.6,
+      "osm": "node/1585411825",
+      "h": 330.19
+    },
+    {
+      "name": "Loco",
+      "kind": "village",
+      "rank": 2,
+      "x": -667,
+      "y": -5535.6,
+      "osm": "node/1585411837",
+      "h": 691.32
+    },
+    {
+      "name": "Mosogno",
+      "kind": "village",
+      "rank": 2,
+      "x": -3083.7,
+      "y": -5949.3,
+      "osm": "node/1585411838",
+      "h": 773.98
+    },
+    {
+      "name": "Pila",
+      "kind": "village",
+      "rank": 1,
+      "x": 883.5,
+      "y": -8131.7,
+      "osm": "node/1585411854",
+      "h": 576.34
+    },
+    {
+      "name": "Ponte Brolla",
+      "kind": "village",
+      "rank": 1,
+      "x": 5695.6,
+      "y": -7272.1,
+      "osm": "node/1585411857",
+      "h": 249.73
+    },
+    {
+      "name": "Ronchini",
+      "kind": "village",
+      "rank": 1,
+      "x": 3867.9,
+      "y": -2053.8,
+      "osm": "node/1585411859",
+      "h": 323.77
+    },
+    {
+      "name": "Russo",
+      "kind": "village",
+      "rank": 2,
+      "x": -4429.1,
+      "y": -5545.3,
+      "osm": "node/1585411860",
+      "h": 818.39
+    },
+    {
+      "name": "Someo",
+      "kind": "village",
+      "rank": 2,
+      "x": -1180.6,
+      "y": 3848.9,
+      "osm": "node/1585411861",
+      "h": 372.33
+    },
+    {
+      "name": "Tegna",
+      "kind": "village",
+      "rank": 2,
+      "x": 4890.7,
+      "y": -7278.2,
+      "osm": "node/1585411875",
+      "h": 259.08
+    },
+    {
+      "name": "Cremaso",
+      "kind": "village",
+      "rank": 1,
+      "x": 412.1,
+      "y": -7856.4,
+      "osm": "node/1716498201",
+      "h": 798.14
+    },
+    {
+      "name": "Vosa",
+      "kind": "village",
+      "rank": 1,
+      "x": 721.5,
+      "y": -7135.8,
+      "osm": "node/1727830760",
+      "h": 571.65
+    },
+    {
+      "name": "Giumaglio",
+      "kind": "village",
+      "rank": 2,
+      "x": 151.7,
+      "y": 2470.7,
+      "osm": "node/1777386686",
+      "h": 370.41
+    },
+    {
+      "name": "Aula",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2218.4,
+      "y": -7930.3,
+      "osm": "node/2260243080",
+      "h": 1416.5
+    },
+    {
+      "name": "Pizzo Peloso",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2327.2,
+      "y": -2326,
+      "osm": "node/2260243081",
+      "h": 2034.08
+    },
+    {
+      "name": "Salmone",
+      "kind": "peak",
+      "rank": 2,
+      "x": 2096.3,
+      "y": -4721.8,
+      "osm": "node/2260243082",
+      "h": 1555.15
+    },
+    {
+      "name": "Campo",
+      "kind": "village",
+      "rank": 1,
+      "x": 242.9,
+      "y": -3440.5,
+      "osm": "node/2330424943",
+      "h": 1051.26
+    },
+    {
+      "name": "Lodano",
+      "kind": "village",
+      "rank": 2,
+      "x": 379,
+      "y": 861.3,
+      "osm": "node/2467545167",
+      "h": 353.63
+    },
+    {
+      "name": "Coglio",
+      "kind": "village",
+      "rank": 2,
+      "x": 346.6,
+      "y": 1818.8,
+      "osm": "node/2883967695",
+      "h": 353.67
+    },
+    {
+      "name": "Villa",
+      "kind": "village",
+      "rank": 1,
+      "x": 5288.8,
+      "y": -2902.4,
+      "osm": "node/2955157716",
+      "h": 354.95
+    },
+    {
+      "name": "Madom da Sgióf",
+      "kind": "peak",
+      "rank": 2,
+      "x": 7418.4,
+      "y": 1786.1,
+      "osm": "node/3003004163",
+      "h": 2250.88
+    },
+    {
+      "name": "Chiazza",
+      "kind": "village",
+      "rank": 1,
+      "x": 2946.1,
+      "y": -2854.4,
+      "osm": "node/3069218843",
+      "h": 423.08
+    },
+    {
+      "name": "Pianascio",
+      "kind": "peak",
+      "rank": 2,
+      "x": -4298.8,
+      "y": -7766.2,
+      "osm": "node/3297524067",
+      "h": 1614.38
+    },
+    {
+      "name": "Pizzin",
+      "kind": "peak",
+      "rank": 2,
+      "x": -3941.2,
+      "y": -7871.9,
+      "osm": "node/3297524068",
+      "h": 1506.35
+    },
+    {
+      "name": "Rovine del Castelliere",
+      "kind": "village",
+      "rank": 2,
+      "x": 5323.7,
+      "y": -6857.9,
+      "osm": "node/3573110608",
+      "h": 526.48
+    },
+    {
+      "name": "Ponte sospeso Cardada – Aussichtsplattform Cardada",
+      "kind": "viewpoint",
+      "rank": 2,
+      "x": 7762.3,
+      "y": -6936,
+      "osm": "node/3770889258",
+      "h": 1310.04
+    },
+    {
+      "name": "Poncione Piancascia",
+      "kind": "peak",
+      "rank": 2,
+      "x": 4146.4,
+      "y": 5190.7,
+      "osm": "node/3813153377",
+      "h": 2395.09
+    },
+    {
+      "name": "Monte della Chià",
+      "kind": "village",
+      "rank": 1,
+      "x": -7964.4,
+      "y": -2162.1,
+      "osm": "node/3845813940",
+      "h": 958.98
+    },
+    {
+      "name": "Al Giardígn",
+      "kind": "village",
+      "rank": 1,
+      "x": 851,
+      "y": -5788.5,
+      "osm": "node/3901429523",
+      "h": 685.73
+    },
+    {
+      "name": "In Baldígn",
+      "kind": "village",
+      "rank": 1,
+      "x": 573.1,
+      "y": -5668.9,
+      "osm": "node/3901430457",
+      "h": 665.41
+    },
+    {
+      "name": "Mondada",
+      "kind": "village",
+      "rank": 1,
+      "x": 2547.8,
+      "y": -6521.7,
+      "osm": "node/3901432919",
+      "h": 963.46
+    },
+    {
+      "name": "Miluno",
+      "kind": "village",
+      "rank": 1,
+      "x": 2632.2,
+      "y": -6849.9,
+      "osm": "node/3901435457",
+      "h": 766.7
+    },
+    {
+      "name": "In Canaa",
+      "kind": "village",
+      "rank": 1,
+      "x": 3614.3,
+      "y": 1600.8,
+      "osm": "node/4117018932",
+      "h": 913.07
+    },
+    {
+      "name": "A Maréna",
+      "kind": "village",
+      "rank": 1,
+      "x": 2262.1,
+      "y": 574.7,
+      "osm": "node/4117022254",
+      "h": 867.71
+    },
+    {
+      "name": "Pizzo Morisciöi",
+      "kind": "peak",
+      "rank": 2,
+      "x": 2762,
+      "y": 3527.2,
+      "osm": "node/4117134599",
+      "h": 2043.9
+    },
+    {
+      "name": "Pizzo Croadino",
+      "kind": "peak",
+      "rank": 2,
+      "x": 2971.5,
+      "y": 3744.8,
+      "osm": "node/4117141807",
+      "h": 1994.55
+    },
+    {
+      "name": "Alpe Morisciöi",
+      "kind": "village",
+      "rank": 1,
+      "x": 2660.8,
+      "y": 3077.2,
+      "osm": "node/4117141808",
+      "h": 1843.26
+    },
+    {
+      "name": "Al Masnèe",
+      "kind": "village",
+      "rank": 1,
+      "x": 6372.1,
+      "y": 2708.9,
+      "osm": "node/4118614858",
+      "h": 2062.86
+    },
+    {
+      "name": "In Parc'ürói",
+      "kind": "village",
+      "rank": 1,
+      "x": 1398.2,
+      "y": 725.1,
+      "osm": "node/4125794556",
+      "h": 588.22
+    },
+    {
+      "name": "Curona",
+      "kind": "village",
+      "rank": 1,
+      "x": 1317.5,
+      "y": 606.2,
+      "osm": "node/4125794557",
+      "h": 521.41
+    },
+    {
+      "name": "Al Crópp",
+      "kind": "village",
+      "rank": 1,
+      "x": 1677.7,
+      "y": 700.7,
+      "osm": "node/4125794558",
+      "h": 715.98
+    },
+    {
+      "name": "A Cagítt",
+      "kind": "village",
+      "rank": 1,
+      "x": 2407.7,
+      "y": 1116.5,
+      "osm": "node/4125794559",
+      "h": 1086.68
+    },
+    {
+      "name": "Al Mött dal Zücar",
+      "kind": "village",
+      "rank": 1,
+      "x": 2078.6,
+      "y": 1078.1,
+      "osm": "node/4125794561",
+      "h": 977.16
+    },
+    {
+      "name": "Tasmèi",
+      "kind": "village",
+      "rank": 1,
+      "x": 1568.8,
+      "y": 1717.2,
+      "osm": "node/4125794562",
+      "h": 1030.22
+    },
+    {
+      "name": "Spign",
+      "kind": "village",
+      "rank": 1,
+      "x": 1116.1,
+      "y": 1850.1,
+      "osm": "node/4125794563",
+      "h": 892.01
+    },
+    {
+      "name": "Corbazzói",
+      "kind": "village",
+      "rank": 1,
+      "x": 1255.8,
+      "y": 2288.3,
+      "osm": "node/4125794564",
+      "h": 1064.32
+    },
+    {
+      "name": "Piano Bruciato",
+      "kind": "village",
+      "rank": 1,
+      "x": 1031.7,
+      "y": 2474.3,
+      "osm": "node/4125794565",
+      "h": 941.27
+    },
+    {
+      "name": "Int in Giovásc'a",
+      "kind": "village",
+      "rank": 1,
+      "x": 1584.9,
+      "y": 935.4,
+      "osm": "node/4125823537",
+      "h": 695.8
+    },
+    {
+      "name": "La Cor’ona",
+      "kind": "village",
+      "rank": 1,
+      "x": 1548.4,
+      "y": 1130.5,
+      "osm": "node/4125823538",
+      "h": 728.58
+    },
+    {
+      "name": "A Talpígn",
+      "kind": "village",
+      "rank": 1,
+      "x": 2889.3,
+      "y": 1216,
+      "osm": "node/4125823539",
+      "h": 883.29
+    },
+    {
+      "name": "Int in Cèir",
+      "kind": "village",
+      "rank": 1,
+      "x": 3089.5,
+      "y": 1375.1,
+      "osm": "node/4125823540",
+      "h": 881.15
+    },
+    {
+      "name": "A Fóo d Zóra",
+      "kind": "village",
+      "rank": 1,
+      "x": 3359.2,
+      "y": 2502.6,
+      "osm": "node/4125823541",
+      "h": 1460.93
+    },
+    {
+      "name": "A Fóo",
+      "kind": "village",
+      "rank": 1,
+      "x": 3749.2,
+      "y": 2270,
+      "osm": "node/4125823542",
+      "h": 1105.82
+    },
+    {
+      "name": "Indi i C’ignöi",
+      "kind": "village",
+      "rank": 1,
+      "x": 4109.6,
+      "y": 1364.5,
+      "osm": "node/4125823543",
+      "h": 905.09
+    },
+    {
+      "name": "In Maiásc'",
+      "kind": "village",
+      "rank": 1,
+      "x": 4034.6,
+      "y": 1705.6,
+      "osm": "node/4125823544",
+      "h": 963.42
+    },
+    {
+      "name": "La Sèla",
+      "kind": "village",
+      "rank": 1,
+      "x": 4285,
+      "y": 2059.5,
+      "osm": "node/4125823545",
+      "h": 1178.38
+    },
+    {
+      "name": "In Sommai’asc’",
+      "kind": "village",
+      "rank": 1,
+      "x": 4605.4,
+      "y": 2078.6,
+      "osm": "node/4125823546",
+      "h": 1242.36
+    },
+    {
+      "name": "In Poèe",
+      "kind": "village",
+      "rank": 1,
+      "x": 5077.9,
+      "y": 1845.5,
+      "osm": "node/4125823547",
+      "h": 1255.63
+    },
+    {
+      "name": "Pizzo Verde",
+      "kind": "peak",
+      "rank": 2,
+      "x": 3365.9,
+      "y": 4488.6,
+      "osm": "node/4125823561",
+      "h": 1934.25
+    },
+    {
+      "name": "Pizzo Costisc",
+      "kind": "peak",
+      "rank": 2,
+      "x": 5670.3,
+      "y": 3317.8,
+      "osm": "node/4125823562",
+      "h": 2217.17
+    },
+    {
+      "name": "Collo",
+      "kind": "village",
+      "rank": 1,
+      "x": 4960.7,
+      "y": 2654.8,
+      "osm": "node/4125829955",
+      "h": 1661.96
+    },
+    {
+      "name": "La Piánc'a",
+      "kind": "village",
+      "rank": 1,
+      "x": 5789.9,
+      "y": 2594.3,
+      "osm": "node/4125829956",
+      "h": 1876
+    },
+    {
+      "name": "In Adèva",
+      "kind": "village",
+      "rank": 1,
+      "x": 6399.3,
+      "y": 1702.9,
+      "osm": "node/4125829957",
+      "h": 1545.9
+    },
+    {
+      "name": "Costa dal Lung",
+      "kind": "village",
+      "rank": 1,
+      "x": 5075.7,
+      "y": 1093.6,
+      "osm": "node/4125829968",
+      "h": 1251.87
+    },
+    {
+      "name": "Cima di Nimi",
+      "kind": "peak",
+      "rank": 2,
+      "x": 7156,
+      "y": 784.1,
+      "osm": "node/4125846710",
+      "h": 2174.15
+    },
+    {
+      "name": "Aiarlo di Dentro",
+      "kind": "village",
+      "rank": 1,
+      "x": 4737.1,
+      "y": -346.4,
+      "osm": "node/4125846711",
+      "h": 1485.83
+    },
+    {
+      "name": "Al Motón",
+      "kind": "village",
+      "rank": 1,
+      "x": 4292.7,
+      "y": -341.1,
+      "osm": "node/4125846712",
+      "h": 1431.5
+    },
+    {
+      "name": "Giovaa",
+      "kind": "village",
+      "rank": 1,
+      "x": 3502.1,
+      "y": 112.5,
+      "osm": "node/4125846714",
+      "h": 1059.66
+    },
+    {
+      "name": "In Moranzöö",
+      "kind": "village",
+      "rank": 1,
+      "x": 3471.7,
+      "y": -373,
+      "osm": "node/4125846720",
+      "h": 1100.48
+    },
+    {
+      "name": "In Scimonsásc",
+      "kind": "village",
+      "rank": 1,
+      "x": 2891.4,
+      "y": -655.8,
+      "osm": "node/4125846721",
+      "h": 686.52
+    },
+    {
+      "name": "In Amanzói",
+      "kind": "village",
+      "rank": 1,
+      "x": 3045.6,
+      "y": -479.2,
+      "osm": "node/4125846722",
+      "h": 781.83
+    },
+    {
+      "name": "In Scirésgia",
+      "kind": "village",
+      "rank": 1,
+      "x": 3018.7,
+      "y": -340.3,
+      "osm": "node/4125846723",
+      "h": 860.42
+    },
+    {
+      "name": "In Sasc’álp",
+      "kind": "village",
+      "rank": 1,
+      "x": 3193,
+      "y": -702.8,
+      "osm": "node/4125846724",
+      "h": 750.64
+    },
+    {
+      "name": "Cima di Aiarlo",
+      "kind": "peak",
+      "rank": 2,
+      "x": 5414.5,
+      "y": 207.7,
+      "osm": "node/4125846725",
+      "h": 1886.79
+    },
+    {
+      "name": "Sagmè",
+      "kind": "village",
+      "rank": 1,
+      "x": 2023,
+      "y": 2168.8,
+      "osm": "node/4125853866",
+      "h": 1448.72
+    },
+    {
+      "name": "Alpe Spluga",
+      "kind": "village",
+      "rank": 1,
+      "x": -61.7,
+      "y": 7011.5,
+      "osm": "node/4125884143",
+      "h": 1843.6
+    },
+    {
+      "name": "Pizzo coca",
+      "kind": "peak",
+      "rank": 2,
+      "x": 1452.6,
+      "y": 6114.6,
+      "osm": "node/4125884146",
+      "h": 2176.65
+    },
+    {
+      "name": "Pizzo Muretto",
+      "kind": "peak",
+      "rank": 2,
+      "x": 1954.2,
+      "y": 6570.6,
+      "osm": "node/4125884147",
+      "h": 2211.63
+    },
+    {
+      "name": "Pizzo Albèr",
+      "kind": "peak",
+      "rank": 2,
+      "x": 816.1,
+      "y": 7162.3,
+      "osm": "node/4125884148",
+      "h": 2146.33
+    },
+    {
+      "name": "Sass d'Argent",
+      "kind": "peak",
+      "rank": 2,
+      "x": 818,
+      "y": 7588.7,
+      "osm": "node/4125896790",
+      "h": 2150.22
+    },
+    {
+      "name": "A Madrúna",
+      "kind": "village",
+      "rank": 1,
+      "x": 1641.1,
+      "y": -1926.9,
+      "osm": "node/4126018722",
+      "h": 871.6
+    },
+    {
+      "name": "In Bagnadüü",
+      "kind": "village",
+      "rank": 1,
+      "x": 1413.2,
+      "y": -1019,
+      "osm": "node/4126028123",
+      "h": 435.73
+    },
+    {
+      "name": "Orlozzoni",
+      "kind": "village",
+      "rank": 1,
+      "x": 407.2,
+      "y": -487.7,
+      "osm": "node/4126028148",
+      "h": 551.58
+    },
+    {
+      "name": "Mugnèe d'Zott",
+      "kind": "village",
+      "rank": 1,
+      "x": -488.4,
+      "y": 440.8,
+      "osm": "node/4126028178",
+      "h": 910.31
+    },
+    {
+      "name": "Mugnèe d'Zora",
+      "kind": "village",
+      "rank": 1,
+      "x": -552.4,
+      "y": 104.6,
+      "osm": "node/4126028206",
+      "h": 1020.24
+    },
+    {
+      "name": "Cicogna",
+      "kind": "village",
+      "rank": 1,
+      "x": -318.1,
+      "y": 122.5,
+      "osm": "node/4126028214",
+      "h": 872.42
+    },
+    {
+      "name": "Badolèd",
+      "kind": "village",
+      "rank": 1,
+      "x": 90.9,
+      "y": -139,
+      "osm": "node/4126028226",
+      "h": 662.82
+    },
+    {
+      "name": "Cortascel",
+      "kind": "village",
+      "rank": 1,
+      "x": 57.3,
+      "y": -300.7,
+      "osm": "node/4126041844",
+      "h": 716.95
+    },
+    {
+      "name": "Frasned",
+      "kind": "village",
+      "rank": 1,
+      "x": -253.9,
+      "y": -430.4,
+      "osm": "node/4126041858",
+      "h": 956.51
+    },
+    {
+      "name": "L'Ör Barèd",
+      "kind": "village",
+      "rank": 1,
+      "x": -66.1,
+      "y": -682.1,
+      "osm": "node/4126041869",
+      "h": 884.77
+    },
+    {
+      "name": "A Canaa",
+      "kind": "village",
+      "rank": 1,
+      "x": 178.2,
+      "y": -784.1,
+      "osm": "node/4126041870",
+      "h": 815.94
+    },
+    {
+      "name": "Al Crest’on",
+      "kind": "village",
+      "rank": 1,
+      "x": 699.1,
+      "y": -784.5,
+      "osm": "node/4126042389",
+      "h": 524.66
+    },
+    {
+      "name": "Pianel",
+      "kind": "village",
+      "rank": 1,
+      "x": -611.5,
+      "y": 665.8,
+      "osm": "node/4126061648",
+      "h": 815.54
+    },
+    {
+      "name": "Monte della Spina",
+      "kind": "village",
+      "rank": 1,
+      "x": -1083.7,
+      "y": 406.9,
+      "osm": "node/4126061684",
+      "h": 881.05
+    },
+    {
+      "name": "Castel",
+      "kind": "village",
+      "rank": 1,
+      "x": -1317.5,
+      "y": 447.4,
+      "osm": "node/4126065107",
+      "h": 808.86
+    },
+    {
+      "name": "Nagairom",
+      "kind": "village",
+      "rank": 1,
+      "x": -1202.4,
+      "y": 1057.7,
+      "osm": "node/4126089529",
+      "h": 887.69
+    },
+    {
+      "name": "Solada d'Zora",
+      "kind": "village",
+      "rank": 1,
+      "x": -845.5,
+      "y": 1558.4,
+      "osm": "node/4126089563",
+      "h": 890.18
+    },
+    {
+      "name": "Solada d'Zott",
+      "kind": "village",
+      "rank": 1,
+      "x": -505.7,
+      "y": 1723.3,
+      "osm": "node/4126089579",
+      "h": 696.36
+    },
+    {
+      "name": "Sassalto",
+      "kind": "village",
+      "rank": 1,
+      "x": -1411.2,
+      "y": 1656.1,
+      "osm": "node/4126089602",
+      "h": 1192.05
+    },
+    {
+      "name": "Sassello bianco",
+      "kind": "village",
+      "rank": 1,
+      "x": -1266.7,
+      "y": 1899.7,
+      "osm": "node/4126089615",
+      "h": 1040.54
+    },
+    {
+      "name": "L'erta",
+      "kind": "village",
+      "rank": 1,
+      "x": -796.3,
+      "y": 1314.1,
+      "osm": "node/4126103029",
+      "h": 798.4
+    },
+    {
+      "name": "Güi",
+      "kind": "peak",
+      "rank": 2,
+      "x": -3576.1,
+      "y": 488.6,
+      "osm": "node/4126103045",
+      "h": 2137.32
+    },
+    {
+      "name": "Madonnetto",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2822.8,
+      "y": 1002.4,
+      "osm": "node/4126131775",
+      "h": 1817.64
+    },
+    {
+      "name": "Faed di Dentro",
+      "kind": "village",
+      "rank": 1,
+      "x": -4197.2,
+      "y": 3609.6,
+      "osm": "node/4126169825",
+      "h": 1014.18
+    },
+    {
+      "name": "Rinsc",
+      "kind": "village",
+      "rank": 1,
+      "x": -2905.4,
+      "y": 5518.4,
+      "osm": "node/4126198855",
+      "h": 982.83
+    },
+    {
+      "name": "A Santón",
+      "kind": "village",
+      "rank": 1,
+      "x": -2957.6,
+      "y": 5738.1,
+      "osm": "node/4126198856",
+      "h": 1090.36
+    },
+    {
+      "name": "A Laódom",
+      "kind": "village",
+      "rank": 1,
+      "x": -2276.2,
+      "y": 5042.8,
+      "osm": "node/4126211250",
+      "h": 937.36
+    },
+    {
+      "name": "Sinda",
+      "kind": "village",
+      "rank": 1,
+      "x": -2397.9,
+      "y": 5495,
+      "osm": "node/4126211280",
+      "h": 1074.85
+    },
+    {
+      "name": "A Carpagnón",
+      "kind": "village",
+      "rank": 1,
+      "x": -2199.5,
+      "y": 4823.5,
+      "osm": "node/4126213598",
+      "h": 824.93
+    },
+    {
+      "name": "Malún",
+      "kind": "village",
+      "rank": 1,
+      "x": -2028.8,
+      "y": 4585.5,
+      "osm": "node/4126213609",
+      "h": 714.16
+    },
+    {
+      "name": "La Dóva",
+      "kind": "village",
+      "rank": 1,
+      "x": 2666.4,
+      "y": 604.3,
+      "osm": "node/4126241210",
+      "h": 750.71
+    },
+    {
+      "name": "Törn",
+      "kind": "village",
+      "rank": 1,
+      "x": 620.3,
+      "y": -224.2,
+      "osm": "node/4396100304",
+      "h": 372.87
+    },
+    {
+      "name": "La Colma",
+      "kind": "peak",
+      "rank": 1,
+      "x": 4380.5,
+      "y": -6413.3,
+      "osm": "node/4466782393",
+      "h": 789.12
+    },
+    {
+      "name": "Vocaglia",
+      "kind": "village",
+      "rank": 1,
+      "x": -6956.2,
+      "y": -5236,
+      "osm": "node/5139519183",
+      "h": 1011.44
+    },
+    {
+      "name": "Corbella",
+      "kind": "village",
+      "rank": 1,
+      "x": -7578,
+      "y": -5227.2,
+      "osm": "node/5139519199",
+      "h": 1051.26
+    },
+    {
+      "name": "Piano",
+      "kind": "village",
+      "rank": 1,
+      "x": -5589.7,
+      "y": -4963.3,
+      "osm": "node/5139519226",
+      "h": 1065.7
+    },
+    {
+      "name": "Muriccio",
+      "kind": "village",
+      "rank": 1,
+      "x": 1172.7,
+      "y": 2010.4,
+      "osm": "node/5201442653",
+      "h": 961.55
+    },
+    {
+      "name": "Pizzit",
+      "kind": "peak",
+      "rank": 1,
+      "x": 7368.8,
+      "y": -1796.2,
+      "osm": "node/5557561009",
+      "h": 1683.63
+    },
+    {
+      "name": "Chiegg",
+      "kind": "peak",
+      "rank": 1,
+      "x": 7910.5,
+      "y": -2925,
+      "osm": "node/5557561010",
+      "h": 1440.44
+    },
+    {
+      "name": "Sass Güzz",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 5222.2,
+      "y": -7000.3,
+      "osm": "node/6314593117",
+      "h": 436.7
+    },
+    {
+      "name": "Boschetto",
+      "kind": "village",
+      "rank": 1,
+      "x": -5733.1,
+      "y": 5984.7,
+      "osm": "node/7259114635",
+      "h": 457.28
+    },
+    {
+      "name": "Valle maggia pietra viva",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 5699.8,
+      "y": -6385.8,
+      "osm": "node/8479248295",
+      "h": 267.23
+    },
+    {
+      "name": "Pizzo Alzasca",
+      "kind": "peak",
+      "rank": 2,
+      "x": -7999,
+      "y": 2832.4,
+      "osm": "node/8627998390",
+      "h": 2205.8
+    },
+    {
+      "name": "In Trièpp",
+      "kind": "village",
+      "rank": 1,
+      "x": 3948.3,
+      "y": 2683.2,
+      "osm": "node/9210803034",
+      "h": 1170.26
+    },
+    {
+      "name": "I Travèrs",
+      "kind": "village",
+      "rank": 1,
+      "x": 1813.9,
+      "y": 1152.6,
+      "osm": "node/9210803037",
+      "h": 872.04
+    },
+    {
+      "name": "A Corlü’ign",
+      "kind": "village",
+      "rank": 1,
+      "x": 2057.6,
+      "y": 555.7,
+      "osm": "node/9210803038",
+      "h": 790.99
+    },
+    {
+      "name": "A Talpígn d Zótt",
+      "kind": "village",
+      "rank": 1,
+      "x": 2949.3,
+      "y": 1045.7,
+      "osm": "node/9210803039",
+      "h": 782.88
+    },
+    {
+      "name": "In Monc’asc’",
+      "kind": "village",
+      "rank": 1,
+      "x": 1900.3,
+      "y": 1344.9,
+      "osm": "node/9210803040",
+      "h": 988.21
+    },
+    {
+      "name": "Ciòssa",
+      "kind": "village",
+      "rank": 1,
+      "x": 993.1,
+      "y": 1189.3,
+      "osm": "node/9210803044",
+      "h": 536.3
+    },
+    {
+      "name": "Pianèzz",
+      "kind": "village",
+      "rank": 1,
+      "x": 1170.2,
+      "y": 966.6,
+      "osm": "node/9210803045",
+      "h": 519.15
+    },
+    {
+      "name": "Fontana",
+      "kind": "village",
+      "rank": 1,
+      "x": 1333.2,
+      "y": 1749,
+      "osm": "node/9210803046",
+      "h": 913.83
+    },
+    {
+      "name": "Civ",
+      "kind": "village",
+      "rank": 1,
+      "x": 1130.4,
+      "y": 1391.7,
+      "osm": "node/9210803047",
+      "h": 675.21
+    },
+    {
+      "name": "In Canaa d Zótt",
+      "kind": "village",
+      "rank": 1,
+      "x": 3659.2,
+      "y": 1398.1,
+      "osm": "node/9210803051",
+      "h": 808.54
+    },
+    {
+      "name": "Zòi",
+      "kind": "village",
+      "rank": 1,
+      "x": 1307.1,
+      "y": 1309.7,
+      "osm": "node/9210803052",
+      "h": 703.22
+    },
+    {
+      "name": "In Pisciòla",
+      "kind": "village",
+      "rank": 1,
+      "x": 3640.1,
+      "y": 1719.8,
+      "osm": "node/9210803055",
+      "h": 968.54
+    },
+    {
+      "name": "In Rinsg Garzöö",
+      "kind": "village",
+      "rank": 1,
+      "x": 3526.8,
+      "y": 1084.4,
+      "osm": "node/9210803056",
+      "h": 774.75
+    },
+    {
+      "name": "Al Bög",
+      "kind": "village",
+      "rank": 1,
+      "x": 6411,
+      "y": 2336.1,
+      "osm": "node/9210803057",
+      "h": 1837.36
+    },
+    {
+      "name": "Dolèd",
+      "kind": "village",
+      "rank": 1,
+      "x": 2008.2,
+      "y": -2669.4,
+      "osm": "node/9211961698",
+      "h": 732.22
+    },
+    {
+      "name": "Prada di Fondo",
+      "kind": "village",
+      "rank": 1,
+      "x": 3216.6,
+      "y": -5097.9,
+      "osm": "node/9211961699",
+      "h": 852.74
+    },
+    {
+      "name": "Al Montásc",
+      "kind": "village",
+      "rank": 1,
+      "x": 4883.3,
+      "y": -1222.2,
+      "osm": "node/9211961700",
+      "h": 1065.43
+    },
+    {
+      "name": "Campiòi",
+      "kind": "village",
+      "rank": 1,
+      "x": 3169.3,
+      "y": -4315.9,
+      "osm": "node/9211961702",
+      "h": 1048.58
+    },
+    {
+      "name": "I Pièid",
+      "kind": "village",
+      "rank": 1,
+      "x": 3286.8,
+      "y": -1462.8,
+      "osm": "node/9211961703",
+      "h": 421.22
+    },
+    {
+      "name": "Valècc",
+      "kind": "village",
+      "rank": 1,
+      "x": 2514.7,
+      "y": -2801.7,
+      "osm": "node/9211961705",
+      "h": 547.56
+    },
+    {
+      "name": "A C’èsg",
+      "kind": "village",
+      "rank": 1,
+      "x": 3573.9,
+      "y": -5049.1,
+      "osm": "node/9211961714",
+      "h": 783.76
+    },
+    {
+      "name": "Gaggio",
+      "kind": "village",
+      "rank": 1,
+      "x": 2213.8,
+      "y": -2689.1,
+      "osm": "node/9211961716",
+      "h": 648.98
+    },
+    {
+      "name": "Al Runch di Mött",
+      "kind": "village",
+      "rank": 1,
+      "x": 1173.2,
+      "y": -896,
+      "osm": "node/9212009717",
+      "h": 451.71
+    },
+    {
+      "name": "In Crüpp",
+      "kind": "village",
+      "rank": 1,
+      "x": 2959.3,
+      "y": -1285.1,
+      "osm": "node/9212009718",
+      "h": 443.62
+    },
+    {
+      "name": "Al Lüghétt",
+      "kind": "village",
+      "rank": 1,
+      "x": 2763.7,
+      "y": -1187.1,
+      "osm": "node/9212009720",
+      "h": 386.81
+    },
+    {
+      "name": "Ghiüla",
+      "kind": "village",
+      "rank": 1,
+      "x": 3813.9,
+      "y": -5188.1,
+      "osm": "node/9212009722",
+      "h": 609.55
+    },
+    {
+      "name": "Mött",
+      "kind": "village",
+      "rank": 1,
+      "x": 3342.6,
+      "y": -3933.9,
+      "osm": "node/9212009725",
+      "h": 977.58
+    },
+    {
+      "name": "A Can’ig",
+      "kind": "village",
+      "rank": 1,
+      "x": 2521.3,
+      "y": -2930.5,
+      "osm": "node/9212009727",
+      "h": 622.7
+    },
+    {
+      "name": "La Fracorèla",
+      "kind": "village",
+      "rank": 1,
+      "x": 2781.7,
+      "y": -382.9,
+      "osm": "node/9212009729",
+      "h": 717.19
+    },
+    {
+      "name": "Puncio",
+      "kind": "peak",
+      "rank": 2,
+      "x": -1028.8,
+      "y": -1636.9,
+      "osm": "node/9212009730",
+      "h": 1830.12
+    },
+    {
+      "name": "Garzèd di Dentro",
+      "kind": "village",
+      "rank": 1,
+      "x": 2920.9,
+      "y": -4613.4,
+      "osm": "node/9212009731",
+      "h": 1152.32
+    },
+    {
+      "name": "Praossìgn",
+      "kind": "village",
+      "rank": 1,
+      "x": 3372.2,
+      "y": -4246.4,
+      "osm": "node/9212009732",
+      "h": 1022.5
+    },
+    {
+      "name": "Al Sc’opòo",
+      "kind": "village",
+      "rank": 1,
+      "x": 3877.3,
+      "y": -488.6,
+      "osm": "node/9212009739",
+      "h": 1210.39
+    },
+    {
+      "name": "Pizen",
+      "kind": "peak",
+      "rank": 2,
+      "x": 1555.1,
+      "y": -4269.5,
+      "osm": "node/9212009740",
+      "h": 1470.12
+    },
+    {
+      "name": "Corte",
+      "kind": "village",
+      "rank": 1,
+      "x": 4921.2,
+      "y": -123.3,
+      "osm": "node/9212009741",
+      "h": 1623.36
+    },
+    {
+      "name": "Lòbia",
+      "kind": "village",
+      "rank": 1,
+      "x": 3302.7,
+      "y": -4103.7,
+      "osm": "node/9212009743",
+      "h": 976.19
+    },
+    {
+      "name": "Prada di Cima",
+      "kind": "village",
+      "rank": 1,
+      "x": 3201.9,
+      "y": -4989.6,
+      "osm": "node/9212009744",
+      "h": 915.59
+    },
+    {
+      "name": "Sascel",
+      "kind": "village",
+      "rank": 1,
+      "x": 2672.1,
+      "y": -3361.8,
+      "osm": "node/9212009746",
+      "h": 754.94
+    },
+    {
+      "name": "Ronch di Bor",
+      "kind": "village",
+      "rank": 1,
+      "x": 4094.8,
+      "y": -1832,
+      "osm": "node/9212009747",
+      "h": 452.3
+    },
+    {
+      "name": "Al Cavòo",
+      "kind": "village",
+      "rank": 1,
+      "x": 3017.2,
+      "y": -3327.3,
+      "osm": "node/9212009748",
+      "h": 634.78
+    },
+    {
+      "name": "I Rünch",
+      "kind": "village",
+      "rank": 1,
+      "x": 3593.3,
+      "y": -1517.9,
+      "osm": "node/9212009749",
+      "h": 410.07
+    },
+    {
+      "name": "Colètt",
+      "kind": "village",
+      "rank": 1,
+      "x": 4000.3,
+      "y": -1598.5,
+      "osm": "node/9212009750",
+      "h": 474.71
+    },
+    {
+      "name": "Al Piègn",
+      "kind": "village",
+      "rank": 1,
+      "x": 2781.1,
+      "y": -943.1,
+      "osm": "node/9212009754",
+      "h": 480.06
+    },
+    {
+      "name": "In Pianéi",
+      "kind": "village",
+      "rank": 1,
+      "x": 3188.3,
+      "y": -1193.3,
+      "osm": "node/9212009756",
+      "h": 524.68
+    },
+    {
+      "name": "Biccherolo",
+      "kind": "village",
+      "rank": 1,
+      "x": -5721.2,
+      "y": -5222,
+      "osm": "node/9214624941",
+      "h": 1032.61
+    },
+    {
+      "name": "Riveo",
+      "kind": "village",
+      "rank": 1,
+      "x": -3706.8,
+      "y": 4887.5,
+      "osm": "node/9409745120",
+      "h": 386.69
+    },
+    {
+      "name": "Testin",
+      "kind": "peak",
+      "rank": 2,
+      "x": 2053.8,
+      "y": -5344.5,
+      "osm": "node/9959939467",
+      "h": 1416.58
+    },
+    {
+      "name": "Mataruch",
+      "kind": "peak",
+      "rank": 2,
+      "x": -4846.6,
+      "y": -6652.8,
+      "osm": "node/9975123409",
+      "h": 1138.51
+    },
+    {
+      "name": "Testa",
+      "kind": "peak",
+      "rank": 2,
+      "x": 2463.3,
+      "y": -5654,
+      "osm": "node/9977307316",
+      "h": 1359.49
+    },
+    {
+      "name": "Pizzo della Croce",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2754.4,
+      "y": -4167.3,
+      "osm": "node/10059257037",
+      "h": 1738.25
+    },
+    {
+      "name": "Teste",
+      "kind": "peak",
+      "rank": 1,
+      "x": -4087.7,
+      "y": -4472.4,
+      "osm": "node/10059351118",
+      "h": 1401.69
+    },
+    {
+      "name": "Pizzo del Gallo",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2422.1,
+      "y": -2814.3,
+      "osm": "node/10059351128",
+      "h": 1957.96
+    },
+    {
+      "name": "Al Pizz dala Bássa",
+      "kind": "peak",
+      "rank": 1,
+      "x": -4094,
+      "y": -965.5,
+      "osm": "node/10059351246",
+      "h": 2005.14
+    },
+    {
+      "name": "La Scíma da Dòia",
+      "kind": "peak",
+      "rank": 1,
+      "x": -7955.1,
+      "y": 1445.3,
+      "osm": "node/10059351372",
+      "h": 2155.46
+    },
+    {
+      "name": "A Lairèe",
+      "kind": "village",
+      "rank": 1,
+      "x": 1194.3,
+      "y": -556.5,
+      "osm": "node/10313165598",
+      "h": 372.05
+    },
+    {
+      "name": "Pizzo del Cocco",
+      "kind": "peak",
+      "rank": 2,
+      "x": 851.9,
+      "y": 9094.4,
+      "osm": "node/10549025481",
+      "h": 2291.12
+    },
+    {
+      "name": "Pizzo Castello",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2673,
+      "y": 7557.4,
+      "osm": "node/10550555075",
+      "h": 2015.23
+    },
+    {
+      "name": "Cima",
+      "kind": "peak",
+      "rank": 1,
+      "x": 7621.4,
+      "y": -526.1,
+      "osm": "node/11594242803",
+      "h": 2090.33
+    },
+    {
+      "name": "Al Moton",
+      "kind": "peak",
+      "rank": 1,
+      "x": -6383.8,
+      "y": -4275.3,
+      "osm": "node/11618331711",
+      "h": 1749.09
+    },
+    {
+      "name": "Biètt",
+      "kind": "village",
+      "rank": 1,
+      "x": -5752.8,
+      "y": 8297.3,
+      "osm": "node/11727256278",
+      "h": 439.59
+    },
+    {
+      "name": "A Brünèsg",
+      "kind": "village",
+      "rank": 1,
+      "x": 6165.3,
+      "y": -1490.3,
+      "osm": "node/11781029034",
+      "h": 1289.81
+    },
+    {
+      "name": "Visletto",
+      "kind": "village",
+      "rank": 1,
+      "x": -5297.2,
+      "y": 6268.6,
+      "osm": "node/12022710099",
+      "h": 417.2
+    },
+    {
+      "name": "Zucchero",
+      "kind": "peak",
+      "rank": 1,
+      "x": -2379.6,
+      "y": 1699.9,
+      "osm": "node/12040710199",
+      "h": 1629.75
+    },
+    {
+      "name": "Cròs Pizzitt",
+      "kind": "peak",
+      "rank": 1,
+      "x": 6105.8,
+      "y": 373.6,
+      "osm": "node/12040710257",
+      "h": 1936.41
+    },
+    {
+      "name": "Scima di Müzz",
+      "kind": "peak",
+      "rank": 1,
+      "x": -6219.2,
+      "y": 3825.8,
+      "osm": "node/12040710269",
+      "h": 1845.86
+    },
+    {
+      "name": "Sasso Bello",
+      "kind": "peak",
+      "rank": 1,
+      "x": -1234.6,
+      "y": 8087.2,
+      "osm": "node/12040710491",
+      "h": 2211.3
+    },
+    {
+      "name": "Cima di Cuaschia",
+      "kind": "peak",
+      "rank": 1,
+      "x": 2617.4,
+      "y": 6361.1,
+      "osm": "node/12040710811",
+      "h": 1999.89
+    },
+    {
+      "name": "La Pianchína",
+      "kind": "peak",
+      "rank": 1,
+      "x": -6318.1,
+      "y": -975.9,
+      "osm": "node/12040711010",
+      "h": 2002.4
+    },
+    {
+      "name": "Mosogno Sotto",
+      "kind": "village",
+      "rank": 1,
+      "x": -3379.4,
+      "y": -6028.5,
+      "osm": "node/12385134954",
+      "h": 693.54
+    },
+    {
+      "name": "Chiesa di Santa Maria Assunta e di San Giovanni Battista",
+      "kind": "church",
+      "rank": 2,
+      "x": -5972.9,
+      "y": 7812.8,
+      "osm": "way/275188728",
+      "h": 436.45
+    },
+    {
+      "name": "Chiesa della Beata Vergine del Ponte",
+      "kind": "church",
+      "rank": 2,
+      "x": -6258.1,
+      "y": 6795.7,
+      "osm": "way/275477030",
+      "h": 440.31
+    },
+    {
+      "name": "Oratorio di San Defendente a Visletto",
+      "kind": "church",
+      "rank": 2,
+      "x": -5329.4,
+      "y": 6283,
+      "osm": "way/276005066",
+      "h": 416.38
+    },
+    {
+      "name": "Chiesa di Santa Maria",
+      "kind": "church",
+      "rank": 2,
+      "x": 2624.1,
+      "y": -1246.8,
+      "osm": "way/288318687",
+      "h": 325.91
+    },
+    {
+      "name": "Chiesa di Santa Maria del Carmelo",
+      "kind": "church",
+      "rank": 2,
+      "x": 2166.4,
+      "y": -543.2,
+      "osm": "way/288318689",
+      "h": 336.93
+    },
+    {
+      "name": "Chiesa di San Maurizio",
+      "kind": "church",
+      "rank": 2,
+      "x": 1765.3,
+      "y": -368.9,
+      "osm": "way/288318690",
+      "h": 351.93
+    },
+    {
+      "name": "Cappella Santa Maria della Pioda",
+      "kind": "church",
+      "rank": 2,
+      "x": 2198.2,
+      "y": -105.6,
+      "osm": "way/288318728",
+      "h": 474.5
+    },
+    {
+      "name": "Chiesa parrocchiale di San Remigio",
+      "kind": "church",
+      "rank": 2,
+      "x": -242.4,
+      "y": -5355,
+      "osm": "way/307748091",
+      "h": 694.29
+    },
+    {
+      "name": "Chiesa parrocchiale dei Santi Placido ed Eustachio",
+      "kind": "church",
+      "rank": 2,
+      "x": -1037,
+      "y": 3780.3,
+      "osm": "way/338005103",
+      "h": 369.97
+    },
+    {
+      "name": "Oratorio della Madonna del Buon Consiglio",
+      "kind": "church",
+      "rank": 2,
+      "x": -6017,
+      "y": 7248.4,
+      "osm": "way/344840786",
+      "h": 420.11
+    },
+    {
+      "name": "Chiesa di San Bernardo",
+      "kind": "church",
+      "rank": 2,
+      "x": -3124.3,
+      "y": -5926.4,
+      "osm": "way/345321140",
+      "h": 788.89
+    },
+    {
+      "name": "Chiesa di Santa Maria Assunta",
+      "kind": "church",
+      "rank": 2,
+      "x": 4996.8,
+      "y": -7325.3,
+      "osm": "way/352317673",
+      "h": 255.27
+    },
+    {
+      "name": "Chiesa di San Giorgio",
+      "kind": "church",
+      "rank": 2,
+      "x": 2637,
+      "y": -8092.4,
+      "osm": "way/361048267",
+      "h": 272.46
+    },
+    {
+      "name": "Beata Vergine Assunta",
+      "kind": "church",
+      "rank": 2,
+      "x": 206.4,
+      "y": 2460.3,
+      "osm": "way/456643527",
+      "h": 372.36
+    },
+    {
+      "name": "Chiesa della Beata Vergine Assunta",
+      "kind": "church",
+      "rank": 2,
+      "x": 2116.2,
+      "y": -1268.2,
+      "osm": "way/456653680",
+      "h": 324.34
+    },
+    {
+      "name": "Chiesa Parrocchiale di San Bartolomeo",
+      "kind": "church",
+      "rank": 2,
+      "x": 2719.3,
+      "y": -2506.2,
+      "osm": "way/457060469",
+      "h": 342.45
+    },
+    {
+      "name": "Chiesa di San Gottardo",
+      "kind": "church",
+      "rank": 2,
+      "x": 1580.3,
+      "y": -8281.7,
+      "osm": "way/457308646",
+      "h": 375.61
+    },
+    {
+      "name": "Chiesa di San Giovanni Battista",
+      "kind": "church",
+      "rank": 2,
+      "x": -7958.7,
+      "y": -5373.9,
+      "osm": "way/474984265",
+      "h": 1084.12
+    },
+    {
+      "name": "chiesa parrocchiale di S. Maria Assunta",
+      "kind": "church",
+      "rank": 2,
+      "x": -4403.6,
+      "y": -5554.4,
+      "osm": "way/517609008",
+      "h": 810.18
+    },
+    {
+      "name": "Chiesa di San Michele",
+      "kind": "church",
+      "rank": 2,
+      "x": 3073.9,
+      "y": -7559.8,
+      "osm": "way/543867166",
+      "h": 304.15
+    },
+    {
+      "name": "Cappella di Santa Maria della Natività",
+      "kind": "church",
+      "rank": 2,
+      "x": -3514.8,
+      "y": -5639.1,
+      "osm": "way/547451003",
+      "h": 823.03
+    },
+    {
+      "name": "Chiesa di San Remigio",
+      "kind": "church",
+      "rank": 2,
+      "x": -7459.2,
+      "y": 6243.8,
+      "osm": "way/734610767",
+      "h": 685.62
+    },
+    {
+      "name": "Oratorio di Sant'Antonio Abate",
+      "kind": "church",
+      "rank": 2,
+      "x": -5715.8,
+      "y": 6002,
+      "osm": "way/777825111",
+      "h": 452.65
+    },
+    {
+      "name": "Chiesa San Filippo e Giacomo",
+      "kind": "church",
+      "rank": 2,
+      "x": 5309.8,
+      "y": -2987.7,
+      "osm": "way/782046465",
+      "h": 355.69
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-valle-maggia",
+      "name": "Valle Maggia",
+      "lengthM": 21806.56,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.985
+    }
+  ],
+  "stats": {
+    "roads": 4597,
+    "waterAreas": 100,
+    "waterLines": 868,
+    "landcoverAreas": 1190,
+    "buildings": 13263,
+    "buildingVertices": 69596,
+    "buildings:suburb": 11541,
+    "buildings:old-town": 199,
+    "buildings:rural": 1316,
+    "buildings:industrial": 207,
+    "trees": 320000,
+    "trees:broadleaf": 266887,
+    "trees:conifer": 13586,
+    "trees:scrub": 2939,
+    "trees:olive": 0,
+    "trees:park": 8,
+    "trees:cypress": 371,
+    "trees:riparian": 32098,
+    "trees:hedgerow": 306,
+    "trees:garden": 3805,
+    "pois": 251,
+    "carvedNodes": 17504,
+    "bridgeDecks": 355,
+    "bridgePiers": 56
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "swissalti3d",
+      "name": "swissALTI3D 2 m, bare earth, along the routes",
+      "licence": "Open Government Data of the Swiss Confederation, free use with source attribution (swisstopo terms of use)",
+      "url": "https://www.swisstopo.admin.ch/en/height-model-swissalti3d",
+      "attribution": "Source: Federal Office of Topography swisstopo"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-valle-maggia",
+      "name": "Valle Maggia: OSRM bike route through 4 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/8.754,46.188;8.708,46.248;8.65821,46.28605;8.603,46.316?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "92e463d174247a3eae0d90cd73bf5a0f3505278ee9d0f1dccf04720917862fdd",
+    "osmDate": "2026-11-01T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 1,
+    "bridges": true,
+    "bareGround": "swissalti3d"
+  }
+}

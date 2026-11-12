@@ -17,6 +17,7 @@ import { HomeHeader, devicesButtonText } from './HomeHeader';
 const tiber = scenicRouteById('scenic-perugia-tiber-park')!;
 const assisi = scenicRouteById('scenic-assisi-valley')!;
 const trasimeno = scenicRouteById('scenic-trasimeno-shore')!;
+const garda = scenicRouteById('scenic-lake-garda-lazise')!;
 const noop = () => {};
 
 function html(el: Parameters<typeof renderToStaticMarkup>[0]): string {
@@ -56,7 +57,7 @@ describe('FeaturedScenicRide (Today’s ride)', () => {
 
 describe('ScenicRouteGrid (area tiles)', () => {
   const out = html(
-    createElement(ScenicRouteGrid, { routes: [assisi, trasimeno], activeRouteId: assisi.route.id, onRide: noop }),
+    createElement(ScenicRouteGrid, { routes: [assisi, garda], activeRouteId: assisi.route.id, onRide: noop }),
   );
 
   it('renders one button per route with the data hook and pressed state', () => {
@@ -70,7 +71,7 @@ describe('ScenicRouteGrid (area tiles)', () => {
     expect(out).toContain('home-assisi.jpg');
     expect(out.match(/Map view/g)).toHaveLength(1);
     expect(out).toContain('3D world coming; rides on the map today');
-    expect(out).toMatch(/aria-label="Ride Lake Trasimeno shore, [^"]*, map view"/);
+    expect(out).toMatch(/aria-label="Ride Peschiera to Lazise, [^"]*, map view"/);
   });
 
   it('does not repeat the Map view badge in a section where every route is a map ride', () => {

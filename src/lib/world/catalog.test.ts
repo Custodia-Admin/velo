@@ -39,12 +39,29 @@ describe('world catalog', () => {
     expect(worldForRoute(scenic('scenic-assisi-valley'))?.id).toBe('perugia');
   });
 
-  it('draws Lugano–Melide and Locarno–Brissago in the Lugano world, not the routes beyond it', () => {
+  it('draws Lugano–Melide and Locarno–Brissago in the Lugano world, and the routes beyond it in their own worlds', () => {
     expect(worldForRoute(scenic('scenic-lugano-melide'))?.id).toBe('lugano');
     expect(worldForRoute(scenic('scenic-locarno-brissago'))?.id).toBe('lugano');
-    expect(worldForRoute(scenic('scenic-magadino-plain'))).toBeNull();
-    expect(worldForRoute(scenic('scenic-lake-como-menaggio'))).toBeNull();
     expect(worldForRoute(line('gpx-lugano', [[46.0, 8.95], [46.01, 8.96]]))?.id).toBe('lugano');
+    // Lugano's extra worlds (lugano.json extraWorlds), each a remote bundle.
+    for (const [route, world] of [
+      ['scenic-valle-maggia', 'valle-maggia'],
+      ['scenic-magadino-plain', 'magadino'],
+      ['scenic-lake-varese', 'lake-varese'],
+      ['scenic-lake-como-menaggio', 'lake-como'],
+    ]) {
+      const w = worldForRoute(scenic(route));
+      expect(w?.id, route).toBe(world);
+      expect(w?.remote, route).toBe(true);
+      expect(w?.name, route).toBe('Lugano');
+    }
+  });
+
+  it('draws the Trasimeno shore in its own world, listed under Perugia', () => {
+    const w = worldForRoute(scenic('scenic-trasimeno-shore'));
+    expect(w?.id).toBe('trasimeno');
+    expect(w?.remote).toBe(true);
+    expect(w?.name).toBe('Perugia');
   });
 
   it('takes any route that lies inside a world, e.g. a GPX upload around Perugia', () => {

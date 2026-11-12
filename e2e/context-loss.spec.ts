@@ -288,8 +288,8 @@ test('the photoreal view after a lost WebGL context: the chip, the ride carries 
   await page.addInitScript(INIT);
 
   await page.goto('/app');
-  // Bellinzona–Locarno is outside every baked world: photoreal, OSM with no token.
-  await rideScenicRoute(page, 'scenic-magadino-plain', 'Bellinzona to Locarno');
+  // Peschiera–Lazise (Lake Garda) is outside every baked world: photoreal, OSM with no token.
+  await rideScenicRoute(page, 'scenic-lake-garda-lazise', 'Peschiera to Lazise');
   const view = page.locator('[data-renderer]');
   await expect(view).toHaveAttribute('data-renderer', 'photoreal');
   const world = page.locator('[data-world-context]');
