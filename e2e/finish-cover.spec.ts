@@ -11,12 +11,10 @@
  *
  * Counted at the source: every WebGL draw call in the page (both renderers,
  * every context), from an init script. Runs against the token-free
- * production build (playwright.config.ts). On main before the fix, at
- * medium, the world drew ~500 calls (5–6 frames) in 5 s behind the finish
- * page, photoreal 340–1,200 (on-demand frames for arriving tiles). The pause
- * is the same on every tier; low (as context-loss.spec.ts) keeps the GPU
- * work Playwright's headless shell queues while riding short (see the end of
- * the world test), so the next test in the worker isn't held up by it.
+ * production build (playwright.config.ts) on the medium tier, as riders do.
+ * On main before the fix, the world drew ~500 calls (5–6 frames) in 5 s
+ * behind the finish page, photoreal 340–1,200 (on-demand frames for arriving
+ * tiles).
  */
 import { expect, test, type Page } from '@playwright/test';
 
@@ -26,7 +24,7 @@ const H = 1080;
 const INIT = `
   localStorage.removeItem('globeride.cesiumIonToken');
   localStorage.setItem('globeride.onboarding.v2', JSON.stringify({ state: { hasSeenOnboarding: true }, version: 2 }));
-  localStorage.setItem('globeride.settings.v1', JSON.stringify({ state: { graphicsQuality: 'low', graphicsQualityAuto: false }, version: 1 }));
+  localStorage.setItem('globeride.settings.v1', JSON.stringify({ state: { graphicsQuality: 'medium', graphicsQualityAuto: false }, version: 1 }));
   // Every draw call into any WebGL context in the page.
   window.__e2eDraws = 0;
   for (const C of [window.WebGLRenderingContext, window.WebGL2RenderingContext]) {
@@ -109,12 +107,20 @@ test.describe('the finish screen at 1920×1080', () => {
 
     await finish(page);
     expect(await drawsIn(page, 2_000), 'draw calls behind the second finish page').toBe(0);
-    // No Home step here. Playwright's headless shell has no swap-chain back
-    // pressure, so riding on SwiftShader queues GPU work faster than it runs
-    // (40-75 s of it at medium), and leaving the ride waits for all of it while
-    // the WebGL context is destroyed. The queue drains while the finish page
-    // is up (nothing new joins it), but that is not this spec's subject:
-    // tv-remote.spec.ts covers Finish -> Home.
+    // Frames the world view drew and held back while the GPU was behind
+    // (frameGate.ts): in CI's headless shell on SwiftShader most are held.
+    const gate = await page.evaluate(() => (window as unknown as { __veloRideDebug: () => { frameGate: unknown } }).__veloRideDebug().frameGate);
+    console.info(`[finish-cover] world: frame gate ${JSON.stringify(gate)}`);
+    const t0 = Date.now();
+    await press(page, 'Home');
+    await page.waitForURL('**/app');
+    await expect(page.locator('#home-title')).toBeVisible();
+    // Leaving the ride destroys the WebGL context, which waits for every
+    // frame still queued on the GPU: 35–75 s of them in the headless shell
+    // before the frame gate, 0.05–0.6 s with it (4 cores, nothing else
+    // running; ~3 s straight from the ride). A second worker's software GL
+    // starves this one too, so the time is logged, not bounded.
+    console.info(`[finish-cover] world: Finish → Home ${Date.now() - t0} ms`);
     expect(pageErrors).toEqual([]);
   });
 

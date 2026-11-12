@@ -11,7 +11,7 @@
  */
 
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, type RootState } from '@react-three/fiber';
 import { BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, ToneMappingEffect, ToneMappingMode, VignetteEffect } from 'postprocessing';
 import * as THREE from 'three';
 
@@ -40,6 +40,7 @@ import { ContextLossWatch } from './contextLoss';
 import { CoupleGhost } from './CoupleGhost';
 import { sceneLandmarks } from './directorCamera';
 import { createClockMemo, keepClockSteady } from './frameClock';
+import { fenceGL, FrameGate } from './frameGate';
 import { Ghosts } from './Ghosts';
 import { Landmarks } from './Landmarks';
 import { buildLandcoverCanvas } from './landcoverTexture';
@@ -135,8 +136,37 @@ function DprController({ quality, onDpr }: { quality: ThreeQuality; onDpr: (dpr:
   return null;
 }
 
-/** SMAA + soft bloom + vignette, 'high' tier only. Takes over rendering. */
-function PostFx() {
+/**
+ * Draws each frame through the frame gate (frameGate.ts). r3f's own render is
+ * off (a priority-1 useFrame), so this is the one place a frame is drawn: the
+ * plain scene render or PostFx's composer. A frame the GPU has no room for is
+ * held back; the scene parts still updated, and the next frame drawn shows the
+ * latest state. The meter gets the time between DRAWN frames, so ?perf=1 and
+ * __veloPerf report the frames on screen.
+ */
+function useGatedDraw(gate: FrameGate, meter: FrameStats, draw: (state: RootState, delta: number) => void) {
+  const gl = useThree((s) => s.gl);
+  const sinceDrawnMs = useRef(0);
+  useEffect(() => () => gate.dispose(), [gate, gl]);
+  useFrame((state, delta) => {
+    const ms = delta * 1000;
+    // A stalled loop (a hidden tab) is not frame time.
+    sinceDrawnMs.current = ms < IDLE_GAP_MS ? sinceDrawnMs.current + ms : 0;
+    if (gate.submit(fenceGL(gl.getContext()), performance.now(), () => draw(state, sinceDrawnMs.current / 1000))) {
+      meter.push(sinceDrawnMs.current);
+      sinceDrawnMs.current = 0;
+    }
+  }, 1);
+}
+
+/** The plain render (no post-processing), through the frame gate. Exported for tests. */
+export function SceneDraw({ gate, meter }: { gate: FrameGate; meter: FrameStats }) {
+  useGatedDraw(gate, meter, (state) => state.gl.render(state.scene, state.camera));
+  return null;
+}
+
+/** SMAA + soft bloom + vignette, 'high' tier only. Draws through the frame gate in place of SceneDraw. Exported for tests. */
+export function PostFx({ gate, meter }: { gate: FrameGate; meter: FrameStats }) {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera);
@@ -164,7 +194,7 @@ function PostFx() {
     };
   }, [gl, composer]);
   useEffect(() => composer.setSize(size.width, size.height), [composer, size.width, size.height]);
-  useFrame((_, delta) => composer.render(delta), 1);
+  useGatedDraw(gate, meter, (_, delta) => composer.render(delta));
   return null;
 }
 
@@ -180,14 +210,14 @@ export function SteadyClock() {
   return null;
 }
 
-/** Fires once the rider model is in and two frames have been drawn. */
-function ReadySignal({ onReady }: { onReady: () => void }) {
-  const frames = useRef(0);
+/** Fires once the rider model is in and two frames have been drawn since (frames the gate held back don't count). Exported for tests. */
+export function ReadySignal({ onReady, gate }: { onReady: () => void; gate: FrameGate }) {
+  const drawnAtMount = useRef<number | null>(null);
   const fired = useRef(false);
   useFrame(() => {
     if (fired.current) return;
-    frames.current++;
-    if (frames.current >= 2) {
+    drawnAtMount.current ??= gate.drawn;
+    if (gate.drawn - drawnAtMount.current >= 2) {
       fired.current = true;
       onReady();
     }
@@ -203,6 +233,7 @@ function DebugHook({
   tier,
   lightState,
   stats,
+  gate,
 }: {
   sceneWorld: SceneWorld;
   frame: RideFrame;
@@ -211,6 +242,7 @@ function DebugHook({
   tier: string;
   lightState: LightState;
   stats: { trees: number };
+  gate: FrameGate;
 }) {
   const gl = useThree((s) => s.gl);
   const camera = useThree((s) => s.camera);
@@ -246,11 +278,9 @@ function DebugHook({
       requestRenderMode: false,
     };
   }, [gl, meter]);
-  // Runs before this frame's render, so gl.info still holds the last frame's numbers.
-  // (Any positive priority would switch off r3f's own render.)
-  useFrame((state, delta) => {
-    const ms = delta * 1000;
-    if (ms < IDLE_GAP_MS) meter.push(ms);
+  // Runs before this frame's draw (useGatedDraw, priority 1), so gl.info still
+  // holds the last drawn frame's numbers. useGatedDraw feeds the meter.
+  useFrame((state) => {
     info.calls = gl.info.render.calls;
     info.triangles = gl.info.render.triangles;
     const t = state.clock.elapsedTime * 1000;
@@ -296,6 +326,13 @@ function DebugHook({
         nearChunks: visibility.count(),
         drawCalls: info.calls,
         triangles: info.triangles,
+        // Frames drawn / held back while the GPU was behind, and its measured time per frame (frameGate.ts).
+        frameGate: {
+          drawn: gate.drawn,
+          held: gate.held,
+          inFlight: gate.inFlight,
+          gpuFrameMs: gate.gpuFrameMs === null ? null : Math.round(gate.gpuFrameMs),
+        },
         trees: stats.trees,
         light: lightState.current
           ? {
@@ -315,7 +352,7 @@ function DebugHook({
     return () => {
       if (w.__veloRideDebug === debug) delete w.__veloRideDebug;
     };
-  }, [sceneWorld, frame, meter, visibility, camera, gl, size, tier, info, lightState, stats]);
+  }, [sceneWorld, frame, meter, visibility, camera, gl, size, tier, info, lightState, stats, gate]);
   return null;
 }
 
@@ -343,6 +380,8 @@ export function WorldScene({
 }) {
   const frame = useMemo(() => createRideFrame(), []);
   const meter = useMemo(() => new FrameStats(), []);
+  // One per canvas: every frame draws through it (useGatedDraw).
+  const gate = useMemo(() => new FrameGate(), []);
   const visibility = useMemo(() => new ChunkVisibility(sceneWorld.chunks.length), [sceneWorld]);
   // One height source: the terrain triangles as drawn, for rider, camera,
   // bots, ghosts, roads and the route line.
@@ -427,10 +466,10 @@ export function WorldScene({
         <LiveRider frame={frame} castShadow={quality.shadows} />
         <PaceBots sceneWorld={sceneWorld} route={route} ground={ground} frame={frame} />
         <CoupleGhost sceneWorld={sceneWorld} route={route} ground={ground} frame={frame} />
-        <ReadySignal onReady={onReady} />
+        <ReadySignal onReady={onReady} gate={gate} />
       </Suspense>
-      {quality.postFx && <PostFx />}
-      <DebugHook sceneWorld={sceneWorld} frame={frame} meter={meter} visibility={visibility} tier={tier} lightState={lightState} stats={stats} />
+      {quality.postFx ? <PostFx gate={gate} meter={meter} /> : <SceneDraw gate={gate} meter={meter} />}
+      <DebugHook sceneWorld={sceneWorld} frame={frame} meter={meter} visibility={visibility} tier={tier} lightState={lightState} stats={stats} gate={gate} />
     </>
   );
 }
