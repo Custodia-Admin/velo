@@ -109,7 +109,7 @@ How far each route stands over the bare ground. Route samples every 10 m. The gr
 - **CEM 3.0** (15 m) is interpolated from 1:50 000 contours. It has whole-metre heights and RMSE 4.8 m. On open route samples it sits 4.1 m under GLO-30 with a 2.5 m median absolute deviation, so it is not a bare-earth model at route scale.
 - **CEM 4.0** is the ALOS PALSAR RTC terrain-correction DEM, which ASF built from SRTM resampled (NED in the US).
 - **INEGI's 1:10 000 MDT tipo terreno** (5 m, from satellite and airborne sensors) is bare earth. INEGI's *Términos de Libre Uso* allow commercial use with the credit "Fuente: INEGI, <producto>". Its 8 sheets along the routes date from 2014 to 2026. On it, every stretch over 3 m has GLO-30 within −2.8…+1.4 m of the ground. Instead, the route stands 2.5–7.4 m above its own GLO-90 profile: the Malecón at 1.22–1.37 km and 2.13–2.54 km, and Nuevo Vallarta–Bucerías in its first 50 m.
-- That lift comes from the route height, not the canopy, and a bare-ground DTM would not lower it. Follow-up card: see the PR.
+- That lift comes from the route height, not the canopy, and a bare-ground DTM would not lower it. Follow-up card t_be5a0778.
 
 ## fps (the test host's Intel iGPU, ANGLE gl-egl, HUD on, medium, vsync)
 
