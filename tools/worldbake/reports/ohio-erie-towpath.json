@@ -4,22 +4,23 @@
   "timingsS": {
     "dem": 0.3,
     "osm": 0.1,
+    "bareGround": 0.4,
     "heightfield+routes": 1.3,
-    "vectors": 5.4,
-    "write": 7.5,
-    "validate": 0.1,
-    "total": 14.7
+    "vectors": 5.5,
+    "write": 7.3,
+    "validate": 0,
+    "total": 14.9
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 1744781,
+      "stored": 1736845,
       "content": 2647902,
-      "brotli": 1436875
+      "brotli": 1430129
     },
     "roads.json.gz": {
-      "stored": 366904,
-      "content": 941454,
-      "brotli": 244387
+      "stored": 365553,
+      "content": 938253,
+      "brotli": 243631
     },
     "water.json.gz": {
       "stored": 87253,
@@ -42,36 +43,36 @@
       "brotli": 636516
     },
     "routes.json.gz": {
-      "stored": 43995,
-      "content": 107117,
-      "brotli": 31952
+      "stored": 42890,
+      "content": 105787,
+      "brotli": 31201
     },
     "bridges.json.gz": {
-      "stored": 7617,
-      "content": 24177,
-      "brotli": 5115
+      "stored": 7185,
+      "content": 22929,
+      "brotli": 4770
     },
     "manifest.json": {
-      "stored": 11595,
-      "content": 11595,
-      "brotli": 3029
+      "stored": 12008,
+      "content": 12008,
+      "brotli": 3183
     }
   },
   "totals": {
-    "stored": 3217167,
-    "content": 5747008,
-    "brotli": 2588219
+    "stored": 3206756,
+    "content": 5741642,
+    "brotli": 2579775
   },
   "hashes": {
-    "height.bin.gz": "52a451289d4544f1a5d282446f9046410f7b06f8f7fb825b7bbe8ddeb70dec62",
-    "roads.json.gz": "09a5b82807bb08a2d28669611d7b819361046f4efb0db53580d73a5ee5ffb7f0",
+    "height.bin.gz": "0405d573a783728fd934b31788304ed491de99a4a54115e27dbd14ad7685970d",
+    "roads.json.gz": "4ba0a1fe97ac309d746c1c5f54f542b7802051e30f1399127c6ad708f73c1a10",
     "water.json.gz": "ad9a7493642b2e637ec12f451e5dbba460762fbc9b6256d9fc1eb01372a2a569",
     "landcover.json.gz": "04755fcdaefa498b3b5f3ef4bebc6dada42accc9c092a962d9bd6d8107c7be6d",
     "buildings.bin.gz": "69f33381f382a9d9e90bd966e358c92d495165b9b6d5bb41078453b3918058d2",
     "vegetation.bin.gz": "404926ce5cd8ebed6e9a8b60d69732164b0976413cff782a80e15cb97647ee55",
-    "routes.json.gz": "4fa9e1a5d3d62fd74355ffadf9f3a192d853821f99dc85e48a79155486656502",
-    "bridges.json.gz": "c090c339c4859e05921854815145a44265b366942f8478c6bab84df1bd9db45f",
-    "manifest.json": "4d29e49bad1fa1637c180e960d3a6f6a753dc1bfdf5d25e7313773f355f6b255"
+    "routes.json.gz": "2ea873bcc0985d906ea87a04497b062eaf617d556a04ad06a71acd2bfad940ca",
+    "bridges.json.gz": "69c96629ca44e48ce2021c619fd3055a449ee418a3e32d3df4699b683f96960b",
+    "manifest.json": "dbf897dc31e3c33f3b06b8b9fb61b17c93bc70c96b07d0cace93d524c34b18dd"
   },
   "routes": [
     {
@@ -79,12 +80,12 @@
       "name": "Ohio & Erie Canal Towpath",
       "lengthM": 17429.69,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.328,
+      "gradeMeanAbsDiffPct": 0.265,
       "report": {
         "samples": 1744,
-        "gradeMaxAbsDiffPct": 1.394,
-        "rawDemGradeMeanAbsDiffPct": 2.467,
-        "maxRenderMinusProfileM": 17.85
+        "gradeMaxAbsDiffPct": 1.204,
+        "rawDemGradeMeanAbsDiffPct": 0.511,
+        "maxRenderMinusProfileM": 13.28
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -100,12 +101,12 @@
       "name": "Towpath: Lock 39 to Station Road",
       "lengthM": 10353.07,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.177,
+      "gradeMeanAbsDiffPct": 0.146,
       "report": {
         "samples": 1037,
-        "gradeMaxAbsDiffPct": 0.512,
-        "rawDemGradeMeanAbsDiffPct": 1.34,
-        "maxRenderMinusProfileM": 10.49
+        "gradeMaxAbsDiffPct": 0.399,
+        "rawDemGradeMeanAbsDiffPct": 0.339,
+        "maxRenderMinusProfileM": 5.02
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -309,13 +310,13 @@
     "minHeight": 168.609375,
     "maxHeight": 389.578125,
     "carvedNodes": 22182,
-    "maxCutM": 26.11
+    "maxCutM": 14.22
   },
   "bridges": {
     "networks": 207,
-    "pieces": 233,
-    "piers": 96,
-    "underDeckNodes": 240,
+    "pieces": 226,
+    "piers": 105,
+    "underDeckNodes": 321,
     "underDeckMaxCutM": 7.08,
     "headroomPins": [
       {
@@ -323,42 +324,42 @@
         "name": "Rockside Road",
         "route": "scenic-cuyahoga-towpath-north",
         "routeS": 40.36,
-        "liftM": 5.84
+        "liftM": 3.79
       },
       {
         "road": 797,
         "name": "East Pleasant Valley Road",
         "route": "scenic-cuyahoga-towpath-north",
         "routeS": 4982.17,
-        "liftM": 2.47
+        "liftM": 0.14
       },
       {
         "road": 816,
         "name": "Main Street",
         "route": "scenic-cuyahoga-towpath",
         "routeS": 10897.53,
-        "liftM": 8.24
+        "liftM": 1.02
       },
       {
         "road": 6401,
         "name": null,
         "route": "scenic-cuyahoga-towpath",
         "routeS": 10902.32,
-        "liftM": 7.91
+        "liftM": 0.82
       },
       {
         "road": 6410,
         "name": null,
         "route": "scenic-cuyahoga-towpath",
         "routeS": 10891.9,
-        "liftM": 7.84
+        "liftM": 0.9
       },
       {
         "road": 7578,
         "name": null,
         "route": "scenic-cuyahoga-towpath-north",
         "routeS": 49.72,
-        "liftM": 4.96
+        "liftM": 2
       }
     ],
     "approaches": [
@@ -366,7 +367,7 @@
         "bridge": "Rockside Road",
         "route": "scenic-cuyahoga-towpath-north",
         "routeS": 40.36,
-        "liftM": 5.49,
+        "liftM": 4.03,
         "rampM": 65.32,
         "abutmentBlock": true
       },
@@ -374,63 +375,49 @@
         "bridge": "Rockside Road",
         "route": "scenic-cuyahoga-towpath-north",
         "routeS": 40.36,
-        "liftM": 4.51,
-        "rampM": 90.19
+        "liftM": 0.96,
+        "rampM": 22.95
+      },
+      {
+        "bridge": "East Pleasant Valley Road",
+        "route": "scenic-cuyahoga-towpath-north",
+        "routeS": 5030,
+        "liftM": 0,
+        "rampM": 0
       },
       {
         "bridge": "Main Street",
         "route": "scenic-cuyahoga-towpath",
-        "routeS": 10897.53,
-        "liftM": 14.92,
-        "rampM": 298.39
-      },
-      {
-        "bridge": "Main Street",
-        "route": "scenic-cuyahoga-towpath",
-        "routeS": 10897.53,
-        "liftM": 4.9,
-        "rampM": 97.91
+        "routeS": 10900,
+        "liftM": 0,
+        "rampM": 16.42
       },
       {
         "bridge": null,
         "route": "scenic-cuyahoga-towpath",
-        "routeS": 10902.32,
-        "liftM": 12.99,
-        "rampM": 162.35
+        "routeS": 10900,
+        "liftM": 0,
+        "rampM": 15.42
       },
       {
         "bridge": null,
         "route": "scenic-cuyahoga-towpath",
-        "routeS": 10902.32,
-        "liftM": 3.79,
-        "rampM": 47.43
-      },
-      {
-        "bridge": null,
-        "route": "scenic-cuyahoga-towpath",
-        "routeS": 10891.9,
-        "liftM": 13.13,
-        "rampM": 164.09
-      },
-      {
-        "bridge": null,
-        "route": "scenic-cuyahoga-towpath",
-        "routeS": 10891.9,
-        "liftM": 3.91,
-        "rampM": 48.85
+        "routeS": 10890,
+        "liftM": 0,
+        "rampM": 19.55
       },
       {
         "bridge": null,
         "route": "scenic-cuyahoga-towpath-north",
         "routeS": 49.72,
-        "liftM": 3.83,
-        "rampM": 47.85
+        "liftM": 0.95,
+        "rampM": 20.65
       },
       {
         "bridge": null,
         "route": "scenic-cuyahoga-towpath-north",
-        "routeS": 49.72,
-        "liftM": 3,
+        "routeS": 50,
+        "liftM": 0,
         "rampM": 0,
         "abutmentBlock": true
       }
@@ -569,6 +556,93 @@
       ]
     }
   },
+  "bareGround": {
+    "source": "usgs-3dep-13",
+    "tiles": [
+      "n42w082@20230911"
+    ],
+    "corridorM": 150,
+    "blendM": 300,
+    "biasM": -0.2,
+    "openNodes": 27950,
+    "nodes": 175849,
+    "nodata": 0,
+    "maxLowerM": 36.47,
+    "maxLowerAt": [
+      -76,
+      4328
+    ],
+    "meanLowerM": 6.46,
+    "maxRaiseM": 24.26,
+    "maxRaiseAt": [
+      2564,
+      -4792
+    ],
+    "routes": [
+      {
+        "id": "scenic-cuyahoga-towpath",
+        "samples": 1669,
+        "medianM": -0.07,
+        "p95M": 0.79,
+        "maxM": 2.72,
+        "maxAtS": 11750,
+        "minM": -4.79,
+        "over3M": 0,
+        "woodland": {
+          "samples": 1397,
+          "p95M": 0.81,
+          "maxM": 2.72
+        }
+      },
+      {
+        "id": "scenic-cuyahoga-towpath-north",
+        "samples": 1021,
+        "medianM": -0.17,
+        "p95M": 0.6,
+        "maxM": 1.22,
+        "maxAtS": 9650,
+        "minM": -3.16,
+        "over3M": 0,
+        "woodland": {
+          "samples": 701,
+          "p95M": 0.6,
+          "maxM": 0.99
+        }
+      }
+    ],
+    "surface": [
+      {
+        "id": "scenic-cuyahoga-towpath",
+        "samples": 1669,
+        "medianM": 6.56,
+        "p95M": 21.54,
+        "maxM": 29.12,
+        "maxAtS": 9910,
+        "minM": -6.18,
+        "over3M": 1146,
+        "woodland": {
+          "samples": 1397,
+          "p95M": 22.04,
+          "maxM": 29.12
+        }
+      },
+      {
+        "id": "scenic-cuyahoga-towpath-north",
+        "samples": 1021,
+        "medianM": 0.28,
+        "p95M": 10.77,
+        "maxM": 15.56,
+        "maxAtS": 9110,
+        "minM": -3.91,
+        "over3M": 320,
+        "woodland": {
+          "samples": 701,
+          "p95M": 8.22,
+          "maxM": 12.39
+        }
+      }
+    ]
+  },
   "buildingsDropped": {
     "route": 2,
     "road": 17,
@@ -604,20 +678,20 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.1254,
+    "steep_fraction": 0.1213,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
     "bound_m": 6,
-    "registered_rms_m": 1.69,
-    "point_rms_m": 4.37,
-    "max_abs_registered_err_m": 4.73,
+    "registered_rms_m": 3,
+    "point_rms_m": 5.35,
+    "max_abs_registered_err_m": 15.74,
     "pass": true,
     "diagnostics": {
       "note": "not gating (blueprint §P1.3.4)",
-      "registered_mean_bias_m": -0.29,
-      "point_mean_bias_m": -0.51,
-      "point_max_abs_err_m": 11.01,
+      "registered_mean_bias_m": -0.83,
+      "point_mean_bias_m": -1.06,
+      "point_max_abs_err_m": 19.08,
       "node_answer_mismatches": 0
     },
     "points": [
@@ -625,7 +699,7 @@
         "lat": 41.39261,
         "lon": -81.63298,
         "openMeteo": 184,
-        "heightfield": 184.18,
+        "heightfield": 184.26,
         "nodeLat": 41.39333333,
         "nodeLon": -81.63333333,
         "nodeHeightfield": 184.15,
@@ -680,10 +754,10 @@
         "lat": 41.31891,
         "lon": -81.58259,
         "openMeteo": 246,
-        "heightfield": 242.72,
+        "heightfield": 226.92,
         "nodeLat": 41.31916667,
         "nodeLon": -81.58333333,
-        "nodeHeightfield": 246.31,
+        "nodeHeightfield": 238.41,
         "nodeOpenMeteo": 246,
         "onRouteCorridor": false
       },
@@ -988,10 +1062,10 @@
         "lat": 41.38118,
         "lon": -81.61933,
         "openMeteo": 184,
-        "heightfield": 185.92,
+        "heightfield": 184.81,
         "nodeLat": 41.38166667,
         "nodeLon": -81.62,
-        "nodeHeightfield": 183.42,
+        "nodeHeightfield": 183.27,
         "nodeOpenMeteo": 184,
         "onRouteCorridor": false
       },
@@ -1010,10 +1084,10 @@
         "lat": 41.32113,
         "lon": -81.58256,
         "openMeteo": 259,
-        "heightfield": 255.85,
+        "heightfield": 247.91,
         "nodeLat": 41.32166667,
         "nodeLon": -81.58333333,
-        "nodeHeightfield": 259.31,
+        "nodeHeightfield": 243.26,
         "nodeOpenMeteo": 259,
         "onRouteCorridor": false
       },
@@ -1043,10 +1117,10 @@
         "lat": 41.25069,
         "lon": -81.55743,
         "openMeteo": 251,
-        "heightfield": 250.29,
+        "heightfield": 247.27,
         "nodeLat": 41.25083333,
         "nodeLon": -81.5575,
-        "nodeHeightfield": 251.84,
+        "nodeHeightfield": 249.28,
         "nodeOpenMeteo": 251,
         "onRouteCorridor": false
       },

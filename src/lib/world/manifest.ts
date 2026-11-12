@@ -159,6 +159,8 @@ export interface WorldManifest {
     flatLakes?: boolean;
     /** True when the bake built bridges as structures (recipe `bridges`): the `bridges` layer is present. */
     bridges?: boolean;
+    /** The open bare-earth DTM the bake swapped in along the routes (recipe `bareGround`, tools/worldbake/bareGround.mjs), e.g. "usgs-3dep-13". */
+    bareGround?: string;
   };
 }
 
@@ -332,6 +334,7 @@ export function validateManifest(input: unknown): WorldManifest {
   if (gen.demZoom !== undefined) int(gen, 'demZoom', 'generator');
   int(gen, 'demTiles', 'generator', 1);
   if (gen.flatLakes !== undefined && gen.flatLakes !== true) fail('generator.flatLakes must be true when present');
+  if (gen.bareGround !== undefined) str(gen, 'bareGround', 'generator');
 
   return m as unknown as WorldManifest;
 }

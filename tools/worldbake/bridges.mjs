@@ -568,6 +568,45 @@ export function deckHeights({ roads, nets, groundAt, routes, abutZ = new Map() }
   return { z, pins: pinsOut };
 }
 
+/**
+ * Abutments that stand on the ground the road was built on, not in a
+ * route's carve. The carve (snapRoutes.mjs) re-grades the terrain within
+ * `coreCells` + `falloffM` of every route; where a bridge over a route lands
+ * inside that reach, its abutment would stand in the carved cutting, metres
+ * under the street it carries (Peninsula: Main Street's west end, 16 m from
+ * the towpath, sat in a 7 m cutting). So a boundary node of a network a
+ * route passes under, and no route rides, takes the uncarved height (`uncarvedAt`: the terrain just
+ * before the carve) wherever that is more than AT_GRADE_M above the carved
+ * ground (`groundAt`); the road beyond it then crosses the cutting on an
+ * approach ramp (`planApproaches`). A ridden network keeps the carved ground
+ * at its ends: the rider rolls on and off it at route level.
+ * Returns Map(node key → { z, node, route, routeS }), `route`/`routeS` the
+ * nearest route sample (`routes`: prepared routes with x, y, s, id).
+ */
+export function uncarvedAbutments({ roads, nets, spans, routes, groundAt, uncarvedAt }) {
+  const riddenNets = new Set(spans.flat().map((sp) => sp.net));
+  const out = new Map();
+  nets.forEach((net, ni) => {
+    if (riddenNets.has(ni)) return;
+    // Only a deck that spans a route: one a route passes under.
+    if (!net.pieces.some((ri) => routes.some((r) => crossings(r.x, r.y, piecePath(roads.roads[ri])).length))) return;
+    for (const node of net.nodes.values()) {
+      if (!node.boundary) continue;
+      const z = uncarvedAt(node.x, node.y);
+      if (!(z > groundAt(node.x, node.y) + AT_GRADE_M)) continue;
+      let best = null;
+      for (const r of routes) {
+        for (let i = 0; i < r.x.length; i++) {
+          const d = Math.hypot(r.x[i] - node.x, r.y[i] - node.y);
+          if (!best || d < best.d) best = { d, route: r.id, routeS: r.s[i] };
+        }
+      }
+      out.set(node.key, { z, node, route: best?.route ?? null, routeS: best?.routeS ?? 0 });
+    }
+  });
+  return out;
+}
+
 /** Re-find each pin's arclength on its (possibly re-vertexed) piece and put a vertex there. */
 export function anchorPins(roads, pins) {
   for (const p of pins) {
@@ -624,11 +663,21 @@ function networkDistances(net, roads, ri, s) {
  * at that grade until it meets the ground. Approach pieces get a vertex
  * every DECK_VERTEX_M and one where the ramp lands (in place); a ramp may
  * not touch a road a route rides (`ridden`), nor run past APPROACH_MAX_M.
+ * `raised` (uncarvedAbutments) are abutments standing above the carved
+ * ground already; they get a ramp across the cutting the same way.
+ * Each lift reports `liftM`, the abutment over the ground the road was built
+ * on (the higher of the carved and the uncarved terrain, `uncarvedAt`), and
+ * `rampM`, the length of road the ramp actually holds above the drawn
+ * ground.
  * Returns `{ abutZ, approaches: Map(ri → per-vertex z), lifts }`.
  */
-export function planApproaches({ roads, nets, pins, groundAt, ridden }) {
+export function planApproaches({ roads, nets, pins, groundAt, ridden, raised = new Map(), uncarvedAt = null }) {
   const abutZ = new Map();
   const lifts = [];
+  for (const [key, r] of raised) {
+    const ri = net0(nets, key, roads).ri;
+    abutZ.set(key, { z: r.z, grade: deckGrade(roads, roads.roads[ri]), node: r.node, pin: { ri, route: r.route, routeS: r.routeS } });
+  }
   const isStructure = (r) => r.f && r.f & (ROAD_FLAGS.bridge | ROAD_FLAGS.tunnel);
   // Ground road ends by node key.
   const ends = new Map();
@@ -659,7 +708,9 @@ export function planApproaches({ roads, nets, pins, groundAt, ridden }) {
   const approaches = new Map();
   for (const [key, a] of abutZ) {
     const { node, grade } = a;
-    const lift = a.z - groundAt(node.x, node.y);
+    const ground = groundAt(node.x, node.y);
+    const lift = a.z - ground;
+    const builtOn = uncarvedAt ? Math.max(ground, uncarvedAt(node.x, node.y)) : ground;
     const rampM = lift / grade;
     if (rampM > APPROACH_MAX_M) {
       throw new Error(`bridges: ${roads.names[roads.roads[a.pin.ri].n] ?? 'a bridge'} needs a ${lift.toFixed(1)} m lift over route ${a.pin.route} at ${a.pin.routeS.toFixed(0)} m: a ${rampM.toFixed(0)} m approach, over APPROACH_MAX_M`);
@@ -702,12 +753,16 @@ export function planApproaches({ roads, nets, pins, groundAt, ridden }) {
       dir = best.end === 0 ? [p[m - 2] - p[m - 4], p[m - 1] - p[m - 3]] : [p[0] - p[2], p[1] - p[3]];
       from = best.ri;
     }
+    let heldM = 0;
     for (const w of walk) {
       const road = roads.roads[w.ri];
       const path = piecePath(road);
       const zs = path.s.map((sv, k) => {
         const tm = w.t0 + (w.reversed ? path.len - sv : sv);
-        return Math.max(groundAt(road.p[2 * k] / 10, road.p[2 * k + 1] / 10), a.z - grade * tm);
+        const g = groundAt(road.p[2 * k] / 10, road.p[2 * k + 1] / 10);
+        const ramp = a.z - grade * tm;
+        if (ramp > g + AT_GRADE_M && tm > heldM) heldM = Math.min(tm, rampM);
+        return Math.max(g, ramp);
       });
       const prev = approaches.get(w.ri);
       approaches.set(w.ri, prev ? zs.map((v, k) => Math.max(v, prev[k] ?? -Infinity)) : zs);
@@ -728,7 +783,7 @@ export function planApproaches({ roads, nets, pins, groundAt, ridden }) {
       const road = walk.length ? roads.roads[walk[walk.length - 1].ri] : br;
       block = { x, y, ux: ux / ul, uy: uy / ul, top: a.z - grade * walked - deckThickness(roads, br), halfAcross: roadWidth(roads, road) / 2 + 0.25 };
     }
-    lifts.push({ bridge: roads.names[br.n] ?? null, route: a.pin.route, routeS: a.pin.routeS, liftM: lift, rampM: Math.min(rampM, walked), walkedM: walked, pieces: walk.length, block });
+    lifts.push({ bridge: roads.names[br.n] ?? null, route: a.pin.route, routeS: a.pin.routeS, liftM: a.z - builtOn, drawnLiftM: lift, rampM: block ? Math.min(rampM, walked) : heldM, walkedM: walked, pieces: walk.length, block });
   }
   const abut = new Map([...abutZ].map(([k, v]) => [k, v.z]));
   return { abutZ: abut, approaches, lifts };

@@ -102,6 +102,26 @@ from `chengdu-luxelakes.json`:
   1–1.5 km on the sea side so the water runs out to the edge; the renderer
   carries it on past the edge to the far plane (`seaApron`). Recipes without
   the flag fetch and bake exactly as before.
+- `"bareGround"` wherever an open bare-earth DTM covers the routes. GLO-30 is
+  a surface model, so under woods and in towns the route fit follows the
+  canopy and the roofs (the Cuyahoga towpath rode up to 21 m over the
+  ground). The step swaps the DTM in within 150 m of the routes, blended out
+  over the next 300 m, before the route fit (`tools/worldbake/bareGround.mjs`,
+  [WORLD-FORMAT.md](WORLD-FORMAT.md#bare-ground-bareground)):
+  - United States: `{ "source": "usgs-3dep-13", "tiles": { "n42w082": "20230911" } }`.
+    Pin every 1° tile the corridor touches to its dated release (the
+    `<pubdate>` in `…/13/TIFF/current/<tile>/USGS_13_<tile>.xml`); the bake
+    names any tile it needs and lacks.
+  - Switzerland: `{ "source": "swissalti3d", "year": 2022 }`, a release every
+    corridor tile has (the bake stops on a tile that only has other years).
+  - Then shorten the `snap` offset windows as far as every route's grade Δ
+    stays ≤ 1 pp (200/800 m in Ohio, 300/1200 m in Lugano), and read the
+    report's `bareGround.routes`: how far each route stands over the bare
+    ground (median, p95, max, samples over 3 m). P1.3 points inside the
+    corridor now read the ground where the GLO-90 reference reads the canopy,
+    so the registered RMS rises (Cuyahoga Valley: 1.69 → 3.00 m).
+  - A new source is a new `fetch…` in `bareGround.mjs`, a `BARE_GROUND_CREDITS`
+    entry and the two schema enums.
 
 ## 3. Bake
 
@@ -132,7 +152,7 @@ The log must show:
 - every route 100 % on drawn roads;
 - with `bridges`, no bake error, and the report's `bridges.approaches` read
   through: a lift of many metres means the route fit sits above the ground
-  there (see the Cuyahoga Valley notes in WORLD-FORMAT.md);
+  there (a surface-model DEM under woods: use `bareGround`);
 - a bundle of at most 8 MB brotli;
 - `validate (P1.3 v2): … PASS`. The bound is registered RMS ≤ 6.00 m for a
   standard world, or ≤ 6.24 m for a mountain world.

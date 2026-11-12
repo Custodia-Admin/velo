@@ -56,6 +56,40 @@
     "buildingSimplifyM": { "type": "number", "minimum": 0.3, "maximum": 2, "description": "Simplify building footprints at this tolerance, metres (default 0.3). For dense metro worlds whose OSM footprints are surveyed to the corner (Los Angeles County's import: 9.6 vertices a building): 1 m halves their triangles, so the buildings in view fit the fps budget." },
     "flatLakes": { "type": "boolean", "description": "Level the terrain under every OSM lake and pond (tools/worldbake/flatLakes.mjs): for lakes newer than the DEM, which still carries the land they were dug from." },
     "bridges": { "type": "boolean", "description": "Build bridges as structures (tools/worldbake/bridges.mjs): deck heights from the abutments with headroom over every route passing under, ridden decks not carved into the ground, ground kept under every deck, piers. Writes the bridges layer." },
+    "bareGround": {
+      "description": "Swap an open bare-earth DTM in along the routes before the route fit (tools/worldbake/bareGround.mjs). GLO-30 is a surface model, so under a forest the routes would ride the canopy. Without it the bake is unchanged.",
+      "oneOf": [
+        {
+          "title": "USGS 3DEP 1/3 arc-second DEM (United States)",
+          "type": "object",
+          "required": ["source", "tiles"],
+          "properties": {
+            "source": { "const": "usgs-3dep-13" },
+            "tiles": {
+              "type": "object",
+              "description": "The dated release of every 1° tile the corridor touches (historical/<tile>/USGS_13_<tile>_<release>.tif), e.g. { \"n42w082\": \"20230911\" }.",
+              "patternProperties": { "^[ns][0-9]{2}[ew][0-9]{3}$": { "type": "string", "pattern": "^[0-9]{8}$" } },
+              "additionalProperties": false
+            },
+            "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
+            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "swissALTI3D 2 m (Switzerland)",
+          "type": "object",
+          "required": ["source", "year"],
+          "properties": {
+            "source": { "const": "swissalti3d" },
+            "year": { "type": "integer", "description": "The swissALTI3D release (STAC item year) every corridor tile is read from, e.g. 2022." },
+            "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
+            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "routeCredits": { "type": "boolean", "description": "Add one manifest credit per route linking the OSM relation or OSRM bike query its geometry came from (scripts/scenicRouteSources.mjs)." },
     "snap": {
       "type": "object",

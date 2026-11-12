@@ -73,6 +73,13 @@
       "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
     },
     {
+      "id": "swissalti3d",
+      "name": "swissALTI3D 2 m, bare earth, along the routes",
+      "licence": "Open Government Data of the Swiss Confederation, free use with source attribution (swisstopo terms of use)",
+      "url": "https://www.swisstopo.admin.ch/en/height-model-swissalti3d",
+      "attribution": "Source: Federal Office of Topography swisstopo"
+    },
+    {
       "id": "copernicus-glo90",
       "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
       "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",

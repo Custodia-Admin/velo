@@ -49,19 +49,19 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 1744781,
-      "sha256": "52a451289d4544f1a5d282446f9046410f7b06f8f7fb825b7bbe8ddeb70dec62",
+      "bytes": 1736845,
+      "sha256": "0405d573a783728fd934b31788304ed491de99a4a54115e27dbd14ad7685970d",
       "compression": "gzip",
       "contentBytes": 2647902,
-      "contentSha256": "9bdd02d01a9b92563fff27439fdafd52f21a78cbbc00dc51dc3c379289339a84"
+      "contentSha256": "e759d7ba58b029e98d4e740c169294885e8d005c934176b2c34d3c6941faa357"
     },
     {
       "path": "roads.json.gz",
-      "bytes": 366904,
-      "sha256": "09a5b82807bb08a2d28669611d7b819361046f4efb0db53580d73a5ee5ffb7f0",
+      "bytes": 365553,
+      "sha256": "4ba0a1fe97ac309d746c1c5f54f542b7802051e30f1399127c6ad708f73c1a10",
       "compression": "gzip",
-      "contentBytes": 941454,
-      "contentSha256": "535408dd5c8a6ef438bf792461971fe4b0a24c35a566859d5526ff49a4422451"
+      "contentBytes": 938253,
+      "contentSha256": "9f2f42b3af85af9490fc648e0320110d5947cf3c99f4c17d1ec033e5938de5e3"
     },
     {
       "path": "water.json.gz",
@@ -97,19 +97,19 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 43995,
-      "sha256": "4fa9e1a5d3d62fd74355ffadf9f3a192d853821f99dc85e48a79155486656502",
+      "bytes": 42890,
+      "sha256": "2ea873bcc0985d906ea87a04497b062eaf617d556a04ad06a71acd2bfad940ca",
       "compression": "gzip",
-      "contentBytes": 107117,
-      "contentSha256": "ce9a1e1530ef7bee386ca17bd49a7c248d5cc03e6dd776f91b4146a2165e3773"
+      "contentBytes": 105787,
+      "contentSha256": "e1e306ed4f8731c55d2f81d4a080071c855f0efe492f12818d08c5ce67bd7b6f"
     },
     {
       "path": "bridges.json.gz",
-      "bytes": 7617,
-      "sha256": "c090c339c4859e05921854815145a44265b366942f8478c6bab84df1bd9db45f",
+      "bytes": 7185,
+      "sha256": "69c96629ca44e48ce2021c619fd3055a449ee418a3e32d3df4699b683f96960b",
       "compression": "gzip",
-      "contentBytes": 24177,
-      "contentSha256": "d421dfed47aea7df5944e26573b956b02c032b02823577fe7b21d0e50cb0483e"
+      "contentBytes": 22929,
+      "contentSha256": "84fb83a47dfd8d0ff28a0dfb9c84e9d27b8fd3266dc017a1d043e254c888dfa3"
     }
   ],
   "moods": [
@@ -128,7 +128,7 @@
       "x": 2882.2,
       "y": -5644.9,
       "osm": "node/153837537",
-      "h": 232.94
+      "h": 229.81
     },
     {
       "name": "Sagamore Hills",
@@ -191,7 +191,7 @@
       "x": 2299.2,
       "y": -3177.2,
       "osm": "node/154297182",
-      "h": 203.47
+      "h": 201.28
     },
     {
       "name": "Walton Hills",
@@ -218,7 +218,7 @@
       "x": 1229.5,
       "y": -9717.5,
       "osm": "node/154358623",
-      "h": 223.84
+      "h": 221.04
     },
     {
       "name": "Deer Lick Cave",
@@ -290,7 +290,7 @@
       "x": 1090.4,
       "y": 1714.5,
       "osm": "node/4078900819",
-      "h": 257.59
+      "h": 244.4
     },
     {
       "name": "Little Overlook",
@@ -317,14 +317,14 @@
       "name": "Ohio & Erie Canal Towpath",
       "lengthM": 17429.69,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.328
+      "gradeMeanAbsDiffPct": 0.265
     },
     {
       "id": "scenic-cuyahoga-towpath-north",
       "name": "Towpath: Lock 39 to Station Road",
       "lengthM": 10353.07,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.177
+      "gradeMeanAbsDiffPct": 0.146
     }
   ],
   "stats": {
@@ -350,8 +350,8 @@
     "trees:garden": 52207,
     "pois": 21,
     "carvedNodes": 22182,
-    "bridgeDecks": 233,
-    "bridgePiers": 96
+    "bridgeDecks": 226,
+    "bridgePiers": 105
   },
   "credits": [
     {
@@ -367,6 +367,13 @@
       "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
       "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
       "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "usgs-3dep",
+      "name": "USGS 3D Elevation Program (3DEP) 1/3 arc-second DEM, bare earth, along the routes",
+      "licence": "Public domain (U.S. Geological Survey); credit requested",
+      "url": "https://www.usgs.gov/3d-elevation-program",
+      "attribution": "U.S. Geological Survey, 3D Elevation Program 1/3 arc-second Digital Elevation Model"
     },
     {
       "id": "copernicus-glo90",
@@ -400,10 +407,11 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "60cf7b40a10a088e1d5fa49343e76428329a8badd57bf2ec18a22d5caa3aed71",
+    "recipeSha256": "6620f15af3a1ca9e6d5814de058c977fa9c8682278b77e97b084bc458c11cd6d",
     "osmDate": "2026-11-01T00:00:00Z",
     "demSource": "copernicus-dem-30m/glo30-cog",
     "demTiles": 1,
-    "bridges": true
+    "bridges": true,
+    "bareGround": "usgs-3dep-13"
   }
 }

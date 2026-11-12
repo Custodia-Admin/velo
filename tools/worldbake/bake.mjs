@@ -19,7 +19,8 @@
 //
 // The heightfield comes from the recipe's `dem.source`: AWS Terrain Tiles by
 // default (`dem.zoom`), or Copernicus GLO-30 COGs with "copernicus-glo30"
-// (demSource.mjs, fetchGlo30.mjs).
+// (demSource.mjs, fetchGlo30.mjs). A recipe with `bareGround` swaps an open
+// bare-earth DTM in along the routes before the route fit (bareGround.mjs).
 //
 // A recipe with "host": "remote" bakes a world that is published off-repo
 // (publish.mjs uploads it to `worlds/<id>/<hash>/` in the public R2 bucket;
@@ -50,9 +51,10 @@ import { fetchOsm, osmLayersFor, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { BEACH_KIND, buildSea, flattenSea, relevelSea, slopeBeaches } from './coast.mjs';
+import { BARE_GROUND_CREDITS, bareGroundOptions, bareGroundStep, routeLift, WOODLAND_KINDS } from './bareGround.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, routeWaterDrops, waterOnBeach, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid } from './snapRoutes.mjs';
-import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, growDeckEnds, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork } from './bridges.mjs';
+import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, growDeckEnds, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork, uncarvedAbutments } from './bridges.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
 import { P13_SAMPLE_COUNT, validationInputs } from './p13Criterion.mjs';
@@ -132,10 +134,16 @@ export function creditsFor(demSource) {
  * recipe's `routeCredits` one credit per route (in recipe order) linking
  * the OSM relation or OSRM query its geometry came from
  * (scripts/scenicRouteSources.mjs). Recipes without the flag keep exactly
- * `creditsFor` (same bytes).
+ * `creditsFor` (same bytes). A recipe with `bareGround` also credits its DTM,
+ * right after the DEM credit.
  */
 export function bundleCredits(recipe, demSource, names) {
-  const base = creditsFor(demSource);
+  let base = creditsFor(demSource);
+  // A bare-ground DTM (recipe `bareGround`) is credited right after the DEM it corrects.
+  if (recipe.bareGround) {
+    const at = base.findIndex((c) => c.id === (demSource === GLO30_DEM_SOURCE ? GLO30_CREDIT.id : 'terrain-tiles')) + 1;
+    base = [...base.slice(0, at), BARE_GROUND_CREDITS[recipe.bareGround.source], ...base.slice(at)];
+  }
   if (!recipe.routeCredits) return base;
   return [...base, ...recipe.routes.map((id) => routeSourceCredit(id, names[id] ?? id))];
 }
@@ -173,6 +181,7 @@ export function generatorFor(demSource, recipe, dem) {
     demTiles: dem.tiles.length,
     ...(recipe.flatLakes ? { flatLakes: true } : {}),
     ...(recipe.bridges ? { bridges: true } : {}),
+    ...(recipe.bareGround ? { bareGround: recipe.bareGround.source } : {}),
   };
 }
 
@@ -190,6 +199,7 @@ export function readRecipe(recipePath) {
   const recipe = JSON.parse(readFileSync(recipePath, 'utf8'));
   const demSource = demSourceOf(recipe);
   validationInputs(recipe.validation); // a bad P1.3 block stops the bake before any download
+  bareGroundOptions(recipe); // so does a bad bareGround block
   return { recipe, demSource };
 }
 
@@ -294,7 +304,27 @@ export async function bake(opts) {
   // A coast world's sea: the water side of the coastline ways (coast.mjs).
   const sea = recipe.coast ? buildSea(osm.elements.coast, projection, extent) : null;
   const water = buildWater(osm.elements.water, projection, extent, { sea });
+  // Landcover needs nothing but OSM; a coast world's beaches shape the terrain.
+  const landcover = buildLandcover(osm.elements.landcover, projection, extent, { beach: recipe.coast ? osm.elements.coast : null });
   lap('osm', t);
+  const geometry = loadScenicGeometry(join(ROOT, 'src/lib/scenicRouteData.ts'));
+  const names = loadScenicNames(join(ROOT, 'src/lib/scenicRoutes.ts'));
+  const routesIn = recipe.routes.map((id) => {
+    if (!geometry[id]) throw new Error(`route ${id} not in src/lib/scenicRouteData.ts`);
+    return { id, name: names[id] ?? id, points: geometry[id].points };
+  });
+
+  // Bare ground (recipe `bareGround`): the DTM replaces the surface model
+  // along the routes before anything reads the terrain (bareGround.mjs).
+  let bare = null;
+  let surfaceHeights = null;
+  if (recipe.bareGround) {
+    t = Date.now();
+    surfaceHeights = Float64Array.from(heights);
+    const woodland = landcover.polys.filter((p) => WOODLAND_KINDS.includes(p.kind)).map((p) => p.rings);
+    bare = await bareGroundStep({ recipe, grid: g, heights, projection, routes: routesIn, woodlandPolys: woodland, cacheDir, log });
+    lap('bareGround', t);
+  }
   let lakes = null;
   if (recipe.flatLakes) {
     const flat = flattenLakes({ grid: g, heights, water });
@@ -302,8 +332,6 @@ export async function bake(opts) {
     const cut = lakes.reduce((mx, l) => Math.max(mx, l.maxCutM), 0);
     log(`flatLakes: ${lakes.length} lakes and ponds levelled (${lakes.reduce((n, l) => n + l.inNodes, 0)} nodes under water, ${flat.changedNodes} changed, max cut ${cut.toFixed(1)} m)`);
   }
-  // Landcover needs nothing but OSM; a coast world's beaches shape the terrain.
-  const landcover = buildLandcover(osm.elements.landcover, projection, extent, { beach: recipe.coast ? osm.elements.coast : null });
   let seaFlat = null;
   let beachSlope = null;
   if (sea) {
@@ -317,12 +345,6 @@ export async function bake(opts) {
   // 2. Roads and the route fit. Neither reads the terrain, so they come first:
   // the bridges step needs the final road lines before the carve.
   t = Date.now();
-  const geometry = loadScenicGeometry(join(ROOT, 'src/lib/scenicRouteData.ts'));
-  const names = loadScenicNames(join(ROOT, 'src/lib/scenicRoutes.ts'));
-  const routesIn = recipe.routes.map((id) => {
-    if (!geometry[id]) throw new Error(`route ${id} not in src/lib/scenicRouteData.ts`);
-    return { id, name: names[id] ?? id, points: geometry[id].points };
-  });
   const roads = buildRoads(osm.elements.roads, projection, extent);
   // The route's painted guide must sit on ONE drawn road, never on grass and
   // never on a second surface laid beside the road: bend the road the route
@@ -363,6 +385,8 @@ export async function bake(opts) {
     : undefined;
 
   // 3. Routes: carve corridors into the float grid, then quantise.
+  // The terrain before the carve: bridges over a route stand on it (uncarvedAbutments).
+  const uncarved = nets ? Float64Array.from(heights) : null;
   const carve = carveRoutes({ grid: g, heights, projection, routes: routesIn, snap: recipe.snap, skip });
   if (lakes || seaFlat) {
     const keep = routeCoreNodes(g, carve.prepared, recipe.snap.coreCells * g.cellSize);
@@ -384,10 +408,15 @@ export async function bake(opts) {
     const floatGround = (x, y) => sampleFloatGrid(g, heights, x, y);
     // Headroom pins over every route passing under a deck; abutments they
     // lift stand on approach ramps; then the decks again on those.
-    const pinned = deckHeights({ roads, nets, groundAt: floatGround, routes: prepared });
-    const plan = planApproaches({ roads, nets, pins: pinned.pins, groundAt: floatGround, ridden: riddenGroundRoads(routeSamples, roads) });
+    // A deck over a route lands on the ground its road was built on, not in
+    // the route's carved cutting (uncarvedAbutments).
+    const uncarvedAt = (x, y) => sampleFloatGrid(g, uncarved, x, y);
+    const raised = uncarvedAbutments({ roads, nets, spans, routes: prepared, groundAt: floatGround, uncarvedAt });
+    const raisedZ = new Map([...raised].map(([k, v]) => [k, v.z]));
+    const pinned = deckHeights({ roads, nets, groundAt: floatGround, routes: prepared, abutZ: raisedZ });
+    const plan = planApproaches({ roads, nets, pins: pinned.pins, groundAt: floatGround, ridden: riddenGroundRoads(routeSamples, roads), raised, uncarvedAt });
     anchorPins(roads, pinned.pins);
-    const first = { pins: pinned.pins, ...solveAll(pinned.pins, plan.abutZ, floatGround), plan };
+    const first = { pins: pinned.pins, ...solveAll(pinned.pins, plan.abutZ, floatGround), plan, raised: raised.size };
     // The carved core of every route on the ground stays as carved.
     const groundRuns = carve.prepared.flatMap((p, i) => {
       const runs = [];
@@ -467,7 +496,7 @@ export async function bake(opts) {
       piers,
       rides: Object.fromEntries(routesIn.map((r, i) => [r.id, spans[i].map((sp) => ({ s0: round(sp.s0), s1: round(sp.s1), r: sp.pieces }))])),
     };
-    log(`bridges: ${nets.length} decks (${zdm.size - approachSet.size} pieces, ${ridden.size} ridden), ${decks.first.pins.length} headroom pins (lift up to ${round(Math.max(0, ...decks.first.pins.map((p) => p.liftM)))} m), ${decks.first.plan.lifts.length} abutments on approach ramps (${approachSet.size} pieces, lift up to ${round(Math.max(0, ...decks.first.plan.lifts.map((l) => l.liftM)))} m), ${decks.cap.moved} nodes lowered under decks (max ${round(decks.cap.maxCutM)} m), ${piers.length} piers`);
+    log(`bridges: ${nets.length} decks (${zdm.size - approachSet.size} pieces, ${ridden.size} ridden), ${decks.first.pins.length} headroom pins (lift up to ${round(Math.max(0, ...decks.first.pins.map((p) => p.liftM)))} m), ${decks.first.plan.lifts.length} abutments on approach ramps (${decks.first.raised} on the uncarved ground; ${approachSet.size} pieces, lift up to ${round(Math.max(0, ...decks.first.plan.lifts.map((l) => l.liftM)))} m over the ground the road was built on), ${decks.cap.moved} nodes lowered under decks (max ${round(decks.cap.maxCutM)} m), ${piers.length} piers`);
     for (const [i, list] of spans.entries()) {
       if (list.length) log(`bridges: route ${routesIn[i].id} rides ${list.length} decks: ${list.map((sp) => `${round(sp.s0, 0)}–${round(sp.s1, 0)} m`).join(', ')}`);
     }
@@ -477,6 +506,32 @@ export async function bake(opts) {
     log(`route ${r.id}: ${(r.lengthM / 1000).toFixed(2)} km, max gap ${r.maxGapM} m, grade Δ ${r.gradeMeanAbsDiffPct} pp mean (raw DEM ${r.report.rawDemGradeMeanAbsDiffPct} pp)`);
   }
   log(`heightfield: ${height.info.minHeight.toFixed(1)}–${height.info.maxHeight.toFixed(1)} m, step ${height.info.heightScale} m, ${carve.carvedNodes} nodes carved (max ${carve.maxCutM.toFixed(1)} m)`);
+  let bareReport = null;
+  if (bare) {
+    // How far each route stands over the bare ground, as baked and as the
+    // surface model had it (the canopy and roofs the fit used to follow).
+    const onDeck = spans ? (ri, s) => spans[ri].some((sp) => s >= sp.s0 && s <= sp.s1) : undefined;
+    const lift = routeLift({ routes: snapped.routes, bare: bare.bare, onDeck, woodlandAt: bare.woodlandAt });
+    const onSurface = snapped.routes.map((r) => ({ ...r, h: r.x.map((x, i) => sampleFloatGrid(g, surfaceHeights, x, r.y[i])) }));
+    const before = routeLift({ routes: onSurface, bare: bare.bare, onDeck, woodlandAt: bare.woodlandAt });
+    const r2 = (v) => (v === null ? null : round(v));
+    const tidy = (l) => ({ id: l.id, samples: l.samples, medianM: r2(l.medianM), p95M: r2(l.p95M), maxM: r2(l.maxM), maxAtS: l.maxAtS, minM: r2(l.minM), over3M: l.over3M, woodland: { samples: l.woodland.samples, p95M: r2(l.woodland.p95M), maxM: r2(l.woodland.maxM) } });
+    for (const [i, l] of lift.entries()) {
+      log(`bareGround: route ${l.id} stands ${round(l.medianM)} m (median), ${round(l.p95M)} m (p95), ${round(l.maxM)} m (max, at ${l.maxAtS} m) over the bare ground, ${l.over3M} of ${l.samples} samples over 3 m; on GLO-30's surface it was ${round(before[i].medianM)} / ${round(before[i].p95M)} / ${round(before[i].maxM)} m`);
+    }
+    const r2xy = (p) => p?.map((v) => round(v, 0)) ?? null;
+    bareReport = {
+      ...bare.report,
+      biasM: round(bare.report.biasM),
+      maxLowerM: round(bare.report.maxLowerM),
+      maxLowerAt: r2xy(bare.report.maxLowerAt),
+      meanLowerM: round(bare.report.meanLowerM),
+      maxRaiseM: round(bare.report.maxRaiseM),
+      maxRaiseAt: r2xy(bare.report.maxRaiseAt),
+      routes: lift.map(tidy),
+      surface: before.map(tidy),
+    };
+  }
   lap('heightfield+routes', t);
 
   // 4. Vectors.
@@ -643,6 +698,7 @@ export async function bake(opts) {
           },
         }
       : {}),
+    ...(bareReport ? { bareGround: bareReport } : {}),
     ...(lakes ? { flatLakes: lakes.map(({ nodes: _nodes, ...l }) => ({ ...l, level: round(l.level), before: { min: round(l.before.min), max: round(l.before.max) }, maxCutM: round(l.maxCutM) })) } : {}),
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
     ...(dryWater.length ? { waterDroppedOnRoutes: dryWater.length, waterDroppedToBeach: dryBeach } : {}),
@@ -686,6 +742,13 @@ function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 }) 
     glo30
       ? `- Elevation: ${dem.tiles.length} Copernicus DEM GLO-30 tile${dem.tiles.length === 1 ? '' : 's'} (1″ COG), \`${GLO30_URL_TEMPLATE}\`: ${tiles}${dem.missing.length ? ` (${dem.missing.map((id) => `\`${id}\``).join(', ')} absent from the bucket: open ocean, read as 0 m)` : ''}. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.`
       : `- Elevation: ${dem.tiles.length} Terrain Tiles (terrarium) at zoom ${dem.zoom}, \`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png\`: ${tiles}.`,
+    ...(recipe.bareGround
+      ? [
+          recipe.bareGround.source === 'usgs-3dep-13'
+            ? `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): USGS 3DEP 1/3 arc-second DEM, \`${'https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/historical/{tile}/USGS_13_{tile}_{release}.tif'}\`: ${Object.entries(recipe.bareGround.tiles).map(([k, v]) => `\`${k}\` (${v})`).join(', ')}. Public domain.`
+            : `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): swissALTI3D 2 m, release ${recipe.bareGround.year}, 1 km tiles from \`https://data.geo.admin.ch/ch.swisstopo.swissalti3d/\`. Source: Federal Office of Topography swisstopo.`,
+        ]
+      : []),
     `- OpenStreetMap: Overpass API (\`${OVERPASS_URL}\`), data as of ${recipe.osmDate} (attic query), layers ${Object.keys(osm.queries).join(', ')} over the bounding box above. Queries are recorded in \`tools/worldbake/reports/${recipe.id}.json\`.`,
     ...(recipe.routeCredits
       ? [
