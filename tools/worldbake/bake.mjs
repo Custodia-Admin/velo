@@ -52,8 +52,9 @@ import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { BEACH_KIND, buildSea, flattenSea, relevelSea, slopeBeaches } from './coast.mjs';
 import { BARE_GROUND_CREDITS, bareGroundOptions, bareGroundStep, routeLift, WOODLAND_KINDS } from './bareGround.mjs';
+import { INEGI_MDT_BASE, inegiBoxSize } from './inegiMdt.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, routeWaterDrops, waterOnBeach, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
-import { carveRoutes, embankmentOptions, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid, structureLookup } from './snapRoutes.mjs';
+import { carveRoutes, embankmentOptions, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid, spanStructuresOption, structureLookup } from './snapRoutes.mjs';
 import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, growDeckEnds, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork, uncarvedAbutments } from './bridges.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
@@ -325,7 +326,8 @@ export async function bake(opts) {
     t = Date.now();
     surfaceHeights = Float64Array.from(heights);
     const woodland = landcover.polys.filter((p) => WOODLAND_KINDS.includes(p.kind)).map((p) => p.rings);
-    bare = await bareGroundStep({ recipe, grid: g, heights, projection, routes: routesIn, woodlandPolys: woodland, cacheDir, log });
+    const beaches = landcover.polys.filter((p) => p.kind === BEACH_KIND).map((p) => p.rings);
+    bare = await bareGroundStep({ recipe, grid: g, heights, projection, routes: routesIn, woodlandPolys: woodland, beachPolys: beaches, cacheDir, log });
     lap('bareGround', t);
   }
   let lakes = null;
@@ -391,12 +393,13 @@ export async function bake(opts) {
   // The terrain before the carve: bridges over a route stand on it (uncarvedAbutments).
   const uncarved = nets ? Float64Array.from(heights) : null;
   // Embankments (recipe `snap.embankment`): mapped bridges and tunnels never count.
-  const structure = embankmentOptions(recipe.snap) ? structureLookup(roads) : undefined;
+  const structure = embankmentOptions(recipe.snap) || spanStructuresOption(recipe.snap) ? structureLookup(roads) : undefined;
   const carve = carveRoutes({ grid: g, heights, projection, routes: routesIn, snap: recipe.snap, skip, structure });
   for (const p of carve.prepared) {
     if (p.embankments) {
       log(`embankment: route ${p.id} lowered ${p.embankments.length ? p.embankments.map((e) => `${round(e.s0, 0)}–${round(e.s1, 0)} m by up to ${round(e.lowerM)} m`).join(', ') : 'nowhere'} (to ${recipe.snap.embankment.maxM} m over the ground)`);
     }
+    if (p.structureSpans) log(`spanStructures: route ${p.id} offset spans ${p.structureSpans.length ? p.structureSpans.map((e) => `${round(e.s0, 0)}–${round(e.s1, 0)} m`).join(', ') : 'nothing'}`);
   }
   if (lakes || seaFlat) {
     const keep = routeCoreNodes(g, carve.prepared, recipe.snap.coreCells * g.cellSize);
@@ -756,7 +759,9 @@ function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 }) 
       ? [
           recipe.bareGround.source === 'usgs-3dep-13'
             ? `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): USGS 3DEP 1/3 arc-second DEM, \`${'https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/historical/{tile}/USGS_13_{tile}_{release}.tif'}\`: ${Object.entries(recipe.bareGround.tiles).map(([k, v]) => `\`${k}\` (${v})`).join(', ')}. Public domain.`
-            : `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): swissALTI3D 2 m, release ${recipe.bareGround.year}, 1 km tiles from \`https://data.geo.admin.ch/ch.swisstopo.swissalti3d/\`. Source: Federal Office of Topography swisstopo.`,
+            : recipe.bareGround.source === 'swissalti3d'
+              ? `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): swissALTI3D 2 m, release ${recipe.bareGround.year}, 1 km tiles from \`https://data.geo.admin.ch/ch.swisstopo.swissalti3d/\`. Source: Federal Office of Topography swisstopo.`
+              : `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): INEGI Modelo Digital de Elevación tipo terreno 1:10 000 (5 m), \`${INEGI_MDT_BASE}/{upc}_b.zip\`, sheets ${Object.entries(recipe.bareGround.sheets).map(([k, v]) => `\`${k}\` (${v ?? 'no product'})`).join(', ')}. Fuente: INEGI, Modelo Digital de Elevación tipo terreno con resolución de 5 m, escala 1:10 000 (Términos de Libre Uso de la Información del INEGI). Transformed by the bake, not by INEGI: each grid node is the mean of the ${inegiBoxSize(recipe.grid.cellSize, 5)} × ${inegiBoxSize(recipe.grid.cellSize, 5)} pixels round it, shifted by the datum bias to GLO-30's level (measured over ${bareGroundOptions(recipe).biasFrom === 'beach' ? 'the beaches' : 'flat open ground'}) and blended into GLO-30 beside the routes.`,
         ]
       : []),
     `- OpenStreetMap: Overpass API (\`${OVERPASS_URL}\`), data as of ${recipe.osmDate} (attic query), layers ${Object.keys(osm.queries).join(', ')} over the bounding box above. Queries are recorded in \`tools/worldbake/reports/${recipe.id}.json\`.`,

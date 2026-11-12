@@ -142,6 +142,58 @@ export const EMBANKMENT_ACROSS_STEP_M = 10;
 /** Route samples within this distance (along the route) of a bridge or tunnel never count as an embankment. */
 export const EMBANKMENT_STRUCTURE_MARGIN_M = 20;
 
+/** 1 on route samples on, or within `marginM` along the route of, a mapped bridge or tunnel (`structure(x, y)`). */
+export function nearStructures(s, x, y, structure, marginM = EMBANKMENT_STRUCTURE_MARGIN_M) {
+  const n = s.length;
+  const near = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    if (!structure(x[i], y[i])) continue;
+    for (let k = i; k >= 0 && s[i] - s[k] <= marginM; k--) near[k] = 1;
+    for (let k = i + 1; k < n && s[k] - s[i] <= marginM; k++) near[k] = 1;
+  }
+  return near;
+}
+
+/**
+ * `snap.spanStructures`: on a mapped bridge or tunnel the DEM reads the
+ * channel under the deck or the hill over the bore, not the road, and on a
+ * bare-ground DTM with short offset windows that pulls the route down into
+ * the river (Puerto Vallarta's Río Cuale mouth: the 130 m bridge sat 1.3 m
+ * under its bank). Here each run of samples `near` a structure takes its
+ * raw − profile difference interpolated linearly (by s) between the samples
+ * either side, or the one side's value at a route end; a route entirely on
+ * structures keeps its own. Returns the new differences and the runs.
+ */
+export function spanStructureDiff(s, diff, near) {
+  const n = s.length;
+  const out = Float64Array.from(diff);
+  const runs = [];
+  for (let i = 0; i < n; ) {
+    if (!near[i]) {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j + 1 < n && near[j + 1]) j++;
+    const a = i - 1, b = j + 1;
+    if (a >= 0 || b < n) {
+      for (let k = i; k <= j; k++) {
+        out[k] = a < 0 ? diff[b] : b >= n ? diff[a] : diff[a] + ((diff[b] - diff[a]) * (s[k] - s[a])) / (s[b] - s[a]);
+      }
+      runs.push({ s0: s[i], s1: s[j] });
+    }
+    i = j + 1;
+  }
+  return { diff: out, runs };
+}
+
+/** The recipe's `snap.spanStructures` (default false), checked. */
+export function spanStructuresOption(snap) {
+  const v = snap?.spanStructures;
+  if (v !== undefined && typeof v !== 'boolean') throw new Error('recipe snap.spanStructures must be true or false');
+  return v === true;
+}
+
 /** The recipe's `snap.embankment` with defaults, checked. Null when the recipe has none. */
 export function embankmentOptions(snap) {
   const e = snap?.embankment;
@@ -215,14 +267,7 @@ export function structureLookup(roads) {
  */
 export function embankmentLowering({ s, x, y, target, raw, groundAt, structure, maxM, acrossM, rampM }) {
   const n = s.length;
-  const near = new Uint8Array(n);
-  if (structure) {
-    for (let i = 0; i < n; i++) {
-      if (!structure(x[i], y[i])) continue;
-      for (let k = i; k >= 0 && s[i] - s[k] <= EMBANKMENT_STRUCTURE_MARGIN_M; k--) near[k] = 1;
-      for (let k = i + 1; k < n && s[k] - s[i] <= EMBANKMENT_STRUCTURE_MARGIN_M; k++) near[k] = 1;
-    }
-  }
+  const near = structure ? nearStructures(s, x, y, structure) : new Uint8Array(n);
   const excess = new Float64Array(n);
   for (let i = 0; i < n; i++) {
     if (near[i] || !(target[i] - raw[i] > maxM)) continue;
@@ -267,11 +312,15 @@ export function embankmentLowering({ s, x, y, target, raw, groundAt, structure, 
  *
  * With `snap.embankment` the target is lowered where it would stand on an
  * embankment (`embankmentLowering`); `structure(x, y)` marks the mapped
- * bridges and tunnels that never count (`structureLookup`).
+ * bridges and tunnels that never count (`structureLookup`). With
+ * `snap.spanStructures` the offset spans those structures
+ * (`spanStructureDiff`; needs `structure` too).
  */
 export function carveRoutes({ grid, heights, projection, routes, snap, skip, structure }) {
   const { stepM, offsetMedianM, offsetMeanM, coreCells, falloffM } = snap;
   const embank = embankmentOptions(snap);
+  const span = spanStructuresOption(snap);
+  if (span && !structure) throw new Error('snap.spanStructures needs the mapped bridges and tunnels (structure)');
   const core = coreCells * grid.cellSize;
   const reach = core + falloffM;
   const xMax = grid.xMin + (grid.cols - 1) * grid.cellSize;
@@ -290,7 +339,13 @@ export function carveRoutes({ grid, heights, projection, routes, snap, skip, str
       y.push(round2(py));
     }
     const raw = x.map((px, i) => sampleFloatGrid(grid, heights, px, y[i]));
-    const diff = raw.map((h, i) => h - rs.ele[i]);
+    let diff = raw.map((h, i) => h - rs.ele[i]);
+    let spans = null;
+    if (span) {
+      const res = spanStructureDiff(rs.s, diff, nearStructures(rs.s, x, y, structure));
+      diff = Array.from(res.diff);
+      spans = res.runs;
+    }
     const offset = windowed(
       windowed(diff, Math.round(offsetMedianM / stepM / 2), median),
       Math.round(offsetMeanM / stepM / 2),
@@ -305,7 +360,7 @@ export function carveRoutes({ grid, heights, projection, routes, snap, skip, str
       embankments = res.runs;
     }
     const target = closeLoop(rs.s, x, y, fitted, { stepM, rampM: offsetMedianM });
-    prepared.push({ id: r.id, name: r.name, lengthM: app.total, s: rs.s.map(round2), x, y, profile: rs.ele, raw, target, ...(embankments ? { embankments } : {}) });
+    prepared.push({ id: r.id, name: r.name, lengthM: app.total, s: rs.s.map(round2), x, y, profile: rs.ele, raw, target, ...(embankments ? { embankments } : {}), ...(spans ? { structureSpans: spans } : {}) });
   }
 
   // Nearest-route target per node.
@@ -418,6 +473,7 @@ export function finishRoutes({ prepared, hf, snap, surface }) {
         rawDemGradeMeanAbsDiffPct: Math.round((sumRaw / h.length) * 1000) / 1000,
         maxRenderMinusProfileM: Math.round(Math.max(...h.map((v, i) => Math.abs(v - p.profile[i]))) * 100) / 100,
         ...(p.embankments ? { embankments: p.embankments } : {}),
+        ...(p.structureSpans ? { structureSpans: p.structureSpans } : {}),
       },
     });
   }

@@ -91,8 +91,8 @@ How far each route stands over the bare ground. Route samples every 10 m. The gr
 | Santa Monica · Will Rogers–Venice | 3DEP 1/3″ | −0.12 / +1.13 / +1.56 m (0) | +0.15 / +0.65 / +1.01 m (0) |
 | Berkeley · Bay Trail | 3DEP 1/3″ | −0.06 / +1.12 / +2.64 m at 3.15 km (0) | not re-baked |
 | Berkeley · Richmond Marina Bay | 3DEP 1/3″ | −0.81 / +0.40 / +0.91 m (0) | not re-baked |
-| Puerto Vallarta · Malecón | INEGI MDT 5 m | −0.33 / +3.85 / +4.84 m at 2.43 km (64) | not re-baked: not canopy (below) |
-| Puerto Vallarta · Nuevo Vallarta–Bucerías | INEGI MDT 5 m | +0.30 / +1.96 / +5.24 m at 0.01 km (7) | not re-baked: not canopy |
+| Puerto Vallarta · Malecón | INEGI MDT 5 m | −0.33 / +3.85 / +4.84 m at 2.43 km (64); with the datum read off the beaches (card t_be5a0778): +2.64 / +6.75 / **+7.98 m** (325) | −0.03 / +0.75 / **+1.61 m** (0) |
+| Puerto Vallarta · Nuevo Vallarta–Bucerías | INEGI MDT 5 m | +0.30 / +1.96 / +5.24 m at 0.01 km (7); off the beaches: +3.26 / +5.04 / **+8.26 m** (593) | −0.00 / +0.64 / **+2.48 m** (0) |
 
 **Santa Monica** was re-baked with `bareGround: usgs-3dep-13`, using tiles n34w119 @ 20250826 and n35w119 @ 20250916. It is published as `worlds/santa-monica-venice/02115cfa8a3445e4/` (publish verified all 8 files). The 4.9 m was the Strand round Marina del Rey and through Venice, where GLO-30 reads roofs and street trees 2–4 m above the ground (DSM − DTM +3.6 m at the worst spot).
 - The snap windows went 400/1600 → 200/800. Grade Δ is 0.96 / 0.55 pp. At 150/600 the Strand reads 1.225 pp.
@@ -105,11 +105,12 @@ How far each route stands over the bare ground. Route samples every 10 m. The gr
 
 **Berkeley** tops out at 2.6 m (Bay Trail 3.1–3.3 km, where GLO-30 sits on the ground and the route profile is low), so it keeps GLO-30.
 
-**Puerto Vallarta: no source wired.**
-- **CEM 3.0** (15 m) is interpolated from 1:50 000 contours. It has whole-metre heights and RMSE 4.8 m. On open route samples it sits 4.1 m under GLO-30 with a 2.5 m median absolute deviation, so it is not a bare-earth model at route scale.
-- **CEM 4.0** is the ALOS PALSAR RTC terrain-correction DEM, which ASF built from SRTM resampled (NED in the US).
-- **INEGI's 1:10 000 MDT tipo terreno** (5 m, from satellite and airborne sensors) is bare earth. INEGI's *Términos de Libre Uso* allow commercial use with the credit "Fuente: INEGI, <producto>". Its 8 sheets along the routes date from 2014 to 2026. On it, every stretch over 3 m has GLO-30 within −2.8…+1.4 m of the ground. Instead, the route stands 2.5–7.4 m above its own GLO-90 profile: the Malecón at 1.22–1.37 km and 2.13–2.54 km, and Nuevo Vallarta–Bucerías in its first 50 m.
-- That lift comes from the route height, not the canopy, and a bare-ground DTM would not lower it. Follow-up card t_be5a0778.
+**Puerto Vallarta** (card t_be5a0778) was re-baked with `bareGround: inegi-mdt-10k` (INEGI's 1:10 000 MDT tipo terreno, 5 m, eight sheets pinned to their products), the datum read off the beaches (`biasFrom: "beach"`), 60/240 m windows and `snap.spanStructures`. It is published as `worlds/puerto-vallarta/1f75dbdd7d98163d/` (publish verified all 8 files). The first look above was wrong: it read the GLO-30 − DTM bias (+2.75 m) over the town, where GLO-30 reads the roofs (+3.35 m over residential land, +0.04 m on the beaches). On the true datum the published routes stood a median 2.6–3.3 m and up to 8 m over the ground: roofs under the whole corridor, plus 400/1600 m windows that couldn't follow the Malecón's dip and 10 m climb at 1.05–1.55 km.
+- After figures: route samples every 10 m against the MDT (3 × 3 pixel mean) shifted by the bake's −0.22 m, samples within 8 m of a mapped bridge left out (`liftcmp.mjs`, `abslift.mjs` in `~/.hermes/handoffs/velo/t_be5a0778/`).
+- Grade Δ 0.577 / 0.291 pp (≤ 1 pp). P1.3 v2 registered RMS 0.84 → 1.44 m ≤ 6 m, PASS. Brotli 1.209 MB. From `git archive`, the default bake and an `--out` bake are identical in all 8 files; Cleveland, Santa Monica and Lugano re-bake from the same commit to their committed manifests.
+- Bridges: without `spanStructures` the DTM's channel under the Puente del Malecón (the route's first 130 m) pulled it 1.3 m under its north bank at 200/800 m and 1.2 m at 100/400. With it the five mapped bridges' decks stand at 1.8 / 2.0 / 2.5 / 3.2 / 2.5 m against bank ground of 2.1 / 1.8 / 2.4 / 3.3 / 2.4 m.
+- Left over: the Malecón at 0.25–0.55 km rides 0.6–1.0 m above the sea where the MDT reads 1.5–2.9 m. It runs 13–20 m from the waterline, and on the 12 m grid the shore nodes beside it are held at sea level (follow-up card). It cuts 2.9 m through a 6 m hump at 1.61–1.68 km. Nuevo Vallarta–Bucerías starts 2.5 m up on the estuary bank (the MDT is INEGI's 0 m water fill there) and cuts 4.3 m at 9.30–9.33 km.
+- Shots at 120 m (the bridge), 1300 m and 2430 m, before and after, at 1280×648@2 and 390×844: `../bare-ground/puerto-vallarta-1280-before-after.jpg` and `-390-…`. Nothing floats, buries or tears; the HUD grade reads the route profile, as before.
 
 ## fps (the test host's Intel iGPU, ANGLE gl-egl, HUD on, medium, vsync)
 

@@ -72,7 +72,8 @@
               "additionalProperties": false
             },
             "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
-            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." }
+            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." },
+            "biasFrom": { "enum": ["open", "beach"], "description": "Where the DTM's datum bias to GLO-30 is measured: flat corridor nodes clear of woodland (\"open\", default) or the flat corridor nodes on a coast world's beaches and sand (\"beach\": for corridors through a town, where GLO-30 reads the roofs). Needs coast for \"beach\"." }
           },
           "additionalProperties": false
         },
@@ -84,7 +85,26 @@
             "source": { "const": "swissalti3d" },
             "year": { "type": "integer", "description": "The swissALTI3D release (STAC item year) every corridor tile is read from, e.g. 2022." },
             "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
-            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." }
+            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." },
+            "biasFrom": { "enum": ["open", "beach"], "description": "Where the DTM's datum bias to GLO-30 is measured: flat corridor nodes clear of woodland (\"open\", default) or the flat corridor nodes on a coast world's beaches and sand (\"beach\": for corridors through a town, where GLO-30 reads the roofs). Needs coast for \"beach\"." }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "INEGI Modelo Digital de Elevación tipo terreno 1:10 000, 5 m (Mexico)",
+          "type": "object",
+          "required": ["source", "sheets"],
+          "properties": {
+            "source": { "const": "inegi-mdt-10k" },
+            "sheets": {
+              "type": "object",
+              "description": "The product (UPC in the download name, <upc>_b.zip) of every 1:10 000 sheet the corridor touches, e.g. { \"F13C69A4\": \"702825005109\" }; null where INEGI has no product (open sea). INEGI's catalogue gives it: POST res=5&mod=T&cve=<sheet> to app/geo2/elevacionesmex/getF10KDescarga.do.",
+              "patternProperties": { "^[A-Z][0-9]{1,2}[A-D][1-8][1-9][A-F][1-4]$": { "oneOf": [{ "type": "string", "pattern": "^[0-9]{12}$" }, { "type": "null" }] } },
+              "additionalProperties": false
+            },
+            "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
+            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." },
+            "biasFrom": { "enum": ["open", "beach"], "description": "Where the DTM's datum bias to GLO-30 is measured: flat corridor nodes clear of woodland (\"open\", default) or the flat corridor nodes on a coast world's beaches and sand (\"beach\": for corridors through a town, where GLO-30 reads the roofs). Needs coast for \"beach\"." }
           },
           "additionalProperties": false
         }
@@ -100,6 +120,11 @@
         "offsetMeanM": { "type": "number" },
         "coreCells": { "type": "number" },
         "falloffM": { "type": "number" },
+        "spanStructures": {
+          "type": "boolean",
+          "default": false,
+          "description": "Bare-ground worlds with short offset windows: route samples on or within 20 m of a mapped bridge or tunnel are left out of the offset (their raw − profile is interpolated between the samples either side), so the DTM's river channel under a deck doesn't pull the route down (snapRoutes.mjs spanStructureDiff)."
+        },
         "embankment": {
           "type": "object",
           "description": "Bare-ground worlds: where the fitted route stands more than maxM over the ground at the route and over all ground out to acrossM on both sides (and is not on or within 20 m of a mapped bridge or tunnel), lower it to maxM over the ground, easing back over rampM along the route (snapRoutes.mjs embankmentLowering). Needs bareGround.",
