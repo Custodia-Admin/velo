@@ -1,0 +1,4 @@
+{"label": "bl-gate-3-1", "finishWaitS": 3.0, "homeUrlMs": 8, "homeMs": 33, "ride": {"wallS": 14.93, "rideS": 1.05, "drawCallsPerS": 279, "rafPerS": 1.5, "renderer": null, "quality": null, "meterFps": null, "drawCallsPerFrame": null}}
+{"label": "bl-base-3-1", "finishWaitS": 3.0, "homeUrlMs": 10, "homeMs": 36, "ride": {"wallS": 10.0, "rideS": 1.03, "drawCallsPerS": 394, "rafPerS": 2.2, "renderer": null, "quality": null, "meterFps": null, "drawCallsPerFrame": null}}
+{"label": "bl-gate-3-2", "finishWaitS": 3.0, "homeUrlMs": 9, "homeMs": 35, "ride": {"wallS": 10.0, "rideS": 0.93, "drawCallsPerS": 368, "rafPerS": 2.2, "renderer": null, "quality": null, "meterFps": null, "drawCallsPerFrame": null}}
+{"label": "bl-base-3-2", "finishWaitS": 3.0, "homeUrlMs": 9, "homeMs": 35, "ride": {"wallS": 10.0, "rideS": 1.03, "drawCallsPerS": 387, "rafPerS": 2.2, "renderer": null, "quality": null, "meterFps": null, "drawCallsPerFrame": null}}
