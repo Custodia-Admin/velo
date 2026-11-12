@@ -117,6 +117,12 @@ from `chengdu-luxelakes.json`:
     The bake names any tile it needs and lacks.
   - Switzerland: `{ "source": "swissalti3d", "year": 2022 }`, a release every
     corridor tile has (the bake stops on a tile that only has other years).
+  - Lombardy: `{ "source": "lombardia-dtm5" }`, Regione Lombardia's DTM 5×5
+    (2015) from its ImageServer. Built from the regional topographic database
+    outside the LiDAR surveys: good on roads, slightly terraced on hillsides.
+  - Elsewhere in Italy, along rivers and lakes: `{ "source": "mase-pst-lidar" }`,
+    the national LiDAR DTM 1 m (2008–2010). It covers the corridors the survey
+    flew, not whole regions; query its tile index first (WORLD-FORMAT.md).
   - Then shorten the `snap` offset windows as far as every route's grade Δ
     stays ≤ 1 pp (200/800 m in Ohio and Santa Monica, 300/1200 m in Lugano), and read the
     report's `bareGround.routes`: how far each route stands over the bare
@@ -195,6 +201,9 @@ syncs the destination.
 
 To link a new world to its destination, set the destination's `world` to
 `{ "id": "<id>" }` before the bake. `syncDestinations.mjs` fills in the rest.
+For a world that draws a place's outlying routes (the place already has a
+world), add `{ "id": "<id>" }` to its `extraWorlds` instead
+([DESTINATIONS.md](DESTINATIONS.md#a-place-wider-than-one-world)).
 
 ## 4. Hosting: publish to R2
 

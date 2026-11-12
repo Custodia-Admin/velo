@@ -45,16 +45,42 @@
 //   instead of point-sampled. Tiles outside Switzerland 404: no DTM there
 //   (checked against the STAC catalogue: a tile that has releases, only not
 //   the pinned year, stops the bake).
+// - "lombardia-dtm5": Regione Lombardia DTM 5×5 (edition 2015), from the
+//   region's ArcGIS ImageServer (cartografia.servizirl.it, CC BY 4.0). WGS84 /
+//   UTM 32N (EPSG:32632), 5 m pixels on a fixed grid from the service
+//   extent's corner, orthometric. The bake asks the ImageServer for 2 km tiles
+//   snapped to that grid (nearest neighbour, so no resampling: each tile is
+//   the stored pixels), LZW float32 GeoTIFFs, PixelIsArea, nodata −9999. The
+//   service sets no release; its metadata (grid, pixel, CRS) is checked
+//   against these constants before a tile is read. Outside the LiDAR
+//   surveys the model is built from the regional topographic database (DBT:
+//   10 m contours, spot heights and 3D road and water edges); along roads it
+//   reads the road. Each node takes the mean of the k × k pixels round it.
+// - "mase-pst-lidar": the Italian Ministry of the Environment's LiDAR DTM
+//   1 m (Piano Straordinario di Telerilevamento Ambientale, flown 2008–2010,
+//   CC BY 4.0), 0.01° × 0.01° tiles of 1000 × 1000 pixels in WGS84
+//   geographic, PixelIsPoint, float32, uncompressed, nodata −9999 (water and
+//   gaps), orthometric. A tile is ordered from the PST download service
+//   (sim.mase.gov.it): the tile index names it, a POST asks for a zip of
+//   the tiles, the session is polled until the zip is ready. The tiles are
+//   cached; the survey is closed, so they never change. Each node takes the
+//   mean of the pixels within half a cell round it.
+//
+// The two Italian models read a node from the pixels that have a value when
+// at least half of the box does: a node on a lake shore reads the land beside
+// it, one out on the water none.
 //
 // A node without a DTM value (nodata, a 404 tile) keeps its GLO-30 height.
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
-import { cachedFetch, ensureDir, writeFileAtomic } from './util.mjs';
-import { geoReference, openRaster, parseTiff } from './geotiff.mjs';
+import { inflateRawSync } from 'node:zlib';
+import { cachedFetch, ensureDir, sha256, sleep, USER_AGENT, writeFileAtomic } from './util.mjs';
+import { geoKey, geoReference, openRaster, parseTiff } from './geotiff.mjs';
 import { appRoutePoints } from './snapRoutes.mjs';
+import { createProjection } from '../../src/lib/world/projection.ts';
 
-export const BARE_GROUND_SOURCES = ['usgs-3dep-13', 'swissalti3d'];
+export const BARE_GROUND_SOURCES = ['usgs-3dep-13', 'swissalti3d', 'lombardia-dtm5', 'mase-pst-lidar'];
 /** Full DTM within this many metres of a route (default). */
 export const BARE_GROUND_CORRIDOR_M = 150;
 /** Then a smoothstep back to the surface model over this many metres (default). */
@@ -84,7 +110,37 @@ export const BARE_GROUND_CREDITS = {
     url: 'https://www.swisstopo.admin.ch/en/height-model-swissalti3d',
     attribution: 'Source: Federal Office of Topography swisstopo',
   },
+  'lombardia-dtm5': {
+    id: 'lombardia-dtm5',
+    name: 'DTM 5×5 Regione Lombardia (edition 2015), bare earth, along the routes',
+    licence: 'CC BY 4.0 (Regione Lombardia open data); averaged to the world grid',
+    url: 'https://www.geoportale.regione.lombardia.it/',
+    attribution: 'DTM 5x5 – Modello digitale del terreno (ed. 2015) © Regione Lombardia',
+  },
+  'mase-pst-lidar': {
+    id: 'mase-pst-lidar',
+    name: 'LiDAR DTM 1 m of the Piano Straordinario di Telerilevamento Ambientale, bare earth, along the routes',
+    licence: 'CC BY 4.0 (MASE Geoportale Nazionale); averaged to the world grid',
+    url: 'https://gn.mase.gov.it/portale/distribuzione-dati-pst',
+    attribution: "Contains LiDAR DTM 1 m data from the Piano Straordinario di Telerilevamento Ambientale, © Ministero dell'Ambiente e della Sicurezza Energetica (MASE) – Geoportale Nazionale",
+  },
 };
+
+/** The DTM's line in docs/worlds/CREDITS.md (after "Bare ground along the routes (…): "). */
+export function bareGroundCreditLine(b) {
+  switch (b.source) {
+    case 'usgs-3dep-13':
+      return `USGS 3DEP 1/3 arc-second DEM, \`${USGS_3DEP_BASE}/historical/{tile}/USGS_13_{tile}_{release}.tif\`: ${Object.entries(b.tiles).map(([k, v]) => `\`${k}\` (${v})`).join(', ')}. Public domain.`;
+    case 'swissalti3d':
+      return `swissALTI3D 2 m, release ${b.year}, 1 km tiles from \`${SWISSALTI3D_BASE}/\`. Source: Federal Office of Topography swisstopo.`;
+    case 'lombardia-dtm5':
+      return `Regione Lombardia DTM 5x5 (ed. 2015), 2 km tiles of its stored 5 m grid from \`${LOMBARDIA_DTM5.service}/exportImage\`, averaged to the world grid. CC BY 4.0, © Regione Lombardia.`;
+    case 'mase-pst-lidar':
+      return `LiDAR DTM 1 m of the Piano Straordinario di Telerilevamento Ambientale (2008–2010), 0.01° tiles ordered from \`${MASE_PST.api}\`, averaged to the world grid. CC BY 4.0, © Ministero dell'Ambiente e della Sicurezza Energetica (MASE) – Geoportale Nazionale.`;
+    default:
+      throw new Error(`no credit line for bareGround ${b.source}`);
+  }
+}
 
 /** The recipe's `bareGround` with defaults, checked. Null when the recipe has none. */
 export function bareGroundOptions(recipe) {
@@ -308,6 +364,362 @@ async function fetchSwiss({ opts, points, cellSize, cacheDir, log }) {
   return { tiles: sorted.filter((id) => !missing.includes(id)).map((id) => `${id}@${opts.year}`), missing, sample: swissSampler(tiles, k) };
 }
 
+// --- shared by the Italian models ----------------------------------------
+
+/** Share of a box's pixels that must have a value for the node to read the DTM. */
+export const BOX_MIN_SHARE = 0.5;
+
+/**
+ * Mean of the kx × ky pixels centred on pixel (ci, cj) of a pixel reader
+ * `px(i, j)` (NaN = no value), over the pixels that have one; NaN when fewer
+ * than `minShare` of the box do.
+ */
+export function boxMean(px, ci, cj, kx, ky, minShare = BOX_MIN_SHARE) {
+  const hx = (kx - 1) / 2;
+  const hy = (ky - 1) / 2;
+  let sum = 0;
+  let n = 0;
+  for (let b = -hy; b <= hy; b++) {
+    for (let a = -hx; a <= hx; a++) {
+      const v = px(ci + a, cj + b);
+      if (Number.isNaN(v)) continue;
+      sum += v;
+      n++;
+    }
+  }
+  return n > 0 && n >= minShare * kx * ky ? sum / n : NaN;
+}
+
+/** The odd pixel count nearest a cell's width: the box a node averages. */
+export const boxPixels = (cellSize, pixelM) => 2 * Math.floor(cellSize / (2 * pixelM)) + 1;
+
+const isTiff = (buf) => buf.length > 8 && ((buf[0] === 0x49 && buf[1] === 0x49 && buf[2] === 42) || (buf[0] === 0x4d && buf[1] === 0x4d && buf[3] === 42));
+
+// --- Regione Lombardia DTM 5×5 -------------------------------------------
+
+/** The ImageServer and its fixed grid (from the service's own metadata, checked by the bake). */
+export const LOMBARDIA_DTM5 = {
+  service: 'https://www.cartografia.servizirl.it/arcgis2/rest/services/BaseMap/DTM5_RL_img/ImageServer',
+  wkid: 32632,
+  pixelM: 5,
+  /** The service extent's west and north edges: pixel corners. */
+  xMin: 460001.8694,
+  yMax: 5166901.2481,
+  /** The bake's tiles: 2 km × 2 km (400 × 400 pixels) from (xMin, yMax). */
+  tileM: 2000,
+};
+
+const UTM32N = createProjection({ type: 'tmerc', ellipsoid: 'WGS84', lat0: 0, lon0: 9, k0: 0.9996 });
+
+/** WGS84 → UTM zone 32N (E, N), the Krüger series of the world projection (sub-millimetre). */
+export function wgs84ToUtm32(lat, lon) {
+  const [x, y] = UTM32N.forward(lat, lon);
+  return [500000 + x, y];
+}
+
+/** "<column>-<row>" of the 2 km tile holding (E, N), counted from the service extent's north-west corner. */
+export function lombardiaTileId(E, N) {
+  const { xMin, yMax, tileM } = LOMBARDIA_DTM5;
+  return `${Math.floor((E - xMin) / tileM)}-${Math.floor((yMax - N) / tileM)}`;
+}
+
+/** The tile's exportImage request: its 400 × 400 stored pixels, nearest neighbour, LZW float32 GeoTIFF. */
+export function lombardiaTileUrl(id) {
+  const { service, wkid, xMin, yMax, tileM, pixelM } = LOMBARDIA_DTM5;
+  const [c, r] = id.split('-').map(Number);
+  const x0 = (xMin + c * tileM).toFixed(4);
+  const y1 = (yMax - r * tileM).toFixed(4);
+  const x1 = (xMin + (c + 1) * tileM).toFixed(4);
+  const y0 = (yMax - (r + 1) * tileM).toFixed(4);
+  const px = tileM / pixelM;
+  return (
+    `${service}/exportImage?bbox=${x0},${y0},${x1},${y1}&bboxSR=${wkid}&imageSR=${wkid}&size=${px},${px}` +
+    '&format=tiff&pixelType=F32&noData=-9999&interpolation=RSP_NearestNeighbor&compression=LZW&f=image'
+  );
+}
+
+/** Check the ImageServer still describes the grid the tiles are cut from. */
+export function checkLombardiaService(meta) {
+  const { wkid, pixelM, xMin, yMax } = LOMBARDIA_DTM5;
+  const sr = meta.spatialReference ?? meta.extent?.spatialReference ?? {};
+  const ok =
+    meta.pixelSizeX === pixelM &&
+    meta.pixelSizeY === pixelM &&
+    (sr.wkid === wkid || sr.latestWkid === wkid) &&
+    Math.abs(meta.extent?.xmin - xMin) < 1e-3 &&
+    Math.abs(meta.extent?.ymax - yMax) < 1e-3;
+  if (!ok) {
+    throw new Error(`bareGround: the Lombardia DTM5 ImageServer no longer serves a ${pixelM} m EPSG:${wkid} grid from ${xMin}, ${yMax} (pixel ${meta.pixelSizeX}, extent ${JSON.stringify(meta.extent)})`);
+  }
+}
+
+/** Check a decoded tile is the 400 × 400 stored pixels of tile `id`; returns its georeference. */
+export function checkLombardiaTile(id, tiff, raster) {
+  const geo = geoReference(tiff);
+  const { xMin, yMax, tileM, pixelM, wkid } = LOMBARDIA_DTM5;
+  const [c, r] = id.split('-').map(Number);
+  const px = tileM / pixelM;
+  const cs = geoKey(tiff, 0, 3072);
+  const x0 = xMin + c * tileM + pixelM / 2;
+  const y0 = yMax - r * tileM - pixelM / 2;
+  if (cs !== wkid || geo.scaleX !== pixelM || geo.scaleY !== pixelM || raster.width !== px || raster.height !== px || Math.abs(geo.x0 - x0) > 1e-3 || Math.abs(geo.y0 - y0) > 1e-3) {
+    throw new Error(`Lombardia DTM5 tile ${id}: unexpected grid (EPSG ${cs}, ${raster.width}×${raster.height}, ${geo.scaleX} m, first centre ${geo.x0}, ${geo.y0}; expected ${x0}, ${y0})`);
+  }
+  return geo;
+}
+
+/** Box mean of k × k pixels round a point over the decoded tiles; NaN under half covered. */
+export function lombardiaSampler(tiles, k) {
+  const { xMin, yMax, pixelM, tileM } = LOMBARDIA_DTM5;
+  const per = tileM / pixelM;
+  const px = (I, J) => {
+    const t = tiles.get(`${Math.floor(I / per)}-${Math.floor(J / per)}`);
+    if (!t) return NaN;
+    const v = t.raster.value(I - Math.floor(I / per) * per, J - Math.floor(J / per) * per);
+    return v === t.noData || !(v > -1000) ? NaN : v;
+  };
+  return (lat, lon) => {
+    const [E, N] = wgs84ToUtm32(lat, lon);
+    return boxMean(px, Math.floor((E - xMin) / pixelM), Math.floor((yMax - N) / pixelM), k, k);
+  };
+}
+
+async function fetchLombardia({ points, cellSize, cacheDir, log }) {
+  const dir = join(cacheDir, 'lombardia-dtm5');
+  ensureDir(dir);
+  const meta = await cachedFetch(dir, 'service.json', `${LOMBARDIA_DTM5.service}?f=json`, {}, { label: 'Lombardia DTM5 service' });
+  checkLombardiaService(JSON.parse(meta.body.toString('utf8')));
+  const k = boxPixels(cellSize, LOMBARDIA_DTM5.pixelM);
+  const reach = (k + 1) * LOMBARDIA_DTM5.pixelM;
+  const ids = new Set();
+  for (const [lat, lon] of points) {
+    const [E, N] = wgs84ToUtm32(lat, lon);
+    for (const dE of [-reach, 0, reach]) for (const dN of [-reach, 0, reach]) ids.add(lombardiaTileId(E + dE, N + dN));
+  }
+  const sorted = [...ids].sort();
+  const tiles = new Map();
+  let fetched = 0;
+  for (const id of sorted) {
+    const file = `${id}.tif`;
+    const res = await cachedFetch(dir, file, lombardiaTileUrl(id), {}, { label: `Lombardia DTM5 ${id}` });
+    if (!isTiff(res.body)) {
+      // The ImageServer answers errors with HTTP 200 and a JSON body.
+      unlinkSync(join(dir, file));
+      throw new Error(`Lombardia DTM5 tile ${id}: not a GeoTIFF (${res.body.subarray(0, 200).toString('utf8')})`);
+    }
+    if (!res.cached) fetched++;
+    const tiff = parseTiff(res.body);
+    const raster = openRaster(tiff);
+    const geo = checkLombardiaTile(id, tiff, raster);
+    tiles.set(id, { raster, noData: geo.noData === undefined ? NaN : Number(geo.noData) });
+  }
+  log(`bareGround: ${sorted.length} Lombardia DTM5 2 km tiles (${fetched} downloaded), ${k}×${k} px mean per node`);
+  return { tiles: sorted, sample: lombardiaSampler(tiles, k) };
+}
+
+// --- MASE PST LiDAR DTM 1 m ----------------------------------------------
+
+export const MASE_PST = {
+  /** The tile index (0.01° cells; a blank `contratto` = no data there). */
+  index: 'https://gis.platform.sim.mase.gov.it/portalgis/rest/services/Hosted/Grigliato_lidar/FeatureServer/2/query',
+  /** The download service: POST an order, poll it, fetch the zip. */
+  api: 'https://sim.mase.gov.it/core/api/esri/api/v1/downloads',
+  /** The service hands back zip URLs on its internal gateway; they are served under `external`. */
+  internal: 'http://mase-api-gateway.apps.dxap-prod.ocp.mase.priv',
+  external: 'https://sim.mase.gov.it/core/api/esri',
+  order: { canale: 'PST2', prodotto: 'LIDAR_2014', layer: 'dtm_1x1' },
+  /** Pixels per tile side; a pixel is 1e-5°. */
+  per: 1000,
+  /** Tiles per order (the web app's cart holds 20). */
+  batch: 20,
+};
+
+/** "<lat cell>-<lon cell>" of the 0.01° cell holding (lat, lon): 4313-1205 = 43.13–43.14° N, 12.05–12.06° E. */
+export function maseCellId(lat, lon) {
+  return `${Math.floor(lat * 100 + 1e-9)}-${Math.floor(lon * 100 + 1e-9)}`;
+}
+
+/** The cell of a tile-index feature, from its polygon's south-west corner. */
+export function maseFeatureCell(feature) {
+  const ring = feature.geometry?.rings?.[0];
+  if (!ring?.length) throw new Error(`MASE PST tile index: feature ${feature.attributes?.tavola} has no polygon`);
+  const lat = Math.min(...ring.map((p) => p[1]));
+  const lon = Math.min(...ring.map((p) => p[0]));
+  return `${Math.round(lat * 100)}-${Math.round(lon * 100)}`;
+}
+
+/** Check a decoded tile is cell `cell`'s 1000 × 1000 pixel centres (PixelIsPoint, 1e-5°). */
+export function checkMaseTile(cell, tiff, raster) {
+  const geo = geoReference(tiff);
+  const [la, lo] = cell.split('-').map(Number);
+  const x0 = lo / 100 + 5e-6;
+  const y0 = (la + 1) / 100 - 5e-6;
+  const ok =
+    geo.modelType === 2 && geo.geographicType === 4326 && geo.rasterType === 'point' &&
+    Math.abs(geo.scaleX - 1e-5) < 1e-12 && Math.abs(geo.scaleY - 1e-5) < 1e-12 &&
+    raster.width === MASE_PST.per && raster.height === MASE_PST.per &&
+    Math.abs(geo.x0 - x0) < 1e-9 && Math.abs(geo.y0 - y0) < 1e-9;
+  if (!ok) {
+    throw new Error(`MASE PST tile ${cell}: unexpected grid (type ${geo.modelType}/${geo.geographicType}/${geo.rasterType}, ${raster.width}×${raster.height}, ${geo.scaleX}°, first centre ${geo.x0}, ${geo.y0}; expected ${x0}, ${y0})`);
+  }
+  return geo;
+}
+
+/**
+ * Mean of the pixels within half a cell round a point over the decoded
+ * tiles (a box of the odd pixel counts nearest the cell east–west and
+ * north–south); NaN under half covered (the lake, a gap).
+ */
+export function maseSampler(tiles, cellSize) {
+  const per = MASE_PST.per;
+  // Global pixel indices: column I has its centre at (I + 0.5)·1e-5° E, row J at (J + 0.5)·1e-5° N.
+  const px = (I, J) => {
+    const cLat = Math.floor(J / per);
+    const cLon = Math.floor(I / per);
+    const t = tiles.get(`${cLat}-${cLon}`);
+    if (!t) return NaN;
+    const v = t.raster.value(I - cLon * per, cLat * per + per - 1 - J);
+    return v === t.noData || !(v > -1000) ? NaN : v;
+  };
+  return (lat, lon) => {
+    const kx = boxPixels(cellSize, 1e-5 * 111320 * Math.cos((lat * Math.PI) / 180));
+    const ky = boxPixels(cellSize, 1e-5 * 110574);
+    return boxMean(px, Math.floor(lon * 1e5), Math.floor(lat * 1e5), kx, ky);
+  };
+}
+
+/**
+ * The stored files of a zip archive (stored or deflated entries), by name.
+ * The PST service packs each order's tiles, CSV and shapefile in one zip.
+ */
+export function unzip(buf) {
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error('zip: no end of central directory');
+  const count = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
+  const out = new Map();
+  for (let k = 0; k < count; k++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error('zip: bad central directory entry');
+    const method = buf.readUInt16LE(p + 10);
+    const size = buf.readUInt32LE(p + 20);
+    const nameLen = buf.readUInt16LE(p + 28);
+    const extraLen = buf.readUInt16LE(p + 30);
+    const commentLen = buf.readUInt16LE(p + 32);
+    const local = buf.readUInt32LE(p + 42);
+    const name = buf.subarray(p + 46, p + 46 + nameLen).toString('utf8');
+    if (buf.readUInt32LE(local) !== 0x04034b50) throw new Error(`zip: bad local header for ${name}`);
+    const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
+    const data = buf.subarray(start, start + size);
+    if (method === 0) out.set(name, data);
+    else if (method === 8) out.set(name, inflateRawSync(data));
+    else throw new Error(`zip: ${name} uses method ${method}`);
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
+}
+
+async function fetchJsonRetry(url, init = {}, label = url, retries = 5) {
+  let last;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, { ...init, headers: { 'User-Agent': USER_AGENT, Accept: 'application/json', ...(init.headers ?? {}) } });
+      if (res.ok) return await res.json();
+      last = new Error(`${label}: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+      if (res.status < 500 && res.status !== 429) throw Object.assign(last, { fatal: true });
+    } catch (err) {
+      if (err.fatal) throw err;
+      last = err;
+    }
+    await sleep(Math.min(30_000, 2000 * 2 ** attempt));
+  }
+  throw last;
+}
+
+/** Order `tiles` (index attributes) from the PST download service; returns the zip archives' bytes. */
+async function orderMaseTiles(tiles, log) {
+  const body = JSON.stringify({
+    ...MASE_PST.order,
+    tileList: tiles.map((t) => ({ fid: String(t.fid), tavola: t.tavola, regione: t.regione, contratto: t.contratto })),
+    metadataList: [],
+  });
+  const order = await fetchJsonRetry(MASE_PST.api, { method: 'POST', body, headers: { 'Content-Type': 'application/json' } }, 'MASE PST order');
+  if (!order.idSessione) throw new Error(`MASE PST order: no session (${JSON.stringify(order).slice(0, 200)})`);
+  const t0 = Date.now();
+  let st;
+  for (;;) {
+    st = await fetchJsonRetry(`${MASE_PST.api}/${order.idSessione}`, {}, 'MASE PST order status');
+    if (st.status === 'ready' && (st.urls?.length ?? 0) >= (st.expected ?? 1)) break;
+    if (st.status === 'error' || st.status === 'failed') throw new Error(`MASE PST order ${order.idSessione}: ${JSON.stringify(st).slice(0, 300)}`);
+    if (Date.now() - t0 > 15 * 60_000) throw new Error(`MASE PST order ${order.idSessione}: not ready after 15 min (${JSON.stringify(st).slice(0, 300)})`);
+    await sleep(3000);
+  }
+  log(`bareGround: MASE PST order of ${tiles.length} tiles ready after ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+  const zips = [];
+  for (const u of st.urls) {
+    const url = u.replace(MASE_PST.internal, MASE_PST.external);
+    const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+    if (!res.ok) throw new Error(`MASE PST download ${url}: HTTP ${res.status}`);
+    zips.push(Buffer.from(await res.arrayBuffer()));
+  }
+  return zips;
+}
+
+async function fetchMase({ points, cellSize, cacheDir, log }) {
+  const dir = join(cacheDir, 'mase-pst-lidar');
+  ensureDir(dir);
+  // Every 0.01° cell a node's box can reach (the box is under a cell wide).
+  const reachDeg = cellSize / 110000;
+  const cells = new Set();
+  let s = 90, n = -90, w = 180, e = -180;
+  for (const [lat, lon] of points) {
+    for (const dLat of [-reachDeg, 0, reachDeg]) for (const dLon of [-reachDeg, 0, reachDeg]) cells.add(maseCellId(lat + dLat, lon + dLon));
+    s = Math.min(s, lat); n = Math.max(n, lat); w = Math.min(w, lon); e = Math.max(e, lon);
+  }
+  const q = new URLSearchParams({
+    geometry: `${(w - 0.01).toFixed(2)},${(s - 0.01).toFixed(2)},${(e + 0.01).toFixed(2)},${(n + 0.01).toFixed(2)}`,
+    geometryType: 'esriGeometryEnvelope', inSR: '4326', outSR: '4326', spatialRel: 'esriSpatialRelIntersects',
+    outFields: 'fid,tavola,regione,contratto,data', returnGeometry: 'true', f: 'json',
+  });
+  const indexUrl = `${MASE_PST.index}?${q}`;
+  const idx = await cachedFetch(dir, `index-${sha256(Buffer.from(indexUrl)).slice(0, 12)}.json`, indexUrl, {}, { label: 'MASE PST tile index' });
+  const index = JSON.parse(idx.body.toString('utf8'));
+  if (!Array.isArray(index.features)) throw new Error(`MASE PST tile index: ${idx.body.subarray(0, 200).toString('utf8')}`);
+  const byCell = new Map();
+  for (const f of index.features) {
+    if (!String(f.attributes?.contratto ?? '').trim()) continue;
+    byCell.set(maseFeatureCell(f), f.attributes);
+  }
+  const wanted = [...cells].filter((c) => byCell.has(c)).sort();
+  const missing = wanted.filter((c) => !existsSync(join(dir, `${byCell.get(c).tavola}.tif`)));
+  for (let i = 0; i < missing.length; i += MASE_PST.batch) {
+    const batch = missing.slice(i, i + MASE_PST.batch).map((c) => byCell.get(c));
+    const files = new Map();
+    for (const zip of await orderMaseTiles(batch, log)) for (const [name, data] of unzip(zip)) files.set(name, data);
+    for (const t of batch) {
+      const name = [...files.keys()].find((f) => f.includes(t.tavola) && /_DTM\.tiff?$/i.test(f));
+      if (!name) throw new Error(`MASE PST order: tile ${t.tavola} is missing from the zip (${[...files.keys()].join(', ')})`);
+      writeFileAtomic(join(dir, `${t.tavola}.tif`), files.get(name));
+    }
+  }
+  const tiles = new Map();
+  for (const c of wanted) {
+    const t = byCell.get(c);
+    const tiff = parseTiff(readFileSync(join(dir, `${t.tavola}.tif`)));
+    const raster = openRaster(tiff);
+    const geo = checkMaseTile(c, tiff, raster);
+    tiles.set(c, { raster, noData: geo.noData === undefined ? NaN : Number(geo.noData) });
+  }
+  const without = [...cells].filter((c) => !byCell.has(c)).length;
+  log(`bareGround: ${wanted.length} MASE PST LiDAR 1 m tiles (${missing.length} downloaded, ${without} cells the survey left out)`);
+  return { tiles: wanted.map((c) => byCell.get(c).tavola), sample: maseSampler(tiles, cellSize) };
+}
+
 // --- corridor -----------------------------------------------------------
 
 /**
@@ -499,9 +911,8 @@ export async function bareGroundStep({ recipe, grid, heights, projection, routes
       }
     }
   }
-  const src = opts.source === 'usgs-3dep-13'
-    ? await fetchUsgs({ opts, points, cacheDir, log })
-    : await fetchSwiss({ opts, points, cellSize, cacheDir, log });
+  const fetchers = { 'usgs-3dep-13': fetchUsgs, swissalti3d: fetchSwiss, 'lombardia-dtm5': fetchLombardia, 'mase-pst-lidar': fetchMase };
+  const src = await fetchers[opts.source]({ opts, points, cellSize, cacheDir, log });
   const dtm = new Float64Array(cols * rows).fill(NaN);
   for (let k = 0; k < idx.length; k++) dtm[idx[k]] = src.sample(points[k][0], points[k][1]);
   const woodland = polygonMask(grid, woodlandPolys);

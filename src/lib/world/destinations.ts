@@ -10,9 +10,12 @@
  * manifest.
  *
  * For a destination with a baked world, the world-derived fields (`world`,
- * `moods`, `defaultMood`, `pois`, `credits`) are copied from the bundle's
- * manifest.json by `tools/worldbake/syncDestinations.mjs` (the bake runs it),
- * and destinations.test.ts fails when they drift. A destination without a
+ * `extraWorlds`, `moods`, `defaultMood`, `pois`, `credits`) are copied from
+ * the bundles' manifest.json by `tools/worldbake/syncDestinations.mjs` (the
+ * bake runs it), and destinations.test.ts fails when they drift. A place
+ * spread wider than one world can hold links more worlds in `extraWorlds`
+ * (Lugano: Valle Maggia, the Magadino plain, Lake Varese, Lake Como); moods
+ * and headline places stay the main world's. A destination without a
  * world (`world: null`) still shows its routes; they ride on the map
  * (photoreal renderer) until its world is baked.
  *
@@ -82,6 +85,13 @@ export interface Destination {
   detail: string;
   /** The baked world, or null while the destination rides on the map. */
   world: DestinationWorld | null;
+  /**
+   * More worlds for routes too far out for `world` (Valle Maggia and Lake
+   * Como under Lugano; Lake Trasimeno under Perugia). Each draws its own
+   * routes; the place keeps one Home section. Empty for most destinations,
+   * and always empty without a `world`.
+   */
+  extraWorlds: DestinationWorld[];
   /** Scenic route ids (src/lib/scenicRoutes.ts) in display order. */
   routes: string[];
   /** Scene moods that suit the place (the world's, or the routes' own). */
@@ -151,25 +161,41 @@ export function validateDestination(json: unknown, source?: string): Destination
   const defaultMood = str(m, 'defaultMood');
   if (!moods.includes(defaultMood)) fail('defaultMood must be one of moods');
 
+  const parseWorld = (raw: unknown, at: string): DestinationWorld => {
+    if (!isObj(raw)) return fail(`${at} must be an object`);
+    const w = raw;
+    const wid = str(w, 'id');
+    if (!ID.test(wid)) fail(`${at}.id must match [a-z0-9-]+`);
+    const dir = str(w, 'dir');
+    const host = w.host;
+    if (host !== undefined && host !== 'remote') fail(`${at}.host must be "remote" or absent`);
+    if (host === 'remote') {
+      if (REMOTE_WORLD_DIR.exec(dir)?.[1] !== wid) fail(`a remote ${at}.dir must be "<world.id>/<16 hex digit hash>/"`);
+    } else if (dir !== `${wid}/`) fail(`${at}.dir must be "<world.id>/"`);
+    if (!isObj(w.bbox)) return fail(`${at}.bbox must be an object`);
+    const b = w.bbox;
+    const bbox: WorldBbox = { south: num(b, 'south'), west: num(b, 'west'), north: num(b, 'north'), east: num(b, 'east') };
+    if (!(bbox.south < bbox.north && bbox.west < bbox.east)) fail(`${at}.bbox is empty`);
+    const wroutes = strings(w, 'routes', { nonEmpty: true });
+    for (const r of wroutes) if (!routes.includes(r)) fail(`${at} route ${r} is not in routes`);
+    return host === 'remote' ? { id: wid, dir, host, bbox, routes: wroutes } : { id: wid, dir, bbox, routes: wroutes };
+  };
+
   let world: DestinationWorld | null = null;
   if (m.world !== null) {
     if (!isObj(m.world)) return fail('world must be an object or null');
-    const w = m.world;
-    const wid = str(w, 'id');
-    if (!ID.test(wid)) fail('world.id must match [a-z0-9-]+');
-    const dir = str(w, 'dir');
-    const host = w.host;
-    if (host !== undefined && host !== 'remote') fail('world.host must be "remote" or absent');
-    if (host === 'remote') {
-      if (REMOTE_WORLD_DIR.exec(dir)?.[1] !== wid) fail('a remote world.dir must be "<world.id>/<16 hex digit hash>/"');
-    } else if (dir !== `${wid}/`) fail('world.dir must be "<world.id>/"');
-    if (!isObj(w.bbox)) return fail('world.bbox must be an object');
-    const b = w.bbox;
-    const bbox: WorldBbox = { south: num(b, 'south'), west: num(b, 'west'), north: num(b, 'north'), east: num(b, 'east') };
-    if (!(bbox.south < bbox.north && bbox.west < bbox.east)) fail('world.bbox is empty');
-    const wroutes = strings(w, 'routes', { nonEmpty: true });
-    for (const r of wroutes) if (!routes.includes(r)) fail(`world route ${r} is not in routes`);
-    world = host === 'remote' ? { id: wid, dir, host, bbox, routes: wroutes } : { id: wid, dir, bbox, routes: wroutes };
+    world = parseWorld(m.world, 'world');
+  }
+  const extraWorlds: DestinationWorld[] = [];
+  if (m.extraWorlds !== undefined) {
+    if (!Array.isArray(m.extraWorlds) || m.extraWorlds.length === 0) fail('extraWorlds must be a non-empty array when present');
+    if (!world) fail('extraWorlds needs a world');
+    (m.extraWorlds as unknown[]).forEach((w, i) => extraWorlds.push(parseWorld(w, `extraWorlds[${i}]`)));
+    const all = [world!, ...extraWorlds];
+    const ids = all.map((w) => w.id);
+    if (new Set(ids).size !== ids.length) fail('a destination links each world once');
+    const drawn = all.flatMap((w) => w.routes);
+    if (new Set(drawn).size !== drawn.length) fail('a route is drawn by one world only');
   }
 
   const poisRaw = m.pois;
@@ -199,6 +225,7 @@ export function validateDestination(json: unknown, source?: string): Destination
     place: str(m, 'place'),
     detail: str(m, 'detail'),
     world,
+    extraWorlds,
     routes,
     moods,
     defaultMood,
@@ -224,9 +251,9 @@ export function loadDestinations(modules: Record<string, unknown>): Destination[
     if (file !== d.id) throw new DestinationError('invalid', `file name must be ${d.id}.json`, path);
     if (ids.has(d.id)) throw new DestinationError('duplicate', `destination ${d.id} defined twice`, path);
     ids.add(d.id);
-    if (d.world) {
-      if (worlds.has(d.world.id)) throw new DestinationError('duplicate', `world ${d.world.id} linked twice`, path);
-      worlds.add(d.world.id);
+    for (const w of destinationWorlds(d)) {
+      if (worlds.has(w.id)) throw new DestinationError('duplicate', `world ${w.id} linked twice`, path);
+      worlds.add(w.id);
     }
     for (const r of d.routes) {
       const owner = routeOwner.get(r);
@@ -257,9 +284,14 @@ export function destinationForRoute(
   return list.find((d) => d.routes.includes(routeId)) ?? null;
 }
 
-/** True when the destination's world draws this route (else it rides on the map). */
+/** Every world that draws the destination's routes: `world` first, then `extraWorlds`. */
+export function destinationWorlds(d: Pick<Destination, 'world' | 'extraWorlds'>): DestinationWorld[] {
+  return d.world ? [d.world, ...d.extraWorlds] : [];
+}
+
+/** True when one of the destination's worlds draws this route (else it rides on the map). */
 export function routeHasWorld(d: Destination, routeId: string): boolean {
-  return d.world?.routes.includes(routeId) ?? false;
+  return destinationWorlds(d).some((w) => w.routes.includes(routeId));
 }
 
 /** Labels a private deploy puts before a featured place's name (VITE_HOUSEHOLD_LABELS=1). */

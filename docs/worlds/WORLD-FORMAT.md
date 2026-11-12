@@ -91,7 +91,7 @@ Validated by `validateManifest()`; schema in
 | `routes[]` | `{ id, name, lengthM, maxGapM, gradeMeanAbsDiffPct }` per snapped scenic route (ids match `src/lib/scenicRoutes.ts`). |
 | `stats` | Counts (roads, buildings, trees, …) for logs and UI. |
 | `credits[]` | `{ id, name, licence, url, attribution }`: show these wherever the world is shown. |
-| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry), `bareGround` (`usgs-3dep-13` or `swissalti3d`) when the routes and the ground along them stand on an open bare-earth DTM instead of the surface model (recipe `bareGround`, see "Bare ground" below). |
+| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry), `bareGround` (`usgs-3dep-13`, `swissalti3d`, `lombardia-dtm5` or `mase-pst-lidar`) when the routes and the ground along them stand on an open bare-earth DTM instead of the surface model (recipe `bareGround`, see "Bare ground" below). |
 
 ## height.bin: the heightfield (`u16-delta`)
 
@@ -607,9 +607,35 @@ P1.3 gate compares it with GLO-90, itself a surface model.
   15 m). Nodes go into LV95 with swisstopo's approximate formulas (≈ 1 m). A
   tile that 404s is looked up in the STAC catalogue: no release at all means
   outside Switzerland (no DTM there); releases of other years stop the bake.
-- **LZW.** Both sources are LZW TIFFs, so `geotiff.mjs` gained a TIFF LZW
-  decoder (libtiff's early code-width change), checked against tifffile
-  fixtures in `tools/worldbake/fixtures/`.
+- **`lombardia-dtm5`**: Regione Lombardia DTM 5×5 (edition 2015, CC BY 4.0)
+  from the region's ArcGIS ImageServer. Its stored grid is 5 m in WGS84 /
+  UTM 32N from the service extent's north-west corner (460001.8694,
+  5166901.2481); the bake cuts 2 km tiles on that grid and asks for each with
+  nearest-neighbour sampling, so a tile is the stored pixels (LZW float32,
+  PixelIsArea). The service metadata and every tile's georeference are
+  checked against the grid, and an error answer (the ImageServer sends HTTP
+  200 with a JSON body) is never cached. Nodes go into UTM 32N with the
+  world projection's Krüger series (equal to PROJ to the millimetre); each
+  takes the mean of the 3 × 3 pixels round it at 12 m. Outside the region's
+  LiDAR surveys the model is built from the topographic database (10 m
+  contours, spot heights and 3D road and water edges): it reads the roads
+  well and the hillsides a little terraced.
+- **`mase-pst-lidar`**: the LiDAR DTM 1 m of the Ministry of the
+  Environment's Piano Straordinario di Telerilevamento Ambientale (flown
+  2008–2010, CC BY 4.0), 0.01° tiles of 1000 × 1000 pixels (WGS84, 1e-5°,
+  PixelIsPoint, float32, nodata −9999 over water). The survey flew river and
+  lake corridors, not whole regions. The tile index (an ArcGIS
+  FeatureServer) names the tiles with data; the bake orders the ones it lacks
+  from the PST download service (POST, poll until ready, a zip of the tiles),
+  20 per order, and caches each tile. Each node takes the mean of the pixels
+  within half a cell round it (15 × 11 at 12 m and 43° N).
+- **Shores.** Both Italian models leave the lakes without a value. A node
+  reads the pixels of its box that have one when at least half of them do,
+  so a node on the shore reads the land beside it and one out on the water
+  keeps GLO-30. (The two older sources need every pixel of the box.)
+- **LZW.** 3DEP, swissALTI3D and the Lombardia tiles are LZW TIFFs, so
+  `geotiff.mjs` gained a TIFF LZW decoder (libtiff's early code-width
+  change), checked against tifffile fixtures in `tools/worldbake/fixtures/`.
 - **Report.** `bareGround` in `tools/worldbake/reports/<id>.json`: tiles,
   bias, how far the swap lowered and raised the ground, and for each route how
   far it stands over the bare ground after the bake (`routes`: median, p95,
@@ -784,7 +810,8 @@ centre). It covers Perugia's hill, the Tiber at Ponte San Giovanni and the
 Assisi valley floor, so it holds both `scenic-perugia-tiber-park` and
 `scenic-assisi-valley`. The blueprint's "~14 × 14 km" couldn't reach the
 Assisi route, 18 km east of the centre. `scenic-trasimeno-shore`
-(Castiglione del Lago, 30 km west) is left for its own world; stretching this
+(Castiglione del Lago, 30 km west) has its own world, `trasimeno`, linked as
+one of Perugia's `extraWorlds` ("The outlying routes" below); stretching this
 one to 45 km would cost resolution and budget.
 
 ### Lugano
@@ -794,8 +821,8 @@ The world is 23 × 27 km at 15 m (`x −11500…11495`, `y −13500…13500` aro
 and `scenic-locarno-brissago`, about 22 km apart across Monte Ceneri. The other
 Ticino and Lombardy routes (Magadino plain, Valle Maggia, Lake Varese, Lake
 Como) are 20–45 km further out; one world reaching them would pass 2048
-nodes a side and the 8 MB budget, so they stay map rides in the Lugano
-destination until they get worlds of their own. Baked 4 Nov 2026 on the bake host
+nodes a side and the 8 MB budget, so each has a world of its own, linked as
+one of the Lugano destination's `extraWorlds` ("The outlying routes" below). Baked 4 Nov 2026 on the bake host
 from Terrain Tiles (EU-DEM), re-baked 6 Nov 2026 from Copernicus GLO-30
 (`"dem": { "source": "copernicus-glo30" }`, card t_49b58e90). The shipped
 bundle is the GLO-30 one:

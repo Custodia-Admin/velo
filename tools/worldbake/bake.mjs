@@ -51,7 +51,7 @@ import { fetchOsm, osmLayersFor, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { BEACH_KIND, buildSea, flattenSea, relevelSea, slopeBeaches } from './coast.mjs';
-import { BARE_GROUND_CREDITS, bareGroundOptions, bareGroundStep, routeLift, WOODLAND_KINDS } from './bareGround.mjs';
+import { BARE_GROUND_CREDITS, bareGroundCreditLine, bareGroundOptions, bareGroundStep, routeLift, WOODLAND_KINDS } from './bareGround.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, routeWaterDrops, waterOnBeach, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, embankmentOptions, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid, structureLookup } from './snapRoutes.mjs';
 import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, growDeckEnds, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork, uncarvedAbutments } from './bridges.mjs';
@@ -754,9 +754,7 @@ function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 }) 
       : `- Elevation: ${dem.tiles.length} Terrain Tiles (terrarium) at zoom ${dem.zoom}, \`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png\`: ${tiles}.`,
     ...(recipe.bareGround
       ? [
-          recipe.bareGround.source === 'usgs-3dep-13'
-            ? `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): USGS 3DEP 1/3 arc-second DEM, \`${'https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/historical/{tile}/USGS_13_{tile}_{release}.tif'}\`: ${Object.entries(recipe.bareGround.tiles).map(([k, v]) => `\`${k}\` (${v})`).join(', ')}. Public domain.`
-            : `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): swissALTI3D 2 m, release ${recipe.bareGround.year}, 1 km tiles from \`https://data.geo.admin.ch/ch.swisstopo.swissalti3d/\`. Source: Federal Office of Topography swisstopo.`,
+          `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): ${bareGroundCreditLine(recipe.bareGround)}`,
         ]
       : []),
     `- OpenStreetMap: Overpass API (\`${OVERPASS_URL}\`), data as of ${recipe.osmDate} (attic query), layers ${Object.keys(osm.queries).join(', ')} over the bounding box above. Queries are recorded in \`tools/worldbake/reports/${recipe.id}.json\`.`,

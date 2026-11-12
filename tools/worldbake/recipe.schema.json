@@ -87,6 +87,28 @@
             "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." }
           },
           "additionalProperties": false
+        },
+        {
+          "title": "Regione Lombardia DTM 5x5, edition 2015 (Lombardy)",
+          "type": "object",
+          "required": ["source"],
+          "properties": {
+            "source": { "const": "lombardia-dtm5" },
+            "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
+            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "MASE PST LiDAR DTM 1 m, 2008-2010 (Italy, where the survey flew)",
+          "type": "object",
+          "required": ["source"],
+          "properties": {
+            "source": { "const": "mase-pst-lidar" },
+            "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
+            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." }
+          },
+          "additionalProperties": false
         }
       ]
     },

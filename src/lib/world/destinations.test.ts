@@ -13,12 +13,14 @@ import {
   DESTINATIONS,
   DestinationError,
   destinationForRoute,
+  destinationWorlds,
   destinationLabel,
   homeSections,
   householdLabels,
   loadDestinations,
   validateDestination,
   type Destination,
+  type DestinationWorld,
 } from './destinations';
 import { WORLD_CATALOG, worldCatalogFrom, worldForRoute } from './catalog';
 import { destinationFromWorld, serialize, syncedDestination } from '../../../tools/worldbake/syncDestinations.mjs';
@@ -91,18 +93,20 @@ describe('destination manifests on disk', () => {
 
 describe('destinations ↔ baked worlds', () => {
   const linked = DESTINATIONS.filter((d): d is Destination & { world: NonNullable<Destination['world']> } => d.world !== null);
+  /** Every linked world (main and extra) with the destination that links it. */
+  const allWorlds: { d: Destination; w: DestinationWorld }[] = DESTINATIONS.flatMap((d) => destinationWorlds(d).map((w) => ({ d, w })));
 
   it('links only worlds that ship, with a bake recipe', () => {
-    for (const d of linked) {
-      expect(worldBundle(d.world.id), d.id).not.toBeNull();
-      expect(existsSync(fileURLToPath(new URL(`../../../tools/worldbake/worlds/${d.world.id}.json`, import.meta.url))), d.id).toBe(true);
+    for (const { d, w } of allWorlds) {
+      expect(worldBundle(w.id), `${d.id}: ${w.id}`).not.toBeNull();
+      expect(existsSync(fileURLToPath(new URL(`../../../tools/worldbake/worlds/${w.id}.json`, import.meta.url))), `${d.id}: ${w.id}`).toBe(true);
     }
   });
 
   it('every shipped world is linked by a destination (Home can reach it)', () => {
     const shipped = worldBundles().map((w) => w.id);
     expect(shipped).toEqual(expect.arrayContaining(['perugia', 'lugano', 'chengdu-luxelakes']));
-    expect(linked.map((d) => d.world.id).sort()).toEqual(shipped);
+    expect(allWorlds.map(({ w }) => w.id).sort()).toEqual(shipped);
   });
 
   it('world-derived fields equal the bundle manifest (syncDestinations is a no-op)', () => {
@@ -113,14 +117,14 @@ describe('destinations ↔ baked worlds', () => {
   });
 
   it('a world in public/worlds is served from "<id>/"; a remote one from its content-hashed "<id>/<hash>/"', () => {
-    for (const d of linked) {
-      const bundle = worldBundle(d.world.id)!;
+    for (const { w } of allWorlds) {
+      const bundle = worldBundle(w.id)!;
       if (bundle.host === 'app') {
-        expect(d.world.dir, d.id).toBe(`${d.world.id}/`);
-        expect(d.world.host, d.id).toBeUndefined();
+        expect(w.dir, w.id).toBe(`${w.id}/`);
+        expect(w.host, w.id).toBeUndefined();
       } else {
-        expect(d.world.host, d.id).toBe('remote');
-        expect(d.world.dir, d.id).toBe(`${d.world.id}/${bundleHash(readFileSync(bundle.manifestPath))}/`);
+        expect(w.host, w.id).toBe('remote');
+        expect(w.dir, w.id).toBe(`${w.id}/${bundleHash(readFileSync(bundle.manifestPath))}/`);
       }
     }
     // Perugia and Lugano ship with the app; Chengdu, Cleveland, the Cuyahoga
@@ -138,8 +142,8 @@ describe('destinations ↔ baked worlds', () => {
     expect(synced.world.dir).not.toBe(d.world.dir);
   });
 
-  it('the world catalog is exactly the linked worlds', () => {
-    expect(WORLD_CATALOG.map((w) => w.id)).toEqual(linked.map((d) => d.world.id));
+  it('the world catalog is exactly the linked worlds, main worlds before their extra worlds', () => {
+    expect(WORLD_CATALOG.map((w) => w.id)).toEqual(allWorlds.map(({ w }) => w.id));
     expect(worldCatalogFrom([])).toEqual([]);
   });
 
@@ -147,7 +151,8 @@ describe('destinations ↔ baked worlds', () => {
     for (const r of SCENIC_ROUTES) {
       const d = destinationForRoute(r.route.id)!;
       const w = worldForRoute(r.route);
-      if (d.world?.routes.includes(r.route.id)) expect(w?.id, r.route.id).toBe(d.world.id);
+      const drawnBy = destinationWorlds(d).find((x) => x.routes.includes(r.route.id));
+      if (drawnBy) expect(w?.id, r.route.id).toBe(drawnBy.id);
       else expect(w, r.route.id).toBeNull();
     }
   });
@@ -264,6 +269,79 @@ describe('validateDestination / loadDestinations', () => {
     // A world shipped with the app carries no host at all.
     const bundled = validateDestination(base({ world: { ...world, dir: 'w/', host: undefined } })).world!;
     expect('host' in bundled).toBe(false);
+  });
+
+  describe('extra worlds', () => {
+    const box = { south: 0, west: 0, north: 1, east: 1 };
+    const main = { id: 'w', dir: 'w/', bbox: box, routes: ['r1'] };
+    const far = { id: 'far', dir: 'far/0123456789abcdef/', host: 'remote', bbox: { south: 2, west: 2, north: 3, east: 3 }, routes: ['r2'] };
+    const withExtras = (over: Record<string, unknown> = {}) => base({ routes: ['r1', 'r2', 'r3'], world: main, extraWorlds: [far], ...over });
+
+    it('a place can link more worlds for its outlying routes; most link none', () => {
+      const d = validateDestination(withExtras());
+      expect(d.extraWorlds).toEqual([far]);
+      expect(destinationWorlds(d).map((w) => w.id)).toEqual(['w', 'far']);
+      expect(validateDestination(base()).extraWorlds).toEqual([]);
+      expect(destinationWorlds(validateDestination(base()))).toEqual([]);
+    });
+
+    it.each([
+      ['without a main world', { world: null }],
+      ['as an empty list', { extraWorlds: [] }],
+      ['as an object', { extraWorlds: far }],
+      ['with a route outside routes', { extraWorlds: [{ ...far, routes: ['r9'] }] }],
+      ['with the main world twice', { extraWorlds: [{ ...main, routes: ['r2'] }] }],
+      ['drawing a route the main world draws', { extraWorlds: [{ ...far, routes: ['r1'] }] }],
+      ['with a bad dir', { extraWorlds: [{ ...far, dir: 'far/' }] }],
+    ])('rejects extraWorlds %s', (_, over) => {
+      expect(() => validateDestination(withExtras(over))).toThrow(expect.objectContaining({ code: 'invalid' }));
+    });
+
+    it('draws each extra world’s routes in 3D on Home, and the catalog carries each world', () => {
+      const d = validateDestination(withExtras({ role: 'hometown' }));
+      const sec = homeSections([d], false)[0];
+      expect(sec.entries.map((e) => [e.routeId, e.hasWorld])).toEqual([['r1', true], ['r2', true], ['r3', false]]);
+      expect(worldCatalogFrom([d]).map((w) => [w.id, w.dir, w.remote, w.routeIds])).toEqual([
+        ['w', 'w/', false, ['r1']],
+        ['far', 'far/0123456789abcdef/', true, ['r2']],
+      ]);
+      const route = (id: string) => ({ id, isLive: false, points: [{ lat: 0.5, lon: 0.5, ele: 0, distance: 0 }, { lat: 0.6, lon: 0.6, ele: 0, distance: 15700 }] });
+      expect(worldForRoute(route('r2'), worldCatalogFrom([d]))?.id).toBe('far');
+    });
+
+    it('a world is linked by one destination only, main or extra', () => {
+      expect(() =>
+        loadDestinations({ 'x.json': withExtras({ id: 'x' }), 'y.json': base({ id: 'y', routes: ['r4'], world: { ...far, routes: ['r4'] } }) }),
+      ).toThrow(expect.objectContaining({ code: 'duplicate' }));
+    });
+
+    it('syncDestinations copies each extra world from its bundle and adds its credits once, after the main world’s', () => {
+      const credit = (id: string) => ({ id, name: id, licence: 'l', url: 'u', attribution: 'a' });
+      const manifest = (id: string, routes: string[], credits: ReturnType<typeof credit>[]) => ({
+        id,
+        bbox: id === 'w' ? box : far.bbox,
+        routes: routes.map((r) => ({ id: r })),
+        moods: [id === 'w' ? 'clear-noon' : 'overcast'],
+        defaultMood: id === 'w' ? 'clear-noon' : 'overcast',
+        pois: [],
+        credits,
+        projection: { type: 'tmerc', ellipsoid: 'WGS84', lat0: 0.5, lon0: 0.5, k0: 1 },
+      });
+      const dest = { ...withExtras({ role: 'hometown', routes: ['r3', 'r2', 'r1'] }), extraWorlds: [{ id: 'far' }] };
+      const synced = destinationFromWorld(dest, manifest('w', ['r1'], [credit('osm'), credit('dem')]), null, [
+        { world: manifest('far', ['r2'], [credit('osm'), credit('dtm')]), remote: { dir: far.dir } },
+      ]);
+      expect(synced.world).toEqual(main);
+      expect(synced.extraWorlds).toEqual([far]);
+      expect(synced.routes).toEqual(['r1', 'r2', 'r3']);
+      expect(synced.credits.map((c: { id: string }) => c.id)).toEqual(['osm', 'dem', 'dtm']);
+      expect(synced.moods).toEqual(['clear-noon']);
+      expect(Object.keys(synced).indexOf('extraWorlds')).toBe(Object.keys(synced).indexOf('world') + 1);
+      // A destination without extra worlds keeps its manifest's shape (no empty key).
+      expect('extraWorlds' in destinationFromWorld({ ...dest, extraWorlds: undefined }, manifest('w', ['r1'], [credit('osm')]))).toBe(false);
+      // The bundles given must be the ones the destination links, in its order.
+      expect(() => destinationFromWorld(dest, manifest('w', ['r1'], []))).toThrow(/links extra worlds far, given none/);
+    });
   });
 
   it('reports an unknown version as unsupported', () => {
