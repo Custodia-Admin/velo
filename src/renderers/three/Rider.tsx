@@ -45,7 +45,7 @@ export interface RiderDrive {
   lean: number;
 }
 
-interface RiderParts {
+export interface RiderParts {
   root: THREE.Group;
   materials: Map<string, THREE.MeshStandardMaterial>;
   wheelFront?: THREE.Object3D;

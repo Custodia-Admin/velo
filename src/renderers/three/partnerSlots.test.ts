@@ -1,8 +1,9 @@
 /**
  * The drawn road under a pace partner (roadSpan.ts) and where the world
  * renderer draws each partner (rideDriver.placeBot): in its lateral slot
- * (lib/ride/partnerSlots) across the filtered heading, clamped to the
- * ribbon Roads.tsx draws there and eased toward that clamp.
+ * (lib/ride/partnerSlots) across the drawn line's sideways frame (card
+ * t_84d635ff; it was the filtered heading), clamped to the ribbon Roads.tsx
+ * draws there and eased toward that clamp.
  *
  * - Review of PR #45 @4ea2ff0: seated partners stood 0.0–0.1 m from the
  *   rider and covered the rider's own model.
@@ -21,6 +22,7 @@ import { describe, expect, it } from 'vitest';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { BOT_PRESETS, createPaceBot } from '@/lib/paceBots';
 import { PARTNER_EDGE_MARGIN_M, PARTNER_SLOT_FLOOR_M, PARTNER_SLOT_MAX_RATE_MPS } from '@/lib/ride/partnerSlots';
+import { lineAt } from '@/lib/ride/rideLine';
 import { YAW_SNAP_M } from '@/lib/ride/rideHeading';
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import type { LoadedWorld, RoadsLayer } from '@/lib/world/loadWorld';
@@ -73,9 +75,10 @@ interface Frame {
   x: number;
   y: number;
   heading: number;
-  /** The bot's own point on the route line, world metres. */
+  /** The bot's own point on the drawn line (rideLine.lineAt), world metres, and the line's sideways frame there. */
   lineX: number;
   lineY: number;
+  frameHeading: number;
 }
 
 /**
@@ -89,8 +92,9 @@ function ride(world: SceneWorld, route: Route, index: number, from: number, to: 
   for (let d = from; d <= to; d += speed * DT) {
     const at = sampleRouteAtDistance(route, d);
     const p = placeBot(world, route, { distance: d, speed, heading: headingAt(route, d), lat: at.lat, lon: at.lon }, index, memo, DT);
-    const [lineX, lineY] = world.projection.forward(at.lat, at.lon);
-    out.push({ d, slotM: p.slotM, x: p.placement.worldX, y: p.placement.worldY, heading: p.placement.heading, lineX, lineY });
+    const on = lineAt(route, d);
+    const [lineX, lineY] = world.projection.forward(on.lat, on.lon);
+    out.push({ d, slotM: p.slotM, x: p.placement.worldX, y: p.placement.worldY, heading: p.placement.heading, lineX, lineY, frameHeading: on.frameHeading });
   }
   return out;
 }
@@ -384,27 +388,48 @@ describe('placeBot', () => {
     }
   });
 
-  it("keeps the clamp through a sharp bend in a narrow path: the ribbon follows the route's bearing, not the lagging heading", () => {
+  it('keeps a partner on the path or its verge through a sharp bend in a narrow path, the clamp never dropping out', () => {
     // A 1.5 m path east to (0, 0), then turning 120° right (SSW); the route
-    // rides its centreline, so the slots are ±0.9 m. The drawn heading
-    // trails the corner by up to ~65° here, so judged against it the path
-    // would drop out for ~4 m and the slot would drift toward its unclamped 1.2 m.
+    // rides its centreline, so the slots are ±0.9 m (0.15 m onto the verge).
+    // The drawn line rounds the bend up to LINE_MAX_OFFSET_M inside the
+    // centreline, so the outside partner finds more path beside it there and
+    // eases out a little; judged against a heading that lagged the corner,
+    // the path dropped out and the slot drifted toward its unclamped 1.2 m.
     const dir = 210 * DEG;
-    const corner = withRoads([path(-200, 0, 0, 0, 180 * Math.sin(dir), 180 * Math.cos(dir))]);
+    const bend: [number, number][] = [[-200, 0], [0, 0], [180 * Math.sin(dir), 180 * Math.cos(dir)]];
+    const corner = withRoads([path(...bend.flat())]);
     const r = routeVia(corner, [-200, 0], [0, 0], [150 * Math.sin(dir), 150 * Math.cos(dir)]);
+    const fromPath = (x: number, y: number) => {
+      let best = Infinity;
+      for (let k = 0; k + 1 < bend.length; k++) {
+        const [[ax, ay], [bx, by]] = [bend[k], bend[k + 1]];
+        const t = Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2)));
+        best = Math.min(best, Math.hypot(x - ax - t * (bx - ax), y - ay - t * (by - ay)));
+      }
+      return best;
+    };
     for (const [i, slot] of [[0, 0.9], [1, -0.9]]) {
       const frames = ride(corner, r, i, 150, 260);
-      for (const f of frames) expect(f.slotM).toBeCloseTo(slot, 4);
+      for (const f of frames) {
+        // Never nearer the line than the floor, never out at the unclamped 1.2 m, and off the path
+        // no further than its verge (0.9 m from the centreline), plus 0.3 m where the inside partner
+        // shares the line's rounding of the apex (measured 1.14 m for ~1 m of travel).
+        expect(Math.abs(f.slotM), `d=${f.d.toFixed(1)}`).toBeGreaterThanOrEqual(0.9 - 1e-9);
+        expect(Math.abs(f.slotM), `d=${f.d.toFixed(1)}`).toBeLessThan(1.15);
+        expect(fromPath(f.x, f.y), `d=${f.d.toFixed(1)}`).toBeLessThan(0.9 + 0.3);
+        // In its clamp everywhere the line runs along the path.
+        if (Math.abs(f.d - 200) > 12) expect(f.slotM, `d=${f.d.toFixed(1)}`).toBeCloseTo(slot, 3);
+      }
     }
   });
 
-  it('draws the slot across the FILTERED heading through a U-turn, and switches sides only as the heading comes round', () => {
+  it("draws the slot across the line's sideways frame through a U-turn, and switches sides only as the frame comes round", () => {
     // Out and back along a 1.5 m E–W path, the route 0.5 m north of its
     // centre: eastbound 1.25 m of path lie right of the line (south), 0.25 m
     // left; westbound the other way round. At the turn the route bearing
-    // flips at once while the drawn heading takes ~1.3 s to come round (the
-    // YawFilter's 140°/s cap): the frames that tell the drawn heading from
-    // the route's.
+    // flips at once while the line's sideways frame takes ~30 m to come
+    // round (LINE_FRAME_RADIUS_M): the frames that tell the frame from the
+    // route's bearing.
     const ew = withRoads([path(-390, 0, 390, 0)]);
     const r = routeVia(ew, [-200, 0.5], [100, 0.5], [-200, 0.5]);
     // On the narrow side the partner is floored at 0.9 m; partner 2 rides
@@ -421,15 +446,16 @@ describe('placeBot', () => {
         const ox = f.x - f.lineX;
         const oy = f.y - f.lineY;
         const len = Math.hypot(ox, oy);
-        // The offset is the slot, across the drawn heading: perpendicular to
+        // The offset is the slot, across the sideways frame: perpendicular to
         // it (the spherical lane shift and the projection differ by < 0.5 %).
         expect(Math.abs(len - Math.abs(f.slotM))).toBeLessThanOrEqual(0.005 * Math.max(1, len));
-        expect(Math.abs(ox * Math.sin(f.heading) + oy * Math.cos(f.heading))).toBeLessThanOrEqual(0.01 * Math.max(1, len));
-        // Past the turn (300 m) with the drawn heading still within 45° of
+        expect(Math.abs(ox * Math.sin(f.frameHeading) + oy * Math.cos(f.frameHeading))).toBeLessThanOrEqual(0.01 * Math.max(1, len));
+        // Into the turn (from 284 m) with the frame still within 45° of
         // east, the partner keeps its eastbound clamp: the span is read
-        // across the drawn heading, not the flipped route bearing.
-        const eastness = Math.sin(f.heading);
-        if (f.d > 300 && eastness > Math.SQRT1_2) {
+        // across the frame, which comes round over ~30 m, while the route
+        // bearing flips at once at 300 m.
+        const eastness = Math.sin(f.frameHeading);
+        if (f.d > 284 && eastness > Math.SQRT1_2) {
           early++;
           expect(f.slotM).toBeCloseTo(eastbound[i], 4);
         }

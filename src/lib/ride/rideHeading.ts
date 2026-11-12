@@ -1,55 +1,30 @@
 /**
- * Smoothed direction of travel for drawing the rider and aiming the camera.
+ * The heading the cameras aim by, and the plain route bearing.
  *
- * `gpxParser.headingAt` is a ±4 m chord, so at a sharp route vertex the
- * heading swings by over 100° within a few metres (Tiber park's 123° junction
- * turn at 9,672 m): the drawn rider pivots on the spot and a chase
- * camera keyed to it swings the rider out of frame. Two stages fix that:
- *
- * 1. `smoothHeadingAt` — a wider chord (±12 m), a pure function of distance,
- *    spreads an ordinary corner over ~24 m of travel.
- * 2. `YawFilter` — a frame-rate independent damper with a turn-rate cap.
- *    A hairpin or an out-and-back folds the chord onto itself, so the chord
- *    alone can still flip quickly there; the cap bounds how fast the drawn
- *    rider (and the camera behind it) can ever turn.
+ * The rider is drawn on the drawn line (rideLine) and faces along it: its
+ * heading is that line's tangent, exact, with no filter (rideSim.drawnPose).
+ * The chase cameras turn with the same line, but through `YawFilter`: a
+ * frame-rate independent damper with a turn-rate cap. The line turns a
+ * hairpin or an acute junction within a few metres; the cap bounds how fast
+ * the camera behind the rider can ever swing round, and the rider is then
+ * seen turning into the bend.
  *
  * Physics, the trainer and lane steering keep using the route as it is; this
- * only changes where the rider faces on screen.
+ * only changes where the cameras look.
  *
  * Engine-free (src/lib/ride rule).
  */
 
 import { sampleRouteAtDistance } from '@/lib/gpxParser';
 import type { Route } from '@/types';
+import { lineHeadingAt } from './rideLine';
 
-/** Half the chord, metres: a 114° vertex turns over ~24 m (≈2 s at 40 km/h). */
-export const HEADING_HALF_WINDOW_M = 12;
-/** Fastest the drawn rider turns, radians per second (140°/s). */
+/** Fastest the chase camera turns, radians per second (140°/s). */
 export const MAX_YAW_RATE = (140 * Math.PI) / 180;
-/** Damping time constant toward the chord heading, seconds. */
+/** Damping time constant of the camera's heading, seconds. */
 export const YAW_TAU_S = 0.15;
 /** A distance jump bigger than this (seek, route change) snaps the heading. */
 export const YAW_SNAP_M = 40;
-
-/**
- * Compass heading (radians clockwise from north) of the chord from
- * `distance − halfWindowM` to `distance + halfWindowM`, clamped to the route.
- * Falls back to `fallback` when the chord has no length.
- */
-export function smoothHeadingAt(
-  route: Route,
-  distance: number,
-  halfWindowM: number = HEADING_HALF_WINDOW_M,
-  fallback = 0,
-): number {
-  const total = route.totalDistance;
-  const a = sampleRouteAtDistance(route, Math.max(0, Math.min(total, distance - halfWindowM)));
-  const b = sampleRouteAtDistance(route, Math.max(0, Math.min(total, distance + halfWindowM)));
-  const dEast = (b.lon - a.lon) * Math.cos((((a.lat + b.lat) / 2) * Math.PI) / 180);
-  const dNorth = b.lat - a.lat;
-  if (dEast === 0 && dNorth === 0) return fallback;
-  return Math.atan2(dEast, dNorth);
-}
 
 /** Signed smallest difference a − b of two angles, radians. */
 export function headingDelta(a: number, b: number): number {
@@ -92,18 +67,23 @@ export class YawFilter {
 }
 
 /**
- * One frame of the heading the rider is drawn at and the cameras aim by, in
- * every renderer: the wide chord at `distance` (or an outside driver's own
- * heading, `overrideHeading`) through `yaw`.
+ * One frame of the heading the chase cameras aim by, in every renderer: the
+ * drawn line's tangent (rideLine) through `yaw`. The tangent is read
+ * `speed · YAW_TAU_S` metres ahead, which cancels the damper's lag through a
+ * steady bend, so the camera sits square behind the rider unless the cap
+ * holds it back. An outside driver's heading (`overrideHeading`, e.g. the
+ * probe hooks' held pose) is damped as it is.
  */
-export function stepDrawnHeading(
+export function stepCameraHeading(
   yaw: YawFilter,
   route: Route,
   distance: number,
   dt: number,
+  speed = 0,
   overrideHeading?: number,
 ): number {
-  return yaw.step(overrideHeading ?? smoothHeadingAt(route, distance), distance, dt);
+  const lead = Number.isFinite(speed) && speed > 0 ? speed * YAW_TAU_S : 0;
+  return yaw.step(overrideHeading ?? lineHeadingAt(route, distance + lead), distance, dt);
 }
 
 /**

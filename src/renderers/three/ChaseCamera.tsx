@@ -69,7 +69,7 @@ export function ChaseCamera({
     const settings = useSettingsStore.getState();
     const input: RigInput = {
       rider: frame.placement.position,
-      heading: frame.pose.heading,
+      heading: frame.cameraHeading,
       ahead: frame.ahead,
       speed: frame.speed,
       cadence: frame.cadence,

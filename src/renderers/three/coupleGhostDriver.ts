@@ -1,16 +1,17 @@
 /**
  * The couple ghost's per-frame pose on the world renderer, pure: where the
  * other rider was after this many seconds of their own ride
- * (lib/play/ghostReplay), on the route line they rode, with the rider's
- * heading filter and lean (rideDriver.driveBotPose) and the drawn ground.
+ * (lib/play/ghostReplay), drawn the way the rider is (rideDriver.driveBotPose:
+ * on the drawn line at that distance, facing along it, leaning into the
+ * bend) on the drawn ground.
  *
- * The ghost rides the recorded line itself, not a lateral slot, so it
- * passes through the recorded positions (the replay test holds it to 1 m).
+ * The ghost rides the line itself, not a lateral slot, so it passes through
+ * the recorded positions (the replay test holds it to the line's reach:
+ * rideLine cuts a corner by at most ~1.35 m).
  * It fades as it comes level with the live rider, so the live rider always
  * reads through it, and fades out after its ride ends.
  */
 
-import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import type { GhostReplay } from '@/lib/play/ghostReplay';
 import type { Route } from '@/types';
 import { createBotDriverMemo, driveBotPose, type BotDriverMemo } from './rideDriver';
@@ -82,9 +83,8 @@ export function driveCoupleGhost(
   const moving = rideSec > memo.lastSec && over < 0;
   memo.lastSec = rideSec;
   const speed = moving ? Math.max(0, d - replay.distanceAt(rideSec - 1)) : 0;
-  const on = sampleRouteAtDistance(route, d);
-  const { heading, lean } = driveBotPose(memo.bot, route, { distance: d, speed, heading: headingAt(route, d) }, dt);
-  const placement = placeRider(sceneWorld, { lat: on.lat, lon: on.lon, heading }, ground);
+  const { lat, lon, heading, lean } = driveBotPose(memo.bot, route, { distance: d, speed, heading: 0 }, dt);
+  const placement = placeRider(sceneWorld, { lat, lon, heading }, ground);
   return {
     placement,
     distanceM: d,

@@ -3,6 +3,9 @@
  * real Perugia bundle: recorded through the real ride store, loaded from
  * "history" as the other rider's last ride, then placed frame by frame.
  * Blueprint §P3.2: the ghost replays within 1 m of the recorded positions.
+ * Like the live rider it is drawn on the drawn line (lib/ride/rideLine, card
+ * t_84d635ff), which rounds corners by up to LINE_MAX_OFFSET_M: within a
+ * centimetre of where the live rider was drawn, and within that of the route.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -16,6 +19,7 @@ import type { RideRecord } from '@/lib/rideHistory';
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { loadWorld } from '@/lib/world/loadWorld';
+import { LINE_MAX_OFFSET_M, lineAt } from '@/lib/ride/rideLine';
 import {
   GHOST_FADE_S,
   GHOST_NEAR_OPACITY,
@@ -80,15 +84,21 @@ describe('couple ghost on the Perugia world', () => {
     expect(worst).toBeLessThan(1);
   });
 
-  it('is drawn within 1 m of where the rider was at every frame of the recorded ride', () => {
+  it('is drawn where the rider was drawn at every frame of the recorded ride, and near its route point', () => {
     const memo = createCoupleGhostMemo();
     let worst = 0;
+    let worstDrawn = 0;
     for (const f of ride.frames) {
       const d = driveCoupleGhost(sw, route, ghost.replay, f.rideSec, null, memo, 1 / 60)!;
       const [x, y] = sw.projection.forward(f.lat, f.lon);
       worst = Math.max(worst, Math.hypot(d.placement.worldX - x, d.placement.worldY - y));
+      // The live rider at that distance stood on the drawn line.
+      const at = lineAt(route, f.distance);
+      const [lx, ly] = sw.projection.forward(at.lat, at.lon);
+      worstDrawn = Math.max(worstDrawn, Math.hypot(d.placement.worldX - lx, d.placement.worldY - ly));
     }
-    expect(worst).toBeLessThan(1);
+    expect(worstDrawn).toBeLessThan(1);
+    expect(worst).toBeLessThan(1 + LINE_MAX_OFFSET_M);
   });
 
   it('stands on the drawn ground and faces along the road', () => {

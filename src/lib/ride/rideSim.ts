@@ -20,6 +20,7 @@ import { gradientAt } from '@/lib/gradientCalculator';
 import { offsetSideways } from '@/lib/laneOffset';
 import { rideDrive, type RideDriveInput } from '@/lib/rideDrive';
 import type { RiderPose } from '@/lib/world/renderer';
+import { createLinePoint, lineAt, offsetFacing, type LinePoint } from './rideLine';
 
 /** Grade smoothing, same factor as useRideLoop. */
 export const GRADE_EMA_ALPHA = 0.18;
@@ -93,26 +94,48 @@ export function ridePose(
 }
 
 /**
+ * The rider's pose as drawn: on the drawn line (rideLine) at `distance`,
+ * facing the way it moves. Every renderer draws the rider here; the pace
+ * partners and ghosts ride the same line at their own distance. The line
+ * point (curvature, stretch: the corner lean) is written into `point`.
+ *
+ * Steered off the line (`laneOffsetM`, metres right), the rider is moved
+ * across the line's sideways frame (RideLine.frameHeading, as the pace
+ * partners in their slots are) and faces the way that offset path runs.
+ */
+export function drawnPose(
+  route: Route,
+  distance: number,
+  opts: { laneOffsetM?: number; grade?: number; speed?: number } = {},
+  point: LinePoint = createLinePoint(),
+): RiderPose {
+  const d = Math.max(0, Math.min(distance, route.totalDistance));
+  lineAt(route, d, point);
+  const lane = opts.laneOffsetM ?? 0;
+  const heading = offsetFacing(point, lane);
+  const { lat, lon } = lane ? offsetSideways(point.lat, point.lon, point.frameHeading, lane) : point;
+  return {
+    lat,
+    lon,
+    ele: sampleRouteAtDistance(route, d).ele,
+    heading,
+    grade: opts.grade ?? gradientAt(route, d),
+    speed: opts.speed ?? 0,
+    distance: d,
+    laneOffsetM: lane,
+  };
+}
+
+/**
  * The pose the renderers' `place(m)` probe hooks hold the rider at (reference
- * shots, renderer comparisons): on the route line at `distance`, facing the
- * route point 12 m ahead, rolling at 8 m/s. Both renderers hold this one pose,
- * so a held rider is framed from the same spot in each.
+ * shots, renderer comparisons): where it is drawn at `distance` (drawnPose:
+ * on the drawn line, facing along it), rolling at 8 m/s. Both renderers hold
+ * this one pose, so a held rider is framed from the same spot in each.
  */
 export function heldRiderPose(route: Route, distance: number): RiderPose {
   const a = sampleRouteAtDistance(route, distance);
   const b = sampleRouteAtDistance(route, distance + 12);
-  const dy = (b.lat - a.lat) * 111_320;
-  const dx = (b.lon - a.lon) * 111_320 * Math.cos((a.lat * Math.PI) / 180);
-  return {
-    lat: a.lat,
-    lon: a.lon,
-    ele: a.ele,
-    heading: Math.atan2(dx, dy),
-    grade: ((b.ele - a.ele) / 12) * 100,
-    speed: 8,
-    distance,
-    laneOffsetM: 0,
-  };
+  return { ...drawnPose(route, distance, { grade: ((b.ele - a.ele) / 12) * 100, speed: 8 }), ele: a.ele, distance };
 }
 
 /**

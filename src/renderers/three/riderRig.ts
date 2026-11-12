@@ -82,15 +82,6 @@ export function angleDelta(a: number, b: number): number {
   return d;
 }
 
-const G = 9.81;
-export const MAX_LEAN_RAD = (25 * Math.PI) / 180;
-
-/** Steady-turn lean (+ = right) for speed v and yaw rate ω (rad/s, clockwise +). */
-export function leanAngle(speed: number, yawRate: number): number {
-  const lean = Math.atan((speed * yawRate) / G);
-  return Math.max(-MAX_LEAN_RAD, Math.min(MAX_LEAN_RAD, Number.isFinite(lean) ? lean : 0));
-}
-
 /** Crank rpm estimated from road speed when no cadence sensor reports (50×17-ish). */
 export function estimatedCadence(speed: number): number {
   return speed > 0.5 ? Math.min(110, speed * 9.7) : 0;

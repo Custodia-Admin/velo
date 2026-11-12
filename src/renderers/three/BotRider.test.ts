@@ -104,10 +104,11 @@ describe('BotRider', () => {
     useRideStore.setState({ paceBots: [bot] });
     const drive = botElement(0).props.drive;
     expect(drive(1 / 60)!.placement.worldX).toBeCloseTo(-300, 1);
-    const [lat, lon] = sw.projection.inverse(-200, 60);
+    // 100 m on (where tickPaceBot leaves it: the route point at its distance), on the drawn line.
+    const { lat, lon } = sampleRouteAtDistance(route, 100);
     useRideStore.setState({ paceBots: [{ ...bot, state: { ...bot.state, distance: 100, lat, lon } }] });
     const p = drive(1 / 60)!.placement;
-    expect(p.worldX).toBeCloseTo(-200, 1);
+    expect(p.worldX).toBeCloseTo(sw.projection.forward(lat, lon)[0], 2);
     expect(p.worldY).toBeCloseTo(60 - 1.2, 2);
     useRideStore.setState({ paceBots: [] });
     expect(drive(1 / 60)).toBeNull();
@@ -188,25 +189,39 @@ describe('BotRider', () => {
     expect(p.position.y).toBe(321.5);
   });
 
-  it('leans the partner into a corner and turns it at the heading filter rate', () => {
+  it('leans the partner right into a right-hand corner and turns it round with the road, never snapping', () => {
     // East, then a 90° turn right (south) at x = 0, off every road.
     const r = routeVia(sw, [-200, 60], [0, 60], [0, -150]);
     const bots = [createPaceBot('b0', BOT_PRESETS[0], r)];
     const drive = botElement(0, sw, r).props.drive;
     let maxLean = 0;
+    let minLean = 0;
+    let maxTurn = 0;
     let prev: number | null = null;
+    let first = NaN;
+    let last = NaN;
     for (let d = 150; d <= 260; d += 8 / 60) {
       useRideStore.setState({ paceBots: rosterAt(bots, r, d) });
       const out = drive(1 / 60)!;
-      maxLean = Math.max(maxLean, Math.abs(out.lean));
+      maxLean = Math.max(maxLean, out.lean);
+      minLean = Math.min(minLean, out.lean);
       if (prev !== null) {
         let turn = out.placement.heading - prev;
         turn = Math.atan2(Math.sin(turn), Math.cos(turn));
-        expect(Math.abs(turn)).toBeLessThanOrEqual((140 * Math.PI) / 180 / 60 + 1e-9);
+        maxTurn = Math.max(maxTurn, Math.abs(turn));
       }
       prev = out.placement.heading;
+      if (Number.isNaN(first)) first = prev;
+      last = prev;
     }
-    expect(maxLean).toBeGreaterThan(0.05);
+    // From east to south: a quarter turn clockwise, at most ~5° in any frame at 8 m/s.
+    expect((first * 180) / Math.PI).toBeCloseTo(90, 0);
+    expect((last * 180) / Math.PI).toBeCloseTo(180, 0);
+    expect((maxTurn * 180) / Math.PI).toBeLessThan(5);
+    // Leaning right (into the bend), never left, capped at 20°.
+    expect(maxLean).toBeGreaterThan(0.1);
+    expect(minLean).toBeGreaterThan(-1e-3);
+    expect(maxLean).toBeLessThanOrEqual((20 * Math.PI) / 180 + 1e-9);
   });
 });
 

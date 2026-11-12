@@ -32,6 +32,8 @@ function frameAt(x: number, z: number, heading = 0): RideFrame {
   f.pose = { lat: 0, lon: 0, ele: y, heading, grade: 0, speed: 8, distance: 0, laneOffsetM: 0 };
   f.placement = { position: { x, y, z }, worldX: x, worldY: -z, heading, pitch: 0 };
   f.ahead = { x: x + Math.sin(heading) * 14, y, z: z - Math.cos(heading) * 14 };
+  // The heading the camera aims by (rideDriver: the line's tangent, damped).
+  f.cameraHeading = heading;
   f.dt = 1 / 60;
   f.speed = 8;
   return f;

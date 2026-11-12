@@ -3,17 +3,18 @@
  * route loads (CesiumWorldView) and moved every frame. Engine-free apart from
  * the avatar handle it is given, so it runs in the node test env.
  *
- * Each partner rides in its lateral slot beside the route line
+ * Each partner is drawn by the rider's own rule (lib/ride/rideLine,
+ * cornerLean): on the drawn line at its distance, facing along it, leaning
+ * into the bend. It rides in its lateral slot beside that line
  * (lib/ride/partnerSlots), clamped to the road corridor this renderer draws:
- * the bots' own lat/lon is the line the rider follows, so unshifted they
- * stand inside the rider on the start line. The photoreal rider steers off
+ * unshifted, partners stand inside the rider on the start line. The photoreal rider steers off
  * the line too (CesiumWorldView applies the lane offset), so the partners
  * give way to it by the same rule as the world renderer's
  * (partnerSlots.stepPartnerYield).
  */
 import type { Avatar } from '@/lib/avatar';
 import { CORRIDOR_HALF_WIDTH_M } from '@/lib/cesiumCameras';
-import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
+import { sampleRouteAtDistance } from '@/lib/gpxParser';
 import { BOT_COLORWAYS, type PaceBot } from '@/lib/paceBots';
 import {
   createPartnerYieldState,
@@ -24,6 +25,8 @@ import {
   type RiderBeside,
   type RoadSpan,
 } from '@/lib/ride/partnerSlots';
+import { cornerLeanTarget, LEAN_LEAD_S, stepCornerLean } from '@/lib/ride/cornerLean';
+import { createLinePoint, lineAt, offsetFacing } from '@/lib/ride/rideLine';
 import type { Route } from '@/types';
 
 /** The road corridor the photoreal view lays along the route (routeSurface.createRoadEntity), across the heading. */
@@ -47,14 +50,13 @@ export function placeBotAvatars(bots: readonly PaceBot[], route: Route, make: ()
     const avatar = make();
     avatar.setColors(BOT_COLORWAYS[i % BOT_COLORWAYS.length]);
     const d = Math.max(0, Math.min(route.totalDistance, bot.state.distance));
-    const at = sampleRouteAtDistance(route, d);
-    const heading = headingAt(route, d);
-    const slot = botSlotLatLon(i, at.lat, at.lon, heading);
+    const on = lineAt(route, d, point);
+    const slot = botSlotLatLon(i, on.lat, on.lon, on.frameHeading);
     avatar.update({
       lon: slot.lon,
       lat: slot.lat,
-      ele: at.ele,
-      heading,
+      ele: sampleRouteAtDistance(route, d).ele,
+      heading: offsetFacing(on, partnerSlotM(i, CORRIDOR_SPAN)),
       speed: 0,
       cadence: 0,
       grade: 0,
@@ -69,11 +71,13 @@ export function placeBotAvatars(bots: readonly PaceBot[], route: Route, make: ()
 export interface BotGiveWay {
   /** One state per partner, carried between frames (created as needed). */
   states: PartnerYieldState[];
-  /** The route, for a dropped-back partner's elevation. */
+  /** Each partner's eased corner lean, carried between frames (created as needed). */
+  leans?: number[];
+  /** The route: the drawn line the partners ride on, and a dropped-back partner's elevation. */
   route: Route;
   /** The rider this frame (partnerSlots.laneReach for its reach), or null. */
   rider: RiderBeside | null;
-  /** Where the rider is drawn (its lane offset applied) and its drawn heading. */
+  /** Where the rider is drawn (its lane offset applied), and the line's sideways frame there (RideLine.frameHeading). */
   riderLat: number;
   riderLon: number;
   riderHeading: number;
@@ -81,10 +85,14 @@ export interface BotGiveWay {
 
 const EARTH_RADIUS_M = 6_371_000;
 const DEG = Math.PI / 180;
+const point = createLinePoint();
+const leanPoint = createLinePoint();
 
 /**
- * Move each bot avatar to its bot's live state, in its slot across the
- * bot's heading. With `giveWay`, each partner also gives way to the rider
+ * Move each bot avatar to its bot's live state, in its slot across its
+ * heading. With `giveWay`, each partner is drawn on the drawn line at its
+ * distance, facing along it and leaning into the bend, as the rider is (the
+ * bot's own lat/lon and ±4 m chord heading otherwise), and gives way to the rider
  * (partnerSlots.stepPartnerYield, on the corridor): eased into its slot,
  * further out when the rider steers toward it, and, where the corridor
  * leaves no room, drawn behind its own point along the rider's heading, as
@@ -104,18 +112,33 @@ export function updateBotAvatars(bots: readonly PaceBot[], avatars: readonly Ava
     let lat = bs.lat;
     let lon = bs.lon;
     let ele = bs.ele;
-    const heading = bs.heading;
+    let heading = bs.heading;
+    let facing = bs.heading;
+    let lean = 0;
+    let onLine = false;
     let slotM: number;
     let targetM = NaN;
     let blocked = false;
     if (giveWay) {
+      const { route } = giveWay;
+      const on = lineAt(route, bs.distance, point);
+      onLine = true;
+      lat = on.lat;
+      lon = on.lon;
+      // The slot goes across the line's sideways frame, which turns with the line but never loops a tight inside corner.
+      heading = on.frameHeading;
+      const leans = (giveWay.leans ??= []);
+      lean = stepCornerLean(leans[i] ?? 0, cornerLeanTarget(bs.speed, lineAt(route, bs.distance + bs.speed * LEAN_LEAD_S, leanPoint)), dt);
+      leans[i] = lean;
       const state = (giveWay.states[i] ??= createPartnerYieldState());
       const { riderLat, riderLon, riderHeading } = giveWay;
       // A drawn point seen from the partner's point moved `backM` back along the rider's heading, in the partner's heading.
-      const h = bs.heading;
+      const pLat = lat;
+      const pLon = lon;
+      const h = heading;
       const seen = (lat2: number, lon2: number) => (backM: number) => {
-        const ex = (lon2 - bs.lon) * DEG * EARTH_RADIUS_M * Math.cos(bs.lat * DEG) + backM * Math.sin(riderHeading);
-        const ey = (lat2 - bs.lat) * DEG * EARTH_RADIUS_M + backM * Math.cos(riderHeading);
+        const ex = (lon2 - pLon) * DEG * EARTH_RADIUS_M * Math.cos(pLat * DEG) + backM * Math.sin(riderHeading);
+        const ey = (lat2 - pLat) * DEG * EARTH_RADIUS_M + backM * Math.cos(riderHeading);
         return { alongM: ex * Math.sin(h) + ey * Math.cos(h), acrossM: ex * Math.cos(h) - ey * Math.sin(h) };
       };
       const inner = i >= 2 ? drawn[i - 2] : undefined;
@@ -133,25 +156,26 @@ export function updateBotAvatars(bots: readonly PaceBot[], avatars: readonly Ava
         const at = offsetLatLon(lat, lon, riderHeading - Math.PI / 2, -step.backM);
         lat = at.lat;
         lon = at.lon;
-        const { route } = giveWay;
         ele = sampleRouteAtDistance(route, Math.max(0, Math.min(route.totalDistance, bs.distance - step.backM))).ele;
       }
     } else {
       slotM = partnerSlotM(i, CORRIDOR_SPAN);
     }
-    const slot = offsetLatLon(lat, lon, bs.heading, slotM);
+    const slot = offsetLatLon(lat, lon, heading, slotM);
+    if (onLine) facing = offsetFacing(point, slotM);
     if (giveWay) drawn.push({ targetM, blocked, lat: slot.lat, lon: slot.lon });
     avatars[i].update({
       lon: slot.lon,
       lat: slot.lat,
       ele,
-      heading,
+      heading: facing,
       speed: bs.speed,
       // cadence: 0 → avatar estimates from speed (cadence ≈ speed / 0.12 rev/s * 60 rpm)
       cadence: 0,
       grade: 0,
       dt,
       riderPosition: 'hoods', // bots always ride hoods position
+      lean,
     });
   }
   return true;

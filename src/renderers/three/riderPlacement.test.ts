@@ -13,7 +13,9 @@ import { routeFromGeometry } from '@/lib/scenicRoutes';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { loadWorld, type LoadedWorld } from '@/lib/world/loadWorld';
 import { ROUTE_LIFT_M, buildRouteChunks, routeLine } from './Roads';
-import { RIDER_RIG, leanAngle, legIK, legPose, modelYaw, placeRider } from './riderRig';
+import * as THREE from 'three';
+import { poseRider, type RiderParts } from './Rider';
+import { RIDER_RIG, legIK, legPose, modelYaw, placeRider, type RiderPlacement } from './riderRig';
 import { lodHeightAt } from './terrainMesh';
 import { createSceneWorld, drawnGround, type SceneWorld } from './worldScene';
 
@@ -221,10 +223,30 @@ describe('rider rig', () => {
     expect(Number.isFinite(k[0]) && Number.isFinite(k[1])).toBe(true);
   });
 
-  it('leans into corners, capped', () => {
-    expect(leanAngle(8, 0)).toBe(0);
-    expect(leanAngle(8, 0.3)).toBeGreaterThan(0);
-    expect(leanAngle(8, -0.3)).toBeLessThan(0);
-    expect(leanAngle(20, 5)).toBeLessThanOrEqual((25 * Math.PI) / 180);
+  it('faces the heading and leans toward its right for a positive lean (into a right-hand bend)', () => {
+    // The pose the GLB rig is drawn in (Rider.poseRider), read back in the scene (x east, y up, z south).
+    const pose = (heading: number, lean: number, pitch = 0) => {
+      const root = new THREE.Object3D();
+      const parts = { root, legs: [], materials: new Map() } as unknown as RiderParts;
+      poseRider(parts, { placement: { position: { x: 0, y: 0, z: 0 }, heading, pitch } as RiderPlacement, lean, speed: 0, cadence: 0 }, { wheel: 0, crank: 0 }, 0);
+      root.updateMatrixWorld();
+      return {
+        forward: new THREE.Vector3(1, 0, 0).applyQuaternion(root.quaternion),
+        up: new THREE.Vector3(0, 1, 0).applyQuaternion(root.quaternion),
+      };
+    };
+    // Heading north: forward is −z, and leaning right tips the top east (+x).
+    const n = pose(0, 0.3);
+    expect(n.forward.z).toBeLessThan(-0.9);
+    expect(n.up.x).toBeCloseTo(Math.sin(0.3), 6);
+    expect(Math.abs(n.up.z)).toBeLessThan(1e-6);
+    // Heading east, leaning left: the top tips north (−z).
+    const e = pose(Math.PI / 2, -0.3);
+    expect(e.forward.x).toBeGreaterThan(0.9);
+    expect(e.up.z).toBeCloseTo(-Math.sin(0.3), 6);
+    // Nose-up pitch raises the front without tipping it sideways.
+    const c = pose(0, 0, 0.1);
+    expect(c.forward.y).toBeCloseTo(Math.sin(0.1), 6);
+    expect(Math.abs(c.up.x)).toBeLessThan(1e-6);
   });
 });
