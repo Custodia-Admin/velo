@@ -111,6 +111,21 @@ Flaky runs:
 Other branches' smoke-ride e2e took 5.3–13.1 min in that period (main
 8.1–11.1 min).
 
+The head's docs-only commit 85e800d (run 43139743857) went green: 15 passed,
+`viewport-1280:96` flaky again. That makes it flaky in 3 of 5 medium runs on
+this branch (counting c061b67's), against 3 of ~20 on other branches. The
+sample is small, but the rate may be higher here.
+
+To check, cat-bed ran CI's order in one worker (tv-remote, a medium ride, then
+viewport-1280) on 2 cores, with no retries, 3 times per build:
+
+| Build | Result | viewport-1280:96 duration |
+|---|---|---|
+| Gate (5ddd194) | 3/3 passed | 19.0 / 19.1 / 26.8 s |
+| Base | 3/3 passed | 22.4 / 18.9 / 17.3 s |
+
+It didn't reproduce, and the test took as long on both builds.
+
 With one frame in flight, the way Home waits at most for the frame on the GPU:
 one runner frame, 5.6–6.6 s, minus the time on the finish page.
 
