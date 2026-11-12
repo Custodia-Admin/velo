@@ -1,0 +1,393 @@
+{
+ "before": {
+  "1440": {
+   "steps": [
+    [
+     "start",
+     6
+    ],
+    [
+     "RS1 x6",
+     6
+    ],
+    [
+     "LS2 x12",
+     11
+    ],
+    [
+     "RS2 x3",
+     11
+    ],
+    [
+     "LS1 x2",
+     11
+    ],
+    [
+     "LB x2",
+     9
+    ],
+    [
+     "key = x3",
+     9
+    ],
+    [
+     "key [ x1",
+     9
+    ]
+   ],
+   "hudArea": {
+    "sumPct": 4.9,
+    "unionPct": 4.9,
+    "topmostPct": 84.7
+   },
+   "budget": "ok",
+   "buttonRects": null,
+   "minTarget": 40,
+   "overflow": false,
+   "devicesAfterLS2": null,
+   "errors": []
+  },
+  "1280": {
+   "steps": [
+    [
+     "start",
+     6
+    ],
+    [
+     "RS1 x6",
+     6
+    ],
+    [
+     "LS2 x12",
+     11
+    ],
+    [
+     "RS2 x3",
+     11
+    ],
+    [
+     "LS1 x2",
+     11
+    ],
+    [
+     "LB x2",
+     9
+    ],
+    [
+     "key = x3",
+     9
+    ],
+    [
+     "key [ x1",
+     9
+    ]
+   ],
+   "hudArea": {
+    "sumPct": 7.7,
+    "unionPct": 7.7,
+    "topmostPct": 78.7
+   },
+   "budget": "ok",
+   "buttonRects": null,
+   "minTarget": 40,
+   "overflow": false,
+   "devicesAfterLS2": null,
+   "errors": []
+  },
+  "390": {
+   "steps": [
+    [
+     "start",
+     6
+    ],
+    [
+     "RS1 x6",
+     6
+    ],
+    [
+     "LS2 x12",
+     11
+    ],
+    [
+     "RS2 x3",
+     11
+    ],
+    [
+     "LS1 x2",
+     11
+    ],
+    [
+     "LB x2",
+     9
+    ],
+    [
+     "key = x3",
+     9
+    ],
+    [
+     "key [ x1",
+     9
+    ]
+   ],
+   "hudArea": {
+    "sumPct": 10.9,
+    "unionPct": 10.9,
+    "topmostPct": 87
+   },
+   "budget": "ok",
+   "buttonRects": null,
+   "minTarget": 40,
+   "overflow": false,
+   "devicesAfterLS2": null,
+   "errors": []
+  }
+ },
+ "after": {
+  "1440": {
+   "steps": [
+    [
+     "start",
+     6,
+     "running"
+    ],
+    [
+     "RS1 x6",
+     11,
+     "running"
+    ],
+    [
+     "LS2 x12",
+     1,
+     "running"
+    ],
+    [
+     "RS2 x3",
+     4,
+     "running"
+    ],
+    [
+     "LS1 x2",
+     2,
+     "running"
+    ],
+    [
+     "LB x2",
+     2,
+     "running"
+    ],
+    [
+     "mouse moved",
+     2,
+     "running"
+    ],
+    [
+     "key = x3",
+     5,
+     "running"
+    ],
+    [
+     "key [ x1",
+     4,
+     "running"
+    ],
+    [
+     "tap harder x2, easier x1",
+     5,
+     "running"
+    ]
+   ],
+   "hudArea": {
+    "sumPct": 5.3,
+    "unionPct": 5.3,
+    "topmostPct": 84.7
+   },
+   "budget": "ok",
+   "buttonRects": [
+    [
+     "Easier gear",
+     768,
+     814,
+     40,
+     40,
+     false
+    ],
+    [
+     "Harder gear",
+     859,
+     814,
+     40,
+     40,
+     false
+    ]
+   ],
+   "minTarget": 40,
+   "overflow": false,
+   "devicesAfterLS2": "Last press: Left shifter, lower \u00b7 easier gear",
+   "errors": []
+  },
+  "1280": {
+   "steps": [
+    [
+     "start",
+     6,
+     "running"
+    ],
+    [
+     "RS1 x6",
+     11,
+     "running"
+    ],
+    [
+     "LS2 x12",
+     1,
+     "running"
+    ],
+    [
+     "RS2 x3",
+     4,
+     "running"
+    ],
+    [
+     "LS1 x2",
+     2,
+     "running"
+    ],
+    [
+     "LB x2",
+     2,
+     "running"
+    ],
+    [
+     "mouse moved",
+     2,
+     "running"
+    ],
+    [
+     "key = x3",
+     5,
+     "running"
+    ],
+    [
+     "key [ x1",
+     4,
+     "running"
+    ],
+    [
+     "tap harder x2, easier x1",
+     5,
+     "running"
+    ]
+   ],
+   "hudArea": {
+    "sumPct": 8.2,
+    "unionPct": 8.3,
+    "topmostPct": 78.7
+   },
+   "budget": "ok",
+   "buttonRects": [
+    [
+     "Easier gear",
+     688,
+     562,
+     40,
+     40,
+     false
+    ],
+    [
+     "Harder gear",
+     779,
+     562,
+     40,
+     40,
+     false
+    ]
+   ],
+   "minTarget": 40,
+   "overflow": false,
+   "devicesAfterLS2": "Last press: Left shifter, lower \u00b7 easier gear",
+   "errors": []
+  },
+  "390": {
+   "steps": [
+    [
+     "start",
+     6,
+     "running"
+    ],
+    [
+     "RS1 x6",
+     11,
+     "running"
+    ],
+    [
+     "LS2 x12",
+     1,
+     "running"
+    ],
+    [
+     "RS2 x3",
+     4,
+     "running"
+    ],
+    [
+     "LS1 x2",
+     2,
+     "running"
+    ],
+    [
+     "LB x2",
+     2,
+     "running"
+    ],
+    [
+     "mouse moved",
+     2,
+     "running"
+    ],
+    [
+     "key = x3",
+     5,
+     "running"
+    ],
+    [
+     "key [ x1",
+     4,
+     "running"
+    ],
+    [
+     "tap harder x2, easier x1",
+     5,
+     "running"
+    ]
+   ],
+   "hudArea": {
+    "sumPct": 10.9,
+    "unionPct": 10.9,
+    "topmostPct": 87
+   },
+   "budget": "ok",
+   "buttonRects": [
+    [
+     "Easier gear",
+     229,
+     788,
+     40,
+     40,
+     false
+    ],
+    [
+     "Harder gear",
+     326,
+     788,
+     40,
+     40,
+     false
+    ]
+   ],
+   "minTarget": 40,
+   "overflow": false,
+   "devicesAfterLS2": "Last press: Left shifter, lower \u00b7 easier gear",
+   "errors": []
+  }
+ }
+}

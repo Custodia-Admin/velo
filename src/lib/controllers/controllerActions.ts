@@ -7,7 +7,7 @@
  * are never mapped: they power the controllers.
  */
 
-import type { RideButton } from '@/lib/controllers/rideProtocol';
+import { BUTTON_NAMES, type RideButton } from '@/lib/controllers/rideProtocol';
 import { CAMERA_DISTANCES, CAMERA_MODES, type CameraDistance, type CameraMode } from '@/lib/cesiumCameras';
 import { clampDifficulty } from '@/lib/trainerComfort';
 
@@ -25,11 +25,22 @@ export type ControllerAction =
   | 'showNext'
   | 'showAutoCamera';
 
+/**
+ * Zwift's default "Sequential" shift style, which every other app with Ride
+ * support follows too (Rouvy, BikeControl, Ride Cave): both LEFT shifters
+ * (LS1 / LS2) shift easier, both RIGHT shifters (RS1 / RS2) shift harder.
+ * Sources: support.zwift.com "Using your Zwift Ride controller" (LS1/LS2
+ * decrease, RS1/RS2 increase), Rouvy's virtual shifting article ("In
+ * Sequential style, the left lever shifts to easier gears and the right
+ * lever to harder ones"), and BikeControl, whose Ride emulator presses
+ * SHFT_UP_L for "shift down" and SHFT_UP_R for "shift up" in Zwift itself.
+ * The right unit's presses reach Velo through the left one.
+ */
 export const BUTTON_ACTIONS: Readonly<Partial<Record<RideButton, ControllerAction>>> = {
-  shiftUpL: 'gearHarder',
-  shiftUpR: 'gearHarder',
+  shiftUpL: 'gearEasier',
   shiftDownL: 'gearEasier',
-  shiftDownR: 'gearEasier',
+  shiftUpR: 'gearHarder',
+  shiftDownR: 'gearHarder',
   up: 'hillsHarder',
   down: 'hillsEasier',
   left: 'cameraPrev',
@@ -66,10 +77,11 @@ export interface LegendRow {
 
 /** Legend rows for the pairing panel, in reading order. */
 export const ACTION_LEGEND: ReadonlyArray<LegendRow> = [
-  { controls: 'Shift paddles', action: 'Gears: up is harder, down is easier' },
+  { controls: 'Left shifters', action: 'Easier gear' },
+  { controls: 'Right shifters', action: 'Harder gear' },
   { controls: 'Up / down', action: 'How hard the hills feel' },
   { controls: 'Left / right', action: 'Change camera' },
-  { controls: 'Hood buttons', action: 'Camera closer (left) or further (right)' },
+  { controls: 'Drop buttons', action: 'Camera closer (left) or further (right)' },
   { controls: 'A', action: 'Pause or carry on' },
   { controls: 'Orange levers', action: 'Steer across the lane' },
 ];
@@ -80,6 +92,32 @@ export const SHOW_LEGEND: ReadonlyArray<LegendRow> = [
   { controls: 'Z', action: 'Next video' },
   { controls: 'B', action: 'Auto camera on or off' },
 ];
+
+const ACTION_WORDS: Readonly<Record<ControllerAction, string>> = {
+  gearHarder: 'harder gear',
+  gearEasier: 'easier gear',
+  hillsHarder: 'hills feel harder',
+  hillsEasier: 'hills feel easier',
+  cameraPrev: 'previous camera',
+  cameraNext: 'next camera',
+  cameraCloser: 'camera closer',
+  cameraFurther: 'camera further',
+  pauseResume: 'pause or carry on',
+  showPlayPause: 'play or pause the video',
+  showNext: 'next video',
+  showAutoCamera: 'auto camera',
+};
+
+/**
+ * The handlebar row's "last button" line, so the rider can press each
+ * button and see what Velo hears and what it does in a ride.
+ */
+export function lastPressText(button: RideButton | null): string {
+  if (!button) return 'Press a button on the bars to see what Velo hears.';
+  const action = actionFor(button);
+  const does = action ? ACTION_WORDS[action] : button === 'y' ? 'ride details' : button === 'b' ? 'back' : 'nothing in a ride';
+  return `Last press: ${BUTTON_NAMES[button]} · ${does}`;
+}
 
 /** Hills-feel step for one D-pad press. */
 export const HILLS_STEP = 0.05;

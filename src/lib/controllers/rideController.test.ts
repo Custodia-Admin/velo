@@ -222,8 +222,8 @@ describe('messages', () => {
     await pairRideController();
     const got: RideButton[] = [];
     const off = onControllerButton((b) => got.push(b));
-    device.async_.notify('23 08 ff ff fe ff 0f'); // shiftDownR (0x4000) held
-    device.async_.notify('23 08 ff ff fe ff 0f'); // still held
+    device.async_.notify('23 08 ff bf ff ff 0f'); // shiftDownR (0x2000) held
+    device.async_.notify('23 08 ff bf ff ff 0f'); // still held
     device.async_.notify('23 08 ff ff ff ff 0f');
     device.async_.notify('23 08 ff ff ff ff 0f 12 06 0a 04 08 01 10 64'); // right lever 50
     off();
@@ -231,6 +231,17 @@ describe('messages', () => {
     expect(st().steer).toBe(0.5);
     device.async_.notify('23 08 ff ff ff ff 0f');
     expect(st().steer).toBe(0);
+  });
+
+  it('remembers the last button heard for the Devices readout, every press (repeats too)', async () => {
+    await pairRideController();
+    device.async_.notify('23 08 ff fb ff ff 0f'); // left shifter, lower (0x200)
+    expect(st().lastPress?.button).toBe('shiftDownL');
+    const seq = st().lastPress!.seq;
+    device.async_.notify('23 08 ff ff ff ff 0f');
+    expect(st().lastPress?.seq).toBe(seq);
+    device.async_.notify('23 08 ff fb ff ff 0f');
+    expect(st().lastPress).toEqual({ button: 'shiftDownL', seq: seq + 1 });
   });
 
   it('updates the battery from 0x19 messages', async () => {
@@ -372,7 +383,7 @@ describe('state machine', () => {
     expect(phase()).toBe('silent');
     await reconnectRideController();
     expect(phase()).toBe('waiting');
-    device.async_.notify('23 08 ff bf ff ff 0f'); // shiftUpR → keypad = input
+    device.async_.notify('23 08 ff df ff ff 0f'); // shiftUpR → keypad = input
     expect(phase()).toBe('live');
     unsub();
     expect(seen).toEqual(['pairing', 'waiting', 'silent', 'pairing', 'waiting', 'live']);
@@ -434,7 +445,7 @@ describe('debug overlay lines', () => {
       if (b === 'shiftUpR') st().shift(1);
     });
     for (let i = 0; i < 3; i++) device.async_.notify('15');
-    device.async_.notify('23 08 ff bf ff ff 0f'); // shiftUpR (0x2000)
+    device.async_.notify('23 08 ff df ff ff 0f'); // shiftUpR (0x1000)
     off();
     const lines = getDebugEntries();
     expect(lines.length).toBeLessThanOrEqual(DEBUG_LINES);
@@ -853,7 +864,7 @@ describe('no unrequested writes outside a ride', () => {
   it('pairing writes RideOn + one confirm buzz, then nothing on its own', async () => {
     vi.useFakeTimers();
     await pairRideController();
-    device.async_.notify('23 08 ff bf ff ff 0f'); // shiftUpR on Home
+    device.async_.notify('23 08 ff df ff ff 0f'); // shiftUpR on Home
     device.async_.notify('19 08 50');
     await vi.advanceTimersByTimeAsync(60_000);
     expect(device.rx.writes).toEqual(['52 69 64 65 4f 6e', BUZZ]);

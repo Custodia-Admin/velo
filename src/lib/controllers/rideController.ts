@@ -242,7 +242,10 @@ function handleMessage(l: Link, msg: Uint8Array): void {
       store().setSteer(steer);
     }
     const gearBefore = store().gear;
-    for (const b of fired) for (const fn of [...buttonListeners]) fn(b);
+    for (const b of fired) {
+      store().setLastPress(b);
+      for (const fn of [...buttonListeners]) fn(b);
+    }
     let note = describeMessage('in', msg);
     if (fired.length > 0) {
       const show = useShowStore.getState().active;
