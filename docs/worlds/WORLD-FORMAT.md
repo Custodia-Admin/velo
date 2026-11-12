@@ -675,7 +675,8 @@ P1.3 gate compares it with GLO-90, itself a surface model.
     bridge reads more (3.8 m: the DTM is the channel under the deck; the
     world has no `bridges`).
   - Berkeley: 2.6 m at most (Bay Trail 3.1–3.3 km, where GLO-30 sits on the
-    ground and the profile is low), so it keeps GLO-30.
+    ground and the profile is low), so it keeps GLO-30. (Re-baked for the
+    shore strip below: 84ede532.)
   - Puerto Vallarta (card t_be5a0778): on INEGI's 1:10 000 MDT (above)
     with the datum read off the beaches, the published bundle (9d190b96)
     stood up to 8.0 m over the ground on the Malecón (median +2.6 m, p95
@@ -688,16 +689,29 @@ P1.3 gate compares it with GLO-90, itself a surface model.
     MDT with 400/1600 the Malecón still reads 4.4 m (49 over 3 m). The bundle
     (1f75dbdd: MDT, 60/240 m, `spanStructures`) reads median −0.03 m, p95
     0.75 m, max 1.61 m on the Malecón and −0.00 / 0.64 / 2.48 m on Nuevo
-    Vallarta–Bucerías, none over 3 m. Left over: the Malecón at 0.25–0.55 km
-    rides 0.6–1.0 m above the sea where the MDT reads 1.5–2.9 m, because it
-    runs 13–20 m from the waterline and the 12 m grid holds the shore nodes
-    beside it at sea level; it cuts 2.9 m through a 6 m hump at 1.61–1.68 km;
-    Nuevo Vallarta–Bucerías starts 2.5 m up on the estuary bank (INEGI's 0 m
-    water fill) and cuts 4.3 m at 9.30 km. INEGI's Continuo de Elevaciones
-    Mexicano is not an alternative: CEM 3.0 is interpolated from 1:50 000
-    contours (whole metres, RMSE 4.8 m), CEM 4.0 is the ALOS PALSAR RTC DEM
-    (resampled SRTM).
+    Vallarta–Bucerías, none over 3 m. It still rode the Malecón at
+    0.25–0.55 km 0.6–1.0 m above the sea where the MDT reads 1.5–2.9 m:
+    the route runs 13–20 m from the coastline and the fit read the shore
+    strip (fixed below). Left over: it cuts 2.9 m through a 6 m hump at
+    1.61–1.68 km; Nuevo Vallarta–Bucerías starts 2.5 m up on the estuary
+    bank (INEGI's 0 m water fill) and cuts 4.3 m at 9.30 km. INEGI's
+    Continuo de Elevaciones Mexicano is not an alternative: CEM 3.0 is
+    interpolated from 1:50 000 contours (whole metres, RMSE 4.8 m), CEM 4.0
+    is the ALOS PALSAR RTC DEM (resampled SRTM).
   - Chengdu: no open DTM for China; landcover puts the routes in the open.
+- **The shore strip (card t_ed5443d1).** `flattenSea` lowers every land node
+  beside the sea to 0 m so the water meets the shore cleanly. The route fit
+  used to read that levelled grid, and a waterfront route a cell from the
+  water samples those nodes: at 60/240 m windows the strip pulled the
+  Malecón's raw down by up to 2.7 m. The fit now reads the terrain from
+  before `flattenSea`, with the beaches still sloped, so a route on a beach
+  keeps following the drawn beach (`carveRoutes` `fitHeights`). The carve
+  still writes the levelled grid. Puerto Vallarta (068443cd) has the Malecón
+  at 0.25–0.55 km at 2.0–2.6 m, mean |lift| 1.54 → 0.30 m. Berkeley
+  (84ede532), the same pattern at 400/1600 m, gets mean |lift| over 3DEP
+  0.72 → 0.65 m on the Bay Trail and 0.90 → 0.50 m round Richmond's Marina
+  Bay. No Santa Monica route cell touches the strip, so it re-bakes
+  byte-identical.
 - **Embankments (`snap.embankment`, card t_e9889d5e).** The target keeps the
   profile's shape, and the profile (Open-Meteo GLO-90) misses relief the DTM
   has. There the slow offset can't follow and the carve builds the route up

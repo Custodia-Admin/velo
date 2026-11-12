@@ -339,11 +339,19 @@ export async function bake(opts) {
   }
   let seaFlat = null;
   let beachSlope = null;
+  // The route fit reads the ground without the shore strip (carveRoutes
+  // `fitHeights`): flattenSea holds every land node beside the sea at sea
+  // level, and a waterfront route a cell from the water samples them. The
+  // beaches stay sloped there too: a route on a beach follows the drawn beach.
+  let fitHeights;
   if (sea) {
+    fitHeights = Float64Array.from(heights);
     seaFlat = flattenSea({ grid: g, heights, water });
     const b = seaFlat.before;
-    log(`coast: ${sea.length} sea polygon${sea.length === 1 ? '' : 's'} (${sea.reduce((n, p) => n + p.length - 1, 0)} islands), ${seaFlat.inNodes} nodes at sea level${b ? ` (DEM ${b.min.toFixed(1)}…${b.max.toFixed(1)} m)` : ''}, ${seaFlat.stripNodes} shore nodes lowered to it`);
-    beachSlope = slopeBeaches({ grid: g, heights, sea: seaFlat.mask, beaches: landcover.polys.filter((p) => p.kind === BEACH_KIND && p.tags.natural === 'beach').map((p) => p.rings) });
+    log(`coast: ${sea.length} sea polygon${sea.length === 1 ? '' : 's'} (${sea.reduce((n, p) => n + p.length - 1, 0)} islands), ${seaFlat.inNodes} nodes at sea level${b ? ` (DEM ${b.min.toFixed(1)}…${b.max.toFixed(1)} m)` : ''}, ${seaFlat.stripNodes} shore nodes lowered to it (the route fit reads them as they were)`);
+    const beaches = landcover.polys.filter((p) => p.kind === BEACH_KIND && p.tags.natural === 'beach').map((p) => p.rings);
+    beachSlope = slopeBeaches({ grid: g, heights, sea: seaFlat.mask, beaches });
+    slopeBeaches({ grid: g, heights: fitHeights, sea: seaFlat.mask, beaches });
     log(`coast: beaches sloped to the sea, ${beachSlope.changed} nodes lowered (max ${beachSlope.maxCutM.toFixed(1)} m)`);
   }
 
@@ -394,7 +402,7 @@ export async function bake(opts) {
   const uncarved = nets ? Float64Array.from(heights) : null;
   // Embankments (recipe `snap.embankment`): mapped bridges and tunnels never count.
   const structure = embankmentOptions(recipe.snap) || spanStructuresOption(recipe.snap) ? structureLookup(roads) : undefined;
-  const carve = carveRoutes({ grid: g, heights, projection, routes: routesIn, snap: recipe.snap, skip, structure });
+  const carve = carveRoutes({ grid: g, heights, projection, routes: routesIn, snap: recipe.snap, skip, structure, fitHeights });
   for (const p of carve.prepared) {
     if (p.embankments) {
       log(`embankment: route ${p.id} lowered ${p.embankments.length ? p.embankments.map((e) => `${round(e.s0, 0)}–${round(e.s1, 0)} m by up to ${round(e.lowerM)} m`).join(', ') : 'nowhere'} (to ${recipe.snap.embankment.maxM} m over the ground)`);

@@ -48,11 +48,11 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 856119,
-      "sha256": "271dcee515b0aaf814e5c15db0a9cea1228a8e6d70186b11ce17001c88ec0b73",
+      "bytes": 856087,
+      "sha256": "7c834df36ccc7425acf618a342ea44f58fd32298b4a52d6a00025516af4a7686",
       "compression": "gzip",
       "contentBytes": 3818196,
-      "contentSha256": "19bac2ae7aae42a47a3670b8959ed7f45fb8d59f0830af7014a4eaa5d818ae62"
+      "contentSha256": "5a09dde71f0a2a4c2f05302f32c0688f34d0ddee0079ae9864764ada00cfe658"
     },
     {
       "path": "roads.json.gz",
@@ -96,11 +96,11 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 30359,
-      "sha256": "2b4f9cfd95aff6616931dba19df128c7af6ebd2f17a2a1927f0b4c355b32d1fc",
+      "bytes": 30313,
+      "sha256": "314d52c43d1044437d59fe439b0675877375a3f0069fbcc3c76700d1e39a3bf2",
       "compression": "gzip",
-      "contentBytes": 71457,
-      "contentSha256": "8de1f876c8c663ca845f496c70b9400134fa0cb6bba4b3ac74de3e00487f6fd8"
+      "contentBytes": 71378,
+      "contentSha256": "242556b61dcc7d1daa82c1d5573422d4247e54f974aafd24624f61d1d7d3397b"
     }
   ],
   "moods": [
@@ -119,7 +119,7 @@
       "x": 4783.5,
       "y": -7872.2,
       "osm": "node/269553482",
-      "h": 0.76
+      "h": 2.27
     },
     {
       "name": "Las Mojoneras",
@@ -281,7 +281,7 @@
       "name": "Puerto Vallarta bayfront",
       "lengthM": 8716.76,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.577
+      "gradeMeanAbsDiffPct": 0.539
     },
     {
       "id": "scenic-nuevo-vallarta-bucerias",

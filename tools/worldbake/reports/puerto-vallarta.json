@@ -2,20 +2,20 @@
   "world": "puerto-vallarta",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 0.6,
+    "dem": 0.4,
     "osm": 0.1,
     "bareGround": 0.4,
-    "heightfield+routes": 1.4,
-    "vectors": 0.5,
-    "write": 5.9,
+    "heightfield+routes": 1.2,
+    "vectors": 0.4,
+    "write": 4.4,
     "validate": 0,
-    "total": 9
+    "total": 7
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 856119,
+      "stored": 856087,
       "content": 3818196,
-      "brotli": 679778
+      "brotli": 679499
     },
     "roads.json.gz": {
       "stored": 287143,
@@ -43,30 +43,30 @@
       "brotli": 143964
     },
     "routes.json.gz": {
-      "stored": 30359,
-      "content": 71457,
-      "brotli": 19999
+      "stored": 30313,
+      "content": 71378,
+      "brotli": 19826
     },
     "manifest.json": {
       "stored": 11234,
       "content": 11234,
-      "brotli": 3050
+      "brotli": 3051
     }
   },
   "totals": {
-    "stored": 1558342,
-    "content": 5345010,
-    "brotli": 1208525
+    "stored": 1558264,
+    "content": 5344931,
+    "brotli": 1208074
   },
   "hashes": {
-    "height.bin.gz": "271dcee515b0aaf814e5c15db0a9cea1228a8e6d70186b11ce17001c88ec0b73",
+    "height.bin.gz": "7c834df36ccc7425acf618a342ea44f58fd32298b4a52d6a00025516af4a7686",
     "roads.json.gz": "55606aa89b6e865f8fceb07a3aa429215c682e39615f055d96f5babd740f2db4",
     "water.json.gz": "06f56324eb57e13e0029ccdbc5331aa2c9941e78329ee17d6e15de1735d8b865",
     "landcover.json.gz": "18de26aef77f30a15ddc0288b8d539089ec08958b7c783c18fdf5434281e7fd4",
     "buildings.bin.gz": "5538bd91967fa70dc2acedc931128a585b84d0131cf9c089832e2a447c116052",
     "vegetation.bin.gz": "e0b752bba90e60a81d2630041dc86040231fd660c52bf4aa5578243ea6a56d0b",
-    "routes.json.gz": "2b4f9cfd95aff6616931dba19df128c7af6ebd2f17a2a1927f0b4c355b32d1fc",
-    "manifest.json": "1f75dbdd7d98163d699ac89e5c7ebddacd7b05dff1f3214d205fd364dd61fe08"
+    "routes.json.gz": "314d52c43d1044437d59fe439b0675877375a3f0069fbcc3c76700d1e39a3bf2",
+    "manifest.json": "068443cda106dd7a5bafdd98dd8907eb8e5c01bd31d4da083adff4a05bcb2632"
   },
   "routes": [
     {
@@ -74,11 +74,11 @@
       "name": "Puerto Vallarta bayfront",
       "lengthM": 8716.76,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.577,
+      "gradeMeanAbsDiffPct": 0.539,
       "report": {
         "samples": 873,
-        "gradeMaxAbsDiffPct": 3.803,
-        "rawDemGradeMeanAbsDiffPct": 0.758,
+        "gradeMaxAbsDiffPct": 3.705,
+        "rawDemGradeMeanAbsDiffPct": 0.729,
         "maxRenderMinusProfileM": 10.75,
         "structureSpans": [
           {
@@ -252,8 +252,8 @@
       {
         "id": "scenic-puerto-vallarta-malecon",
         "samples": 873,
-        "medianM": -0.02,
-        "p95M": 1.09,
+        "medianM": 0.01,
+        "p95M": 1.1,
         "maxM": 3.11,
         "maxAtS": 5850,
         "minM": -2.93,

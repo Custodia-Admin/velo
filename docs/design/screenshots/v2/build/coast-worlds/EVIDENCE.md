@@ -109,8 +109,46 @@ How far each route stands over the bare ground. Route samples every 10 m. The gr
 - After figures: route samples every 10 m against the MDT (3 × 3 pixel mean) shifted by the bake's −0.22 m, samples within 8 m of a mapped bridge left out (`liftcmp.mjs`, `abslift.mjs` in `~/.hermes/handoffs/velo/t_be5a0778/`).
 - Grade Δ 0.577 / 0.291 pp (≤ 1 pp). P1.3 v2 registered RMS 0.84 → 1.44 m ≤ 6 m, PASS. Brotli 1.209 MB. From `git archive`, the default bake and an `--out` bake are identical in all 8 files; Cleveland, Santa Monica and Lugano re-bake from the same commit to their committed manifests.
 - Bridges: without `spanStructures` the DTM's channel under the Puente del Malecón (the route's first 130 m) pulled it 1.3 m under its north bank at 200/800 m and 1.2 m at 100/400. With it the five mapped bridges' decks stand at 1.8 / 2.0 / 2.5 / 3.2 / 2.5 m against bank ground of 2.1 / 1.8 / 2.4 / 3.3 / 2.4 m.
-- Left over: the Malecón at 0.25–0.55 km rides 0.6–1.0 m above the sea where the MDT reads 1.5–2.9 m. It runs 13–20 m from the waterline, and on the 12 m grid the shore nodes beside it are held at sea level (follow-up card). It cuts 2.9 m through a 6 m hump at 1.61–1.68 km. Nuevo Vallarta–Bucerías starts 2.5 m up on the estuary bank (the MDT is INEGI's 0 m water fill there) and cuts 4.3 m at 9.30–9.33 km.
+- Left over: the Malecón at 0.25–0.55 km rode 0.6–1.0 m above the sea where the MDT reads 1.5–2.9 m (fixed below, "Shore strip"). It cuts 2.9 m through a 6 m hump at 1.61–1.68 km. Nuevo Vallarta–Bucerías starts 2.5 m up on the estuary bank (the MDT is INEGI's 0 m water fill there) and cuts 4.3 m at 9.30–9.33 km.
 - Shots at 120 m (the bridge), 1300 m and 2430 m, before and after, at 1280×648@2 and 390×844: `../bare-ground/puerto-vallarta-1280-before-after.jpg` and `-390-…`. Nothing floats, buries or tears; the HUD grade reads the route profile, as before.
+
+## Shore strip (card t_ed5443d1)
+
+**Cause.** `flattenSea` (coast.mjs) sets every land node with a sea node among its 8 neighbours to 0 m, so the water meets the shore cleanly. The route fit read its raw ground from that levelled grid. The Malecón at 0.25–0.55 km runs 0–17 m from the nearest sea node, so at 0.16–0.69 km every bilinear cell it samples (54 samples) has one to three corners in the strip, and 5 have a sea node too. The coast steps moved the fit's raw at 64 of the route's 873 samples. The strip moved 63: by up to 2.71 m at 0.16–0.69 km (deepest at 0.49 km), and by up to 1.64 m at 1.23–1.31 km. The beach slope moved 1. Long windows (400/1600) averaged this away; 60/240 followed it. The dump of the pre-carve fit (heights before `flattenSea`, after it, and after `slopeBeaches`, per corner node, with the DTM) is from `coastdump_patch.py` + `coastan.py` in `~/.hermes/handoffs/velo/t_ed5443d1/`.
+
+**Fix.** The fit (the raw samples and the embankment's ground across) reads the terrain from before `flattenSea`, with the beaches sloped the same way (`carveRoutes` `fitHeights`). The carve still writes the levelled grid, and the sea outside the route core still drops to 0 m. A route on a beach still follows the drawn beach. The other coast worlds:
+
+| World · route | Pattern | Fit raw moved by the coast steps | Effect of the fix |
+|---|---|---|---|
+| Santa Monica · Strand, Will Rogers–Venice | beach slope only; no route cell touches the strip | 803 / 193 samples, all beach | none: re-bakes byte-identical (`02115cfa8a3445e4`) |
+| Berkeley · Bay Trail, Richmond Marina Bay | the strip, as at Puerto Vallarta | 418 / 465 samples, up to 4.0 / 3.5 m | re-baked, closer to 3DEP (below) |
+
+A variant that also left the beach slope out of the fit lifted the Strand by up to 1.81 m on 1,064 samples (mean |lift| over 3DEP on those samples 0.85 → 0.68 m), over a beach the bake still draws sloping down to the sea beside it. The path would stand on a dyke, so the beaches stay in the fit.
+
+Lift over the bare ground, route samples every 10 m (Puerto Vallarta: INEGI MDT 3 × 3 mean − 0.22 m, mapped bridges left out, `liftcmp.mjs`; Berkeley: 3DEP 30 m box mean − 0.68 m, decks left out, as in the table above):
+
+| World · route | Before: median / p95 / max (samples under −1 m), mean \|lift\| | After |
+|---|---|---|
+| Puerto Vallarta · Malecón (all) | −0.03 / +0.75 / +1.61 m (56), 0.39 m | −0.00 / +0.80 / +1.61 m (12), 0.33 m |
+| Puerto Vallarta · Malecón 0.25–0.55 km | route 0.58–1.10 m on ground 1.54–3.12 m: lift −2.30…−0.81, mean \|lift\| 1.54 m | route 2.02–2.55 m: lift −0.79…+0.71, mean \|lift\| 0.30 m |
+| Puerto Vallarta · Nuevo Vallarta–Bucerías | −0.00 / +0.64 / +2.48 m (13), 0.30 m | unchanged (identical route heights) |
+| Berkeley · Bay Trail | −0.06 / +1.12 / +2.64 m (226), 0.72 m | +0.37 / +1.29 / +2.77 m (65), 0.65 m |
+| Berkeley · Richmond Marina Bay | −0.81 / +0.40 / +0.91 m (339), 0.90 m | −0.18 / +0.66 / +1.71 m (77), 0.50 m |
+
+- Grade Δ: Malecón 0.577 → 0.539 pp, Bucerías 0.291 (same), Bay Trail 0.11 → 0.074, Richmond 0.09 → 0.079.
+- P1.3 v2 registered RMS: Puerto Vallarta 1.44 m (same), Berkeley 0.41 → 0.40 m. Both PASS against a 6 m bound.
+- Brotli: Puerto Vallarta 1.21 MB, Berkeley 0.79 MB.
+- The Puente del Malecón (0–130 m) now sits level with its banks: −0.01 m sag (was −0.28).
+- Berkeley bridges, measured on the app's surfaces (`probe6.scratch.test.ts`): no deck the route doesn't ride stands within −0.3…+4.5 m of the rider (0 samples, as before). The John T. Knox Freeway (I-580) underside is 3.45 m over the trail at its low edge (was 3.28 m), and its deck top 5.25–6.76 m (was 5.08–6.85 m). The Eastshore Freeway decks stand 4.43–6.08 m over the rider at the underside and 6.23–7.99 m at the top, each within 0.14 m of before. The bake has 10 headroom pins (lift up to 5.20 m, was 5.04 m), approach lift up to 3.50 m (was 3.21 m) and 64 piers (was 66).
+- Published as `worlds/puerto-vallarta/068443cda106dd7a/` (8 files) and `worlds/berkeley/84ede53223d3271a/` (9 files); publish read every file back. The previous bundles (`1f75dbdd7d98163d`, `99108f58c9ff2ad7`) stay in place until this merges and deploys.
+- From `git archive` on the bake host, the default bake and an `--out` bake are identical for both worlds. Santa Monica, Chengdu, Cleveland and Cuyahoga Valley re-bake to their committed manifests, and Perugia and Lugano to their committed bundles, byte for byte.
+- Shots, same build, only the bundle hash differs between before and after (1280×648@2 and 390×844, noon):
+  - `shore-strip-puerto-vallarta-1280.jpg` / `-390.jpg`: 0.30, 0.45 and 1.27 km.
+  - `shore-strip-berkeley-1280.jpg` / `-390.jpg`: Bay Trail 2.52 km (under the I-580 deck) and 8.94 km (+1.94 m, the largest move), and Richmond 8.59 km.
+  - The rider is on the drawn path and in full in every frame. Nothing floats, buries or tears. From the chase camera the move is hard to see, because the ground under the route moves with it.
+  - `shore-strip-puerto-vallarta-sea.jpg` is the Malecón seen from the sea (70 m out, 1.2 m above it, rendered once from that camera with the app's renderer). The promenade stands 2.0–2.3 m over the water there, where it stood 0.7–0.8 m. The camera aims at the rider, so the after frames tilt up with it and the hills sit lower in the frame.
+- Malecón 1.21–1.43 km now rides up to +1.10 m over the bake's bare ground (was +0.79 m). The strip had held the raw there up to 1.64 m low (1.23–1.31 km), and without it the 60/240 m fit sits higher through that stretch.
+- Left over (not new): the landcover texture paints terrain inside the sea polygon water-blue even where it stands above sea level. That covers the route's core where it reaches over the coastline, and the slope down to the first sea node, with the 12 m grid's stair-steps along its foot. At the Malecón this bank was 0.7 m tall and is now 2.0–2.3 m, so from the sea it reads as water and foam on a slope. In the chase view it is a slightly darker band at the waterline, and the bay corner at 0.45 km shows it in both builds. Follow-up card t_0690c7f2: draw that ground as a bank.
 
 ## fps (the test host's Intel iGPU, ANGLE gl-egl, HUD on, medium, vsync)
 

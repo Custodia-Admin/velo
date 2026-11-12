@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { gunzipSync } from 'node:zlib';
 
 import { assembleSea, BEACH_SLOPE, buildSea, clipCoast, edgePosition, flattenSea, joinCoastline, maskDistance, relevelSea, SEA_LEVEL_M, slopeBeaches } from '../../../tools/worldbake/coast.mjs';
 import { buildLandcover, buildWater, LANDCOVER_KINDS, WATER_AREA_KINDS } from '../../../tools/worldbake/buildVectors.mjs';
 import { osmLayersFor, OSM_LAYERS } from '../../../tools/worldbake/fetchOsm.mjs';
+import { carveRoutes } from '../../../tools/worldbake/snapRoutes.mjs';
+import { readableWorldBundles } from '../../../tools/worldbake/worldBundles.mjs';
+import { createProjection } from './projection';
 
 /** A 1 km square world round the origin. */
 const ext = { xMin: -500, xMax: 500, yMin: -500, yMax: 500 };
@@ -189,5 +195,65 @@ describe('coast: terrain and layers', () => {
     expect(lc.polys[0].kind).toBe('beach');
     expect(osmLayersFor({})).toBe(OSM_LAYERS);
     expect(Object.keys(osmLayersFor({ coast: true }))).toEqual([...Object.keys(OSM_LAYERS), 'coast']);
+  });
+});
+
+describe('coast: the route fit reads the shore strip as it was (carveRoutes fitHeights)', () => {
+  // A 12 m grid on a coast running north–south: sea west of x = 6 m (nodes x ≤ 0), the shore strip at x = 12 m,
+  // land at 2.5 m from x = 24 m. The DEM read the sea at 0.4 m. A flat route (profile 0 m, as Open-Meteo answers
+  // along Puerto Vallarta's malecón) runs north–south at x = 18 m, half a cell from the strip.
+  const proj = createProjection({ type: 'tmerc', ellipsoid: 'WGS84', lat0: 20.68, lon0: -105.282, k0: 1 });
+  const grid = { cols: 41, rows: 81, cellSize: 12, xMin: -240, yMax: 480 };
+  const sea = { areaKinds: [...WATER_AREA_KINDS, 'sea'], areas: [{ k: 3, r: [[-50000, 50000, 60, 50000, 60, -50000, -50000, -50000]] }] };
+  const node = (x: number, y: number) => Math.round((grid.yMax - y) / grid.cellSize) * grid.cols + Math.round((x - grid.xMin) / grid.cellSize);
+  const [la0, lo0] = proj.inverse(18, 360);
+  const [la1, lo1] = proj.inverse(18, -360);
+  const route = { id: 'malecon', name: 'Malecón', points: [[la0, lo0, 0], [la1, lo1, 0]] };
+  const snap = { stepM: 10, offsetMedianM: 60, offsetMeanM: 240, coreCells: 1.5, falloffM: 40 };
+  const ground = () => new Float64Array(grid.cols * grid.rows).map((_, i) => (grid.xMin + (i % grid.cols) * grid.cellSize > 6 ? 2.5 : 0.4));
+
+  it('rides the land, not the strip, and still carves the levelled grid', () => {
+    const before = ground();
+    const plain = ground();
+    const { stripNodes } = flattenSea({ grid, heights: plain, water: sea });
+    expect(stripNodes).toBe(grid.rows);
+    expect(plain[node(12, 0)]).toBe(SEA_LEVEL_M);
+    const levelled = plain.slice();
+
+    // On the levelled grid the route samples the strip: half way between 0 m and 2.5 m.
+    const a = carveRoutes({ grid, heights: plain, projection: proj, routes: [route], snap }).prepared[0];
+    for (const v of [...a.raw, ...a.target]) expect(v).toBeCloseTo(1.25, 1);
+
+    // Reading the ground from before the strip: the route stands on the land at 2.5 m.
+    const fitHeights = before.slice();
+    const heights = levelled.slice();
+    const b = carveRoutes({ grid, heights, projection: proj, routes: [route], snap, fitHeights }).prepared[0];
+    for (const v of [...b.raw, ...b.target]) expect(v).toBeCloseTo(2.5, 9);
+    // The carve writes the levelled grid (the strip node 6 m from the route is in its core) and leaves fitHeights alone.
+    expect(heights[node(12, 0)]).toBeCloseTo(2.5, 9);
+    expect(heights[node(-120, 0)]).toBe(SEA_LEVEL_M);
+    expect(fitHeights).toEqual(before);
+    // Without fitHeights the fit reads the grid it carves, as before.
+    const c = carveRoutes({ grid, heights: levelled.slice(), projection: proj, routes: [route], snap, fitHeights: undefined }).prepared[0];
+    expect(c.target).toEqual(a.target);
+  });
+});
+
+describe('shipped coast worlds: waterfront routes stand on the land by the sea', () => {
+  const pv = (readableWorldBundles() as { id: string; dir: string }[]).find((b) => b.id === 'puerto-vallarta');
+
+  it('finds Puerto Vallarta', () => {
+    if (process.env.VELO_REQUIRE_REMOTE_WORLDS === '1') expect(pv).toBeDefined();
+  });
+
+  // The malecón runs 13–20 m from the sea there. With the strip in the fit's raw it rode 0.58–1.10 m over the sea
+  // on ground the INEGI MDT reads at 1.5–3.1 m (bundle 1f75dbdd7d98163d); reading the strip as it was: 2.0–2.6 m.
+  it.skipIf(!pv)('puerto-vallarta: the malecón 0.25–0.55 km stands over 1.5 m, not at the sea', () => {
+    const manifest = JSON.parse(readFileSync(join(pv!.dir, 'manifest.json'), 'utf8'));
+    const routes = JSON.parse(gunzipSync(readFileSync(join(pv!.dir, manifest.layers.routes))).toString('utf8')).routes as { id: string; s: number[]; h: number[] }[];
+    const r = routes.find((x) => x.id === 'scenic-puerto-vallarta-malecon')!;
+    const low = r.s.flatMap((s, i) => (s >= 250 && s <= 550 && r.h[i] < 1.5 ? [`${s} m ${r.h[i].toFixed(2)}`] : []));
+    expect(r.s.filter((s) => s >= 250 && s <= 550)).toHaveLength(31);
+    expect(low).toEqual([]);
   });
 });
