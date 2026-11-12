@@ -124,7 +124,7 @@ services, trademarks) is [NOTICE.md](../../NOTICE.md).
   route. In a world with `bareGround` (below), replaced by the bare-earth DTM
   within 150 m of the routes and blended into it over the next 300 m.
 
-### USGS 3D Elevation Program (3DEP) 1/3 arc-second DEM (bare ground; Cuyahoga Valley, Cleveland)
+### USGS 3D Elevation Program (3DEP) 1/3 arc-second DEM (bare ground; Cuyahoga Valley, Cleveland, Santa Monica)
 
 - Used for: the heights within 450 m of the routes in worlds whose recipe
   sets `"bareGround": { "source": "usgs-3dep-13", … }` (see
@@ -137,7 +137,7 @@ services, trademarks) is [NOTICE.md](../../NOTICE.md).
   for credit: "U.S. Geological Survey, 3D Elevation Program 1/3 arc-second
   Digital Elevation Model" (https://www.usgs.gov/information-policies-and-instructions/crediting-usgs).
 - Modifications: shifted onto GLO-30's level (the median difference over
-  flat open ground, −0.2 m and −0.09 m), sampled bilinearly onto the world
+  flat open ground, −0.2 m, −0.09 m and +0.44 m), sampled bilinearly onto the world
   grid, blended into GLO-30, quantised, and re-graded along the routes.
 
 ### swissALTI3D (bare ground; Lugano)

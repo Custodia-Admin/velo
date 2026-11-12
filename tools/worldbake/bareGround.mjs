@@ -168,7 +168,7 @@ async function fetchUsgs({ opts, points, cacheDir, log }) {
     const release = opts.tiles[name];
     if (!release) {
       throw new Error(
-        `bareGround: the corridor needs USGS 3DEP tile ${name}; pin its release in the recipe (bareGround.tiles.${name} = the <pubdate> in ${USGS_3DEP_BASE}/current/${name}/USGS_13_${name}.xml)`,
+        `bareGround: the corridor needs USGS 3DEP tile ${name}; pin its release in the recipe (bareGround.tiles.${name} = the date of the ${USGS_3DEP_BASE}/historical/${name}/USGS_13_${name}_<yyyymmdd>.tif whose ETag equals current/${name}/USGS_13_${name}.tif's; the <pubdate> in current/${name}/USGS_13_${name}.xml can be a day later)`,
       );
     }
     const res = await cachedFetch(dir, `USGS_13_${name}_${release}.tif`, usgsTileUrl(name, release), {}, { label: `USGS 3DEP ${name}` });
