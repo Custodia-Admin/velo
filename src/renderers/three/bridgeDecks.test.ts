@@ -345,7 +345,21 @@ describe.each(BUNDLES.map((b: { id: string; dir: string }) => [b.id, b.dir]))('s
       }
     }
     expect(seams, 'bridge vertices two chunk pieces share').toBeGreaterThan(0);
-    if (Object.values(w.bridges!.rides).some((spans) => spans.length)) expect(onDeck, 'route samples up on a ridden deck').toBeGreaterThan(0);
+    // The line check above only looks where the deck stands 1 m clear of the
+    // ground, so it must have looked somewhere when a ridden deck stands that
+    // high. Berkeley's ridden decks are all at grade (≤ 0.1 m clear).
+    const decks = deckPieces(w);
+    const raised = Object.values(w.bridges!.rides).some((spans) =>
+      spans.some((span) =>
+        span.roads.some((road) => {
+          const p = decks.get(road);
+          if (!p) return false;
+          for (let k = 0; k < p.s.length; k++) if (p.z[k] - hf.sampleHeight(p.xy[k * 2], p.xy[k * 2 + 1]) >= 1) return true;
+          return false;
+        }),
+      ),
+    );
+    if (raised) expect(onDeck, 'route samples up on a ridden deck').toBeGreaterThan(0);
     expect(bad.slice(0, 12)).toEqual([]);
   }, 120_000);
 });
