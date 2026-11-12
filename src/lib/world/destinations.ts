@@ -189,7 +189,7 @@ export function validateDestination(json: unknown, source?: string): Destination
   const extraWorlds: DestinationWorld[] = [];
   // An empty list is the same as none, so a parsed destination validates again as it is.
   if (m.extraWorlds !== undefined) {
-    if (!Array.isArray(m.extraWorlds)) fail('extraWorlds must be an array when present');
+    if (!Array.isArray(m.extraWorlds)) return fail('extraWorlds must be an array when present');
     if (m.extraWorlds.length && !world) fail('extraWorlds needs a world');
     (m.extraWorlds as unknown[]).forEach((w, i) => extraWorlds.push(parseWorld(w, `extraWorlds[${i}]`)));
     const all = world ? [world, ...extraWorlds] : [];
