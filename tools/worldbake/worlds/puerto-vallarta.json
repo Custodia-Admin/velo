@@ -24,10 +24,24 @@
   "host": "remote",
   "routeCredits": true,
   "coast": true,
+  "bareGround": {
+    "source": "inegi-mdt-10k",
+    "sheets": {
+      "F13C58F4": "794551192740",
+      "F13C59D3": "702825005098",
+      "F13C68C2": "702825005105",
+      "F13C69A1": "702825005106",
+      "F13C69A4": "702825005109",
+      "F13C69B3": "702825005112",
+      "F13C69D2": "889463163459",
+      "F13C69E1": "889463518204"
+    },
+    "biasFrom": "beach"
+  },
   "snap": {
     "stepM": 10,
-    "offsetMedianM": 400,
-    "offsetMeanM": 1600,
+    "offsetMedianM": 100,
+    "offsetMeanM": 400,
     "coreCells": 1.5,
     "falloffM": 40
   },

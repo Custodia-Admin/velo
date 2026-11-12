@@ -91,7 +91,7 @@ Validated by `validateManifest()`; schema in
 | `routes[]` | `{ id, name, lengthM, maxGapM, gradeMeanAbsDiffPct }` per snapped scenic route (ids match `src/lib/scenicRoutes.ts`). |
 | `stats` | Counts (roads, buildings, trees, …) for logs and UI. |
 | `credits[]` | `{ id, name, licence, url, attribution }`: show these wherever the world is shown. |
-| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry), `bareGround` (`usgs-3dep-13` or `swissalti3d`) when the routes and the ground along them stand on an open bare-earth DTM instead of the surface model (recipe `bareGround`, see "Bare ground" below). |
+| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry), `bareGround` (`usgs-3dep-13`, `swissalti3d` or `inegi-mdt-10k`) when the routes and the ground along them stand on an open bare-earth DTM instead of the surface model (recipe `bareGround`, see "Bare ground" below). |
 
 ## height.bin: the heightfield (`u16-delta`)
 
@@ -596,7 +596,12 @@ P1.3 gate compares it with GLO-90, itself a surface model.
   (slope < 5 %) open corridor nodes (no woodland polygon within 30 m), so open
   ground keeps GLO-30's level and the blend has no step there. It comes out at
   −0.2 m (towpath), −0.09 m (Cleveland), −0.4 m (Lugano) and +0.44 m (Santa
-  Monica).
+  Monica). In a town those nodes are streets between roofs, and a 30 m DSM
+  reads the roofs: Puerto Vallarta's GLO-30 − DTM is +3.35 m (median) over
+  residential land, +3.20 m over commercial, +1.19 m over grass and +0.04 m
+  on the beaches. There `"biasFrom": "beach"` (coast worlds) reads the bias
+  over the flat corridor nodes on beach and sand polygons only: −0.22 m over
+  969 nodes. Read over open ground it would lift the whole corridor ~3 m.
 - **`usgs-3dep-13`**: USGS 3DEP 1/3″ (≈ 10 m) bare earth, 1° Cloud Optimized
   GeoTIFFs (LZW, floating-point predictor, NAD83, PixelIsArea, 6-pixel
   overlap, nodata −999999), read bilinear. The recipe pins each tile's dated
@@ -607,6 +612,30 @@ P1.3 gate compares it with GLO-90, itself a surface model.
   15 m). Nodes go into LV95 with swisstopo's approximate formulas (≈ 1 m). A
   tile that 404s is looked up in the STAC catalogue: no release at all means
   outside Switzerland (no DTM there); releases of other years stop the bake.
+- **`inegi-mdt-10k`** (card t_be5a0778, `tools/worldbake/inegiMdt.mjs`):
+  INEGI's Modelo Digital de Elevación tipo terreno 1:10 000, 5 m bare earth
+  (from satellite and airborne sensors, the newer sheets from stereo
+  satellite imagery classified and filtered to the ground). One zip per 1:10 000
+  sheet (3.75′ × 3⅓′; names like `F13C69A4`: 1:1 M row letter and UTM zone,
+  quadrant A–D, 1:50 000 cell, 1:20 000 letter A–F, 1:10 000 quarter 1–4),
+  holding a float32 BIL in WGS 84 UTM with backslash member paths. The
+  recipe pins each sheet to its product (`"sheets": { "F13C69A4":
+  "702825005109" }`, `null` = INEGI has no product there, the sea); an
+  unpinned sheet the corridor needs stops the bake and says where to look
+  the product up. Each node is the mean of the k × k pixels round it (k = 3
+  at 12 m), read from the sheet whose cell holds it: neighbouring sheets
+  overlap ~150 m on one 5 m lattice with a median difference of 0, but where
+  two come from different imagery single pixels differ by metres
+  (F13C69A4 / F13C69E1: median −2.0 m over their shared corner). A pixel of
+  nodata leaves the node on GLO-30. Heights are orthometric (NAVD 88 on seven
+  Puerto Vallarta sheets, the Mexican gravimetric geoid GGM10 on F13C58F4,
+  by each sheet's metadata). A zip reader
+  (`readZip`, CRC-checked) and the UTM forward series (Krüger, as
+  `projection.ts`) are in the module; the tests check them against Python's
+  zipfile and PROJ fixtures (`fixtures/make_inegi_fixtures.py`). Credit:
+  "Fuente: INEGI, Modelo Digital de Elevación tipo terreno con resolución
+  de 5 m, escala 1:10 000", with the transformation stated (Términos de
+  Libre Uso de la Información del INEGI: free use, commercial included).
 - **LZW.** Both sources are LZW TIFFs, so `geotiff.mjs` gained a TIFF LZW
   decoder (libtiff's early code-width change), checked against tifffile
   fixtures in `tools/worldbake/fixtures/`.
@@ -619,7 +648,9 @@ P1.3 gate compares it with GLO-90, itself a surface model.
   follow it closer. The bareGround worlds use the shortest windows that keep
   every route's grade Δ ≤ 1 pp: 200/800 m (towpath, Cleveland, Santa Monica),
   300/1200 m (Lugano, whose Locarno–Brissago reads 1.18 pp at 200/800; Santa
-  Monica's Strand reads 1.225 pp at 150/600).
+  Monica's Strand reads 1.225 pp at 150/600), 100/400 m (Puerto Vallarta,
+  0.442 / 0.204 pp; at 60/240 still 0.574 pp, but the mapped bridges start to
+  sag, 0.30 m on the 130 m one at the Malecón's start).
 - **Which GLO-30 worlds have it** (card t_e59ae310 measured the coast worlds
   against 3DEP, route samples every 10 m, 30 m box mean, samples within 8 m
   of a mapped bridge left out):
@@ -631,18 +662,22 @@ P1.3 gate compares it with GLO-90, itself a surface model.
     world has no `bridges`).
   - Berkeley: 2.6 m at most (Bay Trail 3.1–3.3 km, where GLO-30 sits on the
     ground and the profile is low), so it keeps GLO-30.
-  - Puerto Vallarta: no open DTM is wired. INEGI's Continuo de Elevaciones
-    Mexicano 3.0 is interpolated from 1:50 000 contours (whole metres, RMSE
-    4.8 m) and sits 4.1 m under GLO-30 along the open routes, scattering
-    2.5 m (median absolute deviation) round that; CEM 4.0 is the
-    ALOS PALSAR RTC terrain-correction DEM, which ASF built from SRTM
-    resampled (NED in the US). Neither is a bare-earth model at this scale.
-    INEGI's 1:10 000 tipo-terreno MDT (5 m, from satellite and airborne
-    sensors, sheets of 2014–2026; free use, commercial included, credited
-    "Fuente: INEGI") is one. On it the routes stand up to 5.2 m over the
-    ground, but at every stretch over 3 m GLO-30 is within −2.8…+1.4 m of the
-    ground: the route stands 2.5–7.4 m over its own GLO-90 profile there, so a
-    bare-ground DTM would not lower it.
+  - Puerto Vallarta (card t_be5a0778): on INEGI's 1:10 000 MDT (above)
+    with the datum read off the beaches, the published bundle (9d190b96)
+    stood up to 8.0 m over the ground on the Malecón (median +2.6 m, p95
+    +6.8 m, 325 samples over 3 m) and 8.3 m on Nuevo Vallarta–Bucerías
+    (median +3.3 m, 593 over 3 m); mapped bridges left out. Two causes, and
+    the fix needs both: GLO-30 reads the town's roofs ~3 m over the streets
+    (the first look, with the bias read over the town, put the route only
+    5.2 m up and GLO-30 on the ground), and 400/1600 m windows can't follow
+    the Malecón's dip (4.4 → 1.3 m) and 10 m climb at 1.05–1.55 km. On the MDT with
+    400/1600 the Malecón still reads 4.4 m (49 over 3 m); at 100/400 it reads
+    median −0.06 m, p95 1.16 m, max 2.07 m, none over 3 m. Nuevo
+    Vallarta–Bucerías reads median −0.01 m, p95 0.77 m; its first 30 m read
+    3.2 m (the start sits on the estuary bank, where the MDT is INEGI's 0 m
+    sea fill). INEGI's Continuo de Elevaciones Mexicano is not an
+    alternative: CEM 3.0 is interpolated from 1:50 000 contours (whole
+    metres, RMSE 4.8 m), CEM 4.0 is the ALOS PALSAR RTC DEM (resampled SRTM).
   - Chengdu: no open DTM for China; landcover puts the routes in the open.
 - **Embankments (`snap.embankment`, card t_e9889d5e).** The target keeps the
   profile's shape, and the profile (Open-Meteo GLO-90) misses relief the DTM

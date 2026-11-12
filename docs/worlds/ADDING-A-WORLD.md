@@ -117,8 +117,20 @@ from `chengdu-luxelakes.json`:
     The bake names any tile it needs and lacks.
   - Switzerland: `{ "source": "swissalti3d", "year": 2022 }`, a release every
     corridor tile has (the bake stops on a tile that only has other years).
+  - Mexico: `{ "source": "inegi-mdt-10k", "sheets": { "F13C69A4": "702825005109", … } }`,
+    INEGI's 1:10 000 MDT tipo terreno (5 m). Pin every 1:10 000 sheet the
+    corridor touches to its product: POST `res=5&mod=T&cve=<sheet>` to
+    `https://www.inegi.org.mx/app/geo2/elevacionesmex/getF10KDescarga.do` and
+    take the `upc` of the `_b.zip` (BIL) entry, or `null` where it returns
+    none (sea). The bake names any sheet it needs and lacks.
+  - In a town add `"biasFrom": "beach"` (coast worlds only). The datum bias
+    is otherwise read over flat corridor nodes clear of woodland, and in a
+    town GLO-30 reads the roofs there: Puerto Vallarta's GLO-30 − DTM is
+    +3.35 m over residential land and +0.04 m on the beaches, so an "open"
+    bias would lift the whole corridor 3 m.
   - Then shorten the `snap` offset windows as far as every route's grade Δ
-    stays ≤ 1 pp (200/800 m in Ohio and Santa Monica, 300/1200 m in Lugano), and read the
+    stays ≤ 1 pp (200/800 m in Ohio and Santa Monica, 300/1200 m in Lugano,
+    100/400 m in Puerto Vallarta), and read the
     report's `bareGround.routes`: how far each route stands over the bare
     ground (median, p95, max, samples over 3 m). P1.3 points inside the
     corridor now read the ground where the GLO-90 reference reads the canopy,
@@ -137,7 +149,7 @@ from `chengdu-luxelakes.json`:
     came down. If the ground reaches the route's height on one side, the
     route is cut into a slope and the rule leaves it alone, as it should.
   - A new source is a new `fetch…` in `bareGround.mjs`, a `BARE_GROUND_CREDITS`
-    entry and the two schema enums.
+    entry, the two schema enums and its line in `bake.mjs`'s CREDITS.md writer.
 
 ## 3. Bake
 
