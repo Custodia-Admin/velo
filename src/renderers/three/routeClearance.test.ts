@@ -208,7 +208,9 @@ describe('Perugia routes vs buildings and ground (route-line regression)', () =>
               const centroid = [0, 1, 2].map((k) => (pts[0][k] + pts[1][k] + pts[2][k]) / 3) as unknown as readonly [number, number, number];
               for (const [x, y, h] of [...pts, centroid]) {
                 vertices++;
-                const surface = lodHeightAt(hf, chunk, step, x, y);
+                // The triangles drawn there: those of the chunk under the point
+                // (a vertex past the piece's own chunk lies over the next one).
+                const surface = lodHeightAt(hf, sw.chunks[sw.locate(x, y)], step, x, y);
                 // On the drawn triangles: a 2 m chord (or a mitred corner) across a
                 // terrain fold sags under the lift by < 10 cm, i.e. at most ~5 cm under
                 // the triangles, inside the line's 12 cm minimum depth pull.

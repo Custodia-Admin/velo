@@ -141,3 +141,30 @@ export function drawnGround(
     return lodHeightAt(hf, sw.chunks[i], visibility.near[i] === 1 ? steps.near : steps.far, x, y);
   };
 }
+
+/**
+ * The terrain as every chunk draws it at LOD `step`: at world (x, y), the
+ * triangles of the chunk holding that point (off the grid, the heightfield).
+ * What a per-chunk bucket (road ribbons, route line, bridges) drapes on.
+ *
+ * A bucket draws whole segments, so the end of a segment that crosses a chunk
+ * edge lies in the neighbour chunk, and the neighbour's bucket draws that
+ * same vertex too. A height that depends only on the point gives it one
+ * height in both. Clamping the point into the bucket's own chunk (as
+ * `lodHeightAt` does) put it at the chunk-edge height in one bucket and at
+ * its true height in the other: a crack across the road, 30 cm at Locarno
+ * 3.18 km. Past the edge a vertex lies over the neighbour's triangles at
+ * this LOD. A chunk is never further from the camera than any point in it,
+ * so within the near radius both chunks at a seam draw `nearStep`.
+ */
+export function lodGround(
+  sw: Pick<SceneWorld, 'heightfield' | 'chunks' | 'locate'>,
+  step: number,
+): (x: number, y: number) => number {
+  const hf = sw.heightfield;
+  return (x, y) => {
+    const i = sw.locate(x, y);
+    if (i < 0) return hf.sampleHeight(x, y);
+    return lodHeightAt(hf, sw.chunks[i], step, x, y);
+  };
+}
