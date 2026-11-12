@@ -64,15 +64,19 @@ export function tapGear(delta: 1 | -1): void {
   shiftFromScreen(delta);
 }
 
-/** One gear easier (-1) or harder (+1); disabled at the end of the range. */
-export function GearButton({ delta, gear }: { delta: 1 | -1; gear: number }) {
+/**
+ * One gear easier (-1) or harder (+1); disabled at the end of the range.
+ * Not drawn in the TV layout (no pointer there: the handlebars and the keys
+ * shift, and the band must stay inside the overscan frame).
+ */
+export function GearButton({ delta, gear, className }: { delta: 1 | -1; gear: number; className?: string }) {
   const easier = delta < 0;
   const Icon = easier ? Minus : Plus;
   return (
     <Button
       variant="quiet"
       size="icon"
-      className="shrink-0"
+      className={cn('shrink-0 tv:hidden', className)}
       aria-label={easier ? 'Easier gear' : 'Harder gear'}
       title={easier ? 'Easier gear (- or [)' : 'Harder gear (= or ])'}
       disabled={easier ? gear <= 1 : gear >= GEAR_COUNT}
@@ -154,10 +158,13 @@ export function RideStrip({ onExit, className }: { onExit?: () => void; classNam
         <Figure className="hidden sm:flex" size="minor" value={gradeText} unit="%" label="Grade" ariaLabel={`Grade: ${gradeText} %`} />
         <Figure className="hidden sm:flex" size="minor" value={String(power)} unit="W" label="Power" ariaLabel={`Power: ${power} W`} />
         {gear !== null && (
-          <div className="hidden items-center gap-1 sm:flex" data-testid="ride-gear">
-            <GearButton delta={-1} gear={gear} />
+          // -mx-2: the buttons' own padding stands in for part of the band's
+          // gap, so the gear group keeps the figures' rhythm; items-start +
+          // -mt-1 centre the glyphs on the value line, not on value + label.
+          <div className="hidden items-start gap-1 sm:-mx-2 sm:flex tv:mx-0" data-testid="ride-gear">
+            <GearButton delta={-1} gear={gear} className="-mt-1" />
             <Figure size="minor" value={String(gear)} unit={`/ ${GEAR_COUNT}`} label="Gear" ariaLabel={`Gear ${gear} of ${GEAR_COUNT}`} />
-            <GearButton delta={1} gear={gear} />
+            <GearButton delta={1} gear={gear} className="-mt-1" />
           </div>
         )}
         {cadence > 0 && (
@@ -188,10 +195,12 @@ export function RideStrip({ onExit, className }: { onExit?: () => void; classNam
           );
           if (f.key !== 'gear' || gear === null) return figure;
           return (
+            // -my-1: the h-10 targets overhang the text-2xl line instead of
+            // making the band taller (the ride UI stays within its budget).
             <span key={f.key} className="inline-flex items-center gap-1" data-testid="ride-gear-compact">
-              <GearButton delta={-1} gear={gear} />
+              <GearButton delta={-1} gear={gear} className="-my-1" />
               {figure}
-              <GearButton delta={1} gear={gear} />
+              <GearButton delta={1} gear={gear} className="-my-1" />
             </span>
           );
         })}

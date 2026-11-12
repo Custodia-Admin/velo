@@ -181,10 +181,14 @@ test.describe('keys only at 1920×1080', () => {
     await expect(page.getByRole('button', { name: 'Pause ride' })).toBeVisible({ timeout: 90_000 });
     const boxes = await page.evaluate(() =>
       ['ride-strip', 'ride-hud'].flatMap((id) =>
-        Array.from(document.querySelectorAll(`[data-testid="${id}"] button, [data-testid="ride-strip"]`)).map((el) => {
-          const r = el.getBoundingClientRect();
-          return { what: el.getAttribute('aria-label') ?? id, l: r.left, t: r.top, r: r.right, b: r.bottom };
-        }),
+        Array.from(document.querySelectorAll(`[data-testid="${id}"] button, [data-testid="ride-strip"]`))
+          // Only what is drawn: the phone row's buttons (sm:hidden) and the
+          // gear buttons (tv:hidden) are in the DOM with an empty box.
+          .filter((el) => el.getBoundingClientRect().width > 0)
+          .map((el) => {
+            const r = el.getBoundingClientRect();
+            return { what: el.getAttribute('aria-label') ?? id, l: r.left, t: r.top, r: r.right, b: r.bottom };
+          }),
       ),
     );
     expect(boxes.length).toBeGreaterThan(3);
