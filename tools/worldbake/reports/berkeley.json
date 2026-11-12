@@ -2,24 +2,24 @@
   "world": "berkeley",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 0.2,
+    "dem": 0.1,
     "osm": 0.1,
-    "heightfield+routes": 0,
-    "vectors": 1.4,
-    "write": 2.8,
+    "heightfield+routes": 1.3,
+    "vectors": 0.5,
+    "write": 2.7,
     "validate": 0,
-    "total": 4.6
+    "total": 4.8
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 226270,
+      "stored": 226144,
       "content": 1129392,
-      "brotli": 181910
+      "brotli": 181843
     },
     "roads.json.gz": {
-      "stored": 175306,
-      "content": 507690,
-      "brotli": 125482
+      "stored": 184493,
+      "content": 528524,
+      "brotli": 130698
     },
     "water.json.gz": {
       "stored": 15879,
@@ -42,49 +42,55 @@
       "brotli": 48717
     },
     "routes.json.gz": {
-      "stored": 32914,
-      "content": 81531,
-      "brotli": 23365
+      "stored": 32804,
+      "content": 81308,
+      "brotli": 23189
+    },
+    "bridges.json.gz": {
+      "stored": 3454,
+      "content": 12692,
+      "brotli": 2691
     },
     "manifest.json": {
-      "stored": 9137,
-      "content": 9137,
-      "brotli": 2605
+      "stored": 9555,
+      "content": 9555,
+      "brotli": 2742
     }
   },
   "totals": {
-    "stored": 1007156,
-    "content": 2797423,
-    "brotli": 785246
+    "stored": 1019979,
+    "content": 2831144,
+    "brotli": 793047
   },
   "hashes": {
-    "height.bin.gz": "2203b8225aafa51b3ade480d00ea78ef624b307bc1a410d8d71c8eb06957ded1",
-    "roads.json.gz": "acb9d2dfef7ccc4b3aeebff87a17bc8c0eaec5de998a28a4dd9ed89f657a25e7",
+    "height.bin.gz": "af296861feb666310485bdc32fa24a74e8b53511cbb861b6b92a3cbeced7d785",
+    "roads.json.gz": "bd98fcabf6d9d2648027e17f10b0fe4a3faf73cd09df71b214fed7a554fd720b",
     "water.json.gz": "01ec5a5426ff5f945fed11795ee1e9515f266c6d8414407551b5f12839f192b0",
     "landcover.json.gz": "eb6c7b129cc4a3a66b58b8d6b9833553d1319679d9ee0c1c79c5144c207ad0ae",
     "buildings.bin.gz": "0c652b65fd3fb184edc05cdabe1b73ef9a37010f941dd37f477ee7e1eedc8879",
     "vegetation.bin.gz": "6f67448579494ecc9b3976891b9a6bef3ea884fd736694999021a1e9ff2561e0",
-    "routes.json.gz": "1df8ad4710e41977c1a52832a904346e54a97760512a3864f571a7e9f4c2ddd1",
-    "manifest.json": "7a3a25f44a1d86e7fa2e2ffa16ffd151a113199b242dd22a6ffbaa425982e613"
+    "routes.json.gz": "f27a201b77574d5837e78ca8152afd6e391d709030eed04fcadb91f0ff7fb562",
+    "bridges.json.gz": "3afd6cfa6799266e7fc58144526184d8f4dbe6c20314f0c38299c24fc7e1c88c",
+    "manifest.json": "27706f86319b7715e7531420147956336230885d88cc1db77f54f75fb6440311"
   },
   "routes": [
     {
       "id": "scenic-berkeley-bay-trail",
       "name": "Berkeley shoreline",
-      "lengthM": 12687.92,
+      "lengthM": 12636.98,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.104,
+      "gradeMeanAbsDiffPct": 0.11,
       "report": {
-        "samples": 1270,
-        "gradeMaxAbsDiffPct": 0.906,
-        "rawDemGradeMeanAbsDiffPct": 0.629,
-        "maxRenderMinusProfileM": 3.27
+        "samples": 1265,
+        "gradeMaxAbsDiffPct": 0.948,
+        "rawDemGradeMeanAbsDiffPct": 0.644,
+        "maxRenderMinusProfileM": 3.48
       },
       "roadCoverage": {
         "mappedPct": 100,
         "paintPctBefore": 98.96,
         "paintPct": 100,
-        "easedM": 131.8,
+        "easedM": 130.9,
         "joinedM": 0,
         "tunnelM": 0
       }
@@ -94,12 +100,12 @@
       "name": "Richmond Marina Bay",
       "lengthM": 9300.23,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.086,
+      "gradeMeanAbsDiffPct": 0.09,
       "report": {
         "samples": 931,
-        "gradeMaxAbsDiffPct": 0.725,
+        "gradeMaxAbsDiffPct": 0.838,
         "rawDemGradeMeanAbsDiffPct": 0.543,
-        "maxRenderMinusProfileM": 3.34
+        "maxRenderMinusProfileM": 3.57
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -112,19 +118,14 @@
     }
   ],
   "routeFit": {
-    "roadsBent": 20,
+    "roadsBent": 19,
     "maxShiftM": 0.7,
     "joins": 0,
     "bent": [
       {
-        "road": 468,
-        "shiftM": 0.1,
-        "mapped": "18084,12213 18005,12582"
-      },
-      {
-        "road": 470,
+        "road": 86,
         "shiftM": 0.14,
-        "mapped": "17560,12859 17593,12947 17651,13000 17690,13020 17734,13031 17770,13032 17848,13010 17887,12979 17938,12898 17980,12661 18005,12582"
+        "mapped": "18044,12115 18006,12000 17966,11935 17910,11867"
       },
       {
         "road": 488,
@@ -227,7 +228,7 @@
     "heightScale": 0.015625,
     "minHeight": -4.890625,
     "maxHeight": 219.84375,
-    "carvedNodes": 15611,
+    "carvedNodes": 15588,
     "maxCutM": 10.39
   },
   "coast": {
@@ -242,6 +243,165 @@
       "max": 9.67
     },
     "beachAreas": 6
+  },
+  "bridges": {
+    "networks": 73,
+    "pieces": 135,
+    "piers": 65,
+    "underDeckNodes": 1186,
+    "underDeckMaxCutM": 9.1,
+    "headroomPins": [
+      {
+        "road": 453,
+        "name": "Eastshore Freeway",
+        "route": "scenic-berkeley-bay-trail",
+        "routeS": 3915.37,
+        "liftM": 2.41
+      },
+      {
+        "road": 457,
+        "name": "Eastshore Freeway",
+        "route": "scenic-berkeley-bay-trail",
+        "routeS": 3935.98,
+        "liftM": 1.79
+      },
+      {
+        "road": 477,
+        "name": "John T. Knox Freeway",
+        "route": "scenic-berkeley-bay-trail",
+        "routeS": 2764.96,
+        "liftM": 1.24
+      },
+      {
+        "road": 541,
+        "name": null,
+        "route": "scenic-berkeley-bay-trail",
+        "routeS": 7730.96,
+        "liftM": 4.04
+      },
+      {
+        "road": 793,
+        "name": "Eastshore Freeway",
+        "route": "scenic-berkeley-bay-trail",
+        "routeS": 2709.8,
+        "liftM": 1.23
+      },
+      {
+        "road": 794,
+        "name": "John T. Knox Freeway",
+        "route": "scenic-berkeley-bay-trail",
+        "routeS": 2506.44,
+        "liftM": 5.58
+      },
+      {
+        "road": 794,
+        "name": "John T. Knox Freeway",
+        "route": "scenic-berkeley-bay-trail",
+        "routeS": 2529.03,
+        "liftM": 5.99
+      },
+      {
+        "road": 794,
+        "name": "John T. Knox Freeway",
+        "route": "scenic-berkeley-bay-trail",
+        "routeS": 2694.54,
+        "liftM": 4.96
+      },
+      {
+        "road": 794,
+        "name": "John T. Knox Freeway",
+        "route": "scenic-richmond-marina-bay",
+        "routeS": 664.03,
+        "liftM": 5.99
+      },
+      {
+        "road": 794,
+        "name": "John T. Knox Freeway",
+        "route": "scenic-richmond-marina-bay",
+        "routeS": 686.59,
+        "liftM": 5.58
+      }
+    ],
+    "approaches": [
+      {
+        "bridge": "Eastshore Freeway",
+        "route": "scenic-berkeley-bay-trail",
+        "routeS": 3915.37,
+        "liftM": 2.71,
+        "rampM": 67.72
+      },
+      {
+        "bridge": "Eastshore Freeway",
+        "route": "scenic-berkeley-bay-trail",
+        "routeS": 3935.98,
+        "liftM": 0.54,
+        "rampM": 13.54
+      },
+      {
+        "bridge": "John T. Knox Freeway",
+        "route": "scenic-berkeley-bay-trail",
+        "routeS": 2506.44,
+        "liftM": 4.36,
+        "rampM": 108.98
+      }
+    ],
+    "endsGrown": [
+      {
+        "road": 1350,
+        "end": 0,
+        "m": 0.1
+      }
+    ],
+    "rides": {
+      "scenic-berkeley-bay-trail": [
+        {
+          "s0": 1545.27,
+          "s1": 1597.21,
+          "r": [
+            1350
+          ]
+        },
+        {
+          "s0": 2853.72,
+          "s1": 2937.74,
+          "r": [
+            86,
+            2528,
+            2540
+          ]
+        }
+      ],
+      "scenic-richmond-marina-bay": [
+        {
+          "s0": 1596.02,
+          "s1": 1647.64,
+          "r": [
+            1350
+          ]
+        },
+        {
+          "s0": 2779.6,
+          "s1": 2801.15,
+          "r": [
+            560
+          ]
+        },
+        {
+          "s0": 3771.69,
+          "s1": 3799.67,
+          "r": [
+            571
+          ]
+        },
+        {
+          "s0": 4515.08,
+          "s1": 4541.05,
+          "r": [
+            575
+          ]
+        }
+      ]
+    }
   },
   "buildingsDropped": {
     "route": 5,
@@ -424,7 +584,7 @@
         "heightfield": 4.67,
         "nodeLat": 37.865,
         "nodeLon": -122.305,
-        "nodeHeightfield": 3.36,
+        "nodeHeightfield": 3.33,
         "nodeOpenMeteo": 4,
         "onRouteCorridor": false
       },
@@ -520,10 +680,10 @@
         "lat": 37.882,
         "lon": -122.30781,
         "openMeteo": 5,
-        "heightfield": 5.17,
+        "heightfield": 5.39,
         "nodeLat": 37.8825,
         "nodeLon": -122.30833333,
-        "nodeHeightfield": 4.71,
+        "nodeHeightfield": 4.82,
         "nodeOpenMeteo": 5,
         "onRouteCorridor": true
       },

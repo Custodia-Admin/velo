@@ -255,7 +255,7 @@ browser.
 - Elevation: 1 Copernicus DEM GLO-30 tile (1″ COG), `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM.tif`: `N37_00_W123_00`. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.
 - OpenStreetMap: Overpass API (`https://overpass-api.de/api/interpreter`), data as of 2026-11-01T00:00:00Z (attic query), layers roads, water, landcover, buildings, treerows, pois, landmarks, coast over the bounding box above. Queries are recorded in `tools/worldbake/reports/berkeley.json`.
 - Routes from `src/lib/scenicRouteData.ts` (profiles: Copernicus GLO-90 via Open-Meteo), geometry sources:
-  - `scenic-berkeley-bay-trail`: Berkeley shoreline: OSRM bike route through 3 waypoints, routing.openstreetmap.de, <https://routing.openstreetmap.de/routed-bike/route/v1/driving/-122.3247,37.9007;-122.3189,37.8718;-122.3149,37.8403?overview=full&geometries=geojson&steps=true>.
+  - `scenic-berkeley-bay-trail`: Berkeley shoreline: OSRM bike route through 4 waypoints, routing.openstreetmap.de, <https://routing.openstreetmap.de/routed-bike/route/v1/driving/-122.3247,37.9007;-122.30754,37.8868;-122.3189,37.8718;-122.3149,37.8403?overview=full&geometries=geojson&steps=true>.
   - `scenic-richmond-marina-bay`: Richmond Marina Bay: OSRM bike route through 5 waypoints, routing.openstreetmap.de, <https://routing.openstreetmap.de/routed-bike/route/v1/driving/-122.315,37.8895;-122.3343,37.9101;-122.34798,37.90767;-122.35134,37.91485;-122.35925,37.90964?overview=full&geometries=geojson&steps=true>.
 - Validation: 50 seeded Open-Meteo elevation samples (Copernicus GLO-90), not shipped.
 <!-- world:berkeley:end -->

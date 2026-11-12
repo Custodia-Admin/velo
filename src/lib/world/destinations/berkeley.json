@@ -9,7 +9,7 @@
   "detail": "The San Francisco Bay shoreline",
   "world": {
     "id": "berkeley",
-    "dir": "berkeley/7a3a25f44a1d86e7/",
+    "dir": "berkeley/27706f86319b7715/",
     "host": "remote",
     "bbox": {
       "south": 37.83162,
@@ -79,9 +79,9 @@
     },
     {
       "id": "route-scenic-berkeley-bay-trail",
-      "name": "Berkeley shoreline: OSRM bike route through 3 waypoints, routing.openstreetmap.de",
+      "name": "Berkeley shoreline: OSRM bike route through 4 waypoints, routing.openstreetmap.de",
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
-      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-122.3247,37.9007;-122.3189,37.8718;-122.3149,37.8403?overview=full&geometries=geojson&steps=true",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-122.3247,37.9007;-122.30754,37.8868;-122.3189,37.8718;-122.3149,37.8403?overview=full&geometries=geojson&steps=true",
       "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     },
     {

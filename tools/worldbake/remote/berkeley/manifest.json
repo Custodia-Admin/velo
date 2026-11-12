@@ -43,24 +43,25 @@
     "landcover": "landcover.json.gz",
     "buildings": "buildings.bin.gz",
     "vegetation": "vegetation.bin.gz",
-    "routes": "routes.json.gz"
+    "routes": "routes.json.gz",
+    "bridges": "bridges.json.gz"
   },
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 226270,
-      "sha256": "2203b8225aafa51b3ade480d00ea78ef624b307bc1a410d8d71c8eb06957ded1",
+      "bytes": 226144,
+      "sha256": "af296861feb666310485bdc32fa24a74e8b53511cbb861b6b92a3cbeced7d785",
       "compression": "gzip",
       "contentBytes": 1129392,
-      "contentSha256": "113bdffd12f797181032a51a1d84052f30b37843e7d5b638a39de300bd4d2a1b"
+      "contentSha256": "9306fbbe8485358f167f79aa9ad424a231febce458b3cf4e37a7ed94d92dc400"
     },
     {
       "path": "roads.json.gz",
-      "bytes": 175306,
-      "sha256": "acb9d2dfef7ccc4b3aeebff87a17bc8c0eaec5de998a28a4dd9ed89f657a25e7",
+      "bytes": 184493,
+      "sha256": "bd98fcabf6d9d2648027e17f10b0fe4a3faf73cd09df71b214fed7a554fd720b",
       "compression": "gzip",
-      "contentBytes": 507690,
-      "contentSha256": "72820747b1d728d017bf8c5a5b16838e2207fb6e997ce9b39dadfcf1dbcbecec"
+      "contentBytes": 528524,
+      "contentSha256": "8e84e240c2081d2b728ad641235ebd08b1d7c3865ebd51dd674ca79af1d5d584"
     },
     {
       "path": "water.json.gz",
@@ -96,11 +97,19 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 32914,
-      "sha256": "1df8ad4710e41977c1a52832a904346e54a97760512a3864f571a7e9f4c2ddd1",
+      "bytes": 32804,
+      "sha256": "f27a201b77574d5837e78ca8152afd6e391d709030eed04fcadb91f0ff7fb562",
       "compression": "gzip",
-      "contentBytes": 81531,
-      "contentSha256": "52dee995ec4c756eb84f630514f170217547d36fe0ac915d16a9e72cb93e37f7"
+      "contentBytes": 81308,
+      "contentSha256": "ff1d8157143b010b245deffd3e37b64322a09fdb1cc0a5ae08ee1228c15854b6"
+    },
+    {
+      "path": "bridges.json.gz",
+      "bytes": 3454,
+      "sha256": "3afd6cfa6799266e7fc58144526184d8f4dbe6c20314f0c38299c24fc7e1c88c",
+      "compression": "gzip",
+      "contentBytes": 12692,
+      "contentSha256": "b800341dd1dba245269fa6474b5eb303a5b10a3dec107e0dcd5d9d78933d1399"
     }
   ],
   "moods": [
@@ -207,16 +216,16 @@
     {
       "id": "scenic-berkeley-bay-trail",
       "name": "Berkeley shoreline",
-      "lengthM": 12687.92,
+      "lengthM": 12636.98,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.104
+      "gradeMeanAbsDiffPct": 0.11
     },
     {
       "id": "scenic-richmond-marina-bay",
       "name": "Richmond Marina Bay",
       "lengthM": 9300.23,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.086
+      "gradeMeanAbsDiffPct": 0.09
     }
   ],
   "stats": {
@@ -241,7 +250,9 @@
     "trees:hedgerow": 288,
     "trees:garden": 4148,
     "pois": 10,
-    "carvedNodes": 15611
+    "carvedNodes": 15588,
+    "bridgeDecks": 135,
+    "bridgePiers": 65
   },
   "credits": [
     {
@@ -274,9 +285,9 @@
     },
     {
       "id": "route-scenic-berkeley-bay-trail",
-      "name": "Berkeley shoreline: OSRM bike route through 3 waypoints, routing.openstreetmap.de",
+      "name": "Berkeley shoreline: OSRM bike route through 4 waypoints, routing.openstreetmap.de",
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
-      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-122.3247,37.9007;-122.3189,37.8718;-122.3149,37.8403?overview=full&geometries=geojson&steps=true",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-122.3247,37.9007;-122.30754,37.8868;-122.3189,37.8718;-122.3149,37.8403?overview=full&geometries=geojson&steps=true",
       "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     },
     {
@@ -290,9 +301,10 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "60c29abeefd82b58062a09f6db8a8c2a6b696303d5316a63aeca4e380b7945e7",
+    "recipeSha256": "d564609f9b4f9cf332125bcbfa946610e594323b26809b3c3a76d14e7474462e",
     "osmDate": "2026-11-01T00:00:00Z",
     "demSource": "copernicus-dem-30m/glo30-cog",
-    "demTiles": 1
+    "demTiles": 1,
+    "bridges": true
   }
 }
