@@ -49,19 +49,19 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 400088,
-      "sha256": "35b702ba9bdc00266d030076e09196d77bb4b6b70375e2cd44a35bb6eb2616d0",
+      "bytes": 400073,
+      "sha256": "4812f93dbf2bbd67bebcb0fa7e857d9e08f7898fec314bfbe2763d6f6a5a8061",
       "compression": "gzip",
       "contentBytes": 1459008,
-      "contentSha256": "fb900269b042422cd6a3eac665441e652e723624e8d5b94787852613e7f1cbe7"
+      "contentSha256": "db509af895a9658726f4309dadbcac709c6744cf58d416e8e319067766a5e888"
     },
     {
       "path": "roads.json.gz",
-      "bytes": 349578,
-      "sha256": "fd08a3a6c1b7d272cb578bd8c2c9733e867030151de6f27bdcfd0b9a35834dac",
+      "bytes": 349577,
+      "sha256": "6e864436efdcf777aa2b84bc28aef75d34cdbf58633ffa35ddb797333220c395",
       "compression": "gzip",
       "contentBytes": 1036694,
-      "contentSha256": "aa9a696779cee359f3e9c7d33d7ba4263e219e967728b31a0e8e2e477853afaf"
+      "contentSha256": "6da46dc4d245ce11701f3b8dae7f11a288023fce27e6770035320084d092fb7d"
     },
     {
       "path": "water.json.gz",
@@ -97,19 +97,19 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 33634,
-      "sha256": "7d9f80362826247cb5712e26a43c68f461c3317c0f7214d0e68d181148a84891",
+      "bytes": 33700,
+      "sha256": "2b0dc92e555817f362a76b9ef5b8a31a432ffdbb696851c385f6fb2683747fe0",
       "compression": "gzip",
-      "contentBytes": 82390,
-      "contentSha256": "0f1d2a1ab4ba73ad5d6c434a34d15bf3201ef24e1e476a204dbbbd3739f99361"
+      "contentBytes": 82406,
+      "contentSha256": "d6b0eda8b55c7a4dfdbc5551727340ad815c42c651149cba19d7ec65e39ee841"
     },
     {
       "path": "bridges.json.gz",
-      "bytes": 13784,
-      "sha256": "26650858b68b098870707194a65f46f300f28843f1940ca50c875f812c871757",
+      "bytes": 13775,
+      "sha256": "855f2302b9595c71a10e3788b9edd92f87d4f55db261bb9acd24720bb0fc2da6",
       "compression": "gzip",
       "contentBytes": 57268,
-      "contentSha256": "8dc38ff6ad43b4ce26e67316bc5ce1b27a20dae3ee230c85e42ff0221c57f675"
+      "contentSha256": "bc56dae8a41cf7d7bf57eccc4909a658694dba35ca0a621636df451981b28dca"
     }
   ],
   "moods": [
@@ -326,7 +326,7 @@
       "name": "Cleveland lakefront",
       "lengthM": 13513.64,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.531
+      "gradeMeanAbsDiffPct": 0.582
     },
     {
       "id": "scenic-wendy-park-lakewood",
@@ -416,7 +416,7 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "ebe230d94544a1465713621463391e7f0a5b921bc8d512ef677bf1e9790929e0",
+    "recipeSha256": "2525ee3c32fe637cb2c7e8a5797335fc83f6759c77ddbbf49e15f1a28c39d5c1",
     "osmDate": "2026-11-01T00:00:00Z",
     "demSource": "copernicus-dem-30m/glo30-cog",
     "demTiles": 1,

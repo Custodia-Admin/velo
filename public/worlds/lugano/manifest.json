@@ -48,11 +48,11 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 3190382,
-      "sha256": "92890a36f491ce46dd16ca0fd4e2aca6b57699f0fb543090e5b5edf928360170",
+      "bytes": 3190384,
+      "sha256": "58ce9e10d9c65ade7ced8b92a69885cb58428a8d233d6a2df2b4d0a431ece8f0",
       "compression": "gzip",
       "contentBytes": 5525468,
-      "contentSha256": "7b50c78c96fe2d61a65402666f4a768b3601977b03b95e0f1facab409bb5a148"
+      "contentSha256": "1c69bdb5266025136922f5e82ab3c6e8c7da8122b5e4d205587764588ed1b6db"
     },
     {
       "path": "roads.json.gz",
@@ -96,11 +96,11 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 26203,
-      "sha256": "2cae2365ebe03ff926381be1e8733391dfd0e36f7ce42d80ff140818c22a4efe",
+      "bytes": 26179,
+      "sha256": "b09edd62214cda7609c1915a259e6a628b38ceaeb1a19bf97f7c5aed32355897",
       "compression": "gzip",
-      "contentBytes": 68244,
-      "contentSha256": "fa5381c4edf1c0da34fda6b2dbec80e02bc21f052b1a286f5773914220387a22"
+      "contentBytes": 68210,
+      "contentSha256": "54b0ed678efa97267a5ad628f1a354974b0cf3289a5f963a5918fc4610f37fdc"
     }
   ],
   "moods": [
@@ -6768,7 +6768,7 @@
       "name": "Locarno to Brissago",
       "lengthM": 9691.39,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.865
+      "gradeMeanAbsDiffPct": 0.973
     }
   ],
   "stats": {
@@ -6835,7 +6835,7 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "536748684157afa3a0ff7636b82635a425d1b5771932fce10e87caf2920edf54",
+    "recipeSha256": "27b4305c62dcd7482f03b9543b8cf004c708abce128da389f1f9d91a0bbe9a62",
     "osmDate": "2026-10-01T00:00:00Z",
     "demSource": "copernicus-dem-30m/glo30-cog",
     "demTiles": 2,
