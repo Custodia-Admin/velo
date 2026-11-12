@@ -32,14 +32,19 @@ describe('<Roads> / <RouteLine> (r3f test renderer)', () => {
     const g = mesh.geometry;
     for (const a of ['position', 'normal', 'color', 'uv', 'marking']) expect(g.getAttribute(a)).toBeDefined();
     // Ribbon vertices sit ROAD_LIFT_M over the triangles the near terrain draws
-    // (the rider's drawnGround), not over the bilinear heightfield between them.
+    // (the rider's drawnGround), not over the bilinear heightfield between them:
+    // the triangles of the chunk under each vertex. The road runs along the
+    // chunk row edge y = 0, so its north corners lie over the next chunk.
     const pos = g.getAttribute('position');
     const step = THREE_QUALITY.medium.nearStep;
+    let past = 0;
     for (let v = 0; v < pos.count; v += 7) {
       const x = pos.getX(v) + mesh.position.x;
       const y = -(pos.getZ(v) + mesh.position.z);
-      expect(pos.getY(v)).toBeCloseTo(lodHeightAt(sw.heightfield, sw.chunks[i], step, x, y) + ROAD_LIFT_M, 3);
+      if (sw.locate(x, y) !== i) past++;
+      expect(pos.getY(v)).toBeCloseTo(lodHeightAt(sw.heightfield, sw.chunks[sw.locate(x, y)], step, x, y) + ROAD_LIFT_M, 3);
     }
+    expect(past).toBeGreaterThan(0);
 
     vis.set(i, false);
     await r.advanceFrames(1, 1 / 60);
@@ -93,7 +98,8 @@ describe('<Roads> / <RouteLine> (r3f test renderer)', () => {
     for (let v = 0; v < pos.length / 3; v += 5) {
       const x = pos[v * 3] + chunk.centerX;
       const y = -(pos[v * 3 + 2] + chunk.centerZ);
-      expect(pos[v * 3 + 1]).toBeCloseTo(lodHeightAt(sw.heightfield, chunk, THREE_QUALITY.medium.farStep, x, y) + ROUTE_LIFT_M, 3);
+      const under = sw.chunks[sw.locate(x, y)];
+      expect(pos[v * 3 + 1]).toBeCloseTo(lodHeightAt(sw.heightfield, under, THREE_QUALITY.medium.farStep, x, y) + ROUTE_LIFT_M, 3);
     }
     await r.unmount();
   });

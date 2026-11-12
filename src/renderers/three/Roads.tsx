@@ -7,8 +7,8 @@
  * the app route itself (what the rider follows), densified to 2 m, split by
  * chunk and draped on whichever LOD each chunk draws: a decal on the ground
  * with a capped depth bias, so it never shows through a building. Roads,
- * route line and rider all stand on the drawn triangles (lodHeightAt /
- * worldScene.drawnGround), never on the bilinear heightfield between them,
+ * route line and rider all stand on the drawn triangles (worldScene
+ * lodGround / drawnGround), never on the bilinear heightfield between them,
  * or on the bridge deck the route rides (worldScene.routeSurface).
  */
 
@@ -22,8 +22,7 @@ import { createRoadMaterial } from './materials/road';
 import { createRouteGuideMaterial, routePaintColor } from './materials/routeGuide';
 import type { ThreeQuality } from './quality';
 import { bucketLines, buildRibbons, type RibbonGeometryData, type RibbonLine } from './roadRibbons';
-import { lodHeightAt } from './terrainMesh';
-import { ROAD_MAX_SEG_M, routeSurface, type ChunkVisibility, type SceneWorld } from './worldScene';
+import { ROAD_MAX_SEG_M, lodGround, routeSurface, type ChunkVisibility, type SceneWorld } from './worldScene';
 
 /** Road surface lift above the drawn terrain, metres (the rider stays within 5 cm of it). */
 export const ROAD_LIFT_M = 0.03;
@@ -63,19 +62,20 @@ export function ribbonGeometry(data: RibbonGeometryData): THREE.BufferGeometry {
 
 /**
  * Ribbons of one chunk's bucket, positions relative to the chunk centre,
- * draped on the chunk's near-LOD triangles (`nearStep`), the terrain they
- * are drawn over.
+ * draped on the near-LOD triangles (`nearStep`), the terrain they are drawn
+ * over. A vertex past the chunk edge (the far end of a segment that crosses
+ * it) takes the neighbour chunk's triangles (`lodGround`), the same height
+ * the neighbour's bucket gives it, so the two never crack apart.
  */
 export function buildBucket(sw: SceneWorld, i: number, nearStep: number): RibbonGeometryData {
   const chunk = sw.chunks[i];
-  const hf = sw.heightfield;
-  return buildRibbons(hf, sw.roadBuckets[i], {
+  return buildRibbons(sw.heightfield, sw.roadBuckets[i], {
     maxSegM: ROAD_MAX_SEG_M,
     lift: ROAD_LIFT_M,
     originX: chunk.centerX,
     originZ: chunk.centerZ,
     keepSegment: (mx, my) => sw.locate(mx, my) === i,
-    groundAt: (x, y) => lodHeightAt(hf, chunk, nearStep, x, y),
+    groundAt: lodGround(sw, nearStep),
   });
 }
 
@@ -163,10 +163,12 @@ export interface RouteChunkPiece {
 
 /**
  * The route ribbon, one piece per terrain chunk it crosses, each draped on
- * the triangles that chunk draws at either LOD (`lodHeightAt`), so the line
+ * the triangles that chunk draws at either LOD (`lodGround`), so the line
  * hugs the visible ground instead of the bilinear heightfield that a coarse
- * LOD can bury. The rider stands on the same triangles (drawnGround).
- * Positions are relative to the chunk centre.
+ * LOD can bury. A vertex a piece shares with the next chunk's piece gets the
+ * same height in both (the triangles of the chunk it lies in). The rider
+ * stands on the same triangles (drawnGround). Positions are relative to the
+ * chunk centre.
  */
 export function buildRouteChunks(
   sw: SceneWorld,
@@ -175,6 +177,8 @@ export function buildRouteChunks(
   routeId?: string,
 ): RouteChunkPiece[] {
   const buckets = bucketLines([line], sw.locate, sw.chunks.length, ROUTE_MAX_SEG_M);
+  const nearGround = routeSurface(sw, routeId, lodGround(sw, steps.near));
+  const farGround = routeSurface(sw, routeId, lodGround(sw, steps.far));
   const out: RouteChunkPiece[] = [];
   buckets.forEach((b, i) => {
     if (!b.length) return;
@@ -187,14 +191,9 @@ export function buildRouteChunks(
         originZ: chunk.centerZ,
         keepSegment: (mx, my) => sw.locate(mx, my) === i,
         // On the decks this route rides, the line is painted on the deck.
-        groundAt: routeSurface(sw, routeId, groundAt),
+        groundAt,
       });
-    const hf = sw.heightfield;
-    out.push({
-      chunk: i,
-      near: piece((x, y) => lodHeightAt(hf, chunk, steps.near, x, y)),
-      far: piece((x, y) => lodHeightAt(hf, chunk, steps.far, x, y)),
-    });
+    out.push({ chunk: i, near: piece(nearGround), far: piece(farGround) });
   });
   return out;
 }

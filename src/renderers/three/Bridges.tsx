@@ -1,8 +1,9 @@
 /**
  * Bridge structures (bridgeDecks.ts): slab, parapets and piers under every
  * baked deck, one mesh per terrain chunk and LOD (the deck ends meet the
- * terrain that chunk draws), frustum-culled by chunk. Nothing in a world
- * baked without bridges. The road ribbon on top is Roads.tsx's.
+ * terrain drawn at that LOD, worldScene.lodGround), frustum-culled by
+ * chunk. Nothing in a world baked without bridges. The road ribbon on top
+ * is Roads.tsx's.
  */
 
 import { useEffect, useMemo } from 'react';
@@ -13,8 +14,7 @@ import { buildBridgeGeometry, type BridgeGeometryData, type DeckPiece } from './
 import { createAtmosphere, patchWorldMaterial, type WorldAtmosphere } from './materials/atmosphere';
 import type { ThreeQuality } from './quality';
 import { bucketLines, type RibbonLine } from './roadRibbons';
-import { lodHeightAt } from './terrainMesh';
-import { ROAD_MAX_SEG_M, type ChunkVisibility, type SceneWorld } from './worldScene';
+import { ROAD_MAX_SEG_M, lodGround, type ChunkVisibility, type SceneWorld } from './worldScene';
 
 /** Weathered concrete (sRGB #8f8b84). */
 const CONCRETE = new THREE.Color(0x8f8b84);
@@ -65,7 +65,8 @@ export function buildBridgeChunks(sw: SceneWorld, steps: { near: number; far: nu
         originZ: chunk.centerZ,
         keepSegment: (mx, my) => sw.locate(mx, my) === i,
         keepPier: (x, y) => sw.locate(x, y) === i,
-        groundAt: (x, y) => lodHeightAt(hf, chunk, step, x, y),
+        // Deck ends past the chunk edge meet the neighbour's triangles, as the road on them does.
+        groundAt: lodGround(sw, step),
       });
     out.push({ chunk: i, near: build(steps.near), far: build(steps.far) });
   }

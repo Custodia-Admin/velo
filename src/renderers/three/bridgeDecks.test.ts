@@ -5,8 +5,9 @@
  * Plus every shipped world baked with bridges: no route passes under a deck
  * with less than the bake's headroom, every ridden deck carries the rider,
  * walked every half metre of the line the rider follows the rider is on the
- * ground off its ridden spans and on that span's own deck on them, and no
- * deck kinks where pins fight.
+ * ground off its ridden spans and on that span's own deck on them, no
+ * deck kinks where pins fight, the structures meet across terrain chunk
+ * seams and the route line is painted up on the decks it rides.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -28,6 +29,11 @@ import {
   type DeckPiece,
 } from './bridgeDecks';
 import { buildRibbons, roadLines } from './roadRibbons';
+import { buildBridgeChunks } from './Bridges';
+import { sharedVertices } from './chunkSeams';
+import { THREE_QUALITY } from './quality';
+import { ROUTE_LIFT_M, ROUTE_WIDTH_M, buildRouteChunks } from './Roads';
+import { createSceneWorld } from './worldScene';
 
 /** Flat ground at 100 m, 21 × 21 nodes at 10 m from (0, 0) to (200, 200). */
 const spec = { cols: 21, rows: 21, cellSize: 10, xMin: 0, yMax: 200, heightOffset: 100, heightScale: 1 / 64 };
@@ -284,4 +290,62 @@ describe.each(BUNDLES.map((b: { id: string; dir: string }) => [b.id, b.dir]))('s
       .map(([road, k]) => `road ${road}: ${k!.riseM.toFixed(2)} m within 6 m at ${k!.s.toFixed(1)} m, ${k!.aboveM.toFixed(2)} m up`);
     expect(kinks).toEqual([]);
   }, 60_000);
+
+  it('draws its bridges whole across terrain chunk seams, and the route line up on the decks it rides, at both LODs of every tier', async () => {
+    const w = await loadWorld(`/worlds/${id}/`, { fetch: diskFetch });
+    const sw = createSceneWorld(w);
+    const hf = w.heightfield;
+    const bad: string[] = [];
+    let seams = 0;
+    let onDeck = 0;
+    // Every tier's LOD steps (medium and high share theirs).
+    const tiers = [...new Map(Object.values(THREE_QUALITY).map((q) => [`${q.nearStep}/${q.farStep}`, q])).entries()];
+    for (const [tier, q] of tiers) {
+      const steps = { near: q.nearStep, far: q.farStep };
+      const bridges = buildBridgeChunks(sw, steps);
+      const routes = w.routes.map((r) => {
+        const pts: number[] = [];
+        for (let i = 0; i < r.s.length; i++) pts.push(r.x[i], r.y[i]);
+        return { r, pieces: buildRouteChunks(sw, { points: pts, width: ROUTE_WIDTH_M, color: [1, 1, 1], marking: 0 }, steps, r.id) };
+      });
+      for (const lod of ['near', 'far'] as const) {
+        // A deck end past a chunk edge stands on the same ground in both chunks' pieces.
+        const shared = sharedVertices(bridges.map((b) => ({ chunk: sw.chunks[b.chunk], positions: b[lod].positions })));
+        seams += shared.length;
+        const worst = shared.reduce((m, s) => (Math.abs(s.ha - s.hb) > Math.abs(m.ha - m.hb) ? s : m), { x: 0, y: 0, a: 0, b: 0, ha: 0, hb: 0 });
+        if (Math.abs(worst.ha - worst.hb) > 0.001)
+          bad.push(`${tier} ${lod}: bridge pieces ${Math.abs(worst.ha - worst.hb).toFixed(3)} m apart at a chunk seam (${worst.x.toFixed(1)}, ${worst.y.toFixed(1)})`);
+        // Up on a ridden deck the route line is painted on the deck, not on the ground under it.
+        for (const { r, pieces } of routes) {
+          // Line vertices on a 1 m grid.
+          const grid = new Map<string, { x: number; y: number; h: number }[]>();
+          for (const p of pieces) {
+            const c = sw.chunks[p.chunk];
+            const pos = p[lod].positions;
+            for (let v = 0; v < pos.length; v += 3) {
+              const pt = { x: pos[v] + c.centerX, y: -(pos[v + 2] + c.centerZ), h: pos[v + 1] };
+              const k = `${Math.floor(pt.x)},${Math.floor(pt.y)}`;
+              grid.set(k, [...(grid.get(k) ?? []), pt]);
+            }
+          }
+          for (const span of w.bridges!.rides[r.id] ?? []) {
+            for (let i = 0; i < r.s.length; i++) {
+              if (r.s[i] < span.s0 || r.s[i] > span.s1 || r.h[i] - hf.sampleHeight(r.x[i], r.y[i]) < 1) continue;
+              const cx = Math.floor(r.x[i]);
+              const cy = Math.floor(r.y[i]);
+              const near = [-1, 0, 1]
+                .flatMap((a) => [-1, 0, 1].flatMap((b) => grid.get(`${cx + a},${cy + b}`) ?? []))
+                .filter((v) => Math.hypot(v.x - r.x[i], v.y - r.y[i]) < 0.5);
+              onDeck++;
+              const off = Math.max(...near.map((v) => Math.abs(v.h - ROUTE_LIFT_M - r.h[i])));
+              if (!near.length || off > 0.15) bad.push(`${tier} ${lod}: ${r.id} line ${off.toFixed(2)} m off its deck at ${r.s[i]} m`);
+            }
+          }
+        }
+      }
+    }
+    expect(seams, 'bridge vertices two chunk pieces share').toBeGreaterThan(0);
+    if (Object.values(w.bridges!.rides).some((spans) => spans.length)) expect(onDeck, 'route samples up on a ridden deck').toBeGreaterThan(0);
+    expect(bad.slice(0, 12)).toEqual([]);
+  }, 120_000);
 });
