@@ -24,10 +24,11 @@
   "host": "remote",
   "routeCredits": true,
   "bridges": true,
+  "bareGround": { "source": "usgs-3dep-13", "tiles": { "n42w082": "20230911" } },
   "snap": {
     "stepM": 10,
-    "offsetMedianM": 400,
-    "offsetMeanM": 1600,
+    "offsetMedianM": 200,
+    "offsetMeanM": 800,
     "coreCells": 1.5,
     "falloffM": 40
   },

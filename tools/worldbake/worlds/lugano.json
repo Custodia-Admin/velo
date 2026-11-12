@@ -13,10 +13,11 @@
     "scenic-lake-varese": "Lake Varese is in Lombardy, 25 km south-west of Lugano.",
     "scenic-lake-como-menaggio": "Menaggio to Gravedona is on Lake Como, 20 km east of Lugano."
   },
+  "bareGround": { "source": "swissalti3d", "year": 2022 },
   "snap": {
     "stepM": 10,
-    "offsetMedianM": 400,
-    "offsetMeanM": 1600,
+    "offsetMedianM": 300,
+    "offsetMeanM": 1200,
     "coreCells": 1.5,
     "falloffM": 40
   },
