@@ -96,6 +96,60 @@ builds), so nothing piles up behind them.
 | #105 0cae127 (specs on low) | 14 passed (11.0 min) | n/a (not timed on low) | n/a |
 | 43130528642, c061b67 (medium) | 12 passed, 1 flaky, 1 failed (8.3 min) | 13,432 ms | 2 in flight, 6.6 s per frame |
 | **43133133507, 5ddd194 (medium)** | **14 passed, none flaky (4.1 min)** | **1,773 ms** | 1 in flight, 5.6 s per frame |
+| 43134159341 #1, e4da85b (docs only) | 13 passed, 1 flaky (7.4 min) | 3,259 ms | 1 in flight, 6.6 s per frame |
+| 43134159341 #2, e4da85b | 14 passed, none flaky (7.4 min) | 5,722 ms | 1 in flight, 5.7 s per frame |
+| 43134159341 #3, e4da85b | 13 passed, 1 flaky (7.2 min) | 3,565 ms | 1 in flight, 6.9 s per frame |
+
+Flaky runs:
+- **#1, `tv-remote.spec.ts:116`:** the ring check (below).
+- **#3, `viewport-1280.spec.ts:96`:** Home's lazy route sections didn't mount
+  in 30 s; the retry passed in 6.4 s. This test is flaky without this change
+  too, on low: main 43112262620, #105 43114272509 and p3.1b 43110335218 among
+  the last ~20 CI runs of other branches. The same test failed both tries in
+  c061b67's run.
+
+Other branches' smoke-ride e2e took 5.3–13.1 min in that period (main
+8.1–11.1 min).
+
+With one frame in flight, the way Home waits at most for the frame on the GPU:
+one runner frame, 5.6–6.6 s, minus the time on the finish page.
+
+### The flaky tv-remote run (43134159341 #1)
+
+`tv-remote.spec.ts:116` failed its first try and passed on retry. Right after
+the first arrow press in the ride, no `page.evaluate` of the ring check
+returned within 5 s. Playwright reports "waiting on the predicate" with no
+received value, so the page's main thread didn't answer at all.
+
+It didn't reproduce on cat-bed pinned to 1 core, where SwiftShader takes
+4–5 s per frame, close to the runner. The probe pressed ArrowDown when "Pause
+ride" showed and timed an evaluate every 100 ms for 25 s
+(`frame-gate/main-thread-stalls-1core.jsonl`, `stall_probe.py`):
+
+- Slowest evaluate: 9–54 ms in every run (gate, base, and a 1-frame warm-up
+  variant).
+- Longest main-thread task: 20–130 ms. None reached 1 s.
+- rAF gaps were 3–5 s. That is Chrome not issuing frames while SwiftShader
+  holds the core, not a blocked page.
+
+In the traced 1-core runs over 25 s, the page's main thread was busy 482 ms
+with the gate (2 % of a core; rAF callbacks 227 ms in total) against 304 ms on
+base. The GPU process's main thread was busy 13.5 s against 22.7 s. Holding
+frames doesn't make the page burn CPU or block on the GPU. The runner's stall
+remains unexplained: 1 test in 4 medium CI runs of the head's code, passed on
+retry. tv-remote has failed on low on other branches too (overscan test,
+43126212411).
+
+Allowing 1 frame before the GPU is timed (instead of 2) delayed "Pause ride"
+from 3.8 s to 12.3 s after the ride URL in the 1-core runs. `ReadySignal`
+waits for 2 drawn frames, so the head keeps 2.
+
+### Slower software GL on cat-bed, 5ddd194
+
+| Cores | base Finish → Home | branch Finish → Home | branch in flight, per frame |
+|---|---|---|---|
+| 4 (3 runs, 10 s ride) | 35.7 / 39.0 / 36.0 s | 0.41 / 0.71 / 0.04 s | 2–3, 1.4–1.5 s |
+| 2 (2 runs, 15 s ride) | 64.3 / 69.1 s | 0.59 / 0.27 s | 2, 2.4 s |
 
 In c061b67's run:
 - **smoke-ride failed once, then passed on retry.** It read the meter's frame
@@ -103,9 +157,10 @@ In c061b67's run:
   runs at the rAF rate while the GPU catches up, so no drawn-frame interval had
   landed yet. The spec now polls for it.
 - **viewport-1280's Home test failed twice.** Home's lazy route sections didn't
-  mount within 30 s, and the final screenshot shows them in place. It passed on
-  5ddd194 in CI, and on cat-bed alongside smoke-ride and finish-cover
-  (2 workers, 4 cores) on the gate build.
+  mount within 30 s, and the final screenshot shows them in place. This flake
+  predates this change (see below). It passed on 5ddd194 in CI, and on cat-bed
+  alongside smoke-ride and finish-cover (2 workers, 4 cores) on the gate
+  build.
 
 ### The same specs on cat-bed
 
