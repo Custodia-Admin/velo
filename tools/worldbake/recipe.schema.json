@@ -99,7 +99,18 @@
         "offsetMedianM": { "type": "number" },
         "offsetMeanM": { "type": "number" },
         "coreCells": { "type": "number" },
-        "falloffM": { "type": "number" }
+        "falloffM": { "type": "number" },
+        "embankment": {
+          "type": "object",
+          "description": "Bare-ground worlds: where the fitted route stands more than maxM over the ground at the route and over all ground out to acrossM on both sides (and is not on or within 20 m of a mapped bridge or tunnel), lower it to maxM over the ground, easing back over rampM along the route (snapRoutes.mjs embankmentLowering). Needs bareGround.",
+          "required": ["maxM"],
+          "additionalProperties": false,
+          "properties": {
+            "maxM": { "type": "number", "minimum": 0 },
+            "acrossM": { "type": "number", "minimum": 10, "default": 40 },
+            "rampM": { "type": "number", "exclusiveMinimum": 0, "default": 150 }
+          }
+        }
       }
     },
     "vegetation": {

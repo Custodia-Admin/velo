@@ -137,6 +137,126 @@ export function gradeSeries(s, h, half) {
 
 const round2 = (v) => Math.round(v * 100) / 100;
 
+/** Embankment check: the ground across the route is read every this many metres out to `acrossM`. */
+export const EMBANKMENT_ACROSS_STEP_M = 10;
+/** Route samples within this distance (along the route) of a bridge or tunnel never count as an embankment. */
+export const EMBANKMENT_STRUCTURE_MARGIN_M = 20;
+
+/** The recipe's `snap.embankment` with defaults, checked. Null when the recipe has none. */
+export function embankmentOptions(snap) {
+  const e = snap?.embankment;
+  if (e === undefined) return null;
+  if (!e || typeof e !== 'object') throw new Error('recipe snap.embankment must be an object');
+  const out = { maxM: e.maxM, acrossM: e.acrossM ?? 40, rampM: e.rampM ?? 150 };
+  if (!(out.maxM >= 0) || !(out.acrossM >= EMBANKMENT_ACROSS_STEP_M) || !(out.rampM > 0)) {
+    throw new Error(`recipe snap.embankment: maxM must be ≥ 0, acrossM ≥ ${EMBANKMENT_ACROSS_STEP_M} and rampM > 0`);
+  }
+  return out;
+}
+
+/**
+ * `(x, y) => true` on a mapped bridge or tunnel (within its half-width + 1 m),
+ * from a roads layer in dm (buildVectors.buildRoads). Grid-indexed by 50 m cell.
+ */
+export function structureLookup(roads) {
+  const CELL = 50;
+  const cells = new Map();
+  const segs = [];
+  for (const r of roads.roads) {
+    if (!((r.f ?? 0) & 3)) continue; // ROAD_FLAGS bridge | tunnel
+    const half = (r.w ?? roads.widths[r.c]) / 2 + 1;
+    for (let i = 0; i + 3 < r.p.length; i += 2) {
+      const seg = [r.p[i] / 10, r.p[i + 1] / 10, r.p[i + 2] / 10, r.p[i + 3] / 10, half];
+      const k = segs.push(seg) - 1;
+      const c0 = Math.floor((Math.min(seg[0], seg[2]) - half) / CELL), c1 = Math.floor((Math.max(seg[0], seg[2]) + half) / CELL);
+      const r0 = Math.floor((Math.min(seg[1], seg[3]) - half) / CELL), r1 = Math.floor((Math.max(seg[1], seg[3]) + half) / CELL);
+      for (let cy = r0; cy <= r1; cy++) {
+        for (let cx = c0; cx <= c1; cx++) {
+          const key = `${cx},${cy}`;
+          if (!cells.has(key)) cells.set(key, []);
+          cells.get(key).push(k);
+        }
+      }
+    }
+  }
+  return (x, y) => {
+    for (const k of cells.get(`${Math.floor(x / CELL)},${Math.floor(y / CELL)}`) ?? []) {
+      const [ax, ay, bx, by, half] = segs[k];
+      const dx = bx - ax, dy = by - ay;
+      const l2 = dx * dx + dy * dy;
+      const t = l2 > 0 ? Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
+      if (Math.hypot(ax + dx * t - x, ay + dy * t - y) <= half) return true;
+    }
+    return false;
+  };
+}
+
+/**
+ * Embankments (recipe `snap.embankment`, bare-ground worlds only).
+ *
+ * The target keeps the profile's shape, and the profile (GLO-90 via
+ * Open-Meteo) misses relief the bare-ground DTM has: a hollow the path dips
+ * through, the flat foot of a hill the road only climbs after. There the
+ * slow offset can't follow and the carve builds the route up as an
+ * embankment (Cleveland lakefront 1.2 km stood 8.2 m over the 3DEP ground,
+ * Locarno–Brissago 2.8 km 19 m over swissALTI3D). A sample counts when the
+ * target stands more than `maxM` over the ground at the route AND over the
+ * ground every `EMBANKMENT_ACROSS_STEP_M` out to `acrossM` on both sides:
+ * where the ground rises to the route's height on one side, the route is a
+ * road cut into a slope and stays as it is. Samples on or within
+ * `EMBANKMENT_STRUCTURE_MARGIN_M` of a mapped bridge or tunnel never count
+ * (the DTM reads the river or the hill there). Each one lowers the target by
+ * its excess over `maxM`, easing back over `rampM` along the route (a
+ * smoothstep; the largest lowering wins). The render's grade departs from the
+ * profile's on the two ramps, so `maxM` is set per world as low as every
+ * route's grade Δ stays ≤ 1 pp.
+ *
+ * Returns the lowering per sample and the runs of samples that counted.
+ */
+export function embankmentLowering({ s, x, y, target, raw, groundAt, structure, maxM, acrossM, rampM }) {
+  const n = s.length;
+  const near = new Uint8Array(n);
+  if (structure) {
+    for (let i = 0; i < n; i++) {
+      if (!structure(x[i], y[i])) continue;
+      for (let k = i; k >= 0 && s[i] - s[k] <= EMBANKMENT_STRUCTURE_MARGIN_M; k--) near[k] = 1;
+      for (let k = i + 1; k < n && s[k] - s[i] <= EMBANKMENT_STRUCTURE_MARGIN_M; k++) near[k] = 1;
+    }
+  }
+  const excess = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    if (near[i] || !(target[i] - raw[i] > maxM)) continue;
+    const a = Math.max(0, i - 1), b = Math.min(n - 1, i + 1);
+    const dx = x[b] - x[a], dy = y[b] - y[a];
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    let over = true;
+    for (let o = EMBANKMENT_ACROSS_STEP_M; over && o <= acrossM + 1e-9; o += EMBANKMENT_ACROSS_STEP_M) {
+      if (groundAt(x[i] + nx * o, y[i] + ny * o) >= target[i] || groundAt(x[i] - nx * o, y[i] - ny * o) >= target[i]) over = false;
+    }
+    if (over) excess[i] = target[i] - raw[i] - maxM;
+  }
+  const lower = new Float64Array(n);
+  const runs = [];
+  for (let j = 0; j < n; j++) {
+    if (!(excess[j] > 0)) continue;
+    const last = runs[runs.length - 1];
+    if (last && j - last.j1 === 1) {
+      last.j1 = j;
+      last.lowerM = Math.max(last.lowerM, excess[j]);
+    } else runs.push({ j0: j, j1: j, lowerM: excess[j] });
+    for (let i = j; i >= 0 && s[j] - s[i] < rampM; i--) {
+      const u = (s[j] - s[i]) / rampM;
+      lower[i] = Math.max(lower[i], excess[j] * (1 - u * u * (3 - 2 * u)));
+    }
+    for (let i = j + 1; i < n && s[i] - s[j] < rampM; i++) {
+      const u = (s[i] - s[j]) / rampM;
+      lower[i] = Math.max(lower[i], excess[j] * (1 - u * u * (3 - 2 * u)));
+    }
+  }
+  return { lower, runs: runs.map((r) => ({ s0: round2(s[r.j0]), s1: round2(s[r.j1]), lowerM: round2(r.lowerM) })) };
+}
+
 /**
  * Steps 1–3: resample every route and carve the float grid in place.
  * Returns the per-route samples for `finishRoutes`.
@@ -144,9 +264,14 @@ const round2 = (v) => Math.round(v * 100) / 100;
  * `skip(routeIndex, s0, s1)`, when given, leaves the route segment between
  * those two sample distances out of the carve (the middle of a deck the
  * route rides: bridges.mjs). Without it every segment is carved, as before.
+ *
+ * With `snap.embankment` the target is lowered where it would stand on an
+ * embankment (`embankmentLowering`); `structure(x, y)` marks the mapped
+ * bridges and tunnels that never count (`structureLookup`).
  */
-export function carveRoutes({ grid, heights, projection, routes, snap, skip }) {
+export function carveRoutes({ grid, heights, projection, routes, snap, skip, structure }) {
   const { stepM, offsetMedianM, offsetMeanM, coreCells, falloffM } = snap;
+  const embank = embankmentOptions(snap);
   const core = coreCells * grid.cellSize;
   const reach = core + falloffM;
   const xMax = grid.xMin + (grid.cols - 1) * grid.cellSize;
@@ -171,8 +296,16 @@ export function carveRoutes({ grid, heights, projection, routes, snap, skip }) {
       Math.round(offsetMeanM / stepM / 2),
       mean,
     );
-    const target = closeLoop(rs.s, x, y, rs.ele.map((e, i) => e + offset[i]), { stepM, rampM: offsetMedianM });
-    prepared.push({ id: r.id, name: r.name, lengthM: app.total, s: rs.s.map(round2), x, y, profile: rs.ele, raw, target });
+    let fitted = rs.ele.map((e, i) => e + offset[i]);
+    let embankments = null;
+    if (embank) {
+      const groundAt = (px, py) => sampleFloatGrid(grid, heights, px, py);
+      const res = embankmentLowering({ s: rs.s, x, y, target: fitted, raw, groundAt, structure, ...embank });
+      fitted = fitted.map((t, i) => t - res.lower[i]);
+      embankments = res.runs;
+    }
+    const target = closeLoop(rs.s, x, y, fitted, { stepM, rampM: offsetMedianM });
+    prepared.push({ id: r.id, name: r.name, lengthM: app.total, s: rs.s.map(round2), x, y, profile: rs.ele, raw, target, ...(embankments ? { embankments } : {}) });
   }
 
   // Nearest-route target per node.
@@ -284,6 +417,7 @@ export function finishRoutes({ prepared, hf, snap, surface }) {
         gradeMaxAbsDiffPct: Math.round(maxDiff * 1000) / 1000,
         rawDemGradeMeanAbsDiffPct: Math.round((sumRaw / h.length) * 1000) / 1000,
         maxRenderMinusProfileM: Math.round(Math.max(...h.map((v, i) => Math.abs(v - p.profile[i]))) * 100) / 100,
+        ...(p.embankments ? { embankments: p.embankments } : {}),
       },
     });
   }

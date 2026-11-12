@@ -30,7 +30,8 @@
     "offsetMedianM": 200,
     "offsetMeanM": 800,
     "coreCells": 1.5,
-    "falloffM": 40
+    "falloffM": 40,
+    "embankment": { "maxM": 3 }
   },
   "vegetation": {
     "seed": 41505,
@@ -66,7 +67,7 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.0078,
+    "steep_fraction": 0.0077,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,

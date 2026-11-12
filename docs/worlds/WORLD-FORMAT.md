@@ -153,7 +153,11 @@ natively, without Node's web-stream wrapper.
      step) has the target ramped over 400 m at each end so both ends meet
      at their mean (`closeLoop`): the ground at the start/finish has one
      height, and without the ramp Chengdu's Xinglong loop stepped 3 m in
-     its first 10 m;
+     its first 10 m. With `snap.embankment` (bare-ground worlds), where the
+     target would stand more than `maxM` over the ground at the route and
+     over all ground out to `acrossM` on both sides, it comes down to
+     `maxM` over the ground, eased back over `rampM` along the route
+     (`embankmentLowering`; see "Bare ground" below);
   2. nodes within `1.5 × cellSize` of the route take the target; the next
      40 m blend back to the natural terrain (smoothstep), like a road
      embankment or cutting.
@@ -614,6 +618,38 @@ P1.3 gate compares it with GLO-90, itself a surface model.
   follow it closer. The bareGround worlds use the shortest windows that keep
   every route's grade Δ ≤ 1 pp: 200/800 m (towpath, Cleveland), 300/1200 m
   (Lugano, whose Locarno–Brissago reads 1.18 pp at 200/800).
+- **Embankments (`snap.embankment`, card t_e9889d5e).** The target keeps the
+  profile's shape, and the profile (Open-Meteo GLO-90) misses relief the DTM
+  has. There the slow offset can't follow and the carve builds the route up
+  as an embankment. The Cleveland bikeway dips 9.5 m through a hollow at
+  1.1–1.3 km (3DEP 195.5 → 186.0 → 196.9 m over 1.0–1.4 km) that the profile
+  lacks, and the route stood 8.2 m over the ground. Locarno–Brissago runs on
+  the flat foot of the hill at 2.8 km (swissALTI3D 205.5 m) while the profile
+  is already climbing, and the road only climbs after it (13 % to 3.05 km);
+  the route stood 19 m over the ground.
+  `"embankment": { "maxM": 3, "acrossM": 40, "rampM": 150 }` in `snap`
+  (acrossM and rampM are the defaults) lowers the target wherever it stands
+  more than maxM over the ground at the route AND over the ground every 10 m
+  out to acrossM on both sides. Where the ground reaches the route's height
+  on one side the route is a road cut into a slope and stays as it is
+  (Lugano–Melide 3.3 km, Locarno–Brissago 4.58 km, Wendy Park 2.72 km).
+  Samples on or within 20 m of a mapped bridge or tunnel never count, because
+  the DTM reads the river or the hill there (without that rule the Cleveland
+  bake brought the Detroit–Superior deck down 7 m). Each sample that counts
+  lowers the target by its excess over maxM, eased back over rampM along the
+  route (a smoothstep; the largest lowering wins). The render's grade departs
+  from the profile's on those ramps, so maxM is set per world as low as every
+  route's grade Δ stays ≤ 1 pp: 3 m in Cleveland (lakefront 0.531 → 0.582 pp),
+  7 m in Lugano (Locarno–Brissago 0.865 → 0.973 pp; maxM 6 reads 0.990, 3
+  reads 1.041). The log's `embankment:` lines and each route's
+  `report.embankments` list what came down. Locarno–Brissago 2.8 km doesn't
+  reach 3 m inside the budget (maxM 3 reads 1.041 pp). A linear program over
+  every render = profile + offset that holds 2.75–2.90 km within 3 m of the
+  DTM and puts no other sample further from it than today finds 0.92–0.99 pp
+  only by re-shaping the offset along the whole route and bending the render
+  sharper than a 1000 m vertical curve, or by swinging it at the window's own
+  200 m period, which the window can't see; held to a 1000 m vertical curve
+  its least is 1.026 pp.
 
 Checks on the bake host, 4 Nov 2026 (Node 26):
 
@@ -807,8 +843,9 @@ Locarno–Brissago −0.12 / +8.0 / +19.0 m (was +0.89 / +13.9 / +22.3 m).
 Woodland is a small part of either route (169 and 46 of the samples), and the
 rest of what remains is the fit, not canopy: on 30–40° shore slopes the
 route profile (the GLO-90 north-west node) rises or falls a few hundred
-metres away from where the road does (Locarno–Brissago at 2.7–2.9 km climbs
-11 m on swissALTI3D, 9 m on the profile, 100 m earlier), and the 15 m grid
+metres away from where the road does (Locarno–Brissago at 2.4–2.8 km runs on
+the flat foot of the hill, swissALTI3D 209 → 205.5 m, while the profile
+climbs 11 m; the road then climbs 13 % to 3.05 km), and the 15 m grid
 cannot hold a road terrace. Shorter windows close more of it but break the
 1 pp grade budget (1.18 pp at 200/800). The swap reaches 91 m at a node
 under the Arbostora cliffs above Melide, where a 30 m DSM and a 2 m DTM
@@ -816,6 +853,17 @@ disagree by a cliff's height; P1.3 reads 1.84 m (1.81 m before). Size is
 unchanged at 7.41 MB brotli. Shots at Lugano–Melide 3.30 km and
 Locarno–Brissago 2.80 km, before and after, show the rider on the road and
 no new artefacts.
+
+**Embankment** (re-baked 12 Nov 2026, card t_e9889d5e). With
+`snap.embankment: { "maxM": 7 }` Locarno–Brissago comes down by up to 11.8 m
+at 2.71–2.84 km: over swissALTI3D (geo.admin.ch height API, every 20 m) it
+stands at most 7.3 m at 2.75–2.90 km (19.0 m before), and the route's max
+over the bare ground is now 12.7 m at 4.58 km, a road cut into a slope.
+Grade Δ 0.865 → 0.973 pp; the largest local departure is 7.2 pp (3.9 before)
+on the ramp at 2.8–2.9 km, where the render climbs 12 % like the road and the
+profile 5 %. Lugano–Melide is unchanged (its 8.9 m at 3.3 km is a slope).
+P1.3 1.84 m PASS and 7.41 MB brotli, as before; only `height.bin.gz`,
+`routes.json.gz` and `manifest.json` change.
 
 **On the routes (GLO-30, 6 Nov).** swissALTI3D (2 m lidar terrain, `api3.geo.admin.ch`,
 LN02 heights) every 250 m puts the GLO-30 route 4.7–4.9 m high on average.
@@ -937,17 +985,24 @@ GLO-30 and OSM as of 1 Nov 2026, with `bridges`.
 | Bake time | 7 s from cache |
 | Determinism | an `--out` bake and the committed bake: identical bytes for all 9 files |
 | Size | 1.35 MB as shipped (gzip), 1.05 MB brotli, 3.67 MB raw |
-| Routes | 13.51 km and 8.11 km: max gap 0 m; grade Δ 0.531 / 0.506 pp (0.339 / 0.362 before bare ground); 100 % within 1 m of mapped roads; guide 100 % on drawn roads (37 m and 202 m eased, no joins) |
-| Heightfield vs Open-Meteo, 50 seeded points (seed 41505) | P1.3 v2: `standard` (steep fraction 0.0078), registered **0.67 m ≤ 6.00 m, PASS**; point RMS 1.80 m (0.52 m / 2.02 m before bare ground) |
+| Routes | 13.51 km and 8.11 km: max gap 0 m; grade Δ 0.582 / 0.506 pp (0.531 / 0.506 before `snap.embankment`, 0.339 / 0.362 before bare ground); 100 % within 1 m of mapped roads; guide 100 % on drawn roads (37 m and 202 m eased, no joins) |
+| Heightfield vs Open-Meteo, 50 seeded points (seed 41505) | P1.3 v2: `standard` (steep fraction 0.0077), registered **0.67 m ≤ 6.00 m, PASS**; point RMS 1.80 m (0.52 m / 2.02 m before bare ground) |
 | Heightfield range | 163.9–228.4 m; 126,979 nodes within 450 m of the routes on 3DEP (lowered 1.6 m on average); 16,591 nodes carved (max 11.9 m; 25.1 m before) |
 | Bridges | 222 decks, 11 pieces ridden, among them the Detroit–Superior Bridge (792 m, up to 18.6 m over the Flats) and West 3rd Street over the railway; the route passes under the Memorial Shoreway at six places (and at 2.62 km runs beside it on its own cycleway, never on the motorway deck) and the Lakeland Freeway at two; 10 headroom pins, 19 abutments on approach ramps (13 of them on the uncarved ground; lift over the built-on ground ≤ 6.2 m, the Shoreway at 0.24 km, as before) to keep 4.5 m headroom; 1,336 nodes lowered under decks (the Main Avenue viaduct's DSM ridge, max 10.3 m); 437 piers and abutment blocks |
-| Route over the bare ground (3DEP) | lakefront median 0.0 m, p95 2.0 m, max 8.2 m; Wendy Park 0.1 / 2.1 / 4.5 m (before: −0.6 / 3.9 / 10.3 m and 2.3 / 6.2 / 8.0 m). The 8.2 m is the bikeway at 1.1–1.3 km on the rim of the Shoreway's cutting, which the 10 m DTM blurs into the bikeway; the 4.5 m is Wendy Park's path up the Edgewater bluff, steeper than the route profile |
+| Route over the bare ground (3DEP) | lakefront median 0.0 m, p95 1.8 m, max 3.1 m; Wendy Park 0.1 / 2.1 / 4.5 m (before bare ground: −0.6 / 3.9 / 10.3 m and 2.3 / 6.2 / 8.0 m; before `snap.embankment` the lakefront read 0.0 / 2.0 / 8.2 m). The 8.2 m was the bikeway at 1.1–1.3 km crossing a 9.5 m hollow in 3DEP (195.5 m at 1.0 km, 186.0 m at 1.2 km, 196.9 m at 1.4 km) that the GLO-90 route profile lacks, standing over all ground within ±40 m; `snap.embankment` (`maxM` 3) brings it down 5.2 m to 3.0 m. The 4.5 m is Wendy Park's path up the Edgewater bluff, steeper than the route profile, where the ground reaches the path's height upslope |
 | Content | 15,627 road pieces, 30 water areas + 6 waterways, 1,376 landcover areas, 16,014 buildings, 26,469 trees |
 
 Lake Erie is the world's largest water area (61.6 km² of lake polygon in the
 extent), drawn level with the shore; the route stays on the shore paths.
 Re-baked 12 Nov 2026 with `bareGround: usgs-3dep-13` (card t_06b010ec),
-published as `worlds/cleveland-lakefront/4c3b6830cb6e1933/`.
+published as `worlds/cleveland-lakefront/4c3b6830cb6e1933/`. Re-baked again
+12 Nov 2026 with `snap.embankment: { "maxM": 3 }` (card t_e9889d5e),
+published as `worlds/cleveland-lakefront/0a7c4428c7248715/`: the lakefront
+comes down 5.2 m at 1.15–1.30 km and up to 1.6 m beside the Shoreway
+underpass at 0.18–0.29 km, which shortens the Shoreway's approach ramps
+(148.7 → 113.1 m over 3 m); headroom pins and abutment lifts stay within
+0.05 m. The largest local grade departure is 3.1 pp (2.7 before). Size, P1.3
+and determinism as in the table.
 
 ### Adding a world
 
