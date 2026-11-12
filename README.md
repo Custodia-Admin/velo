@@ -142,8 +142,9 @@ first. The project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 - World data: © OpenStreetMap contributors (ODbL); produced using Copernicus
   WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH
   2014-2018 provided under COPERNICUS by the European Union and ESA, all
-  rights reserved; Mapzen/AWS terrain tiles; OSRM. Weather data by
-  Open-Meteo.com (CC BY 4.0).
+  rights reserved; U.S. Geological Survey 3DEP; Source: Federal Office of
+  Topography swisstopo (swissALTI3D); Mapzen/AWS terrain tiles; OSRM. Weather
+  data by Open-Meteo.com (CC BY 4.0).
 - Every source, licence and attribution: [NOTICE.md](NOTICE.md) and
   [docs/worlds/CREDITS.md](docs/worlds/CREDITS.md).
 
