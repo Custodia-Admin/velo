@@ -89,11 +89,11 @@
     },
     {
       "path": "vegetation.bin.gz",
-      "bytes": 1028340,
-      "sha256": "2d61aef682dbba670da47749e29208caee7a2b9aafe892eaccf27e545d6fdd36",
+      "bytes": 660012,
+      "sha256": "0c0721317325a156a67fe1cf2ae20d7ae8b51d1225530a4133753bab4a5729dd",
       "compression": "gzip",
-      "contentBytes": 1920016,
-      "contentSha256": "70483b32b3921cea37135f32113c7e0f851bf5ac0742bbae66e8e2b8dcde9cf4"
+      "contentBytes": 1200016,
+      "contentSha256": "9b79e8eb1ab99ce17f98ac98653208e606937a3f5bfa578d6da20761850880a0"
     },
     {
       "path": "routes.json.gz",
@@ -1339,12 +1339,12 @@
     "buildings:old-town": 657,
     "buildings:rural": 842,
     "buildings:industrial": 886,
-    "trees": 320000,
-    "trees:broadleaf": 279911,
-    "trees:conifer": 5358,
-    "trees:scrub": 1775,
-    "trees:olive": 132,
-    "trees:park": 778,
+    "trees": 200000,
+    "trees:broadleaf": 163294,
+    "trees:conifer": 3102,
+    "trees:scrub": 1030,
+    "trees:olive": 80,
+    "trees:park": 448,
     "trees:cypress": 814,
     "trees:riparian": 10006,
     "trees:hedgerow": 9375,
@@ -1401,7 +1401,7 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "fe68692db00d9a00b5348d4bf50c06b47e84384de7a72808e0ac8047946cdef1",
+    "recipeSha256": "bc11eb088f8b60efcd3d0988ae118926fb1ddf238ab8228bf80a490810013ad6",
     "osmDate": "2026-11-01T00:00:00Z",
     "demSource": "copernicus-dem-30m/glo30-cog",
     "demTiles": 2,

@@ -39,7 +39,7 @@
   },
   "vegetation": {
     "seed": 46180,
-    "maxInstances": 320000,
+    "maxInstances": 200000,
     "spacingM": {
       "forest": 11,
       "wood": 11,
@@ -50,6 +50,10 @@
     "character": {
       "gardenKeep": 0.35,
       "riparianM": 30
+    },
+    "corridor": {
+      "m": 300,
+      "keep": 0.3
     }
   },
   "moods": [
