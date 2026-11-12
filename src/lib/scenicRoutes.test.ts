@@ -5,11 +5,14 @@ import {
   estimateEasyMinutes,
   homeFirstScenicRoutes,
   randomScenicRoute,
+  scenicHasWorld,
   scenicRole,
   scenicRouteById,
   scenicRoutesWithRole,
+  suggestedScenicRoutes,
   todaysScenicRoute,
 } from '@/lib/scenicRoutes';
+import { WORLD_CATALOG, worldForRoute, type WorldCatalogEntry } from '@/lib/world/catalog';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
 import { MOODS } from '@/lib/cesiumUtils';
@@ -136,27 +139,86 @@ describe('Easy & Scenic collection', () => {
     expect(c.route.id).not.toBe(a.route.id);
   });
 
-  // The picks as they were when routes carried their own `area` field
-  // (before the destination manifests became the one source): the home pool
-  // is the Perugia rides in library order, not in perugia.json's order.
+  // The home pool is the Perugia rides in library order, not in perugia.json's
+  // order. Trasimeno lies west of the Perugia world's bbox (12.05–12.14° E vs
+  // a 12.317° E edge), so it rides in the classic view.
   const TRASIMENO = 'scenic-trasimeno-shore';
   const TIBER = 'scenic-perugia-tiber-park';
   const ASSISI = 'scenic-assisi-valley';
+  const ids = (list: { route: { id: string } }[]) => list.map((r) => r.route.id);
+  const day = (d: number) => new Date(2026, 0, 1 + d, 12);
+  /** The shipped catalog with Trasimeno baked into the Perugia world. */
+  const withTrasimeno: WorldCatalogEntry[] = WORLD_CATALOG.map((w) =>
+    w.id === 'perugia' ? { ...w, routeIds: [...w.routeIds, TRASIMENO] } : w,
+  );
 
-  it('rotates today’s ride through the home routes in library order', () => {
-    expect(scenicRoutesWithRole('home').map((r) => r.route.id)).toEqual([TRASIMENO, TIBER, ASSISI]);
-    const days = Array.from({ length: 6 }, (_, d) => todaysScenicRoute(new Date(2026, 0, 1 + d, 12)).route.id);
-    expect(days).toEqual([TRASIMENO, TIBER, ASSISI, TRASIMENO, TIBER, ASSISI]);
-    for (let d = 0; d < 400; d++) expect(scenicRole(todaysScenicRoute(new Date(2026, 0, 1 + d, 12)).route.id)).toBe('home');
+  it('rotates today’s ride through the home routes a baked world draws, in library order', () => {
+    expect(ids(scenicRoutesWithRole('home'))).toEqual([TRASIMENO, TIBER, ASSISI]);
+    expect(scenicHasWorld(scenicRouteById(TRASIMENO)!)).toBe(false);
+    expect(ids(suggestedScenicRoutes())).toEqual([TIBER, ASSISI]);
+    expect(Array.from({ length: 6 }, (_, d) => todaysScenicRoute(day(d)).route.id)).toEqual([
+      TIBER, ASSISI, TIBER, ASSISI, TIBER, ASSISI,
+    ]);
   });
 
-  it('random pick stays near home (Perugia) and lookups work', () => {
-    expect([0, 0.34, 0.67, 0.999].map((x) => randomScenicRoute(() => x).route.id)).toEqual([TRASIMENO, TIBER, ASSISI, ASSISI]);
-    for (const x of [0, 0.4, 0.999]) {
+  it('never features a route without a baked world, on any day', () => {
+    for (let d = 0; d < 1000; d++) {
+      const pick = todaysScenicRoute(day(d));
+      expect(worldForRoute(pick.route), `${day(d).toDateString()}: ${pick.route.id}`).not.toBeNull();
+      expect(scenicRole(pick.route.id)).toBe('home');
+    }
+    // 12 Nov 2026 featured Trasimeno, which the owner then rode in the classic view.
+    expect(todaysScenicRoute(new Date(2026, 10, 12, 9)).route.id).not.toBe(TRASIMENO);
+  });
+
+  it('a route joins the rotation once its world is baked, by id or by bounds (no list to edit)', () => {
+    const pool = suggestedScenicRoutes(1, withTrasimeno);
+    expect(ids(pool)).toEqual([TRASIMENO, TIBER, ASSISI]);
+    expect(new Set(Array.from({ length: 3 }, (_, d) => todaysScenicRoute(day(d), pool).route.id))).toEqual(
+      new Set([TRASIMENO, TIBER, ASSISI]),
+    );
+    // A world whose bounds hold the whole route draws it too (worldForRoute's bbox rule).
+    const t = scenicRouteById(TRASIMENO)!;
+    const lats = t.route.points.map((p) => p.lat);
+    const lons = t.route.points.map((p) => p.lon);
+    const around: WorldCatalogEntry = {
+      id: 'trasimeno',
+      name: 'Trasimeno',
+      dir: 'trasimeno/',
+      remote: true,
+      bbox: { south: Math.min(...lats) - 0.01, north: Math.max(...lats) + 0.01, west: Math.min(...lons) - 0.01, east: Math.max(...lons) + 0.01 },
+      routeIds: [],
+    };
+    expect(ids(suggestedScenicRoutes(1, [...WORLD_CATALOG, around]))).toEqual([TRASIMENO, TIBER, ASSISI]);
+  });
+
+  it('falls back to any route a world draws, then the home routes, when too few home routes have one', () => {
+    const noPerugia = WORLD_CATALOG.filter((w) => w.id !== 'perugia');
+    const away = suggestedScenicRoutes(1, noPerugia);
+    expect(away.length).toBeGreaterThan(2);
+    for (const r of away) expect(scenicHasWorld(r, noPerugia)).toBe(true);
+    expect(away.map((r) => scenicRole(r.route.id))).not.toContain('home');
+    // Remote worlds (Chengdu, Ohio, the coast) count like any other.
+    expect(ids(away)).toEqual(expect.arrayContaining(['scenic-chengdu-luxe-lakes', 'scenic-cuyahoga-towpath', 'scenic-santa-monica-strand']));
+    // Only Tiber baked (by id; bounds that hold no other route): one is enough
+    // for Today's ride, not for a "next" ring of two.
+    const nowhere = { south: 0, west: 0, north: 0.1, east: 0.1 };
+    const tiberOnly = WORLD_CATALOG.map((w) => (w.id === 'perugia' ? { ...w, bbox: nowhere, routeIds: [TIBER] } : w));
+    expect(ids(suggestedScenicRoutes(1, tiberOnly))).toEqual([TIBER]);
+    expect(suggestedScenicRoutes(2, tiberOnly).length).toBeGreaterThan(2);
+    // No world at all: the home routes, as before worlds existed.
+    expect(ids(suggestedScenicRoutes(1, []))).toEqual([TRASIMENO, TIBER, ASSISI]);
+  });
+
+  it('random pick stays near home (Perugia), in a baked world, and lookups work', () => {
+    expect([0, 0.34, 0.67, 0.999].map((x) => randomScenicRoute(() => x).route.id)).toEqual([TIBER, TIBER, ASSISI, ASSISI]);
+    for (const x of [0, 0.4, 0.5, 0.999]) {
       const pick = randomScenicRoute(() => x);
       expect(scenicRole(pick.route.id)).toBe('home');
+      expect(scenicHasWorld(pick)).toBe(true);
       expect(startKm(pick, HOME)).toBeLessThan(40);
     }
+    expect(randomScenicRoute(() => 0, suggestedScenicRoutes(1, withTrasimeno)).route.id).toBe(TRASIMENO);
     expect(scenicRouteById('scenic-lugano-melide')?.name).toContain('Lugano');
     expect(scenicRouteById('nope')).toBeUndefined();
   });

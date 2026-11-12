@@ -292,13 +292,10 @@ export interface DestinationSection {
 }
 
 /**
- * The wishlist line says once, for the whole section, that its places ride
- * on the map (no per-tile badge when every tile would carry it, UI-RULES §7).
+ * The wishlist line. Which places still ride in the classic view is said on
+ * their own tiles (the "Classic view" tag), so the line never repeats it.
  */
-function wishlistDetail(list: readonly Destination[]): string {
-  if (list.every((d) => d.world === null)) return '3D worlds coming; these ride on the map today';
-  return 'Lakes, coasts and cities on our list';
-}
+const WISHLIST_DETAIL = 'Lakes, coasts and cities on our list';
 
 /**
  * Home's sections: one per home and hometown destination ("Perugia",
@@ -325,7 +322,7 @@ export function homeSections(list: readonly Destination[] = DESTINATIONS, labels
       id: 'wishlist',
       role: 'wishlist',
       title: WISHLIST_TITLE,
-      detail: wishlistDetail(wish),
+      detail: WISHLIST_DETAIL,
       entries: worldFirst(wish.flatMap(entriesOf)),
     });
   }

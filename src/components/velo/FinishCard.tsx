@@ -32,7 +32,7 @@ import { useRideExport } from '@/hooks/useRideExport';
 import { computeMetrics } from '@/lib/metrics';
 import { ghostVerdict } from '@/lib/play/coupleGhost';
 import { computeAscentM, listRides } from '@/lib/rideHistory';
-import { SCENIC_ROUTES, scenicRoutesWithRole, todaysScenicRoute, type ScenicRouteInfo } from '@/lib/scenicRoutes';
+import { suggestedScenicRoutes, todaysScenicRoute, type ScenicRouteInfo } from '@/lib/scenicRoutes';
 import { cn, formatDuration } from '@/lib/utils';
 import { postersFor } from '@/lib/world/posters';
 import { useCoupleGhostStore } from '@/stores/coupleGhostStore';
@@ -108,13 +108,12 @@ export function secondaryStats(
 }
 
 /**
- * "Tomorrow, maybe": the home route after this one in catalogue order
- * (never the route just ridden). Rides away from home get tomorrow's
- * featured home route instead.
+ * "Tomorrow, maybe": the suggested route (a home route in a baked world)
+ * after this one in catalogue order, never the route just ridden. Any other
+ * ride gets tomorrow's featured route instead.
  */
 export function nextScenicRoute(currentId: string | undefined, now: Date): ScenicRouteInfo | null {
-  const near = scenicRoutesWithRole('home');
-  const pool = near.length > 1 ? near : SCENIC_ROUTES;
+  const pool = suggestedScenicRoutes(2);
   if (pool.length < 2) return null;
   const at = pool.findIndex((r) => r.route.id === currentId);
   if (at >= 0) return pool[(at + 1) % pool.length];

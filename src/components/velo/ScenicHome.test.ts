@@ -12,6 +12,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import { SCENIC_ROUTES, todaysScenicRoute } from '@/lib/scenicRoutes';
 import { DESTINATIONS, homeSections, validateDestination } from '@/lib/world/destinations';
+import { worldForRoute } from '@/lib/world/catalog';
 import { ScenicHomeSections, homeSectionViews } from './ScenicHome';
 
 // The public build (no VITE_HOUSEHOLD_LABELS), whatever a local env file says.
@@ -39,17 +40,23 @@ describe('ScenicHomeSections', () => {
     expect([...tiles, today.route.id].sort()).toEqual(SCENIC_ROUTES.map((r) => r.route.id).sort());
   });
 
-  it('leads wishlist tiles with the place and keeps map-view honest per section', () => {
+  it('features a route a baked world draws, with no Classic view tag', () => {
+    expect(worldForRoute(today.route)).not.toBeNull();
+    const featured = out.slice(out.indexOf('data-testid="featured-scenic-ride"'), out.indexOf('data-destination-section='));
+    expect(featured).not.toContain('Classic view');
+  });
+
+  it('leads wishlist tiles with the place and tags exactly the classic-view routes', () => {
     expect(out).toMatch(/<h4[^>]*>Hangzhou<\/h4>/);
     expect(out).toContain('West Lake loop · Zhejiang, China');
-    // Hometown mixes the Lugano world with map rides: those carry the badge.
+    // Hometown mixes the Lugano world with classic-view rides: those carry the tag.
     const hometown = out.slice(out.indexOf('data-destination-section="lugano"'), out.indexOf('data-destination-section="wishlist"'));
-    expect(hometown.match(/Map view/g)).toHaveLength(4);
+    expect(hometown.match(/>Classic view</g)).toHaveLength(4);
     expect(hometown).toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*"/);
-    expect(hometown).not.toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*, map view"/);
-    // The wishlist now mixes too: the places with a world lead (Chengdu,
-    // Cleveland, the Cuyahoga Valley, then the coast worlds), the map rides
-    // carry the badge.
+    expect(hometown).not.toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*, classic view"/);
+    // The wishlist mixes too: the places with a world lead (Chengdu,
+    // Cleveland, the Cuyahoga Valley, then the coast worlds), the classic-view
+    // rides carry the tag.
     const wishlist = out.slice(out.indexOf('data-destination-section="wishlist"'));
     const wishTiles = [...wishlist.matchAll(/data-scenic-route="([^"]+)"/g)].map((m) => m[1]);
     const worldTiles = [
@@ -68,16 +75,17 @@ describe('ScenicHomeSections', () => {
     ];
     expect(wishTiles.slice(0, worldTiles.length)).toEqual(worldTiles);
     expect(wishlist).toMatch(/aria-label="Ride Towpath: Lock 39 to Station Road in Cuyahoga Valley, [^"]*"/);
-    expect(wishlist).not.toMatch(/aria-label="Ride Towpath: Lock 39 to Station Road in Cuyahoga Valley, [^"]*, map view"/);
+    expect(wishlist).not.toMatch(/aria-label="Ride Towpath: Lock 39 to Station Road in Cuyahoga Valley, [^"]*, classic view"/);
     expect(wishlist).toMatch(/aria-label="Ride Will Rogers to Venice in Santa Monica, [^"]*"/);
-    expect(wishlist).not.toMatch(/aria-label="Ride (Berkeley shoreline|Richmond Marina Bay|Santa Monica to Hermosa Beach|Will Rogers to Venice|Puerto Vallarta bayfront|Nuevo Vallarta to Bucerías) in [^"]*, map view"/);
+    expect(wishlist).not.toMatch(/aria-label="Ride (Berkeley shoreline|Richmond Marina Bay|Santa Monica to Hermosa Beach|Will Rogers to Venice|Puerto Vallarta bayfront|Nuevo Vallarta to Bucerías) in [^"]*, classic view"/);
     expect(wishlist).toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*"/);
     expect(wishlist).toMatch(/aria-label="Ride Xinglong Lake loop in Chengdu, [^"]*"/);
-    expect(wishlist).not.toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*, map view"/);
-    expect(wishlist).not.toMatch(/aria-label="Ride Xinglong Lake loop in Chengdu, [^"]*, map view"/);
-    expect(wishlist).toMatch(/aria-label="Ride West Lake loop in Hangzhou, [^"]*, map view"/);
-    expect(wishlist.match(/>Map view</g)).toHaveLength(wishTiles.length - worldTiles.length);
-    expect(out).not.toContain('3D worlds coming; these ride on the map today');
+    expect(wishlist).not.toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*, classic view"/);
+    expect(wishlist).not.toMatch(/aria-label="Ride Xinglong Lake loop in Chengdu, [^"]*, classic view"/);
+    expect(wishlist).toMatch(/aria-label="Ride West Lake loop in Hangzhou, [^"]*, classic view"/);
+    expect(wishlist.match(/>Classic view</g)).toHaveLength(wishTiles.length - worldTiles.length);
+    expect(out).not.toContain('Map view');
+    expect(out).not.toContain('3D worlds coming');
   });
 });
 

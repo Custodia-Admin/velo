@@ -4,7 +4,7 @@
  * On-system per docs/design/UI-RULES.md (tokens only).
  */
 
-import { Clapperboard, Map as MapIcon, Play } from 'lucide-react';
+import { Clapperboard, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSettingsStore, type UnitSystem } from '@/stores/settingsStore';
@@ -36,6 +36,29 @@ function distanceText(meters: number, units: UnitSystem): string {
 /** A route's figures line, as every scenic surface shows it: "10.9 km · flat · about 35 min". */
 export function scenicFigures(info: ScenicRouteInfo, units: UnitSystem): string {
   return `${distanceText(info.route.totalDistance, units)} · ${characterText(info)} · about ${info.estMinutes} min`;
+}
+
+/** The tag's words, and what screen readers hear in a tile's label. */
+export const CLASSIC_VIEW = 'Classic view';
+
+/**
+ * The one quiet marker on a route no baked world draws yet: it still rides,
+ * in the classic view (Cesium photoreal, or the map without a token), not
+ * the Velo world. Shown exactly where `worldForRoute` finds no world, so a
+ * route loses it the day its world is baked.
+ */
+export function ClassicViewTag({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex h-5 items-center rounded-pill bg-muted px-2 text-xs font-medium text-muted-foreground',
+        className,
+      )}
+      data-classic-view=""
+    >
+      {CLASSIC_VIEW}
+    </span>
+  );
 }
 
 export interface ScenicPickProps {
@@ -74,6 +97,7 @@ export function FeaturedScenicRide({
   // Home's one primary action: where a TV remote lands first.
   const primary = useNavPrimary();
   const posters = postersFor(info.route.id);
+  const hasWorld = worldForRoute(info.route) !== null;
   const plateClass = 'aspect-4/3 w-full sm:aspect-video sm:max-h-hero-fit';
   return (
     <figure
@@ -94,6 +118,7 @@ export function FeaturedScenicRide({
         <span className="text-sm text-muted-foreground">{info.description}</span>
         <RouteProfile route={info.route} className="mt-1 h-8" />
         <span className="num text-base font-semibold text-foreground">{scenicFigures(info, units)}</span>
+        {!hasWorld && <ClassicViewTag className="self-start" />}
         <WeatherLine entry={weather} prefix="Now" onRetry={onRetryWeather} />
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
           <Button
@@ -134,15 +159,12 @@ function ScenicRouteTile({
   isActive,
   onRide,
   weather,
-  flagMapView,
   place,
 }: {
   info: ScenicRouteInfo;
   isActive: boolean;
   onRide: (info: ScenicRouteInfo) => void;
   weather?: WeatherEntry;
-  /** Say "Map view" on this tile: only where an area mixes 3D worlds and map rides. */
-  flagMapView: boolean;
   /** Lead with the place instead of the route (the wishlist): its name, then route · region. */
   place?: TilePlace;
 }) {
@@ -158,7 +180,7 @@ function ScenicRouteTile({
     <button
       type="button"
       onClick={() => onRide(info)}
-      aria-label={`Ride ${info.name}${place && place.title !== info.name ? ` in ${place.title}` : ''}, ${text}${weatherText}${hasWorld ? '' : ', map view'}`}
+      aria-label={`Ride ${info.name}${place && place.title !== info.name ? ` in ${place.title}` : ''}, ${text}${weatherText}${hasWorld ? '' : `, ${CLASSIC_VIEW.toLowerCase()}`}`}
       aria-pressed={isActive}
       data-scenic-route={info.route.id}
       className="group flex flex-col gap-1 rounded-lg text-left"
@@ -176,19 +198,14 @@ function ScenicRouteTile({
       >
         {place?.title ?? info.name}
       </h4>
-      <span className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="num font-semibold text-foreground">{text}</span>
-        {flagMapView && (
-          <span className="inline-flex h-6 items-center gap-1 rounded-pill bg-muted px-2 text-xs font-semibold text-foreground">
-            <MapIcon className="h-4 w-4" aria-hidden />
-            Map view
-          </span>
-        )}
-      </span>
-      {hasWorld
-        ? // Offline is said once, on Today's ride; tiles just omit the line.
-          weather?.status !== 'unavailable' && <WeatherLine entry={weather} prefix="Now" />
-        : flagMapView && <span className="text-sm text-muted-foreground">3D world coming; rides on the map today</span>}
+      <span className="num text-sm font-semibold text-foreground">{text}</span>
+      {hasWorld ? (
+        // Offline is said once, on Today's ride; tiles just omit the line.
+        weather?.status !== 'unavailable' && <WeatherLine entry={weather} prefix="Now" />
+      ) : (
+        // In the weather line's slot, so a row of tiles keeps one rhythm.
+        <ClassicViewTag className="self-start" />
+      )}
       {place && <span className="text-sm text-muted-foreground">{place.line}</span>}
     </button>
   );
@@ -219,20 +236,15 @@ export function ScenicRouteGrid({
   placeById?: Record<string, TilePlace | undefined>;
   className?: string;
 }) {
-  // A badge must carry information (UI-RULES §7): "Map view" only where the
-  // area mixes 3D worlds and map rides. In an all-map area it would repeat.
-  const withWorld = routes.map((r) => worldForRoute(r.route) !== null);
-  const mixed = withWorld.includes(true) && withWorld.includes(false);
   return (
     <div className={cn(gridCols(routes.length), className)}>
-      {routes.map((info, i) => (
+      {routes.map((info) => (
         <ScenicRouteTile
           key={info.route.id}
           info={info}
           isActive={info.route.id === activeRouteId}
           onRide={onRide}
           weather={weatherById?.[info.route.id]}
-          flagMapView={mixed && !withWorld[i]}
           place={placeById?.[info.route.id]}
         />
       ))}

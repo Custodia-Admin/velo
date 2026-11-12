@@ -197,10 +197,10 @@ describe('Home sections are generated from the manifests', () => {
     // Chengdu is the first wishlist place with a 3D world: its two routes lead.
     expect(wish.entries.slice(0, 2).map((e) => e.routeId)).toEqual(['scenic-chengdu-luxe-lakes', 'scenic-chengdu-xinglong-lake']);
     expect(wish.entries.slice(0, 2).every((e) => e.hasWorld)).toBe(true);
-    // Not every place rides on the map any more, so the line stops saying so.
+    // The tiles say which places ride in the classic view, so the line never does.
     expect(wish.detail).toBe('Lakes, coasts and cities on our list');
-    const allMap = order.map((d) => ({ ...d, world: null }));
-    expect(homeSections(allMap).at(-1)!.detail).toBe('3D worlds coming; these ride on the map today');
+    const allClassic = order.map((d) => ({ ...d, world: null }));
+    expect(homeSections(allClassic).at(-1)!.detail).toBe('Lakes, coasts and cities on our list');
   });
 
   it('a new manifest becomes a new section or tile, with no code change', () => {
@@ -210,7 +210,7 @@ describe('Home sections are generated from the manifests', () => {
     const hometown2 = validateDestination(base({ id: 'como', name: 'Como', role: 'hometown', order: 2, routes: ['scenic-como'] }));
     expect(homeSections([...DESTINATIONS, hometown2], false).map((x) => x.title)).toContain('Como');
     expect(homeSections([...DESTINATIONS, hometown2], true).map((x) => x.title)).toContain('Hometown · Como');
-    // Once a wishlist place gets a world, the section line stops saying "map".
+    // With a world or without, the section line never says "map".
     const baked = validateDestination(
       base({ id: 'w', world: { id: 'w', dir: 'w/', bbox: { south: 0, west: 0, north: 1, east: 1 }, routes: ['scenic-test'] } }),
     );

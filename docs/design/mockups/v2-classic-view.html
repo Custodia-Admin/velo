@@ -1,0 +1,192 @@
+<!doctype html>
+<!--
+  Velo v2: the "Classic view" tag (card t_35109bbf, 12 Nov 2026). Home's Perugia
+  and Lugano sections plus the Build-your-own scenic cards, with one quiet tag on
+  every route no baked world draws yet (it rides in the classic Cesium view).
+  Replaces the "Map view" badge + "3D world coming; rides on the map today" line
+  of v2-home.html / v2-home-destinations.html. Tiles: the tag takes the weather
+  line's slot; wizard cards: inline after the figures (wraps at 390).
+  Same kit as v2-home.html (v2-kit.css, v2-data.js). ?theme=night for night.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Velo — Classic view tag (v2 mockup)</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="v2-kit.css" />
+<script src="v2-data.js"></script>
+<script src="v2-kit.js"></script>
+<style>
+  .intro { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s-6); flex-wrap: wrap; padding-top: var(--s-6); }
+  .intro h1 { font-size: var(--text-3xl); line-height: var(--lh-3xl); }
+  .riders { display: flex; gap: var(--s-2); }
+  .hero { margin-top: var(--s-6); position: relative; }
+  .hero .plate { aspect-ratio: 16 / 9; max-height: calc(100vh - 13rem); width: 100%; }
+  .label {
+    position: absolute; left: var(--s-6); bottom: var(--s-6); width: 27rem;
+    background: hsl(var(--background)); color: hsl(var(--foreground));
+    border-radius: var(--radius); padding: var(--s-6); box-shadow: var(--shadow-md);
+    display: flex; flex-direction: column; gap: var(--s-2);
+  }
+  .label h2 { font-size: var(--text-4xl); line-height: var(--lh-4xl); }
+  .label .actions { display: flex; gap: var(--s-3); margin-top: var(--s-3); }
+  .label .profile { height: var(--s-8); margin-top: var(--s-1); }
+  .comfort { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; margin-top: var(--s-5); font-size: var(--text-sm); }
+  .comfort b { font-weight: 600; }
+  section.area { margin-top: var(--s-12); }
+  .area-h { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); }
+  .area-h h3 { font-size: var(--text-2xl); line-height: var(--lh-2xl); }
+  .grid { display: grid; gap: var(--s-8) var(--s-6); margin-top: var(--s-5); }
+  .grid.two { grid-template-columns: repeat(2, 1fr); }
+  .grid.three { grid-template-columns: repeat(3, 1fr); }
+  .tile { display: flex; flex-direction: column; gap: var(--s-1); color: inherit; text-decoration: none; border-radius: var(--radius); }
+  .tile .plate, .tile .mapplate { aspect-ratio: 3 / 2; margin-bottom: var(--s-2); }
+  .tile h4 { font-size: var(--text-xl); line-height: var(--lh-xl); }
+  .tile .meta { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; font-size: var(--text-sm); line-height: var(--lh-sm); }
+  .tile .mapplate .badge { position: absolute; left: var(--s-3); top: var(--s-3); background: hsl(var(--background)); }
+  .weather { display: inline-flex; align-items: center; gap: var(--s-1-5); }
+  @media (max-width: 1023px) { .grid.three { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 639px) {
+    .intro { padding-top: var(--s-4); gap: var(--s-4); }
+    .intro h1 { font-size: var(--text-2xl); line-height: var(--lh-2xl); }
+    .hero .plate { aspect-ratio: 4 / 3; max-height: none; }
+    .label { position: static; width: auto; padding: var(--s-4) 0 0; box-shadow: none; background: transparent; }
+    .label h2 { font-size: var(--text-3xl); line-height: var(--lh-3xl); }
+    .label .actions { flex-direction: column; }
+    .label .actions .btn { width: 100%; }
+    .grid.two, .grid.three { grid-template-columns: 1fr; }
+    section.area { margin-top: var(--s-10); }
+    .topbar .devices-label { display: none; }
+  }
+
+  .badge.quietb { height: var(--s-5); color: hsl(var(--muted-foreground)); font-weight: 500; }
+  .tline { display: flex; margin-top: var(--s-1); }
+
+  .wiz { margin-top: var(--s-12); border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--card)); padding: var(--s-4); }
+  .wiz p.h { font-size: var(--text-sm); font-weight: 600; margin-bottom: var(--s-3); }
+  .wiz .cards { display: grid; gap: var(--s-2); grid-template-columns: 1fr 1fr; }
+  .wiz .card { display: flex; flex-direction: column; justify-content: center; min-height: var(--s-16); border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius) - 0.125rem); background: hsl(var(--card)); padding: var(--s-2) var(--s-3); }
+  .wiz .card .n { font-family: var(--font-display); font-weight: 600; font-size: var(--text-lg); line-height: var(--lh-lg); }
+  .wiz .card .f { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); font-size: var(--text-sm); line-height: var(--lh-sm); color: hsl(var(--muted-foreground)); }
+  .tagc { font-size: var(--text-sm); color: hsl(var(--muted-foreground)); }
+  @media (max-width: 639px) { .wiz .cards { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="page-x">
+  <div class="col topbar">
+    <span class="wordmark">Velo</span>
+    <nav class="row" aria-label="App">
+      <button class="btn outline" aria-label="Devices: trainer connected"><i data-icon="bluetooth"></i><span class="devices-label">KICKR CORE</span><span class="dot on" aria-hidden="true"></span></button>
+      <button class="btn ghost icon-only" aria-label="Settings"><i data-icon="settings" class="lg"></i></button>
+    </nav>
+  </div>
+</header>
+
+<main class="page-x">
+  <div class="col">
+    <div class="intro">
+      <h1 class="display">Where to today?</h1>
+      <div class="riders" role="radiogroup" aria-label="Who's riding">
+        <button class="pill" role="radio" aria-checked="true"><span class="avatar">M</span>Marco</button>
+        <button class="pill" role="radio" aria-checked="false"><span class="avatar">R</span>Rider 2</button>
+      </div>
+    </div>
+
+    <figure class="hero">
+      <div class="plate">
+        <img src="../screenshots/v2/thumbs/home-hero-tiber.jpg" data-night-src="../screenshots/v2/thumbs/home-hero-tiber-night.jpg"
+             alt="The Tiber river path below Perugia at golden hour" />
+      </div>
+      <figcaption class="label">
+        <span class="kicker">Today's ride · Perugia</span>
+        <h2 class="display">Tiber river park</h2>
+        <span class="muted t-sm">Ponte San Giovanni to Ponte Felcino, below the hill of Perugia</span>
+        <div class="profile-wrap"><svg class="profile" data-profile="scenic-perugia-tiber-park" data-h="32"></svg></div>
+        <span class="t-base semi num">10.9 km · flat · about 35 min</span>
+        <span class="weather t-sm muted"><i data-icon="cloud-sun"></i>Now: Clear · 14° · light breeze</span>
+        <div class="actions">
+          <button class="btn lg primary"><i data-icon="play" class="lg"></i>Ride</button>
+          <button class="btn lg quiet"><i data-icon="clapperboard" class="lg"></i>Ride and watch</button>
+        </div>
+      </figcaption>
+    </figure>
+
+    <p class="comfort">
+      <span>Hills feel <b class="num">35 %</b> · easy</span>
+      <span class="muted" aria-hidden="true">·</span>
+      <span>Wind feel <b>subtle</b></span>
+      <button class="btn link">Change</button>
+    </p>
+
+        <section class="area" aria-labelledby="dest-perugia">
+      <div class="area-h">
+        <h3 id="dest-perugia" class="display">Home · Perugia</h3>
+        <span class="muted t-sm">The Tiber valley, Assisi and Lake Trasimeno</span>
+      </div>
+      <div class="grid two">
+        <a class="tile" href="#" aria-label="Ride Assisi valley floor, 12.7 km, flat, about 40 min">
+          <div class="plate"><img src="../screenshots/v2/thumbs/home-assisi.jpg" alt="" /></div>
+          <h4 class="display">Assisi valley floor</h4>
+          <span class="meta"><span class="semi num">12.7 km · flat · about 40 min</span></span>
+          <span class="meta muted"><span class="weather"><i data-icon="cloud-fog"></i>Now: Fog · 9° · calm</span></span>
+        </a>
+        <a class="tile" href="#" aria-label="Ride Lake Trasimeno shore, 21.8 km, flat, about 65 min, map view">
+          <div class="mapplate" data-plate="scenic-trasimeno-shore"></div>
+          <h4 class="display">Lake Trasimeno shore</h4>
+          <span class="meta"><span class="semi num">21.8 km · flat · about 65 min</span></span>
+          <span class="meta"><span class="badge quietb">Classic view</span></span>
+        </a>
+      </div>
+    </section>
+    <section class="area" aria-labelledby="dest-lugano">
+      <div class="area-h">
+        <h3 id="dest-lugano" class="display">Hometown · Lugano</h3>
+        <span class="muted t-sm">Ticino and the Lombardy lakes</span>
+      </div>
+      <div class="grid three">
+        <a class="tile" href="#" aria-label="Ride Lugano lakefront to Melide, 9.7 km, flat, about 30 min">
+          <div class="mapplate" data-plate="scenic-lugano-melide"></div>
+          <h4 class="display">Lugano lakefront to Melide</h4>
+          <span class="meta"><span class="semi num">9.7 km · flat · about 30 min</span></span>
+          <span class="meta muted"><span class="weather"><i data-icon="cloud-sun"></i>Now: Clear · 12° · light breeze</span></span>
+        </a>
+        <a class="tile" href="#" aria-label="Ride Locarno to Brissago, 9.6 km, flat, about 30 min">
+          <div class="mapplate" data-plate="scenic-locarno-brissago"></div>
+          <h4 class="display">Locarno to Brissago</h4>
+          <span class="meta"><span class="semi num">9.6 km · flat · about 30 min</span></span>
+          <span class="meta muted"><span class="weather"><i data-icon="cloud-sun"></i>Now: Clear · 13° · calm</span></span>
+        </a>
+        <a class="tile" href="#" aria-label="Ride Valle Maggia, 21.7 km, gentle climb, about 75 min, map view">
+          <div class="mapplate" data-plate="scenic-valle-maggia"></div>
+          <h4 class="display">Valle Maggia</h4>
+          <span class="meta"><span class="semi num">21.7 km · gentle climb · about 75 min</span></span>
+          <span class="meta"><span class="badge quietb">Classic view</span></span>
+        </a>
+        <a class="tile" href="#" aria-label="Ride Bellinzona to Locarno, 22.2 km, flat, about 65 min, map view">
+          <div class="mapplate" data-plate="scenic-magadino-plain"></div>
+          <h4 class="display">Bellinzona to Locarno</h4>
+          <span class="meta"><span class="semi num">22.2 km · flat · about 65 min</span></span>
+          <span class="meta"><span class="badge quietb">Classic view</span></span>
+        </a>
+        <a class="tile" href="#" aria-label="Ride Lake Varese shore, 18.1 km, gently rolling, about 65 min, map view">
+          <div class="mapplate" data-plate="scenic-lake-varese"></div>
+          <h4 class="display">Lake Varese shore</h4>
+          <span class="meta"><span class="semi num">18.1 km · gently rolling · about 65 min</span></span>
+          <span class="meta"><span class="badge quietb">Classic view</span></span>
+        </a>
+        <a class="tile" href="#" aria-label="Ride Menaggio to Gravedona, 18.6 km, flat, about 55 min, map view">
+          <div class="mapplate" data-plate="scenic-lake-como-menaggio"></div>
+          <h4 class="display">Menaggio to Gravedona</h4>
+          <span class="meta"><span class="semi num">18.6 km · flat · about 55 min</span></span>
+          <span class="meta"><span class="badge quietb">Classic view</span></span>
+        </a>
+      </div>
+    </section>
+    <section class="wiz" aria-label="Build your own ride, step 1"><p class="h">Or pick an easy scenic ride</p><div class="cards"><div class="card"><span class="n">Lake Trasimeno shore</span><span class="f"><span class="num">21.8 km · flat · about 65 min</span><span class="badge quietb">Classic view</span></span></div><div class="card"><span class="n">Tiber river park</span><span class="f"><span class="num">10.9 km · flat · about 35 min</span></span></div><div class="card"><span class="n">Assisi valley floor</span><span class="f"><span class="num">12.7 km · flat · about 40 min</span></span></div><div class="card"><span class="n">Lugano lakefront to Melide</span><span class="f"><span class="num">9.7 km · flat · about 30 min</span></span></div><div class="card"><span class="n">Locarno to Brissago</span><span class="f"><span class="num">9.6 km · flat · about 30 min</span></span></div><div class="card"><span class="n">Valle Maggia</span><span class="f"><span class="num">21.7 km · gentle climb · about 75 min</span><span class="badge quietb">Classic view</span></span></div></div></section>
+<footer class="credit">Velo is a fork of GlobeRide (MIT) by Mason Wyatt. World stills rendered from the Perugia world bake; map data © OpenStreetMap contributors.</footer>
+  </div>
+</main>
+</body>
+</html>

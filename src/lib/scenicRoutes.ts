@@ -12,6 +12,7 @@ import type { MoodId } from '@/lib/cesiumUtils';
 import { haversine } from '@/lib/utils';
 import { SCENIC_ROUTE_GEOMETRY, type ScenicRouteGeometry } from '@/lib/scenicRouteData';
 import { destinationForRoute, type DestinationRole } from '@/lib/world/destinations';
+import { WORLD_CATALOG, worldForRoute, type WorldCatalogEntry } from '@/lib/world/catalog';
 
 export type Scenery = 'lake' | 'coast' | 'valley' | 'alpine-lake' | 'river';
 export type ScenicCharacter = 'flat' | 'gentle';
@@ -44,8 +45,8 @@ interface ScenicMeta {
 }
 
 /**
- * Library order. Today's ride rotates through the home routes in this order
- * and the setup wizard lists routes in it; Home's sections follow the
+ * Library order. Today's ride rotates through the home routes a baked world
+ * draws in this order and the setup wizard lists routes in it; Home's sections follow the
  * destination manifests (src/lib/world/destinations/*.json), which also say
  * where each route sits for the household (`role`: home, hometown, wishlist).
  */
@@ -402,20 +403,46 @@ export function homeFirstScenicRoutes(): ScenicRouteInfo[] {
 }
 
 /**
- * "Today's ride": a home route that changes once a day, the same for both
- * riders so they can share a pick.
+ * True when a baked world draws this route (the three.js world renderer);
+ * false when it rides in the classic view (Cesium photoreal, or the map
+ * without a token). The catalog's own rule, so a route joins the moment its
+ * world is baked.
  */
-export function todaysScenicRoute(now: Date = new Date()): ScenicRouteInfo {
-  const near = scenicRoutesWithRole('home');
-  const pool = near.length > 0 ? near : SCENIC_ROUTES;
+export function scenicHasWorld(info: ScenicRouteInfo, catalog: readonly WorldCatalogEntry[] = WORLD_CATALOG): boolean {
+  return worldForRoute(info.route, catalog) !== null;
+}
+
+/**
+ * The routes Velo offers by itself: Today's ride, the pick behind Start when
+ * no route is loaded, Finish's "Tomorrow, maybe". The home routes a baked
+ * world draws, in library order. Falls back, when fewer than `min` of those
+ * exist, to every route a world draws, then the home routes, then all.
+ */
+export function suggestedScenicRoutes(
+  min = 1,
+  catalog: readonly WorldCatalogEntry[] = WORLD_CATALOG,
+): ScenicRouteInfo[] {
+  const home = scenicRoutesWithRole('home');
+  const drawn = (list: ScenicRouteInfo[]) => list.filter((r) => scenicHasWorld(r, catalog));
+  const tiers = [drawn(home), drawn(SCENIC_ROUTES), home];
+  return tiers.find((t) => t.length >= Math.max(1, min)) ?? SCENIC_ROUTES;
+}
+
+/**
+ * "Today's ride": a suggested route (a home route in a baked world) that
+ * changes once a day, the same for both riders so they can share a pick.
+ */
+export function todaysScenicRoute(now: Date = new Date(), pool: ScenicRouteInfo[] = suggestedScenicRoutes()): ScenicRouteInfo {
   const dayIndex = Math.floor(
     Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86_400_000,
   );
   return pool[dayIndex % pool.length];
 }
 
-/** Random pick for "just start" flows: a home route. */
-export function randomScenicRoute(rand: () => number = Math.random): ScenicRouteInfo {
-  const near = scenicRoutesWithRole('home');
-  return near[Math.floor(rand() * near.length) % near.length];
+/** Random pick for "just start" flows: a suggested route (home, in a baked world). */
+export function randomScenicRoute(
+  rand: () => number = Math.random,
+  pool: ScenicRouteInfo[] = suggestedScenicRoutes(),
+): ScenicRouteInfo {
+  return pool[Math.floor(rand() * pool.length) % pool.length];
 }
