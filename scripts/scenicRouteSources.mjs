@@ -146,7 +146,12 @@ export const SCENIC_ROUTE_SOURCES = [
   },
   {
     id: 'scenic-berkeley-bay-trail',
-    waypoints: [[37.9007, -122.3247], [37.8718, -122.3189], [37.8403, -122.3149]],
+    // South along the Bay Trail from Point Isabel to Emeryville. At Albany it
+    // crosses Buchanan Street on the Eastshore Highway ramp (the point on the
+    // ramp): the trail's own link passes under the Buchanan Street bridge and
+    // that ramp 15 m from where it meets the bridge, so no deck there could
+    // keep headroom over it without a ramp landing on the trail.
+    waypoints: [[37.9007, -122.3247], [37.8868, -122.30754], [37.8718, -122.3189], [37.8403, -122.3149]],
   },
   {
     id: 'scenic-richmond-marina-bay',
