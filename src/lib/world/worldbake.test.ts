@@ -17,9 +17,12 @@ import {
   ROUTE_CLEAR_MIN_M,
   ROUTE_TREE_HALF_M,
   buildBuildings,
+  BUILDING_SIMPLIFY_M,
   buildVegetation,
   buildingClearance,
   routeClearances,
+  routeWaterDrops,
+  waterOnBeach,
   clipLine,
   clipRing,
   segmentRingDistance,
@@ -201,6 +204,47 @@ describe('worldbake: nothing the rider follows runs through a building', () => {
     expect(at(4500)).toBe(ROUTE_CLEAR_MAX_M); // nothing mapped
   });
 
+  it('drops small ponds and lagoons a route runs through or brushes, never a river, the sea, a big lake or a channel', () => {
+    // Rings in dm, as in the water layer; the route runs along y = 0.
+    const box = (x0: number, y0: number, w: number, h: number) => [x0, y0, x0 + w, y0, x0 + w, y0 + h, x0, y0 + h].map((v) => v * 10);
+    const water = {
+      areaKinds: ['lake', 'river', 'pond', 'sea'],
+      areas: [
+        { k: 0, r: [box(0, -35, 12, 70)] }, // storm-drain channel under the path: drop
+        { k: 2, r: [box(100, ROUTE_CLEAR_MAX_M - 1, 20, 20)] }, // pond 5 m off: drop
+        { k: 2, r: [box(200, ROUTE_CLEAR_MAX_M + 1, 20, 20)] }, // pond 7 m off: keep
+        { k: 1, r: [box(300, -35, 12, 70)] }, // river under a bridge: keep
+        { k: 3, r: [box(400, -35, 12, 70)] }, // the sea: keep
+        { k: 0, r: [box(500, -60, 120, 120)] }, // 1.44 ha lake the route crosses: keep
+        { k: 2, r: [box(700, -50, 120, 100), box(710, -40, 100, 80)] }, // 1.2 ha ring of water, 0.4 ha after the hole: drop
+        { k: 0, r: [box(-40, 2, 450, 19)] }, // canal beside the towpath (roundness 0.12): keep
+        { k: 0, r: [box(-40, -21, 300, 19)] }, // a shorter reach of it, 300 × 19 m (0.17), along the path: keep
+        { k: 0, r: [box(850, -10, 200, 19)] }, // 200 × 19 m (0.25) across the path: drop
+      ],
+    };
+    const routeLines = [[-50, 0, 900, 0]];
+    expect(routeWaterDrops(water, { routeLines })).toEqual([0, 1, 6, 9]);
+    // A narrow path's clearance (3.5 m) keeps the pond 5 m off.
+    const narrow = routeClearances(routeLines, { roads: [{ c: 0, p: [-500, 0, 9000, 0] }], widths: [5] });
+    expect(routeWaterDrops(water, { routeLines: narrow.lines, routeClear: narrow.clear })).toEqual([0, 6, 9]);
+    expect(routeWaterDrops(water, {})).toEqual([]);
+  });
+
+  it('paints a dried lagoon as beach only where it touches the sand', () => {
+    const box = (x0: number, y0: number, w: number, h: number) => [x0, y0, x0 + w, y0, x0 + w, y0 + h, x0, y0 + h].map((v) => v * 10);
+    // A beach with a channel cut out of it (hole), and a second beach far off.
+    const beaches = [
+      { k: 9, r: [box(0, 0, 200, 100), box(50, -1, 12, 102)] },
+      { k: 9, r: [box(1000, 0, 50, 50)] },
+    ];
+    const channel = { k: 0, r: [box(50, -1, 12, 102)] }; // the hole itself: on the beach
+    const lagoon = { k: 2, r: [box(201, 20, 30, 30)] }; // 1 m off the beach's edge: on it
+    const pool = { k: 0, r: [box(400, 20, 10, 10)] }; // 200 m from any sand: not
+    expect(waterOnBeach([channel, lagoon, pool], beaches)).toEqual([channel, lagoon]);
+    expect(waterOnBeach([lagoon], beaches, 0.5)).toEqual([]);
+    expect(waterOnBeach([channel, pool], [])).toEqual([]);
+  });
+
   it('buildBuildings drops them from the bundle and keeps the rest in order', () => {
     const proj = createProjection({ type: 'tmerc', ellipsoid: 'WGS84', lat0: 43, lon0: 12, k0: 1 });
     const ext = { xMin: -500, xMax: 500, yMin: -500, yMax: 500 };
@@ -220,6 +264,33 @@ describe('worldbake: nothing the rider follows runs through a building', () => {
     expect(cleared.dropped).toEqual({ route: 1, road: 0 });
     expect(cleared.footprints.map((f: { cx: number }) => Math.round(f.cx) + 0)).toEqual([0, 100]);
     expect(cleared.bytes.subarray(0, 4).toString('latin1')).toBe('VWB2');
+  });
+
+  it("buildBuildings simplifies footprints at the recipe's tolerance (0.3 m unless set)", () => {
+    const proj = createProjection({ type: 'tmerc', ellipsoid: 'WGS84', lat0: 43, lon0: 12, k0: 1 });
+    const ext = { xMin: -500, xMax: 500, yMin: -500, yMax: 500 };
+    // A 20 m square house whose sides jog 0.6 m in and out: a surveyed footprint.
+    const ring: number[] = [];
+    const side = (x0: number, y0: number, dx: number, dy: number) => {
+      for (let k = 0; k < 4; k++) {
+        const j = k % 2 ? 0.6 : 0;
+        ring.push(x0 + dx * k * 5 - dy * j, y0 + dy * k * 5 + dx * j);
+      }
+    };
+    side(-10, -10, 1, 0);
+    side(10, -10, 0, 1);
+    side(10, 10, -1, 0);
+    side(-10, 10, 0, -1);
+    const geometry = [];
+    for (let i = 0; i <= ring.length; i += 2) {
+      const [lat, lon] = proj.inverse(ring[i % ring.length], ring[(i + 1) % ring.length]);
+      geometry.push({ lat, lon });
+    }
+    const els = [{ type: 'way', id: 1, tags: { building: 'house' }, geometry }];
+    const verts = (b: { bytes: Buffer }) => b.bytes.readUInt32LE(8);
+    expect(BUILDING_SIMPLIFY_M).toBe(0.3);
+    expect(verts(buildBuildings(els, proj, ext))).toBe(16);
+    expect(verts(buildBuildings(els, proj, ext, [], null, 1))).toBe(4);
   });
 
   it('keeps trees off the route corridor too', () => {

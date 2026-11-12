@@ -1,0 +1,79 @@
+{
+  "id": "santa-monica-venice",
+  "name": "Santa Monica",
+  "description": "Santa Monica Bay from Will Rogers State Beach under the Palisades past Santa Monica, Venice and Marina del Rey down the beach towns to Hermosa Beach, with the beach bike path along the sand.",
+  "origin": {
+    "lat": 33.948,
+    "lon": -118.468
+  },
+  "grid": {
+    "xMin": -8400,
+    "yMax": 10300,
+    "cellSize": 12,
+    "cols": 1274,
+    "rows": 1708
+  },
+  "dem": {
+    "source": "copernicus-glo30"
+  },
+  "osmDate": "2026-11-01T00:00:00Z",
+  "routes": [
+    "scenic-santa-monica-strand",
+    "scenic-will-rogers-venice"
+  ],
+  "host": "remote",
+  "routeCredits": true,
+  "coast": true,
+  "buildingSimplifyM": 1,
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 400,
+    "offsetMeanM": 1600,
+    "coreCells": 1.5,
+    "falloffM": 40
+  },
+  "vegetation": {
+    "seed": 33948,
+    "maxInstances": 320000,
+    "spacingM": {
+      "forest": 11,
+      "wood": 11,
+      "scrub": 16,
+      "orchard": 7,
+      "park": 20
+    },
+    "character": {
+      "gardenKeep": 0.3,
+      "riparianM": 30
+    }
+  },
+  "moods": [
+    "clear-afternoon",
+    "golden-hour",
+    "mediterranean-mist",
+    "clear-noon",
+    "overcast"
+  ],
+  "defaultMood": "clear-afternoon",
+  "validation": {
+    "sample_seed": 33948,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "copernicus-glo30",
+    "terrain_class": "standard",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.0076,
+    "floor_source": "none",
+    "floor_rms_m": 0,
+    "own_error_allowance_m": 6,
+    "bound_m": 6,
+    "registered_rms_m": 0.55,
+    "point_rms_m": 0.8,
+    "max_abs_registered_err_m": 2.79,
+    "pass": true
+  }
+}

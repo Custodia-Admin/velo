@@ -43,6 +43,15 @@ export interface ThreeQuality {
   treeShadowM: number;
   /** Extruded buildings out to this distance, metres (chunks beyond are not built). */
   buildingM: number;
+  /**
+   * At most this many building triangles, nearest chunks first: a dense metro
+   * world stops short of `buildingM`. With far chunks as boxes, Lugano at the
+   * start of the Melide ride draws 0.74 M; downtown Santa Monica would draw
+   * over 1 M, which costs the medium tier its 60 fps on an iGPU.
+   */
+  buildingTris: number;
+  /** Buildings as surveyed within this distance, metres; boxes beyond (`footprintBox`). */
+  buildingDetailM: number;
   /** Rain/snow particles around the camera. */
   rainDrops: number;
   /** Terrain-shadow map resolution, texels per heightfield node (0 = off). */
@@ -71,6 +80,8 @@ export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
     maxTrees: 40_000,
     treeShadowM: 0,
     buildingM: 3500,
+    buildingTris: 450_000,
+    buildingDetailM: 700,
     rainDrops: 2500,
     occlusionScale: 0.25,
     maxPins: 5,
@@ -94,6 +105,8 @@ export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
     maxTrees: 150_000,
     treeShadowM: 70,
     buildingM: 8000,
+    buildingTris: 800_000,
+    buildingDetailM: 1200,
     rainDrops: 6000,
     occlusionScale: 0.5,
     maxPins: 8,
@@ -117,6 +130,8 @@ export const THREE_QUALITY: Readonly<Record<GraphicsQuality, ThreeQuality>> = {
     maxTrees: 260_000,
     treeShadowM: 110,
     buildingM: 11000,
+    buildingTris: 2_200_000,
+    buildingDetailM: 2000,
     rainDrops: 10000,
     occlusionScale: 1,
     maxPins: 10,

@@ -4,7 +4,8 @@
  * row kind, woodland class), broken up with world-space detail at many
  * scales that fades out before it can alias: crop rows and furrows, grass
  * clumps, dry patches and bare soil, canopy mottling over woods, limestone on
- * steep faces, darker wet ground in rain. Lighting goes through the shared
+ * steep faces, darker wet ground in rain. Sand (a coast world's beaches) gets
+ * none of the field and grass detail: fine grain and wind ripples instead. Lighting goes through the shared
  * world atmosphere (terrain/cloud shadows, aerial perspective). Real light
  * and texture, not flat toon bands (owner: the world must not read
  * "cartoony"); the file name follows the blueprint's file map.
@@ -18,11 +19,17 @@ import { worldNoiseTexture } from './noiseTexture';
 export interface TerrainMaterialOptions {
   /** Landcover colour map (north at row 0), or null for a plain meadow tint. */
   landcover: THREE.Texture | null;
-  /** Aux map: r = crop-row angle / π, g = row kind, b = woodland class. */
+  /** Aux map: r = crop-row angle / π, g = row kind, b = surface class (woodland, sand). */
   aux?: THREE.Texture | null;
   /** World extent in metres (x east, y north). */
   extent: { xMin: number; xMax: number; yMin: number; yMax: number };
   atmo?: WorldAtmosphere;
+  /**
+   * The aux map marks sand (a coast world's beaches). Off elsewhere: a
+   * woodland edge ramps the aux class through sand's value, and without
+   * beaches that would read as a thin strip of sand round every wood.
+   */
+  sand?: boolean;
 }
 
 /** GLSL: hash + value noise robust at world-metre coordinates (no sin hash). */
@@ -58,12 +65,13 @@ export function createTerrainMaterial(opts: TerrainMaterialOptions): THREE.MeshS
     uAux: { value: opts.aux ?? null },
     uHasLandcover: { value: opts.landcover ? 1 : 0 },
     uHasAux: { value: opts.aux ? 1 : 0 },
+    uHasSand: { value: opts.sand ? 1 : 0 },
     uExtent: { value: new THREE.Vector4(xMin, yMin, 1 / (xMax - xMin), 1 / (yMax - yMin)) },
     uNoise: { value: worldNoiseTexture() },
   };
   mat.userData.uniforms = uniforms;
   patchWorldMaterial(mat, opts.atmo ?? createAtmosphere(), {
-    key: 'terrain-v3',
+    key: 'terrain-v5',
     uniforms,
     vertexPars: 'varying vec3 vTerrainNormal;',
     vertexMain: 'vTerrainNormal = normalize(mat3(modelMatrix) * objectNormal);',
@@ -72,10 +80,12 @@ uniform sampler2D uLandcover;
 uniform sampler2D uAux;
 uniform float uHasLandcover;
 uniform float uHasAux;
+uniform float uHasSand;
 uniform vec4 uExtent;
 varying vec3 vTerrainNormal;
 float gWater = 0.0;
 float gForest = 0.0;
+float gSand = 0.0;
 float gWetGround = 0.0;
 vec2 gWp;
 vec4 gNC = vec4(0.5);
@@ -109,7 +119,10 @@ ${NOISE_GLSL}`,
     gWater = smoothstep(0.02, 0.07, col.b - max(col.r, col.g));
     gForest = smoothstep(0.8, 0.97, aux.b);
     float scrub = smoothstep(0.6, 0.75, aux.b) * (1.0 - gForest);
-    float open_ = (1.0 - gWater) * (1.0 - gForest);
+    // Sand: aux class 90/255, ramping in across the whole texel blend from
+    // open ground (0) and out towards scrub (0.7), so its edge is soft.
+    gSand = uHasSand * smoothstep(0.03, 0.3, aux.b) * (1.0 - smoothstep(0.4, 0.62, aux.b)) * (1.0 - gWater);
+    float open_ = (1.0 - gWater) * (1.0 - gForest) * (1.0 - gSand);
     // Broad tone across the valley and the hills.
     col *= 0.84 + 0.32 * (nA.r * 0.5 + nA.g * 0.3 + nA.b * 0.2);
     // Woods: crown mottling (~5 m crowns) so far forest reads as canopy, not felt.
@@ -130,7 +143,10 @@ ${NOISE_GLSL}`,
     // Field grain at 40 m … 0.4 m.
     col *= mix(1.0, 0.84 + 0.32 * (nB.g * 0.6 + nB.b * 0.4), open_);
     float g1 = nC.r * 0.6 + nC.g * 0.4;
-    col *= mix(1.0, 0.82 + 0.36 * g1, (1.0 - gWater) * (1.0 - gForest * 0.5));
+    col *= mix(1.0, 0.82 + 0.36 * g1, (1.0 - gWater) * (1.0 - gForest * 0.5) * (1.0 - gSand * 0.7));
+    // Sand: fine grain, and wind ripples ~0.8 m apart across the beach.
+    float ripple = 0.5 + 0.5 * cos(dot(wp, vec2(0.6, 0.8)) * 7.85 + nC.b * 4.0);
+    col *= mix(1.0, (0.95 + 0.1 * g1) * (0.95 + 0.08 * ripple * octF(0.8, pxM)), gSand);
     col *= mix(1.0, 0.8 + 0.4 * (nC.b * 0.6 + nC.a * 0.4), open_ * 0.8);
     // Sun-bleached patches, bare soil, greener tufts.
     float dry = smoothstep(0.58, 0.8, nB.g * 0.6 + nA.a * 0.4);
@@ -141,7 +157,7 @@ ${NOISE_GLSL}`,
     // Limestone and bare earth on steep faces.
     float slope = 1.0 - clamp(vTerrainNormal.y, 0.0, 1.0);
     vec3 rock = mix(vec3(0.33, 0.27, 0.2), vec3(0.36, 0.32, 0.26), nA.a);
-    col = mix(col, rock * (0.85 + 0.3 * g1), smoothstep(0.32, 0.6, slope) * 0.75 * (1.0 - gWater));
+    col = mix(col, rock * (0.85 + 0.3 * g1), smoothstep(0.32, 0.6, slope) * 0.75 * (1.0 - gWater) * (1.0 - gSand));
     // Riverbed under the water surface: dark silt.
     col = mix(col, vec3(0.05, 0.06, 0.04), gWater);
     // Rain darkens soil and grass.
@@ -171,7 +187,9 @@ ${NOISE_GLSL}`,
     vec3 r2 = cross(normal, dpdx);
     float det = dot(dpdx, r1);
     vec3 grad = sign(det) * (dFdx(h) * r1 + dFdy(h) * r2);
-    normal = normalize(abs(det) * normal - grad * (0.9 + 1.4 * gForest));
+    // Sand is smoother: scale the relief, not the height (a height that steps
+    // at the sand's edge would put a bright-and-dark dash along it).
+    normal = normalize(abs(det) * normal - grad * (0.9 + 1.4 * gForest) * (1.0 - 0.75 * gSand));
   }`,
       ],
     ],

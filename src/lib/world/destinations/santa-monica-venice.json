@@ -7,15 +7,65 @@
   "order": 110,
   "place": "California, USA",
   "detail": "The beach path past Venice to Hermosa",
-  "world": null,
+  "world": {
+    "id": "santa-monica-venice",
+    "dir": "santa-monica-venice/155c646e205b51fd/",
+    "host": "remote",
+    "bbox": {
+      "south": 33.85615,
+      "west": -118.55897,
+      "north": 34.04086,
+      "east": -118.39353
+    },
+    "routes": [
+      "scenic-santa-monica-strand",
+      "scenic-will-rogers-venice"
+    ]
+  },
   "routes": [
-    "scenic-santa-monica-strand"
+    "scenic-santa-monica-strand",
+    "scenic-will-rogers-venice"
   ],
   "moods": [
-    "clear-afternoon"
+    "clear-afternoon",
+    "golden-hour",
+    "mediterranean-mist",
+    "clear-noon",
+    "overcast"
   ],
   "defaultMood": "clear-afternoon",
-  "pois": [],
+  "pois": [
+    {
+      "name": "Culver City",
+      "kind": "town",
+      "lat": 34.02112,
+      "lon": -118.39647
+    },
+    {
+      "name": "El Segundo",
+      "kind": "town",
+      "lat": 33.91703,
+      "lon": -118.41563
+    },
+    {
+      "name": "Hermosa Beach",
+      "kind": "town",
+      "lat": 33.86378,
+      "lon": -118.39921
+    },
+    {
+      "name": "Manhattan Beach",
+      "kind": "town",
+      "lat": 33.88728,
+      "lon": -118.41043
+    },
+    {
+      "name": "Santa Monica",
+      "kind": "town",
+      "lat": 34.01947,
+      "lon": -118.49123
+    }
+  ],
   "credits": [
     {
       "id": "osm",
@@ -23,6 +73,13 @@
       "licence": "ODbL-1.0",
       "url": "https://www.openstreetmap.org/copyright",
       "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
     },
     {
       "id": "copernicus-glo90",
@@ -37,6 +94,20 @@
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
       "url": "https://routing.openstreetmap.de/about.html",
       "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-santa-monica-strand",
+      "name": "Santa Monica to Hermosa Beach: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.49619,34.00905;-118.4741,33.9867;-118.4523,33.9587;-118.415,33.89;-118.40137,33.86199?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-will-rogers-venice",
+      "name": "Will Rogers to Venice: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.5361,34.0354;-118.51691,34.02553;-118.49526,34.00842;-118.47677,33.98981;-118.4672,33.97939?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     }
   ]
 }

@@ -252,6 +252,15 @@ const SCENIC_META: ScenicMeta[] = [
     mood: 'golden-hour',
   },
   {
+    id: 'scenic-richmond-marina-bay',
+    name: 'Richmond Marina Bay',
+    place: 'California · San Francisco Bay',
+    description:
+      'The Bay Trail north from the Albany waterfront past Point Isabel and the Meeker Slough marsh, round Marina Bay to Ford Point.',
+    scenery: 'coast',
+    mood: 'golden-hour',
+  },
+  {
     id: 'scenic-santa-monica-strand',
     name: 'Santa Monica to Hermosa Beach',
     place: 'California · Pacific coast',
@@ -261,11 +270,29 @@ const SCENIC_META: ScenicMeta[] = [
     mood: 'clear-afternoon',
   },
   {
+    id: 'scenic-will-rogers-venice',
+    name: 'Will Rogers to Venice',
+    place: 'California · Santa Monica Bay',
+    description:
+      'The beach bike path from Will Rogers State Beach under the Palisades bluffs, past Santa Monica Pier to Venice Beach.',
+    scenery: 'coast',
+    mood: 'golden-hour',
+  },
+  {
     id: 'scenic-puerto-vallarta-malecon',
     name: 'Puerto Vallarta bayfront',
     place: 'Jalisco · Banderas Bay',
     description:
-      'From the Zona Romántica through the old town beside the malecón and up the hotel-zone boulevard to Marina Vallarta.',
+      'Along the malecón from the Zona Romántica, over the Cuale and past the old town seafront, then up the hotel-zone boulevard to Marina Vallarta.',
+    scenery: 'coast',
+    mood: 'golden-hour',
+  },
+  {
+    id: 'scenic-nuevo-vallarta-bucerias',
+    name: 'Nuevo Vallarta to Bucerías',
+    place: 'Nayarit · Banderas Bay',
+    description:
+      'Along the palm-lined Paseo de los Cocoteros past the Nuevo Vallarta beach resorts to the fishing town of Bucerías and its beachfront street.',
     scenery: 'coast',
     mood: 'golden-hour',
   },

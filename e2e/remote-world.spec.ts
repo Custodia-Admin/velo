@@ -26,6 +26,10 @@ const WORLDS = [
   // Worlds baked with bridges as structures carry a bridges layer.
   { id: 'ohio-erie-towpath', route: 'scenic-cuyahoga-towpath-north', name: 'Towpath: Lock 39 to Station Road', place: 'Cuyahoga Valley', files: [...LAYERS, 'bridges.json.gz'].sort() },
   { id: 'cleveland-lakefront', route: 'scenic-wendy-park-lakewood', name: 'Wendy Park to Lakewood Park', place: 'Cleveland', files: [...LAYERS, 'bridges.json.gz'].sort() },
+  { id: 'berkeley', route: 'scenic-richmond-marina-bay', name: 'Richmond Marina Bay', place: 'Berkeley', files: [...LAYERS, 'bridges.json.gz'].sort() },
+  // The coast worlds: the sea is a water area, no extra layer.
+  { id: 'santa-monica-venice', route: 'scenic-will-rogers-venice', name: 'Will Rogers to Venice', place: 'Santa Monica', files: LAYERS },
+  { id: 'puerto-vallarta', route: 'scenic-nuevo-vallarta-bucerias', name: 'Nuevo Vallarta to Bucerías', place: 'Puerto Vallarta', files: LAYERS },
 ];
 type World = (typeof WORLDS)[number];
 const worldFile = (w: World) => new RegExp(`/worlds/${w.id}/[0-9a-f]{16}/([^/?#]+)$`);

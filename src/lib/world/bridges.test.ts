@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DECK_HEADROOM_M,
+  END_GROW_MAX_M,
   NEVER_RIDDEN_CLASSES,
   RIDE_SLACK_M,
   anchorPins,
@@ -19,6 +20,7 @@ import {
   deckKinks,
   deckThickness,
   footprintConflicts,
+  growDeckEnds,
   headroomFailures,
   piecePath,
   planApproaches,
@@ -328,5 +330,43 @@ describe('bridges: the bake checks the ride surface every metre', () => {
     // Never more than a metre above the ground: no deck standing there to kink.
     const low = new Map([[0, [1034, 1034, 1034, 1004, 1004, 1004, 1004, 1004, 1004, 1004, 1004]]]);
     expect(deckKinks({ roads, zdm: low, groundAt: () => 102.5 })).toEqual([]);
+  });
+});
+
+describe('bridges: deck ends after the decimetre rounding', () => {
+  // A cycleway deck from x = 0 to 40 whose rounded second vertex turned its
+  // first segment, a second deck joined at x = 40, and the ground road the
+  // route comes off at x = 0.
+  const deckRoads = () =>
+    roadsOf([
+      { c: 1, f: ROAD_FLAGS.bridge, p: [0, 0, 2.6, 0.1, 20, 0, 40, 0] },
+      { c: 1, f: ROAD_FLAGS.bridge, p: [40, 0, 60, 0] },
+      { c: 1, p: [-30, 0, 0, 0] },
+    ]);
+
+  it('grows a free end near a miss along its own end segment until nothing is missed, keeping its vertex count', () => {
+    const roads = deckRoads();
+    const n = roads.roads[0].p.length;
+    // The paint is missed at x = −0.3 until the deck's flat end reaches past it.
+    const misses = () => (roads.roads[0].p[0] / 10 > -0.25 ? [{ x: -0.3, y: 0 }] : []);
+    expect(growDeckEnds({ roads, pieces: [0, 1], misses })).toEqual([{ road: 0, end: 0, m: 0.3 }]);
+    expect(roads.roads[0].p.length).toBe(n);
+    expect(roads.roads[0].p.slice(0, 2)).toEqual([-3, 0]);
+    expect(roads.roads[0].p.slice(2)).toEqual(dm([2.6, 0.1, 20, 0, 40, 0]));
+    expect(roads.roads[1].p).toEqual(dm([40, 0, 60, 0]));
+    expect(roads.roads[2].p).toEqual(dm([-30, 0, 0, 0]));
+  });
+
+  it('moves nothing when nothing is missed, and never a joint two decks share', () => {
+    const roads = deckRoads();
+    const before = JSON.stringify(roads);
+    expect(growDeckEnds({ roads, pieces: [0, 1], misses: () => [] })).toEqual([]);
+    expect(growDeckEnds({ roads, pieces: [0, 1], misses: () => [{ x: 40.3, y: 0 }] })).toEqual([]);
+    expect(JSON.stringify(roads)).toBe(before);
+  });
+
+  it(`throws rather than grow an end past END_GROW_MAX_M (${END_GROW_MAX_M} m)`, () => {
+    const roads = deckRoads();
+    expect(() => growDeckEnds({ roads, pieces: [0, 1], misses: () => [{ x: -0.3, y: 0 }] })).toThrow(/grow past/);
   });
 });

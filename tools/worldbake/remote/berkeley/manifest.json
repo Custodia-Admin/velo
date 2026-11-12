@@ -1,0 +1,310 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "berkeley",
+  "name": "Berkeley",
+  "origin": {
+    "lat": 37.876,
+    "lon": -122.328
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 37.876,
+    "lon0": -122.328,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -4900,
+    "xMax": 3272,
+    "yMin": -4924,
+    "yMax": 5000
+  },
+  "bbox": {
+    "south": 37.83162,
+    "west": -122.38373,
+    "north": 37.92105,
+    "east": -122.29078
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 682,
+    "rows": 828,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": -6,
+    "heightScale": 0.015625,
+    "minHeight": -4.890625,
+    "maxHeight": 219.84375
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz",
+    "bridges": "bridges.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 226144,
+      "sha256": "af296861feb666310485bdc32fa24a74e8b53511cbb861b6b92a3cbeced7d785",
+      "compression": "gzip",
+      "contentBytes": 1129392,
+      "contentSha256": "9306fbbe8485358f167f79aa9ad424a231febce458b3cf4e37a7ed94d92dc400"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 184614,
+      "sha256": "880069c75d10c5a779bd2944c60d97c482076e20243c15f3f05c985edeeb37d0",
+      "compression": "gzip",
+      "contentBytes": 528836,
+      "contentSha256": "a958972b61b6857ade747f45edf825e28c0fe04dca8b90255895886bb773b62b"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 15879,
+      "sha256": "01ec5a5426ff5f945fed11795ee1e9515f266c6d8414407551b5f12839f192b0",
+      "compression": "gzip",
+      "contentBytes": 37295,
+      "contentSha256": "b89437bebf8c682200fdf6118a05610fcd144eead56c4167c7f33cecb154462d"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 30031,
+      "sha256": "eb6c7b129cc4a3a66b58b8d6b9833553d1319679d9ee0c1c79c5144c207ad0ae",
+      "compression": "gzip",
+      "contentBytes": 76210,
+      "contentSha256": "c93adee48854b2fad6977f3b034ca3ceb4273a59645028fc0ac3933cd71bda2e"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 458545,
+      "sha256": "0c652b65fd3fb184edc05cdabe1b73ef9a37010f941dd37f477ee7e1eedc8879",
+      "compression": "gzip",
+      "contentBytes": 880744,
+      "contentSha256": "a60e214d49b38faf1d5599b85793d23154582d69391d9165fcb19ba3c52e0177"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 59074,
+      "sha256": "6f67448579494ecc9b3976891b9a6bef3ea884fd736694999021a1e9ff2561e0",
+      "compression": "gzip",
+      "contentBytes": 75424,
+      "contentSha256": "eb0c76102b0406f6ae0557019a8ab2bca90b961effbddeb41e633849ac0bd203"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 32804,
+      "sha256": "f27a201b77574d5837e78ca8152afd6e391d709030eed04fcadb91f0ff7fb562",
+      "compression": "gzip",
+      "contentBytes": 81308,
+      "contentSha256": "ff1d8157143b010b245deffd3e37b64322a09fdb1cc0a5ae08ee1228c15854b6"
+    },
+    {
+      "path": "bridges.json.gz",
+      "bytes": 3503,
+      "sha256": "d76182afacb60e80a781026e07f8a81d37e4a93ff9f45c41c7e92a6199f43eb5",
+      "compression": "gzip",
+      "contentBytes": 12865,
+      "contentSha256": "12f8623e468de2d535b89b3605b8839701d409291c2099186b3acdf1f7930ab5"
+    }
+  ],
+  "moods": [
+    "golden-hour",
+    "mediterranean-mist",
+    "clear-afternoon",
+    "overcast",
+    "clear-noon"
+  ],
+  "defaultMood": "golden-hour",
+  "pois": [
+    {
+      "name": "Albany",
+      "kind": "town",
+      "rank": 3,
+      "x": 2608.1,
+      "y": 1239.3,
+      "osm": "node/150964755",
+      "h": 13.74
+    },
+    {
+      "name": "El Cerrito",
+      "kind": "town",
+      "rank": 3,
+      "x": 2338.1,
+      "y": 4374.1,
+      "osm": "node/150971841",
+      "h": 44.07
+    },
+    {
+      "name": "Nicholl Knob",
+      "kind": "peak",
+      "rank": 1,
+      "x": -4777,
+      "y": 4926,
+      "osm": "node/358771583",
+      "h": 109.79
+    },
+    {
+      "name": "Albany Hill",
+      "kind": "peak",
+      "rank": 2,
+      "x": 2050.1,
+      "y": 2100.9,
+      "osm": "node/358805939",
+      "h": 102.9
+    },
+    {
+      "name": "West Berkeley Shellmound",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 2421.5,
+      "y": -829.9,
+      "osm": "node/5324911594",
+      "h": 4.6
+    },
+    {
+      "name": "False Gun Vista",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -4500.1,
+      "y": 4395.3,
+      "osm": "node/6589713754",
+      "h": 97.22
+    },
+    {
+      "name": "East Vista Point",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -4124.7,
+      "y": 4227.8,
+      "osm": "node/6589713755",
+      "h": 96.02
+    },
+    {
+      "name": "Kaiser Shipyard 3 Interpretive Overlook",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -3533.4,
+      "y": 3788.9,
+      "osm": "node/6589762596",
+      "h": 28.98
+    },
+    {
+      "name": "SS Red Oak Victory",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -3315.6,
+      "y": 3301.8,
+      "osm": "way/172649739",
+      "h": 0
+    },
+    {
+      "name": "Church of the Good Shepherd",
+      "kind": "church",
+      "rank": 2,
+      "x": 2930.9,
+      "y": -637.7,
+      "osm": "way/821918536",
+      "h": 15
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-berkeley-bay-trail",
+      "name": "Berkeley shoreline",
+      "lengthM": 12636.98,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.11
+    },
+    {
+      "id": "scenic-richmond-marina-bay",
+      "name": "Richmond Marina Bay",
+      "lengthM": 9300.23,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.09
+    }
+  ],
+  "stats": {
+    "roads": 7952,
+    "waterAreas": 29,
+    "waterLines": 116,
+    "landcoverAreas": 637,
+    "buildings": 21819,
+    "buildingVertices": 165635,
+    "buildings:suburb": 19691,
+    "buildings:old-town": 347,
+    "buildings:rural": 147,
+    "buildings:industrial": 1634,
+    "trees": 12568,
+    "trees:broadleaf": 2076,
+    "trees:conifer": 0,
+    "trees:scrub": 6,
+    "trees:olive": 0,
+    "trees:park": 5326,
+    "trees:cypress": 14,
+    "trees:riparian": 710,
+    "trees:hedgerow": 288,
+    "trees:garden": 4148,
+    "pois": 10,
+    "carvedNodes": 15588,
+    "bridgeDecks": 136,
+    "bridgePiers": 66
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-berkeley-bay-trail",
+      "name": "Berkeley shoreline: OSRM bike route through 4 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-122.3247,37.9007;-122.30754,37.8868;-122.3189,37.8718;-122.3149,37.8403?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-richmond-marina-bay",
+      "name": "Richmond Marina Bay: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-122.315,37.8895;-122.3343,37.9101;-122.34798,37.90767;-122.35134,37.91485;-122.35925,37.90964?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "d564609f9b4f9cf332125bcbfa946610e594323b26809b3c3a76d14e7474462e",
+    "osmDate": "2026-11-01T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 1,
+    "bridges": true
+  }
+}

@@ -123,8 +123,9 @@ describe('destinations ↔ baked worlds', () => {
         expect(d.world.dir, d.id).toBe(`${d.world.id}/${bundleHash(readFileSync(bundle.manifestPath))}/`);
       }
     }
-    // Perugia and Lugano ship with the app; Chengdu, Cleveland and the Cuyahoga Valley are remote.
-    expect(linked.filter((d) => d.world.host === 'remote').map((d) => d.id)).toEqual(['chengdu-luxelakes', 'cleveland-lakefront', 'ohio-erie-towpath']);
+    // Perugia and Lugano ship with the app; Chengdu, Cleveland, the Cuyahoga
+    // Valley and the coast worlds are remote.
+    expect(linked.filter((d) => d.world.host === 'remote').map((d) => d.id).sort()).toEqual(['berkeley', 'chengdu-luxelakes', 'cleveland-lakefront', 'ohio-erie-towpath', 'puerto-vallarta', 'santa-monica-venice']);
   });
 
   it('a re-bake that changes any byte of a remote manifest moves its directory', () => {

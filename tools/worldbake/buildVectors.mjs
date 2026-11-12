@@ -3,6 +3,7 @@
 // Everything here is a pure function of (elements, projection, recipe), so
 // the same cached Overpass responses always give byte-identical layers.
 
+import { BEACH_KIND, SEA_KIND } from './coast.mjs';
 import { hash32, simplifyLine } from './util.mjs';
 
 export const ROAD_CLASSES = [
@@ -140,6 +141,15 @@ export function clipRing(flat, ext) {
   return poly.length >= 6 ? poly : [];
 }
 
+function ringPerimeter(flat) {
+  let per = 0;
+  for (let i = 0; i < flat.length; i += 2) {
+    const j = (i + 2) % flat.length;
+    per += Math.hypot(flat[j] - flat[i], flat[j + 1] - flat[i + 1]);
+  }
+  return per;
+}
+
 function ringArea(flat) {
   let a = 0;
   const n = flat.length / 2;
@@ -210,6 +220,46 @@ function pointInPolygon(x, y, rings) {
   return inside;
 }
 
+/** Polygons with more vertices than this get a cell index for point tests (a coast world's sea). */
+const POLY_INDEX_MIN_VERTS = 4000;
+const POLY_INDEX_CELL_M = 25;
+
+/**
+ * Exact point-in-polygon for big polygons: a grid where every cell an edge
+ * may touch (its segment's bbox) is tested exactly, and every other cell
+ * takes the answer of its centre, which no edge separates from the rest of
+ * the cell. Same answers as pointInPolygon, without walking 10⁴ edges per
+ * tree on a coast world's sea.
+ */
+function polygonTester(rings, bbox) {
+  let verts = 0;
+  for (const r of rings) verts += r.length / 2;
+  if (verts < POLY_INDEX_MIN_VERTS) return (x, y) => pointInPolygon(x, y, rings);
+  const s = POLY_INDEX_CELL_M;
+  const [x0, y0, x1, y1] = bbox;
+  const nx = Math.max(1, Math.ceil((x1 - x0) / s) + 1);
+  const ny = Math.max(1, Math.ceil((y1 - y0) / s) + 1);
+  const edge = new Uint8Array(nx * ny);
+  const ci = (x) => Math.min(nx - 1, Math.max(0, Math.floor((x - x0) / s)));
+  const cj = (y) => Math.min(ny - 1, Math.max(0, Math.floor((y - y0) / s)));
+  for (const r of rings) {
+    const n = r.length / 2;
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      const i0 = ci(Math.min(r[2 * i], r[2 * j])) - 1, i1 = ci(Math.max(r[2 * i], r[2 * j])) + 1;
+      const j0 = cj(Math.min(r[2 * i + 1], r[2 * j + 1])) - 1, j1 = cj(Math.max(r[2 * i + 1], r[2 * j + 1])) + 1;
+      for (let b = Math.max(0, j0); b <= Math.min(ny - 1, j1); b++) for (let a = Math.max(0, i0); a <= Math.min(nx - 1, i1); a++) edge[b * nx + a] = 1;
+    }
+  }
+  const state = new Int8Array(nx * ny); // 0 unknown, 1 inside, -1 outside
+  return (x, y) => {
+    if (x < x0 || x > x1 || y < y0 || y > y1) return false;
+    const k = cj(y) * nx + ci(x);
+    if (edge[k]) return pointInPolygon(x, y, rings);
+    if (!state[k]) state[k] = pointInPolygon(x0 + (ci(x) + 0.5) * s, y0 + (cj(y) + 0.5) * s, rings) ? 1 : -1;
+    return state[k] > 0;
+  };
+}
+
 /** Clip + simplify + quantise a polygon; null when nothing is left. */
 function finishPolygon(rings, ext, tol, minArea) {
   const out = [];
@@ -273,7 +323,12 @@ export function buildRoads(elements, projection, ext) {
   };
 }
 
-export function buildWater(elements, projection, ext) {
+/**
+ * Water layer. `sea` (coast worlds, coast.mjs buildSea) adds the sea
+ * polygons as areas of kind `sea`, appended to `areaKinds`; without it the
+ * layer is exactly as before.
+ */
+export function buildWater(elements, projection, ext, { sea = null } = {}) {
   const areas = [];
   const lines = [];
   const lineIdx = new Map(WATER_LINE_KINDS.map(([k], i) => [k, i]));
@@ -302,10 +357,15 @@ export function buildWater(elements, projection, ext) {
       if (rings) areas.push({ k: kind, r: rings });
     }
   }
+  const areaKinds = sea ? [...WATER_AREA_KINDS, SEA_KIND] : WATER_AREA_KINDS;
+  for (const poly of sea ?? []) {
+    const rings = finishPolygon(poly, ext, 1, 20);
+    if (rings) areas.push({ k: areaKinds.indexOf(SEA_KIND), r: rings });
+  }
   return {
     version: 1,
     units: 'dm',
-    areaKinds: WATER_AREA_KINDS,
+    areaKinds,
     lineKinds: WATER_LINE_KINDS.map(([k]) => k),
     lineWidths: WATER_LINE_KINDS.map(([, w]) => w),
     areas,
@@ -328,22 +388,32 @@ function landcoverKind(t) {
   return null;
 }
 
-export function buildLandcover(elements, projection, ext) {
+/**
+ * Landcover layer. `beach` (coast worlds: the coast layer's natural=beach
+ * and natural=sand areas) adds them as kind `beach`, appended to `kinds`
+ * after every other area; without it the layer is exactly as before.
+ */
+export function buildLandcover(elements, projection, ext, { beach = null } = {}) {
+  const kinds = beach ? [...LANDCOVER_KINDS, BEACH_KIND] : LANDCOVER_KINDS;
   const areas = [];
   const polys = []; // full-precision copies for vegetation seeding
-  for (const el of elements) {
-    const t = el.tags ?? {};
-    const kind = landcoverKind(t);
-    if (!kind) continue;
+  const add = (el, kind) => {
     for (const poly of polygonsOf(el, projection)) {
       const rings = finishPolygon(poly, ext, 3, 200);
       if (!rings) continue;
-      const k = LANDCOVER_KINDS.indexOf(kind);
-      areas.push({ k, r: rings });
-      polys.push({ kind, tags: t, rings: rings.map((r) => r.map((v) => v / 10)) });
+      areas.push({ k: kinds.indexOf(kind), r: rings });
+      polys.push({ kind, tags: el.tags ?? {}, rings: rings.map((r) => r.map((v) => v / 10)) });
     }
+  };
+  for (const el of elements) {
+    const kind = landcoverKind(el.tags ?? {});
+    if (kind) add(el, kind);
   }
-  return { layer: { version: 1, units: 'dm', kinds: LANDCOVER_KINDS, areas }, polys };
+  for (const el of beach ?? []) {
+    const n = el.tags?.natural;
+    if (n === 'beach' || n === 'sand') add(el, BEACH_KIND);
+  }
+  return { layer: { version: 1, units: 'dm', kinds, areas }, polys };
 }
 
 function buildingHeight(t) {
@@ -645,6 +715,75 @@ export function buildingClearance(rings, { routeLines = [], routeClear = null, r
   return out;
 }
 
+/** Standing water smaller than this gives way to a scenic route that runs through or beside it, m². */
+export const ROUTE_DRY_WATER_MAX_M2 = 10000;
+/**
+ * Standing water whose outline is less round than this (isoperimetric
+ * quotient 4πA/P², 1 for a disc) is a channel, which never gives way.
+ */
+export const ROUTE_DRY_WATER_MIN_ROUNDNESS = 0.2;
+
+/**
+ * Which water areas (the layer as built, dm) a scenic route must not run
+ * through: a lake or pond (never a river, never the sea) smaller than
+ * ROUTE_DRY_WATER_MAX_M2 that comes closer to a route centreline than that
+ * segment's clearance (`routeClear`, from `routeClearances`: the rule that
+ * keeps buildings off the route). OSM maps beach storm-drain channels and
+ * creek-mouth lagoons this way, e.g. Santa Monica's Pico outlet
+ * (`water=stream`, 12 × 70 m) under the beach path. Drawn as a flat sheet, it
+ * reads as a flood across the path. A channel stays (roundness under
+ * ROUTE_DRY_WATER_MIN_ROUNDNESS): a towpath runs beside its canal, as on the
+ * Cuyahoga towpath at 7.95 km, where the watered Ohio & Erie Canal is
+ * mapped as plain `natural=water` (450 × 19 m, roundness 0.11; the Pico
+ * outlet is 0.39). Returns the indices of `water.areas` to drop, ascending.
+ * Pure.
+ */
+export function routeWaterDrops(water, { routeLines = [], routeClear = null, routeClearM = ROUTE_CLEAR_MAX_M } = {}) {
+  const standing = new Set(['lake', 'pond'].map((k) => water.areaKinds.indexOf(k)).filter((k) => k >= 0));
+  const routeQ = segmentBuckets(routeLines, 50);
+  const reach = routeClear ? routeClear.reduce((m, c) => c.reduce((a, v) => Math.max(a, v), m), 0) : routeClearM;
+  const out = [];
+  water.areas.forEach((a, ai) => {
+    if (!standing.has(a.k)) return;
+    const rings = a.r.map((r) => r.map((v) => v / 10));
+    const areaM2 = Math.abs(ringArea(rings[0])) - rings.slice(1).reduce((s, r) => s + Math.abs(ringArea(r)), 0);
+    if (areaM2 >= ROUTE_DRY_WATER_MAX_M2) return;
+    if ((4 * Math.PI * areaM2) / ringPerimeter(rings[0]) ** 2 < ROUTE_DRY_WATER_MIN_ROUNDNESS) return;
+    for (const [li, i] of routeQ(ringBbox(rings[0]), reach)) {
+      const p = routeLines[li];
+      const clearM = routeClear ? routeClear[li][i / 2] : routeClearM;
+      if (segmentRingDistance(p[i], p[i + 1], p[i + 2], p[i + 3], rings[0]) < clearM) {
+        out.push(ai);
+        return;
+      }
+    }
+  });
+  return out;
+}
+
+/**
+ * Coast worlds: which of the water areas a route dried (`routeWaterDrops`)
+ * become beach. Those are the ones whose outline touches a beach: a vertex
+ * lies inside one or within `tolM` of its outline. OSM cuts such lagoons and
+ * storm-drain channels out of the beach, so without this the default ground
+ * (grass green) would show where they were. `areas` and `beaches` are in dm,
+ * as in the layers. Returns the areas that touch, in order. Pure.
+ */
+export function waterOnBeach(areas, beaches, tolM = 2) {
+  const bs = beaches.map((b) => b.r.map((r) => r.map((v) => v / 10)));
+  return areas.filter((a) => {
+    const ring = a.r[0].map((v) => v / 10);
+    for (let i = 0; i + 1 < ring.length; i += 2) {
+      const x = ring[i], y = ring[i + 1];
+      for (const rings of bs) {
+        if (pointInPolygon(x, y, rings)) return true;
+        if (rings.some((r) => segmentRingDistance(x, y, x, y, r) <= tolM)) return true;
+      }
+    }
+    return false;
+  });
+}
+
 /**
  * Buildings → binary (see WORLD-FORMAT.md "buildings.bin"; VWB2 = VWB1 plus
  * one district byte per building). Outer rings only. Also returns the
@@ -652,9 +791,12 @@ export function buildingClearance(rings, { routeLines = [], routeClear = null, r
  *
  * `clear` drops footprints on the scenic routes and roads (see
  * `buildingClearance`); districts are classified before the drop so the
- * remaining buildings keep their palettes.
+ * remaining buildings keep their palettes. Footprints are simplified at
+ * `simplifyM` (Douglas-Peucker, the recipe's `buildingSimplifyM`).
  */
-export function buildBuildings(elements, projection, ext, landcoverPolys = [], clear = null) {
+export const BUILDING_SIMPLIFY_M = 0.3;
+
+export function buildBuildings(elements, projection, ext, landcoverPolys = [], clear = null, simplifyM = BUILDING_SIMPLIFY_M) {
   const list = [];
   for (const el of elements) {
     const t = el.tags ?? {};
@@ -666,7 +808,7 @@ export function buildBuildings(elements, projection, ext, landcoverPolys = [], c
       for (let i = 0; i < n; i++) { cx += outer[2 * i]; cy += outer[2 * i + 1]; }
       cx /= n; cy /= n;
       if (cx < ext.xMin || cx > ext.xMax || cy < ext.yMin || cy > ext.yMax) continue;
-      const ring = simplifyLine([...outer, outer[0], outer[1]], 0.3).slice(0, -2).map(dm);
+      const ring = simplifyLine([...outer, outer[0], outer[1]], simplifyM).slice(0, -2).map(dm);
       if (ring.length < 6 || ring.length / 2 > 65535) continue;
       // Counter-clockwise outer rings, so renderers extrude walls outward.
       let a = 0;
@@ -855,9 +997,13 @@ export function buildVegetation({ polys, ext, recipe, roads = null, water = null
     }
     return false;
   };
-  const waterPolys = (water?.areas ?? []).map((a) => {
-    const rings = a.r.map((r) => r.map((v) => v / 10));
-    return { rings, bbox: ringBbox(rings[0]) };
+  // Open water and sand (a coast world's beaches, under a beach park's lattice) grow no trees.
+  const waterPolys = [
+    ...(water?.areas ?? []).map((a) => a.r.map((r) => r.map((v) => v / 10))),
+    ...polys.filter((p) => p.kind === BEACH_KIND).map((p) => p.rings),
+  ].map((rings) => {
+    const bbox = ringBbox(rings[0]);
+    return { rings, bbox, inside: polygonTester(rings, bbox) };
   });
   const blocked = (x, y) => {
     if (x < ext.xMin || x > ext.xMax || y < ext.yMin || y > ext.yMax) return true;
@@ -866,7 +1012,7 @@ export function buildVegetation({ polys, ext, recipe, roads = null, water = null
       if (Math.hypot(b.cx - x, b.cy - y) > b.r * 1.5 + C.buildingClearM + 2) continue;
       if (pointInRing(x, y, b.ring) || nearWall(x, y, b.ring)) return true;
     }
-    return waterPolys.some((p) => p.bbox[0] <= x && x <= p.bbox[2] && p.bbox[1] <= y && y <= p.bbox[3] && pointInPolygon(x, y, p.rings));
+    return waterPolys.some((p) => p.bbox[0] <= x && x <= p.bbox[2] && p.bbox[1] <= y && y <= p.bbox[3] && p.inside(x, y));
   };
   const pushCharacter = (pts, k) => {
     for (const p of pts) {

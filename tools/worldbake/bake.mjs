@@ -47,13 +47,14 @@ import { validateManifest, WORLD_FORMAT, WORLD_FORMAT_VERSION } from '../../src/
 import { fetchDem, DEM_SOURCE } from './fetchDem.mjs';
 import { fetchGlo30, GLO30_CREDIT, GLO30_URL_TEMPLATE } from './fetchGlo30.mjs';
 import { demSourceOf, GLO30_DEM_SOURCE } from './demSource.mjs';
-import { fetchOsm, OVERPASS_URL } from './fetchOsm.mjs';
+import { fetchOsm, osmLayersFor, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
+import { BEACH_KIND, buildSea, flattenSea, relevelSea, slopeBeaches } from './coast.mjs';
 import { BARE_GROUND_CREDITS, bareGroundOptions, bareGroundStep, routeLift, WOODLAND_KINDS } from './bareGround.mjs';
-import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
+import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, routeWaterDrops, waterOnBeach, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, embankmentOptions, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid, structureLookup } from './snapRoutes.mjs';
-import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork, uncarvedAbutments } from './bridges.mjs';
+import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, growDeckEnds, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork, uncarvedAbutments } from './bridges.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
 import { P13_SAMPLE_COUNT, validationInputs } from './p13Criterion.mjs';
@@ -302,9 +303,12 @@ export async function bake(opts) {
 
   // OSM first: the water areas shape the terrain under them (flatLakes).
   t = Date.now();
-  const osm = await fetchOsm({ bbox, osmDate: recipe.osmDate, cacheDir, log });
-  const water = buildWater(osm.elements.water, projection, extent);
-  const landcover = buildLandcover(osm.elements.landcover, projection, extent);
+  const osm = await fetchOsm({ bbox, osmDate: recipe.osmDate, cacheDir, log, layers: osmLayersFor(recipe) });
+  // A coast world's sea: the water side of the coastline ways (coast.mjs).
+  const sea = recipe.coast ? buildSea(osm.elements.coast, projection, extent) : null;
+  const water = buildWater(osm.elements.water, projection, extent, { sea });
+  // Landcover needs nothing but OSM; a coast world's beaches shape the terrain.
+  const landcover = buildLandcover(osm.elements.landcover, projection, extent, { beach: recipe.coast ? osm.elements.coast : null });
   lap('osm', t);
   const geometry = loadScenicGeometry(join(ROOT, 'src/lib/scenicRouteData.ts'));
   const names = loadScenicNames(join(ROOT, 'src/lib/scenicRoutes.ts'));
@@ -330,6 +334,15 @@ export async function bake(opts) {
     lakes = flat.lakes;
     const cut = lakes.reduce((mx, l) => Math.max(mx, l.maxCutM), 0);
     log(`flatLakes: ${lakes.length} lakes and ponds levelled (${lakes.reduce((n, l) => n + l.inNodes, 0)} nodes under water, ${flat.changedNodes} changed, max cut ${cut.toFixed(1)} m)`);
+  }
+  let seaFlat = null;
+  let beachSlope = null;
+  if (sea) {
+    seaFlat = flattenSea({ grid: g, heights, water });
+    const b = seaFlat.before;
+    log(`coast: ${sea.length} sea polygon${sea.length === 1 ? '' : 's'} (${sea.reduce((n, p) => n + p.length - 1, 0)} islands), ${seaFlat.inNodes} nodes at sea level${b ? ` (DEM ${b.min.toFixed(1)}…${b.max.toFixed(1)} m)` : ''}, ${seaFlat.stripNodes} shore nodes lowered to it`);
+    beachSlope = slopeBeaches({ grid: g, heights, sea: seaFlat.mask, beaches: landcover.polys.filter((p) => p.kind === BEACH_KIND && p.tags.natural === 'beach').map((p) => p.rings) });
+    log(`coast: beaches sloped to the sea, ${beachSlope.changed} nodes lowered (max ${beachSlope.maxCutM.toFixed(1)} m)`);
   }
 
   // 2. Roads and the route fit. Neither reads the terrain, so they come first:
@@ -385,9 +398,10 @@ export async function bake(opts) {
       log(`embankment: route ${p.id} lowered ${p.embankments.length ? p.embankments.map((e) => `${round(e.s0, 0)}–${round(e.s1, 0)} m by up to ${round(e.lowerM)} m`).join(', ') : 'nowhere'} (to ${recipe.snap.embankment.maxM} m over the ground)`);
     }
   }
-  if (lakes) {
+  if (lakes || seaFlat) {
     const keep = routeCoreNodes(g, carve.prepared, recipe.snap.coreCells * g.cellSize);
-    log(`flatLakes: ${relevelLakes({ heights, lakes, keep: (i) => keep.has(i) })} lake nodes re-levelled after the route carve (route core kept)`);
+    if (lakes) log(`flatLakes: ${relevelLakes({ heights, lakes, keep: (i) => keep.has(i) })} lake nodes re-levelled after the route carve (route core kept)`);
+    if (seaFlat) log(`coast: ${relevelSea({ heights, nodes: seaFlat.nodes, keep: (i) => keep.has(i) })} sea nodes re-levelled after the route carve (route core kept)`);
   }
   const solveAll = (pins, abutZ, groundAt) => {
     const z = new Map();
@@ -398,6 +412,7 @@ export async function bake(opts) {
     return { z };
   };
   let decks = null;
+  let endsGrown = [];
   if (nets) {
     const prepared = carve.prepared.map((p, i) => ({ ...p, spans: spans[i] }));
     const floatGround = (x, y) => sampleFloatGrid(g, heights, x, y);
@@ -446,6 +461,20 @@ export async function bake(opts) {
     const zdm = new Map();
     for (const [ri, zs] of solveAll([...decks.first.pins, ...pinsRide], decks.first.plan.abutZ, hfGround).z) zdm.set(ri, quantiseZ(zs));
     for (const [ri, zs] of approachHeights(roads, decks.first.plan.approaches, hfGround)) zdm.set(ri, quantiseZ(zs));
+    // The deck vertices are all in. Their decimetre rounding can turn a deck's
+    // end a fraction of a degree and take a centimetre of the route's paint
+    // off the drawn roads where the route steps off it: grow such an end.
+    const paintMisses = () =>
+      routePaintCoverage(routeSamples, roads).flatMap((c, i) => {
+        const r = routeSamples[i];
+        return c.misses.flatMap((m) => r.s.flatMap((s, k) => (s >= m.fromS - 1 && s <= m.toS + 1 ? [{ x: r.x[k], y: r.y[k] }] : [])));
+      });
+    endsGrown = growDeckEnds({ roads, pieces: [...zdm.keys()].sort((a, b) => a - b), misses: paintMisses });
+    const stillMissed = routePaintCoverage(routeSamples, roads).filter((c) => c.misses.length);
+    if (stillMissed.length) {
+      throw new Error(`bridges: the deck vertices took the route's paint off the drawn roads: ${stillMissed.map((c) => `${c.id} ${c.misses.slice(0, 3).map((m) => `${m.fromS}–${m.toS} m (${m.maxOffM} m)`).join(', ')}`).join('; ')}`);
+    }
+    if (endsGrown.length) log(`bridges: ${endsGrown.length} deck end${endsGrown.length === 1 ? '' : 's'} grown to keep the route's paint on the roads: ${endsGrown.map((e) => `deck ${e.road} by ${e.m} m`).join(', ')}`);
     const approachSet = new Set(decks.first.plan.approaches.keys());
     const rideRoads = spans.map((list) => [...new Set(list.flatMap((sp) => sp.pieces))].sort((a, b) => a - b));
     const rides = rideRoads.map((list) => rideSurface(roads, list, zdm, hfGround));
@@ -525,11 +554,29 @@ export async function bake(opts) {
     .filter((r) => !(r.f && r.f & ROAD_FLAGS.tunnel) && r.c !== stepsClass)
     .map((r) => r.p.map((v) => v / 10));
   const routeClear = routeClearances(routeLines, roads);
+  // Nor through a small pond or lagoon drawn as a flat sheet across it.
+  const dryWater = routeWaterDrops(water, { routeLines: routeClear.lines, routeClear: routeClear.clear });
+  let dryBeach = 0;
+  if (dryWater.length) {
+    // flatLakes has already levelled these; dropping one would leave a dry pit.
+    if (lakes) throw new Error(`route runs through ${dryWater.length} small water area(s) a flatLakes world has levelled; move the route or the lake`);
+    const drop = new Set(dryWater);
+    // A coast world's sand runs on where OSM had cut a lagoon out of the beach.
+    const beachK = landcover.layer.kinds.indexOf(BEACH_KIND);
+    if (beachK >= 0) {
+      for (const a of waterOnBeach(dryWater.map((i) => water.areas[i]), landcover.layer.areas.filter((b) => b.k === beachK))) {
+        landcover.layer.areas.push({ k: beachK, r: a.r });
+        landcover.polys.push({ kind: BEACH_KIND, tags: {}, rings: a.r.map((r) => r.map((v) => v / 10)) });
+        dryBeach++;
+      }
+    }
+    water.areas = water.areas.filter((_, i) => !drop.has(i));
+  }
   const buildings = buildBuildings(osm.elements.buildings, projection, extent, landcover.polys, {
     routeLines: routeClear.lines,
     routeClear: routeClear.clear,
     roadLines,
-  });
+  }, recipe.buildingSimplifyM ?? BUILDING_SIMPLIFY_M);
   const vegetation = buildVegetation({
     polys: landcover.polys,
     ext: extent,
@@ -542,7 +589,7 @@ export async function bake(opts) {
   });
   const pois = buildPois([...osm.elements.pois, ...osm.elements.landmarks], projection, extent).map((p) => ({ ...p, h: round(height.hf.sampleHeight(p.x, p.y)) }));
   lap('vectors', t);
-  log(`vectors: ${roads.roads.length} road pieces, ${water.areas.length} water areas + ${water.lines.length} lines, ${landcover.layer.areas.length} landcover, ${buildings.count} buildings ${JSON.stringify(buildings.districts)} (dropped ${buildings.dropped.route} on routes, ${buildings.dropped.road} astride roads), ${vegetation.count} trees (woodland lattice ${vegetation.lattice}, character ${vegetation.character}${vegetation.corridor ? `, route corridor ${vegetation.corridor.kept} of ${vegetation.corridor.lattice}, elsewhere ${vegetation.corridor.farKept} of ${vegetation.corridor.farLattice}` : ''}) ${JSON.stringify(vegetation.byKind)}, ${pois.length} POIs`);
+  log(`vectors: ${roads.roads.length} road pieces, ${water.areas.length} water areas${dryWater.length ? ` (dropped ${dryWater.length} on routes${dryBeach ? `, ${dryBeach} now beach` : ''})` : ''} + ${water.lines.length} lines, ${landcover.layer.areas.length} landcover, ${buildings.count} buildings ${JSON.stringify(buildings.districts)} (dropped ${buildings.dropped.route} on routes, ${buildings.dropped.road} astride roads), ${vegetation.count} trees (woodland lattice ${vegetation.lattice}, character ${vegetation.character}${vegetation.corridor ? `, route corridor ${vegetation.corridor.kept} of ${vegetation.corridor.lattice}, elsewhere ${vegetation.corridor.farKept} of ${vegetation.corridor.farLattice}` : ''}) ${JSON.stringify(vegetation.byKind)}, ${pois.length} POIs`);
 
   // 4. Write the bundle.
   t = Date.now();
@@ -645,6 +692,7 @@ export async function bake(opts) {
     routes: snapped.info.map((r) => ({ ...r, roadCoverage: roadCoverage[r.id] })),
     routeFit: routeFitReport(fit),
     heightfield: { ...height.info, carvedNodes: carve.carvedNodes, maxCutM: round(carve.maxCutM) },
+    ...(seaFlat ? { coast: { seaPolygons: sea.length, islands: sea.reduce((n, p) => n + p.length - 1, 0), seaNodes: seaFlat.inNodes, shoreNodesLowered: seaFlat.stripNodes, beachNodesSloped: beachSlope.changed, beachMaxCutM: round(beachSlope.maxCutM), demUnderSea: seaFlat.before && { min: round(seaFlat.before.min), max: round(seaFlat.before.max) }, beachAreas: landcover.layer.areas.filter((a) => landcover.layer.kinds[a.k] === 'beach').length } } : {}),
     ...(decks
       ? {
           bridges: {
@@ -655,6 +703,7 @@ export async function bake(opts) {
             underDeckMaxCutM: round(decks.cap.maxCutM),
             headroomPins: decks.first.pins.map((p) => ({ road: p.ri, name: roads.roads[p.ri].n !== undefined ? roads.names[roads.roads[p.ri].n] : null, route: p.route, routeS: round(p.routeS), liftM: round(p.liftM) })),
             approaches: decks.first.plan.lifts.map((l) => ({ bridge: l.bridge, route: l.route, routeS: round(l.routeS), liftM: round(l.liftM), rampM: round(l.rampM), ...(l.block ? { abutmentBlock: true } : {}) })),
+            ...(endsGrown.length ? { endsGrown } : {}),
             rides: bridgesLayer.rides,
           },
         }
@@ -662,6 +711,7 @@ export async function bake(opts) {
     ...(bareReport ? { bareGround: bareReport } : {}),
     ...(lakes ? { flatLakes: lakes.map(({ nodes: _nodes, ...l }) => ({ ...l, level: round(l.level), before: { min: round(l.before.min), max: round(l.before.max) }, maxCutM: round(l.maxCutM) })) } : {}),
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
+    ...(dryWater.length ? { waterDroppedOnRoutes: dryWater.length, waterDroppedToBeach: dryBeach } : {}),
     ...(glo30 ? { demSource: dem.source } : {}),
     demTiles: dem.tiles,
     ...(glo30 ? { demMissingTiles: dem.missing } : {}),

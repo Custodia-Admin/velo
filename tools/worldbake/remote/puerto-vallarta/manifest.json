@@ -1,0 +1,370 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "puerto-vallarta",
+  "name": "Puerto Vallarta",
+  "origin": {
+    "lat": 20.68,
+    "lon": -105.282
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 20.68,
+    "lon0": -105.282,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -8000,
+    "xMax": 6460,
+    "yMin": -9984,
+    "yMax": 9000
+  },
+  "bbox": {
+    "south": 20.5898,
+    "west": -105.35883,
+    "north": 20.7613,
+    "east": -105.21996
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 1206,
+    "rows": 1583,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": -7,
+    "heightScale": 0.015625,
+    "minHeight": -5.25,
+    "maxHeight": 427.015625
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 864673,
+      "sha256": "07c508b2e81771113a02ff3dd0afa3f8bf1d22a9f0653fa228a28e26a8fcfece",
+      "compression": "gzip",
+      "contentBytes": 3818196,
+      "contentSha256": "503768221cfc24b50183779e984074288db1861b262e1d7aeb439ee4b9227a00"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 287143,
+      "sha256": "55606aa89b6e865f8fceb07a3aa429215c682e39615f055d96f5babd740f2db4",
+      "compression": "gzip",
+      "contentBytes": 784580,
+      "contentSha256": "a2dede454d350835ecc90da2860fb934387c23f2c978b550bb34c2042469fa6c"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 29552,
+      "sha256": "06f56324eb57e13e0029ccdbc5331aa2c9941e78329ee17d6e15de1735d8b865",
+      "compression": "gzip",
+      "contentBytes": 65602,
+      "contentSha256": "3113a200bfcc0218d3feb81ddd1090a379281e4c58111d246a6841b80d3d2cd1"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 37228,
+      "sha256": "18de26aef77f30a15ddc0288b8d539089ec08958b7c783c18fdf5434281e7fd4",
+      "compression": "gzip",
+      "contentBytes": 88727,
+      "contentSha256": "592a6e7456f544f1b3ef759e6424a38b8ceb373c912fcfa4e07fbab5f9563aaa"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 136528,
+      "sha256": "5538bd91967fa70dc2acedc931128a585b84d0131cf9c089832e2a447c116052",
+      "compression": "gzip",
+      "contentBytes": 252676,
+      "contentSha256": "3d1d7f35605d7d3ae876daba685cfe99e083ea1be3fca47cea949192d048f793"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 170179,
+      "sha256": "e0b752bba90e60a81d2630041dc86040231fd660c52bf4aa5578243ea6a56d0b",
+      "compression": "gzip",
+      "contentBytes": 252538,
+      "contentSha256": "10473a9e8799bbb22b33a268d217ca1ca8e2814b5004102152ef98d2fb586ac6"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 27780,
+      "sha256": "3275ede328579e949526eb9796555d15e8d0837b5d42054fd0267bfd14a37e2f",
+      "compression": "gzip",
+      "contentBytes": 66993,
+      "contentSha256": "1bb878257ce0cf56992d5714f2bbdaeb771fa7fd397480385425258ab92b3f99"
+    }
+  ],
+  "moods": [
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "mediterranean-mist",
+    "overcast"
+  ],
+  "defaultMood": "golden-hour",
+  "pois": [
+    {
+      "name": "Los Arcos - Centro cultural y Artistico de acceso libre",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 4783.5,
+      "y": -7872.2,
+      "osm": "node/269553482",
+      "h": 3.96
+    },
+    {
+      "name": "Las Mojoneras",
+      "kind": "village",
+      "rank": 1,
+      "x": 5951.1,
+      "y": 857.2,
+      "osm": "node/280868154",
+      "h": 6.8
+    },
+    {
+      "name": "Las Juntas",
+      "kind": "town",
+      "rank": 3,
+      "x": 3921.4,
+      "y": 2174.9,
+      "osm": "node/280868599",
+      "h": 8.61
+    },
+    {
+      "name": "Las Jarretaderas",
+      "kind": "town",
+      "rank": 3,
+      "x": 693.1,
+      "y": 1170,
+      "osm": "node/282575037",
+      "h": 5.29
+    },
+    {
+      "name": "Bucerías",
+      "kind": "town",
+      "rank": 3,
+      "x": -5451.8,
+      "y": 8369.5,
+      "osm": "node/1540740851",
+      "h": 25.56
+    },
+    {
+      "name": "Mezcales",
+      "kind": "town",
+      "rank": 3,
+      "x": -126.1,
+      "y": 5603.3,
+      "osm": "node/1540740855",
+      "h": 15.06
+    },
+    {
+      "name": "Nuevo Nayarit",
+      "kind": "village",
+      "rank": 2,
+      "x": -678.2,
+      "y": 2519.6,
+      "osm": "node/1540740859",
+      "h": 3.15
+    },
+    {
+      "name": "Puerto Vallarta",
+      "kind": "town",
+      "rank": 3,
+      "x": 6429.6,
+      "y": -4347.8,
+      "osm": "node/2052329081",
+      "h": 15.65
+    },
+    {
+      "name": "Valle Marlín",
+      "kind": "town",
+      "rank": 3,
+      "x": 2919,
+      "y": 6191.3,
+      "osm": "node/3359016431",
+      "h": 10.4
+    },
+    {
+      "name": "La Cruz",
+      "kind": "peak",
+      "rank": 1,
+      "x": 5442.2,
+      "y": -7800.2,
+      "osm": "node/3960321122",
+      "h": 124.76
+    },
+    {
+      "name": "Faro de Matamoros",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 5045.6,
+      "y": -7857.7,
+      "osm": "node/4006589311",
+      "h": 34.52
+    },
+    {
+      "name": "La Cruz",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 5454.4,
+      "y": -7777.2,
+      "osm": "node/4089181116",
+      "h": 125.12
+    },
+    {
+      "name": "El Porvenir",
+      "kind": "village",
+      "rank": 2,
+      "x": 4188.6,
+      "y": 8220.9,
+      "osm": "node/6287544491",
+      "h": 20.25
+    },
+    {
+      "name": "El Tondoroque",
+      "kind": "village",
+      "rank": 1,
+      "x": -1180.5,
+      "y": 7311.9,
+      "osm": "node/11115430012",
+      "h": 12.83
+    },
+    {
+      "name": "San Clemente",
+      "kind": "town",
+      "rank": 3,
+      "x": 1298.9,
+      "y": 5946.8,
+      "osm": "node/12154559649",
+      "h": 16.83
+    },
+    {
+      "name": "San Vicente",
+      "kind": "town",
+      "rank": 3,
+      "x": 3246.4,
+      "y": 7662,
+      "osm": "node/12154563127",
+      "h": 19.32
+    },
+    {
+      "name": "Mirador Punto Muerto",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 4273.3,
+      "y": -9378.1,
+      "osm": "node/12164594901",
+      "h": 0
+    },
+    {
+      "name": "Boca de Tomates",
+      "kind": "village",
+      "rank": 1,
+      "x": 554.6,
+      "y": -910.2,
+      "osm": "node/12388372904",
+      "h": 3.28
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-puerto-vallarta-malecon",
+      "name": "Puerto Vallarta bayfront",
+      "lengthM": 8716.76,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.178
+    },
+    {
+      "id": "scenic-nuevo-vallarta-bucerias",
+      "name": "Nuevo Vallarta to Bucerías",
+      "lengthM": 9619.83,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.051
+    }
+  ],
+  "stats": {
+    "roads": 9976,
+    "waterAreas": 99,
+    "waterLines": 43,
+    "landcoverAreas": 652,
+    "buildings": 7927,
+    "buildingVertices": 43348,
+    "buildings:suburb": 6978,
+    "buildings:old-town": 130,
+    "buildings:rural": 561,
+    "buildings:industrial": 258,
+    "trees": 42087,
+    "trees:broadleaf": 23456,
+    "trees:conifer": 0,
+    "trees:scrub": 4782,
+    "trees:olive": 1825,
+    "trees:park": 817,
+    "trees:cypress": 163,
+    "trees:riparian": 2286,
+    "trees:hedgerow": 1849,
+    "trees:garden": 6909,
+    "pois": 18,
+    "carvedNodes": 14746
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-puerto-vallarta-malecon",
+      "name": "Puerto Vallarta bayfront: OSRM bike route through 6 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-105.2381,20.60553;-105.23756,20.60657;-105.23509,20.60998;-105.23271,20.61441;-105.23294,20.61537;-105.2487,20.6684?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-nuevo-vallarta-bucerias",
+      "name": "Nuevo Vallarta to Bucerías: OSRM bike route through 4 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-105.2935,20.6935;-105.3385,20.755;-105.34058,20.75585;-105.34382,20.75821?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "8501ed6b2fd3ab6fcc390ec361d4ee09e268f5ab7e359515baf5a9c40cd2e474",
+    "osmDate": "2026-11-01T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 1
+  }
+}

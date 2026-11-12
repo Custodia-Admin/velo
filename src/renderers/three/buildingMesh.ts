@@ -116,8 +116,42 @@ export interface BuildingGeometryData {
 }
 
 /**
+ * A footprint's box: the rectangle around it aligned with its longest wall,
+ * counter-clockwise. What a far chunk draws: a house a kilometre off is a few
+ * pixels across, and a box is 4 walls and a roof however many corners the
+ * survey gave it.
+ */
+export function footprintBox(pts: readonly [number, number][]): [number, number][] {
+  let best = 0;
+  let ux = 1;
+  let uy = 0;
+  for (let k = 0; k < pts.length; k++) {
+    const a = pts[k];
+    const b = pts[(k + 1) % pts.length];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (len > best) {
+      best = len;
+      ux = (b[0] - a[0]) / len;
+      uy = (b[1] - a[1]) / len;
+    }
+  }
+  let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+  for (const [x, y] of pts) {
+    const u = x * ux + y * uy;
+    const v = -x * uy + y * ux;
+    u0 = Math.min(u0, u);
+    u1 = Math.max(u1, u);
+    v0 = Math.min(v0, v);
+    v1 = Math.max(v1, v);
+  }
+  const at = (u: number, v: number): [number, number] => [u * ux - v * uy, u * uy + v * ux];
+  return [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)];
+}
+
+/**
  * Geometry for the given buildings, positions relative to (originX, originZ)
- * in three.js coordinates (x east, y up, z south).
+ * in three.js coordinates (x east, y up, z south). `boxes` draws each as its
+ * `footprintBox` (far chunks): same height, colours and roof style.
  */
 export function buildBuildingGeometry(
   layer: BuildingsLayer,
@@ -125,6 +159,7 @@ export function buildBuildingGeometry(
   hf: Heightfield,
   originX: number,
   originZ: number,
+  boxes = false,
 ): BuildingGeometryData {
   const P: number[] = [];
   const N: number[] = [];
@@ -189,6 +224,9 @@ export function buildBuildingGeometry(
     cy /= pts.length;
     const ar = Math.abs(ringArea(pts));
     const style = buildingStyle(kind, district, cx, ar, rng);
+    // The roof follows the footprint as surveyed, so a far box keeps its roof.
+    const roofPitchable = isConvex(pts) && pts.length <= 10;
+    if (boxes) pts.splice(0, pts.length, ...footprintBox(pts));
     const industrial = style.pitched === false;
     const church = kind === KIND_CHURCH;
     // Tagged heights are mostly per-type defaults: vary by whole floors.
@@ -227,8 +265,7 @@ export function buildBuildingGeometry(
       u += len;
     }
     // Roof.
-    const convex = isConvex(pts);
-    const pitched = style.pitched && convex && pts.length <= 10 && ar > 15 && (church || ar < 1800);
+    const pitched = style.pitched && roofPitchable && ar > 15 && (church || ar < 1800);
     if (pitched) {
       const pitch = Math.tan(((20 + rng() * 6) * Math.PI) / 180);
       if (pts.length === 4) {

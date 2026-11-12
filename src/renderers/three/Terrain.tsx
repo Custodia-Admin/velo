@@ -45,7 +45,8 @@ export function createTerrain(
   aux: THREE.Texture | null = null,
   atmo?: WorldAtmosphere,
 ): TerrainHandle {
-  const material = createTerrainMaterial({ landcover, aux, atmo, extent: sw.world.manifest.extent });
+  const sand = sw.world.landcover.areas.some((a) => a.kind === 'beach');
+  const material = createTerrainMaterial({ landcover, aux, atmo, extent: sw.world.manifest.extent, sand });
   const group = new THREE.Group();
   group.name = 'terrain';
   const slots = sw.chunks.map((chunk) => {
