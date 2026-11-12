@@ -76,13 +76,18 @@ function elements(node: unknown, out: El[] = []): El[] {
   return out;
 }
 
-function render(onRendererReady: (r: WorldRenderer | null) => void) {
+/** The renderer view element RideView mounts. */
+function viewElement(props: Partial<Parameters<typeof RideView>[0]> = {}) {
   rt.i = 0;
   rt.e = 0;
-  const el = RideView({ ionToken: null, onRendererReady });
+  const el = RideView({ ionToken: null, ...props });
   const view = elements(el).find((x) => typeof x.props.onReady === 'function');
   expect(view, 'the renderer view element').toBeDefined();
-  return view!.props.onReady as (r: WorldRenderer) => void;
+  return view!;
+}
+
+function render(onRendererReady: (r: WorldRenderer | null) => void) {
+  return viewElement({ onRendererReady }).props.onReady as (r: WorldRenderer) => void;
 }
 
 const fakeRenderer = (): WorldRenderer =>
@@ -129,5 +134,17 @@ describe('RideView: a view hands over a new renderer while it stays mounted', ()
     expect(second.dispose).toHaveBeenCalledTimes(1);
     expect(first.dispose).toHaveBeenCalledTimes(1);
     expect(got[got.length - 1]).toBeNull();
+  });
+});
+
+describe('RideView: an opaque page over the world (the finish screen)', () => {
+  it('tells the view it is covered, and uncovered again (Ride again), on the same element', () => {
+    const riding = viewElement();
+    expect(riding.props.covered).toBe(false);
+    const finished = viewElement({ covered: true });
+    expect(finished.props.covered).toBe(true);
+    expect(finished.key, 'no remount: the renderer keeps its scene').toBe(riding.key);
+    expect(finished.type).toBe(riding.type);
+    expect(viewElement({ covered: false }).props.covered).toBe(false);
   });
 });

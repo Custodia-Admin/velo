@@ -10,6 +10,10 @@
  * carries the slot's canvas key, so a restore or the rider's tap remounts the
  * canvas (a loss alone does not); the canvas watch gets the view id and the
  * current key; leaving clears the slot.
+ *
+ * Also here (card t_c4842aa7, same harness): covered by the finish screen, the
+ * canvas's frame loop stops ('never') on the same canvas and scene, and runs
+ * again when uncovered; the steady clock sits in every canvas.
  */
 import { isValidElement, type ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -103,8 +107,9 @@ import { Canvas } from '@react-three/fiber';
 import type { Route } from '@/types';
 import { useRideStore } from '@/stores/rideStore';
 import { canvasKeyFor, selectWorldStopped, useWorldViewStore } from '@/stores/worldViewStore';
+import type { WorldViewProps } from '@/lib/world/renderer';
 import { ContextLossWatch } from './contextLoss';
-import { ThreeWorldView, WorldScene } from './ThreeWorldView';
+import { SteadyClock, ThreeWorldView, WorldScene } from './ThreeWorldView';
 
 type El = ReactElement<Record<string, unknown>>;
 function elements(node: unknown, out: El[] = []): El[] {
@@ -127,15 +132,16 @@ const route = {
 } as unknown as Route;
 
 /** One render pass, then its effects (as React commits them). */
-function render() {
+function render(props: Partial<WorldViewProps> = {}) {
   rt.i = 0;
   rt.e = 0;
-  const el = ThreeWorldView({ ionToken: null });
+  const el = ThreeWorldView({ ionToken: null, ...props });
   while (rt.queue.length) rt.queue.shift()!();
   const all = elements(el);
   const canvas = all.find((x) => x.type === Canvas) ?? null;
   const watch = all.find((x) => x.type === ContextLossWatch) ?? null;
-  return { root: el as El, canvas, watch, scene: all.find((x) => x.type === WorldScene) ?? null };
+  const clocks = canvas ? elements(canvas.props.children).filter((x) => x.type === SteadyClock) : [];
+  return { root: el as El, canvas, watch, clocks, scene: all.find((x) => x.type === WorldScene) ?? null };
 }
 
 function unmount() {
@@ -152,14 +158,14 @@ afterEach(() => {
 });
 
 /** Mount the view and let the (synthetic) world load. */
-async function mounted() {
+async function mounted(props: Partial<WorldViewProps> = {}) {
   useRideStore.setState({ route });
-  const first = render();
+  const first = render(props);
   expect(first.canvas).toBeNull(); // the world is still loading
   let view = first;
   for (let tick = 0; tick < 50 && !view.canvas; tick++) {
     await new Promise((r) => setTimeout(r, 0));
-    view = render();
+    view = render(props);
   }
   expect(view.canvas, 'the canvas once the world is in').not.toBeNull();
   return view;
@@ -214,5 +220,43 @@ describe('ThreeWorldView: a lost WebGL context', () => {
     unmount();
     expect(useWorldViewStore.getState().view).toBeNull();
     expect(selectWorldStopped(useWorldViewStore.getState())).toBe(false);
+  });
+});
+
+describe('ThreeWorldView: covered by the finish screen', () => {
+  it('draws every frame while riding', async () => {
+    const view = await mounted();
+    expect(view.canvas!.props.frameloop).toBe('always');
+  });
+
+  it("covered: the canvas's frame loop stops on the same canvas, scene and context; uncovered: it runs again", async () => {
+    const riding = await mounted();
+    const covered = render({ covered: true });
+    expect(covered.canvas!.props.frameloop).toBe('never');
+    // No remount: the same canvas (key) and the same scene, so nothing is rebuilt or re-fetched.
+    expect(covered.canvas!.key).toBe(riding.canvas!.key);
+    expect(covered.scene).not.toBeNull();
+    expect(covered.scene!.key).toBe(riding.scene!.key);
+    expect(covered.scene!.props.sceneWorld).toBe(riding.scene!.props.sceneWorld);
+    expect(covered.root.props['data-world-context']).toBe('live');
+    // Ride again.
+    const again = render({ covered: false });
+    expect(again.canvas!.props.frameloop).toBe('always');
+    expect(again.canvas!.key).toBe(riding.canvas!.key);
+    expect(again.scene!.props.sceneWorld).toBe(riding.scene!.props.sceneWorld);
+  });
+
+  it('a view mounted under the finish screen (the floating window closed at the finish) starts with no frames', async () => {
+    const view = await mounted({ covered: true });
+    expect(view.canvas!.props.frameloop).toBe('never');
+  });
+
+  it("every canvas carries one steady clock (r3f restarts its clock when the loop's mode changes)", async () => {
+    const view = await mounted();
+    expect(view.clocks).toHaveLength(1);
+    const id = useWorldViewStore.getState().view!.id;
+    useWorldViewStore.getState().contextLost(id, 0);
+    useWorldViewStore.getState().contextRestored(id, 0);
+    expect(render().clocks).toHaveLength(1);
   });
 });
