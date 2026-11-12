@@ -13,23 +13,35 @@ import {
   type PartnerYieldState,
   type RiderBeside,
 } from '@/lib/ride/partnerSlots';
-import { routeBearingAt, smoothHeadingAt, stepDrawnHeading, YawFilter } from '@/lib/ride/rideHeading';
-import { ridePose } from '@/lib/ride/rideSim';
+import { cornerLeanTarget, LEAN_LEAD_S, stepCornerLean } from '@/lib/ride/cornerLean';
+import { routeBearingAt, stepCameraHeading, YawFilter } from '@/lib/ride/rideHeading';
+import { createLinePoint, lineAt, offsetFacing, type LinePoint } from '@/lib/ride/rideLine';
+import { drawnPose } from '@/lib/ride/rideSim';
 import type { RiderPose } from '@/lib/world/renderer';
 import type { RideState, Route } from '@/types';
-import { dampFactor } from './chaseRig';
 import { roadSpanAt, type RoadSpanMemo } from './roadSpan';
-import { estimatedCadence, leanAngle, placeRider, type RiderPlacement } from './riderRig';
+import { estimatedCadence, placeRider, type RiderPlacement } from './riderRig';
 import type { RideFrame, SceneWorld } from './worldScene';
 
 /** State the driver carries between frames. */
 export interface RideDriverMemo {
   lane: LaneState;
+  /** The chase camera's heading (rideHeading.stepCameraHeading). */
   yaw: YawFilter;
+  /** Line points under the rider, at the look-ahead and where the lean reads the bend (reused every frame). */
+  point: LinePoint;
+  aheadPoint: LinePoint;
+  leanPoint: LinePoint;
 }
 
 export function createRideDriverMemo(): RideDriverMemo {
-  return { lane: createLaneState(), yaw: new YawFilter() };
+  return {
+    lane: createLaneState(),
+    yaw: new YawFilter(),
+    point: createLinePoint(),
+    aheadPoint: createLinePoint(),
+    leanPoint: createLinePoint(),
+  };
 }
 
 export interface RideDriverInput {
@@ -68,25 +80,22 @@ export function driveRideFrame(frame: RideFrame, memo: RideDriverMemo, sceneWorl
   if (raw) frame.reach.leftM = frame.reach.rightM = raw.laneOffsetM ?? 0;
   else laneReach(memo.lane, input.steer, frame.reach);
   const distance = raw ? raw.distance : input.distance;
-  // The drawn heading is the damped wide-chord heading (lib/ride/rideHeading):
-  // the raw route bearing swings 114–163° within metres at sharp vertices.
-  // The lane offset turns with that same filtered heading: the chord folds onto
-  // itself at an out-and-back U-turn, and a steered rider would jump across the road.
-  const heading = stepDrawnHeading(memo.yaw, route, distance, dt, raw?.heading);
+  const speed = raw ? raw.speed : input.speed;
+  // The camera turns with the drawn line, damped and turn-rate capped (rideHeading.stepCameraHeading).
+  const cameraHeading = stepCameraHeading(memo.yaw, route, distance, dt, speed, raw?.heading);
+  // The rider is drawn on the drawn line and faces along it (rideLine): it turns into each bend
+  // and its heading is its direction of travel, so it never slides sideways through a corner.
+  // An outside driver's pose is drawn where it says, at the damped heading.
   const pose: RiderPose = raw
-    ? { ...raw, heading }
-    : {
-        ...ridePose(route, distance, { laneOffsetM, offsetHeading: heading, grade: input.grade, speed: input.speed }),
-        heading,
-      };
+    ? { ...raw, heading: cameraHeading }
+    : drawnPose(route, distance, { laneOffsetM, grade: input.grade, speed: input.speed }, memo.point);
   const placement = placeRider(sceneWorld, pose, input.ground);
-  const aheadPose = ridePose(route, Math.min(route.totalDistance, pose.distance + input.lookAheadM), {
-    laneOffsetM: pose.laneOffsetM,
-    offsetHeading: heading,
-  });
+  const aheadPose = drawnPose(route, Math.min(route.totalDistance, pose.distance + input.lookAheadM), { laneOffsetM: pose.laneOffsetM }, memo.aheadPoint);
   const ahead = placeRider(sceneWorld, aheadPose, input.ground).position;
-  const speed = raw ? pose.speed : input.speed;
-  frame.lean += (leanAngle(speed, memo.yaw.rate) - frame.lean) * dampFactor(0.35, dt);
+  // Leaning into the bend (cornerLean), read a little ahead so the eased lean peaks with it.
+  frame.lean = stepCornerLean(frame.lean, cornerLeanTarget(speed, lineAt(route, distance + speed * LEAN_LEAD_S, memo.leanPoint)), dt);
+  frame.cameraHeading = cameraHeading;
+  frame.frameHeading = raw ? pose.heading : memo.point.frameHeading;
   frame.pose = pose;
   frame.placement = placement;
   frame.ahead.x = ahead.x;
@@ -99,8 +108,14 @@ export function driveRideFrame(frame: RideFrame, memo: RideDriverMemo, sceneWorl
 
 /** State one pace bot's drawing carries between frames. */
 export interface BotDriverMemo {
-  yaw: YawFilter;
+  /** Where it is drawn on the line this frame, its heading and eased lean (driveBotPose). */
+  lat: number;
+  lon: number;
+  heading: number;
   lean: number;
+  /** Line points under the bot and where its lean reads the bend (reused every frame). */
+  point: LinePoint;
+  leanPoint: LinePoint;
   /** The drawn road segments around the bot (roadSpan.roadSpanAt). */
   road?: RoadSpanMemo;
   /** Its lateral slot and drop-back as drawn, eased, giving way to the rider (partnerSlots.stepPartnerYield). */
@@ -108,19 +123,28 @@ export interface BotDriverMemo {
 }
 
 export function createBotDriverMemo(): BotDriverMemo {
-  return { yaw: new YawFilter(), lean: 0, giveWay: createPartnerYieldState() };
+  return {
+    lat: 0,
+    lon: 0,
+    heading: 0,
+    lean: 0,
+    point: createLinePoint(),
+    leanPoint: createLinePoint(),
+    giveWay: createPartnerYieldState(),
+  };
 }
 
-/** Forget a partner's drawn heading and slot (it left the roster): it is seated afresh when it comes back. */
+/** Forget a partner's drawn lean and slot (it left the roster): it is seated afresh when it comes back. */
 export function resetBotDriverMemo(memo: BotDriverMemo): void {
-  memo.yaw.reset();
+  memo.lean = 0;
   memo.giveWay = createPartnerYieldState();
 }
 
 /**
  * The rider as the world renderer's pace partners give way to it:
- * RiderBeside plus where it is drawn (world metres east, north) and its
- * drawn heading.
+ * RiderBeside plus where it is drawn (world metres east, north) and the
+ * heading of the line's sideways frame there (RideFrame.frameHeading), which
+ * the partners line up across.
  */
 export interface WorldRider extends RiderBeside {
   worldX: number;
@@ -145,25 +169,39 @@ export function riderBeside(frame: RideFrame, out: WorldRider = createWorldRider
   out.rightM = Math.max(frame.reach.rightM, out.laneOffsetM);
   out.worldX = frame.placement.worldX;
   out.worldY = frame.placement.worldY;
-  out.heading = frame.pose.heading;
+  // Partners line up with the rider across the line's sideways frame, as their slots go.
+  out.heading = frame.frameHeading;
   return out;
 }
 
 /**
- * A pace bot's drawn heading and lean, through the same wide chord and
- * YawFilter as the rider: the bot's own `heading` is the raw ±4 m route
- * bearing, which pivots the model on the spot at sharp corners.
+ * Where a pace bot (or the couple ghost) is drawn this frame, by the rider's
+ * own rule: on the drawn line at its distance, facing along it, leaning into
+ * the bend (rideLine, cornerLean). Written into `memo` (lat, lon, heading,
+ * lean), which it returns (placeBot moves it into its slot across the line's
+ * sideways frame, `memo.point.frameHeading`). The bot's own lat/lon and
+ * `heading` (the raw route polyline and its ±4 m chord, which pivots the
+ * model on the spot at sharp corners) are used only without a route.
  */
 export function driveBotPose(
   memo: BotDriverMemo,
   route: Route | null,
-  bot: { distance: number; speed: number; heading: number },
+  bot: { distance: number; speed: number; heading: number; lat?: number; lon?: number },
   dt: number,
-): { heading: number; lean: number } {
-  const target = route && route.points.length >= 2 ? smoothHeadingAt(route, bot.distance, undefined, bot.heading) : bot.heading;
-  const heading = memo.yaw.step(target, bot.distance, dt);
-  memo.lean += (leanAngle(bot.speed, memo.yaw.rate) - memo.lean) * dampFactor(0.4, dt);
-  return { heading, lean: memo.lean };
+): BotDriverMemo {
+  if (!route || route.points.length < 2) {
+    memo.lat = bot.lat ?? memo.lat;
+    memo.lon = bot.lon ?? memo.lon;
+    memo.heading = bot.heading;
+    memo.lean = stepCornerLean(memo.lean, 0, dt);
+    return memo;
+  }
+  const p = lineAt(route, bot.distance, memo.point);
+  memo.lat = p.lat;
+  memo.lon = p.lon;
+  memo.heading = p.heading;
+  memo.lean = stepCornerLean(memo.lean, cornerLeanTarget(bot.speed, lineAt(route, bot.distance + bot.speed * LEAN_LEAD_S, memo.leanPoint)), dt);
+  return memo;
 }
 
 /** Where a pace partner is drawn this frame (placeBot). */
@@ -181,13 +219,14 @@ export interface BotPlacement {
 }
 
 /**
- * Where pace partner `index` is drawn this frame: its point on the route
- * line moved into its lateral slot (lib/ride/partnerSlots) across the
- * filtered heading. Without the slot every partner stands inside the rider
- * on the start line.
+ * Where pace partner `index` is drawn this frame: its point on the drawn
+ * line (driveBotPose, the rider's own line at the partner's distance) moved
+ * into its lateral slot (lib/ride/partnerSlots) across the line's sideways
+ * frame (RideLine.frameHeading), facing the way it moves there. Without the slot
+ * every partner stands inside the rider on the start line.
  *
  * The slot is clamped to the drawn ribbon the route runs on there (the one
- * under the route point, along the route's own bearing: roadSpan.roadSpanAt),
+ * under the partner's point, along the route's own bearing: roadSpan.roadSpanAt),
  * but never closer than 0.9 m to the line or to the next partner in on its
  * side (partnerSlotM): on a 1.5 m path the partner rides the verge. It is
  * eased toward that target over time (stepPartnerSlot), so a partner drifts
@@ -198,8 +237,9 @@ export interface BotPlacement {
  * keeps 0.9 m from where the rider rides or is heading across the road,
  * further out on its own side where the ribbon leaves room, otherwise drawn
  * behind the rider. A dropped-back partner is drawn behind its own point
- * along the RIDER's drawn heading, not back along the route: level partners
- * then hold their formation with the rider exactly, through every bend. Back
+ * along the rider's sideways frame (WorldRider.heading), not back along the
+ * route: level partners then hold their formation with the rider exactly,
+ * through every bend. Back
  * along the route, a 2 m drop at a sharp vertex (Tiber 9,675 m, Assisi
  * 1,985 m, Locarno 3,416 m) put the partner 0.2–0.4 m from the rider.
  * `peers` are this frame's placements of the partners before it in roster
@@ -218,8 +258,12 @@ export function placeBot(
   peers: readonly BotPlacement[] = [],
 ): BotPlacement {
   const inner = index >= 2 ? peers[index - 2] : undefined;
-  const { heading, lean } = driveBotPose(memo, route, bot, dt);
-  const [x, y] = sceneWorld.projection.forward(bot.lat, bot.lon);
+  // Its own point is where it is drawn on the line (driveBotPose), not the raw route polyline; the slot
+  // goes across its sideways frame, which turns with the line but never loops a tight inside corner.
+  const { lean, lat: botLat, lon: botLon } = driveBotPose(memo, route, bot, dt);
+  const onLine = !!route && route.points.length >= 2;
+  const heading = onLine ? memo.point.frameHeading : memo.heading;
+  const [x, y] = sceneWorld.projection.forward(botLat, botLon);
   const bearing = route && route.points.length >= 2 ? routeBearingAt(route, bot.distance, bot.heading) : bot.heading;
   const span = roadSpanAt(sceneWorld, x, y, heading, bearing, memo);
   const giveWay = route && route.points.length >= 2 ? rider : null;
@@ -228,7 +272,7 @@ export function placeBot(
   // sin/cos of the bearing: the world's grid north is up to ~0.2° off true north, and offsetLatLon's sphere
   // differs from the projected ellipsoid by up to 0.3 %, which 4 m back puts a centimetre off. Along is in
   // scene metres, across in slot metres.
-  const unit = giveWay ? offsetLatLon(bot.lat, bot.lon, heading, 1) : null;
+  const unit = giveWay ? offsetLatLon(botLat, botLon, heading, 1) : null;
   const [ux, uy] = unit ? sceneWorld.projection.forward(unit.lat, unit.lon) : [x + 1, y];
   const acrossScale = Math.hypot(ux - x, uy - y) || 1;
   const rx = (ux - x) / acrossScale;
@@ -237,7 +281,7 @@ export function placeBot(
     let px = x;
     let py = y;
     if (backM !== 0 && giveWay) {
-      const p = offsetLatLon(bot.lat, bot.lon, giveWay.heading - Math.PI / 2, -backM);
+      const p = offsetLatLon(botLat, botLon, giveWay.heading - Math.PI / 2, -backM);
       [px, py] = sceneWorld.projection.forward(p.lat, p.lon);
     }
     const ex = wx - px;
@@ -251,9 +295,10 @@ export function placeBot(
     innerAt: giveWay && inner ? seen(inner.placement.worldX, inner.placement.worldY) : undefined,
     peersAt: giveWay ? peers.slice(0, index).map((p) => seen(p.placement.worldX, p.placement.worldY)) : undefined,
   });
-  let at = offsetLatLon(bot.lat, bot.lon, heading, step.slotM);
+  let at = offsetLatLon(botLat, botLon, heading, step.slotM);
   if (giveWay && step.backM !== 0) at = offsetLatLon(at.lat, at.lon, giveWay.heading - Math.PI / 2, -step.backM);
-  const placement = placeRider(sceneWorld, { lat: at.lat, lon: at.lon, heading }, ground);
+  const facing = onLine ? offsetFacing(memo.point, step.slotM) : heading;
+  const placement = placeRider(sceneWorld, { lat: at.lat, lon: at.lon, heading: facing }, ground);
   return { placement, lean, slotM: step.slotM, backM: step.backM, targetM: step.targetM, blocked: step.blocked };
 }
 

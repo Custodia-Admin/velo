@@ -22,7 +22,10 @@ import type { Avatar, AvatarUpdate } from '@/lib/avatar';
 import type { AvatarColors } from '@/lib/avatarConfig';
 import { BOT_COLORWAYS, BOT_PRESETS, createPaceBot, type PaceBot } from '@/lib/paceBots';
 import type { Route } from '@/types';
+import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
+import { CORNER_LEAN_MAX_RAD } from '@/lib/ride/cornerLean';
 import { offsetLatLon, PARTNER_SLOT_FLOOR_M, PARTNER_SLOT_MAX_RATE_MPS, type PartnerYieldState } from '@/lib/ride/partnerSlots';
+import { lineAt, offsetFacing } from '@/lib/ride/rideLine';
 import { botSlotLatLon, CORRIDOR_SPAN, placeBotAvatars, updateBotAvatars, type BotGiveWay } from './botAvatars';
 
 const route: Route = {
@@ -200,12 +203,21 @@ describe('updateBotAvatars', () => {
     const DT = 1 / 60;
     const LAT = 43.1;
     const LON = 12.4;
+    /** A road running north through (LAT, LON), 500 m along it. */
+    const north: Route = {
+      ...route,
+      id: 'north',
+      points: [
+        { lat: LAT - 500 / 111_195, lon: LON, ele: 300, distance: 0 },
+        { lat: LAT + 300 / 111_195, lon: LON, ele: 300, distance: 800 },
+      ],
+    };
     /** The rider level with the partners, `laneM` right of the line (north-facing: right is east). */
     function giveWay(states: PartnerYieldState[], laneM: number, reach: [number, number] = [laneM, laneM]): BotGiveWay {
       const at = offsetLatLon(LAT, LON, 0, laneM);
       return {
         states,
-        route,
+        route: north,
         rider: { distance: 500, speed: 8, laneOffsetM: laneM, leftM: reach[0], rightM: reach[1] },
         riderLat: at.lat,
         riderLon: at.lon,
@@ -241,7 +253,84 @@ describe('updateBotAvatars', () => {
       const b = bots.map(() => fakeAvatar([]));
       updateBotAvatars(bots, a.map((m) => m.avatar), DT, giveWay([], 0));
       updateBotAvatars(bots, b.map((m) => m.avatar), DT);
-      a.forEach((m, i) => expect(m.updates[0]).toEqual(b[i].updates[0]));
+      a.forEach((m, i) => {
+        const [ae, an] = enu(LAT, LON, m.updates[0]);
+        const [be, bn] = enu(LAT, LON, b[i].updates[0]);
+        expect(Math.hypot(ae - be, an - bn)).toBeLessThan(1e-3);
+        expect(m.updates[0].heading).toBeCloseTo(b[i].updates[0].heading, 6);
+        expect(m.updates[0]).toMatchObject({ ele: 300, speed: 8, lean: 0 });
+      });
+    });
+  });
+
+  describe('on the drawn line through a corner (card t_84d635ff)', () => {
+    // 100 m north, then 100 m east: a right-hand corner at 100 m.
+    const K = 111_195;
+    const COS = Math.cos((43.1 * Math.PI) / 180);
+    const corner: Route = {
+      ...route,
+      id: 'corner',
+      points: [
+        { lat: 43.1, lon: 12.4, ele: 300, distance: 0 },
+        { lat: 43.1 + 100 / K, lon: 12.4, ele: 300, distance: 100 },
+        { lat: 43.1 + 100 / K, lon: 12.4 + 100 / (K * COS), ele: 300, distance: 200 },
+      ],
+      totalDistance: 200,
+    };
+    /** Bot 0 riding at `distance` m, as tickPaceBot leaves it (on the raw route, at its ±4 m chord heading). */
+    function at(distance: number): PaceBot {
+      const b = createPaceBot('b0', BOT_PRESETS[0]);
+      const p = sampleRouteAtDistance(corner, distance);
+      b.state = { ...b.state, distance, lat: p.lat, lon: p.lon, ele: 300, heading: headingAt(corner, distance), speed: 8 };
+      return b;
+    }
+    const level = (states: PartnerYieldState[], leans: number[], d: number): BotGiveWay => {
+      const p = lineAt(corner, d);
+      return { states, leans, route: corner, rider: { distance: d, speed: 8, laneOffsetM: 0, leftM: 0, rightM: 0 }, riderLat: p.lat, riderLon: p.lon, riderHeading: p.frameHeading };
+    };
+
+    it("stands in its slot across the line's sideways frame, facing the way it moves, leaning right through a right-hand bend", () => {
+      const made = fakeAvatar([]);
+      const states: PartnerYieldState[] = [];
+      const leans: number[] = [];
+      let leanMax = 0;
+      for (let d = 80; d <= 120; d += 8 / 60) {
+        updateBotAvatars([at(d)], [made.avatar], 1 / 60, level(states, leans, d));
+        const u = made.updates[made.updates.length - 1];
+        const p = lineAt(corner, d);
+        const slot = offsetLatLon(p.lat, p.lon, p.frameHeading, 1.2);
+        expect(Math.abs(u.lat - slot.lat) * K).toBeLessThan(1e-3);
+        expect(Math.abs(u.lon - slot.lon) * K * COS).toBeLessThan(1e-3);
+        expect(u.heading).toBeCloseTo(offsetFacing(p, 1.2), 9);
+        leanMax = Math.max(leanMax, u.lean ?? 0);
+      }
+      // Into the bend (right), capped; upright again on the straight after it.
+      expect(leanMax).toBeGreaterThan(0.1);
+      expect(leanMax).toBeLessThanOrEqual(CORNER_LEAN_MAX_RAD + 1e-9);
+      expect(Math.abs(made.updates[made.updates.length - 1].lean ?? 0)).toBeLessThan(0.02);
+    });
+
+    it('faces the way it moves round the corner; at its raw point and chord heading it slid sideways', () => {
+      const made = fakeAvatar([]);
+      const states: PartnerYieldState[] = [];
+      const ang = (a: number) => Math.abs(Math.atan2(Math.sin(a), Math.cos(a)));
+      const travel = (a: { lat: number; lon: number }, b: { lat: number; lon: number }) => Math.atan2((b.lon - a.lon) * COS, b.lat - a.lat);
+      let crab = 0;
+      let rawCrab = 0;
+      let prev: AvatarUpdate | null = null;
+      let prevRaw: PaceBot | null = null;
+      for (let d = 90; d <= 110; d += 8 / 60) {
+        const bot = at(d);
+        updateBotAvatars([bot], [made.avatar], 1 / 60, level(states, [], d));
+        const u = made.updates[made.updates.length - 1];
+        // Against the heading midway through the frame's step.
+        if (prev) crab = Math.max(crab, ang(prev.heading + Math.atan2(Math.sin(u.heading - prev.heading), Math.cos(u.heading - prev.heading)) / 2 - travel(prev, u)));
+        if (prevRaw) rawCrab = Math.max(rawCrab, ang(bot.state.heading - travel(prevRaw.state, bot.state)));
+        prev = u;
+        prevRaw = bot;
+      }
+      expect((rawCrab * 180) / Math.PI).toBeGreaterThan(40);
+      expect((crab * 180) / Math.PI).toBeLessThan(5);
     });
   });
 

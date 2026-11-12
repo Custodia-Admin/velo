@@ -56,10 +56,12 @@ import {
   type RouteMarkers,
 } from '@/lib/routeVisuals';
 import { createAvatar, createGroundSampler, type Avatar } from '@/lib/avatar';
-import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
+import { sampleRouteAtDistance } from '@/lib/gpxParser';
 import { laneReach, type PartnerYieldState, type RiderBeside } from '@/lib/ride/partnerSlots';
-import { stepDrawnHeading, YawFilter } from '@/lib/ride/rideHeading';
-import { heldRiderPose, ridePose } from '@/lib/ride/rideSim';
+import { cornerLeanTarget, LEAN_LEAD_S, stepCornerLean } from '@/lib/ride/cornerLean';
+import { stepCameraHeading, YawFilter } from '@/lib/ride/rideHeading';
+import { createLinePoint, lineAt, lineHeadingAt, rideLineFor } from '@/lib/ride/rideLine';
+import { drawnPose, heldRiderPose } from '@/lib/ride/rideSim';
 import { chaseLookRise } from '@/lib/ride/lookRise';
 import { chaseFraming, RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
 import type { RiderPose, WorldViewProps } from '@/lib/world/renderer';
@@ -336,6 +338,8 @@ export function CesiumScene({
   const botAvatarsRef = useRef<Avatar[]>([]);
   // How each pace partner is giving way to the rider (botAvatars.updateBotAvatars), parallel to botAvatarsRef.
   const botGiveWayRef = useRef<PartnerYieldState[]>([]);
+  // Each partner's eased corner lean (botAvatars), parallel to botAvatarsRef.
+  const botLeanRef = useRef<number[]>([]);
   const riderBesideRef = useRef<RiderBeside>({ distance: 0, speed: 0, leftM: 0, rightM: 0, laneOffsetM: 0 });
   // Weather particle system — recreated on route change and quality change.
   const weatherSystemRef = useRef<WeatherSystem | null>(null);
@@ -378,6 +382,12 @@ export function CesiumScene({
   const laneRef = useRef(createLaneState());
   /** The rider's drawn heading: the damped wide chord, as the world renderer's (lib/ride/rideHeading). */
   const yawRef = useRef(new YawFilter());
+  // Line points under the rider, at the look-ahead and where the lean reads the bend (rideLine), and the eased lean.
+  const linePointsRef = useRef({ rider: createLinePoint(), ahead: createLinePoint(), lean: createLinePoint(), ghost: createLinePoint() });
+
+  const leanRef = useRef(0);
+  // Each ghost's eased corner lean, parallel to ghostAvatarsRef.
+  const ghostLeanRef = useRef<number[]>([]);
   // WorldRenderer.setRider: an outside driver's pose; null = the live ride.
   const riderOverrideRef = useRef<RiderPose | null>(null);
   /** Is the ground under the waiting rider at full detail (the start waits for it, lib/ride/startHold)? */
@@ -768,6 +778,7 @@ export function CesiumScene({
       }
       botAvatarsRef.current = [];
       botGiveWayRef.current = [];
+      botLeanRef.current = [];
       // Explicitly destroy tileset GPU resources after removal.
       // Cesium's primitives.remove() does NOT free VRAM unless the scene was
       // constructed with destroyPrimitives:true (we don't set that flag).
@@ -906,9 +917,11 @@ export function CesiumScene({
     }
     botAvatarsRef.current = [];
     botGiveWayRef.current = [];
+    botLeanRef.current = [];
     cartesianRouteRef.current = null;
     resetFollowCam();
     yawRef.current.reset();
+    leanRef.current = 0;
 
     // Reset camera transition state so new routes start cleanly.
     camTransitionRef.current = null;
@@ -950,6 +963,8 @@ export function CesiumScene({
     // Mood, sky, clouds, particles and the wet road are applied by the
     // atmosphere effect below, which also reacts to live weather.
 
+    // The line the riders are drawn on, built with the route (tens of ms on a long one), not in the first ride frame.
+    rideLineFor(route);
     const positions = routeToCartesians(route);
     cartesianRouteRef.current = positions;
 
@@ -1015,13 +1030,14 @@ export function CesiumScene({
     // Each is placed on the route at creation (the start line after a load).
     botAvatarsRef.current = placeBotAvatars(useRideStore.getState().paceBots, route, () => createAvatar(viewer));
     botGiveWayRef.current = [];
+    botLeanRef.current = [];
 
     const start = route.points[0];
     avatar.update({
       lon: start.lon,
       lat: start.lat,
       ele: start.ele,
-      heading: headingAt(route, 0),
+      heading: lineHeadingAt(route, 0),
       speed: 0,
       cadence: 0,
       grade: 0,
@@ -1049,7 +1065,7 @@ export function CesiumScene({
           lon: start.lon,
           lat: start.lat,
           ele: start.ele,
-          heading: headingAt(capturedRoute, 0),
+          heading: lineHeadingAt(capturedRoute, 0),
           speed: 0,
           cadence: 0,
           grade: 0,
@@ -1058,6 +1074,7 @@ export function CesiumScene({
         return ga;
       });
       ghostAvatarsRef.current = avatars;
+      ghostLeanRef.current = [];
       ghostRidesRef.current = ghosts;
       useGhostStore.getState().setGhostCount(ghosts.length);
     }).catch(() => {
@@ -1225,6 +1242,7 @@ export function CesiumScene({
         groundGateRef.current.reset();
         viewer.scene.globe.show = true;
         yawRef.current.reset();
+            leanRef.current = 0;
         return;
       }
 
@@ -1232,35 +1250,41 @@ export function CesiumScene({
       const steer = activeSteer();
       stepLane(laneRef.current, steer, dt);
 
-      // Rider pose from rideSim (or an outside driver via setRider), then the
-      // scene height: GPX elevation on ion terrain, 0 m on the flat no-token globe.
-      // The drawn heading is the world renderer's (three/rideDriver): the damped
-      // wide chord (lib/ride/rideHeading), not the raw ±4 m route bearing that
-      // swings 114–163° within metres at sharp vertices. The rider, its lane
-      // offset and every camera turn with it, so the chase camera sits square
-      // behind the rider in a bend.
+      // Rider pose (or an outside driver's via setRider), then the scene height:
+      // GPX elevation on ion terrain, 0 m on the flat no-token globe. As in the
+      // world renderer (three/rideDriver): the rider is drawn on the drawn line
+      // and faces along it (lib/ride/rideLine), so it turns into each bend and
+      // never slides sideways through a corner; the cameras turn with the same
+      // line, damped and turn-rate capped (rideHeading.stepCameraHeading), and
+      // sit square behind the rider in a bend.
       const override = riderOverrideRef.current;
       const riderDistance = override ? override.distance : state.distance;
-      const heading = stepDrawnHeading(yawRef.current, r, riderDistance, dt, override?.heading);
+      const riderSpeed = override ? override.speed : state.speed;
+      const heading = stepCameraHeading(yawRef.current, r, riderDistance, dt, riderSpeed, override?.heading);
+      const linePoints = linePointsRef.current;
       const pose = override
         ? { ...override, heading }
-        : {
-            ...ridePose(r, riderDistance, {
-              laneOffsetM: laneRef.current.offsetM,
-              offsetHeading: heading,
-              grade: state.grade,
-              speed: state.speed,
-            }),
-            heading,
-          };
+        : drawnPose(
+            r,
+            riderDistance,
+            { laneOffsetM: laneRef.current.offsetM, grade: state.grade, speed: state.speed },
+            linePoints.rider,
+          );
       // The chase camera looks toward the route point `lookAheadM` ahead (as the world's).
       const framing = chaseFraming(useSettingsStore.getState().cameraDistance);
       const aheadDistance = Math.min(r.totalDistance, pose.distance + framing.lookAheadM);
-      const aheadPose = ridePose(r, aheadDistance, {
-        laneOffsetM: pose.laneOffsetM,
-        offsetHeading: heading,
-        grade: pose.grade,
-      });
+      const aheadPose = drawnPose(
+        r,
+        aheadDistance,
+        { laneOffsetM: pose.laneOffsetM, grade: pose.grade },
+        linePoints.ahead,
+      );
+      // Leaning into the bend (lib/ride/cornerLean), read a little ahead so the eased lean peaks with it.
+      leanRef.current = stepCornerLean(
+        leanRef.current,
+        cornerLeanTarget(pose.speed, lineAt(r, riderDistance + pose.speed * LEAN_LEAD_S, linePoints.lean)),
+        dt,
+      );
       const sampled = onSceneSurface({ lat: pose.lat, lon: pose.lon, ele: pose.ele });
       const ahead = onSceneSurface({ lat: aheadPose.lat, lon: aheadPose.lon, ele: aheadPose.ele });
 
@@ -1297,12 +1321,13 @@ export function CesiumScene({
         lon: sampled.lon,
         lat: sampled.lat,
         ele: sampled.ele,
-        heading,
+        heading: pose.heading,
         speed: pose.speed,
         cadence: state.cadence,
         grade: pose.grade,
         dt,
         riderPosition: useSettingsStore.getState().riderPosition,
+        lean: leanRef.current,
       });
 
       // Camera, weather and shadow sit on the SAME ground as the rider: the
@@ -1622,7 +1647,7 @@ export function CesiumScene({
         }
         updateShadowEntity(
           shadowHandleRef.current,
-          { lat: sampled.lat, lon: sampled.lon, ele: groundEle, grade: state.grade, heading },
+          { lat: sampled.lat, lon: sampled.lon, ele: groundEle, grade: state.grade, heading: pose.heading },
           sun.azimuth,
           sun.altitude,
         );
@@ -1644,11 +1669,13 @@ export function CesiumScene({
         else laneReach(laneRef.current, steer, rider);
         updateBotAvatars(useRideStore.getState().paceBots, botAvatarsRef.current, dt, {
           states: botGiveWayRef.current,
+          leans: botLeanRef.current,
           route: r,
           rider,
           riderLat: pose.lat,
           riderLon: pose.lon,
-          riderHeading: pose.heading,
+          // Partners line up with the rider across the line's sideways frame, as their slots go.
+          riderHeading: override ? pose.heading : linePointsRef.current.rider.frameHeading,
         });
       }
 
@@ -1667,22 +1694,30 @@ export function CesiumScene({
             continue;
           }
           const clampedDist = Math.max(0, Math.min(r.totalDistance, ghostDist));
-          const gPos = sampleRouteAtDistance(r, clampedDist);
-          const gHeading = headingAt(r, clampedDist);
+          // Drawn like the rider: on the drawn line, facing along it, leaning into the bend.
+          const gEle = sampleRouteAtDistance(r, clampedDist).ele;
+          const g = lineAt(r, clampedDist, linePoints.ghost);
           // Estimate a plausible speed from distance delta / dt for animation.
           const prevDist = ghostRides[i].distanceAt(Math.max(0, elapsedSec - dt));
           const ghostSpeed = prevDist !== null ? Math.abs(clampedDist - prevDist) / (dt || 1 / 60) : 0;
+          const gLean = stepCornerLean(
+            ghostLeanRef.current[i] ?? 0,
+            cornerLeanTarget(ghostSpeed, lineAt(r, clampedDist + ghostSpeed * LEAN_LEAD_S, linePoints.lean)),
+            dt,
+          );
+          ghostLeanRef.current[i] = gLean;
           ghostAvatars[i].setShow(true);
           ghostAvatars[i].update({
-            lon: gPos.lon,
-            lat: gPos.lat,
-            ele: gPos.ele,
-            heading: gHeading,
+            lon: g.lon,
+            lat: g.lat,
+            ele: gEle,
+            heading: g.heading,
             speed: ghostSpeed,
             cadence: 0, // avatar estimates from speed
             grade: state.grade,
             dt,
             riderPosition: 'hoods',
+            lean: gLean,
           });
         }
       }

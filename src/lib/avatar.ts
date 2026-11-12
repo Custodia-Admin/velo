@@ -22,16 +22,17 @@ export type { AvatarColors } from '@/lib/avatarConfig';
  * Body-local frame: origin on the ground between the wheels,
  *   +X = rider's right, +Y = forward (travel direction), +Z = up.
  * Every part is positioned in that frame, then the whole rig is placed on the
- * globe via a heading/pitch/roll transform so the bike leans into corners,
- * pitches with the gradient, and points along the route.
+ * globe (avatarBodyFrame): turned to the heading, pitched nose-up with the
+ * gradient about its right axis, and leaned into corners about its forward
+ * axis by the lean the caller hands it (lib/ride/cornerLean).
  *
  * Animation:
  *   1. Pedaling legs alternate around the bottom bracket at cadence frequency.
  *   2. Wheels spin with ground speed (radius 0.34 m).
- *   3. Body leans into corners proportional to centripetal acceleration, smoothed.
+ *   3. The whole rig leans into corners by `AvatarUpdate.lean`.
  *   4. Hand positions shift by rider posture (hoods / tops / drops).
  *   5. Head yaws ±5° toward the direction of heading change.
- *   6. Climb-mode (grade > 8 %): body tilts forward 5° and hips sway at cadence.
+ *   6. Climb-mode (grade > 8 %): hips sway at cadence.
  * All driven from `update()` once per frame; geometry is built once, only
  * the parts' model matrices change.
  *
@@ -144,6 +145,8 @@ export interface AvatarUpdate {
   dt: number;
   /** Rider's handlebar position — shapes hand/arm placement. Optional; defaults to 'hoods'. */
   riderPosition?: RiderPosition;
+  /** Corner lean, radians, + = into a right-hand bend (lib/ride/cornerLean, already eased). Upright when absent. */
+  lean?: number;
 }
 
 /** Handle returned by createAvatar — used by setAvatarEffortLevel. */
@@ -1223,9 +1226,6 @@ function buildParts(opts: ResolvedAvatarOptions): PartSpec[] {
 /** Maximum head yaw in radians (~5°). */
 const HEAD_YAW_MAX = (5 * Math.PI) / 180;
 
-/** Additional forward pitch when climbing out of saddle (~5°). */
-const CLIMB_FORWARD_TILT_RAD = (5 * Math.PI) / 180;
-
 /** Maximum hip sway during climb-mode (~8°). */
 const CLIMB_SWAY_MAX_RAD = (8 * Math.PI) / 180;
 
@@ -1263,34 +1263,44 @@ export function wheelRotationFromSpeed(
   return prevRotation + omega * (dtMs / 1000);
 }
 
-/**
- * Returns the target body lean angle (radians) for a corner.
- *
- * Centripetal acceleration: a_c = v · |Δheading| / dt.
- * Lean θ = atan2(a_c, g).
- * Sign: right turn (positive Δheading) → lean right → negative Cesium roll.
- *
- * Smooth this result with smoothLean() before applying.
- */
-export function cornerLeanAngle(
-  headingDeltaRad: number,
-  speedMs: number,
-  dtSec: number,
-): number {
-  const G = 9.80665;
-  if (dtSec <= 0 || speedMs <= 0 || headingDeltaRad === 0) return 0;
-  const turnRateAbs = Math.abs(headingDeltaRad) / dtSec;
-  const centripetal = speedMs * turnRateAbs;
-  const magnitude = Math.atan2(centripetal, G);
-  return Math.sign(headingDeltaRad) * -magnitude;
-}
+const scratchEnu = new Cesium.Matrix4();
+const scratchEnuRot = new Cesium.Matrix3();
+const scratchEnuQuat = new Cesium.Quaternion();
+const scratchTurn = new Cesium.Quaternion();
+const scratchTilt = new Cesium.Quaternion();
+const scratchBodyRot = new Cesium.Matrix3();
+const scratchBodyLocal = new Cesium.Matrix4();
 
 /**
- * Exponential-smoothing helper for lean angle.
- * alpha ∈ [0, 1]: 0 = no movement, 1 = instant.
+ * Where the body frame sits on the globe: origin on the ground at `origin`,
+ * turned to `heading` (radians clockwise from north), pitched `pitch`
+ * radians nose-up about the bike's right axis, then leaned `lean` radians
+ * toward its right about its forward axis. Writes the body → world matrix
+ * and rotation into `matrix` / `quat` (no allocation) and returns them.
+ *
+ * The body frame is +X right, +Y forward, +Z up. Cesium's HeadingPitchRoll
+ * assumes +X forward: on this body its "pitch" tips the rider sideways and
+ * its "roll" pitches the nose, so the rider used to lean left up every climb
+ * and nod its nose 25–55° up or down through every bend instead of leaning.
  */
-export function smoothLean(prev: number, target: number, alpha: number): number {
-  return prev + (target - prev) * Math.max(0, Math.min(1, alpha));
+export function avatarBodyFrame(
+  origin: Cesium.Cartesian3,
+  heading: number,
+  pitch: number,
+  lean: number,
+  matrix: Cesium.Matrix4,
+  quat: Cesium.Quaternion,
+): { matrix: Cesium.Matrix4; quat: Cesium.Quaternion } {
+  // Local (east, north, up) rotation: heading about up (clockwise), then pitch about right, then lean about forward.
+  const q = Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Z, -heading, scratchTurn);
+  Cesium.Quaternion.multiply(q, Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_X, pitch, scratchTilt), q);
+  Cesium.Quaternion.multiply(q, Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Y, lean, scratchTilt), q);
+  const enu = Cesium.Transforms.eastNorthUpToFixedFrame(origin, Cesium.Ellipsoid.WGS84, scratchEnu);
+  Cesium.Matrix4.fromRotationTranslation(Cesium.Matrix3.fromQuaternion(q, scratchBodyRot), Cesium.Cartesian3.ZERO, scratchBodyLocal);
+  Cesium.Matrix4.multiply(enu, scratchBodyLocal, matrix);
+  Cesium.Quaternion.fromRotationMatrix(Cesium.Matrix4.getMatrix3(enu, scratchEnuRot), scratchEnuQuat);
+  Cesium.Quaternion.multiply(scratchEnuQuat, q, quat);
+  return { matrix, quat };
 }
 
 /**
@@ -1389,6 +1399,7 @@ function partGeometry(part: PartSpec): Cesium.BoxGeometry | Cesium.CylinderGeome
 }
 
 const scratchLocal = new Cesium.Cartesian3();
+const scratchOrigin = new Cesium.Cartesian3();
 const scratchRot = new Cesium.Matrix3();
 
 /**
@@ -1423,8 +1434,8 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
   // Build the per-instance part list (helmet style, accessories vary).
   const PARTS = buildParts(opts);
 
-  let bodyToWorld = Cesium.Matrix4.clone(Cesium.Matrix4.IDENTITY);
-  let bodyQuat = Cesium.Quaternion.clone(Cesium.Quaternion.IDENTITY);
+  const bodyToWorld = Cesium.Matrix4.clone(Cesium.Matrix4.IDENTITY);
+  const bodyQuat = Cesium.Quaternion.clone(Cesium.Quaternion.IDENTITY);
   const dyn: RigDynamics = {
     wheelAngle: 0,
     crankAngle: 0,
@@ -1440,7 +1451,6 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
   }));
 
   let smoothedEle: number | null = null;
-  let lean = 0;
   let pitch = 0;
   let lastHeading: number | null = null;
   let smoothedHeadYaw = 0;
@@ -1535,11 +1545,10 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     const targetEle = ground ?? fallbackSceneEle(scene, u.ele);
     smoothedEle = followGround(smoothedEle, targetEle, dt);
 
-    // Corner lean — centripetal tilt, smoothed.
+    // Corner lean: the caller's (lib/ride/cornerLean, eased); upright without one.
     const headingDelta = lastHeading === null ? 0 : shortestAngle(lastHeading, u.heading);
     lastHeading = u.heading;
-    const targetLean = cornerLeanAngle(headingDelta, u.speed, dt || 1 / 60);
-    lean += (targetLean - lean) * (1 - Math.exp(-5 * dt));
+    const lean = Number.isFinite(u.lean) ? (u.lean as number) : 0;
 
     // Pitch from gradient.
     const targetPitch = Math.atan(u.grade / 100);
@@ -1557,19 +1566,16 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
     smoothedHeadYaw += (targetHeadYaw - smoothedHeadYaw) * (1 - Math.exp(-8 * dt));
     dyn.headYaw = smoothedHeadYaw;
 
-    // Climb-mode: out-of-saddle sway + extra forward tilt above 8 % grade.
+    // Climb-mode: out-of-saddle sway above 8 % grade.
     const climbing = u.grade > 8;
     dyn.climbing = climbing;
     dyn.climbSway = climbing ? climbingSwayAngle(u.grade, rpm, elapsedMs) : 0;
 
     dyn.riderPosition = u.riderPosition ?? 'hoods';
 
-    // Globe transform: heading + pitch (+ climb tilt) + lean.
-    const climbTilt = climbing ? CLIMB_FORWARD_TILT_RAD : 0;
-    const origin = Cesium.Cartesian3.fromDegrees(u.lon, u.lat, smoothedEle);
-    const hpr = new Cesium.HeadingPitchRoll(u.heading, pitch + climbTilt, lean);
-    bodyToWorld = Cesium.Transforms.headingPitchRollToFixedFrame(origin, hpr, Cesium.Ellipsoid.WGS84, undefined, bodyToWorld);
-    bodyQuat = Cesium.Transforms.headingPitchRollQuaternion(origin, hpr, Cesium.Ellipsoid.WGS84, undefined, bodyQuat);
+    // Globe transform: heading, nose-up pitch with the gradient, corner lean.
+    const origin = Cesium.Cartesian3.fromDegrees(u.lon, u.lat, smoothedEle, Cesium.Ellipsoid.WGS84, scratchOrigin);
+    avatarBodyFrame(origin, u.heading, pitch, lean, bodyToWorld, bodyQuat);
 
     recomputeParts();
   }

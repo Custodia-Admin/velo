@@ -7,9 +7,10 @@
  *    Perugia routes once their U-turns were cut (raw route heading turns 123°
  *    within ~6 m where Tiber park leaves the Percorso Verde track for Strada
  *    Rivolta at 9,672 m, and 82° at Assisi 4,369 m; at the old corners the
- *    rider used to leave the frame). The drawn heading never turns faster
- *    than the YawFilter cap, and an ordinary corner (Assisi) is spread by the
- *    wide chord well under the cap.
+ *    rider used to leave the frame). The camera's heading never turns faster
+ *    than the YawFilter cap. The drawn rider faces the way it moves (card
+ *    t_84d635ff: it used to point up to 76° off it here) and turns with the
+ *    drawn line, never snapping: per metre ridden, not per second.
  * 2. Chase framing holds at any speed (a world-space lag used to put the
  *    camera ~10 m back at 39 km/h instead of the 7 m 'standard' framing).
  * 3. On a climb the rear wheel stays over the ride HUD strip (t_54dc80e6):
@@ -63,6 +64,11 @@ interface Sample {
   backM: number;
   /** Drawn rider heading, radians. */
   heading: number;
+  /** Heading the chase camera aims by, radians. */
+  cameraHeading: number;
+  /** Rider position in the scene (x east, z south), metres. */
+  px: number;
+  pz: number;
   /** Rear tyre contact on screen (the bike pitched with the ground), px. */
   rearY: number;
   /** Ground height, metres. */
@@ -97,7 +103,7 @@ function ride(sw: SceneWorld, route: Route, from: number, to: number, speed: num
     const p = frame.placement!.position;
     const target = cameraTarget(
       'chase',
-      { rider: p, heading: frame.pose!.heading, ahead: frame.ahead, speed, cadence: 85, timeS: t },
+      { rider: p, heading: frame.cameraHeading, ahead: frame.ahead, speed, cadence: 85, timeS: t },
       framing,
       distance,
     );
@@ -117,7 +123,7 @@ function ride(sw: SceneWorld, route: Route, from: number, to: number, speed: num
     const back = REAR_AXLE_M.back * Math.cos(pitch);
     v.set(p.x - fx * back, p.y - REAR_AXLE_M.back * Math.sin(pitch), p.z - fz * back).project(cam);
     const rearY = ((1 - v.y) / 2) * h;
-    out.push({ d, x: hips[0], y: hips[1], heightPx: bottom[1] - top[1], backM: Math.hypot(rig.position.x - p.x, rig.position.z - p.z), heading: frame.pose!.heading, rearY, ele: p.y });
+    out.push({ d, x: hips[0], y: hips[1], heightPx: bottom[1] - top[1], backM: Math.hypot(rig.position.x - p.x, rig.position.z - p.z), heading: frame.pose!.heading, cameraHeading: frame.cameraHeading, px: p.x, pz: p.z, rearY, ele: p.y });
   }
   return out;
 }
@@ -133,12 +139,12 @@ describe('chase framing on the Perugia world', () => {
     }
   }, 60_000);
 
-  // `maxYawRate`: fastest the drawn rider may turn. Only a near fold-back
-  // junction (Tiber's 123°) may reach the YawFilter cap; the chord alone
-  // spreads an ordinary corner.
+  // `maxTurnPerM`: fastest the drawn rider turns per metre of route ridden
+  // (measured 60–62°/m at Tiber's near fold-back junction, 28–29°/m at Assisi,
+  // at 4–15 m/s), so at 8 m/s ~8°/frame at worst, spread over ~0.3 s.
   const CORNERS = [
-    { id: 'scenic-perugia-tiber-park', from: 9590, to: 9760, what: '123° junction turn at 9,672 m', maxYawRate: MAX_YAW_RATE },
-    { id: 'scenic-assisi-valley', from: 4290, to: 4450, what: '82° corner at 4,369 m', maxYawRate: 0.9 * MAX_YAW_RATE },
+    { id: 'scenic-perugia-tiber-park', from: 9590, to: 9760, what: '123° junction turn at 9,672 m', maxTurnPerM: 66 },
+    { id: 'scenic-assisi-valley', from: 4290, to: 4450, what: '82° corner at 4,369 m', maxTurnPerM: 32 },
   ];
   for (const c of CORNERS) {
     for (const vp of VIEWPORTS) {
@@ -155,8 +161,24 @@ describe('chase framing on the Perugia world', () => {
           }
           expect(worst.x).toBeGreaterThan(0);
           let rate = 0;
-          for (let i = 1; i < s.length; i++) rate = Math.max(rate, Math.abs(headingDelta(s[i].heading, s[i - 1].heading)) * 60);
-          expect(rate * DEG, `${speed} m/s drawn yaw rate, °/s`).toBeLessThanOrEqual(c.maxYawRate * DEG + 1e-6);
+          let camRate = 0;
+          let perM = 0;
+          let crab = 0;
+          for (let i = 1; i < s.length; i++) {
+            const turn = Math.abs(headingDelta(s[i].heading, s[i - 1].heading));
+            rate = Math.max(rate, turn * 60);
+            camRate = Math.max(camRate, Math.abs(headingDelta(s[i].cameraHeading, s[i - 1].cameraHeading)) * 60);
+            const moved = Math.hypot(s[i].px - s[i - 1].px, s[i].pz - s[i - 1].pz);
+            perM = Math.max(perM, turn / moved);
+            const travel = Math.atan2(s[i].px - s[i - 1].px, -(s[i].pz - s[i - 1].pz));
+            crab = Math.max(crab, Math.abs(headingDelta(s[i - 1].heading + headingDelta(s[i].heading, s[i - 1].heading) / 2, travel)));
+          }
+          expect(camRate * DEG, `${speed} m/s camera yaw rate, °/s`).toBeLessThanOrEqual(MAX_YAW_RATE * DEG + 1e-6);
+          expect((rate / speed) * DEG, `${speed} m/s drawn turn per metre ridden, °`).toBeLessThanOrEqual(c.maxTurnPerM);
+          // Its heading midway through each frame's step is its direction of travel.
+          expect(crab * DEG, `${speed} m/s heading vs travel, °`).toBeLessThan(1);
+          // Turning with the line, the rider's own path is never tighter than 0.3 m radius.
+          expect(perM * DEG, `${speed} m/s drawn turn per metre of path, °`).toBeLessThan(DEG / 0.3);
         }
       });
     }

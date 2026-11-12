@@ -66,6 +66,17 @@ export interface RideFrame {
   placement: RiderPlacement | null;
   /** Ground point the chase camera aims at (look-ahead along the route). */
   ahead: Vec3;
+  /**
+   * Heading the chase camera aims by (rideHeading.stepCameraHeading): the
+   * drawn line's tangent, damped and turn-rate capped. The rider itself faces
+   * `pose.heading`, the tangent exactly.
+   */
+  cameraHeading: number;
+  /**
+   * The drawn line's sideways frame at the rider (RideLine.frameHeading): the
+   * heading its lane offset, and the pace partners' slots, go across.
+   */
+  frameHeading: number;
   /** Smoothed corner lean, radians (+ = right). */
   lean: number;
   cadence: number;
@@ -89,6 +100,8 @@ export function createRideFrame(): RideFrame {
     pose: null,
     placement: null,
     ahead: { x: 0, y: 0, z: 0 },
+    cameraHeading: 0,
+    frameHeading: 0,
     lean: 0,
     cadence: 0,
     speed: 0,

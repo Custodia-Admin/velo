@@ -3,55 +3,25 @@ import { describe, expect, it } from 'vitest';
 import { headingAt } from '@/lib/gpxParser';
 import { routeFromGeometry } from '@/lib/scenicRoutes';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
-import {
-  HEADING_HALF_WINDOW_M,
-  MAX_YAW_RATE,
-  YawFilter,
-  headingDelta,
-  routeBearingAt,
-  smoothHeadingAt,
-  stepDrawnHeading,
-} from './rideHeading';
+import { MAX_YAW_RATE, YAW_TAU_S, YawFilter, headingDelta, routeBearingAt, stepCameraHeading } from './rideHeading';
+import { lineHeadingAt } from './rideLine';
 
 const DEG = 180 / Math.PI;
 const ROUTES = ['scenic-perugia-tiber-park', 'scenic-assisi-valley'];
 const route = (id: string) => routeFromGeometry(id, id, SCENIC_ROUTE_GEOMETRY[id]);
 
-/** Ride the whole route at `speed` m/s and `fps`, recording the filtered heading and its rate. */
+/** Ride the whole route at `speed` m/s and `fps`, recording the chase camera's heading and its rate. */
 function ride(id: string, speed: number, fps = 60) {
   const r = route(id);
   const yaw = new YawFilter();
   const dt = 1 / fps;
   const out: { d: number; h: number; rate: number }[] = [];
   for (let d = 0; d <= r.totalDistance; d += speed * dt) {
-    const h = yaw.step(smoothHeadingAt(r, d), d, dt);
+    const h = stepCameraHeading(yaw, r, d, dt, speed);
     out.push({ d, h, rate: yaw.rate });
   }
   return { r, out };
 }
-
-describe('smoothHeadingAt', () => {
-  it('matches the route bearing on a straight line and spreads a sharp vertex over the chord', () => {
-    const r = route('scenic-perugia-tiber-park');
-    // The raw ±4 m heading turns ≥90° within 10 m at the 123° junction turn near
-    // d≈9,672 m (the 114° vertex at d≈144 m of the review finding went with the
-    // 1 m route simplification; this is now the sharpest corner)…
-    let rawTurn = 0;
-    let rawMax = 0;
-    for (let d = 9645; d < 9695; d += 1) {
-      rawTurn = Math.max(rawTurn, Math.abs(headingDelta(headingAt(r, d + 10), headingAt(r, d))));
-      rawMax = Math.max(rawMax, Math.abs(headingDelta(headingAt(r, d + 1), headingAt(r, d))));
-    }
-    expect(rawTurn * DEG).toBeGreaterThanOrEqual(90);
-    // …the wide chord never turns more than the bend allows per metre of a 2·W chord.
-    let chordMax = 0;
-    for (let d = 9645; d < 9695; d += 1) {
-      chordMax = Math.max(chordMax, Math.abs(headingDelta(smoothHeadingAt(r, d + 1), smoothHeadingAt(r, d))));
-    }
-    expect(chordMax).toBeLessThan(rawMax);
-    expect(HEADING_HALF_WINDOW_M).toBeGreaterThanOrEqual(8);
-  });
-});
 
 describe('YawFilter', () => {
   it('snaps on the first frame and on a seek, then damps toward the target', () => {
@@ -108,18 +78,41 @@ describe('YawFilter', () => {
   }
 });
 
-describe('stepDrawnHeading (every renderer draws the rider and aims its cameras with it)', () => {
-  it('steps the filter toward the wide chord, or toward an outside driver\'s own heading', () => {
+describe('stepCameraHeading (every renderer aims its chase cameras with it)', () => {
+  it("steps the filter toward the drawn line's tangent speed·τ ahead, or toward an outside driver's own heading", () => {
     const r = route('scenic-perugia-tiber-park');
     const a = new YawFilter();
     const b = new YawFilter();
     for (let d = 9600; d < 9760; d += 0.2) {
-      expect(stepDrawnHeading(a, r, d, 1 / 60)).toBe(b.step(smoothHeadingAt(r, d), d, 1 / 60));
+      expect(stepCameraHeading(a, r, d, 1 / 60, 12)).toBe(b.step(lineHeadingAt(r, d + 12 * YAW_TAU_S), d, 1 / 60));
     }
+    // Stopped, it reads the tangent where the rider is.
+    const s = new YawFilter();
+    expect(stepCameraHeading(s, r, 9672, 1 / 60, 0)).toBe(lineHeadingAt(r, 9672));
     const c = new YawFilter();
-    stepDrawnHeading(c, r, 100, 1 / 60, 1.25);
+    stepCameraHeading(c, r, 100, 1 / 60, 8, 1.25);
     expect(c.heading).toBe(1.25);
-    expect(stepDrawnHeading(c, r, 100.2, 1 / 60, 1.25)).toBe(1.25);
+    expect(stepCameraHeading(c, r, 100.2, 1 / 60, 8, 1.25)).toBe(1.25);
+  });
+
+  it('sits square behind the rider through a steady bend: the look-ahead cancels the damper lag', () => {
+    // A 50 m-radius circle (a gentle bend no turn-rate cap touches), ridden at 10 m/s.
+    const R = 50;
+    const k = 111_195;
+    const points: [number, number, number][] = [];
+    for (let a = 0; a <= Math.PI; a += 0.02) points.push([43 + (R * Math.sin(a)) / k, 12 + (R * (1 - Math.cos(a))) / (k * Math.cos((43 * Math.PI) / 180)), 0]);
+    const arc = routeFromGeometry('arc', 'arc', { distanceM: R * Math.PI, ascentM: 0, maxGradePct: 0, points });
+    const yaw = new YawFilter();
+    const lead = new YawFilter();
+    let lagged = 0;
+    let led = 0;
+    for (let d = 0; d < 120; d += 10 / 60) {
+      lagged = headingDelta(yaw.step(lineHeadingAt(arc, d), d, 1 / 60), lineHeadingAt(arc, d));
+      led = headingDelta(stepCameraHeading(lead, arc, d, 1 / 60, 10), lineHeadingAt(arc, d));
+    }
+    // Without the look-ahead the camera trails the bend by ω·τ (10/50 rad/s · 0.15 s ≈ 1.7°).
+    expect(Math.abs(lagged) * DEG).toBeGreaterThan(1.4);
+    expect(Math.abs(led) * DEG).toBeLessThan(0.2);
   });
 });
 
@@ -144,9 +137,9 @@ describe('routeBearingAt', () => {
     // From the corner on, the next segment: east.
     expect(routeBearingAt(ell, 100.1) * DEG).toBeCloseTo(90, 1);
     expect(routeBearingAt(ell, 199) * DEG).toBeCloseTo(90, 1);
-    // The ±4 m and ±12 m chords are only half way round there.
+    // The ±4 m chord and the drawn line (which rounds the corner) are only half way round there.
     expect(headingAt(ell, 100.1) * DEG).toBeLessThan(50);
-    expect(smoothHeadingAt(ell, 100.1) * DEG).toBeLessThan(50);
+    expect(lineHeadingAt(ell, 100.1) * DEG).toBeLessThan(55);
   });
 
   it('measures the bearing in ground metres, not degrees (a NE segment at 43° N reads 45°)', () => {

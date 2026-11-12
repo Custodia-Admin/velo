@@ -6,6 +6,7 @@ import { rideDrive } from '@/lib/rideDrive';
 import { haversine } from '@/lib/utils';
 import { useRideStore } from '@/stores/rideStore';
 import type { Route } from '@/types';
+import { lineHeadingAt } from './rideLine';
 import {
   GRADE_EMA_ALPHA,
   MAX_STEP_S,
@@ -57,10 +58,14 @@ function deepFreeze<T>(o: T): T {
 }
 
 describe('heldRiderPose (the place(m) probe hooks of both renderers)', () => {
-  it('stands on the route line facing the route 12 m ahead, at the grade to it, rolling at 8 m/s', () => {
+  it('stands on the drawn line facing along it, at the grade 12 m ahead, rolling at 8 m/s', () => {
     const p = heldRiderPose(route, 1000);
     const a = sampleRouteAtDistance(route, 1000);
-    expect([p.lat, p.lon, p.ele]).toEqual([a.lat, a.lon, a.ele]);
+    // On a straight road the drawn line is the route itself (rideLine).
+    expect(Math.abs(p.lat - a.lat) * 111_195).toBeLessThan(0.01);
+    expect(Math.abs(p.lon - a.lon) * 111_195).toBeLessThan(0.01);
+    expect(p.ele).toBe(a.ele);
+    expect(p.heading).toBe(lineHeadingAt(route, 1000));
     // The route heads north-east (45°) and climbs 6 % there.
     expect((p.heading * 180) / Math.PI).toBeCloseTo(45, 1);
     expect(Math.abs(p.grade - 6)).toBeLessThan(0.1);

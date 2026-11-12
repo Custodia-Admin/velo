@@ -6,8 +6,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   pedalPhaseFromCadence,
   wheelRotationFromSpeed,
-  cornerLeanAngle,
-  smoothLean,
+  avatarBodyFrame,
   climbingSwayAngle,
   clampEffortLevel,
   effortSkinColor,
@@ -93,64 +92,63 @@ describe('wheelRotationFromSpeed', () => {
 });
 
 // ---------------------------------------------------------------------------
-// cornerLeanAngle
+// avatarBodyFrame (the avatar's place and attitude on the globe)
 // ---------------------------------------------------------------------------
 
-describe('cornerLeanAngle', () => {
-  it('returns 0 on a straight line (zero heading delta)', () => {
-    expect(cornerLeanAngle(0, 10, 0.016)).toBe(0);
+describe('avatarBodyFrame', () => {
+  // Body frame: +X right, +Y forward, +Z up. Read back in local east/north/up at the origin.
+  const origin = Cesium.Cartesian3.fromDegrees(12.39, 43.11, 300);
+  const toEnu = Cesium.Matrix4.inverse(Cesium.Transforms.eastNorthUpToFixedFrame(origin), new Cesium.Matrix4());
+  const DEG = Math.PI / 180;
+  function axes(heading: number, pitch: number, lean: number) {
+    const m = new Cesium.Matrix4();
+    const q = new Cesium.Quaternion();
+    avatarBodyFrame(origin, heading, pitch, lean, m, q);
+    const dir = (v: [number, number, number]) => {
+      const w = Cesium.Matrix4.multiplyByPoint(m, new Cesium.Cartesian3(...v), new Cesium.Cartesian3());
+      const l = Cesium.Matrix4.multiplyByPoint(toEnu, w, new Cesium.Cartesian3());
+      return [l.x, l.y, l.z];
+    };
+    // The quaternion turns body vectors the same way as the matrix.
+    const r = Cesium.Matrix3.fromQuaternion(q, new Cesium.Matrix3());
+    const viaQ = Cesium.Matrix3.multiplyByVector(r, new Cesium.Cartesian3(0, 1, 0), new Cesium.Cartesian3());
+    const viaM = Cesium.Matrix4.multiplyByPointAsVector(m, new Cesium.Cartesian3(0, 1, 0), new Cesium.Cartesian3());
+    expect(Cesium.Cartesian3.distance(viaQ, viaM)).toBeLessThan(1e-9);
+    return { forward: dir([0, 1, 0]), up: dir([0, 0, 1]), at: dir([0, 0, 0]) };
+  }
+
+  it('sits on the origin and points along the heading, upright with no pitch or lean', () => {
+    const north = axes(0, 0, 0);
+    north.at.forEach((v) => expect(Math.abs(v)).toBeLessThan(1e-6));
+    expect(north.forward[1] - north.at[1]).toBeCloseTo(1, 6);
+    expect(north.up[2] - north.at[2]).toBeCloseTo(1, 6);
+    const east = axes(90 * DEG, 0, 0);
+    expect(east.forward[0] - east.at[0]).toBeCloseTo(1, 6);
+    expect(east.up[2] - east.at[2]).toBeCloseTo(1, 6);
   });
 
-  it('returns 0 when speed is 0', () => {
-    expect(cornerLeanAngle(0.1, 0, 0.016)).toBe(0);
+  it('pitches the nose up a climb, without tipping sideways', () => {
+    // Heading east, 10° up: the nose rises, the top tips back (west), never north or south.
+    const b = axes(90 * DEG, 10 * DEG, 0);
+    expect(b.forward[2] - b.at[2]).toBeCloseTo(Math.sin(10 * DEG), 6);
+    expect(b.up[0] - b.at[0]).toBeCloseTo(-Math.sin(10 * DEG), 6);
+    expect(Math.abs(b.up[1] - b.at[1])).toBeLessThan(1e-6);
   });
 
-  it('returns 0 when dt is 0', () => {
-    expect(cornerLeanAngle(0.1, 10, 0)).toBe(0);
+  it('leans into a right-hand bend toward its right, without pitching the nose', () => {
+    // Heading north, leaning 15° right: the top moves east; the nose stays level.
+    const b = axes(0, 0, 15 * DEG);
+    expect(b.up[0] - b.at[0]).toBeCloseTo(Math.sin(15 * DEG), 6);
+    expect(Math.abs(b.forward[2] - b.at[2])).toBeLessThan(1e-6);
+    // Heading east, leaning left: the top moves north.
+    const l = axes(90 * DEG, 0, -15 * DEG);
+    expect(l.up[1] - l.at[1]).toBeCloseTo(Math.sin(15 * DEG), 6);
   });
 
-  it('sharp right turn at 10 m/s produces negative lean (lean right)', () => {
-    // Heading delta of 0.3 rad in 0.016 s = ~18.75 rad/s turn rate
-    const lean = cornerLeanAngle(0.3, 10, 0.016);
-    expect(lean).toBeLessThan(0);
-  });
-
-  it('sharp left turn produces positive lean', () => {
-    const lean = cornerLeanAngle(-0.3, 10, 0.016);
-    expect(lean).toBeGreaterThan(0);
-  });
-
-  it('very gentle turn at low speed → small lean angle', () => {
-    const lean = cornerLeanAngle(0.001, 3, 0.016);
-    expect(Math.abs(lean)).toBeLessThan(0.05);
-  });
-
-  it('lean magnitude increases with speed (same turn rate)', () => {
-    const slow = Math.abs(cornerLeanAngle(0.05, 5,  0.1));
-    const fast = Math.abs(cornerLeanAngle(0.05, 15, 0.1));
-    expect(fast).toBeGreaterThan(slow);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// smoothLean
-// ---------------------------------------------------------------------------
-
-describe('smoothLean', () => {
-  it('alpha=0 → no movement', () => {
-    expect(smoothLean(0.5, 1.0, 0)).toBe(0.5);
-  });
-
-  it('alpha=1 → instant snap', () => {
-    expect(smoothLean(0.5, 1.0, 1)).toBe(1.0);
-  });
-
-  it('alpha=0.5 → halfway', () => {
-    expect(smoothLean(0, 1, 0.5)).toBeCloseTo(0.5, 8);
-  });
-
-  it('clamps alpha above 1', () => {
-    expect(smoothLean(0.5, 1.0, 2)).toBe(1.0);
+  it('keeps pitch and lean apart: a leaning rider on a climb', () => {
+    const b = axes(0, 6 * DEG, 12 * DEG);
+    expect(b.forward[2] - b.at[2]).toBeCloseTo(Math.sin(6 * DEG), 6);
+    expect(b.up[0] - b.at[0]).toBeCloseTo(Math.sin(12 * DEG), 6);
   });
 });
 
