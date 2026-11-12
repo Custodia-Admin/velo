@@ -5,12 +5,14 @@
  *
  * Each ribbon is the road's real carriageway width (WorldRoad.width: the OSM
  * width tag, else the class default from the bake). Vertices follow the
- * ground every `maxSegM` metres; bridges span straight between their ends;
- * tunnels are not drawn.
+ * ground every `maxSegM` metres; tunnels are not drawn. A bridge is drawn at
+ * its baked deck heights (bridgeDecks.ts) in a world baked with bridges as
+ * structures, else straight between the ground at its ends.
  */
 
 import type { Heightfield } from '@/lib/world/heightfield';
 import type { RoadsLayer } from '@/lib/world/loadWorld';
+import { deckTopAt, type DeckPiece } from './bridgeDecks';
 import type { ChunkInfo } from './terrainMesh';
 
 export interface RibbonLine {
@@ -23,6 +25,8 @@ export interface RibbonLine {
   marking: number;
   /** Straight span between the end heights instead of following the ground. */
   bridge?: boolean;
+  /** The baked deck this bridge is drawn on (overrides the straight span). */
+  deck?: DeckPiece;
   /**
    * Share of the road decal's depth pull (default 1). Route-fill pieces use
    * less, so where one joins a mapped road the mapped road wins.
@@ -94,13 +98,14 @@ export const ROUTE_FILL_PULL = 0.85;
 /** Classes that get painted lines (centre dashes + edges). */
 const MARKED = new Set(['motorway', 'trunk', 'primary', 'secondary', 'tertiary']);
 
-export function roadLines(roads: RoadsLayer): RibbonLine[] {
+export function roadLines(roads: RoadsLayer, decks?: ReadonlyMap<number, DeckPiece>): RibbonLine[] {
   const out: RibbonLine[] = [];
-  for (const r of roads.roads) {
+  for (const [ri, r] of roads.roads.entries()) {
     const cls = roads.classes[r.cls] ?? '';
     if (SKIP_CLASSES.has(cls) || r.flags & roads.flags.tunnel || r.points.length < 4) continue;
     const unpaved = (r.flags & roads.flags.unpaved) !== 0;
     const fill = roads.flags.routeFill !== undefined && (r.flags & roads.flags.routeFill) !== 0;
+    const deck = decks?.get(ri);
     out.push({
       points: r.points,
       width: Math.max(1, r.width),
@@ -108,6 +113,7 @@ export function roadLines(roads: RoadsLayer): RibbonLine[] {
       // A route fill is a short join along the route: no lane paint on it.
       marking: !unpaved && !fill && MARKED.has(cls) ? 1 : 0,
       bridge: (r.flags & roads.flags.bridge) !== 0,
+      ...(deck ? { deck } : {}),
       ...(fill ? { pull: ROUTE_FILL_PULL } : {}),
     });
   }
@@ -186,8 +192,13 @@ function addLine(b: Builder, hf: Heightfield, line: RibbonLine, opts: RibbonOpti
   const ground = opts.groundAt ?? ((x: number, y: number) => hf.sampleHeight(x, y));
   const hStart = ground(xy[0], xy[1]);
   const hEnd = ground(xy[(n - 1) * 2], xy[(n - 1) * 2 + 1]);
+  const deck = line.deck;
   const heightAt = (x: number, y: number, k: number) =>
-    (line.bridge && total > 0 ? hStart + ((hEnd - hStart) * s[k]) / total : ground(x, y)) + opts.lift;
+    (deck
+      ? deckTopAt(deck, s[k], x, y, hf, ground)
+      : line.bridge && total > 0
+        ? hStart + ((hEnd - hStart) * s[k]) / total
+        : ground(x, y)) + opts.lift;
 
   // Runs of consecutive kept segments become separate strips.
   let prevVertex = -1;

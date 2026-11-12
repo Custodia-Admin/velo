@@ -123,8 +123,8 @@ describe('destinations ↔ baked worlds', () => {
         expect(d.world.dir, d.id).toBe(`${d.world.id}/${bundleHash(readFileSync(bundle.manifestPath))}/`);
       }
     }
-    // Perugia and Lugano ship with the app; Chengdu is the first remote world.
-    expect(linked.filter((d) => d.world.host === 'remote').map((d) => d.id)).toEqual(['chengdu-luxelakes']);
+    // Perugia and Lugano ship with the app; Chengdu, Cleveland and the Cuyahoga Valley are remote.
+    expect(linked.filter((d) => d.world.host === 'remote').map((d) => d.id)).toEqual(['chengdu-luxelakes', 'cleveland-lakefront', 'ohio-erie-towpath']);
   });
 
   it('a re-bake that changes any byte of a remote manifest moves its directory', () => {

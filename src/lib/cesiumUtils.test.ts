@@ -100,6 +100,7 @@ import {
   getTerrainProvider,
   getPhotorealTileset,
   BING_TILE_STALL_TIMEOUT_MS,
+  BING_TILE_STALL_SLOT_MS,
   IMAGERY_FALLBACK_EVENT,
 } from '@/lib/cesiumUtils';
 
@@ -148,6 +149,8 @@ interface FakeViewer {
       tilesLoaded: boolean;
       tileLoadProgressEvent: FakeProgressEvent;
     };
+    /** Raised by every scene update (each frame of a running render loop). */
+    preUpdate: FakeProgressEvent;
   };
 }
 
@@ -169,9 +172,22 @@ function makeViewer(): FakeViewer & import('cesium').Viewer {
         tilesLoaded: false,
         tileLoadProgressEvent: makeProgressEvent(),
       },
+      preUpdate: makeProgressEvent(),
     },
   };
   return viewer as FakeViewer & import('cesium').Viewer;
+}
+
+/**
+ * The render loop runs for `ms` of (fake) time: the scene updates once every
+ * `frameMs`, as Cesium's loop does on each frame. Cesium only asks for
+ * imagery tiles from these updates.
+ */
+function runScene(viewer: FakeViewer, ms: number, frameMs = 100): void {
+  for (let t = 0; t < ms; t += frameMs) {
+    viewer.scene.preUpdate.raise();
+    vi.advanceTimersByTime(frameMs);
+  }
 }
 
 describe('cesiumUtils — token-aware behaviour', () => {
@@ -510,7 +526,7 @@ describe('cesiumUtils — token-aware behaviour', () => {
 
       // Blow well past the deadline — fallback must NOT fire because tiles
       // are loaded.
-      vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS * 2);
+      runScene(viewer, BING_TILE_STALL_TIMEOUT_MS * 2);
 
       expect(osmConstructorCalls.length).toBe(0);
       expect(viewer.scene.imageryLayers.remove).not.toHaveBeenCalled();
@@ -531,7 +547,7 @@ describe('cesiumUtils — token-aware behaviour', () => {
       const layer = imageryLayerInstances[0] as unknown as { imageryProvider: { requestImage: () => Promise<unknown> } };
       await layer.imageryProvider.requestImage();
       await Promise.resolve();
-      vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS * 2);
+      runScene(viewer, BING_TILE_STALL_TIMEOUT_MS * 2);
       expect(osmConstructorCalls.length).toBe(0);
       expect(viewer.scene.imageryLayers.remove).not.toHaveBeenCalled();
     });
@@ -547,7 +563,7 @@ describe('cesiumUtils — token-aware behaviour', () => {
       await setupBaseImagery(viewer as unknown as import('cesium').Viewer);
       const layer = imageryLayerInstances[0] as unknown as { imageryProvider: { requestImage: () => Promise<unknown> } };
       void layer.imageryProvider.requestImage();
-      vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS);
+      runScene(viewer, BING_TILE_STALL_TIMEOUT_MS);
       await Promise.resolve();
       expect(osmConstructorCalls.length).toBe(1);
     });
@@ -568,7 +584,7 @@ describe('cesiumUtils — token-aware behaviour', () => {
       expect(osmConstructorCalls.length).toBe(0);
 
       // Drive the clock to the deadline with no progress events.
-      vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS);
+      runScene(viewer, BING_TILE_STALL_TIMEOUT_MS);
       await Promise.resolve(); // flush microtask queue after timer
 
       // OSM provider was built, a second layer was constructed, the
@@ -624,7 +640,7 @@ describe('cesiumUtils — token-aware behaviour', () => {
         setIonToken('eyJ_x.y');
         const viewer = makeViewer() as unknown as FakeViewer;
         await setupBaseImagery(viewer as unknown as import('cesium').Viewer);
-        vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS);
+        runScene(viewer, BING_TILE_STALL_TIMEOUT_MS);
         await Promise.resolve();
 
         expect(eventSpy).toHaveBeenCalledTimes(1);
@@ -642,7 +658,7 @@ describe('cesiumUtils — token-aware behaviour', () => {
       // progress event observed, but tilesLoaded flipped true on its own
       // (rare but possible on a tiny visible area).
       viewer.scene.globe.tilesLoaded = true;
-      vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS);
+      runScene(viewer, BING_TILE_STALL_TIMEOUT_MS);
       await Promise.resolve();
 
       // Watchdog re-checks tilesLoaded at the deadline and bails — no swap.
@@ -657,7 +673,7 @@ describe('cesiumUtils — token-aware behaviour', () => {
       await setupBaseImagery(viewer as unknown as import('cesium').Viewer);
 
       // Force fallback by running out the clock.
-      vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS);
+      runScene(viewer, BING_TILE_STALL_TIMEOUT_MS);
       await Promise.resolve();
 
       // Now Bing tiles "finally" arrive late. The post-fallback progress
@@ -679,7 +695,7 @@ describe('cesiumUtils — token-aware behaviour', () => {
       const viewer = makeViewer() as unknown as FakeViewer;
       await setupBaseImagery(viewer as unknown as import('cesium').Viewer);
 
-      vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS);
+      runScene(viewer, BING_TILE_STALL_TIMEOUT_MS);
       await Promise.resolve();
 
       // The fake event tracks live listener count via the `listeners` array;
@@ -788,6 +804,133 @@ describe('cesiumUtils — token-aware behaviour', () => {
       expect(viewer.scene.globe.tileLoadProgressEvent.addEventListener).not.toHaveBeenCalled();
       // And of course no Bing call was made either.
       expect(ionAssetIdCalls).toEqual([]);
+    });
+
+    // ---- The deadline counts only time the scene runs (PR #105 rework) ----
+    // Behind the finish page the render loop is off (CesiumWorldView
+    // `covered`), so Cesium requests no tile at all. A viewer can even be
+    // created there: journey mode (the floating window closes at the finish)
+    // or a WebGL context restore. Those seconds say nothing about Bing.
+
+    /** Bing that requests tiles but never gets one back. */
+    async function stalledBing(): Promise<{ viewer: FakeViewer; requestTile: () => void }> {
+      const { IonImageryProvider } = await import('cesium');
+      vi.mocked(IonImageryProvider.fromAssetId).mockResolvedValueOnce({
+        __ionProvider: true,
+        requestImage: () => new Promise(() => undefined),
+      } as never);
+      setIonToken('eyJ_x.y');
+      const viewer = makeViewer() as unknown as FakeViewer;
+      await setupBaseImagery(viewer as unknown as import('cesium').Viewer);
+      const layer = imageryLayerInstances[0] as unknown as {
+        imageryProvider: { requestImage: () => Promise<unknown> };
+      };
+      return { viewer, requestTile: () => void layer.imageryProvider.requestImage() };
+    }
+
+    it('with the loop off it never judges Bing, however long; once the loop runs, a stall still falls back', async () => {
+      const { viewer, requestTile } = await stalledBing();
+
+      // Covered: no scene update at all, for five deadlines.
+      vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS * 5);
+      await Promise.resolve();
+      expect(osmConstructorCalls.length).toBe(0);
+      expect(viewer.scene.imageryLayers.remove).not.toHaveBeenCalled();
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(viewer.scene.preUpdate.listeners.length).toBe(1); // still watching
+
+      // Uncovered: the loop runs, Bing is asked and delivers nothing.
+      runScene(viewer, 500);
+      requestTile();
+      runScene(viewer, BING_TILE_STALL_TIMEOUT_MS - BING_TILE_STALL_SLOT_MS - 500);
+      await Promise.resolve();
+      expect(osmConstructorCalls.length).toBe(0);
+      runScene(viewer, BING_TILE_STALL_SLOT_MS);
+      await Promise.resolve();
+      expect(osmConstructorCalls.length).toBe(1);
+      expect(viewer.scene.imageryLayers.remove).toHaveBeenCalledWith(imageryLayerInstances[0], true);
+      expect(warnSpy).toHaveBeenCalledWith('[cesiumUtils] Bing tiles stalled, falling back to OSM');
+    });
+
+    it('a viewer created under the finish page keeps Bing once uncovered and its tiles arrive', async () => {
+      const { IonImageryProvider } = await import('cesium');
+      let deliver: (img: unknown) => void = () => undefined;
+      vi.mocked(IonImageryProvider.fromAssetId).mockResolvedValueOnce({
+        __ionProvider: true,
+        requestImage: () => new Promise((resolve) => {
+          deliver = resolve;
+        }),
+      } as never);
+      setIonToken('eyJ_x.y');
+      const viewer = makeViewer() as unknown as FakeViewer;
+      await setupBaseImagery(viewer as unknown as import('cesium').Viewer);
+
+      // 24 s on the finish page with the loop off: nothing requested, no verdict.
+      vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS * 2);
+      await Promise.resolve();
+      expect(osmConstructorCalls.length).toBe(0);
+
+      // Ride again: the loop runs; Cesium asks for a Bing tile, which lands 3 s later.
+      runScene(viewer, 2000);
+      const layer = imageryLayerInstances[0] as unknown as {
+        imageryProvider: { requestImage: () => Promise<unknown> };
+      };
+      void layer.imageryProvider.requestImage();
+      runScene(viewer, 3000);
+      deliver({ width: 256 });
+      await Promise.resolve();
+      await Promise.resolve();
+      runScene(viewer, BING_TILE_STALL_TIMEOUT_MS);
+      await Promise.resolve();
+
+      expect(osmConstructorCalls.length).toBe(0);
+      expect(viewer.scene.imageryLayers.remove).not.toHaveBeenCalled();
+      expect(warnSpy).not.toHaveBeenCalled();
+      // It judged (Bing kept) and stopped watching.
+      expect(viewer.scene.preUpdate.listeners.length).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('a real stall with the loop running falls back at the deadline, not later', async () => {
+      const { viewer, requestTile } = await stalledBing();
+      runScene(viewer, 300);
+      requestTile();
+      runScene(viewer, BING_TILE_STALL_TIMEOUT_MS - BING_TILE_STALL_SLOT_MS - 300);
+      await Promise.resolve();
+      expect(osmConstructorCalls.length).toBe(0);
+      runScene(viewer, BING_TILE_STALL_SLOT_MS);
+      await Promise.resolve();
+      expect(osmConstructorCalls.length).toBe(1);
+      expect(viewer.scene.imageryLayers.remove).toHaveBeenCalledTimes(1);
+      expect(viewer.scene.preUpdate.listeners.length).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('a pause mid-count does not count, and the count goes on from where it was', async () => {
+      const { viewer, requestTile } = await stalledBing();
+      requestTile();
+      runScene(viewer, 6000);
+      // Finish page for a minute: the loop is off.
+      vi.advanceTimersByTime(60_000);
+      await Promise.resolve();
+      expect(osmConstructorCalls.length).toBe(0);
+      // Ride again: 6 more seconds of the scene running reach the deadline.
+      runScene(viewer, 5000);
+      await Promise.resolve();
+      expect(osmConstructorCalls.length).toBe(0);
+      runScene(viewer, 1000);
+      await Promise.resolve();
+      expect(osmConstructorCalls.length).toBe(1);
+    });
+
+    it('stops watching when the viewer is destroyed (no timer, no listener left)', async () => {
+      const { viewer } = await stalledBing();
+      runScene(viewer, 3000);
+      viewer.isDestroyed.mockReturnValue(true);
+      vi.advanceTimersByTime(BING_TILE_STALL_SLOT_MS);
+      expect(viewer.scene.preUpdate.listeners.length).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
+      expect(osmConstructorCalls.length).toBe(0);
     });
   });
 });

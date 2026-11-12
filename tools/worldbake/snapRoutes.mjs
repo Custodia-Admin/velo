@@ -140,8 +140,12 @@ const round2 = (v) => Math.round(v * 100) / 100;
 /**
  * Steps 1–3: resample every route and carve the float grid in place.
  * Returns the per-route samples for `finishRoutes`.
+ *
+ * `skip(routeIndex, s0, s1)`, when given, leaves the route segment between
+ * those two sample distances out of the carve (the middle of a deck the
+ * route rides: bridges.mjs). Without it every segment is carved, as before.
  */
-export function carveRoutes({ grid, heights, projection, routes, snap }) {
+export function carveRoutes({ grid, heights, projection, routes, snap, skip }) {
   const { stepM, offsetMedianM, offsetMeanM, coreCells, falloffM } = snap;
   const core = coreCells * grid.cellSize;
   const reach = core + falloffM;
@@ -175,8 +179,9 @@ export function carveRoutes({ grid, heights, projection, routes, snap }) {
   const n = grid.cols * grid.rows;
   const best = new Float64Array(n).fill(Infinity);
   const tgt = new Float64Array(n);
-  for (const p of prepared) {
+  for (const [pi, p] of prepared.entries()) {
     for (let k = 0; k + 1 < p.x.length; k++) {
+      if (skip && skip(pi, p.s[k], p.s[k + 1])) continue;
       const ax = p.x[k], ay = p.y[k], bx = p.x[k + 1], by = p.y[k + 1];
       const dx = bx - ax, dy = by - ay;
       const len2 = dx * dx + dy * dy;
@@ -241,15 +246,21 @@ export function closeLoop(s, x, y, target, { stepM, rampM }) {
   });
 }
 
-/** Step 4: render elevations from the final quantised Heightfield + stats. */
-export function finishRoutes({ prepared, hf, snap }) {
+/**
+ * Step 4: render elevations from the final quantised Heightfield + stats.
+ * `surface(routeIndex, x, y, s)`, when given, can return the height of what
+ * the route rides there instead (a deck, bridges.mjs), or null for the
+ * ground. The gap is then measured against that surface.
+ */
+export function finishRoutes({ prepared, hf, snap, surface }) {
   const half = Math.round(100 / snap.stepM); // ±100 m → 200 m grade window
   const routes = [];
   const info = [];
-  for (const p of prepared) {
-    const h = p.x.map((x, i) => hf.sampleHeight(x, p.y[i]));
+  for (const [pi, p] of prepared.entries()) {
+    const ground = (i) => (surface ? surface(pi, p.x[i], p.y[i], p.s[i]) : null) ?? hf.sampleHeight(p.x[i], p.y[i]);
+    const h = p.x.map((_, i) => ground(i));
     let maxGap = 0;
-    for (let i = 0; i < h.length; i++) maxGap = Math.max(maxGap, Math.abs(h[i] - hf.sampleHeight(p.x[i], p.y[i])));
+    for (let i = 0; i < h.length; i++) maxGap = Math.max(maxGap, Math.abs(h[i] - ground(i)));
     const gRender = gradeSeries(p.s, h, half);
     const gProfile = gradeSeries(p.s, p.profile, half);
     const gRaw = gradeSeries(p.s, p.raw, half);

@@ -279,6 +279,7 @@ export function CesiumScene({
   onViewerReady,
   canvasKey,
   context,
+  covered = false,
 }: CesiumWorldViewProps & {
   /** The key this scene is mounted under (its reports carry it). */
   canvasKey: number;
@@ -874,6 +875,26 @@ export function CesiumScene({
       if (!viewer.isDestroyed()) viewer.scene.requestRender();
     });
   }, [rideStateForRender, peerCount, viewerReady]);
+
+  // ---- Covered by the finish screen: no frames at all ----
+  // The finish page is opaque over the whole view. Rendering on demand (above)
+  // still draws for every tile that arrives and every settings change, and on
+  // a slow TV or software GL each of those frames holds the main thread. So
+  // the default render loop goes off while covered and back on for Ride
+  // again; the viewer, its primitives and entities stay as they are. A loop
+  // that is already off belongs to a WebXR session (lib/webxr): left alone.
+  // Not a stop for renderLoopWatch: no frame threw. With the loop off no
+  // imagery tile is requested either; the Bing stall watchdog counts only
+  // time the scene runs (cesiumUtils), so a viewer created under the page
+  // keeps Bing.
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!covered || !viewer || viewer.isDestroyed() || !viewer.useDefaultRenderLoop) return;
+    viewer.useDefaultRenderLoop = false;
+    return () => {
+      if (!viewer.isDestroyed()) viewer.useDefaultRenderLoop = true;
+    };
+  }, [covered, viewerReady]);
 
   // ---- Live avatar recolouring from the Garage settings ----
   useEffect(() => {

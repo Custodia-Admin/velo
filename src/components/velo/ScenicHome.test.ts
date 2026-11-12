@@ -47,16 +47,27 @@ describe('ScenicHomeSections', () => {
     expect(hometown.match(/Map view/g)).toHaveLength(4);
     expect(hometown).toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*"/);
     expect(hometown).not.toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*, map view"/);
-    // The wishlist now mixes too: Chengdu's world leads, the map rides carry the badge.
+    // The wishlist now mixes too: the places with a world lead (Chengdu,
+    // Cleveland, the Cuyahoga Valley), the map rides carry the badge.
     const wishlist = out.slice(out.indexOf('data-destination-section="wishlist"'));
     const wishTiles = [...wishlist.matchAll(/data-scenic-route="([^"]+)"/g)].map((m) => m[1]);
-    expect(wishTiles.slice(0, 2)).toEqual(['scenic-chengdu-luxe-lakes', 'scenic-chengdu-xinglong-lake']);
+    const worldTiles = [
+      'scenic-chengdu-luxe-lakes',
+      'scenic-chengdu-xinglong-lake',
+      'scenic-cleveland-lakefront',
+      'scenic-wendy-park-lakewood',
+      'scenic-cuyahoga-towpath',
+      'scenic-cuyahoga-towpath-north',
+    ];
+    expect(wishTiles.slice(0, worldTiles.length)).toEqual(worldTiles);
+    expect(wishlist).toMatch(/aria-label="Ride Towpath: Lock 39 to Station Road in Cuyahoga Valley, [^"]*"/);
+    expect(wishlist).not.toMatch(/aria-label="Ride Towpath: Lock 39 to Station Road in Cuyahoga Valley, [^"]*, map view"/);
     expect(wishlist).toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*"/);
     expect(wishlist).toMatch(/aria-label="Ride Xinglong Lake loop in Chengdu, [^"]*"/);
     expect(wishlist).not.toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*, map view"/);
     expect(wishlist).not.toMatch(/aria-label="Ride Xinglong Lake loop in Chengdu, [^"]*, map view"/);
     expect(wishlist).toMatch(/aria-label="Ride West Lake loop in Hangzhou, [^"]*, map view"/);
-    expect(wishlist.match(/>Map view</g)).toHaveLength(wishTiles.length - 2);
+    expect(wishlist.match(/>Map view</g)).toHaveLength(wishTiles.length - worldTiles.length);
     expect(out).not.toContain('3D worlds coming; these ride on the map today');
   });
 });

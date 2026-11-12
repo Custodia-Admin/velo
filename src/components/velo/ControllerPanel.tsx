@@ -23,7 +23,7 @@ import {
   reconnectGrantedController,
   reconnectRideController,
 } from '@/lib/controllers/rideController';
-import { ACTION_LEGEND, SHOW_LEGEND, type LegendRow } from '@/lib/controllers/controllerActions';
+import { ACTION_LEGEND, SHOW_LEGEND, lastPressText, type LegendRow } from '@/lib/controllers/controllerActions';
 import { MENU_LEGEND } from '@/lib/tv/handlebarNav';
 import { useControllerStore } from '@/stores/controllerStore';
 
@@ -163,6 +163,19 @@ export function ControllerDebugSwitch() {
   );
 }
 
+/**
+ * The last handlebar button Velo heard and what it does in a ride: press
+ * each shifter and read it here (the bars' own check, no ride needed).
+ */
+export function LastPressLine() {
+  const last = useControllerStore((s) => s.lastPress);
+  return (
+    <p className="mt-1 text-pretty text-sm text-muted-foreground" aria-live="polite" data-testid="handlebar-last-press">
+      {lastPressText(last?.button ?? null)}
+    </p>
+  );
+}
+
 /** Web Bluetooth is there (fixed for the page's lifetime; read once without effects). */
 export function useControllerSupported(): boolean {
   return useSyncExternalStore(noopSubscribe, isRideControllerSupported, () => false);
@@ -253,6 +266,7 @@ export function HandlebarRow() {
         )
       }
     >
+      {status === 'connected' && <LastPressLine />}
       {view.unlockIntro && (
         <div className="mt-2">
           <UnlockSteps intro={view.unlockIntro} />

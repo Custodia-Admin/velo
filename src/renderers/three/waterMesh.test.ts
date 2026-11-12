@@ -90,7 +90,9 @@ const ALL_WORLDS = worldBundles().map((b: { id: string }) => b.id);
  */
 const BUDGET: Record<string, { max?: number; expected?: number }> = {
   'chengdu-luxelakes': { expected: 36_767 },
+  'cleveland-lakefront': { expected: 77_580 },
   lugano: { max: 400_000 },
+  'ohio-erie-towpath': { expected: 57_161 },
   perugia: { expected: 26_752 },
 };
 

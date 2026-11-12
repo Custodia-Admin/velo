@@ -215,3 +215,53 @@ describe('two-finger swipe detection', () => {
     cleanup();
   });
 });
+
+describe('taps on HUD controls are not gestures', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.spyOn(performance, 'now').mockImplementation(() => Date.now());
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** A target whose closest() finds a button (the gear buttons, Pause, details…). */
+  const button = { closest: (sel: string) => (sel.includes('button') ? {} : null) } as unknown as EventTarget;
+  const canvas = { closest: () => null } as unknown as EventTarget;
+
+  it('two quick taps on a button (two gear shifts) never fire the double-tap pause', () => {
+    const el = makeStubElement();
+    const onDoubleTap = vi.fn();
+    const cleanup = attachGestures(el as unknown as HTMLElement, { onDoubleTap });
+    for (let i = 0; i < 2; i++) {
+      el._fire('pointerdown', { target: button });
+      el._fire('pointerup', { target: button });
+      vi.advanceTimersByTime(80);
+    }
+    expect(onDoubleTap).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it('a long press on a button is not the gesture menu', async () => {
+    const el = makeStubElement();
+    const onLongPress = vi.fn();
+    const cleanup = attachGestures(el as unknown as HTMLElement, { onLongPress });
+    el._fire('pointerdown', { target: button });
+    await tick(2000);
+    expect(onLongPress).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it('double-tapping the world (no control under the finger) still pauses', () => {
+    const el = makeStubElement();
+    const onDoubleTap = vi.fn();
+    const cleanup = attachGestures(el as unknown as HTMLElement, { onDoubleTap });
+    for (let i = 0; i < 2; i++) {
+      el._fire('pointerdown', { target: canvas });
+      el._fire('pointerup', { target: canvas });
+      vi.advanceTimersByTime(80);
+    }
+    expect(onDoubleTap).toHaveBeenCalledTimes(1);
+    cleanup();
+  });
+});

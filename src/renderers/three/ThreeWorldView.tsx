@@ -34,12 +34,14 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { canvasKeyFor, useWorldViewStore } from '@/stores/worldViewStore';
 import type { Route } from '@/types';
 
+import { Bridges } from './Bridges';
 import { Buildings, StreetLights } from './Buildings';
 import { fillContainer } from './canvasSize';
 import { ChaseCamera } from './ChaseCamera';
 import { ContextLossWatch } from './contextLoss';
 import { CoupleGhost } from './CoupleGhost';
 import { sceneLandmarks } from './directorCamera';
+import { createClockMemo, keepClockSteady } from './frameClock';
 import { Ghosts } from './Ghosts';
 import { Landmarks } from './Landmarks';
 import { buildLandcoverCanvas } from './landcoverTexture';
@@ -57,7 +59,7 @@ import { createThreeWorldRenderer } from './threeWorldRenderer';
 import { Vegetation } from './Vegetation';
 import { Water } from './Water';
 import { Weather } from './Weather';
-import { ChunkVisibility, createRideFrame, createSceneWorld, drawnGround, type RideFrame, type SceneWorld } from './worldScene';
+import { ChunkVisibility, createRideFrame, createSceneWorld, drawnGround, routeSurface, type RideFrame, type SceneWorld } from './worldScene';
 
 preloadRider();
 
@@ -165,6 +167,18 @@ function PostFx() {
   }, [gl, composer]);
   useEffect(() => composer.setSize(size.width, size.height), [composer, size.width, size.height]);
   useFrame((_, delta) => composer.render(delta), 1);
+  return null;
+}
+
+/**
+ * Keeps the canvas clock running on from the last frame after r3f restarts it
+ * at 0 (the frame loop paused behind the finish screen; see frameClock.ts).
+ * Priority -2: before the ride driver (-1) and everything else reads it.
+ * Exported for tests.
+ */
+export function SteadyClock() {
+  const memo = useMemo(() => createClockMemo(), []);
+  useFrame((state, delta) => keepClockSteady(state.clock, memo, delta), -2);
   return null;
 }
 
@@ -333,10 +347,11 @@ export function WorldScene({
   const meter = useMemo(() => new FrameStats(), []);
   const visibility = useMemo(() => new ChunkVisibility(sceneWorld.chunks.length), [sceneWorld]);
   // One height source: the terrain triangles as drawn, for rider, camera,
-  // bots, ghosts, roads and the route line.
+  // bots, ghosts, roads and the route line; on the bridge decks this route
+  // rides, the deck (under any other deck it stays the ground).
   const ground = useMemo(
-    () => drawnGround(sceneWorld, visibility, { near: quality.nearStep, far: quality.farStep }),
-    [sceneWorld, visibility, quality.nearStep, quality.farStep],
+    () => routeSurface(sceneWorld, route.id, drawnGround(sceneWorld, visibility, { near: quality.nearStep, far: quality.farStep })),
+    [sceneWorld, route.id, visibility, quality.nearStep, quality.farStep],
   );
   // The ride start holds until the chunk under the rider draws full detail.
   useEffect(() => {
@@ -404,6 +419,7 @@ export function WorldScene({
       <Terrain sceneWorld={sceneWorld} quality={quality} landcover={maps?.landcover ?? null} aux={maps?.aux ?? null} atmo={atmo} visibility={visibility} />
       <Water sceneWorld={sceneWorld} atmo={atmo} />
       <Roads sceneWorld={sceneWorld} visibility={visibility} quality={quality} atmo={atmo} />
+      <Bridges sceneWorld={sceneWorld} visibility={visibility} quality={quality} atmo={atmo} />
       <RouteLine sceneWorld={sceneWorld} route={route} visibility={visibility} quality={quality} atmo={atmo} />
       <Buildings sceneWorld={sceneWorld} quality={quality} atmo={atmo} />
       <StreetLights sceneWorld={sceneWorld} atmo={atmo} />
@@ -471,7 +487,7 @@ function useLightInput(
 
 const PIN_WEATHER: readonly WeatherCondition[] = ['clear', 'partly-cloudy', 'overcast', 'fog', 'drizzle', 'rain', 'snow', 'storm'];
 
-export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
+export function ThreeWorldView({ onReady, onUnavailable, covered = false }: WorldViewProps) {
   const route = useRideStore((s) => s.route);
   const entry = useMemo(() => worldForRoute(route), [route]);
   const tier = useSettingsStore((s) => s.graphicsQuality);
@@ -610,11 +626,14 @@ export function ThreeWorldView({ onReady, onUnavailable }: WorldViewProps) {
             camera={{ fov: RIDE_FOV_Y_DEG, near: 0.4, far: quality.viewDistanceM * 1.05, position: [0, 500, 0] }}
             shadows={quality.shadows}
             dpr={dpr}
-            frameloop="always"
+            // Covered by the finish screen: no frames (r3f's loop stops; the
+            // scene and the WebGL context stay), drawing again for Ride again.
+            frameloop={covered ? 'never' : 'always'}
             // In the floating ride window r3f leaves the canvas's CSS size at its buffer size (canvasSize.ts).
             onCreated={({ gl }) => fillContainer(gl.domElement)}
           >
             <ContextLossWatch viewId={viewId} canvasKey={canvasKey} />
+            <SteadyClock />
             <WorldScene
               key={tier}
               sceneWorld={sceneWorld}

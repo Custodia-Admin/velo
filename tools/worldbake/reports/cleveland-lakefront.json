@@ -1,0 +1,1135 @@
+{
+  "world": "cleveland-lakefront",
+  "bakedWith": "node v26.12.1",
+  "timingsS": {
+    "dem": 0.2,
+    "osm": 0.3,
+    "heightfield+routes": 2,
+    "vectors": 0.5,
+    "write": 4,
+    "validate": 0,
+    "total": 7
+  },
+  "sizes": {
+    "height.bin.gz": {
+      "stored": 402573,
+      "content": 1459008,
+      "brotli": 329455
+    },
+    "roads.json.gz": {
+      "stored": 349458,
+      "content": 1036453,
+      "brotli": 247333
+    },
+    "water.json.gz": {
+      "stored": 9637,
+      "content": 21390,
+      "brotli": 6128
+    },
+    "landcover.json.gz": {
+      "stored": 68598,
+      "content": 187477,
+      "brotli": 48499
+    },
+    "buildings.bin.gz": {
+      "stored": 347294,
+      "content": 652420,
+      "brotli": 287612
+    },
+    "vegetation.bin.gz": {
+      "stored": 114033,
+      "content": 158830,
+      "brotli": 98228
+    },
+    "routes.json.gz": {
+      "stored": 33774,
+      "content": 82460,
+      "brotli": 24212
+    },
+    "bridges.json.gz": {
+      "stored": 13957,
+      "content": 57339,
+      "brotli": 10110
+    },
+    "manifest.json": {
+      "stored": 11984,
+      "content": 11984,
+      "brotli": 3147
+    }
+  },
+  "totals": {
+    "stored": 1351308,
+    "content": 3667361,
+    "brotli": 1054724
+  },
+  "hashes": {
+    "height.bin.gz": "4dcbb45368016717f344227c9f7224c79d5e509b9f05387df4e3f376b8cc51f6",
+    "roads.json.gz": "8548a1796be17b344e75f1ad3cf1552388d398538d9e97a05f87427335e34456",
+    "water.json.gz": "3421a6d47707a40d2f1501ce563861238dec7b6cc9d61fcb90a0b6fce935a2f1",
+    "landcover.json.gz": "052d7f2a270dc0878eded01c6db5ecb87f2f5961c834ab602db35253c745de2b",
+    "buildings.bin.gz": "c13d90fedb1651c1a9e4b959cf7e039e3b6052c7362f987bb20bd1b7d9be3ec5",
+    "vegetation.bin.gz": "580aeb34e75d36f09a502bdf54f5017f8e482d21d486035eb639ab2095ab8bf7",
+    "routes.json.gz": "0fb4f9d930ff15ca2aed9d3ea2873a50ac85fd0353ad61f7055d56e856eb80a9",
+    "bridges.json.gz": "5b0aba46f4ff569876736b60fda081b95b5df6891a9e7fdb1e01d11142d5b49a",
+    "manifest.json": "ea575d8369357cb08811b3a77d237b9b6889d0ba783f59b2a7b7f42878a39576"
+  },
+  "routes": [
+    {
+      "id": "scenic-cleveland-lakefront",
+      "name": "Cleveland lakefront",
+      "lengthM": 13513.64,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.339,
+      "report": {
+        "samples": 1353,
+        "gradeMaxAbsDiffPct": 2.299,
+        "rawDemGradeMeanAbsDiffPct": 1.726,
+        "maxRenderMinusProfileM": 19.49
+      },
+      "roadCoverage": {
+        "mappedPct": 100,
+        "paintPctBefore": 99.72,
+        "paintPct": 100,
+        "easedM": 37.2,
+        "joinedM": 0,
+        "tunnelM": 32.7
+      }
+    },
+    {
+      "id": "scenic-wendy-park-lakewood",
+      "name": "Wendy Park to Lakewood Park",
+      "lengthM": 8108.03,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.362,
+      "report": {
+        "samples": 812,
+        "gradeMaxAbsDiffPct": 2.41,
+        "rawDemGradeMeanAbsDiffPct": 1.207,
+        "maxRenderMinusProfileM": 16.1
+      },
+      "roadCoverage": {
+        "mappedPct": 100,
+        "paintPctBefore": 97.51,
+        "paintPct": 100,
+        "easedM": 201.5,
+        "joinedM": 0,
+        "tunnelM": 0
+      }
+    }
+  ],
+  "routeFit": {
+    "roadsBent": 23,
+    "maxShiftM": 0.5,
+    "joins": 0,
+    "bent": [
+      {
+        "road": 1185,
+        "shiftM": 0.1,
+        "mapped": "-505,-18010 -825,-18100"
+      },
+      {
+        "road": 1199,
+        "shiftM": 0.28,
+        "mapped": "-10259,-16989 -10268,-16979 -10348,-16953 -10419,-16973 -10466,-17011 -10512,-17125 -10538,-17155 -10600,-17179 -10664,-17167 -10708,-17130 -10730,-17099"
+      },
+      {
+        "road": 1208,
+        "shiftM": 0.14,
+        "mapped": "15943,-8965 15602,-9300"
+      },
+      {
+        "road": 3131,
+        "shiftM": 0.09,
+        "mapped": "-48047,-14596 -48009,-14550 -48006,-14491 -48018,-14464 -48039,-14442 -48095,-14422 -48126,-14427 -48155,-14442 -48176,-14466 -48188,-14495 -48190,-14527 -48181,-14558 -48162,-14583 -48136,-14601 -48105,-14610 -48047,-14596"
+      },
+      {
+        "road": 4755,
+        "shiftM": 0.1,
+        "mapped": "-13,-18154 46,-18179"
+      },
+      {
+        "road": 4756,
+        "shiftM": 0.14,
+        "mapped": "46,-18179 176,-18221 321,-18253 626,-18285 1046,-18280 1359,-18246 1713,-18189 2132,-18082 2449,-17975 2782,-17834 3132,-17654 3435,-17466 3839,-17164 4204,-16827 4388,-16646 4801,-16178 4954,-16023 5131,-15865 5930,-15262 6003,-15193 6091,-15075 6136,-15031 6409,-14872 6476,-14866 6507,-14898 6615,-15099"
+      },
+      {
+        "road": 4758,
+        "shiftM": 0.32,
+        "mapped": "-2150,-18163 -2406,-18333 -2470,-18350 -2551,-18344 -2602,-18322 -2658,-18277 -2698,-18209 -2736,-18077 -2786,-18015 -2856,-17972 -2941,-17957 -2989,-17964 -3223,-18049 -3636,-18085 -3747,-18114 -3846,-18172 -3908,-18192 -4007,-18205 -4068,-18194 -4174,-18137 -4232,-18079 -4264,-18022 -4302,-17886 -4341,-17800 -4418,-17710 -4494,-17655 -4571,-17620 -4611,-17611 -4832,-17580 -4933,-17538 -5082,-17435 -5153,-17396 -5270,-17360 -5555,-17293 -5737,-17237 -5806,-17239 -5853,-17252 -5913,-17279 -6058,-17366 -6108,-17382 -6167,-17390 -6321,-17381 -6399,-17401 -6449,-17430 -6497,-17471 -6638,-17649 -6728,-17730"
+      },
+      {
+        "road": 4759,
+        "shiftM": 0.28,
+        "mapped": "-8548,-16884 -8638,-16736 -8654,-16688 -8673,-16548 -8676,-16314 -8694,-16269 -8732,-16229 -8783,-16206 -8841,-16194 -8893,-16196 -9024,-16249 -10019,-16753 -10077,-16795 -10259,-16989"
+      },
+      {
+        "road": 4763,
+        "shiftM": 0.14,
+        "mapped": "-13414,-16441 -13511,-16616 -13582,-16698 -13655,-16766 -13755,-16840 -13942,-16956 -14122,-17049 -14467,-17178 -14538,-17219 -14671,-17325 -15523,-17817 -15833,-17972 -16257,-18150 -16577,-18314"
+      },
+      {
+        "road": 6031,
+        "shiftM": 0.22,
+        "mapped": "-13098,-15894 -13122,-16013 -13165,-16094 -13193,-16128 -13316,-16215 -13362,-16265 -13388,-16330 -13414,-16441"
+      },
+      {
+        "road": 6033,
+        "shiftM": 0.31,
+        "mapped": "-12793,-15715 -12588,-15690 -12506,-15693 -11975,-15759 -11916,-15762 -11796,-15740 -11488,-15597 -9606,-14664 -9554,-14660 -9127,-14688 -8484,-14668 -8353,-14680 -8094,-14745 -8053,-14780 -7703,-14917 -7650,-14928 -7564,-14974 -7428,-14994 -7362,-14992 -7297,-14976 -7186,-14935 -6573,-14580 -6077,-14274 -5612,-13965 -5507,-13831 -5171,-13517 -5042,-13440 -4895,-13302 -4643,-13155 -4524,-13062 -4080,-12753 -3810,-12589 -3764,-12546 -3598,-12426 -3517,-12388 -3256,-12173 -3208,-12141 -3047,-12062 -2730,-11842 -2404,-11599 -2308,-11551 -2170,-11447 -1944,-11303 -1831,-11214 -1757,-11143 -1536,-11017 -1462,-10991 -1374,-10911 -1278,-10801 -949,-10657 -602,-10406 -458,-10326 27,-10091"
+      },
+      {
+        "road": 6059,
+        "shiftM": 0.1,
+        "mapped": "-13148,-15796 -13072,-15768 -12946,-15741"
+      },
+      {
+        "road": 6065,
+        "shiftM": 0.36,
+        "mapped": "-10228,-17345 -10205,-17118 -10209,-17067 -10232,-17019 -10259,-16989"
+      },
+      {
+        "road": 6714,
+        "shiftM": 0.32,
+        "mapped": "-26103,-20319 -26241,-20333 -26398,-20329 -26505,-20279 -26554,-20231 -26649,-20070 -26777,-19902 -26817,-19832 -26837,-19754 -26840,-19681 -26826,-19498 -26828,-19425 -26839,-19357 -26860,-19303 -26890,-19263 -26932,-19235 -26978,-19223 -27016,-19223 -27071,-19238 -27118,-19261 -27150,-19288 -27270,-19431 -27647,-19766 -27686,-19788 -27830,-19842 -27875,-19877 -27956,-19995 -28024,-20153"
+      },
+      {
+        "road": 7084,
+        "shiftM": 0.5,
+        "mapped": "-12607,-16307 -12709,-16185"
+      },
+      {
+        "road": 7261,
+        "shiftM": 0.1,
+        "mapped": "-67091,-13025 -67056,-11566 -67175,-11390 -67182,-11202 -67172,-11091"
+      },
+      {
+        "road": 7597,
+        "shiftM": 0.1,
+        "mapped": "-10227,-17393 -10228,-17345"
+      },
+      {
+        "road": 13054,
+        "shiftM": 0.2,
+        "mapped": "-26065,-20308 -26103,-20319"
+      },
+      {
+        "road": 13530,
+        "shiftM": 0.31,
+        "mapped": "66594,38435 66271,38370 66152,38323 66054,38259 66004,38215 65931,38122 65876,38041 65836,37956 65796,37909 65524,37683 65318,37461 65164,37335 64882,37128 64567,36911 64306,36758 64026,36580"
+      },
+      {
+        "road": 14191,
+        "shiftM": 0.4,
+        "mapped": "-67091,-13025 -65951,-13044"
+      },
+      {
+        "road": 14192,
+        "shiftM": 0.4,
+        "mapped": "-65951,-13044 -65740,-13062"
+      },
+      {
+        "road": 14194,
+        "shiftM": 0.4,
+        "mapped": "-65951,-13044 -65960,-13201 -65958,-13319"
+      },
+      {
+        "road": 14203,
+        "shiftM": 0.1,
+        "mapped": "-68717,-12995 -67091,-13025"
+      }
+    ]
+  },
+  "heightfield": {
+    "cols": 1224,
+    "rows": 596,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": 162,
+    "heightScale": 0.015625,
+    "minHeight": 163.484375,
+    "maxHeight": 228.421875,
+    "carvedNodes": 16591,
+    "maxCutM": 25.11
+  },
+  "bridges": {
+    "networks": 222,
+    "pieces": 329,
+    "piers": 442,
+    "underDeckNodes": 1343,
+    "underDeckMaxCutM": 14.14,
+    "headroomPins": [
+      {
+        "road": 1492,
+        "name": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 4770.45,
+        "liftM": 11.16
+      },
+      {
+        "road": 994,
+        "name": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 4780.93,
+        "liftM": 10.38
+      },
+      {
+        "road": 1014,
+        "name": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 2616.82,
+        "liftM": 5.71
+      },
+      {
+        "road": 1016,
+        "name": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 2573.13,
+        "liftM": 5.57
+      },
+      {
+        "road": 1140,
+        "name": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 251.95,
+        "liftM": 6.34
+      },
+      {
+        "road": 1142,
+        "name": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 236.46,
+        "liftM": 6.33
+      },
+      {
+        "road": 1333,
+        "name": "Lakeland Freeway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 13205.42,
+        "liftM": 6.24
+      },
+      {
+        "road": 1335,
+        "name": "Lakeland Freeway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 13228.71,
+        "liftM": 6.2
+      },
+      {
+        "road": 6730,
+        "name": "Edgewater Beach House Pedestrian Bridge",
+        "route": "scenic-wendy-park-lakewood",
+        "routeS": 2584.56,
+        "liftM": 5.63
+      },
+      {
+        "road": 8107,
+        "name": null,
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 4261.66,
+        "liftM": 5.03
+      },
+      {
+        "road": 13466,
+        "name": null,
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 12770.71,
+        "liftM": 2.49
+      }
+    ],
+    "approaches": [
+      {
+        "bridge": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 4770.45,
+        "liftM": 4.46,
+        "rampM": 111.47
+      },
+      {
+        "bridge": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 4780.93,
+        "liftM": 2.55,
+        "rampM": 63.76
+      },
+      {
+        "bridge": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 2616.82,
+        "liftM": 5.83,
+        "rampM": 145.67
+      },
+      {
+        "bridge": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 2573.13,
+        "liftM": 4.89,
+        "rampM": 122.17
+      },
+      {
+        "bridge": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 2573.13,
+        "liftM": 4.92,
+        "rampM": 122.96
+      },
+      {
+        "bridge": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 251.95,
+        "liftM": 6.11,
+        "rampM": 152.69
+      },
+      {
+        "bridge": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 251.95,
+        "liftM": 5.68,
+        "rampM": 142.12
+      },
+      {
+        "bridge": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 236.46,
+        "liftM": 5.75,
+        "rampM": 143.68
+      },
+      {
+        "bridge": "Cleveland Memorial Shoreway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 236.46,
+        "liftM": 6.16,
+        "rampM": 154.08
+      },
+      {
+        "bridge": "Lakeland Freeway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 13205.42,
+        "liftM": 4.92,
+        "rampM": 123.09
+      },
+      {
+        "bridge": "Lakeland Freeway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 13205.42,
+        "liftM": 5.8,
+        "rampM": 145.11
+      },
+      {
+        "bridge": "Lakeland Freeway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 13228.71,
+        "liftM": 5.78,
+        "rampM": 144.6
+      },
+      {
+        "bridge": "Lakeland Freeway",
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 13228.71,
+        "liftM": 4.78,
+        "rampM": 119.61
+      },
+      {
+        "bridge": "Edgewater Beach House Pedestrian Bridge",
+        "route": "scenic-wendy-park-lakewood",
+        "routeS": 2584.56,
+        "liftM": 3.28,
+        "rampM": 11.27,
+        "abutmentBlock": true
+      },
+      {
+        "bridge": "Edgewater Beach House Pedestrian Bridge",
+        "route": "scenic-wendy-park-lakewood",
+        "routeS": 2584.56,
+        "liftM": 3.41,
+        "rampM": 42.66
+      },
+      {
+        "bridge": null,
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 4261.66,
+        "liftM": 3.97,
+        "rampM": 0,
+        "abutmentBlock": true
+      },
+      {
+        "bridge": null,
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 4261.66,
+        "liftM": 3.57,
+        "rampM": 0,
+        "abutmentBlock": true
+      },
+      {
+        "bridge": null,
+        "route": "scenic-cleveland-lakefront",
+        "routeS": 12770.71,
+        "liftM": 1.23,
+        "rampM": 0,
+        "abutmentBlock": true
+      }
+    ],
+    "rides": {
+      "scenic-cleveland-lakefront": [
+        {
+          "s0": 1562.59,
+          "s1": 1623.22,
+          "r": [
+            1860
+          ]
+        },
+        {
+          "s0": 2590.11,
+          "s1": 2621.98,
+          "r": [
+            4748,
+            13047
+          ]
+        },
+        {
+          "s0": 3007.1,
+          "s1": 3799.32,
+          "r": [
+            941,
+            7054,
+            8423
+          ]
+        },
+        {
+          "s0": 4799.06,
+          "s1": 4895.89,
+          "r": [
+            1005,
+            14937
+          ]
+        },
+        {
+          "s0": 4902.8,
+          "s1": 4923.6,
+          "r": [
+            1009
+          ]
+        },
+        {
+          "s0": 10016.81,
+          "s1": 10070.6,
+          "r": [
+            1146
+          ]
+        }
+      ],
+      "scenic-wendy-park-lakewood": [
+        {
+          "s0": 524.56,
+          "s1": 551.26,
+          "r": [
+            1203
+          ]
+        }
+      ]
+    }
+  },
+  "buildingsDropped": {
+    "route": 0,
+    "road": 386,
+    "routeClearMinM": 3.5,
+    "routeClearMaxM": 6
+  },
+  "demSource": "copernicus-dem-30m/glo30-cog",
+  "demTiles": [
+    "N41_00_W082_00"
+  ],
+  "demMissingTiles": [],
+  "overpass": {
+    "url": "https://overpass-api.de/api/interpreter",
+    "osmDate": "2026-11-01T00:00:00Z",
+    "queries": {
+      "roads": "[out:json][timeout:300][date:\"2026-11-01T00:00:00Z\"];way[highway~\"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street|service|pedestrian|track|cycleway|path|footway|bridleway|steps)$\"](41.48119,-81.80669,41.54552,-81.63079);out geom;",
+      "water": "[out:json][timeout:300][date:\"2026-11-01T00:00:00Z\"];(way[natural=water](41.48119,-81.80669,41.54552,-81.63079);relation[natural=water](41.48119,-81.80669,41.54552,-81.63079);way[waterway~\"^(river|stream|canal|riverbank)$\"](41.48119,-81.80669,41.54552,-81.63079);relation[waterway=riverbank](41.48119,-81.80669,41.54552,-81.63079););out geom;",
+      "landcover": "[out:json][timeout:300][date:\"2026-11-01T00:00:00Z\"];(way[landuse~\"^(forest|farmland|meadow|grass|orchard|vineyard|residential|industrial|commercial|retail|farmyard|allotments|cemetery|recreation_ground|village_green|quarry)$\"](41.48119,-81.80669,41.54552,-81.63079);relation[landuse~\"^(forest|farmland|meadow|grass|orchard|vineyard|residential|industrial|commercial|retail)$\"](41.48119,-81.80669,41.54552,-81.63079);way[natural~\"^(wood|scrub|grassland|heath)$\"](41.48119,-81.80669,41.54552,-81.63079);relation[natural~\"^(wood|scrub|grassland)$\"](41.48119,-81.80669,41.54552,-81.63079);way[leisure~\"^(park|garden|golf_course|pitch)$\"](41.48119,-81.80669,41.54552,-81.63079););out geom;",
+      "buildings": "[out:json][timeout:300][date:\"2026-11-01T00:00:00Z\"];(way[building](41.48119,-81.80669,41.54552,-81.63079);relation[building](41.48119,-81.80669,41.54552,-81.63079););out geom;",
+      "treerows": "[out:json][timeout:300][date:\"2026-11-01T00:00:00Z\"];way[natural=tree_row](41.48119,-81.80669,41.54552,-81.63079);out geom;",
+      "pois": "[out:json][timeout:300][date:\"2026-11-01T00:00:00Z\"];(node[place~\"^(city|town|village|hamlet|suburb)$\"](41.48119,-81.80669,41.54552,-81.63079);node[natural=peak][name](41.48119,-81.80669,41.54552,-81.63079);node[tourism=viewpoint](41.48119,-81.80669,41.54552,-81.63079);node[historic~\"^(castle|monument|tower|city_gate|fort|archaeological_site)$\"][name](41.48119,-81.80669,41.54552,-81.63079);node[amenity=place_of_worship][name][wikidata](41.48119,-81.80669,41.54552,-81.63079);node[tourism=attraction][name][wikidata](41.48119,-81.80669,41.54552,-81.63079););out;",
+      "landmarks": "[out:json][timeout:300][date:\"2026-11-01T00:00:00Z\"];(way[historic~\"^(castle|monument|tower|city_gate|fort|archaeological_site)$\"][name](41.48119,-81.80669,41.54552,-81.63079);way[amenity=place_of_worship][name][wikidata](41.48119,-81.80669,41.54552,-81.63079);way[tourism=attraction][name][wikidata](41.48119,-81.80669,41.54552,-81.63079);relation[amenity=place_of_worship][name][wikidata](41.48119,-81.80669,41.54552,-81.63079););out center;"
+    }
+  },
+  "validation": {
+    "sample_seed": 41505,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "copernicus-glo30",
+    "terrain_class": "standard",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.0095,
+    "floor_source": "none",
+    "floor_rms_m": 0,
+    "own_error_allowance_m": 6,
+    "bound_m": 6,
+    "registered_rms_m": 0.52,
+    "point_rms_m": 2.02,
+    "max_abs_registered_err_m": 2.16,
+    "pass": true,
+    "diagnostics": {
+      "note": "not gating (blueprint §P1.3.4)",
+      "registered_mean_bias_m": 0.02,
+      "point_mean_bias_m": 0.46,
+      "point_max_abs_err_m": 8.82,
+      "node_answer_mismatches": 1
+    },
+    "points": [
+      {
+        "lat": 41.51464,
+        "lon": -81.7163,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.515,
+        "nodeLon": -81.71666667,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.51223,
+        "lon": -81.71939,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.5125,
+        "nodeLon": -81.72,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.5269,
+        "lon": -81.74637,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.5275,
+        "nodeLon": -81.74666667,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.54172,
+        "lon": -81.67153,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.5425,
+        "nodeLon": -81.67166667,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.4988,
+        "lon": -81.70966,
+        "openMeteo": 178,
+        "heightfield": 177.3,
+        "nodeLat": 41.49916667,
+        "nodeLon": -81.71,
+        "nodeHeightfield": 180.16,
+        "nodeOpenMeteo": 178,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.50295,
+        "lon": -81.67659,
+        "openMeteo": 202,
+        "heightfield": 204.52,
+        "nodeLat": 41.50333333,
+        "nodeLon": -81.67666667,
+        "nodeHeightfield": 202.59,
+        "nodeOpenMeteo": 202,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.49009,
+        "lon": -81.72261,
+        "openMeteo": 177,
+        "heightfield": 182.63,
+        "nodeLat": 41.49083333,
+        "nodeLon": -81.72333333,
+        "nodeHeightfield": 176.8,
+        "nodeOpenMeteo": 177,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.54121,
+        "lon": -81.69237,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.54166667,
+        "nodeLon": -81.6925,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.51197,
+        "lon": -81.7435,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.5125,
+        "nodeLon": -81.74416667,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.50305,
+        "lon": -81.74805,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.50333333,
+        "nodeLon": -81.74833333,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.53797,
+        "lon": -81.68673,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.53833333,
+        "nodeLon": -81.6875,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.52544,
+        "lon": -81.79219,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.52583333,
+        "nodeLon": -81.7925,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.53955,
+        "lon": -81.65172,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.54,
+        "nodeLon": -81.6525,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.53579,
+        "lon": -81.75743,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.53583333,
+        "nodeLon": -81.7575,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.51003,
+        "lon": -81.64552,
+        "openMeteo": 198,
+        "heightfield": 198.02,
+        "nodeLat": 41.51083333,
+        "nodeLon": -81.64583333,
+        "nodeHeightfield": 198.1,
+        "nodeOpenMeteo": 198,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.48494,
+        "lon": -81.7576,
+        "openMeteo": 200,
+        "heightfield": 198.01,
+        "nodeLat": 41.485,
+        "nodeLon": -81.75833333,
+        "nodeHeightfield": 199.44,
+        "nodeOpenMeteo": 200,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.51056,
+        "lon": -81.74039,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.51083333,
+        "nodeLon": -81.74083333,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.51871,
+        "lon": -81.69836,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.51916667,
+        "nodeLon": -81.69916667,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.49781,
+        "lon": -81.72528,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.49833333,
+        "nodeLon": -81.72583333,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.53806,
+        "lon": -81.742,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.53833333,
+        "nodeLon": -81.7425,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.5283,
+        "lon": -81.72974,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.52833333,
+        "nodeLon": -81.73,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.48123,
+        "lon": -81.64261,
+        "openMeteo": 208,
+        "heightfield": 208.11,
+        "nodeLat": 41.48166667,
+        "nodeLon": -81.64333333,
+        "nodeHeightfield": 207.35,
+        "nodeOpenMeteo": 208,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.50268,
+        "lon": -81.64853,
+        "openMeteo": 203,
+        "heightfield": 202.52,
+        "nodeLat": 41.50333333,
+        "nodeLon": -81.64916667,
+        "nodeHeightfield": 202.53,
+        "nodeOpenMeteo": 203,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.51224,
+        "lon": -81.65231,
+        "openMeteo": 195,
+        "heightfield": 195.34,
+        "nodeLat": 41.5125,
+        "nodeLon": -81.6525,
+        "nodeHeightfield": 194.79,
+        "nodeOpenMeteo": 195,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.53884,
+        "lon": -81.66521,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.53916667,
+        "nodeLon": -81.66583333,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.48271,
+        "lon": -81.71827,
+        "openMeteo": 210,
+        "heightfield": 210.56,
+        "nodeLat": 41.48333333,
+        "nodeLon": -81.71833333,
+        "nodeHeightfield": 209.27,
+        "nodeOpenMeteo": 210,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.49113,
+        "lon": -81.6346,
+        "openMeteo": 209,
+        "heightfield": 208.74,
+        "nodeLat": 41.49166667,
+        "nodeLon": -81.635,
+        "nodeHeightfield": 209.19,
+        "nodeOpenMeteo": 209,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.52977,
+        "lon": -81.71635,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.53,
+        "nodeLon": -81.71666667,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.53193,
+        "lon": -81.79167,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.5325,
+        "nodeLon": -81.7925,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.48642,
+        "lon": -81.75257,
+        "openMeteo": 198,
+        "heightfield": 196.8,
+        "nodeLat": 41.48666667,
+        "nodeLon": -81.75333333,
+        "nodeHeightfield": 198.81,
+        "nodeOpenMeteo": 198,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.52269,
+        "lon": -81.75466,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.52333333,
+        "nodeLon": -81.755,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.52071,
+        "lon": -81.70905,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.52083333,
+        "nodeLon": -81.70916667,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.50201,
+        "lon": -81.69292,
+        "openMeteo": 189,
+        "heightfield": 197.82,
+        "nodeLat": 41.5025,
+        "nodeLon": -81.69333333,
+        "nodeHeightfield": 188.38,
+        "nodeOpenMeteo": 189,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.52663,
+        "lon": -81.70963,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.52666667,
+        "nodeLon": -81.71,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.48583,
+        "lon": -81.72387,
+        "openMeteo": 206,
+        "heightfield": 206.26,
+        "nodeLat": 41.48583333,
+        "nodeLon": -81.72416667,
+        "nodeHeightfield": 207.43,
+        "nodeOpenMeteo": 207,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.4997,
+        "lon": -81.7061,
+        "openMeteo": 176,
+        "heightfield": 176.23,
+        "nodeLat": 41.5,
+        "nodeLon": -81.70666667,
+        "nodeHeightfield": 176.24,
+        "nodeOpenMeteo": 176,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.51299,
+        "lon": -81.67152,
+        "openMeteo": 193,
+        "heightfield": 190.89,
+        "nodeLat": 41.51333333,
+        "nodeLon": -81.67166667,
+        "nodeHeightfield": 191.73,
+        "nodeOpenMeteo": 193,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.52047,
+        "lon": -81.75322,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.52083333,
+        "nodeLon": -81.75333333,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.51084,
+        "lon": -81.65574,
+        "openMeteo": 194,
+        "heightfield": 195.83,
+        "nodeLat": 41.51166667,
+        "nodeLon": -81.65583333,
+        "nodeHeightfield": 193.16,
+        "nodeOpenMeteo": 194,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.54153,
+        "lon": -81.72918,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.54166667,
+        "nodeLon": -81.73,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.54148,
+        "lon": -81.68571,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.54166667,
+        "nodeLon": -81.68583333,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.52841,
+        "lon": -81.7647,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.52916667,
+        "nodeLon": -81.765,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.48372,
+        "lon": -81.75215,
+        "openMeteo": 199,
+        "heightfield": 199.95,
+        "nodeLat": 41.48416667,
+        "nodeLon": -81.7525,
+        "nodeHeightfield": 200.11,
+        "nodeOpenMeteo": 199,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.54452,
+        "lon": -81.7511,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.545,
+        "nodeLon": -81.75166667,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.52945,
+        "lon": -81.76445,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.53,
+        "nodeLon": -81.765,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.5388,
+        "lon": -81.75962,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.53916667,
+        "nodeLon": -81.76,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.49663,
+        "lon": -81.79405,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.49666667,
+        "nodeLon": -81.79416667,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.53569,
+        "lon": -81.65424,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.53583333,
+        "nodeLon": -81.655,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.52768,
+        "lon": -81.69919,
+        "openMeteo": 170,
+        "heightfield": 170,
+        "nodeLat": 41.52833333,
+        "nodeLon": -81.7,
+        "nodeHeightfield": 170,
+        "nodeOpenMeteo": 170,
+        "onRouteCorridor": false
+      },
+      {
+        "lat": 41.53024,
+        "lon": -81.64926,
+        "openMeteo": 179,
+        "heightfield": 187.47,
+        "nodeLat": 41.53083333,
+        "nodeLon": -81.65,
+        "nodeHeightfield": 178.75,
+        "nodeOpenMeteo": 179,
+        "onRouteCorridor": false
+      }
+    ]
+  }
+}
