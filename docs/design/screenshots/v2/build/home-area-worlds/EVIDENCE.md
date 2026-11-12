@@ -20,17 +20,20 @@ in the other worlds.
 
 cat-bed's Intel Arrow Lake iGPU (ANGLE gl-egl, Mesa), the stand-in for the
 laptop's Arc: `scripts/world-hud-fps.py`, medium, 1920 × 1080, HUD on, rider
-riding from the route start, 5 s windows. Production build `index-_4UzWQJK.js`
-(token-free), worlds from R2.
+riding from the route start, 5 s windows, two rounds per route (Magadino
+three, interleaved with the Perugia control). Token-free production builds
+from this branch (`index-BS03SpBA.js`; Magadino's re-bake on `index-_4UzWQJK.js`),
+worlds from R2. Uncapped runs add `--disable-gpu-vsync --disable-frame-rate-limit`;
+their worst frames (200–350 ms) are chunk uploads as the rider sets off.
 
 | Route | vsync-capped fps (p95 frame) | uncapped fps |
 | --- | --- | --- |
-| Tiber park (Perugia, control) | 60.0 (16.7 ms), every window | 112–123 |
+| Tiber park (Perugia, control) | 60.0 (16.7 ms), every window | 112–122 |
 | Lake Trasimeno shore | 60.0 (16.7 ms) | 130–148 |
-| Valle Maggia | 60.0 (16.7–16.8 ms) | 109–124 |
-| Bellinzona to Locarno (Magadino) | 60.0 (16.7 ms), 3 rounds; first bundle 57.2–59.6 | 84–90 (first bundle) |
-| Lake Varese shore | 60.0 (16.7 ms) | 104–113 |
-| Menaggio to Gravedona (Lake Como) | 60.0 (16.7–16.8 ms) | 96–104 |
+| Valle Maggia | 60.0 (16.7–16.8 ms) | 116–121 |
+| Bellinzona to Locarno (Magadino) | 60.0 (16.7 ms), 3 rounds; first bundle 57.8–58.6 | 84–87 (first bundle) |
+| Lake Varese shore | 60.0 (16.7 ms) | 105–113 |
+| Menaggio to Gravedona (Lake Como) | 60.0 (16.7–16.8 ms) | 99–104 |
 
 Magadino's first bundle missed 2–5 % of frames (33 ms) at the Bellinzona
 start; hiding buildings, vegetation or roads each brought it to 60, so the
