@@ -81,6 +81,36 @@ In the after frames, the grey slab over the rider at 2520, 2560, 640 and 676 is 
 - **Nuevo Vallarta–Bucerías.** Resorts stand between the road and the beach, so the sea shows only on Bucerías' last kilometre.
 - **Golden hour on the bay and the Pacific.** These coasts face west, so a low sun over the water blooms the left of some frames (Richmond 4000, Bucerías 9450). That is the sun, not a fault.
 
+## Bare ground (card t_e59ae310)
+
+How far each route stands over the bare ground. Route samples every 10 m. The ground is a 30 m box mean of the DTM, shifted by the median GLO-30 − DTM over open, non-woodland samples. Samples within 8 m of a mapped bridge are left out, because there the DTM reads the channel under the deck. Scripts are in `~/.hermes/handoffs/velo/t_e59ae310/` (`usgs_alti_multi.mjs`, `mdt_alti.py`, `bridgeflag.mjs`, `lift_stats.py`).
+
+| World · route | DTM | Before: median / p95 / max (samples over 3 m) | After |
+|---|---|---|---|
+| Santa Monica · Strand | 3DEP 1/3″ | +0.03 / +2.42 / **+4.94 m** at 5.83 km (66) | +0.00 / +1.11 / **+2.72 m** (0) |
+| Santa Monica · Will Rogers–Venice | 3DEP 1/3″ | −0.12 / +1.13 / +1.56 m (0) | +0.15 / +0.65 / +1.01 m (0) |
+| Berkeley · Bay Trail | 3DEP 1/3″ | −0.06 / +1.12 / +2.64 m at 3.15 km (0) | not re-baked |
+| Berkeley · Richmond Marina Bay | 3DEP 1/3″ | −0.81 / +0.40 / +0.91 m (0) | not re-baked |
+| Puerto Vallarta · Malecón | INEGI MDT 5 m | −0.33 / +3.85 / +4.84 m at 2.43 km (64) | not re-baked: not canopy (below) |
+| Puerto Vallarta · Nuevo Vallarta–Bucerías | INEGI MDT 5 m | +0.30 / +1.96 / +5.24 m at 0.01 km (7) | not re-baked: not canopy |
+
+**Santa Monica** was re-baked with `bareGround: usgs-3dep-13`, using tiles n34w119 @ 20250826 and n35w119 @ 20250916. It is published as `worlds/santa-monica-venice/02115cfa8a3445e4/` (publish verified all 8 files). The 4.9 m was the Strand round Marina del Rey and through Venice, where GLO-30 reads roofs and street trees 2–4 m above the ground (DSM − DTM +3.6 m at the worst spot).
+- The snap windows went 400/1600 → 200/800. Grade Δ is 0.96 / 0.55 pp. At 150/600 the Strand reads 1.225 pp.
+- P1.3 v2 registered RMS is 0.55 → 0.65 m ≤ 6 m, PASS. All of the rise comes from the 4 points within 450 m of a route (1.47 → 1.90 m). The 46 beyond read 0.38 m both times (`gatesplit.mjs`).
+- Brotli is 3.799 → 3.797 MB.
+- From `git archive`, the default bake and an `--out` bake are identical in all 8 files.
+- The DTM datum shift is +0.44 m.
+- The bake report's own figure (bridges counted) is Strand max 3.55 m at 10.02 km. That spot is the South Bay Bike Path bridge over Ballona Creek (101 m, OSM bridge flag). The world has no `bridges`.
+- Shots at the worst spot (5.83 km) and at 5.47 km, before and after, at 1280×648@2 and 390×844: `../bare-ground/santa-monica-1280-before-after.jpg` and `-390-…`. The path stays flush with the ground in both; nothing floats, buries or tears.
+
+**Berkeley** tops out at 2.6 m (Bay Trail 3.1–3.3 km, where GLO-30 sits on the ground and the route profile is low), so it keeps GLO-30.
+
+**Puerto Vallarta: no source wired.**
+- **CEM 3.0** (15 m) is interpolated from 1:50 000 contours. It has whole-metre heights and RMSE 4.8 m. On open route samples it sits 4.1 m under GLO-30 with a 2.5 m median absolute deviation, so it is not a bare-earth model at route scale.
+- **CEM 4.0** is the ALOS PALSAR RTC terrain-correction DEM, which ASF built from SRTM resampled (NED in the US).
+- **INEGI's 1:10 000 MDT tipo terreno** (5 m, from satellite and airborne sensors) is bare earth. INEGI's *Términos de Libre Uso* allow commercial use with the credit "Fuente: INEGI, <producto>". Its 8 sheets along the routes date from 2014 to 2026. On it, every stretch over 3 m has GLO-30 within −2.8…+1.4 m of the ground. Instead, the route stands 2.5–7.4 m above its own GLO-90 profile: the Malecón at 1.22–1.37 km and 2.13–2.54 km, and Nuevo Vallarta–Bucerías in its first 50 m.
+- That lift comes from the route height, not the canopy, and a bare-ground DTM would not lower it. Follow-up card: see the PR.
+
 ## fps (the test host's Intel iGPU, ANGLE gl-egl, HUD on, medium, vsync)
 
 Other fps runs share the test host's iGPU, and other VMs on the host swing its CPU: Perugia on main reads 20 fps at load 8. Every number here comes from a run where no other fps or shot driver was alive. The runs are interleaved with main (ce60b13, `index-C7f2mmhH.js`) on the same box. Runs from load spikes (1-minute load 6–10, where main dropped too) are left out. Each figure is the long ride from the route start: 30 s, or 60 s where noted.

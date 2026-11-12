@@ -32,9 +32,9 @@
     "rows": 1708,
     "cellSize": 12,
     "encoding": "u16-delta",
-    "heightOffset": -3,
+    "heightOffset": -1,
     "heightScale": 0.015625,
-    "minHeight": -1.1875,
+    "minHeight": 0,
     "maxHeight": 98.765625
   },
   "layers": {
@@ -48,11 +48,11 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 967459,
-      "sha256": "30bbb878cd5e8239912ed13f8612931b60427ef853978f4b7cd017f81ef03da2",
+      "bytes": 964920,
+      "sha256": "1e334c96ad0dfb6baf8e8d72c5032213124480e5c6f187050f902f2d1c3098b3",
       "compression": "gzip",
       "contentBytes": 4351984,
-      "contentSha256": "263fbbf1ce6c5dcacf2b66df7c7ad60d7d8b1eee4941d1ccdb6de05a589bb1cc"
+      "contentSha256": "58e997f22bac1c43ee2860e3b9d91c400766f8dd8416352084171f5398a103c0"
     },
     {
       "path": "roads.json.gz",
@@ -96,11 +96,11 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 50682,
-      "sha256": "18d6cbecbda66d09f44319e8aa0348cb8c2dc3a81cf41cc16d5ec065c822333b",
+      "bytes": 50787,
+      "sha256": "aed7d2952a9fa31cfeb0d339113e96c87463b4fda2d40d903347858844f35340",
       "compression": "gzip",
-      "contentBytes": 122927,
-      "contentSha256": "b60d4a648ff59f5603c7d58357c88e0840e3c01b2295894b8f509af7ffac6d7d"
+      "contentBytes": 123320,
+      "contentSha256": "a626fc66346457877c92b8d2e6a25e2cb6fe565ed1d581decef15c806ce8e9cb"
     }
   ],
   "moods": [
@@ -155,7 +155,7 @@
       "x": 6364.9,
       "y": -9339.4,
       "osm": "node/150978158",
-      "h": 16.64
+      "h": 15.46
     },
     {
       "name": "Sawtelle",
@@ -182,7 +182,7 @@
       "x": 167.3,
       "y": 4012.9,
       "osm": "node/358828800",
-      "h": 4.67
+      "h": 3.94
     },
     {
       "name": "Santa Monica Bay",
@@ -209,7 +209,7 @@
       "x": -639.8,
       "y": 4259.5,
       "osm": "node/1595724846",
-      "h": 5.23
+      "h": 4.83
     },
     {
       "name": "Santa Monica",
@@ -236,7 +236,7 @@
       "x": 5325.4,
       "y": -6733.9,
       "osm": "node/1837324451",
-      "h": 37.5
+      "h": 37.14
     },
     {
       "name": "Airplane Landing View Point",
@@ -254,7 +254,7 @@
       "x": -1017.1,
       "y": 5006.5,
       "osm": "node/5695538351",
-      "h": 5.93
+      "h": 4.99
     },
     {
       "name": "On LA & Malibu",
@@ -263,7 +263,7 @@
       "x": -5962.7,
       "y": 9741.3,
       "osm": "node/5739986221",
-      "h": 83
+      "h": 85.66
     },
     {
       "name": "Palms",
@@ -317,7 +317,7 @@
       "x": -2761.2,
       "y": 6758.2,
       "osm": "way/22728853",
-      "h": 4.78
+      "h": 2.92
     },
     {
       "name": "Venice Fishing Pier",
@@ -335,7 +335,7 @@
       "x": -2599.8,
       "y": 6887,
       "osm": "way/336889636",
-      "h": 9.88
+      "h": 6.62
     },
     {
       "name": "Saint Augustine Roman Catholic Church",
@@ -371,14 +371,14 @@
       "name": "Santa Monica to Hermosa Beach",
       "lengthM": 22888.25,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.114
+      "gradeMeanAbsDiffPct": 0.171
     },
     {
       "id": "scenic-will-rogers-venice",
       "name": "Will Rogers to Venice",
       "lengthM": 9786.68,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.081
+      "gradeMeanAbsDiffPct": 0.105
     }
   ],
   "stats": {
@@ -421,6 +421,13 @@
       "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
     },
     {
+      "id": "usgs-3dep",
+      "name": "USGS 3D Elevation Program (3DEP) 1/3 arc-second DEM, bare earth, along the routes",
+      "licence": "Public domain (U.S. Geological Survey); credit requested",
+      "url": "https://www.usgs.gov/3d-elevation-program",
+      "attribution": "U.S. Geological Survey, 3D Elevation Program 1/3 arc-second Digital Elevation Model"
+    },
+    {
       "id": "copernicus-glo90",
       "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
       "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
@@ -452,9 +459,10 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "3edab6b197fb4435dbb01bc3a65224ec46d06afd746ff066d513fbfc6ff7e24f",
+    "recipeSha256": "c34d846c1c59e1518c4075907ab9e7f33bceefe88069df118c23630febb2347c",
     "osmDate": "2026-11-01T00:00:00Z",
     "demSource": "copernicus-dem-30m/glo30-cog",
-    "demTiles": 2
+    "demTiles": 2,
+    "bareGround": "usgs-3dep-13"
   }
 }

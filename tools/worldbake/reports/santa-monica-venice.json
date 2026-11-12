@@ -4,17 +4,18 @@
   "timingsS": {
     "dem": 0.6,
     "osm": 0.7,
-    "heightfield+routes": 0.1,
-    "vectors": 7.4,
-    "write": 13.3,
+    "bareGround": 0.5,
+    "heightfield+routes": 4.5,
+    "vectors": 2.8,
+    "write": 12.9,
     "validate": 0,
-    "total": 22.3
+    "total": 22
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 967459,
+      "stored": 964920,
       "content": 4351984,
-      "brotli": 772594
+      "brotli": 770860
     },
     "roads.json.gz": {
       "stored": 995800,
@@ -42,30 +43,30 @@
       "brotli": 122972
     },
     "routes.json.gz": {
-      "stored": 50682,
-      "content": 122927,
-      "brotli": 33350
+      "stored": 50787,
+      "content": 123320,
+      "brotli": 33399
     },
     "manifest.json": {
-      "stored": 12402,
-      "content": 12402,
-      "brotli": 3154
+      "stored": 12813,
+      "content": 12813,
+      "brotli": 3297
     }
   },
   "totals": {
-    "stored": 4825175,
-    "content": 12393343,
-    "brotli": 3798518
+    "stored": 4823152,
+    "content": 12394147,
+    "brotli": 3796976
   },
   "hashes": {
-    "height.bin.gz": "30bbb878cd5e8239912ed13f8612931b60427ef853978f4b7cd017f81ef03da2",
+    "height.bin.gz": "1e334c96ad0dfb6baf8e8d72c5032213124480e5c6f187050f902f2d1c3098b3",
     "roads.json.gz": "dba3ddf2c11a5880d4c4e1291affc9d553d050130348b325c377e3639849a653",
     "water.json.gz": "e7344c039c505b5a43742e542e7e477ac2e5d3ffdae7108d9d1581407408ff16",
     "landcover.json.gz": "48665c2d6cf7b12b4f9b315d897e0351fcf46d8484010b635424022933aef13b",
     "buildings.bin.gz": "c5569570939a96c2dc3dd61d63ee490c00f396ab4c3103046d9e54534f1b800f",
     "vegetation.bin.gz": "f42dbb894e92478fd050a6186d87fa67f2495257cb6fc7f0aca8b45f64d54603",
-    "routes.json.gz": "18d6cbecbda66d09f44319e8aa0348cb8c2dc3a81cf41cc16d5ec065c822333b",
-    "manifest.json": "155c646e205b51fd7a2ef38005631c2f0c2ffdb507d424c62c89e2e760e3f08b"
+    "routes.json.gz": "aed7d2952a9fa31cfeb0d339113e96c87463b4fda2d40d903347858844f35340",
+    "manifest.json": "02115cfa8a3445e47d9e8c9cc2aa60b9fee4ea8c18e99cfec6853ca30689d647"
   },
   "routes": [
     {
@@ -73,12 +74,12 @@
       "name": "Santa Monica to Hermosa Beach",
       "lengthM": 22888.25,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.114,
+      "gradeMeanAbsDiffPct": 0.171,
       "report": {
         "samples": 2290,
-        "gradeMaxAbsDiffPct": 0.587,
-        "rawDemGradeMeanAbsDiffPct": 0.642,
-        "maxRenderMinusProfileM": 5.81
+        "gradeMaxAbsDiffPct": 0.96,
+        "rawDemGradeMeanAbsDiffPct": 0.422,
+        "maxRenderMinusProfileM": 7.5
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -94,12 +95,12 @@
       "name": "Will Rogers to Venice",
       "lengthM": 9786.68,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.081,
+      "gradeMeanAbsDiffPct": 0.105,
       "report": {
         "samples": 980,
-        "gradeMaxAbsDiffPct": 0.561,
-        "rawDemGradeMeanAbsDiffPct": 0.573,
-        "maxRenderMinusProfileM": 3.16
+        "gradeMaxAbsDiffPct": 0.549,
+        "rawDemGradeMeanAbsDiffPct": 0.236,
+        "maxRenderMinusProfileM": 4.32
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -193,25 +194,113 @@
     "rows": 1708,
     "cellSize": 12,
     "encoding": "u16-delta",
-    "heightOffset": -3,
+    "heightOffset": -1,
     "heightScale": 0.015625,
-    "minHeight": -1.1875,
+    "minHeight": 0,
     "maxHeight": 98.765625,
     "carvedNodes": 23241,
-    "maxCutM": 8.26
+    "maxCutM": 10.36
   },
   "coast": {
     "seaPolygons": 1,
     "islands": 1,
     "seaNodes": 1363670,
-    "shoreNodesLowered": 2664,
-    "beachNodesSloped": 13631,
-    "beachMaxCutM": 6.49,
+    "shoreNodesLowered": 2879,
+    "beachNodesSloped": 15571,
+    "beachMaxCutM": 8.13,
     "demUnderSea": {
-      "min": -0.01,
-      "max": 4.09
+      "min": -0.02,
+      "max": 4.83
     },
     "beachAreas": 48
+  },
+  "bareGround": {
+    "source": "usgs-3dep-13",
+    "tiles": [
+      "n34w119@20250826",
+      "n35w119@20250916"
+    ],
+    "corridorM": 150,
+    "blendM": 300,
+    "biasM": 0.44,
+    "openNodes": 126946,
+    "nodes": 178295,
+    "nodata": 0,
+    "maxLowerM": 20.51,
+    "maxLowerAt": [
+      -4068,
+      8512
+    ],
+    "meanLowerM": 1.34,
+    "maxRaiseM": 13,
+    "maxRaiseAt": [
+      -5892,
+      9688
+    ],
+    "routes": [
+      {
+        "id": "scenic-santa-monica-strand",
+        "samples": 2290,
+        "medianM": -0.24,
+        "p95M": 0.72,
+        "maxM": 3.55,
+        "maxAtS": 10020,
+        "minM": -3.57,
+        "over3M": 8,
+        "woodland": {
+          "samples": 0,
+          "p95M": null,
+          "maxM": null
+        }
+      },
+      {
+        "id": "scenic-will-rogers-venice",
+        "samples": 980,
+        "medianM": -0.05,
+        "p95M": 0.57,
+        "maxM": 1.42,
+        "maxAtS": 1790,
+        "minM": -2.46,
+        "over3M": 0,
+        "woodland": {
+          "samples": 0,
+          "p95M": null,
+          "maxM": null
+        }
+      }
+    ],
+    "surface": [
+      {
+        "id": "scenic-santa-monica-strand",
+        "samples": 2290,
+        "medianM": -0.1,
+        "p95M": 2.56,
+        "maxM": 6.69,
+        "maxAtS": 6600,
+        "minM": -4.65,
+        "over3M": 78,
+        "woodland": {
+          "samples": 0,
+          "p95M": null,
+          "maxM": null
+        }
+      },
+      {
+        "id": "scenic-will-rogers-venice",
+        "samples": 980,
+        "medianM": -0.26,
+        "p95M": 1.89,
+        "maxM": 4.15,
+        "maxAtS": 4920,
+        "minM": -2.82,
+        "over3M": 9,
+        "woodland": {
+          "samples": 0,
+          "p95M": null,
+          "maxM": null
+        }
+      }
+    ]
   },
   "buildingsDropped": {
     "route": 20,
@@ -252,19 +341,19 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.0076,
+    "steep_fraction": 0.0075,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
     "bound_m": 6,
-    "registered_rms_m": 0.55,
-    "point_rms_m": 0.8,
+    "registered_rms_m": 0.65,
+    "point_rms_m": 0.87,
     "max_abs_registered_err_m": 2.79,
     "pass": true,
     "diagnostics": {
       "note": "not gating (blueprint §P1.3.4)",
-      "registered_mean_bias_m": -0.13,
-      "point_mean_bias_m": -0.06,
+      "registered_mean_bias_m": -0.18,
+      "point_mean_bias_m": -0.11,
       "point_max_abs_err_m": 3.35,
       "node_answer_mismatches": 0
     },
@@ -372,10 +461,10 @@
         "lat": 33.99425,
         "lon": -118.47828,
         "openMeteo": 13,
-        "heightfield": 13.07,
+        "heightfield": 10.77,
         "nodeLat": 33.995,
         "nodeLon": -118.47833333,
-        "nodeHeightfield": 12.88,
+        "nodeHeightfield": 10.65,
         "nodeOpenMeteo": 13,
         "onRouteCorridor": false
       },
@@ -680,10 +769,10 @@
         "lat": 34.01046,
         "lon": -118.49848,
         "openMeteo": 5,
-        "heightfield": 4.34,
+        "heightfield": 4.07,
         "nodeLat": 34.01083333,
         "nodeLon": -118.49916667,
-        "nodeHeightfield": 4.09,
+        "nodeHeightfield": 3.97,
         "nodeOpenMeteo": 5,
         "onRouteCorridor": true
       },
@@ -801,7 +890,7 @@
         "lat": 33.96412,
         "lon": -118.45469,
         "openMeteo": 0,
-        "heightfield": 0,
+        "heightfield": 0.03,
         "nodeLat": 33.96416667,
         "nodeLon": -118.455,
         "nodeHeightfield": 0,
