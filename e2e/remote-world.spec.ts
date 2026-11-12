@@ -72,8 +72,10 @@ async function rideWorld(page: Page, w: World) {
     await featured.click();
   } else {
     const card = section.locator(`[data-scenic-route="${w.route}"]`);
-    // A world ride: the tile carries no "map view" badge.
-    await expect(card).toHaveAttribute('aria-label', new RegExp(`^Ride ${w.name} in ${w.place}, (?!.*map view)`));
+    // A world ride: the tile carries no "classic view" tag. Wishlist tiles lead
+    // with their place; a household section is the place already.
+    const lead = w.section === 'wishlist' ? `${w.name} in ${w.place}` : w.name;
+    await expect(card).toHaveAttribute('aria-label', new RegExp(`^Ride ${lead}, (?!.*classic view)`));
     await card.click();
   }
   await page.waitForURL('**/ride**');
