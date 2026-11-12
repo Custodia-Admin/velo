@@ -2,9 +2,10 @@
 
 Branch `velo/gpu-frames-in-flight-t_946833f0`, stacked on PR #105
 (`velo/finish-pause-render-t_c4842aa7`, head 0cae127). Base for every
-comparison below is 0cae127's production build (`index-BuwB_xtQ.js`); the
-branch build is `index-CU_-sr_3.js` (same code as the commit, token-free:
-`VITE_CESIUM_ION_TOKEN=` empty).
+comparison below is 0cae127's production build (`index-BuwB_xtQ.js`). Branch
+builds: `index-CU_-sr_3.js` (c061b67, the first gate) and `index-Dwv0h2Ya.js`
+(5ddd194, the head: one frame at a time once a frame is over the budget). All
+are token-free (`VITE_CESIUM_ION_TOKEN=` empty).
 
 ## The problem
 
@@ -26,11 +27,17 @@ thread blocked in `ImplementationBase::WaitForCmd`, the GPU process in
   drawn.
 - Each drawn frame is fenced (`fenceSync`). The fences are polled without
   blocking (`clientWaitSync(fence, 0, 0)`) at the next frame.
-- A frame is held back (not drawn at all) while 2 or more frames are
-  unfinished AND they add up to 3 s or more of GPU work. The GPU's time per
-  frame comes from the fences (smoothed). Until a frame has been timed, 2
-  frames is the limit. The scene still updates every rAF, and the next drawn
-  frame shows the latest state.
+- A frame is held back (not drawn at all) while the unfinished frames add up
+  to 3 s or more of GPU work. The GPU's time per frame comes from the fences
+  (smoothed). Until a frame has been timed, 2 frames is the limit. The scene
+  still updates every rAF, and the next drawn frame shows the latest state.
+- A GPU slower than 3 s per frame therefore gets one frame at a time. In
+  c061b67, 2 frames were always allowed. CI's runner took 6.6 s per frame with
+  a second test running, and the way Home waited 13.4 s (run 43130528642).
+  5ddd194 dropped that floor. The rule is unchanged wherever 2 or more frames
+  are in flight and a frame is under 3 s, which covers every real GPU and
+  cat-bed's SwiftShader. So the real-GPU numbers below, measured on c061b67,
+  hold for the head.
 - The meter (`?perf=1`, `__veloPerf`) and `ReadySignal` count drawn frames.
   `__veloRideDebug().frameGate` shows `{drawn, held, inFlight, gpuFrameMs}`.
 
@@ -59,12 +66,13 @@ SwiftShader, pinned to 4 cores (`taskset -c 8-11`), nothing else running. A
 10 s ride at medium, 1920×1080, 3 s on the finish page, then Home (click to
 `#home-title` visible). Base and branch runs were interleaved, 3 each
 (`backlog2.sh` / `trace_home2.py`). Raw data:
-`frame-gate/finish-home-headless-shell-world.jsonl`.
+`frame-gate/finish-home-headless-shell-world.jsonl` (c061b67) and `-5ddd194.jsonl`. CI log: `frame-gate/ci-43133133507-smoke-ride.log`.
 
 | World (Tiber park) | base 0cae127 | branch |
 |---|---|---|
-| Finish → Home | 35.2 / 35.6 / 38.8 s | **0.24 / 0.55 / 0.55 s** |
-| GPU process in `OnDestroyCommandBuffer` (trace) | 35.2–38.8 s | 0.21–0.52 s |
+| Finish → Home, c061b67 runs | 35.2 / 35.6 / 38.8 s | **0.24 / 0.55 / 0.55 s** |
+| Finish → Home, 5ddd194 runs (no trace) | 35.7 / 39.0 / 36.0 s | **0.41 / 0.71 / 0.04 s** |
+| GPU process in `OnDestroyCommandBuffer` (trace, c061b67 runs) | 35.2–38.8 s | 0.21–0.52 s |
 | rAF during the ride | 0.8–1.0 /s | 60 /s |
 | Ride clock advanced in 10 s | 0.58–0.85 s | 10.0 s |
 | Frames drawn during the ride | 0.8–1.0 /s | 0.6 /s (2–3 in flight, `gpuFrameMs` 1.4–1.5 s) |
@@ -73,18 +81,37 @@ On base, the GPU queue also blocked the main thread during the ride: rAF fell
 to ~1/s, and the ride clock (which runs on rAF) nearly stopped. With the gate
 the ride runs in real time and the screen updates as fast as SwiftShader
 draws. Straight from the ride to Home (0 s on the finish page) the branch took
-~3 s (2 runs, before the final cleanup; the gate logic is the same).
+~3 s (2 runs on an experiment build with c061b67's gate logic).
 
 Photoreal (Cesium, Bellinzona–Locarno, no token) needs no gate. Finish → Home
 was 33–36 ms on both builds (`frame-gate/finish-home-headless-shell-photoreal.jsonl`).
 Cesium's frames block the main thread on SwiftShader (rAF 1.5–2.2/s on both
 builds), so nothing piles up behind them.
 
-## e2e at medium, CI's browser
+## e2e at medium in CI (GitHub runner, 4 vCPU, 2 workers)
+
+| Run | smoke-ride job e2e | World Finish → Home (finish-cover, logged) | Gate at the second finish |
+|---|---|---|---|
+| main dacca9e (specs on low) | 14 passed (8.3 min) | n/a | n/a |
+| #105 0cae127 (specs on low) | 14 passed (11.0 min) | n/a (not timed on low) | n/a |
+| 43130528642, c061b67 (medium) | 12 passed, 1 flaky, 1 failed (8.3 min) | 13,432 ms | 2 in flight, 6.6 s per frame |
+| **43133133507, 5ddd194 (medium)** | **14 passed, none flaky (4.1 min)** | **1,773 ms** | 1 in flight, 5.6 s per frame |
+
+In c061b67's run:
+- **smoke-ride failed once, then passed on retry.** It read the meter's frame
+  count once, right after the ride's distance moved. With the gate, the ride
+  runs at the rAF rate while the GPU catches up, so no drawn-frame interval had
+  landed yet. The spec now polls for it.
+- **viewport-1280's Home test failed twice.** Home's lazy route sections didn't
+  mount within 30 s, and the final screenshot shows them in place. It passed on
+  5ddd194 in CI, and on cat-bed alongside smoke-ride and finish-cover
+  (2 workers, 4 cores) on the gate build.
+
+### The same specs on cat-bed
 
 The `tv-remote.spec.ts` + `finish-cover.spec.ts` specs ran at medium on cat-bed:
 bundled headless shell, SwiftShader, 4 cores, `--workers=2` (as a 4-vCPU CI
-runner). Log: `frame-gate/e2e-medium-headless-shell.log`.
+runner). Log: `frame-gate/e2e-medium-headless-shell.log`. Branch build: c061b67.
 
 | | base 0cae127 | branch |
 |---|---|---|
@@ -95,9 +122,14 @@ runner). Log: `frame-gate/e2e-medium-headless-shell.log`.
 
 Base also passes here, on 4 dedicated cores, but only by waiting 32 s for Home.
 CI's shared runners turned that wait into the 15 s+ failures of run
-43026470671.
+43026470671. With `viewport-1280` + `smoke-ride` + `finish-cover` (2 workers,
+4 cores), the branch passed 7/7 in 1.0 min (Home 205 ms) and base passed 7/7 in
+2.4 min (Home 44.4 s).
 
 ## Real GPU: frame rate unchanged
+
+Measured on c061b67. The head's rule is the same whenever a frame takes
+under 3 s of GPU time, so it holds for 5ddd194.
 
 ### cat-bed Intel iGPU (Arrow Lake, ANGLE gl-egl), 3 runs each
 
@@ -120,17 +152,21 @@ including a SwiftShader GPU process at 400 % CPU. Base itself ranged from 5 to
 the branch held 0 frames in all 18 windows, even under that load. With vsync
 off, 4 of 18 windows held frames. In those windows the GPU process was over
 3 s behind, and drawn fps stayed within base's range in the same pass
-(vsync off: branch 5.3–33.2 fps, base 7.7–34.3 fps). The PR records a rerun on an idle laptop.
+(vsync off: branch 5.3–33.2 fps, base 7.7–34.3 fps). The laptop stayed at
+load 12–24 from other agents' test runs for the rest of the session, so there
+is no idle rerun yet. A rerun on an idle laptop goes on the PR when there is
+one.
 
 ## Tests
 
-- `frameGate.test.ts` (15): the gate against a simulated in-order GPU, with
+- `frameGate.test.ts` (16): the gate against a simulated in-order GPU, with
   fences seen late. Cases:
   - A fast GPU is never held.
   - Fences 150–900 ms late at 60 fps are never held; a two-frame count loses
     600+ frames.
   - A GPU-bound real GPU keeps the GPU busy.
   - SwiftShader-like 2 s frames are held to 2 in flight.
+  - CI-like 6.6 s frames get 1 at a time once timed, and the GPU stays busy.
   - A mid-speed GPU stays within the budget.
   - A pause doesn't poison the pace.
   - A lost context frees everything.

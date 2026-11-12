@@ -1,0 +1,18 @@
+Running 14 tests using 2 workers
+[finish-cover] world: frame gate {"drawn":7,"held":764,"inFlight":1,"gpuFrameMs":5639}
+[finish-cover] world: Finish → Home 1773 ms
+  ✓   1 [chromium] › e2e/finish-cover.spec.ts:91:3 › the finish screen at 1920×1080 › the world (three.js) draws nothing behind the finish page and draws again for Ride again (46.3s)
+  ✓   2 [chromium] › e2e/context-loss.spec.ts:141:1 › a lost WebGL context: the chip says so, the ride never stops, and the world draws again (restore, then tap) (53.2s)
+  ✓   3 [chromium] › e2e/finish-cover.spec.ts:127:3 › the finish screen at 1920×1080 › the photoreal view (Cesium) draws nothing behind the finish page and draws again for Ride again (29.9s)
+  ✓   5 [chromium] › e2e/remote-world.spec.ts:60:1 › the Chengdu world downloads once (≤ 8 MB) and the next ride starts offline (54.2s)
+  ✓   4 [chromium] › e2e/context-loss.spec.ts:283:1 › the photoreal view after a lost WebGL context: the chip, the ride carries on, a new viewer draws (restore, then tap; then a frame that throws, tap; then a preRender listener that throws, tap) (1.8m)
+  ✓   6 [chromium] › e2e/smoke-ride.spec.ts:64:1 › token-free smoke ride: Home → Perugia route → riding in the world renderer, no cesium.com traffic (34.1s)
+  ✓   7 [chromium] › e2e/tv-remote.spec.ts:43:1 › the TV layout turns on by itself on a TV-sized screen with no fine pointer, and from Settings (12.4s)
+  ✓   9 [chromium] › e2e/tv-remote.spec.ts:98:1 › Devices: Escape closes the pairing guide and stays on Devices; a second Escape goes Home (1.6s)
+  ✓   8 [chromium] › e2e/smoke-ride.spec.ts:138:1 › a hometown route rides the Lugano world (P2.2), no cesium.com traffic (17.9s)
+  ✓  10 [chromium] › e2e/tv-remote.spec.ts:116:3 › keys only at 1920×1080 › Home → ride → details → pause → finish → Home with the arrow keys, Enter and Escape (17.4s)
+  ✓  12 [chromium] › e2e/tv-remote.spec.ts:179:3 › keys only at 1920×1080 › the ride HUD keeps inside the TV overscan frame (5 % of each edge) (14.9s)
+  ✓  11 [chromium] › e2e/smoke-ride.spec.ts:165:1 › a route outside every baked world rides photoreal (OSM fallback with no token) (27.6s)
+  ✓  13 [chromium] › e2e/viewport-1280.spec.ts:96:1 › 1280×648: Home, Settings and Devices fit, key controls in view (25.6s)
+  ✓  14 [chromium] › e2e/viewport-1280.spec.ts:137:1 › 1280×648: the ride (collapsed and open) and the finish screen fit with no page scroll (9.5s)
+  14 passed (4.1m)
