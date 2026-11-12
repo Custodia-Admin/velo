@@ -24,6 +24,7 @@
   "host": "remote",
   "routeCredits": true,
   "coast": true,
+  "bridges": true,
   "snap": {
     "stepM": 10,
     "offsetMedianM": 400,
