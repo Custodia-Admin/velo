@@ -212,7 +212,16 @@ natively, without Node's web-stream wrapper.
     piece along the route, reaching a metre into the drawn roads at either end
     like any mapped junction and never running alongside one. It takes the
     class and surface of the road it leaves (else an unpaved `path`).
-    Renderers draw these under the mapped roads.
+    A route step left to a join bends no road. A join is narrowed (to no
+    less than 1 m) until it lies over no drawn road that neither of its ends
+    lies in, so a join through a verge between two roads stays off both.
+    Renderers draw these under the mapped roads;
+  - a junction the bends still left open (roads in a row, each bent its own
+    way, so a corner of one road's flat end pokes out of the road it met) is
+    closed by moving that end along its own line, or onto the other road's
+    current end, by the least that puts it back inside, at most 1 m and 15°,
+    keeping the paint on the roads and opening no other end. The report
+    lists the moved ends under `routeFit.endsClosed`.
 
   Road ends count as drawn up to their last point (flat ends, as the renderer
   draws them), not as round caps. The guide is checked every 0.1 m along the
@@ -221,7 +230,8 @@ natively, without Node's web-stream wrapper.
   on drawn roads, and with its whole guide on them; the bake report has the
   numbers under `routes[].roadCoverage` (`easedM` bent, `joinedM` added) and
   `routeFit`: `roadsBent`, `maxShiftM` (the largest final shift, the
-  Hausdorff distance between a road's mapped and shipped line), `joins`, and
+  Hausdorff distance between a road's mapped and shipped line, measured on
+  the shipped roads after the bridges step adds its deck vertices), `joins`, and
   `bent[]` with each moved road's index, shift and mapped polyline (dm,
   `"x,y x,y …"`). `src/lib/world/routeFit.test.ts` compares those mapped
   lines with the bundle: no moved road may newly lie over another drawn road

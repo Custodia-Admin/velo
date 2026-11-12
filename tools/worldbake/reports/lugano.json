@@ -2,14 +2,14 @@
   "world": "lugano",
   "bakedWith": "node v26.12.1",
   "timingsS": {
-    "dem": 0.9,
-    "osm": 0.9,
-    "bareGround": 0.8,
-    "heightfield+routes": 4.3,
-    "vectors": 46.5,
-    "write": 26.9,
+    "dem": 0.8,
+    "osm": 0.7,
+    "bareGround": 0.6,
+    "heightfield+routes": 4.1,
+    "vectors": 40.5,
+    "write": 22.5,
     "validate": 0.1,
-    "total": 80.4
+    "total": 69.3
   },
   "sizes": {
     "height.bin.gz": {
@@ -18,9 +18,9 @@
       "brotli": 2541115
     },
     "roads.json.gz": {
-      "stored": 1943671,
-      "content": 4996323,
-      "brotli": 1244991
+      "stored": 1943666,
+      "content": 4996295,
+      "brotli": 1245132
     },
     "water.json.gz": {
       "stored": 285596,
@@ -50,23 +50,23 @@
     "manifest.json": {
       "stored": 136483,
       "content": 136483,
-      "brotli": 19091
+      "brotli": 19131
     }
   },
   "totals": {
-    "stored": 9729311,
-    "content": 19261275,
-    "brotli": 7412103
+    "stored": 9729306,
+    "content": 19261247,
+    "brotli": 7412284
   },
   "hashes": {
     "height.bin.gz": "58ce9e10d9c65ade7ced8b92a69885cb58428a8d233d6a2df2b4d0a431ece8f0",
-    "roads.json.gz": "5c020878893320b69dc8b42fee70275e4cb71b925a830940c130cb086dd3fe17",
+    "roads.json.gz": "a04ac0f92bee87a8da31ebdd5e004276539568abd502a844c99e265b595d3418",
     "water.json.gz": "10108ff003ff77d8fc3d2311bd3e815e88fb20841d85a862f86bf9c444ce79fd",
     "landcover.json.gz": "70f13956230e1b1d15f5fa186cf24967c20c1d0edb0b1f6dc170a8613af27919",
     "buildings.bin.gz": "472f56394d46f8801ad9eb607d8dc4508a364a6f8ce0ac6b396d403f71adc59a",
     "vegetation.bin.gz": "4560365d3b98777974ec171f8c84def53746e6f7113419f2fb3f68b879a427c0",
     "routes.json.gz": "b09edd62214cda7609c1915a259e6a628b38ceaeb1a19bf97f7c5aed32355897",
-    "manifest.json": "06dbaf324a7072456dda71c2479c111cbb494531c23baa17417435a65e6847fa"
+    "manifest.json": "1dc230335696ec8bac4ac942a83d5e1d1bff5432a9957e6392450a244178ff6c"
   },
   "routes": [
     {
@@ -207,7 +207,7 @@
       },
       {
         "road": 40009,
-        "shiftM": 0.59,
+        "shiftM": 0.45,
         "mapped": "-48881,111988 -48876,112015 -48847,112054 -48809,112072 -48757,112079"
       },
       {

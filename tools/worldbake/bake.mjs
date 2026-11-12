@@ -55,7 +55,7 @@ import { BARE_GROUND_CREDITS, bareGroundCreditLine, bareGroundOptions, bareGroun
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, routeWaterDrops, waterOnBeach, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, embankmentOptions, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid, spanStructuresOption, structureLookup } from './snapRoutes.mjs';
 import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, growDeckEnds, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork, uncarvedAbutments } from './bridges.mjs';
-import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
+import { easeRoadsOntoRoutes, remeasureShifts, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
 import { P13_SAMPLE_COUNT, validationInputs } from './p13Criterion.mjs';
 import { syncDestinations } from './syncDestinations.mjs';
@@ -376,6 +376,7 @@ export async function bake(opts) {
     log(`route ${id}: ${c.mappedPct}% within 1 m of mapped roads; guide on drawn roads ${c.paintPctBefore}% → ${c.paintPct}% (${c.easedM} m eased, ${c.joinedM} m joined${c.tunnelM ? `, ${c.tunnelM} m in tunnels` : ''})`);
   }
   log(`route fit: ${fit.roadsEased} roads bent (up to ${fit.maxShiftM} m), ${fit.joins} join pieces`);
+  if (fit.endsClosed.length) log(`route fit: ${fit.endsClosed.length} road end${fit.endsClosed.length === 1 ? '' : 's'} moved to close a junction the bends opened: ${fit.endsClosed.map(([r, end, m]) => `road ${r} end ${end} by ${m} m`).join(', ')}`);
 
   // Bridges (recipe `bridges`): which decks each route rides. The carve
   // leaves the middle of a ridden deck alone (bridges.mjs).
@@ -592,6 +593,10 @@ export async function bake(opts) {
   const pois = buildPois([...osm.elements.pois, ...osm.elements.landmarks], projection, extent).map((p) => ({ ...p, h: round(height.hf.sampleHeight(p.x, p.y)) }));
   lap('vectors', t);
   log(`vectors: ${roads.roads.length} road pieces, ${water.areas.length} water areas${dryWater.length ? ` (dropped ${dryWater.length} on routes${dryBeach ? `, ${dryBeach} now beach` : ''})` : ''} + ${water.lines.length} lines, ${landcover.layer.areas.length} landcover, ${buildings.count} buildings ${JSON.stringify(buildings.districts)} (dropped ${buildings.dropped.route} on routes, ${buildings.dropped.road} astride roads), ${vegetation.count} trees (woodland lattice ${vegetation.lattice}, character ${vegetation.character}${vegetation.corridor ? `, route corridor ${vegetation.corridor.kept} of ${vegetation.corridor.lattice}, elsewhere ${vegetation.corridor.farKept} of ${vegetation.corridor.farLattice}` : ''}) ${JSON.stringify(vegetation.byKind)}, ${pois.length} POIs`);
+
+  // The bridges step put its deck vertices in after the fit: measure the
+  // bends on the roads as shipped.
+  remeasureShifts(fit, roads);
 
   // 4. Write the bundle.
   t = Date.now();
