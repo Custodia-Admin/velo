@@ -5,7 +5,7 @@
  * Written from the public protocol notes in docs/devices/zwift-ride-v2.md
  * (Makinolo's write-ups, cross-checked against chrisperkles/serpentine, MIT).
  * The button masks come from real-hardware reports instead (see
- * BUTTON_MASKS): Makinolo's were written without a Ride and are wrong above Y.
+ * BUTTON_MASKS): Makinolo's don't match what current Rides send above Y.
  */
 
 /** Controller service on firmware from Jan 2025 on (16-bit FC82). */
@@ -69,8 +69,10 @@ export type RideButton =
  * reported by a Ride owner with a Web Bluetooth logger in
  * jonasbark/swiftcontrol issue #3 (30 Mar 2025) and used by BikeControl
  * (`RideButtonMask` in lib/bluetooth/devices/zwift/zwift_ride.dart) ever
- * since. Makinolo's .proto, written without the hardware, has Z at 0x100 and
- * every button above it one place off (0x200 / 0x2000 there are really the
+ * since, on the FC82 firmware (Jan 2025 on) that Rides run now. Makinolo's
+ * .proto (Jul 2024, from a capture of the older firmware; he had no Ride to
+ * test on) has Z at 0x100 and every button above it one place off against
+ * that (0x200 / 0x2000 there are really the
  * LOWER shifters, 0x400 / 0x4000 the drop buttons). Velo first shipped
  * those: two shifters did nothing, the other two shifted harder, and only
  * the drop buttons shifted easier.

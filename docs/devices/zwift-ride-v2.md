@@ -132,11 +132,12 @@ Button masks (bit cleared = pressed), **as measured on a real Ride**:
 | `0x0040` | Y | `0x4000` | Right drop button (RB, "power-up") |
 | `0x0080` | Z | `0x8000` | Right on/off |
 
-**Makinolo's masks are wrong above Y.** His `.proto` (written without a Ride,
-from someone else's capture) has Z at `0x100` and every later button one place
-up, ending at `0x20000`. A Ride owner logged every button with a Web Bluetooth
-page in jonasbark/swiftcontrol issue #3 (30 Mar 2025) and found the table
-above; BikeControl has decoded the Ride with it ever since
+**Makinolo's masks don't match current Rides above Y.** His `.proto` (July
+2024, from someone else's capture of the pre-FC82 firmware; he had no Ride to
+test on) has Z at `0x100` and every later button one place up, ending at
+`0x20000`. A Ride owner on the FC82 firmware (the one the owner's units
+advertise) logged every button with a Web Bluetooth page in
+jonasbark/swiftcontrol issue #3 (30 Mar 2025) and found the table above; BikeControl has decoded the Ride with it ever since
 (`RideButtonMask` in `lib/bluetooth/devices/zwift/zwift_ride.dart`), and its
 Ride emulator, which Zwift accepts, presses `0x100` for "shift down" and
 `0x1000` for "shift up". Velo first shipped Makinolo's table: on the owner's
