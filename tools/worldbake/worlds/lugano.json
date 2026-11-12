@@ -19,7 +19,8 @@
     "offsetMedianM": 300,
     "offsetMeanM": 1200,
     "coreCells": 1.5,
-    "falloffM": 40
+    "falloffM": 40,
+    "embankment": { "maxM": 7 }
   },
   "vegetation": {
     "seed": 4600,

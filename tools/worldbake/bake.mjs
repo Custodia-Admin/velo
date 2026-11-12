@@ -52,7 +52,7 @@ import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { BARE_GROUND_CREDITS, bareGroundOptions, bareGroundStep, routeLift, WOODLAND_KINDS } from './bareGround.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
-import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid } from './snapRoutes.mjs';
+import { carveRoutes, embankmentOptions, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid, structureLookup } from './snapRoutes.mjs';
 import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork, uncarvedAbutments } from './bridges.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
@@ -199,6 +199,9 @@ export function readRecipe(recipePath) {
   const demSource = demSourceOf(recipe);
   validationInputs(recipe.validation); // a bad P1.3 block stops the bake before any download
   bareGroundOptions(recipe); // so does a bad bareGround block
+  // ...and an embankment check without bare ground: on a surface model the
+  // ground across the route is the canopy and the roofs (snapRoutes.mjs).
+  if (embankmentOptions(recipe.snap) && !recipe.bareGround) throw new Error('recipe snap.embankment needs bareGround');
   return { recipe, demSource };
 }
 
@@ -374,7 +377,14 @@ export async function bake(opts) {
   // 3. Routes: carve corridors into the float grid, then quantise.
   // The terrain before the carve: bridges over a route stand on it (uncarvedAbutments).
   const uncarved = nets ? Float64Array.from(heights) : null;
-  const carve = carveRoutes({ grid: g, heights, projection, routes: routesIn, snap: recipe.snap, skip });
+  // Embankments (recipe `snap.embankment`): mapped bridges and tunnels never count.
+  const structure = embankmentOptions(recipe.snap) ? structureLookup(roads) : undefined;
+  const carve = carveRoutes({ grid: g, heights, projection, routes: routesIn, snap: recipe.snap, skip, structure });
+  for (const p of carve.prepared) {
+    if (p.embankments) {
+      log(`embankment: route ${p.id} lowered ${p.embankments.length ? p.embankments.map((e) => `${round(e.s0, 0)}–${round(e.s1, 0)} m by up to ${round(e.lowerM)} m`).join(', ') : 'nowhere'} (to ${recipe.snap.embankment.maxM} m over the ground)`);
+    }
+  }
   if (lakes) {
     const keep = routeCoreNodes(g, carve.prepared, recipe.snap.coreCells * g.cellSize);
     log(`flatLakes: ${relevelLakes({ heights, lakes, keep: (i) => keep.has(i) })} lake nodes re-levelled after the route carve (route core kept)`);

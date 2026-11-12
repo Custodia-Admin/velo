@@ -100,6 +100,14 @@ from `chengdu-luxelakes.json`:
     ground (median, p95, max, samples over 3 m). P1.3 points inside the
     corridor now read the ground where the GLO-90 reference reads the canopy,
     so the registered RMS rises (Cuyahoga Valley: 1.69 → 3.00 m).
+  - Where `bareGround.routes` still shows a route several metres up, check
+    the DTM across it (±40 m every 10 m). If the route stands over all of
+    it, the GLO-90 route profile misses a dip or a flat the DTM has, and the
+    carve has built an embankment: add `"embankment": { "maxM": 3 }` to
+    `snap`, and raise maxM until every route's grade Δ is back ≤ 1 pp
+    (3 in Cleveland, 7 in Lugano). The log's `embankment:` lines say what
+    came down. If the ground reaches the route's height on one side, the
+    route is cut into a slope and the rule leaves it alone, as it should.
   - A new source is a new `fetch…` in `bareGround.mjs`, a `BARE_GROUND_CREDITS`
     entry and the two schema enums.
 
