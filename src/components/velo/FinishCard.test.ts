@@ -63,20 +63,28 @@ describe('finish screen figures', () => {
 });
 
 describe('Tomorrow, maybe', () => {
-  // As it was when routes carried their own `area` field, before the
-  // destination manifests became the one source of where a route sits.
+  // The home routes in library order; Trasimeno has no baked world yet (it
+  // rides in the classic view), so Velo never suggests it by itself.
   const TRASIMENO = 'scenic-trasimeno-shore';
   const TIBER = 'scenic-perugia-tiber-park';
   const ASSISI = 'scenic-assisi-valley';
   const next = (id: string | undefined, day: number) => nextScenicRoute(id, new Date(2026, 10, day, 9))?.route.id;
 
-  it('offers the next home route in library order after a home ride', () => {
-    expect([TRASIMENO, TIBER, ASSISI].map((id) => next(id, 1))).toEqual([TIBER, ASSISI, TRASIMENO]);
+  it('offers the next home route a baked world draws after a home ride, never the same one', () => {
+    expect([TIBER, ASSISI].map((id) => next(id, 1))).toEqual([ASSISI, TIBER]);
+    // After the classic-view Trasimeno: tomorrow's featured route, as after any other ride.
+    expect([1, 2, 3, 4].map((day) => next(TRASIMENO, day))).toEqual([ASSISI, TIBER, ASSISI, TIBER]);
   });
 
-  it('offers tomorrow’s featured home route after any other ride', () => {
+  it('offers tomorrow’s featured route after any other ride, never a classic-view one', () => {
     for (const id of [undefined, 'scenic-lugano-melide', 'scenic-hangzhou-west-lake', 'gpx-123']) {
-      expect([1, 2, 3, 4].map((day) => next(id, day)), String(id)).toEqual([ASSISI, TRASIMENO, TIBER, ASSISI]);
+      expect([1, 2, 3, 4].map((day) => next(id, day)), String(id)).toEqual([ASSISI, TIBER, ASSISI, TIBER]);
+    }
+    for (let day = 1; day <= 60; day++) {
+      for (const id of [undefined, TRASIMENO, TIBER, ASSISI, 'scenic-lake-como-menaggio']) {
+        expect(next(id, day), `${id} on day ${day}`).not.toBe(TRASIMENO);
+        expect(next(id, day)).not.toBe(id);
+      }
     }
   });
 });

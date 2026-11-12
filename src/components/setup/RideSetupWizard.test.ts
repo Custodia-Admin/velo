@@ -117,6 +117,8 @@ import {
 import { RoutePreview } from './RoutePreview';
 import { Button } from '@/components/ui/button';
 import { TrainerRow } from '@/components/velo/TrainerPanel';
+import { ClassicViewTag } from '@/components/velo/ScenicRoutes';
+import { worldForRoute } from '@/lib/world/catalog';
 import { PARTNERS, togglePartner } from '@/components/velo/pacePartners';
 import type { GeocodeResult } from '@/lib/geocoder';
 import { RouteGenerationError } from '@/lib/routeGenerator';
@@ -443,7 +445,12 @@ describe('RideSetupWizard — the route step (search, generate, scenic pick)', (
         preview: all.find((e) => e.type === RoutePreview)?.props.route as Route | undefined,
         tiles: all
           .filter((e) => 'data-featured-route' in e.props)
-          .map((e) => ({ id: e.props['data-featured-route'] as string, className: e.props.className as string, ...btn(e) })),
+          .map((e) => ({
+            id: e.props['data-featured-route'] as string,
+            className: e.props.className as string,
+            classic: tree(e.props.children).filter((c) => c.type === ClassicViewTag).length,
+            ...btn(e),
+          })),
       };
     };
   }
@@ -731,6 +738,19 @@ describe('RideSetupWizard — the route step (search, generate, scenic pick)', (
     view().tiles[1].onClick();
     expect(useRideStore.getState().route?.id).toBe(want[1]);
     expect(view().tiles.map((t) => t.pressed)).toEqual(want.map((_, i) => i === 1));
+    expect(render().header(2).active).toBe(true);
+  });
+
+  it('scenic tiles: one Classic view tag on exactly the routes no baked world draws, and they still ride', async () => {
+    const view = mount();
+    const want = homeFirstScenicRoutes().slice(0, 6);
+    await vi.waitFor(() => expect(view().tiles).toHaveLength(6));
+    const classic = want.map((s) => (worldForRoute(s.route) === null ? 1 : 0));
+    // Trasimeno and Valle Maggia have no baked world yet; the other four do.
+    expect(classic).toEqual([1, 0, 0, 0, 0, 1]);
+    expect(view().tiles.map((t) => t.classic)).toEqual(classic);
+    view().tiles[0].onClick();
+    expect(useRideStore.getState().route?.id).toBe('scenic-trasimeno-shore');
     expect(render().header(2).active).toBe(true);
   });
 });
