@@ -61,7 +61,7 @@ jobs:
       - name: The site serves this build
         run: |
           want=$(grep -o 'assets/index-[A-Za-z0-9_-]*\.js' dist/index.html | head -1)
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             got=$(curl -fsS "$PAGES_URL/app" | grep -o 'assets/index-[A-Za-z0-9_-]*\.js' | head -1 || true)
             [ "$got" = "$want" ] && { echo "$PAGES_URL serves $got"; exit 0; }
             sleep 10
