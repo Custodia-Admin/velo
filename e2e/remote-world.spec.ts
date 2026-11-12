@@ -1,6 +1,8 @@
 /**
- * The wishlist worlds that are not shipped with the app (blueprint §P3.1,
- * docs/worlds/ADDING-A-WORLD.md "Hosting").
+ * The worlds that are not shipped with the app (blueprint §P3.1,
+ * docs/worlds/ADDING-A-WORLD.md "Hosting"): the wishlist worlds, and the
+ * extra worlds that draw the household places' outlying routes
+ * (docs/worlds/DESTINATIONS.md, "A place wider than one world").
  *
  * Each is published to the R2 bucket under a content-hashed directory. The
  * first ride downloads it (≤ 8 MB), the loader keeps every
@@ -20,16 +22,24 @@ const INIT = `
 const MB = 1024 * 1024;
 const LAYERS = ['buildings.bin.gz', 'height.bin.gz', 'landcover.json.gz', 'manifest.json', 'roads.json.gz', 'routes.json.gz', 'vegetation.bin.gz', 'water.json.gz'];
 
-/** Each remote world, ridden from one of its wishlist cards. */
+const WITH_BRIDGES = [...LAYERS, 'bridges.json.gz'].sort();
+
+/** Each remote world, ridden from one of its cards in its Home section. */
 const WORLDS = [
-  { id: 'chengdu-luxelakes', route: 'scenic-chengdu-xinglong-lake', name: 'Xinglong Lake loop', place: 'Chengdu', files: LAYERS },
+  { id: 'chengdu-luxelakes', section: 'wishlist', route: 'scenic-chengdu-xinglong-lake', name: 'Xinglong Lake loop', place: 'Chengdu', files: LAYERS },
   // Worlds baked with bridges as structures carry a bridges layer.
-  { id: 'ohio-erie-towpath', route: 'scenic-cuyahoga-towpath-north', name: 'Towpath: Lock 39 to Station Road', place: 'Cuyahoga Valley', files: [...LAYERS, 'bridges.json.gz'].sort() },
-  { id: 'cleveland-lakefront', route: 'scenic-wendy-park-lakewood', name: 'Wendy Park to Lakewood Park', place: 'Cleveland', files: [...LAYERS, 'bridges.json.gz'].sort() },
-  { id: 'berkeley', route: 'scenic-richmond-marina-bay', name: 'Richmond Marina Bay', place: 'Berkeley', files: [...LAYERS, 'bridges.json.gz'].sort() },
+  { id: 'ohio-erie-towpath', section: 'wishlist', route: 'scenic-cuyahoga-towpath-north', name: 'Towpath: Lock 39 to Station Road', place: 'Cuyahoga Valley', files: WITH_BRIDGES },
+  { id: 'cleveland-lakefront', section: 'wishlist', route: 'scenic-wendy-park-lakewood', name: 'Wendy Park to Lakewood Park', place: 'Cleveland', files: WITH_BRIDGES },
+  { id: 'berkeley', section: 'wishlist', route: 'scenic-richmond-marina-bay', name: 'Richmond Marina Bay', place: 'Berkeley', files: WITH_BRIDGES },
   // The coast worlds: the sea is a water area, no extra layer.
-  { id: 'santa-monica-venice', route: 'scenic-will-rogers-venice', name: 'Will Rogers to Venice', place: 'Santa Monica', files: LAYERS },
-  { id: 'puerto-vallarta', route: 'scenic-nuevo-vallarta-bucerias', name: 'Nuevo Vallarta to Bucerías', place: 'Puerto Vallarta', files: LAYERS },
+  { id: 'santa-monica-venice', section: 'wishlist', route: 'scenic-will-rogers-venice', name: 'Will Rogers to Venice', place: 'Santa Monica', files: LAYERS },
+  { id: 'puerto-vallarta', section: 'wishlist', route: 'scenic-nuevo-vallarta-bucerias', name: 'Nuevo Vallarta to Bucerías', place: 'Puerto Vallarta', files: LAYERS },
+  // The household places' outlying routes, each in its own world, listed under the place.
+  { id: 'trasimeno', section: 'perugia', route: 'scenic-trasimeno-shore', name: 'Lake Trasimeno shore', place: 'Perugia', files: WITH_BRIDGES },
+  { id: 'valle-maggia', section: 'lugano', route: 'scenic-valle-maggia', name: 'Valle Maggia', place: 'Lugano', files: WITH_BRIDGES },
+  { id: 'magadino', section: 'lugano', route: 'scenic-magadino-plain', name: 'Bellinzona to Locarno', place: 'Lugano', files: WITH_BRIDGES },
+  { id: 'lake-varese', section: 'lugano', route: 'scenic-lake-varese', name: 'Lake Varese shore', place: 'Lugano', files: WITH_BRIDGES },
+  { id: 'lake-como', section: 'lugano', route: 'scenic-lake-como-menaggio', name: 'Menaggio to Gravedona', place: 'Lugano', files: WITH_BRIDGES },
 ];
 type World = (typeof WORLDS)[number];
 const worldFile = (w: World) => new RegExp(`/worlds/${w.id}/[0-9a-f]{16}/([^/?#]+)$`);
@@ -48,15 +58,26 @@ const worldDebug = (page: Page) =>
     return (fn ? fn() : null) as WorldDebug | null;
   });
 
-/** Home → the world's card in "Places we want to go" → riding that world. */
+/**
+ * Home → the world's card in its section ("Places we want to go", or the
+ * household place it belongs to) → riding that world. On the day the route
+ * is Today's ride it has no grid card: ride the featured one.
+ */
 async function rideWorld(page: Page, w: World) {
   await page.goto('/app');
-  const wishlist = page.locator('[data-destination-section="wishlist"]');
-  await expect(wishlist).toBeVisible();
-  const card = wishlist.locator(`[data-scenic-route="${w.route}"]`);
-  // A world ride: the tile carries no "map view" badge.
-  await expect(card).toHaveAttribute('aria-label', new RegExp(`^Ride ${w.name} in ${w.place}, (?!.*map view)`));
-  await card.click();
+  const section = page.locator(`[data-destination-section="${w.section}"]`);
+  const featured = page.getByTestId('featured-scenic-ride').getByRole('button', { name: `Ride ${w.name}`, exact: true });
+  await expect(section.or(featured).first()).toBeVisible();
+  if (await featured.isVisible()) {
+    await featured.click();
+  } else {
+    const card = section.locator(`[data-scenic-route="${w.route}"]`);
+    // A world ride: the tile carries no "classic view" tag. Wishlist tiles lead
+    // with their place; a household section is the place already.
+    const lead = w.section === 'wishlist' ? `${w.name} in ${w.place}` : w.name;
+    await expect(card).toHaveAttribute('aria-label', new RegExp(`^Ride ${lead}, (?!.*classic view)`));
+    await card.click();
+  }
   await page.waitForURL('**/ride**');
 
   const view = page.locator('[data-renderer]');

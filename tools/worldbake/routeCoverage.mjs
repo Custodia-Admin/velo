@@ -702,6 +702,7 @@ export function easeRoadsOntoRoutes(routes, roads) {
         const onHost = (k, sax, say, sbx, sby) => k === host && along(k, sax, say, sbx, sby);
         let need = false;
         let gap = false;
+        const stepDemands = [];
         // Checked where routePaintCoverage checks: the whole band over the step.
         bandStep(near, ax, ay, bx, by, ROUTE_PAINT_HALF_M, 0, (px, py) => {
           // Bend the road the route runs along here, never one it crosses:
@@ -753,13 +754,18 @@ export function easeRoadsOntoRoutes(routes, roads) {
           const mag = Math.hypot(dx, dy);
           if (mag < 1e-6) return;
           const u = e.cum[seg] + b.t * (e.cum[seg + 1] - e.cum[seg]);
-          let bucket = demands.get(b.index);
-          if (!bucket) demands.set(b.index, (bucket = new Map()));
-          const key = Math.round(u * 4);
-          const prev = bucket.get(key);
-          if (!prev || mag > prev.m) bucket.set(key, { u, dx, dy, m: mag, seg, tx, ty });
+          stepDemands.push({ k: b.index, key: Math.round(u * 4), d: { u, dx, dy, m: mag, seg, tx, ty } });
           need = true;
         });
+        // A step the fit leaves to a join bends nothing: the join holds its paint.
+        if (!gap || pass > 0) {
+          for (const { k, key, d } of stepDemands) {
+            let bucket = demands.get(k);
+            if (!bucket) demands.set(k, (bucket = new Map()));
+            const prev = bucket.get(key);
+            if (!prev || d.m > prev.m) bucket.set(key, d);
+          }
+        }
         if (gap) gaps[ri].push(i);
         else if (need && pass === 0) easedM[r.id] += r.s[i] - r.s[i - 1];
       }
@@ -795,6 +801,8 @@ export function easeRoadsOntoRoutes(routes, roads) {
       e.cum = cumulative(e.p);
     }
   }
+  const reopened = closeOpenedEnds(drawn, mappedP, routes);
+  narrowJoins(drawn, roads);
   const short = routePaintCoverage(routes, roads).filter((c) => c.misses.length);
   if (short.length) {
     throw new Error(`fitted roads still miss the route's paint: ${short.map((c) => `${c.id} ${c.misses.slice(0, 3).map((m) => `${m.fromS}–${m.toS} m (${m.maxOffM} m)`).join(', ')}`).join('; ')}`);
@@ -813,8 +821,140 @@ export function easeRoadsOntoRoutes(routes, roads) {
     maxShiftM: bent.reduce((a, b) => Math.max(a, b.shiftM), 0),
     roadsEased: bent.length,
     joins: joins.length,
+    endsClosed: reopened,
     bent,
   };
+}
+
+/** A road end point (centre or a corner of its flat end) within this of another drawn road as mapped lay in it, m (routeFit.test.ts's tolerance). */
+const OPEN_TOL_M = 0.05;
+/** How far closeOpenedEnds moves an end at most (past the end it met), m. */
+const END_FIX_MAX_M = 1;
+/** …and how far it may turn the road's end segment, degrees. */
+const END_FIX_TURN_DEG = 15;
+
+/**
+ * Junctions the fit left open. Bending roads that met end to end by different
+ * amounts can leave their ends apart or turned against each other, so a corner
+ * of one road's flat end pokes out of the road it lay in as mapped (Lake
+ * Trasimeno: a cycleway, a footbridge and a cycleway in a row, each bent its
+ * own way). Each such end is moved, onto the current end of the road it met
+ * end to end and then along its own line, or along its own line where it is,
+ * by the least that puts every point of it that lay in a road back inside
+ * one, keeps the route's paint on the roads within 20 m and opens no other end
+ * there. Ends that are still joined are left alone. Returns the ends moved
+ * ([road index, end, metres]).
+ */
+function closeOpenedEnds(drawn, mappedP, routes) {
+  const mapped = drawn.filter((e) => !e.join).map((e) => ({ e, p: mappedP.get(e).map((v) => v / 10), half: e.half }));
+  const mIdx = roadIndex(mapped);
+  const changed = (m) => m.e.road.p.length !== mappedP.get(m.e).length || m.e.road.p.some((v, i) => v !== mappedP.get(m.e)[i]);
+  const movedIdx = roadIndex(mapped.filter(changed).flatMap((m) => [m, m.e]));
+  const endOf = (p, end) => (end === 0 ? [p[0], p[1]] : [p[p.length - 2], p[p.length - 1]]);
+  /** Every end of a road that lies within reach of a moved road, as [mapped index, end]. */
+  const watched = [];
+  mapped.forEach((m, mi) => {
+    for (const end of [0, 1]) {
+      const [x, y] = endOf(m.p, end);
+      if (movedIdx.within(x, y, m.half + 3).size) watched.push([mi, end]);
+    }
+  });
+  /** The points of an end that lay in another road as mapped, with how far each now is past every road's edge (`cur` indexes current lines). */
+  const joinedPoints = (cur, curOf, mi, end) => {
+    const m = mapped[mi];
+    const now = endPoints(m.e, end);
+    return endPoints(m, end).flatMap(([x, y], j) => (mIdx(x, y, (k) => k !== mi).edge > OPEN_TOL_M ? [] : [cur(now[j][0], now[j][1], (k) => curOf(k) !== m.e).edge]));
+  };
+  const open = (cur, curOf, mi, end) => joinedPoints(cur, curOf, mi, end).some((e) => e > OPEN_TOL_M);
+  const drawnOf = (k) => drawn[k];
+  const fixedEnds = [];
+  for (let round = 0; round < 4; round++) {
+    let idx = roadIndex(drawn);
+    const list = watched.filter(([mi, end]) => open(idx, drawnOf, mi, end));
+    if (!list.length) break;
+    let fixed = 0;
+    for (const [mi, end] of list) {
+      if (!open(idx, drawnOf, mi, end)) continue;
+      const m = mapped[mi];
+      const e = m.e;
+      const n = e.p.length;
+      const vi = end === 0 ? 0 : n - 2, wi = end === 0 ? 2 : n - 4;
+      const [ex, ey] = [e.p[vi], e.p[vi + 1]];
+      // Roads near the end, by their current and mapped lines: what a move there can touch.
+      const localSet = new Set([...idx.within(ex, ey, 30)]);
+      for (const k of mIdx.within(ex, ey, 30)) localSet.add(drawn.indexOf(mapped[k].e));
+      const local = [...localSet].sort((a, b) => a - b).map(drawnOf);
+      // Ends within 10 m (the others are out of reach of a move of at most END_FIX_MAX_M).
+      const localWatched = watched.filter(([k, en]) => !(k === mi && en === end) && local.includes(mapped[k].e) && Math.hypot(...[0, 1].map((a) => endOf(mapped[k].e.p, en)[a] - [ex, ey][a])) <= 10);
+      const wasOpen = new Set(localWatched.filter(([k, en]) => open(idx, drawnOf, k, en)).map(([k, en]) => `${k}:${en}`));
+      const steps = [];
+      for (const r of routes) {
+        for (let i = 1; i < r.s.length; i++) if (Math.hypot(r.x[i] - ex, r.y[i] - ey) <= 20) steps.push([r.x[i - 1], r.y[i - 1], r.x[i], r.y[i]]);
+      }
+      // Where the end may go: past the current end of a road it met end to end, or past its own.
+      const anchors = [];
+      const [mx, my] = endOf(m.p, end);
+      for (const k of mIdx.within(mx, my, OPEN_TOL_M)) {
+        if (k === mi) continue;
+        for (const se of [0, 1]) {
+          const [sx, sy] = endOf(mapped[k].p, se);
+          if (Math.hypot(sx - mx, sy - my) <= NODE_TOL_M) anchors.push(endOf(mapped[k].e.p, se));
+        }
+      }
+      anchors.push([ex, ey]);
+      const ox = ex - e.p[wi], oy = ey - e.p[wi + 1];
+      const ol = Math.hypot(ox, oy) || 1;
+      const cands = [];
+      for (const [ax, ay] of anchors) {
+        const dx = ax - e.p[wi], dy = ay - e.p[wi + 1];
+        const l = Math.hypot(dx, dy);
+        if (l < 0.5 || (dx * ox + dy * oy) / (l * ol) < Math.cos((END_FIX_TURN_DEG * Math.PI) / 180)) continue;
+        for (let g = 0; g <= END_FIX_MAX_M + 1e-9; g += 0.1) {
+          const x = Math.round((ax + (dx / l) * g) * 10) / 10, y = Math.round((ay + (dy / l) * g) * 10) / 10;
+          if (x !== ex || y !== ey) cands.push({ x, y, d: Math.hypot(x - ex, y - ey) });
+        }
+      }
+      cands.sort((a, b) => a.d - b.d || a.x - b.x || a.y - b.y);
+      const keep = { road: e.road.p, p: e.p, cum: e.cum };
+      let done = null;
+      for (const c of cands) {
+        const np = e.p.slice();
+        np[vi] = c.x;
+        np[vi + 1] = c.y;
+        e.road.p = toDm(np);
+        e.p = e.road.p.map((v) => v / 10);
+        e.cum = cumulative(e.p);
+        const near = roadIndex(local);
+        const curOf = (k) => local[k];
+        const inside = joinedPoints(near, curOf, mi, end).every((v) => v <= 0);
+        const others = inside && localWatched.every(([k, en]) => wasOpen.has(`${k}:${en}`) || !open(near, curOf, k, en));
+        const paint = others && steps.every(([ax, ay, bx, by]) => bandStep(near, ax, ay, bx, by, ROUTE_PAINT_HALF_M, 0) <= 0);
+        if (paint) { done = c; break; }
+      }
+      if (done) {
+        fixed++;
+        fixedEnds.push([e.index, end, Math.round(done.d * 100) / 100]);
+        idx = roadIndex(drawn);
+      } else {
+        e.road.p = keep.road;
+        e.p = keep.p;
+        e.cum = keep.cum;
+      }
+    }
+    if (!fixed) break;
+  }
+  return fixedEnds;
+}
+
+/**
+ * Re-measure each bent road's shift on the roads as shipped. The bridges step
+ * adds deck vertices after the fit, rounded to decimetres, which can move a
+ * bent deck a few centimetres further from its mapped line than the fit left
+ * it (Valle Maggia: a footbridge reported 0.40 m, shipped 0.43 m).
+ */
+export function remeasureShifts(fit, roads) {
+  for (const b of fit.bent) b.shiftM = Math.round(hausdorff(b.mapped.map((v) => v / 10), roads.roads[b.i].p.map((v) => v / 10)) * 100) / 100;
+  fit.maxShiftM = fit.bent.reduce((a, b) => Math.max(a, b.shiftM), 0);
 }
 
 /**
@@ -829,6 +969,7 @@ export function routeFitReport(fit) {
     roadsBent: fit.roadsEased,
     maxShiftM: fit.maxShiftM,
     joins: fit.joins,
+    ...(fit.endsClosed?.length ? { endsClosed: fit.endsClosed.map(([road, end, m]) => ({ road, end, m })) } : {}),
     bent: fit.bent.map((b) => ({
       road: b.i,
       shiftM: b.shiftM,
@@ -867,6 +1008,45 @@ function joinPieces(r, gap, roads, drawn, near) {
       out.push({ road, lengthM: r.s[i1] - r.s[i0] });
     }
     k = e + 1;
+  }
+  return out;
+}
+
+/**
+ * Narrow each join, on the fitted roads, until it lies over no drawn road that
+ * neither of its ends lies in (to no less than 1 m, the narrowest a road is
+ * drawn). A join that cuts from one road through a verge into another beside
+ * it would otherwise spread over the roads round its ends (Lake Varese: a
+ * primary-wide join across a 1 m verge reached 1.5 m into the end of the
+ * service road the route came down). Joins already clear keep their width.
+ */
+function narrowJoins(drawn, roads) {
+  const near = roadIndex(drawn);
+  for (const j of drawn.filter((e) => e.join)) {
+    const p = j.p;
+    const n = p.length;
+    const at = [near.within(p[0], p[1], JUNCTION_TOL_M), near.within(p[n - 2], p[n - 1], JUNCTION_TOL_M)];
+    const joined = new Set([...at[0], ...at[1]]);
+    let clear = Infinity;
+    for (const [x, y] of pointsAlong(p, PAINT_SAMPLE_M)) clear = Math.min(clear, near(x, y, (k) => !drawn[k].join && !joined.has(k)).edge);
+    // A short join's flank at one end can still reach into the road its other end lies in.
+    clear = Math.min(clear, near(p[0], p[1], (k) => !drawn[k].join && at[1].has(k) && !at[0].has(k)).edge, near(p[n - 2], p[n - 1], (k) => !drawn[k].join && at[0].has(k) && !at[1].has(k)).edge);
+    if (clear + JUNCTION_TOL_M >= j.half) continue;
+    const w = Math.max(1, Math.floor(Math.max(0, clear) * 20) / 10);
+    const { c, f, n: name, p: line } = j.road;
+    for (const k of Object.keys(j.road)) delete j.road[k];
+    Object.assign(j.road, { c, f }, w !== roads.widths[c] ? { w } : {}, name !== undefined ? { n: name } : {}, { p: line });
+    j.half = Math.max(1, w) / 2;
+  }
+}
+
+/** Points every `step` metres along a polyline (metres), both ends included. */
+function pointsAlong(p, step) {
+  const out = [[p[0], p[1]]];
+  for (let i = 0; i + 3 < p.length; i += 2) {
+    const len = Math.hypot(p[i + 2] - p[i], p[i + 3] - p[i + 1]);
+    for (let u = step; u < len; u += step) out.push([p[i] + ((p[i + 2] - p[i]) * u) / len, p[i + 1] + ((p[i + 3] - p[i + 1]) * u) / len]);
+    out.push([p[i + 2], p[i + 3]]);
   }
   return out;
 }

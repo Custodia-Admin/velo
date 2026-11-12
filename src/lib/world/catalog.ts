@@ -4,17 +4,17 @@
  * The world renderer only draws a route that lies inside a baked world; any
  * other route (a GPX upload elsewhere, a destination ride without a world
  * yet, an outdoor GPS ride) falls back to the photoreal renderer. The list is
- * derived from the destination manifests (`destinations.ts`): every
- * destination that links a world contributes one entry, with the bbox and
- * routes its manifest mirrors from the bundle (destinations.test.ts keeps
- * them in step), so deciding needs no download.
+ * derived from the destination manifests (`destinations.ts`): every world a
+ * destination links (its `world` and any `extraWorlds`) contributes one
+ * entry, with the bbox and routes its manifest mirrors from the bundle
+ * (destinations.test.ts keeps them in step), so deciding needs no download.
  *
  * Engine-free (src/lib/world rule): no Cesium, three.js or React.
  */
 
 import type { Route } from '@/types';
 import type { WorldBbox } from './manifest';
-import { DESTINATIONS, type Destination } from './destinations';
+import { DESTINATIONS, destinationWorlds, type Destination } from './destinations';
 
 export interface WorldCatalogEntry {
   id: string;
@@ -33,12 +33,10 @@ export interface WorldCatalogEntry {
   routeIds: readonly string[];
 }
 
-/** One catalog entry per destination with a baked world. */
+/** One catalog entry per baked world a destination links (`world`, then `extraWorlds`). */
 export function worldCatalogFrom(destinations: readonly Destination[]): WorldCatalogEntry[] {
   return destinations.flatMap((d) =>
-    d.world
-      ? [{ id: d.world.id, name: d.name, dir: d.world.dir, remote: d.world.host === 'remote', bbox: d.world.bbox, routeIds: d.world.routes }]
-      : [],
+    destinationWorlds(d).map((w) => ({ id: w.id, name: d.name, dir: w.dir, remote: w.host === 'remote', bbox: w.bbox, routeIds: w.routes })),
   );
 }
 

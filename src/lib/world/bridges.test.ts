@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DECK_HEADROOM_M,
   END_GROW_MAX_M,
+  LANDING_M,
   NEVER_RIDDEN_CLASSES,
   RIDE_SLACK_M,
   anchorPins,
@@ -111,6 +112,59 @@ describe('bridges: decks as structures', () => {
     const nets = bridgeNetworks(roads);
     const { pins } = deckHeights({ roads, nets, groundAt: ground, routes: [route] });
     expect(() => planApproaches({ roads, nets, pins, groundAt: ground, ridden: new Set([0]) })).toThrow(/a road a route rides/);
+  });
+
+  /**
+   * Lake Como: a 13 m footbridge (over a stream) starts at the junction of the
+   * two cycleways the route rides, at (0, 0), and lands on a footway at (0, 13).
+   * The route runs through its first vertex: it meets the deck there.
+   */
+  function landing(bridgeFrom = 0) {
+    const roads = roadsOf([
+      { c: 1, p: [-50, 0, 0, 0] },
+      { c: 1, p: [0, 0, 50, 0] },
+      { c: 1, f: ROAD_FLAGS.bridge, p: [0, bridgeFrom, 0, 6.5, 0, 13] },
+      { c: 1, p: [0, 13, 0, 30] },
+      ...(bridgeFrom ? [{ c: 1, p: [0, 0, 0, bridgeFrom] }] : []),
+    ]);
+    const route = { id: 'r', x: [-50, 0, 50], y: [0, 0, 0], s: [0, 50, 100], spans: [] };
+    return { roads, route, ground: () => 100 };
+  }
+
+  it('takes a route through the point where a deck lands for a junction, not an underpass', () => {
+    const { roads, route, ground } = landing();
+    const nets = bridgeNetworks(roads);
+    const { pins, z } = deckHeights({ roads, nets, groundAt: ground, routes: [route] });
+    expect(pins).toEqual([]);
+    expect(z.get(2)!.every((v: number) => Math.abs(v - 100) < 1e-6)).toBe(true);
+    expect(() => planApproaches({ roads, nets, pins, groundAt: ground, ridden: new Set([0, 1]) })).not.toThrow();
+    const zdm = new Map([[2, z.get(2)!.map((v: number) => Math.round(v * 10))]]);
+    expect(headroomFailures({ roads, routes: [route], zdm, surfaces: [() => 100], groundAt: ground, rides: [[]] })).toEqual([]);
+    // A deck end that stands up there is still an underpass to the check.
+    const high = new Map([[2, [1030, 1030, 1030]]]);
+    expect(LANDING_M).toBe(3);
+    expect(headroomFailures({ roads, routes: [route], zdm: high, surfaces: [() => 100], groundAt: ground, rides: [[]] })).toHaveLength(1);
+  });
+
+  it('still clears a route LANDING_M or more from where the deck lands, and at a joint between two decks', () => {
+    // The route crosses 0.8 m along the deck (Lake Como): a junction.
+    const como = landing(-0.8);
+    expect(deckHeights({ roads: como.roads, nets: bridgeNetworks(como.roads), groundAt: como.ground, routes: [como.route] }).pins).toEqual([]);
+    // The deck starts 3.5 m off the route: the route passes under it.
+    const near = landing(-3.5);
+    const pinsNear = deckHeights({ roads: near.roads, nets: bridgeNetworks(near.roads), groundAt: near.ground, routes: [near.route] }).pins;
+    expect(pinsNear).toHaveLength(1);
+    expect(pinsNear[0].s).toBeCloseTo(3.5, 6);
+    // Two bridge pieces meeting over the route: the joint is no landing.
+    const joint = roadsOf([
+      { c: 0, p: [0, -40, 0, -20] },
+      { c: 0, f: ROAD_FLAGS.bridge, p: [0, -20, 0, -10, 0, 0] },
+      { c: 0, f: ROAD_FLAGS.bridge, p: [0, 0, 0, 10, 0, 20] },
+      { c: 0, p: [0, 20, 0, 40] },
+    ]);
+    const route = { id: 'r', x: [-50, 0, 50], y: [0, 0, 0], s: [0, 50, 100], spans: [] };
+    const { pins } = deckHeights({ roads: joint, nets: bridgeNetworks(joint), groundAt: () => 100, routes: [route] });
+    expect(pins.length).toBeGreaterThan(0);
   });
 
   /**

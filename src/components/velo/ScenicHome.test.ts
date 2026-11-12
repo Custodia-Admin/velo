@@ -49,11 +49,15 @@ describe('ScenicHomeSections', () => {
   it('leads wishlist tiles with the place and tags exactly the classic-view routes', () => {
     expect(out).toMatch(/<h4[^>]*>Hangzhou<\/h4>/);
     expect(out).toContain('West Lake loop · Zhejiang, China');
-    // Hometown mixes the Lugano world with classic-view rides: those carry the tag.
+    // Home and Hometown ride in baked worlds only (Lugano's outlying routes in
+    // its extra worlds, Trasimeno in Perugia's): no tile there carries the tag.
+    const home = out.slice(out.indexOf('data-destination-section="perugia"'), out.indexOf('data-destination-section="lugano"'));
     const hometown = out.slice(out.indexOf('data-destination-section="lugano"'), out.indexOf('data-destination-section="wishlist"'));
-    expect(hometown.match(/>Classic view</g)).toHaveLength(4);
-    expect(hometown).toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*"/);
-    expect(hometown).not.toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*, classic view"/);
+    expect(hometown.match(/data-scenic-route="/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(home).not.toContain('Classic view');
+    expect(hometown).not.toContain('Classic view');
+    expect(hometown).toMatch(/aria-label="Ride Valle Maggia[^"]*"/);
+    expect(hometown).not.toMatch(/, classic view"/);
     // The wishlist mixes too: the places with a world lead (Chengdu,
     // Cleveland, the Cuyahoga Valley, then the coast worlds), the classic-view
     // rides carry the tag.

@@ -129,8 +129,8 @@ test.describe('the finish screen at 1920×1080', () => {
     page.on('pageerror', (e) => pageErrors.push(String(e)));
     await page.addInitScript(INIT);
     await page.goto('/app');
-    // Bellinzona–Locarno is outside every baked world: photoreal, OSM with no token.
-    await rideScenicRoute(page, 'scenic-magadino-plain', 'Bellinzona to Locarno');
+    // Peschiera–Lazise (Lake Garda) is outside every baked world: photoreal, OSM with no token.
+    await rideScenicRoute(page, 'scenic-lake-garda-lazise', 'Peschiera to Lazise');
     await expect(page.locator('[data-renderer]')).toHaveAttribute('data-renderer', 'photoreal');
     await riding(page, 'first ride');
 

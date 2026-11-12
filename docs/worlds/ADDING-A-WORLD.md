@@ -131,6 +131,12 @@ from `chengdu-luxelakes.json`:
     town GLO-30 reads the roofs there: Puerto Vallarta's GLO-30 − DTM is
     +3.35 m over residential land and +0.04 m on the beaches, so an "open"
     bias would lift the whole corridor 3 m.
+  - Lombardy: `{ "source": "lombardia-dtm5" }`, Regione Lombardia's DTM 5×5
+    (2015) from its ImageServer. Built from the regional topographic database
+    outside the LiDAR surveys: good on roads, slightly terraced on hillsides.
+  - Elsewhere in Italy, along rivers and lakes: `{ "source": "mase-pst-lidar" }`,
+    the national LiDAR DTM 1 m (2008–2010). It covers the corridors the survey
+    flew, not whole regions; query its tile index first (WORLD-FORMAT.md).
   - Then shorten the `snap` offset windows as far as every route's grade Δ
     stays ≤ 1 pp (200/800 m in Ohio and Santa Monica, 300/1200 m in Lugano,
     60/240 m in Puerto Vallarta, which adds `"spanStructures": true` to
@@ -213,6 +219,9 @@ syncs the destination.
 
 To link a new world to its destination, set the destination's `world` to
 `{ "id": "<id>" }` before the bake. `syncDestinations.mjs` fills in the rest.
+For a world that draws a place's outlying routes (the place already has a
+world), add `{ "id": "<id>" }` to its `extraWorlds` instead
+([DESTINATIONS.md](DESTINATIONS.md#a-place-wider-than-one-world)).
 
 ## 4. Hosting: publish to R2
 

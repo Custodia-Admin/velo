@@ -209,8 +209,11 @@ function drawnPair(roads: Layer, mapped: Map<number, number[]>) {
  * Where a road the fit moved newly lies over another drawn road along its
  * length, metres deep (its drawn width reaching past the other's edge) and
  * long, compared with the mapped lines. Points within reach of a junction the
- * two roads already had (an end of either inside the other) don't count: a
- * fork's arms run within reach of each other there.
+ * two roads already had (an end of either inside the other, or a vertex of
+ * one on the other's centre line: a crossing) don't count: a fork's arms run
+ * within reach of each other there, and so do a shallow crossing's, which
+ * slides along both roads as either moves sideways (Magadino: a path the
+ * route runs a metre beside crosses a track at 14°).
  */
 function newOverlaps(roads: Layer, mapped: Map<number, number[]>, minDepth = 0.1) {
   const { before, after } = drawnPair(roads, mapped);
@@ -234,6 +237,23 @@ function newOverlaps(roads: Layer, mapped: Map<number, number[]>, minDepth = 0.1
             const hh = a.half + b.half;
             z.push({ x, y, r: hh + Math.min(10, hh / Math.max(sin, 0.1)) });
           }
+        }
+        // A crossing: the shallowest angle between a segment of either road
+        // at the shared vertex and one of the other's within 10 m of it.
+        for (let k = 2; k + 3 < a.p.length; k += 2) {
+          const [x, y] = [a.p[k], a.p[k + 1]];
+          if (nearest(x, y, b.p).d > 0.05) continue;
+          let sin = 1;
+          for (const j of [k - 2, k]) {
+            const al = Math.hypot(a.p[j + 2] - a.p[j], a.p[j + 3] - a.p[j + 1]) || 1;
+            for (let i = 0; i + 3 < b.p.length; i += 2) {
+              if (nearest(x, y, b.p.slice(i, i + 4)).d > 10) continue;
+              const bl = Math.hypot(b.p[i + 2] - b.p[i], b.p[i + 3] - b.p[i + 1]) || 1;
+              sin = Math.min(sin, Math.abs(((a.p[j + 2] - a.p[j]) / al) * ((b.p[i + 3] - b.p[i + 1]) / bl) - ((a.p[j + 3] - a.p[j + 1]) / al) * ((b.p[i + 2] - b.p[i]) / bl)));
+            }
+          }
+          const hh = a.half + b.half;
+          z.push({ x, y, r: hh + Math.min(10, hh / Math.max(sin, 0.1)) });
         }
       }
       zones.set(o.i, z);
@@ -756,6 +776,77 @@ describe('bake: fit the drawn roads to a route (one surface under the guide)', (
 
     easeRoadsOntoRoutes([r], roads);
     expect(routePaintCoverage([r], roads)[0].pct).toBe(100);
+  });
+});
+
+const FIXTURES = fileURLToPath(new URL('../../../tools/worldbake/fixtures/route-fit', import.meta.url));
+
+/** Pre-fit roads and app route samples within 60 m of a junction, cut from a bake (tools/worldbake/fixtures/route-fit). */
+function fixture(name: string): { roads: Layer; routes: Sampled[] } {
+  const fx = JSON.parse(readFileSync(join(FIXTURES, `${name}.json`), 'utf8'));
+  return { roads: { ...layer(fx.roads), classes: fx.classes, widths: fx.widths }, routes: fx.routes };
+}
+
+describe('bake: junctions from the home-area worlds', () => {
+  const fitted = (name: string) => {
+    const { roads, routes } = fixture(name);
+    const fit = easeRoadsOntoRoutes(routes, roads);
+    const mapped = new Map<number, number[]>(fit.bent.map((b: { i: number; mapped: number[] }) => [b.i, b.mapped]));
+    return { roads, routes, fit, mapped };
+  };
+
+  it('Lake Trasimeno: a cycleway, a footbridge and a cycleway in a row, each bent its own way, are joined again end to end', () => {
+    const { roads, routes, fit, mapped } = fitted('trasimeno');
+    // Without the repair the corners of three ends poke 0.05–0.07 m out of the road they met.
+    expect(fit.endsClosed.map(([r, end]: number[]) => `${r}:${end}`)).toEqual(['2:0', '5:0']);
+    expect(openedEnds(roads, mapped)).toEqual([]);
+    expect(routePaintCoverage(routes, roads)[0].pct).toBe(100);
+    expect(paintOffRoad(roads, routes, PAINT_SLIVER_M)).toEqual([]);
+    expect(newOverlaps(roads, mapped)).toEqual([]);
+  });
+
+  it('Magadino: a path bent onto the route stays joined to the path it continues', () => {
+    const { roads, routes, fit, mapped } = fitted('magadino-chain');
+    expect(fit.endsClosed.map(([r, end]: number[]) => `${r}:${end}`)).toEqual(['1:0']);
+    expect(openedEnds(roads, mapped)).toEqual([]);
+    expect(routePaintCoverage(routes, roads)[0].pct).toBe(100);
+  });
+
+  it('Lake Varese: where the route cuts through a 1 m verge between two roads, a narrow join holds the paint and neither road is bent across the verge', () => {
+    const { roads, routes, fit, mapped } = fitted('lake-varese');
+    expect(fit.joins).toBe(1);
+    const join = roads.roads[roads.roads.length - 1];
+    expect(isFill(join)).toBe(true);
+    // Narrowed from the primary road's 5 m: its far end would reach 1.5 m into the road its near end lies in.
+    expect(join.w).toBe(2);
+    expect(fillOverlapM(roads).worst).toBeLessThanOrEqual(0.05);
+    // The steps left to the join bent nothing: before, both roads were bent 0.15 m into each other there.
+    expect(newOverlaps(roads, mapped)).toEqual([]);
+    expect(routePaintCoverage(routes, roads)[0].pct).toBe(100);
+    expect(paintOffRoad(roads, routes, PAINT_SLIVER_M)).toEqual([]);
+  });
+
+  it('Magadino: a path the route runs a metre beside, crossing a track at 14°, may slide the crossing along the track', () => {
+    const { roads, routes, mapped } = fitted('magadino-crossing');
+    expect([...mapped.keys()].length).toBeGreaterThan(0);
+    expect(newOverlaps(roads, mapped)).toEqual([]);
+    expect(routePaintCoverage(routes, roads)[0].pct).toBe(100);
+  });
+
+  it('counts a shallow crossing as a junction for the overlap check, and only a crossing', () => {
+    // A track along y = 0 and a path crossing it at 14° through a shared vertex at (0, 0).
+    const t = Math.tan((14 * Math.PI) / 180);
+    const track = { c: CLS.track, p: dm([[-40, 0], [0, 0], [40, 0]]) };
+    const path = { c: CLS.path, p: dm([[-40, -40 * t], [0, 0], [40, 40 * t]]) };
+    // The path moved 0.5 m north: the crossing slides 2 m along the track.
+    const moved = { ...path, p: dm([[-40, -40 * t + 0.5], [0, 0.5], [40, 40 * t + 0.5]]) };
+    const roads = layer([track, moved]);
+    expect(newOverlaps(roads, new Map([[1, path.p]]))).toEqual([]);
+    // A path running 0.25 m clear of the track's edge, with no vertex on it, moved 0.6 m toward it still counts.
+    const parallel = { c: CLS.path, p: dm([[-40, -2.5], [40, -2.5]]) };
+    const closer = { ...parallel, p: dm([[-40, -1.9], [40, -1.9]]) };
+    const found = newOverlaps(layer([track, closer]), new Map([[1, parallel.p]]));
+    expect(found.map((o) => [o.road, o.other, o.depthM])).toEqual([[1, 0, 0.35]]);
   });
 });
 

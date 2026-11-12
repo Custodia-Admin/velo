@@ -108,7 +108,7 @@ describe('geotiff: LZW (Compression 5)', () => {
 describe('bareGround: recipe block', () => {
   it('is off without the block, fills defaults, and checks each source', () => {
     expect(bareGroundOptions({})).toBeNull();
-    expect(BARE_GROUND_SOURCES).toEqual(['usgs-3dep-13', 'swissalti3d', 'inegi-mdt-10k']);
+    expect(BARE_GROUND_SOURCES).toEqual(['usgs-3dep-13', 'swissalti3d', 'inegi-mdt-10k', 'lombardia-dtm5', 'mase-pst-lidar']);
     expect(bareGroundOptions({ bareGround: { source: 'usgs-3dep-13', tiles: { n42w082: '20230911' } } })).toMatchObject({ corridorM: 150, blendM: 300, biasFrom: 'open' });
     expect(bareGroundOptions({ bareGround: { source: 'swissalti3d', year: 2022, corridorM: 0, blendM: 50 } })).toMatchObject({ corridorM: 0, blendM: 50 });
     expect(() => bareGroundOptions({ bareGround: { source: 'fabdem' } })).toThrow(/source must be one of/);
@@ -116,6 +116,9 @@ describe('bareGround: recipe block', () => {
     expect(() => bareGroundOptions({ bareGround: { source: 'usgs-3dep-13', tiles: { n42w082: 'current' } } })).toThrow(/bad entry/);
     expect(() => bareGroundOptions({ bareGround: { source: 'swissalti3d' } })).toThrow(/needs year/);
     expect(() => bareGroundOptions({ bareGround: { source: 'swissalti3d', year: 2022, blendM: 0 } })).toThrow(/blendM > 0/);
+    // The Italian models have no release to pin (bareGroundItaly.test.ts).
+    expect(bareGroundOptions({ bareGround: { source: 'lombardia-dtm5' } })).toMatchObject({ corridorM: 150, blendM: 300 });
+    expect(bareGroundOptions({ bareGround: { source: 'mase-pst-lidar', corridorM: 100 } })).toMatchObject({ corridorM: 100, blendM: 300 });
     const inegi = { source: 'inegi-mdt-10k', sheets: { F13C69A4: '702825005109', F13C68C1: null } };
     expect(bareGroundOptions({ bareGround: inegi })).toMatchObject({ sheets: inegi.sheets, corridorM: 150 });
     expect(() => bareGroundOptions({ bareGround: { source: 'inegi-mdt-10k' } })).toThrow(/needs sheets/);

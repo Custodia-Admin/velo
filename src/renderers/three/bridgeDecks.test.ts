@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 
 import { readableWorldBundles } from '../../../tools/worldbake/worldBundles.mjs';
 import { sampleAppRoute } from '../../../tools/worldbake/routeCoverage.mjs';
+import { LANDING_M } from '../../../tools/worldbake/bridges.mjs';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import { Heightfield } from '@/lib/world/heightfield';
 import { loadWorld, type BridgesLayer, type LoadedWorld, type RoadsLayer } from '@/lib/world/loadWorld';
@@ -236,10 +237,13 @@ describe.each(BUNDLES.map((b: { id: string; dir: string }) => [b.id, b.dir]))('s
             const u = ((cx - ax) * (by - ay) - (cy - ay) * (bx - ax)) / den;
             if (t < 0 || t > 1 || u < 0 || u > 1) continue;
             const x = ax + (bx - ax) * t, y = ay + (by - ay) * t;
-            const top = alongVertices(p.s, p.z, p.s[k] + (p.s[k + 1] - p.s[k]) * u);
+            const along = p.s[k] + (p.s[k + 1] - p.s[k]) * u;
+            const top = alongVertices(p.s, p.z, along);
             const routeH = surface(x, y);
-            // A landed approach crossing at grade is a junction, not an underpass.
-            if (p.approach && top - ground(x, y) < 0.3 && Math.abs(top - routeH) < 0.6) continue;
+            // A landed approach crossing at grade is a junction, not an underpass;
+            // so is a crossing within LANDING_M of where a deck lands (bridges.mjs).
+            const landing = along <= LANDING_M || along >= p.len - LANDING_M;
+            if ((p.approach || landing) && top - ground(x, y) < 0.3 && Math.abs(top - routeH) < 0.6) continue;
             const s = r.s[i - 1] + (r.s[i] - r.s[i - 1]) * t;
             expect(top - p.thickness - routeH, `${r.id} under road ${road} at ${s.toFixed(0)} m`).toBeGreaterThanOrEqual(MIN_HEADROOM_M);
           }

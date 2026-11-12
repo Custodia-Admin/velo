@@ -65,6 +65,15 @@ export const RIDE_HEADING_DEG = 35;
 /** Shorter rides (a route crossing a bridge end) are ignored, metres. */
 export const RIDE_MIN_M = 4;
 /**
+ * A route crossing a deck within this distance of a piece end where the deck
+ * lands on the ground meets the deck there, it doesn't pass under it: so close
+ * to the landing the underside is under 0.3 m off the ground at any deck
+ * grade. Lake Como: a footbridge over a stream starts at the junction of the
+ * two cycleways the route rides, and the route line (1 m simplification)
+ * crosses it 0.8 m from that junction. Metres.
+ */
+export const LANDING_M = 3;
+/**
  * Road classes a scenic route (a bike route) never rides: a route beside or
  * under one of these decks is on a road of its own (motorway and trunk,
  * their `_link`s included: buildVectors maps a link to its class).
@@ -510,6 +519,14 @@ function crossings(lineX, lineY, path) {
   return out;
 }
 
+/** Whether arclength `ps` on piece `road` (path `path`) is within LANDING_M of an end where its network lands on the ground. */
+function atLanding(net, road, path, ps) {
+  const n = road.p.length;
+  if (ps <= LANDING_M) return net.nodes.get(keyOf(road.p[0], road.p[1]))?.boundary === true;
+  if (ps >= path.len - LANDING_M) return net.nodes.get(keyOf(road.p[n - 2], road.p[n - 1]))?.boundary === true;
+  return false;
+}
+
 /**
  * Deck heights for every network. `groundAt` is the terrain (after the
  * carve); `routes` are the carve's prepared routes (x, y, s, target) with
@@ -549,6 +566,7 @@ export function deckHeights({ roads, nets, groundAt, routes, abutZ = new Map() }
         for (const c of crossings(r.x, r.y, path)) {
           const s = r.s[c.i - 1] + (r.s[c.i] - r.s[c.i - 1]) * c.t;
           if (r.spans.some((sp) => sp.net === ni && s >= sp.s0 - 2 && s <= sp.s1 + 2)) continue;
+          if (atLanding(net, road, path, c.ps)) continue;
           const need = routeHeightAt(r, c.i, c.t) + DECK_HEADROOM_M + deckThickness(roads, road);
           const have = zAlong(path, solved[ni].get(ri), c.ps);
           const [x, y] = pointAt(path, c.ps);
@@ -884,8 +902,10 @@ export function headroomFailures({ roads, routes, zdm, surfaces, groundAt, rides
         const x = r.x[c.i - 1] + (r.x[c.i] - r.x[c.i - 1]) * c.t, y = r.y[c.i - 1] + (r.y[c.i] - r.y[c.i - 1]) * c.t;
         const routeH = surfaces[i](x, y) ?? groundAt(x, y);
         const top = zAlong(path, zs, c.ps);
-        // A landed approach ramp crossing the route at grade is a junction, not an underpass.
-        if (approaches.has(ri) && top - groundAt(...pointAt(path, c.ps)) < AT_GRADE_M && Math.abs(top - routeH) < AT_GRADE_M * 2) continue;
+        // A landed approach ramp crossing the route at grade is a junction, not an underpass;
+        // so is a deck end on the ground where the route crosses it (LANDING_M).
+        const landed = approaches.has(ri) || c.ps <= LANDING_M || c.ps >= path.len - LANDING_M;
+        if (landed && top - groundAt(...pointAt(path, c.ps)) < AT_GRADE_M && Math.abs(top - routeH) < AT_GRADE_M * 2) continue;
         const clear = top - deckThickness(roads, roads.roads[ri]) - routeH;
         if (clear < DECK_HEADROOM_M - 0.15) {
           out.push({ route: r.id, s: Math.round(r.s[c.i - 1] + (r.s[c.i] - r.s[c.i - 1]) * c.t), road: ri, name: roads.names[roads.roads[ri].n] ?? null, clearM: Math.round(clear * 100) / 100 });

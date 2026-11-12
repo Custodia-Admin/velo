@@ -51,6 +51,7 @@ all-map section (today's wishlist) the section line says it once instead
 | `place` | Region and country, e.g. "Ticino, Switzerland". |
 | `detail` | One line beside the section title. |
 | `world` | `null`, or `{ id, dir, bbox, routes }` mirrored from the bundle's `manifest.json` (`dir` = `"<id>/"`, `routes` = the scenic routes snapped into it). |
+| `extraWorlds` | Optional, only with a `world`: more worlds, each `{ id, dir, host?, bbox, routes }` like `world`, for the place's routes too far out for its main world (Lugano: Valle Maggia, the Magadino plain, Lake Varese and Lake Como; Perugia: Lake Trasimeno). A route is drawn by one world only. The catalog gets one entry per world; Home keeps one section per place. Moods and headline places stay the main world's; the extra worlds' credits are added after the main world's, once per credit. |
 | `routes` | Scenic route ids (`src/lib/scenicRoutes.ts`) in display order. Every scenic route belongs to exactly one destination. Routes outside the world ride on the map. |
 | `moods`, `defaultMood` | With a world: the world's. Without: the routes' own moods. |
 | `pois` | `{ name, kind, lat, lon }`. With a world: its towns (POI rank 3), at most 8. Without: empty until the place is baked. |
@@ -78,6 +79,16 @@ Nothing about it is a dead end. When its world is baked (P3.1):
 
 `destinations.test.ts` fails while a manifest is out of step with its bundle,
 when a shipped world has no destination, or when a route has no destination.
+
+## A place wider than one world
+
+A world is at most 2048 nodes a side and 8 MB brotli, so a place whose routes
+spread over 50 km (Lugano's reach up the Maggia valley and over to Lake Como)
+gets more than one world. Bake each outlying world as its own remote world,
+with its own recipe, and add `{ "id": "<world id>" }` to the destination's
+`extraWorlds`; `syncDestinations.mjs` fills in the rest from the bundle, as it
+does for `world`. The routes stay in the place's Home section, each ridden in
+the world that draws it.
 
 ## Adding a hometown or a wishlist place
 

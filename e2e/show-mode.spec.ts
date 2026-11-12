@@ -847,10 +847,10 @@ test('photoreal in the floating window draws the ride field over a cropped canva
   await page.cdp.send('Page.navigate', { url: `${baseURL}/app` });
   await poll(() => page.eval<string>('document.readyState'), (s) => s === 'complete', 30_000, 'Home to load');
   const [availWidth, availHeight] = await page.eval<[number, number]>('[screen.availWidth, screen.availHeight]');
-  // Bellinzona–Locarno is outside every baked world: a photoreal ride (no token: OSM on the ellipsoid).
+  // Peschiera–Lazise (Lake Garda) is outside every baked world: a photoreal ride (no token: OSM on the ellipsoid).
   await page.click(
-    `(${visible('[data-scenic-route="scenic-magadino-plain"]')}) || (${button('Ride Bellinzona to Locarno')})`,
-    'the Bellinzona–Locarno route',
+    `(${visible('[data-scenic-route="scenic-lake-garda-lazise"]')}) || (${button('Ride Peschiera to Lazise')})`,
+    'the Peschiera–Lazise route',
   );
   await poll(
     () => page.eval<string | null>(`document.querySelector('[data-renderer]')?.getAttribute('data-renderer') ?? null`),

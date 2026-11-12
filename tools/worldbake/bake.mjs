@@ -51,12 +51,11 @@ import { fetchOsm, osmLayersFor, OVERPASS_URL } from './fetchOsm.mjs';
 import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { BEACH_KIND, buildSea, flattenSea, relevelSea, slopeBeaches } from './coast.mjs';
-import { BARE_GROUND_CREDITS, bareGroundOptions, bareGroundStep, routeLift, WOODLAND_KINDS } from './bareGround.mjs';
-import { INEGI_MDT_BASE, inegiBoxSize } from './inegiMdt.mjs';
+import { BARE_GROUND_CREDITS, bareGroundCreditLine, bareGroundOptions, bareGroundStep, routeLift, WOODLAND_KINDS } from './bareGround.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, routeWaterDrops, waterOnBeach, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, embankmentOptions, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid, spanStructuresOption, structureLookup } from './snapRoutes.mjs';
 import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, growDeckEnds, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork, uncarvedAbutments } from './bridges.mjs';
-import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
+import { easeRoadsOntoRoutes, remeasureShifts, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
 import { P13_SAMPLE_COUNT, validationInputs } from './p13Criterion.mjs';
 import { syncDestinations } from './syncDestinations.mjs';
@@ -385,6 +384,7 @@ export async function bake(opts) {
     log(`route ${id}: ${c.mappedPct}% within 1 m of mapped roads; guide on drawn roads ${c.paintPctBefore}% → ${c.paintPct}% (${c.easedM} m eased, ${c.joinedM} m joined${c.tunnelM ? `, ${c.tunnelM} m in tunnels` : ''})`);
   }
   log(`route fit: ${fit.roadsEased} roads bent (up to ${fit.maxShiftM} m), ${fit.joins} join pieces`);
+  if (fit.endsClosed.length) log(`route fit: ${fit.endsClosed.length} road end${fit.endsClosed.length === 1 ? '' : 's'} moved to close a junction the bends opened: ${fit.endsClosed.map(([r, end, m]) => `road ${r} end ${end} by ${m} m`).join(', ')}`);
 
   // Bridges (recipe `bridges`): which decks each route rides. The carve
   // leaves the middle of a ridden deck alone (bridges.mjs).
@@ -602,6 +602,10 @@ export async function bake(opts) {
   lap('vectors', t);
   log(`vectors: ${roads.roads.length} road pieces, ${water.areas.length} water areas${dryWater.length ? ` (dropped ${dryWater.length} on routes${dryBeach ? `, ${dryBeach} now beach` : ''})` : ''} + ${water.lines.length} lines, ${landcover.layer.areas.length} landcover, ${buildings.count} buildings ${JSON.stringify(buildings.districts)} (dropped ${buildings.dropped.route} on routes, ${buildings.dropped.road} astride roads), ${vegetation.count} trees (woodland lattice ${vegetation.lattice}, character ${vegetation.character}${vegetation.corridor ? `, route corridor ${vegetation.corridor.kept} of ${vegetation.corridor.lattice}, elsewhere ${vegetation.corridor.farKept} of ${vegetation.corridor.farLattice}` : ''}) ${JSON.stringify(vegetation.byKind)}, ${pois.length} POIs`);
 
+  // The bridges step put its deck vertices in after the fit: measure the
+  // bends on the roads as shipped.
+  remeasureShifts(fit, roads);
+
   // 4. Write the bundle.
   t = Date.now();
   const payloads = [
@@ -765,11 +769,7 @@ function writeCreditsBlock({ recipe, extent, bbox, dem, osm, manifest, glo30 }) 
       : `- Elevation: ${dem.tiles.length} Terrain Tiles (terrarium) at zoom ${dem.zoom}, \`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png\`: ${tiles}.`,
     ...(recipe.bareGround
       ? [
-          recipe.bareGround.source === 'usgs-3dep-13'
-            ? `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): USGS 3DEP 1/3 arc-second DEM, \`${'https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/historical/{tile}/USGS_13_{tile}_{release}.tif'}\`: ${Object.entries(recipe.bareGround.tiles).map(([k, v]) => `\`${k}\` (${v})`).join(', ')}. Public domain.`
-            : recipe.bareGround.source === 'swissalti3d'
-              ? `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): swissALTI3D 2 m, release ${recipe.bareGround.year}, 1 km tiles from \`https://data.geo.admin.ch/ch.swisstopo.swissalti3d/\`. Source: Federal Office of Topography swisstopo.`
-              : `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): INEGI Modelo Digital de Elevación tipo terreno 1:10 000 (5 m), \`${INEGI_MDT_BASE}/{upc}_b.zip\`, sheets ${Object.entries(recipe.bareGround.sheets).map(([k, v]) => `\`${k}\` (${v ?? 'no product'})`).join(', ')}. Fuente: INEGI, Modelo Digital de Elevación tipo terreno con resolución de 5 m, escala 1:10 000 (Términos de Libre Uso de la Información del INEGI). Transformed by the bake, not by INEGI: each grid node is the mean of the ${inegiBoxSize(recipe.grid.cellSize, 5)} × ${inegiBoxSize(recipe.grid.cellSize, 5)} pixels round it, shifted by the datum bias to GLO-30's level (measured over ${bareGroundOptions(recipe).biasFrom === 'beach' ? 'the beaches' : 'flat open ground'}) and blended into GLO-30 beside the routes.`,
+          `- Bare ground along the routes (within ${bareGroundOptions(recipe).corridorM} m, blended out over ${bareGroundOptions(recipe).blendM} m): ${bareGroundCreditLine(recipe)}`,
         ]
       : []),
     `- OpenStreetMap: Overpass API (\`${OVERPASS_URL}\`), data as of ${recipe.osmDate} (attic query), layers ${Object.keys(osm.queries).join(', ')} over the bounding box above. Queries are recorded in \`tools/worldbake/reports/${recipe.id}.json\`.`,

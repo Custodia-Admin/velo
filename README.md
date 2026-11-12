@@ -37,6 +37,7 @@ settings stay on the device.
 ## What it does
 
 - **Baked 3D worlds.** Perugia (Umbria) and Lugano (Ticino) ship in the repo.
+  Lake Trasimeno, Valle Maggia, the Magadino plain, Lake Varese, Lake Como,
   Chengdu's Luxe Lakes, the Cuyahoga Valley towpath, the Cleveland lakefront,
   the Berkeley Bay Trail, Santa Monica and Venice, and Puerto Vallarta are
   fetched on their first ride and ride offline after that. Terrain, roads,
@@ -143,7 +144,9 @@ first. The project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
   WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH
   2014-2018 provided under COPERNICUS by the European Union and ESA, all
   rights reserved; U.S. Geological Survey 3DEP; Source: Federal Office of
-  Topography swisstopo (swissALTI3D); Mapzen/AWS terrain tiles; OSRM. Weather
+  Topography swisstopo (swissALTI3D); DTM 5x5 © Regione Lombardia (CC BY 4.0);
+  LiDAR DTM 1 m © MASE – Geoportale Nazionale (CC BY 4.0); Mapzen/AWS terrain
+  tiles; OSRM. Weather
   data by Open-Meteo.com (CC BY 4.0).
 - Every source, licence and attribution: [NOTICE.md](NOTICE.md) and
   [docs/worlds/CREDITS.md](docs/worlds/CREDITS.md).

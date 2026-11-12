@@ -91,7 +91,7 @@ Validated by `validateManifest()`; schema in
 | `routes[]` | `{ id, name, lengthM, maxGapM, gradeMeanAbsDiffPct }` per snapped scenic route (ids match `src/lib/scenicRoutes.ts`). |
 | `stats` | Counts (roads, buildings, trees, …) for logs and UI. |
 | `credits[]` | `{ id, name, licence, url, attribution }`: show these wherever the world is shown. |
-| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry), `bareGround` (`usgs-3dep-13`, `swissalti3d` or `inegi-mdt-10k`) when the routes and the ground along them stand on an open bare-earth DTM instead of the surface model (recipe `bareGround`, see "Bare ground" below). |
+| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry), `bareGround` (`usgs-3dep-13`, `swissalti3d`, `inegi-mdt-10k`, `lombardia-dtm5` or `mase-pst-lidar`) when the routes and the ground along them stand on an open bare-earth DTM instead of the surface model (recipe `bareGround`, see "Bare ground" below). |
 
 ## height.bin: the heightfield (`u16-delta`)
 
@@ -212,7 +212,16 @@ natively, without Node's web-stream wrapper.
     piece along the route, reaching a metre into the drawn roads at either end
     like any mapped junction and never running alongside one. It takes the
     class and surface of the road it leaves (else an unpaved `path`).
-    Renderers draw these under the mapped roads.
+    A route step left to a join bends no road. A join is narrowed (to no
+    less than 1 m) until it lies over no drawn road that neither of its ends
+    lies in, so a join through a verge between two roads stays off both.
+    Renderers draw these under the mapped roads;
+  - a junction the bends still left open (roads in a row, each bent its own
+    way, so a corner of one road's flat end pokes out of the road it met) is
+    closed by moving that end along its own line, or onto the other road's
+    current end, by the least that puts it back inside, at most 1 m and 15°,
+    keeping the paint on the roads and opening no other end. The report
+    lists the moved ends under `routeFit.endsClosed`.
 
   Road ends count as drawn up to their last point (flat ends, as the renderer
   draws them), not as round caps. The guide is checked every 0.1 m along the
@@ -221,7 +230,8 @@ natively, without Node's web-stream wrapper.
   on drawn roads, and with its whole guide on them; the bake report has the
   numbers under `routes[].roadCoverage` (`easedM` bent, `joinedM` added) and
   `routeFit`: `roadsBent`, `maxShiftM` (the largest final shift, the
-  Hausdorff distance between a road's mapped and shipped line), `joins`, and
+  Hausdorff distance between a road's mapped and shipped line, measured on
+  the shipped roads after the bridges step adds its deck vertices), `joins`, and
   `bent[]` with each moved road's index, shift and mapped polyline (dm,
   `"x,y x,y …"`). `src/lib/world/routeFit.test.ts` compares those mapped
   lines with the bundle: no moved road may newly lie over another drawn road
@@ -641,9 +651,35 @@ P1.3 gate compares it with GLO-90, itself a surface model.
   "Fuente: INEGI, Modelo Digital de Elevación tipo terreno con resolución
   de 5 m, escala 1:10 000", with the transformation stated (Términos de
   Libre Uso de la Información del INEGI: free use, commercial included).
-- **LZW.** Both sources are LZW TIFFs, so `geotiff.mjs` gained a TIFF LZW
-  decoder (libtiff's early code-width change), checked against tifffile
-  fixtures in `tools/worldbake/fixtures/`.
+- **`lombardia-dtm5`**: Regione Lombardia DTM 5×5 (edition 2015, CC BY 4.0)
+  from the region's ArcGIS ImageServer. Its stored grid is 5 m in WGS84 /
+  UTM 32N from the service extent's north-west corner (460001.8694,
+  5166901.2481); the bake cuts 2 km tiles on that grid and asks for each with
+  nearest-neighbour sampling, so a tile is the stored pixels (LZW float32,
+  PixelIsArea). The service metadata and every tile's georeference are
+  checked against the grid, and an error answer (the ImageServer sends HTTP
+  200 with a JSON body) is never cached. Nodes go into UTM 32N with the
+  world projection's Krüger series (equal to PROJ to the millimetre); each
+  takes the mean of the 3 × 3 pixels round it at 12 m. Outside the region's
+  LiDAR surveys the model is built from the topographic database (10 m
+  contours, spot heights and 3D road and water edges): it reads the roads
+  well and the hillsides a little terraced.
+- **`mase-pst-lidar`**: the LiDAR DTM 1 m of the Ministry of the
+  Environment's Piano Straordinario di Telerilevamento Ambientale (flown
+  2008–2010, CC BY 4.0), 0.01° tiles of 1000 × 1000 pixels (WGS84, 1e-5°,
+  PixelIsPoint, float32, nodata −9999 over water). The survey flew river and
+  lake corridors, not whole regions. The tile index (an ArcGIS
+  FeatureServer) names the tiles with data; the bake orders the ones it lacks
+  from the PST download service (POST, poll until ready, a zip of the tiles),
+  20 per order, and caches each tile. Each node takes the mean of the pixels
+  within half a cell round it (15 × 11 at 12 m and 43° N).
+- **Shores.** Both Italian models leave the lakes without a value. A node
+  reads the pixels of its box that have one when at least half of them do,
+  so a node on the shore reads the land beside it and one out on the water
+  keeps GLO-30. (The two older sources need every pixel of the box.)
+- **LZW.** 3DEP, swissALTI3D and the Lombardia tiles are LZW TIFFs, so
+  `geotiff.mjs` gained a TIFF LZW decoder (libtiff's early code-width
+  change), checked against tifffile fixtures in `tools/worldbake/fixtures/`.
 - **Report.** `bareGround` in `tools/worldbake/reports/<id>.json`: tiles,
   bias, how far the swap lowered and raised the ground, and for each route how
   far it stands over the bare ground after the bake (`routes`: median, p95,
@@ -852,7 +888,8 @@ centre). It covers Perugia's hill, the Tiber at Ponte San Giovanni and the
 Assisi valley floor, so it holds both `scenic-perugia-tiber-park` and
 `scenic-assisi-valley`. The blueprint's "~14 × 14 km" couldn't reach the
 Assisi route, 18 km east of the centre. `scenic-trasimeno-shore`
-(Castiglione del Lago, 30 km west) is left for its own world; stretching this
+(Castiglione del Lago, 30 km west) has its own world, `trasimeno`, linked as
+one of Perugia's `extraWorlds` ("The outlying routes" below); stretching this
 one to 45 km would cost resolution and budget.
 
 ### Lugano
@@ -862,8 +899,8 @@ The world is 23 × 27 km at 15 m (`x −11500…11495`, `y −13500…13500` aro
 and `scenic-locarno-brissago`, about 22 km apart across Monte Ceneri. The other
 Ticino and Lombardy routes (Magadino plain, Valle Maggia, Lake Varese, Lake
 Como) are 20–45 km further out; one world reaching them would pass 2048
-nodes a side and the 8 MB budget, so they stay map rides in the Lugano
-destination until they get worlds of their own. Baked 4 Nov 2026 on the bake host
+nodes a side and the 8 MB budget, so each has a world of its own, linked as
+one of the Lugano destination's `extraWorlds` ("The outlying routes" below). Baked 4 Nov 2026 on the bake host
 from Terrain Tiles (EU-DEM), re-baked 6 Nov 2026 from Copernicus GLO-30
 (`"dem": { "source": "copernicus-glo30" }`, card t_49b58e90). The shipped
 bundle is the GLO-30 one:
@@ -1097,6 +1134,36 @@ underpass at 0.18–0.29 km, which shortens the Shoreway's approach ramps
 (148.7 → 113.1 m over 3 m); headroom pins and abutment lifts stay within
 0.05 m. The largest local grade departure is 3.1 pp (2.7 before). Size, P1.3
 and determinism as in the table.
+
+### The home-area worlds (Perugia's and Lugano's extra worlds)
+
+Remote worlds baked 12 Nov 2026 on cat-bed (card t_3d81f73f) from Copernicus
+GLO-30 and OSM as of 1 Nov 2026, each with `bridges`, `bareGround` and
+`snap.embankment`, for the household places' outlying routes. `perugia.json`
+lists `trasimeno` under `extraWorlds`; `lugano.json` lists `valle-maggia`,
+`magadino`, `lake-varese` and `lake-como` ([DESTINATIONS.md](DESTINATIONS.md)).
+Valle Maggia and Lake Como ride with `snap.spanStructures`; embankment `maxM`
+is 1 m (Trasimeno, Magadino, Lake Varese), 3 m (Lake Como) and 4 m (Valle
+Maggia), the lowest that keeps grade Δ under 1 pp. Magadino thins its far
+woods (`vegetation.corridor` 300 m, keep 0.3, 200k trees) to hold 60 fps on
+the iGPU.
+
+| World | Extent | Bare ground | P1.3 v2 | Route | Route over bare ground (median / p95 / max) | Bridges, tunnels | Size |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Lake Trasimeno (`trasimeno`) | 13.3 × 12.7 km, 1107 × 1059 nodes | mase-pst-lidar | standard, registered **1.04 m ≤ 6 m, PASS** | 22.28 km, grade Δ 0.129 pp, guide 100 % on drawn roads (21 roads bent ≤ 1.03 m, 0 joins) | 0.06 / 0.93 / 2.08 m (on GLO-30: 1.63 / 7.18 / 14.29 m) | 6 ridden decks; 0 m in tunnels | 0.93 MB brotli |
+| Valle Maggia (`valle-maggia`) | 15.9 × 17.8 km, 1330 × 1486 nodes | swissalti3d | mountain, registered **3.55 m ≤ 6.24 m, PASS** | 21.81 km, grade Δ 0.985 pp, guide 100 % on drawn roads (13 roads bent ≤ 1.12 m, 1 joins) | 0.07 / 4.26 / 14.2 m (on GLO-30: 3.76 / 17.39 / 29.86 m) | 17 ridden decks; 315.1 m in tunnels | 3.48 MB brotli |
+| Magadino plain (`magadino`) | 20.0 × 7.0 km, 1664 × 582 nodes | swissalti3d | mountain, registered **2.17 m ≤ 6.24 m, PASS** | 21.04 km, grade Δ 0.423 pp, guide 100 % on drawn roads (27 roads bent ≤ 0.81 m, 1 joins) | -0.13 / 2.89 / 6.95 m (on GLO-30: 1.09 / 4.8 / 11.02 m) | 12 ridden decks; 76.6 m in tunnels | 2.50 MB brotli |
+| Lake Varese (`lake-varese`) | 10.9 × 9.2 km, 911 × 767 nodes | lombardia-dtm5 | standard, registered **1.38 m ≤ 6 m, PASS** | 17.56 km, grade Δ 0.738 pp, guide 100 % on drawn roads (10 roads bent ≤ 0.5 m, 1 joins) | -0.22 / 1.22 / 8.44 m (on GLO-30: 1.56 / 8.88 / 16.16 m) | 8 ridden decks; 3.8 m in tunnels | 2.21 MB brotli |
+| Lake Como (Menaggio–Gravedona) (`lake-como`) | 10.8 × 16.9 km, 905 × 1410 nodes | lombardia-dtm5 | mountain, registered **1.45 m ≤ 6.24 m, PASS** | 17.99 km, grade Δ 0.991 pp, guide 100 % on drawn roads (19 roads bent ≤ 0.67 m, 0 joins) | -0.08 / 4.04 / 12.11 m (on GLO-30: 1.76 / 12.59 / 68.27 m) | 12 ridden decks; 1138 m in tunnels | 2.68 MB brotli |
+
+The largest lifts are on structures or hillsides: Valle Maggia's 14.2 m is
+the Ponte Brolla deck over the Maggia gorge (227–288 m), Lake Como's 12.1 m
+the footbridge where the route meets two cycleways (3,750 m), Lake Varese's
+8.4 m a road cut into the slope above the lake (3.3 km). Tunnels are drawn as
+the cut the carve leaves, with no road in them, as in the other worlds; Lake
+Como's galleries make that 1,138 m of its 18 km (deepest cut 141 m). Before
+and after frames at each route's start and fps on cat-bed's iGPU are in
+`docs/design/screenshots/v2/build/home-area-worlds/`.
 
 ### Adding a world
 

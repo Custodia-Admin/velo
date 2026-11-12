@@ -107,6 +107,30 @@
             "biasFrom": { "enum": ["open", "beach"], "description": "Where the DTM's datum bias to GLO-30 is measured: flat corridor nodes clear of woodland (\"open\", default) or the flat corridor nodes on a coast world's beaches and sand (\"beach\": for corridors through a town, where GLO-30 reads the roofs). Needs coast for \"beach\"." }
           },
           "additionalProperties": false
+        },
+        {
+          "title": "Regione Lombardia DTM 5x5, edition 2015 (Lombardy)",
+          "type": "object",
+          "required": ["source"],
+          "properties": {
+            "source": { "const": "lombardia-dtm5" },
+            "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
+            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." },
+            "biasFrom": { "enum": ["open", "beach"], "description": "Where the DTM's datum bias to GLO-30 is measured: flat corridor nodes clear of woodland (\"open\", default) or the flat corridor nodes on a coast world's beaches and sand (\"beach\": for corridors through a town, where GLO-30 reads the roofs). Needs coast for \"beach\"." }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "MASE PST LiDAR DTM 1 m, 2008-2010 (Italy, where the survey flew)",
+          "type": "object",
+          "required": ["source"],
+          "properties": {
+            "source": { "const": "mase-pst-lidar" },
+            "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
+            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." },
+            "biasFrom": { "enum": ["open", "beach"], "description": "Where the DTM's datum bias to GLO-30 is measured: flat corridor nodes clear of woodland (\"open\", default) or the flat corridor nodes on a coast world's beaches and sand (\"beach\": for corridors through a town, where GLO-30 reads the roofs). Needs coast for \"beach\"." }
+          },
+          "additionalProperties": false
         }
       ]
     },

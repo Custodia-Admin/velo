@@ -741,13 +741,14 @@ describe('RideSetupWizard — the route step (search, generate, scenic pick)', (
     expect(render().header(2).active).toBe(true);
   });
 
-  it('scenic tiles: one Classic view tag on exactly the routes no baked world draws, and they still ride', async () => {
+  it('scenic tiles: the Classic view tag follows worldForRoute (none of the six home-first routes needs it), and they still ride', async () => {
     const view = mount();
     const want = homeFirstScenicRoutes().slice(0, 6);
     await vi.waitFor(() => expect(view().tiles).toHaveLength(6));
     const classic = want.map((s) => (worldForRoute(s.route) === null ? 1 : 0));
-    // Trasimeno and Valle Maggia have no baked world yet; the other four do.
-    expect(classic).toEqual([1, 0, 0, 0, 0, 1]);
+    // All six ride in baked worlds since 12 Nov 2026 (Trasimeno and Valle
+    // Maggia in worlds of their own): none carries the tag.
+    expect(classic).toEqual([0, 0, 0, 0, 0, 0]);
     expect(view().tiles.map((t) => t.classic)).toEqual(classic);
     view().tiles[0].onClick();
     expect(useRideStore.getState().route?.id).toBe('scenic-trasimeno-shore');

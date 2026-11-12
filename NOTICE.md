@@ -38,9 +38,18 @@ modifications and the exact inputs of every world:
   the routes of the Cuyahoga Valley, Cleveland and Santa Monica worlds).
   Public domain; credit: U.S. Geological Survey, 3D Elevation Program 1/3
   arc-second Digital Elevation Model.
-- **swissALTI3D** (bare ground along the routes of the Lugano world). Open
-  Government Data of the Swiss Confederation. Source: Federal Office of
-  Topography swisstopo.
+- **swissALTI3D** (bare ground along the routes of the Lugano, Valle Maggia
+  and Magadino worlds). Open Government Data of the Swiss Confederation.
+  Source: Federal Office of Topography swisstopo.
+- **DTM 5x5 (Regione Lombardia)** (bare ground along the routes of the Lake
+  Varese and Lake Como worlds). DTM 5x5 – Modello digitale del terreno (ed.
+  2015) © Regione Lombardia, under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **MASE PST LiDAR DTM 1 m** (bare ground along the route of the Lake
+  Trasimeno world). Contains LiDAR DTM 1 m data from the Piano Straordinario
+  di Telerilevamento Ambientale, © Ministero dell'Ambiente e della Sicurezza
+  Energetica (MASE) – Geoportale Nazionale, under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - **Terrain Tiles** (Tilezen/Mapzen "terrarium" elevation on the AWS Open
   Data Registry; heightfields of the other worlds). Mixed open sources with
   attribution required; the full attribution list is in

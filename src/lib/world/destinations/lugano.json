@@ -21,6 +21,64 @@
       "scenic-locarno-brissago"
     ]
   },
+  "extraWorlds": [
+    {
+      "id": "valle-maggia",
+      "dir": "valle-maggia/6b37c1b3168c943c/",
+      "host": "remote",
+      "bbox": {
+        "south": 46.1744,
+        "west": 8.57589,
+        "north": 46.33477,
+        "east": 8.78303
+      },
+      "routes": [
+        "scenic-valle-maggia"
+      ]
+    },
+    {
+      "id": "magadino",
+      "dir": "magadino/177c80d2fcbc3f47/",
+      "host": "remote",
+      "bbox": {
+        "south": 46.14889,
+        "west": 8.77791,
+        "north": 46.21169,
+        "east": 9.03652
+      },
+      "routes": [
+        "scenic-magadino-plain"
+      ]
+    },
+    {
+      "id": "lake-varese",
+      "dir": "lake-varese/1b9e523f036a5a4c/",
+      "host": "remote",
+      "bbox": {
+        "south": 45.77496,
+        "west": 8.68138,
+        "north": 45.85769,
+        "east": 8.82199
+      },
+      "routes": [
+        "scenic-lake-varese"
+      ]
+    },
+    {
+      "id": "lake-como",
+      "dir": "lake-como/9ad4789819d2b395/",
+      "host": "remote",
+      "bbox": {
+        "south": 46.00642,
+        "west": 9.20985,
+        "north": 46.15858,
+        "east": 9.3503
+      },
+      "routes": [
+        "scenic-lake-como-menaggio"
+      ]
+    }
+  ],
   "routes": [
     "scenic-lugano-melide",
     "scenic-locarno-brissago",
@@ -92,6 +150,41 @@
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
       "url": "https://routing.openstreetmap.de/about.html",
       "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-valle-maggia",
+      "name": "Valle Maggia: OSRM bike route through 4 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/8.754,46.188;8.708,46.248;8.65821,46.28605;8.603,46.316?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-magadino-plain",
+      "name": "Bellinzona to Locarno: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/9.017,46.192;8.95,46.165;8.88,46.17;8.85,46.178;8.798,46.167?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "lombardia-dtm5",
+      "name": "DTM 5×5 Regione Lombardia (edition 2015), bare earth, along the routes",
+      "licence": "CC BY 4.0 (Regione Lombardia open data); averaged to the world grid",
+      "url": "https://www.geoportale.regione.lombardia.it/",
+      "attribution": "DTM 5x5 – Modello digitale del terreno (ed. 2015) © Regione Lombardia"
+    },
+    {
+      "id": "route-scenic-lake-varese",
+      "name": "Lake Varese shore: OSRM bike route through 5 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/8.716,45.844;8.708,45.817;8.73,45.793;8.76,45.79;8.798,45.808?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-lake-como-menaggio",
+      "name": "Menaggio to Gravedona: OSRM bike route through 4 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/9.239,46.02;9.27,46.07;9.28575,46.12492;9.307,46.145?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     }
   ]
 }

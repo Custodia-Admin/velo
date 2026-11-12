@@ -172,9 +172,8 @@ test('a route outside every baked world rides photoreal (OSM fallback with no to
   await page.addInitScript(INIT);
 
   await page.goto('/app');
-  // Bellinzona–Locarno is in the Lugano destination but outside the Lugano
-  // world (docs/worlds/WORLD-FORMAT.md, "Lugano"): a map ride.
-  await rideScenicRoute(page, 'scenic-magadino-plain', 'Bellinzona to Locarno');
+  // Peschiera–Lazise is a wishlist place (Lake Garda) with no baked world: a map ride.
+  await rideScenicRoute(page, 'scenic-lake-garda-lazise', 'Peschiera to Lazise');
 
   const view = page.locator('[data-renderer]');
   await expect(view).toHaveAttribute('data-renderer-preferred', 'world');

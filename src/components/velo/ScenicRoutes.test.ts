@@ -18,7 +18,7 @@ import { HomeHeader, devicesButtonText } from './HomeHeader';
 
 const tiber = scenicRouteById('scenic-perugia-tiber-park')!;
 const assisi = scenicRouteById('scenic-assisi-valley')!;
-const trasimeno = scenicRouteById('scenic-trasimeno-shore')!;
+const garda = scenicRouteById('scenic-lake-garda-lazise')!;
 const noop = () => {};
 
 function html(el: Parameters<typeof renderToStaticMarkup>[0]): string {
@@ -58,7 +58,7 @@ describe('FeaturedScenicRide (Today’s ride)', () => {
   });
 
   it('falls back to a map plate when the route has no world still', () => {
-    const map = html(createElement(FeaturedScenicRide, { info: trasimeno, onRide: noop }));
+    const map = html(createElement(FeaturedScenicRide, { info: garda, onRide: noop }));
     expect(map).not.toContain('<img');
     expect(map).toContain('<polyline');
     expect(map).not.toContain('ride-and-watch');
@@ -66,13 +66,13 @@ describe('FeaturedScenicRide (Today’s ride)', () => {
 
   it('says Classic view only for a route no baked world draws (Today’s ride never picks one)', () => {
     expect(out).not.toContain('Classic view');
-    expect(html(createElement(FeaturedScenicRide, { info: trasimeno, onRide: noop }))).toContain('>Classic view</span>');
+    expect(html(createElement(FeaturedScenicRide, { info: garda, onRide: noop }))).toContain('>Classic view</span>');
   });
 });
 
 describe('ScenicRouteGrid (area tiles)', () => {
   const out = html(
-    createElement(ScenicRouteGrid, { routes: [assisi, trasimeno], activeRouteId: assisi.route.id, onRide: noop }),
+    createElement(ScenicRouteGrid, { routes: [assisi, garda], activeRouteId: assisi.route.id, onRide: noop }),
   );
 
   it('renders one button per route with the data hook and pressed state', () => {
@@ -85,7 +85,7 @@ describe('ScenicRouteGrid (area tiles)', () => {
   it('marks the route without a baked world with one quiet Classic view tag', () => {
     expect(out).toContain('home-assisi.jpg');
     expect(out.match(/>Classic view</g)).toHaveLength(1);
-    expect(out).toMatch(/aria-label="Ride Lake Trasimeno shore, [^"]*, classic view"/);
+    expect(out).toMatch(/aria-label="Ride Peschiera to Lazise, [^"]*, classic view"/);
     expect(out).not.toMatch(/aria-label="Ride Assisi valley floor, [^"]*, classic view"/);
     // One marker: no "Map view" badge, no second line, tokens only.
     expect(out).not.toContain('Map view');
@@ -98,8 +98,8 @@ describe('ScenicRouteGrid (area tiles)', () => {
     const all = tiles(html(createElement(ScenicRouteGrid, { routes: SCENIC_ROUTES, onRide: noop })));
     expect(all.map((t) => t.id)).toEqual(SCENIC_ROUTES.map((r) => r.route.id));
     const classic = SCENIC_ROUTES.filter((r) => worldForRoute(r.route) === null).map((r) => r.route.id);
-    // The eleven classic routes of 12 Nov 2026 (baking them is filed separately).
-    expect(classic).toHaveLength(11);
+    // The six classic routes left once the home-area worlds were baked (12 Nov 2026).
+    expect(classic).toHaveLength(6);
     for (const t of all) {
       const isClassic = classic.includes(t.id);
       expect(t.html.includes('>Classic view</span>'), t.id).toBe(isClassic);
@@ -119,8 +119,8 @@ describe('ScenicRouteGrid (area tiles)', () => {
       precipitationMm: 0, snowfallCm: 0, windSpeedMs: 0.7, windFromDeg: 304, windGustMs: 1.5, visibilityM: 1820, isDay: true,
     };
     const ready: WeatherEntry = { status: 'ready', source: 'live', weather, fetchedAt: 0 };
-    const weatherById = { [assisi.route.id]: ready, [trasimeno.route.id]: ready };
-    const two = tiles(html(createElement(ScenicRouteGrid, { routes: [assisi, trasimeno], onRide: noop, weatherById })));
+    const weatherById = { [assisi.route.id]: ready, [garda.route.id]: ready };
+    const two = tiles(html(createElement(ScenicRouteGrid, { routes: [assisi, garda], onRide: noop, weatherById })));
     expect(two[0].html).toContain('Now: ');
     expect(two[1].html).not.toContain('Now: ');
     expect(two[1].html).toContain('>Classic view</span>');
