@@ -40,8 +40,9 @@
   },
   "snap": {
     "stepM": 10,
-    "offsetMedianM": 100,
-    "offsetMeanM": 400,
+    "offsetMedianM": 60,
+    "offsetMeanM": 240,
+    "spanStructures": true,
     "coreCells": 1.5,
     "falloffM": 40
   },
@@ -79,14 +80,14 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.0144,
+    "steep_fraction": 0.014,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
     "bound_m": 6,
-    "registered_rms_m": 0.84,
-    "point_rms_m": 1.99,
-    "max_abs_registered_err_m": 3.97,
+    "registered_rms_m": 1.44,
+    "point_rms_m": 2.01,
+    "max_abs_registered_err_m": 7.57,
     "pass": true
   }
 }

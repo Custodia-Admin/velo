@@ -21,6 +21,9 @@ import {
   embankmentLowering,
   embankmentOptions,
   finishRoutes,
+  nearStructures,
+  spanStructureDiff,
+  spanStructuresOption,
   structureLookup,
 } from '../../../tools/worldbake/snapRoutes.mjs';
 import { readRecipe } from '../../../tools/worldbake/bake.mjs';
@@ -254,5 +257,74 @@ describe('embankments: in the route fit (carveRoutes)', () => {
     const a = world();
     const p = carveRoutes({ grid, heights: a.heights, projection: proj, routes: [a.route], snap: { ...snap, embankment: { maxM: 2 } }, structure: (x: number) => Math.abs(x) < 60 }).prepared[0];
     expect(bottom(p)).toBeGreaterThan(2.5);
+  });
+});
+
+describe('spanStructures: the offset spans mapped bridges and tunnels (snap.spanStructures)', () => {
+  it('interpolates raw − profile across each run near a structure, holds the one side at a route end', () => {
+    const s = [0, 10, 20, 30, 40, 50];
+    const { diff, runs } = spanStructureDiff(s, [1, 2, 9, 9, 5, 6], Uint8Array.from([0, 0, 1, 1, 0, 0]));
+    expect(Array.from(diff)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(runs).toEqual([{ s0: 20, s1: 30 }]);
+    expect(Array.from(spanStructureDiff(s, [7, 8, 1, 2, 3, 9], Uint8Array.from([1, 1, 0, 0, 0, 1])).diff)).toEqual([1, 1, 1, 2, 3, 3]);
+    const all = spanStructureDiff(s, [1, 2, 3, 4, 5, 6], new Uint8Array(6).fill(1));
+    expect(Array.from(all.diff)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(all.runs).toEqual([]);
+  });
+
+  it('counts the samples on a structure and within the 20 m margin along the route', () => {
+    const s = [0, 10, 20, 30, 40, 50, 60, 70, 80];
+    const near = nearStructures(s, s, new Array(9).fill(0), (x: number) => x === 40);
+    expect(Array.from(near)).toEqual([0, 0, 1, 1, 1, 1, 1, 0, 0]);
+    expect(EMBANKMENT_STRUCTURE_MARGIN_M).toBe(20);
+  });
+
+  it('is off by default, must be a boolean, and is documented in tools/worldbake/recipe.schema.json', () => {
+    expect(spanStructuresOption({})).toBe(false);
+    expect(spanStructuresOption(undefined)).toBe(false);
+    expect(spanStructuresOption({ spanStructures: true })).toBe(true);
+    expect(() => spanStructuresOption({ spanStructures: 'yes' })).toThrow(/must be true or false/);
+    const schema = JSON.parse(readFileSync(repo('tools/worldbake/recipe.schema.json'), 'utf8')).properties.snap.properties.spanStructures;
+    expect(schema).toMatchObject({ type: 'boolean', default: false });
+    expect(schema.description).toContain(`within ${EMBANKMENT_STRUCTURE_MARGIN_M} m of a mapped bridge or tunnel`);
+  });
+
+  describe('in the route fit', () => {
+    const proj = createProjection({ type: 'tmerc', ellipsoid: 'WGS84', lat0: 20.6, lon0: -105.2, k0: 1 });
+    const grid = { cols: 161, rows: 41, cellSize: 10, xMin: -800, yMax: 200 };
+    /** A 120 m river channel 6 m deep across a flat plain at 3 m, bridged; a 1.2 km route with a flat profile at 2 m. */
+    function world() {
+      const heights = new Float64Array(grid.cols * grid.rows);
+      for (let r = 0; r < grid.rows; r++) for (let c = 0; c < grid.cols; c++) heights[r * grid.cols + c] = Math.abs(grid.xMin + c * grid.cellSize) < 60 ? -3 : 3;
+      const [la0, lo0] = proj.inverse(-600, 0);
+      const [la1, lo1] = proj.inverse(600, 0);
+      return { heights, route: { id: 'r', name: 'R', points: [[la0, lo0, 2], [la1, lo1, 2]] } };
+    }
+    const snap = { stepM: 10, offsetMedianM: 100, offsetMeanM: 400, coreCells: 1.5, falloffM: 30 };
+    const bridge = (x: number) => Math.abs(x) < 65;
+    const centre = (p: { x: number[]; target: number[] }) => p.target[p.x.reduce((best, v, k) => (Math.abs(v) < Math.abs(p.x[best]) ? k : best), 0)];
+
+    it('without it the channel pulls the route down onto the river; with it the deck stays at the banks', () => {
+      const a = world();
+      const plain = carveRoutes({ grid, heights: a.heights, projection: proj, routes: [a.route], snap, structure: bridge }).prepared[0];
+      expect(centre(plain)).toBeLessThan(2);
+      expect(plain.structureSpans).toBeUndefined();
+      const b = world();
+      const carved = carveRoutes({ grid, heights: b.heights, projection: proj, routes: [b.route], snap: { ...snap, spanStructures: true }, structure: bridge });
+      const p = carved.prepared[0];
+      expect(centre(p)).toBeCloseTo(3, 6);
+      expect(p.structureSpans).toEqual([{ s0: 520, s1: 680 }]);
+      // Away from the bridge the fit is the plain one.
+      expect(p.target[0]).toBe(plain.target[0]);
+      const { q, heightOffset, heightScale } = quantize(b.heights);
+      const hf = new Heightfield({ ...grid, heightOffset, heightScale }, q);
+      const { info } = finishRoutes({ prepared: carved.prepared, hf, snap });
+      expect(info[0].report.structureSpans).toEqual(p.structureSpans);
+    });
+
+    it('needs the structures', () => {
+      const a = world();
+      expect(() => carveRoutes({ grid, heights: a.heights, projection: proj, routes: [a.route], snap: { ...snap, spanStructures: true } })).toThrow(/spanStructures needs the mapped bridges and tunnels/);
+    });
   });
 });

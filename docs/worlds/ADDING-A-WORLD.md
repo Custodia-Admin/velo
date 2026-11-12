@@ -130,7 +130,10 @@ from `chengdu-luxelakes.json`:
     bias would lift the whole corridor 3 m.
   - Then shorten the `snap` offset windows as far as every route's grade Δ
     stays ≤ 1 pp (200/800 m in Ohio and Santa Monica, 300/1200 m in Lugano,
-    100/400 m in Puerto Vallarta), and read the
+    60/240 m in Puerto Vallarta, which adds `"spanStructures": true` to
+    `snap`: the DTM reads the river under each mapped bridge, and at 200/800 m
+    its first bridge already sat 1.3 m under its bank),
+    and read the
     report's `bareGround.routes`: how far each route stands over the bare
     ground (median, p95, max, samples over 3 m). P1.3 points inside the
     corridor now read the ground where the GLO-90 reference reads the canopy,

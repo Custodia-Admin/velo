@@ -54,7 +54,7 @@ import { BEACH_KIND, buildSea, flattenSea, relevelSea, slopeBeaches } from './co
 import { BARE_GROUND_CREDITS, bareGroundOptions, bareGroundStep, routeLift, WOODLAND_KINDS } from './bareGround.mjs';
 import { INEGI_MDT_BASE, inegiBoxSize } from './inegiMdt.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, routeWaterDrops, waterOnBeach, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
-import { carveRoutes, embankmentOptions, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid, structureLookup } from './snapRoutes.mjs';
+import { carveRoutes, embankmentOptions, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid, spanStructuresOption, structureLookup } from './snapRoutes.mjs';
 import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, growDeckEnds, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork, uncarvedAbutments } from './bridges.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
@@ -393,12 +393,13 @@ export async function bake(opts) {
   // The terrain before the carve: bridges over a route stand on it (uncarvedAbutments).
   const uncarved = nets ? Float64Array.from(heights) : null;
   // Embankments (recipe `snap.embankment`): mapped bridges and tunnels never count.
-  const structure = embankmentOptions(recipe.snap) ? structureLookup(roads) : undefined;
+  const structure = embankmentOptions(recipe.snap) || spanStructuresOption(recipe.snap) ? structureLookup(roads) : undefined;
   const carve = carveRoutes({ grid: g, heights, projection, routes: routesIn, snap: recipe.snap, skip, structure });
   for (const p of carve.prepared) {
     if (p.embankments) {
       log(`embankment: route ${p.id} lowered ${p.embankments.length ? p.embankments.map((e) => `${round(e.s0, 0)}–${round(e.s1, 0)} m by up to ${round(e.lowerM)} m`).join(', ') : 'nowhere'} (to ${recipe.snap.embankment.maxM} m over the ground)`);
     }
+    if (p.structureSpans) log(`spanStructures: route ${p.id} offset spans ${p.structureSpans.length ? p.structureSpans.map((e) => `${round(e.s0, 0)}–${round(e.s1, 0)} m`).join(', ') : 'nothing'}`);
   }
   if (lakes || seaFlat) {
     const keep = routeCoreNodes(g, carve.prepared, recipe.snap.coreCells * g.cellSize);

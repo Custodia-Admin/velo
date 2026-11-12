@@ -120,6 +120,11 @@
         "offsetMeanM": { "type": "number" },
         "coreCells": { "type": "number" },
         "falloffM": { "type": "number" },
+        "spanStructures": {
+          "type": "boolean",
+          "default": false,
+          "description": "Bare-ground worlds with short offset windows: route samples on or within 20 m of a mapped bridge or tunnel are left out of the offset (their raw − profile is interpolated between the samples either side), so the DTM's river channel under a deck doesn't pull the route down (snapRoutes.mjs spanStructureDiff)."
+        },
         "embankment": {
           "type": "object",
           "description": "Bare-ground worlds: where the fitted route stands more than maxM over the ground at the route and over all ground out to acrossM on both sides (and is not on or within 20 m of a mapped bridge or tunnel), lower it to maxM over the ground, easing back over rampM along the route (snapRoutes.mjs embankmentLowering). Needs bareGround.",

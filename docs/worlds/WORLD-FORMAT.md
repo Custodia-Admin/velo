@@ -157,7 +157,12 @@ natively, without Node's web-stream wrapper.
      target would stand more than `maxM` over the ground at the route and
      over all ground out to `acrossM` on both sides, it comes down to
      `maxM` over the ground, eased back over `rampM` along the route
-     (`embankmentLowering`; see "Bare ground" below);
+     (`embankmentLowering`; see "Bare ground" below). With
+     `snap.spanStructures` the samples on or within 20 m of a mapped bridge
+     or tunnel are left out of the offset: their terrain − profile is
+     interpolated between the samples either side (`spanStructureDiff`),
+     because there the DEM reads the channel under the deck or the hill over
+     the bore;
   2. nodes within `1.5 × cellSize` of the route take the target; the next
      40 m blend back to the natural terrain (smoothstep), like a road
      embankment or cutting.
@@ -648,9 +653,18 @@ P1.3 gate compares it with GLO-90, itself a surface model.
   follow it closer. The bareGround worlds use the shortest windows that keep
   every route's grade Δ ≤ 1 pp: 200/800 m (towpath, Cleveland, Santa Monica),
   300/1200 m (Lugano, whose Locarno–Brissago reads 1.18 pp at 200/800; Santa
-  Monica's Strand reads 1.225 pp at 150/600), 100/400 m (Puerto Vallarta,
-  0.442 / 0.204 pp; at 60/240 still 0.574 pp, but the mapped bridges start to
-  sag, 0.30 m on the 130 m one at the Malecón's start).
+  Monica's Strand reads 1.225 pp at 150/600), 60/240 m (Puerto Vallarta,
+  0.577 / 0.291 pp; shorter windows were not tried).
+- **Bridges under short windows (`snap.spanStructures`, card t_be5a0778).**
+  On a DTM the samples on a bridge read the channel under it, and the shorter
+  the windows, the further that pulls the route down: at 100/400 m Puerto
+  Vallarta's 130 m bridge over the Río Cuale mouth (the Malecón's first
+  130 m) sat 1.2 m under its north bank, and the next 300 m of the Malecón
+  1–2 m under the promenade. With
+  `"spanStructures": true` in `snap` the offset spans every mapped bridge
+  and tunnel (± 20 m): decks 1.8 / 2.0 / 2.5 / 3.2 / 2.5 m against bank
+  ground of 2.1 / 1.8 / 2.4 / 3.3 / 2.4 m at 60/240 m (0.8 / 1.9 / 2.3 / 2.5 /
+  1.5 m without it). The world has no `bridges`, so the decks are terrain.
 - **Which GLO-30 worlds have it** (card t_e59ae310 measured the coast worlds
   against 3DEP, route samples every 10 m, 30 m box mean, samples within 8 m
   of a mapped bridge left out):
