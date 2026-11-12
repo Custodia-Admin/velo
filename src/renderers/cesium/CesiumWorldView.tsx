@@ -984,8 +984,9 @@ export function CesiumScene({
     // Mood, sky, clouds, particles and the wet road are applied by the
     // atmosphere effect below, which also reacts to live weather.
 
-    // The line the riders are drawn on, built with the route (tens of ms on a long one), not in the first ride frame.
-    rideLineFor(route);
+    // The line the riders are drawn on, built with the route (tens of ms on a long one), not in the
+    // first ride frame. No drawn roads to keep to: the road corridor here is 7 m wide.
+    rideLineFor(route, null);
     const positions = routeToCartesians(route);
     cartesianRouteRef.current = positions;
 

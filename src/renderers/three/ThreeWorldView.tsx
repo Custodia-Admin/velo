@@ -19,7 +19,6 @@ import { useRouteWeather } from '@/hooks/useLiveWeather';
 import type { WeatherCondition } from '@/lib/meteo/weatherCondition';
 import { EMPTY_TILES, FrameStats } from '@/lib/perf/frameStats';
 import { exposeScenePerf, IDLE_GAP_MS, PUBLISH_MS, publishScenePerf, type ScenePerf } from '@/lib/perf/scenePerf';
-import { rideLineFor } from '@/lib/ride/rideLine';
 import { heldRiderPose } from '@/lib/ride/rideSim';
 import { scenicRouteById } from '@/lib/scenicRoutes';
 import { chaseFraming, RIDE_FOV_Y_DEG } from '@/lib/world/cameraFraming';
@@ -51,6 +50,7 @@ import { createPostcardPins, PlayLayer } from './PlayLayer';
 import { renderDpr, threeQuality, type ThreeQuality } from './quality';
 import { LiveRider, PaceBots, preloadRider } from './Rider';
 import { createRideDriverMemo, driveRideFrame } from './rideDriver';
+import { worldRideLine } from './rideLineRoads';
 import { RouteLine, Roads } from './Roads';
 import { createLightState, Sky, type LightState } from './Sky';
 import { DEFAULT_MOOD } from './skyModel';
@@ -446,8 +446,9 @@ export function WorldScene({
   );
   // Named places the route passes (manifest POIs), for the show director's landmark orbits.
   const directorLandmarks = useMemo(() => sceneLandmarks(route, sceneWorld), [route, sceneWorld]);
-  // Build the line the riders are drawn on with the scene (tens of ms on a long route), not in the first ride frame.
-  useMemo(() => rideLineFor(route), [route]);
+  // Build the line the riders are drawn on with the scene (tens of ms on a long route), not in the
+  // first ride frame, kept on the roads this world paints (rideLineRoads).
+  useMemo(() => worldRideLine(route, sceneWorld), [route, sceneWorld]);
   // Play mode: which of those places are postcards still to collect (PlayLayer writes, Landmarks reads).
   const postcardPins = useMemo(() => createPostcardPins(), []);
   return (

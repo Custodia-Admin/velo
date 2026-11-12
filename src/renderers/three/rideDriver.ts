@@ -19,6 +19,7 @@ import { createLinePoint, lineAt, offsetFacing, type LinePoint } from '@/lib/rid
 import { drawnPose } from '@/lib/ride/rideSim';
 import type { RiderPose } from '@/lib/world/renderer';
 import type { RideState, Route } from '@/types';
+import { worldRideLine } from './rideLineRoads';
 import { roadSpanAt, type RoadSpanMemo } from './roadSpan';
 import { estimatedCadence, placeRider, type RiderPlacement } from './riderRig';
 import type { RideFrame, SceneWorld } from './worldScene';
@@ -74,6 +75,10 @@ export function driveRideFrame(frame: RideFrame, memo: RideDriverMemo, sceneWorl
     memo.yaw.reset();
     return;
   }
+  // The line the riders are drawn on keeps to this world's drawn roads (rideLineRoads). The view
+  // builds it with the scene; here it is a cache read, so every reader below (drawnPose, lineAt,
+  // the camera) gets that line.
+  worldRideLine(route, sceneWorld);
   const laneOffsetM = stepLane(memo.lane, input.steer, dt).offsetM;
   const raw = input.override;
   // Where the rider rides or is heading across the road: what the pace partners give way to.

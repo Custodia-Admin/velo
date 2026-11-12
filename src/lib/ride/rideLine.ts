@@ -17,6 +17,14 @@
  * it turns gradually into each bend from a few metres before the vertex.
  * `curvature` and `stretch` give the corner lean (cornerLean.ts).
  *
+ * A metre's cut is nothing on a road but too much for a 1.5 m path, where
+ * the route itself already runs ~0.3 m off the painted centreline: cutting
+ * up to LINE_MAX_OFFSET_M put the drawn rider 0.5 m out on the grass at
+ * Tiber park and Assisi corners. A renderer that paints the roads passes
+ * them in (LineRoads): wherever the route point is on a drawn road, the line
+ * also keeps on one, narrowing its smoothing there as far as it needs to
+ * (down to the route itself).
+ *
  * Built once per route (cached), then read in O(1) without allocating.
  * Engine-free (src/lib/ride rule).
  */
@@ -25,8 +33,18 @@ import type { Route } from '@/types';
 
 /** Spacing of the precomputed line, metres. */
 export const LINE_STEP_M = 1;
-/** Farthest the line cuts inside an ordinary corner, metres: the rider stays on the road it is riding. */
+/**
+ * Farthest the line cuts inside an ordinary corner, metres. That alone keeps
+ * the rider on a road only where the road reaches a metre beyond the route
+ * on the inside of the bend; narrower drawn paths need LineRoads.
+ */
 export const LINE_MAX_OFFSET_M = 1;
+/**
+ * How far inside a drawn road's edge the line keeps (LineRoads), metres:
+ * room for the curve between the points it is checked at. Never further out
+ * than the route point itself, where the route runs nearer the edge than this.
+ */
+export const LINE_ROAD_MARGIN_M = 0.03;
 /** Widest smoothing (Gaussian σ), metres: a long bend of short straight segments reads as one curve. */
 export const LINE_SIGMA_MAX_M = 10;
 /**
@@ -58,6 +76,23 @@ export const LINE_FRAME_REACH_M = 3;
 export const LINE_FRAME_RADIUS_M = 5;
 
 const SIGMA_LADDER = [10, 8, 6.5, 5.2, 4.2, 3.4, 2.7, 2];
+/**
+ * Narrower widths, tried only where the line must keep to a drawn road
+ * (LineRoads) and LINE_SIGMA_MIN_M would leave it: 0 is the route itself.
+ * Fine steps, because every step narrower sharpens the turn (at a 106° path
+ * corner in Chengdu, σ 1 instead of 2 doubles the turn per frame).
+ */
+const ROAD_SIGMA_LADDER = [1.8, 1.6, 1.45, 1.3, 1.2, 1.1, 1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0];
+/** Most times the built line is checked against the drawn roads and narrowed where it leaves them. */
+const ROAD_PASSES = 12;
+/** A width the check finds off the road is narrowed to the widest step at most this share of it. */
+const ROAD_NARROW = 0.8;
+/** Points per line step at which the built line is checked against the drawn roads. */
+const ROAD_CHECKS_PER_STEP = 4;
+/** Line offsets are metres on a sphere, edge tests metres in the world's projection: never this far apart. */
+const ROAD_METRIC_SLACK = 1.01;
+/** Rounding allowance of an edge check, metres: a line point on the route point is as deep as it. */
+const ROAD_EPS_M = 0.002;
 /** Share of the frame's own heading mixed into an offset facing (offsetFacing). */
 const OFFSET_PIVOT = 0.15;
 /** Width step for the line's derivative along a changing width (∂S/∂σ), metres. */
@@ -110,15 +145,46 @@ export function createLinePoint(): LinePoint {
   return { lat: 0, lon: 0, heading: 0, curvature: 0, stretch: 1, frameHeading: 0, frameRate: 0 };
 }
 
-const cache = new WeakMap<Route, RideLine>();
+/**
+ * How far from a route point the line asks its edge test (RoadEdgeTest)
+ * about, metres: a line point (a hairpin cuts ~1.35 m at the narrowest
+ * default width) up to a step along the route.
+ */
+export const LINE_ROAD_REACH_M = 2.5;
 
-/** The drawn line for `route` (built on first use, then cached for the route object). */
-export function rideLineFor(route: Route): RideLine {
-  let line = cache.get(route);
-  if (!line) {
-    line = buildRideLine(route);
-    cache.set(route, line);
-  }
+/**
+ * Metres the point (lat, lon) lies beyond the edge of every drawn road near
+ * one route point (≤ 0: on one of them). Exact for points within
+ * LINE_ROAD_REACH_M of that route point; further out it may leave a road
+ * out, which only ever makes a point look further off.
+ */
+export type RoadEdgeTest = (lat: number, lon: number) => number;
+
+/**
+ * The drawn roads a line keeps to (the world renderer's ribbons:
+ * renderers/three/rideLineRoads). `near` is asked about route points in
+ * order along the route: null where the point lies on no drawn road (the
+ * line then keeps only within LINE_MAX_OFFSET_M of the route there), else the
+ * edge test for line points around it.
+ */
+export interface LineRoads {
+  near(lat: number, lon: number): RoadEdgeTest | null;
+}
+
+const cache = new WeakMap<Route, { line: RideLine; roads: LineRoads | null }>();
+
+/**
+ * The drawn line for `route`, built on first use and cached for the route
+ * object. `roads`: the drawn roads to keep it on (the world renderer passes
+ * its ribbons; photoreal passes null, its road corridor is 7 m wide). A line
+ * built for other roads is rebuilt; undefined reads whichever line is cached
+ * (the per-frame readers, lineAt).
+ */
+export function rideLineFor(route: Route, roads?: LineRoads | null): RideLine {
+  const hit = cache.get(route);
+  if (hit && (roads === undefined || hit.roads === (roads ?? null))) return hit.line;
+  const line = buildRideLine(route, { roads });
+  cache.set(route, { line, roads: roads ?? null });
   return line;
 }
 
@@ -130,9 +196,10 @@ function angleDelta(a: number, b: number): number {
   return d;
 }
 
-/** Normalised Gaussian half-kernel (taps 0..r) for width `sigma` metres at `step` spacing. */
+/** Normalised Gaussian half-kernel (taps 0..r) for width `sigma` metres at `step` spacing (σ 0: the point itself). */
 function kernel(sigma: number, step: number, maxR: number): Float64Array {
   const s = sigma / step;
+  if (!(s > 1e-6)) return Float64Array.of(1);
   const r = Math.min(maxR, Math.ceil(3 * s));
   const w = new Float64Array(r + 1);
   let sum = 0;
@@ -155,6 +222,8 @@ export function buildRideLine(
     sigmaMaxM?: number;
     sigmaMinM?: number;
     sigmaSlope?: number;
+    /** The drawn roads to keep the line on (LineRoads). */
+    roads?: LineRoads | null;
   } = {},
 ): RideLine {
   let step = LINE_STEP_M;
@@ -235,15 +304,55 @@ export function buildRideLine(
     }
     return w;
   };
-  // At each sample, the widest ladder width that keeps the line within maxOffset of the route.
+  // Where the route point lies on a drawn road (opts.roads): the edge test for line points around
+  // it, and how deep inside that road the route point is. A line point keeps LINE_ROAD_MARGIN_M
+  // inside the road there, or no further out than the route point. A point closer to the route
+  // point than its depth less that margin is inside for certain (no test needed): the distance
+  // to a road's edge changes no faster than the point moves (offsets here are measured on a
+  // sphere, the test in the world's projection, ROAD_METRIC_SLACK apart at most).
+  const roads = opts.roads ?? null;
+  const roadTest: (RoadEdgeTest | null)[] = [];
+  const roadDepth = new Float64Array(roads ? n : 0);
+  if (roads) {
+    for (let k = 0; k < n; k++) {
+      const t = roads.near(eLat[k + ext], eLon[k + ext]);
+      roadTest.push(t);
+      if (t) roadDepth[k] = -t(eLat[k + ext], eLon[k + ext]);
+    }
+  }
+  const onRoad = (k: number) => {
+    const t = roadTest[k];
+    if (!t) return true;
+    const depth = roadDepth[k];
+    return offsetOf(k) * ROAD_METRIC_SLACK <= depth - LINE_ROAD_MARGIN_M || t(outLat, outLon) <= ROAD_EPS_M - Math.min(depth, LINE_ROAD_MARGIN_M);
+  };
+
+  // At each sample, the widest ladder width that keeps the line within maxOffset of the route and,
+  // where the route point is on a drawn road, on one too. Where no width down to sigmaMin does, a
+  // hairpin keeps sigmaMin (and cuts a little more); a drawn road narrows it on down to the route.
   const ladder = [sigmaMax, ...SIGMA_LADDER.filter((sg) => sg < sigmaMax && sg > sigmaMin)];
-  const sigma = new Float64Array(n);
+  const narrow = [sigmaMin, ...ROAD_SIGMA_LADDER.filter((sg) => sg < sigmaMin)];
+  const rungs = [...ladder, ...narrow];
+  const need = new Float64Array(n);
   for (let k = 0; k < n; k++) {
-    sigma[k] = sigmaMin;
+    need[k] = -1;
     for (const sg of ladder) {
       smooth(k, kernelFor(sg));
-      if (offsetOf(k) <= maxOffset) {
-        sigma[k] = sg;
+      if (offsetOf(k) <= maxOffset && onRoad(k)) {
+        need[k] = sg;
+        break;
+      }
+    }
+    if (need[k] >= 0) continue;
+    if (!roadTest[k]) {
+      need[k] = sigmaMin;
+      continue;
+    }
+    need[k] = 0;
+    for (const sg of narrow) {
+      smooth(k, kernelFor(sg));
+      if (onRoad(k)) {
+        need[k] = sg;
         break;
       }
     }
@@ -251,14 +360,18 @@ export function buildRideLine(
   // The width a corner needs holds over the whole stretch it shapes (±3σ around it), and widens
   // from there by at most LINE_SIGMA_SLOPE metres per metre. A width that changed within a
   // corner's reach would kink the line there (σ narrowing to a point at the vertex bent it ~15°).
-  const need = Float64Array.from(sigma);
-  for (let j = 0; j < n; j++) {
-    const r = Math.ceil((3 * need[j]) / step);
-    for (let k = Math.max(0, j - r); k <= Math.min(n - 1, j + r); k++) if (need[j] < sigma[k]) sigma[k] = need[j];
-  }
+  const sigma = new Float64Array(n);
   const dS = slope * step;
-  for (let k = 1; k < n; k++) sigma[k] = Math.min(sigma[k], sigma[k - 1] + dS);
-  for (let k = n - 2; k >= 0; k--) sigma[k] = Math.min(sigma[k], sigma[k + 1] + dS);
+  const shape = () => {
+    sigma.set(need);
+    for (let j = 0; j < n; j++) {
+      if (need[j] >= sigmaMax) continue;
+      const r = Math.ceil((3 * need[j]) / step);
+      for (let k = Math.max(0, j - r); k <= Math.min(n - 1, j + r); k++) if (need[j] < sigma[k]) sigma[k] = need[j];
+    }
+    for (let k = 1; k < n; k++) sigma[k] = Math.min(sigma[k], sigma[k - 1] + dS);
+    for (let k = n - 2; k >= 0; k--) sigma[k] = Math.min(sigma[k], sigma[k + 1] + dS);
+  };
 
   // The route's own direction at each extended sample (degrees per metre). Smoothed with a sample's
   // kernel it is the line's derivative at a fixed width; the width changing along the route adds
@@ -279,7 +392,8 @@ export function buildRideLine(
   const heading = new Float64Array(n);
   const stretch = new Float64Array(n);
   const curvature = new Float64Array(n);
-  for (let k = 0; k < n; k++) {
+  // Sample k of the line at the width it was given (and the widths either side, for ∂S/∂σ).
+  const trace = (k: number) => {
     const sg = Math.round(sigma[k] / SIGMA_QUANTUM_M) * SIGMA_QUANTUM_M;
     const w = kernelFor(sg);
     smooth(k, w);
@@ -310,6 +424,112 @@ export function buildRideLine(
     const dE = dLon * M_PER_DEG * Math.cos(outLat * DEG);
     stretch[k] = Math.hypot(dN, dE);
     heading[k] = stretch[k] < 1e-9 ? (k > 0 ? heading[k - 1] : 0) : Math.atan2(dE, dN);
+  };
+  shape();
+  for (let k = 0; k < n; k++) trace(k);
+
+  if (roads) {
+    // Check the built line against the drawn roads between its samples too (ROAD_CHECKS_PER_STEP
+    // points per step, wherever the route point there is on one; a sample's edge test reaches the
+    // points round it), narrow the width wherever it leaves them, trace again where the width
+    // changed, and check again there.
+    const zeros = new Float64Array(n);
+    const built: RideLine = { step, n, totalDistance, lat, lon, heading, curvature, stretch, offset, frameHeading: zeros, frameRate: zeros };
+    const checks = (n - 1) * ROAD_CHECKS_PER_STEP + 1;
+    const checkTest: (RoadEdgeTest | null)[] = [];
+    const checkDepth = new Float64Array(checks);
+    // How far the route point at a check lies off the chord between the route samples either side, metres.
+    const chordGap = new Float64Array(checks);
+    for (let i = 0, seg = 0; i < checks; i++) {
+      const k = Math.floor(i / ROAD_CHECKS_PER_STEP);
+      const sub = i % ROAD_CHECKS_PER_STEP;
+      const test = sub === 0 ? roadTest[k] : (roadTest[k] ?? roadTest[k + 1]);
+      checkTest.push(null);
+      if (!test) continue;
+      if (sub === 0) {
+        checkTest[i] = test;
+        checkDepth[i] = roadDepth[k];
+        continue;
+      }
+      const d = (i / ROAD_CHECKS_PER_STEP) * step;
+      while (seg < pts.length - 2 && pts[seg + 1].distance <= d) seg++;
+      const a = pts[seg];
+      const b = pts[seg + 1];
+      const span = b.distance - a.distance;
+      const t = span > 0 ? Math.max(0, Math.min(1, (d - a.distance) / span)) : 0;
+      const rLat = a.lat + (b.lat - a.lat) * t;
+      const rLon = a.lon + (b.lon - a.lon) * t;
+      const at = test(rLat, rLon);
+      if (at > 0) continue;
+      checkTest[i] = test;
+      checkDepth[i] = -at;
+      const f = sub / ROAD_CHECKS_PER_STEP;
+      const c = k + ext;
+      const gN = (rLat - (eLat[c] + (eLat[c + 1] - eLat[c]) * f)) * M_PER_DEG;
+      const gE = (rLon - (eLon[c] + (eLon[c + 1] - eLon[c]) * f)) * M_PER_DEG * Math.cos(rLat * DEG);
+      chordGap[i] = Math.hypot(gN, gE);
+    }
+    // How far the drawn curve between samples k and k + 1 strays from the chord between them, at
+    // most: the Hermite curve is the chord plus b1·(m0 − chord) + b3·(m1 − chord), |b1|, |b3| ≤ 4/27.
+    const curveGap = (k: number) => {
+      const cos = Math.cos(((lat[k] + lat[k + 1]) / 2) * DEG);
+      const cN = (lat[k + 1] - lat[k]) * M_PER_DEG;
+      const cE = (lon[k + 1] - lon[k]) * M_PER_DEG * cos;
+      const s0 = stretch[k] * step;
+      const s1 = stretch[k + 1] * step;
+      const g0 = Math.hypot(Math.cos(heading[k]) * s0 - cN, Math.sin(heading[k]) * s0 - cE);
+      const g1 = Math.hypot(Math.cos(heading[k + 1]) * s1 - cN, Math.sin(heading[k + 1]) * s1 - cE);
+      return (4 / 27) * (g0 + g1);
+    };
+    const p = createLinePoint();
+    const before = new Float64Array(n);
+    // Samples traced since the last check (all of them at first).
+    const fresh = new Uint8Array(n).fill(1);
+    for (let pass = 0; pass < ROAD_PASSES; pass++) {
+      let narrowed = false;
+      let gapK = -1;
+      let gap = 0;
+      for (let i = 0; i < checks; i++) {
+        const test = checkTest[i];
+        const k = Math.floor(i / ROAD_CHECKS_PER_STEP);
+        if (!test || !(fresh[k] || (k + 1 < n && fresh[k + 1]))) continue;
+        const sub = i % ROAD_CHECKS_PER_STEP;
+        // Inside for certain: the line point is nearer the route point than its depth less the margin.
+        const depth = checkDepth[i];
+        if (sub === 0) {
+          if (offset[k] * ROAD_METRIC_SLACK <= depth - LINE_ROAD_MARGIN_M) continue;
+        } else {
+          // Off the route point by at most: the curve off its chord, the chord off the route's
+          // chord (the larger sample offset), the route's chord off the route point.
+          if (gapK !== k) {
+            gapK = k;
+            gap = curveGap(k) + Math.max(offset[k], offset[k + 1]);
+          }
+          if ((gap + chordGap[i]) * ROAD_METRIC_SLACK <= depth - LINE_ROAD_MARGIN_M) continue;
+        }
+        lineSample(built, (i / ROAD_CHECKS_PER_STEP) * step, p);
+        if (test(p.lat, p.lon) <= ROAD_EPS_M - Math.min(depth, LINE_ROAD_MARGIN_M)) continue;
+        for (const j of sub === 0 ? [k] : [k, k + 1]) {
+          const below = rungs.find((sg) => sg <= sigma[j] * ROAD_NARROW) ?? 0;
+          if (below < need[j]) {
+            need[j] = below;
+            narrowed = true;
+          }
+        }
+      }
+      if (!narrowed) break;
+      before.set(sigma);
+      shape();
+      fresh.fill(0);
+      for (let k = 0; k < n; k++) {
+        const a = Math.max(0, k - 1);
+        const b = Math.min(n - 1, k + 1);
+        if (sigma[a] !== before[a] || sigma[k] !== before[k] || sigma[b] !== before[b]) {
+          trace(k);
+          fresh[k] = 1;
+        }
+      }
+    }
   }
 
   // Turn per metre of path.

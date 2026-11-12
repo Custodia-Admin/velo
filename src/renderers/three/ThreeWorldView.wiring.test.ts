@@ -51,6 +51,7 @@ vi.mock('./Rider', () => ({
   preloadRider: () => undefined,
 }));
 
+import { rideLineFor } from '@/lib/ride/rideLine';
 import { useRideStore } from '@/stores/rideStore';
 import { ChaseCamera } from './ChaseCamera';
 import { CoupleGhost } from './CoupleGhost';
@@ -63,6 +64,7 @@ import { syntheticSceneWorld } from './syntheticWorld';
 import { Terrain } from './Terrain';
 import { lodHeightAt } from './terrainMesh';
 import { RideDriver, WorldScene } from './ThreeWorldView';
+import { worldRideLine } from './rideLineRoads';
 import { createRideFrame, type ChunkVisibility, type RideFrame } from './worldScene';
 
 const sw = syntheticSceneWorld();
@@ -205,5 +207,15 @@ describe('ThreeWorldView: the start holds until the chunk under the rider draws 
     visibility.near[i] = 0;
     for (const c of h.cleanups.splice(0)) c();
     expect(groundReady.current()).toBe(true);
+  });
+});
+
+describe("ThreeWorldView: the riders' line keeps to the roads the world paints", () => {
+  it('the scene builds the drawn line with its ribbons before the first ride frame (rideLineRoads)', () => {
+    const { one } = scene();
+    const route = one(PlayLayer).route as Route;
+    // RideDriver is only an element here (no frame has run): the line every rider reads
+    // (rideLineFor, cached) was built by the scene itself, for this world's roads.
+    expect(rideLineFor(route)).toBe(worldRideLine(route, sw));
   });
 });

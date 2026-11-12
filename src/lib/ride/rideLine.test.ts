@@ -24,6 +24,8 @@ import {
   lineSample,
   offsetFacing,
   rideLineFor,
+  type LineRoads,
+  type RideLine,
 } from './rideLine';
 
 const DEG = 180 / Math.PI;
@@ -149,6 +151,108 @@ describe('the drawn line', () => {
       expect(snap * DEG, `turn per 10 cm at ${snapAt.toFixed(1)} m`).toBeLessThan(12);
     });
   }
+});
+
+/** Drawn roads in local (east, north) metres: centrelines with a half-width, as LineRoads. */
+function drawnRoads(roads: { pts: [number, number][]; halfWidth: number }[]): LineRoads & { beyond(p: { lat: number; lon: number }): number } {
+  const beyond = (p: { lat: number; lon: number }) => {
+    const [x, y] = en(p);
+    let best = Infinity;
+    for (const r of roads) {
+      for (let i = 0; i + 1 < r.pts.length; i++) {
+        const [ax, ay] = r.pts[i];
+        const [bx, by] = r.pts[i + 1];
+        const dx = bx - ax;
+        const dy = by - ay;
+        const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+        best = Math.min(best, Math.hypot(x - ax - t * dx, y - ay - t * dy) - r.halfWidth);
+      }
+    }
+    return best;
+  };
+  return {
+    beyond,
+    near: (lat, lon) => (beyond({ lat, lon }) <= 0 ? (la, lo) => beyond({ lat: la, lon: lo }) : null),
+  };
+}
+
+describe('the drawn line on drawn roads (LineRoads: the world renderer)', () => {
+  // A 1.5 m path, 100 m north then 100 m east, and a route 0.3 m inside its centreline (where the
+  // shipped routes sit on Tiber park's paths): measured at PR #109's head, a 1 m cut put the drawn
+  // rider up to 0.5 m out on the grass at corners like this one.
+  const path = [{ pts: [[0, 0], [0, 100], [100, 100]] as [number, number][], halfWidth: 0.75 }];
+  const routeOnPath = () =>
+    local('path', [
+      [0.3, 0],
+      [0.3, 50],
+      [0.3, 99.7],
+      [50, 99.7],
+      [100, 99.7],
+    ]);
+
+  /** Worst metres beyond the drawn edge at 5 cm steps, where the route point there is on a drawn road; and the worst heading vs travel and turn per 10 cm. */
+  function ride(line: RideLine, r: Route, roads: ReturnType<typeof drawnRoads>) {
+    const p = createLinePoint();
+    const q = createLinePoint();
+    let out = -Infinity;
+    let crab = 0;
+    let snap = 0;
+    for (let d = 0; d + 0.1 <= r.totalDistance; d += 0.05) {
+      lineSample(line, d, p);
+      if (roads.beyond(sampleRouteAtDistance(r, d)) <= 0) out = Math.max(out, roads.beyond(p));
+      lineSample(line, d + 0.1, q);
+      crab = Math.max(crab, Math.abs(headingDelta(lineSample(line, d + 0.05).heading, bearing(p, q))));
+      snap = Math.max(snap, Math.abs(headingDelta(q.heading, p.heading)));
+    }
+    return { out, crab: crab * DEG, snap: snap * DEG };
+  }
+
+  it('keeps a 1.5 m path through its corner, turning the right way and facing the way it moves', () => {
+    const r = routeOnPath();
+    const roads = drawnRoads(path);
+    // Against the route alone the line leaves the path on the inside of the bend.
+    expect(ride(buildRideLine(r), r, roads).out).toBeGreaterThan(0.2);
+    const line = buildRideLine(r, { roads });
+    const on = ride(line, r, roads);
+    expect(on.out, 'metres beyond the drawn edge').toBeLessThanOrEqual(0.005);
+    expect(on.crab, 'heading vs travel, °').toBeLessThan(1);
+    expect(on.snap, 'turn per 10 cm, °').toBeLessThan(12);
+    // Still a rounded right turn: turning from before the vertex (99.7 m) to after it.
+    const at = createLinePoint();
+    expect(lineSample(line, 99, at).heading * DEG).toBeGreaterThan(1);
+    expect(lineSample(line, 100.4, at).heading * DEG).toBeLessThan(89);
+    expect(lineSample(line, 99.7, at).curvature).toBeGreaterThan(0);
+    expect(Math.abs(lineSample(line, 90, at).heading * DEG)).toBeLessThan(0.5);
+    expect(Math.abs(lineSample(line, 110, at).heading * DEG - 90)).toBeLessThan(0.5);
+  });
+
+  it('is the same line as without roads where the roads are wide (a 7 m road) or the route is on none', () => {
+    const r = routeOnPath();
+    const plain = buildRideLine(r);
+    for (const roads of [drawnRoads([{ ...path[0], halfWidth: 3.5 }]), drawnRoads([{ pts: [[500, 0], [500, 100]], halfWidth: 0.75 }])]) {
+      const line = buildRideLine(r, { roads });
+      expect(Array.from(line.lat)).toEqual(Array.from(plain.lat));
+      expect(Array.from(line.lon)).toEqual(Array.from(plain.lon));
+      expect(Array.from(line.heading)).toEqual(Array.from(plain.heading));
+    }
+  });
+
+  it('caches one line per route: rebuilt for other roads, read as cached without them', () => {
+    const r = routeOnPath();
+    const roads = drawnRoads(path);
+    const plain = rideLineFor(r);
+    const kept = rideLineFor(r, roads);
+    expect(kept).not.toBe(plain);
+    expect(rideLineFor(r, roads)).toBe(kept);
+    // The per-frame readers get the line the renderer built.
+    expect(rideLineFor(r)).toBe(kept);
+    expect(lineAt(r, 99.7).lat).toBe(lineSample(kept, 99.7).lat);
+    // Photoreal (no drawn roads) gets the line against the route alone again.
+    const again = rideLineFor(r, null);
+    expect(again).not.toBe(kept);
+    expect(Array.from(again.lat)).toEqual(Array.from(plain.lat));
+    expect(rideLineFor(r, null)).toBe(again);
+  });
 });
 
 describe("the line's sideways frame (steered rider, pace partner slots)", () => {
