@@ -9,7 +9,7 @@
   "detail": "Banderas Bay",
   "world": {
     "id": "puerto-vallarta",
-    "dir": "puerto-vallarta/9d190b96b345ea2b/",
+    "dir": "puerto-vallarta/1f75dbdd7d98163d/",
     "host": "remote",
     "bbox": {
       "south": 20.5898,
@@ -98,6 +98,13 @@
       "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
       "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
       "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "inegi-mdt",
+      "name": "INEGI Modelo Digital de Elevación tipo terreno 1:10 000, 5 m, bare earth, along the routes",
+      "licence": "Términos de Libre Uso de la Información del INEGI (free use, commercial included, with attribution)",
+      "url": "https://www.inegi.org.mx/inegi/terminos.html",
+      "attribution": "Fuente: INEGI, Modelo Digital de Elevación tipo terreno con resolución de 5 m, escala 1:10 000. Transformed by Velo, not by INEGI: averaged onto the world grid, shifted to the Copernicus DEM height level and blended into it beside the routes."
     },
     {
       "id": "copernicus-glo90",

@@ -65,22 +65,29 @@
 //   the tiles, the session is polled until the zip is ready. The tiles are
 //   cached; the survey is closed, so they never change. Each node takes the
 //   mean of the pixels within half a cell round it.
+// - "inegi-mdt-10k": INEGI's 1:10 000 Modelo Digital de Elevación tipo
+//   terreno, 5 m (Mexico), one zip per sheet and edition: an ESRI BIL in UTM
+//   (inegiMdt.mjs). The recipe pins every sheet the corridor touches to its
+//   product UPC (`sheets: { "F13C69A4": "702825005109" }`; null = INEGI has
+//   no product there, the open sea). Each node takes the mean of the k × k
+//   pixels round it (k = 3 at 12 m), read from the sheet whose cell holds it.
 //
 // The two Italian models read a node from the pixels that have a value when
 // at least half of the box does: a node on a lake shore reads the land beside
 // it, one out on the water none.
 //
-// A node without a DTM value (nodata, a 404 tile) keeps its GLO-30 height.
+// A node without a DTM value (nodata, a 404 tile, a sheet without a product)
+// keeps its GLO-30 height.
 
 import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
-import { inflateRawSync } from 'node:zlib';
 import { cachedFetch, ensureDir, sha256, sleep, USER_AGENT, writeFileAtomic } from './util.mjs';
 import { geoKey, geoReference, openRaster, parseTiff } from './geotiff.mjs';
 import { appRoutePoints } from './snapRoutes.mjs';
+import { INEGI_MDT_BASE, INEGI_MDT_CATALOGUE, readZip, checkInegiCoverage, inegiBoxSize, inegiSampler, inegiSheetName, inegiSheetUrl, openInegiSheet } from './inegiMdt.mjs';
 import { createProjection } from '../../src/lib/world/projection.ts';
 
-export const BARE_GROUND_SOURCES = ['usgs-3dep-13', 'swissalti3d', 'lombardia-dtm5', 'mase-pst-lidar'];
+export const BARE_GROUND_SOURCES = ['usgs-3dep-13', 'swissalti3d', 'inegi-mdt-10k', 'lombardia-dtm5', 'mase-pst-lidar'];
 /** Full DTM within this many metres of a route (default). */
 export const BARE_GROUND_CORRIDOR_M = 150;
 /** Then a smoothstep back to the surface model over this many metres (default). */
@@ -91,6 +98,15 @@ export const BIAS_WOODLAND_CLEAR_M = 30;
 export const BIAS_MAX_SLOPE = 0.05;
 /** Landcover kinds that carry a canopy (buildVectors LANDCOVER_KINDS). */
 export const WOODLAND_KINDS = ['forest', 'scrub', 'orchard'];
+/**
+ * Where the datum bias is measured (recipe `bareGround.biasFrom`): "open" =
+ * flat corridor nodes with no woodland within 30 m (default); "beach" = flat
+ * corridor nodes on a coast world's beaches and sand, for a corridor through
+ * a town, where GLO-30 reads the roofs and street trees on the "open" nodes
+ * (Puerto Vallarta: GLO-30 − DTM is +3.35 m over residential land, +0.04 m on
+ * the beaches).
+ */
+export const BIAS_FROM = ['open', 'beach'];
 
 export const USGS_3DEP_BASE = 'https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF';
 export const SWISSALTI3D_BASE = 'https://data.geo.admin.ch/ch.swisstopo.swissalti3d';
@@ -110,6 +126,14 @@ export const BARE_GROUND_CREDITS = {
     url: 'https://www.swisstopo.admin.ch/en/height-model-swissalti3d',
     attribution: 'Source: Federal Office of Topography swisstopo',
   },
+  'inegi-mdt-10k': {
+    id: 'inegi-mdt',
+    name: 'INEGI Modelo Digital de Elevación tipo terreno 1:10 000, 5 m, bare earth, along the routes',
+    licence: 'Términos de Libre Uso de la Información del INEGI (free use, commercial included, with attribution)',
+    url: 'https://www.inegi.org.mx/inegi/terminos.html',
+    attribution:
+      'Fuente: INEGI, Modelo Digital de Elevación tipo terreno con resolución de 5 m, escala 1:10 000. Transformed by Velo, not by INEGI: averaged onto the world grid, shifted to the Copernicus DEM height level and blended into it beside the routes.',
+  },
   'lombardia-dtm5': {
     id: 'lombardia-dtm5',
     name: 'DTM 5×5 Regione Lombardia (edition 2015), bare earth, along the routes',
@@ -126,13 +150,18 @@ export const BARE_GROUND_CREDITS = {
   },
 };
 
-/** The DTM's line in docs/worlds/CREDITS.md (after "Bare ground along the routes (…): "). */
-export function bareGroundCreditLine(b) {
+/** The DTM's line in docs/worlds/CREDITS.md (after "Bare ground along the routes (…): "), for `recipe.bareGround`. */
+export function bareGroundCreditLine(recipe) {
+  const b = recipe.bareGround;
   switch (b.source) {
     case 'usgs-3dep-13':
       return `USGS 3DEP 1/3 arc-second DEM, \`${USGS_3DEP_BASE}/historical/{tile}/USGS_13_{tile}_{release}.tif\`: ${Object.entries(b.tiles).map(([k, v]) => `\`${k}\` (${v})`).join(', ')}. Public domain.`;
     case 'swissalti3d':
       return `swissALTI3D 2 m, release ${b.year}, 1 km tiles from \`${SWISSALTI3D_BASE}/\`. Source: Federal Office of Topography swisstopo.`;
+    case 'inegi-mdt-10k': {
+      const k = inegiBoxSize(recipe.grid.cellSize, 5);
+      return `INEGI Modelo Digital de Elevación tipo terreno 1:10 000 (5 m), \`${INEGI_MDT_BASE}/{upc}_b.zip\`, sheets ${Object.entries(b.sheets).map(([k, v]) => `\`${k}\` (${v ?? 'no product'})`).join(', ')}. Fuente: INEGI, Modelo Digital de Elevación tipo terreno con resolución de 5 m, escala 1:10 000 (Términos de Libre Uso de la Información del INEGI). Transformed by the bake, not by INEGI: each grid node is the mean of the ${k} × ${k} pixels round it, shifted by the datum bias to GLO-30's level (measured over ${bareGroundOptions(recipe).biasFrom === 'beach' ? 'the beaches' : 'flat open ground'}) and blended into GLO-30 beside the routes.`;
+    }
     case 'lombardia-dtm5':
       return `Regione Lombardia DTM 5x5 (ed. 2015), 2 km tiles of its stored 5 m grid from \`${LOMBARDIA_DTM5.service}/exportImage\`, averaged to the world grid. CC BY 4.0, © Regione Lombardia.`;
     case 'mase-pst-lidar':
@@ -158,7 +187,16 @@ export function bareGroundOptions(recipe) {
     }
   }
   if (b.source === 'swissalti3d' && !Number.isInteger(b.year)) throw new Error('recipe bareGround "swissalti3d" needs year (the swissALTI3D release, e.g. 2022)');
-  return { ...b, corridorM, blendM };
+  if (b.source === 'inegi-mdt-10k') {
+    if (!b.sheets || typeof b.sheets !== 'object') throw new Error('recipe bareGround "inegi-mdt-10k" needs sheets: { "<F13C69A4>": "<product UPC>" | null }');
+    for (const [k, v] of Object.entries(b.sheets)) {
+      if (!/^[A-Z]\d{1,2}[A-D][1-8][1-9][A-F][1-4]$/.test(k) || !(v === null || (typeof v === 'string' && /^\d{12}$/.test(v)))) throw new Error(`recipe bareGround.sheets: bad entry ${k}: ${v}`);
+    }
+  }
+  const biasFrom = b.biasFrom ?? 'open';
+  if (!BIAS_FROM.includes(biasFrom)) throw new Error(`recipe bareGround.biasFrom must be one of ${BIAS_FROM.join(', ')}`);
+  if (biasFrom === 'beach' && !recipe.coast) throw new Error('recipe bareGround.biasFrom "beach" needs coast: true (the beaches come from the coast layer)');
+  return { ...b, corridorM, blendM, biasFrom };
 }
 
 // --- USGS 3DEP 1/3″ -----------------------------------------------------
@@ -588,42 +626,6 @@ export function maseSampler(tiles, cellSize) {
   };
 }
 
-/**
- * The stored files of a zip archive (stored or deflated entries), by name.
- * The PST service packs each order's tiles, CSV and shapefile in one zip.
- */
-export function unzip(buf) {
-  let eocd = -1;
-  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
-    if (buf.readUInt32LE(i) === 0x06054b50) {
-      eocd = i;
-      break;
-    }
-  }
-  if (eocd < 0) throw new Error('zip: no end of central directory');
-  const count = buf.readUInt16LE(eocd + 10);
-  let p = buf.readUInt32LE(eocd + 16);
-  const out = new Map();
-  for (let k = 0; k < count; k++) {
-    if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error('zip: bad central directory entry');
-    const method = buf.readUInt16LE(p + 10);
-    const size = buf.readUInt32LE(p + 20);
-    const nameLen = buf.readUInt16LE(p + 28);
-    const extraLen = buf.readUInt16LE(p + 30);
-    const commentLen = buf.readUInt16LE(p + 32);
-    const local = buf.readUInt32LE(p + 42);
-    const name = buf.subarray(p + 46, p + 46 + nameLen).toString('utf8');
-    if (buf.readUInt32LE(local) !== 0x04034b50) throw new Error(`zip: bad local header for ${name}`);
-    const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
-    const data = buf.subarray(start, start + size);
-    if (method === 0) out.set(name, data);
-    else if (method === 8) out.set(name, inflateRawSync(data));
-    else throw new Error(`zip: ${name} uses method ${method}`);
-    p += 46 + nameLen + extraLen + commentLen;
-  }
-  return out;
-}
-
 async function fetchJsonRetry(url, init = {}, label = url, retries = 5) {
   let last;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -700,7 +702,7 @@ async function fetchMase({ points, cellSize, cacheDir, log }) {
   for (let i = 0; i < missing.length; i += MASE_PST.batch) {
     const batch = missing.slice(i, i + MASE_PST.batch).map((c) => byCell.get(c));
     const files = new Map();
-    for (const zip of await orderMaseTiles(batch, log)) for (const [name, data] of unzip(zip)) files.set(name, data);
+    for (const zip of await orderMaseTiles(batch, log)) for (const [name, data] of readZip(zip)) files.set(name, data);
     for (const t of batch) {
       const name = [...files.keys()].find((f) => f.includes(t.tavola) && /_DTM\.tiff?$/i.test(f));
       if (!name) throw new Error(`MASE PST order: tile ${t.tavola} is missing from the zip (${[...files.keys()].join(', ')})`);
@@ -718,6 +720,39 @@ async function fetchMase({ points, cellSize, cacheDir, log }) {
   const without = [...cells].filter((c) => !byCell.has(c)).length;
   log(`bareGround: ${wanted.length} MASE PST LiDAR 1 m tiles (${missing.length} downloaded, ${without} cells the survey left out)`);
   return { tiles: wanted.map((c) => byCell.get(c).tavola), sample: maseSampler(tiles, cellSize) };
+}
+
+// --- INEGI MDT 1:10 000 (Mexico) -----------------------------------------
+
+async function fetchInegi({ opts, points, cellSize, cacheDir, log }) {
+  const dir = join(cacheDir, 'inegi-mdt-10k');
+  ensureDir(dir);
+  const names = [...new Set(points.map(([lat, lon]) => inegiSheetName(lat, lon)))].sort();
+  const sheets = new Map();
+  const missing = [];
+  const ks = new Set();
+  let fetched = 0;
+  for (const name of names) {
+    if (!(name in opts.sheets)) {
+      throw new Error(
+        `bareGround: the corridor needs INEGI MDT sheet ${name}; pin its product in the recipe (bareGround.sheets.${name} = the "upc" of the _b.zip entry ${INEGI_MDT_CATALOGUE} returns for res=5&mod=T&cve=${name}, or null when it returns none: no product there)`,
+      );
+    }
+    const upc = opts.sheets[name];
+    if (upc === null) {
+      missing.push(name);
+      continue;
+    }
+    const res = await cachedFetch(dir, `${upc}_b.zip`, inegiSheetUrl(upc), {}, { label: `INEGI MDT ${name} (${upc})` });
+    if (!res.cached) fetched++;
+    const raster = openInegiSheet(res.body, name);
+    checkInegiCoverage(name, raster);
+    const k = inegiBoxSize(cellSize, raster.dx);
+    ks.add(`${k}×${k} px of ${raster.dx} m`);
+    sheets.set(name, { ...raster, k });
+  }
+  log(`bareGround: ${names.length} INEGI MDT 1:10 000 sheets (${fetched} downloaded${missing.length ? `, ${missing.length} without a product: ${missing.join(', ')}` : ''}): ${names.filter((n) => !missing.includes(n)).map((n) => `${n}@${opts.sheets[n]}`).join(', ')}; ${[...ks].join(', ')} mean per node`);
+  return { tiles: names.filter((n) => !missing.includes(n)).map((n) => `${n}@${opts.sheets[n]}`), missing, sample: inegiSampler(sheets) };
 }
 
 // --- corridor -----------------------------------------------------------
@@ -831,26 +866,28 @@ const median = (values) => {
 /**
  * Swap the DTM in along the routes, in place. `dtm[i]` = the DTM at node i
  * (NaN = none), `dist` from routeDistances, `woodland` a 0/1 node mask of
- * canopy landcover. Returns the step's figures.
+ * canopy landcover. The datum bias is measured over flat corridor nodes clear
+ * of woodland, or, with `biasMask` (a 0/1 node mask: a coast world's
+ * beaches), over the flat corridor nodes it marks. Returns the step's figures.
  */
-export function applyBareGround({ grid, heights, dtm, dist, woodland, corridorM, blendM }) {
+export function applyBareGround({ grid, heights, dtm, dist, woodland, corridorM, blendM, biasMask = null }) {
   const { cols, rows, cellSize } = grid;
   const n = cols * rows;
   const reach = corridorM + blendM;
   const clear = dilateMask(grid, woodland, BIAS_WOODLAND_CLEAR_M);
-  // Datum bias over flat, open corridor nodes.
+  // Datum bias over flat, open (or beach) corridor nodes.
   const open = [];
   for (let r = 1; r < rows - 1; r++) {
     for (let c = 1; c < cols - 1; c++) {
       const i = r * cols + c;
-      if (!(dist[i] < reach) || clear[i] || Number.isNaN(dtm[i])) continue;
+      if (!(dist[i] < reach) || (biasMask ? !biasMask[i] : clear[i]) || Number.isNaN(dtm[i])) continue;
       const gx = (dtm[i + 1] - dtm[i - 1]) / (2 * cellSize);
       const gy = (dtm[i + cols] - dtm[i - cols]) / (2 * cellSize);
       if (!(Math.hypot(gx, gy) < BIAS_MAX_SLOPE)) continue; // NaN neighbours fail too
       open.push(heights[i] - dtm[i]);
     }
   }
-  if (open.length < 100) throw new Error(`bareGround: only ${open.length} flat open corridor nodes to tie the DTM's datum to GLO-30`);
+  if (open.length < 100) throw new Error(`bareGround: only ${open.length} flat ${biasMask ? 'beach' : 'open'} corridor nodes to tie the DTM's datum to GLO-30`);
   const biasM = median(open);
   let nodes = 0, nodata = 0, maxLower = 0, maxRaise = 0, sumLower = 0, lowered = 0, maxLowerAt = null, maxRaiseAt = null;
   const at = (i) => [grid.xMin + (i % cols) * cellSize, grid.yMax - Math.floor(i / cols) * cellSize];
@@ -892,11 +929,12 @@ export function routeLines(routes, projection) {
 
 /**
  * The whole step for bake.mjs: corridor, DTM fetch and sampling, the swap.
- * `woodlandPolys` = rings (metres) of the canopy landcover. Returns
+ * `woodlandPolys` = rings (metres) of the canopy landcover, `beachPolys` of
+ * the beaches and sand (read with `biasFrom: "beach"`). Returns
  * `{ report, bare(x, y), woodlandAt(x, y) }`: bare = DTM + bias at a world
  * point (NaN = none), for the route-lift figures after the carve.
  */
-export async function bareGroundStep({ recipe, grid, heights, projection, routes, woodlandPolys, cacheDir, log }) {
+export async function bareGroundStep({ recipe, grid, heights, projection, routes, woodlandPolys, beachPolys = null, cacheDir, log }) {
   const opts = bareGroundOptions(recipe);
   const reach = opts.corridorM + opts.blendM;
   const dist = routeDistances(grid, routeLines(routes, projection), reach);
@@ -911,15 +949,16 @@ export async function bareGroundStep({ recipe, grid, heights, projection, routes
       }
     }
   }
-  const fetchers = { 'usgs-3dep-13': fetchUsgs, swissalti3d: fetchSwiss, 'lombardia-dtm5': fetchLombardia, 'mase-pst-lidar': fetchMase };
+  const fetchers = { 'usgs-3dep-13': fetchUsgs, swissalti3d: fetchSwiss, 'inegi-mdt-10k': fetchInegi, 'lombardia-dtm5': fetchLombardia, 'mase-pst-lidar': fetchMase };
   const src = await fetchers[opts.source]({ opts, points, cellSize, cacheDir, log });
   const dtm = new Float64Array(cols * rows).fill(NaN);
   for (let k = 0; k < idx.length; k++) dtm[idx[k]] = src.sample(points[k][0], points[k][1]);
   const woodland = polygonMask(grid, woodlandPolys);
-  const res = applyBareGround({ grid, heights, dtm, dist, woodland, corridorM: opts.corridorM, blendM: opts.blendM });
+  const biasMask = opts.biasFrom === 'beach' ? polygonMask(grid, beachPolys ?? []) : null;
+  const res = applyBareGround({ grid, heights, dtm, dist, woodland, corridorM: opts.corridorM, blendM: opts.blendM, biasMask });
   log(
     `bareGround: ${opts.source}, ${res.nodes} nodes within ${opts.corridorM} + ${opts.blendM} m of the routes on the DTM ` +
-      `(datum bias ${res.biasM.toFixed(2)} m over ${res.openNodes} flat open nodes; lowered up to ${res.maxLowerM.toFixed(1)} m at ${res.maxLowerAt?.map((v) => v.toFixed(0)).join(', ')}, mean ${res.meanLowerM.toFixed(1)} m; raised up to ${res.maxRaiseM.toFixed(1)} m at ${res.maxRaiseAt?.map((v) => v.toFixed(0)).join(', ')}; ${res.nodata} without DTM)`,
+      `(datum bias ${res.biasM.toFixed(2)} m over ${res.openNodes} flat ${biasMask ? 'beach' : 'open'} nodes; lowered up to ${res.maxLowerM.toFixed(1)} m at ${res.maxLowerAt?.map((v) => v.toFixed(0)).join(', ')}, mean ${res.meanLowerM.toFixed(1)} m; raised up to ${res.maxRaiseM.toFixed(1)} m at ${res.maxRaiseAt?.map((v) => v.toFixed(0)).join(', ')}; ${res.nodata} without DTM)`,
   );
   const bare = (x, y) => {
     const [lat, lon] = projection.inverse(x, y);
@@ -939,6 +978,7 @@ export async function bareGroundStep({ recipe, grid, heights, projection, routes
       ...(src.missing?.length ? { absentTiles: src.missing } : {}),
       corridorM: opts.corridorM,
       blendM: opts.blendM,
+      ...(biasMask ? { biasFrom: opts.biasFrom } : {}),
       biasM: res.biasM,
       openNodes: res.openNodes,
       nodes: res.nodes,

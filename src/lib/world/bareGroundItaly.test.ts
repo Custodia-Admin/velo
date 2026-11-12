@@ -6,7 +6,7 @@
  * GeoTIFFs; fetch is stubbed throughout.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { deflateRawSync } from 'node:zlib';
+import { crc32, deflateRawSync } from 'node:zlib';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -28,7 +28,6 @@ import {
   maseCellId,
   maseFeatureCell,
   maseSampler,
-  unzip,
   wgs84ToUtm32,
 } from '../../../tools/worldbake/bareGround.mjs';
 import { createProjection } from './projection';
@@ -105,12 +104,14 @@ function makeZip(files: [string, Buffer][], deflate = false): Buffer {
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0);
     local.writeUInt16LE(deflate ? 8 : 0, 8);
+    local.writeUInt32LE(crc32(raw), 14);
     local.writeUInt32LE(data.length, 18);
     local.writeUInt32LE(raw.length, 22);
     local.writeUInt16LE(n.length, 26);
     const central = Buffer.alloc(46);
     central.writeUInt32LE(0x02014b50, 0);
     central.writeUInt16LE(deflate ? 8 : 0, 10);
+    central.writeUInt32LE(crc32(raw), 16);
     central.writeUInt32LE(data.length, 20);
     central.writeUInt32LE(raw.length, 24);
     central.writeUInt16LE(n.length, 28);
@@ -340,17 +341,6 @@ describe('bareGround: MASE PST LiDAR DTM 1 m', () => {
     expect(sample(43.2, 12.2)).toBeNaN();
   });
 
-  it('reads stored and deflated zip entries', () => {
-    const a = Buffer.from('tile bytes');
-    const b = Buffer.from('x'.repeat(5000));
-    for (const deflate of [false, true]) {
-      const files = unzip(makeZip([['umbria_145_D43131205_0101_DTM.tiff', a], ['quadro_unione/quadro.shp', b]], deflate));
-      expect([...files.keys()]).toEqual(['umbria_145_D43131205_0101_DTM.tiff', 'quadro_unione/quadro.shp']);
-      expect(Buffer.compare(files.get('quadro_unione/quadro.shp')!, b)).toBe(0);
-    }
-    expect(() => unzip(Buffer.alloc(100))).toThrow(/end of central directory/);
-  });
-
   it('orders the tiles it lacks from the PST service, polls, unzips and caches them', async () => {
     const cacheDir = mkdtempSync(join(tmpdir(), 'mase-'));
     try {
@@ -414,8 +404,8 @@ describe('bareGround: Italian credits', () => {
   it('credits each model with its licence and names it in CREDITS.md', () => {
     expect(BARE_GROUND_CREDITS['lombardia-dtm5']).toMatchObject({ id: 'lombardia-dtm5', licence: expect.stringContaining('CC BY 4.0') });
     expect(BARE_GROUND_CREDITS['mase-pst-lidar']).toMatchObject({ id: 'mase-pst-lidar', licence: expect.stringContaining('CC BY 4.0') });
-    expect(bareGroundCreditLine({ source: 'lombardia-dtm5' })).toMatch(/Regione Lombardia DTM 5x5 \(ed\. 2015\).*CC BY 4\.0/);
-    expect(bareGroundCreditLine({ source: 'mase-pst-lidar' })).toMatch(/Piano Straordinario di Telerilevamento Ambientale.*CC BY 4\.0/);
-    expect(() => bareGroundCreditLine({ source: 'fabdem' })).toThrow(/no credit line/);
+    expect(bareGroundCreditLine({ bareGround: { source: 'lombardia-dtm5' } })).toMatch(/Regione Lombardia DTM 5x5 \(ed\. 2015\).*CC BY 4\.0/);
+    expect(bareGroundCreditLine({ bareGround: { source: 'mase-pst-lidar' } })).toMatch(/Piano Straordinario di Telerilevamento Ambientale.*CC BY 4\.0/);
+    expect(() => bareGroundCreditLine({ bareGround: { source: 'fabdem' } })).toThrow(/no credit line/);
   });
 });
