@@ -170,7 +170,7 @@ export function ControllerDebugSwitch() {
 export function LastPressLine() {
   const last = useControllerStore((s) => s.lastPress);
   return (
-    <p className="mt-1 text-sm text-muted-foreground" aria-live="polite" data-testid="handlebar-last-press">
+    <p className="mt-1 text-pretty text-sm text-muted-foreground" aria-live="polite" data-testid="handlebar-last-press">
       {lastPressText(last?.button ?? null)}
     </p>
   );

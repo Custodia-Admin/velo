@@ -143,7 +143,9 @@ describe('on-screen gear buttons', () => {
     expect(gearInUse('asleep', 9, false)).toBe(NEUTRAL_GEAR);
     expect(gearInUse('asleep', 9, true)).toBe(9);
     expect(gearInUse('idle', 3, true)).toBe(3);
-    ctl().resetGear();
+    ctl().shiftManual(1);
+    expect(ctl().manualGear).toBe(true);
+    ctl().resetGear(); // every ride starts neutral, controls-only again
     expect(ctl()).toMatchObject({ gear: NEUTRAL_GEAR, manualGear: false });
   });
 
