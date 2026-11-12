@@ -141,6 +141,15 @@ export function clipRing(flat, ext) {
   return poly.length >= 6 ? poly : [];
 }
 
+function ringPerimeter(flat) {
+  let per = 0;
+  for (let i = 0; i < flat.length; i += 2) {
+    const j = (i + 2) % flat.length;
+    per += Math.hypot(flat[j] - flat[i], flat[j + 1] - flat[i + 1]);
+  }
+  return per;
+}
+
 function ringArea(flat) {
   let a = 0;
   const n = flat.length / 2;
@@ -708,6 +717,11 @@ export function buildingClearance(rings, { routeLines = [], routeClear = null, r
 
 /** Standing water smaller than this gives way to a scenic route that runs through or beside it, m². */
 export const ROUTE_DRY_WATER_MAX_M2 = 10000;
+/**
+ * Standing water whose outline is less round than this (isoperimetric
+ * quotient 4πA/P², 1 for a disc) is a channel, which never gives way.
+ */
+export const ROUTE_DRY_WATER_MIN_ROUNDNESS = 0.2;
 
 /**
  * Which water areas (the layer as built, dm) a scenic route must not run
@@ -717,8 +731,12 @@ export const ROUTE_DRY_WATER_MAX_M2 = 10000;
  * keeps buildings off the route). OSM maps beach storm-drain channels and
  * creek-mouth lagoons this way, e.g. Santa Monica's Pico outlet
  * (`water=stream`, 12 × 70 m) under the beach path. Drawn as a flat sheet, it
- * reads as a flood across the path. Returns the indices of `water.areas` to
- * drop, ascending. Pure.
+ * reads as a flood across the path. A channel stays (roundness under
+ * ROUTE_DRY_WATER_MIN_ROUNDNESS): a towpath runs beside its canal, as on the
+ * Cuyahoga towpath at 7.95 km, where the watered Ohio & Erie Canal is
+ * mapped as plain `natural=water` (450 × 19 m, roundness 0.11; the Pico
+ * outlet is 0.39). Returns the indices of `water.areas` to drop, ascending.
+ * Pure.
  */
 export function routeWaterDrops(water, { routeLines = [], routeClear = null, routeClearM = ROUTE_CLEAR_MAX_M } = {}) {
   const standing = new Set(['lake', 'pond'].map((k) => water.areaKinds.indexOf(k)).filter((k) => k >= 0));
@@ -730,6 +748,7 @@ export function routeWaterDrops(water, { routeLines = [], routeClear = null, rou
     const rings = a.r.map((r) => r.map((v) => v / 10));
     const areaM2 = Math.abs(ringArea(rings[0])) - rings.slice(1).reduce((s, r) => s + Math.abs(ringArea(r)), 0);
     if (areaM2 >= ROUTE_DRY_WATER_MAX_M2) return;
+    if ((4 * Math.PI * areaM2) / ringPerimeter(rings[0]) ** 2 < ROUTE_DRY_WATER_MIN_ROUNDNESS) return;
     for (const [li, i] of routeQ(ringBbox(rings[0]), reach)) {
       const p = routeLines[li];
       const clearM = routeClear ? routeClear[li][i / 2] : routeClearM;
