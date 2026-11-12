@@ -25,6 +25,7 @@ import {
   riddenSpans,
   rideSurface,
   solveNetwork,
+  uncarvedAbutments,
   zAlong,
 } from '../../../tools/worldbake/bridges.mjs';
 import { ROAD_FLAGS } from '../../../tools/worldbake/buildVectors.mjs';
@@ -108,6 +109,50 @@ describe('bridges: decks as structures', () => {
     const nets = bridgeNetworks(roads);
     const { pins } = deckHeights({ roads, nets, groundAt: ground, routes: [route] });
     expect(() => planApproaches({ roads, nets, pins, groundAt: ground, ridden: new Set([0]) })).toThrow(/a road a route rides/);
+  });
+
+  /**
+   * The route carve dug a 6 m cutting round the route (|x − 10| < 30 m, the
+   * ground at 100 there, 106 beyond): the bridge's west end (x = 0) lies in
+   * it, its east end (x = 60) on the ground the road was built on. Before the
+   * carve the ground was 106 everywhere.
+   */
+  const cutting = (x: number) => (Math.abs(x - 10) < 30 ? 100 : 106);
+  const uncarved = () => 106;
+
+  it('stands a deck over a route on the ground its road was built on, not in the carve, and ramps the road over the cutting', () => {
+    const { roads, route } = scene();
+    const nets = bridgeNetworks(roads);
+    const raised = uncarvedAbutments({ roads, nets, spans: [[]], routes: [route], groundAt: cutting, uncarvedAt: uncarved });
+    expect([...raised.values()].map((r) => [r.node.x, r.z, r.route])).toEqual([[0, 106, 'r']]);
+    const abutZ = new Map([...raised].map(([k, v]) => [k, v.z]));
+    const { pins } = deckHeights({ roads, nets, groundAt: cutting, routes: [route], abutZ });
+    // 106 at both ends: 6 m over the route, more than the headroom (4.5 + 1.2): no pin.
+    expect(pins).toEqual([]);
+    const plan = planApproaches({ roads, nets, pins, groundAt: cutting, ridden: new Set(), raised, uncarvedAt: uncarved });
+    expect(plan.lifts).toHaveLength(1);
+    const [lift] = plan.lifts;
+    // No lift over the ground the road was built on; the ramp spans the cutting west of the bridge (x −20…0) and lands.
+    expect(lift.liftM).toBeCloseTo(0);
+    expect(lift.drawnLiftM).toBeCloseTo(6);
+    // Held to the last ramp vertex over the cutting (vertices every 6 m: x = −18).
+    expect(lift.rampM).toBeCloseTo(18);
+    expect(lift.block).toBeNull();
+    const west = approachHeights(roads, plan.approaches, cutting).get(0)!;
+    const westPath = piecePath(roads.roads[0]);
+    expect(zAlong(westPath, west, westPath.len)).toBeCloseTo(106);
+    expect(zAlong(westPath, west, westPath.len - 25)).toBeCloseTo(106); // past the cutting: the ground
+  });
+
+  it('leaves a deck no route passes under, or one a route rides, on the carved ground', () => {
+    const { roads, route } = scene();
+    const nets = bridgeNetworks(roads);
+    const away = { ...route, x: [500, 500, 500] };
+    expect(uncarvedAbutments({ roads, nets, spans: [[]], routes: [away], groundAt: cutting, uncarvedAt: uncarved }).size).toBe(0);
+    const ridden = [[{ s0: 0, s1: 60, net: 0, pieces: [1] }]];
+    expect(uncarvedAbutments({ roads, nets, spans: ridden, routes: [route], groundAt: cutting, uncarvedAt: uncarved }).size).toBe(0);
+    // Uncarved ground within AT_GRADE_M of the carved ground: nothing to raise.
+    expect(uncarvedAbutments({ roads, nets, spans: [[]], routes: [route], groundAt: () => 100, uncarvedAt: () => 100.2 }).size).toBe(0);
   });
 });
 
