@@ -8,7 +8,8 @@
  * chunk and draped on whichever LOD each chunk draws: a decal on the ground
  * with a capped depth bias, so it never shows through a building. Roads,
  * route line and rider all stand on the drawn triangles (lodHeightAt /
- * worldScene.drawnGround), never on the bilinear heightfield between them.
+ * worldScene.drawnGround), never on the bilinear heightfield between them,
+ * or on the bridge deck the route rides (worldScene.routeSurface).
  */
 
 import { useEffect, useMemo } from 'react';
@@ -22,7 +23,7 @@ import { createRouteGuideMaterial, routePaintColor } from './materials/routeGuid
 import type { ThreeQuality } from './quality';
 import { bucketLines, buildRibbons, type RibbonGeometryData, type RibbonLine } from './roadRibbons';
 import { lodHeightAt } from './terrainMesh';
-import { ROAD_MAX_SEG_M, type ChunkVisibility, type SceneWorld } from './worldScene';
+import { ROAD_MAX_SEG_M, routeSurface, type ChunkVisibility, type SceneWorld } from './worldScene';
 
 /** Road surface lift above the drawn terrain, metres (the rider stays within 5 cm of it). */
 export const ROAD_LIFT_M = 0.03;
@@ -171,6 +172,7 @@ export function buildRouteChunks(
   sw: SceneWorld,
   line: RibbonLine,
   steps: { near: number; far: number },
+  routeId?: string,
 ): RouteChunkPiece[] {
   const buckets = bucketLines([line], sw.locate, sw.chunks.length, ROUTE_MAX_SEG_M);
   const out: RouteChunkPiece[] = [];
@@ -184,7 +186,8 @@ export function buildRouteChunks(
         originX: chunk.centerX,
         originZ: chunk.centerZ,
         keepSegment: (mx, my) => sw.locate(mx, my) === i,
-        groundAt,
+        // On the decks this route rides, the line is painted on the deck.
+        groundAt: routeSurface(sw, routeId, groundAt),
       });
     const hf = sw.heightfield;
     out.push({
@@ -221,10 +224,12 @@ export function RouteLine({
     });
     const group = new THREE.Group();
     group.name = 'route-line';
-    const pieces = buildRouteChunks(sceneWorld, routeLine(sceneWorld, route, [c.r, c.g, c.b]), {
-      near: quality.nearStep,
-      far: quality.farStep,
-    }).map((p) => {
+    const pieces = buildRouteChunks(
+      sceneWorld,
+      routeLine(sceneWorld, route, [c.r, c.g, c.b]),
+      { near: quality.nearStep, far: quality.farStep },
+      route.id,
+    ).map((p) => {
       const make = (data: RibbonGeometryData, lod: 'near' | 'far') => {
         const m = new THREE.Mesh(ribbonGeometry(data), material);
         m.name = `route-line-${p.chunk}-${lod}`;

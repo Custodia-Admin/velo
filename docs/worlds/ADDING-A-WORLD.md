@@ -50,6 +50,23 @@ from `chengdu-luxelakes.json`:
   `public/worlds/<id>/`, like Perugia and Lugano. That is the simplest choice
   for your own hometown in a fork; keep it at most 8 MB brotli.
 - `"routeCredits": true`.
+- `vegetation.corridor` (`{ "m": 300, "keep": 0.3 }`) if the routes run
+  through forest. Measure the render workload against Perugia first: ride
+  with `velo.debug.three` and read `__veloRideDebug().triangles` every
+  kilometre at medium, 1920×1080. If the new world draws much more than
+  Perugia (1.31 M triangles on average, 1.54 M at most), keep the woods along
+  the routes and thin the rest with the corridor rather than thinning
+  everything: uniform thinning leaves the ride in open parkland (Cuyahoga
+  Valley, WORLD-FORMAT.md).
+- `"bridges": true` if a route rides a bridge or passes under one (any
+  viaduct, overpass or footbridge over it). The bake then builds bridges as
+  structures ([WORLD-FORMAT.md](WORLD-FORMAT.md#bridgesjson-bridges-as-structures)):
+  decks over every route with 4.5 m headroom, approach ramps where that lifts
+  an abutment, the rider on the decks the route rides and on the ground under
+  every other one. The log line `bridges:` gives the decks, pins and lifts;
+  the bake fails when a route would pass under a deck without the headroom.
+  A route that starts or ends on a spiral ramp under its own bridge (Wendy
+  Park) cannot be fitted: move that end of the route off the ramp.
 - `"flatLakes": true` if the place has lakes dug after 2015. GLO-30 was flown
   in 2011–2015, so it still carries the land those lakes were dug from, and
   the water would be drawn as a tilted, bulging sheet. The step
@@ -93,6 +110,9 @@ The log must show:
 
 - every route with max gap 0 m and grade Δ ≤ 1 pp;
 - every route 100 % on drawn roads;
+- with `bridges`, no bake error, and the report's `bridges.approaches` read
+  through: a lift of many metres means the route fit sits above the ground
+  there (see the Cuyahoga Valley notes in WORLD-FORMAT.md);
 - a bundle of at most 8 MB brotli;
 - `validate (P1.3 v2): … PASS`. The bound is registered RMS ≤ 6.00 m for a
   standard world, or ≤ 6.24 m for a mountain world.

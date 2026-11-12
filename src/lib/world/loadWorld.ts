@@ -133,6 +133,44 @@ export interface WorldRoute {
   h: Float64Array;
 }
 
+/** One bridge road's deck (bake: tools/worldbake/bridges.mjs). */
+export interface BridgeDeck {
+  /** Index into `RoadsLayer.roads`. */
+  road: number;
+  /** Deck top at each of the road's vertices, metres. */
+  z: Float32Array;
+  /** Top of the road to the underside, metres. */
+  thickness: number;
+  /** An approach ramp (a ground road lifted to meet a raised deck), not a bridge. */
+  approach: boolean;
+}
+
+/** A pier: a box centred on (x, y), its depth along (ux, uy). */
+export interface BridgePier {
+  x: number;
+  y: number;
+  ux: number;
+  uy: number;
+  halfAlong: number;
+  halfAcross: number;
+  bottom: number;
+  top: number;
+}
+
+/** Where a route rides decks: route distances and the road indices ridden. */
+export interface BridgeRide {
+  s0: number;
+  s1: number;
+  roads: number[];
+}
+
+export interface BridgesLayer {
+  decks: BridgeDeck[];
+  piers: BridgePier[];
+  /** Per route id. */
+  rides: Record<string, BridgeRide[]>;
+}
+
 export interface LoadedWorld {
   manifest: WorldManifest;
   projection: WorldProjection;
@@ -143,6 +181,8 @@ export interface LoadedWorld {
   buildings: BuildingsLayer;
   vegetation: VegetationLayer;
   routes: WorldRoute[];
+  /** Present when the bundle was baked with bridges as structures. */
+  bridges?: BridgesLayer;
 }
 
 function joinUrl(base: string, file: string): string {
@@ -462,6 +502,32 @@ function decodeRoutes(json: Json, file: string): WorldRoute[] {
   });
 }
 
+function decodeBridges(json: Json, file: string, roads: RoadsLayer): BridgesLayer {
+  const decks = expectArray(json.decks, file, 'decks').map((d) => {
+    const o = d as Json;
+    const road = o.r as number;
+    const r = roads.roads[road];
+    const z = expectArray(o.z, file, 'z') as number[];
+    if (!Number.isInteger(road) || !r || z.length * 2 !== r.points.length) {
+      throw new WorldLoadError('corrupt', `${file}: deck for road ${String(road)} doesn't match the roads layer`, file);
+    }
+    return { road, z: Float32Array.from(z, (v) => v / 10), thickness: Number(o.t) / 10, approach: o.a === 1 };
+  });
+  const piers = expectArray(json.piers, file, 'piers').map((p) => {
+    const a = p as number[];
+    if (!Array.isArray(a) || a.length !== 8) throw new WorldLoadError('corrupt', `${file}: pier needs 8 numbers`, file);
+    return { x: a[0] / 10, y: a[1] / 10, ux: a[2] / 1000, uy: a[3] / 1000, halfAlong: a[4] / 10, halfAcross: a[5] / 10, bottom: a[6] / 10, top: a[7] / 10 };
+  });
+  const rides: Record<string, BridgeRide[]> = {};
+  for (const [id, list] of Object.entries((json.rides ?? {}) as Json)) {
+    rides[id] = expectArray(list, file, 'rides').map((x) => {
+      const o = x as Json;
+      return { s0: Number(o.s0), s1: Number(o.s1), roads: expectArray(o.r, file, 'r') as number[] };
+    });
+  }
+  return { decks, piers, rides };
+}
+
 /**
  * Load the world bundle at `baseUrl` (directory URL containing manifest.json).
  */
@@ -548,6 +614,7 @@ export async function loadWorld(baseUrl: string, opts: LoadWorldOptions = {}): P
     vegetation: decodeVegetation(get(L.vegetation), L.vegetation, manifest),
     routes: decodeRoutes(parseJson(get(L.routes), L.routes), L.routes),
   };
+  if (L.bridges) world.bridges = decodeBridges(parseJson(get(L.bridges), L.bridges), L.bridges, world.roads);
   emit('done');
   return world;
 }

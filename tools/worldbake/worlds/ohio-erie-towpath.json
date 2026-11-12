@@ -1,0 +1,82 @@
+{
+  "id": "ohio-erie-towpath",
+  "name": "Cuyahoga Valley",
+  "description": "The Cuyahoga Valley between Cleveland and Akron: the Ohio & Erie Canal Towpath from Lock 39 at Rockside Road past Station Road Bridge, Boston and Peninsula to Beaver Marsh.",
+  "origin": {
+    "lat": 41.292,
+    "lon": -81.587
+  },
+  "grid": {
+    "xMin": -4000,
+    "yMax": 11900,
+    "cellSize": 12,
+    "cols": 669,
+    "rows": 1979
+  },
+  "dem": {
+    "source": "copernicus-glo30"
+  },
+  "osmDate": "2026-11-01T00:00:00Z",
+  "routes": [
+    "scenic-cuyahoga-towpath",
+    "scenic-cuyahoga-towpath-north"
+  ],
+  "host": "remote",
+  "routeCredits": true,
+  "bridges": true,
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 400,
+    "offsetMeanM": 1600,
+    "coreCells": 1.5,
+    "falloffM": 40
+  },
+  "vegetation": {
+    "seed": 41292,
+    "maxInstances": 200000,
+    "spacingM": {
+      "forest": 11,
+      "wood": 11,
+      "scrub": 16,
+      "orchard": 7,
+      "park": 20
+    },
+    "character": {
+      "gardenKeep": 0.3,
+      "riparianM": 30
+    },
+    "corridor": {
+      "m": 300,
+      "keep": 0.3
+    }
+  },
+  "moods": [
+    "clear-afternoon",
+    "golden-hour",
+    "clear-noon",
+    "overcast",
+    "valley-fog"
+  ],
+  "defaultMood": "clear-afternoon",
+  "validation": {
+    "sample_seed": 41292,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "copernicus-glo30",
+    "terrain_class": "standard",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.1254,
+    "floor_source": "none",
+    "floor_rms_m": 0,
+    "own_error_allowance_m": 6,
+    "bound_m": 6,
+    "registered_rms_m": 1.69,
+    "point_rms_m": 4.37,
+    "max_abs_registered_err_m": 4.73,
+    "pass": true
+  }
+}

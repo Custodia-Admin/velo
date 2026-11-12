@@ -817,13 +817,18 @@ export const CHARACTER_DEFAULTS = {
  * of rivers and streams, sparse field-edge trees on farmland boundaries, OSM
  * tree rows, garden trees in residential land and lone oaks in fields. Every
  * seed keeps clear of roads, buildings and open water. Character kinds are
- * kept whole; woodland is thinned uniformly to fit `maxInstances`.
+ * kept whole; woodland is thinned uniformly to fit `maxInstances`, except
+ * that with `corridor` ({ m, keep }) the woodland within `m` of a route keeps
+ * the share `keep` first and the rest of the world shares what is left: the
+ * woods the rider rides through stay dense while the far woods, drawn
+ * low-poly and carried by the terrain's canopy texture, cost less.
  * Deterministic (integer hashes only). Single mapped trees (natural=tree) are
  * not used: Overpass attic queries for them run out of memory.
  */
 export function buildVegetation({ polys, ext, recipe, roads = null, water = null, footprints = [], treeRows = [], routeLines = [] }) {
   const { seed, maxInstances, spacingM } = recipe;
   const C = { ...CHARACTER_DEFAULTS, ...(recipe.character ?? {}) };
+  let corridorStats = null;
   const seen = new Set();
   const out = [];
   const character = [];
@@ -950,10 +955,36 @@ export function buildVegetation({ polys, ext, recipe, roads = null, water = null
     pushCharacter(pts, VK.hedgerow);
   }
 
-  // Character trees whole, then woodland thinned uniformly to fit.
+  // Character trees whole, then woodland thinned to fit: uniformly, or the
+  // route corridor first at its own share.
   const kept = character.slice(0, maxInstances);
   const room = maxInstances - kept.length;
-  const thinned = out.length > room ? [...out].sort((a, b) => a.h - b.h || a.x - b.x || a.y - b.y).slice(0, room) : out;
+  const byHash = (a, b) => a.h - b.h || a.x - b.x || a.y - b.y;
+  let thinned;
+  if (recipe.corridor && routeLines.length) {
+    const { m, keep } = recipe.corridor;
+    const grid = new SegmentGrid(m);
+    for (const p of routeLines) grid.addLine(p, m);
+    const inside = (x, y) => {
+      for (const [ax, ay, bx, by] of grid.grid.near(x, y, 2 * m)) {
+        const dx = bx - ax, dy = by - ay;
+        const l2 = dx * dx + dy * dy || 1;
+        const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2));
+        if (Math.hypot(x - ax - t * dx, y - ay - t * dy) <= m) return true;
+      }
+      return false;
+    };
+    const near = [];
+    const far = [];
+    for (const t of out) (inside(t.x, t.y) ? near : far).push(t);
+    near.sort(byHash);
+    far.sort(byHash);
+    const nearKept = near.slice(0, Math.min(room, Math.round(near.length * keep)));
+    thinned = [...nearKept, ...far.slice(0, room - nearKept.length)];
+    corridorStats = { lattice: near.length, kept: nearKept.length, farLattice: far.length, farKept: thinned.length - nearKept.length };
+  } else {
+    thinned = out.length > room ? [...out].sort(byHash).slice(0, room) : out;
+  }
   const quantum = Math.max(0.25, Math.ceil(((Math.max(ext.xMax - ext.xMin, ext.yMax - ext.yMin) / 65535) * 100)) / 100);
   const items = [...kept, ...thinned].map((t) => ({
     qx: Math.min(65535, Math.max(0, Math.round((t.x - ext.xMin) / quantum))),
@@ -974,7 +1005,7 @@ export function buildVegetation({ polys, ext, recipe, roads = null, water = null
   for (const it of items) buf[o++] = it.k;
   for (const it of items) buf[o++] = it.s;
   const byKind = Object.fromEntries(VEGETATION_KINDS.map((k, i) => [k, items.filter((it) => it.k === i).length]));
-  return { bytes: buf, count: n, lattice: out.length, character: character.length, quantum, byKind };
+  return { bytes: buf, count: n, lattice: out.length, character: character.length, quantum, byKind, ...(corridorStats ? { corridor: corridorStats } : {}) };
 }
 
 /** OSM natural=tree_row ways → polylines in world metres, clipped to the extent. */

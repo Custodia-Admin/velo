@@ -11,6 +11,7 @@ import type { LoadedWorld } from '@/lib/world/loadWorld';
 import type { RiderPose } from '@/lib/world/renderer';
 import type { RideState } from '@/types';
 import type { Vec3 } from './chaseRig';
+import { deckPieces, rideSurface, type DeckPiece } from './bridgeDecks';
 import { bucketLines, chunkLocator, roadLines, type RibbonLine } from './roadRibbons';
 import type { RiderPlacement, WorldGround } from './riderRig';
 import { lodHeightAt, planChunks, type ChunkInfo } from './terrainMesh';
@@ -27,15 +28,30 @@ export interface SceneWorld extends WorldGround {
   roadBuckets: RibbonLine[][];
   /** Terrain depression under water polygons, per heightfield node (metres). */
   waterBed: Float32Array;
+  /** Bridge decks by road index (bridgeDecks.ts); empty unless the world was baked with bridges. */
+  decks: Map<number, DeckPiece>;
 }
 
 export function createSceneWorld(world: LoadedWorld): SceneWorld {
   const heightfield = world.heightfield;
   const chunks = planChunks(heightfield);
   const locate = chunkLocator(heightfield, chunks);
-  const roadBuckets = bucketLines(roadLines(world.roads), locate, chunks.length, ROAD_MAX_SEG_M);
+  const decks = deckPieces(world);
+  const roadBuckets = bucketLines(roadLines(world.roads, decks), locate, chunks.length, ROAD_MAX_SEG_M);
   const waterBed = waterDepression(world.water, heightfield, levelLakes(world));
-  return { world, heightfield, projection: world.projection, chunks, locate, roadBuckets, waterBed };
+  return { world, heightfield, projection: world.projection, chunks, locate, roadBuckets, waterBed, decks };
+}
+
+/**
+ * What a route is ridden on: `ground` (the drawn terrain), except on the
+ * bridge decks that route rides, where it is the deck (bridgeDecks.ts).
+ */
+export function routeSurface(
+  sw: Pick<SceneWorld, 'world' | 'heightfield' | 'decks'>,
+  routeId: string | undefined,
+  ground: (x: number, y: number) => number,
+): (x: number, y: number) => number {
+  return rideSurface(sw.world, sw.heightfield, routeId, ground, sw.decks);
 }
 
 /** Which chunks currently draw their near-LOD terrain (roads follow it). */

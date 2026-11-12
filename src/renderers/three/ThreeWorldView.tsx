@@ -33,6 +33,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { canvasKeyFor, useWorldViewStore } from '@/stores/worldViewStore';
 import type { Route } from '@/types';
 
+import { Bridges } from './Bridges';
 import { Buildings, StreetLights } from './Buildings';
 import { fillContainer } from './canvasSize';
 import { ChaseCamera } from './ChaseCamera';
@@ -57,7 +58,7 @@ import { createThreeWorldRenderer } from './threeWorldRenderer';
 import { Vegetation } from './Vegetation';
 import { Water } from './Water';
 import { Weather } from './Weather';
-import { ChunkVisibility, createRideFrame, createSceneWorld, drawnGround, type RideFrame, type SceneWorld } from './worldScene';
+import { ChunkVisibility, createRideFrame, createSceneWorld, drawnGround, routeSurface, type RideFrame, type SceneWorld } from './worldScene';
 
 preloadRider();
 
@@ -345,10 +346,11 @@ export function WorldScene({
   const meter = useMemo(() => new FrameStats(), []);
   const visibility = useMemo(() => new ChunkVisibility(sceneWorld.chunks.length), [sceneWorld]);
   // One height source: the terrain triangles as drawn, for rider, camera,
-  // bots, ghosts, roads and the route line.
+  // bots, ghosts, roads and the route line; on the bridge decks this route
+  // rides, the deck (under any other deck it stays the ground).
   const ground = useMemo(
-    () => drawnGround(sceneWorld, visibility, { near: quality.nearStep, far: quality.farStep }),
-    [sceneWorld, visibility, quality.nearStep, quality.farStep],
+    () => routeSurface(sceneWorld, route.id, drawnGround(sceneWorld, visibility, { near: quality.nearStep, far: quality.farStep })),
+    [sceneWorld, route.id, visibility, quality.nearStep, quality.farStep],
   );
   // The ride start holds until the chunk under the rider draws full detail.
   useEffect(() => {
@@ -414,6 +416,7 @@ export function WorldScene({
       <Terrain sceneWorld={sceneWorld} quality={quality} landcover={maps?.landcover ?? null} aux={maps?.aux ?? null} atmo={atmo} visibility={visibility} />
       <Water sceneWorld={sceneWorld} atmo={atmo} />
       <Roads sceneWorld={sceneWorld} visibility={visibility} quality={quality} atmo={atmo} />
+      <Bridges sceneWorld={sceneWorld} visibility={visibility} quality={quality} atmo={atmo} />
       <RouteLine sceneWorld={sceneWorld} route={route} visibility={visibility} quality={quality} atmo={atmo} />
       <Buildings sceneWorld={sceneWorld} quality={quality} atmo={atmo} />
       <StreetLights sceneWorld={sceneWorld} atmo={atmo} />

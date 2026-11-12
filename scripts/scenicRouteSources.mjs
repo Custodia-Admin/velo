@@ -122,9 +122,27 @@ export const SCENIC_ROUTE_SOURCES = [
     waypoints: [[41.3180, -81.5858], [41.3000, -81.5719], [41.2799, -81.5616], [41.2633, -81.5585], [41.2428, -81.5504], [41.2300, -81.5524], [41.2100, -81.5670], [41.1900, -81.5773]],
   },
   {
+    id: 'scenic-cuyahoga-towpath-north',
+    // The towpath north of the first one: Lock 39 at Rockside Road south to
+    // Station Road Bridge, where scenic-cuyahoga-towpath starts. Every point
+    // is on the towpath, so the router stays on it the whole way.
+    waypoints: [[41.3940, -81.6278], [41.3742, -81.6123], [41.3560, -81.5967], [41.3335, -81.5887], [41.3195, -81.5859]],
+  },
+  {
     id: 'scenic-cleveland-lakefront',
     // Points taken from the signed bikeway (OSM relation 13620723).
     waypoints: [[41.4896, -81.7351], [41.4889, -81.7200], [41.4923, -81.7057], [41.5100, -81.6898], [41.5169, -81.6800], [41.5213, -81.6696], [41.5258, -81.6611], [41.5326, -81.6501], [41.5386, -81.6399]],
+  },
+  {
+    id: 'scenic-wendy-park-lakewood',
+    // West from Wendy Park at the river mouth: Whiskey Island, the lakefront
+    // bikeway's first stretch, the Edgewater Park trail, Edgewater Drive and
+    // Lake Avenue to Lakewood Park. Points are on those paths and streets
+    // (taken from a routed-bike run), so nothing snaps into the lake. It
+    // starts at the foot of the Wendy Park bridge's spiral ramp: riding the
+    // spiral down would pass under the bridge 30 m from its abutment, at
+    // ground the DEM doesn't lift.
+    waypoints: [[41.49905, -81.71255], [41.4968, -81.7160], [41.48916, -81.73612], [41.48683, -81.74532], [41.48824, -81.75776], [41.49136, -81.77326], [41.49256, -81.78893], [41.49350, -81.79834]],
   },
   {
     id: 'scenic-berkeley-bay-trail',
