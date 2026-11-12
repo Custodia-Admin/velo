@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { nextScenicRoute, powerSummary, rideAgain, secondaryStats } from '@/components/velo/FinishCard';
+import { scenicRouteById } from '@/lib/scenicRoutes';
+import { worldForRoute } from '@/lib/world/catalog';
 import { useRideStore } from '@/stores/rideStore';
 import type { Route, TelemetrySample } from '@/types';
 
@@ -63,20 +65,28 @@ describe('finish screen figures', () => {
 });
 
 describe('Tomorrow, maybe', () => {
-  // As it was when routes carried their own `area` field, before the
-  // destination manifests became the one source of where a route sits.
+  // The home routes in library order, each in a baked world (Trasimeno in a
+  // world of its own since 12 Nov 2026; until then it rode in the classic view
+  // and Velo never suggested it by itself).
   const TRASIMENO = 'scenic-trasimeno-shore';
   const TIBER = 'scenic-perugia-tiber-park';
   const ASSISI = 'scenic-assisi-valley';
   const next = (id: string | undefined, day: number) => nextScenicRoute(id, new Date(2026, 10, day, 9))?.route.id;
 
-  it('offers the next home route in library order after a home ride', () => {
+  it('offers the next home route a baked world draws after a home ride, never the same one', () => {
     expect([TRASIMENO, TIBER, ASSISI].map((id) => next(id, 1))).toEqual([TIBER, ASSISI, TRASIMENO]);
   });
 
-  it('offers tomorrow’s featured home route after any other ride', () => {
+  it('offers tomorrow’s featured route after any other ride, never a classic-view one', () => {
     for (const id of [undefined, 'scenic-lugano-melide', 'scenic-hangzhou-west-lake', 'gpx-123']) {
       expect([1, 2, 3, 4].map((day) => next(id, day)), String(id)).toEqual([ASSISI, TRASIMENO, TIBER, ASSISI]);
+    }
+    for (let day = 1; day <= 60; day++) {
+      for (const id of [undefined, TRASIMENO, TIBER, ASSISI, 'scenic-lake-como-menaggio', 'scenic-lake-garda-lazise']) {
+        const pick = next(id, day);
+        expect(worldForRoute(scenicRouteById(pick!)!.route), `${id} on day ${day}`).not.toBeNull();
+        expect(pick).not.toBe(id);
+      }
     }
   });
 });

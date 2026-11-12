@@ -63,7 +63,7 @@ SECTIONS_MEASURE = """(sel) => {
     titles: secs.map((s) => s.querySelector('h3')?.textContent.trim()),
     details: secs.map((s) => s.querySelector('h3')?.parentElement?.querySelector('p, span')?.textContent.trim()),
     tiles: secs.map((s) => s.querySelectorAll('[data-scenic-route], a.tile').length),
-    mapBadges: secs.map((s) => [...s.querySelectorAll('span')].filter((e) => e.textContent.trim() === 'Map view').length),
+    classicTags: secs.map((s) => [...s.querySelectorAll('span')].filter((e) => e.textContent.trim() === 'Classic view').length),
     columns: secs.map((s) => { const g = s.querySelector('.grid, div.grid'); return g ? getComputedStyle(g).gridTemplateColumns.split(' ').length : 0; }),
     minFont, minFontEl, minTarget: Math.round(minTarget), minTargetEl,
     tv: document.documentElement.getAttribute('data-layout') === 'tv',

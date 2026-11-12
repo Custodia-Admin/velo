@@ -187,11 +187,12 @@ export function validateDestination(json: unknown, source?: string): Destination
     world = parseWorld(m.world, 'world');
   }
   const extraWorlds: DestinationWorld[] = [];
+  // An empty list is the same as none, so a parsed destination validates again as it is.
   if (m.extraWorlds !== undefined) {
-    if (!Array.isArray(m.extraWorlds) || m.extraWorlds.length === 0) fail('extraWorlds must be a non-empty array when present');
-    if (!world) fail('extraWorlds needs a world');
+    if (!Array.isArray(m.extraWorlds)) fail('extraWorlds must be an array when present');
+    if (m.extraWorlds.length && !world) fail('extraWorlds needs a world');
     (m.extraWorlds as unknown[]).forEach((w, i) => extraWorlds.push(parseWorld(w, `extraWorlds[${i}]`)));
-    const all = [world!, ...extraWorlds];
+    const all = world ? [world, ...extraWorlds] : [];
     const ids = all.map((w) => w.id);
     if (new Set(ids).size !== ids.length) fail('a destination links each world once');
     const drawn = all.flatMap((w) => w.routes);
@@ -324,13 +325,10 @@ export interface DestinationSection {
 }
 
 /**
- * The wishlist line says once, for the whole section, that its places ride
- * on the map (no per-tile badge when every tile would carry it, UI-RULES §7).
+ * The wishlist line. Which places still ride in the classic view is said on
+ * their own tiles (the "Classic view" tag), so the line never repeats it.
  */
-function wishlistDetail(list: readonly Destination[]): string {
-  if (list.every((d) => d.world === null)) return '3D worlds coming; these ride on the map today';
-  return 'Lakes, coasts and cities on our list';
-}
+const WISHLIST_DETAIL = 'Lakes, coasts and cities on our list';
 
 /**
  * Home's sections: one per home and hometown destination ("Perugia",
@@ -357,7 +355,7 @@ export function homeSections(list: readonly Destination[] = DESTINATIONS, labels
       id: 'wishlist',
       role: 'wishlist',
       title: WISHLIST_TITLE,
-      detail: wishlistDetail(wish),
+      detail: WISHLIST_DETAIL,
       entries: worldFirst(wish.flatMap(entriesOf)),
     });
   }

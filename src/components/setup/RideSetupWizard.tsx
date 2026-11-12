@@ -52,7 +52,8 @@ import { GPXUploader } from '@/components/setup/GPXUploader';
 import { PacePartners } from '@/components/velo/PacePartners';
 import { CoupleGhostPicker, SECTION_LABEL, useCoupleGhostOffer, type CoupleGhostOffer } from '@/components/velo/CoupleGhostPicker';
 import { rideWithSubtitle } from '@/components/velo/coupleGhostText';
-import { scenicFigures } from '@/components/velo/ScenicRoutes';
+import { ClassicViewTag, scenicFigures } from '@/components/velo/ScenicRoutes';
+import { worldForRoute } from '@/lib/world/catalog';
 import { DISPLAY } from '@/components/velo/v2';
 import { TrainerRow } from '@/components/velo/TrainerPanel';
 import { RoutePreview } from '@/components/setup/RoutePreview';
@@ -552,7 +553,10 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
                   >
                     <span className="min-w-0 flex-1">
                       <span className={cn(DISPLAY, 'block text-lg text-foreground')}>{info.name}</span>
-                      <span className="num block text-sm text-muted-foreground">{scenicFigures(info, units)}</span>
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="num text-sm text-muted-foreground">{scenicFigures(info, units)}</span>
+                        {worldForRoute(info.route) === null && <ClassicViewTag />}
+                      </span>
                     </span>
                     {isSelected && <Check className="h-5 w-5 shrink-0 text-primary" aria-hidden />}
                   </button>

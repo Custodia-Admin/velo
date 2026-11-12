@@ -14,7 +14,7 @@ export interface MapPlateProps {
   aspect: number;
   /** Aspect / size classes, e.g. "aspect-3/2" (tailwind.config aspectRatio). */
   className?: string;
-  /** Overlay content (e.g. the "Map view" badge). */
+  /** Overlay content drawn over the plate. */
   children?: ReactNode;
 }
 

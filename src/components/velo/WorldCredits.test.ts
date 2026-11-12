@@ -25,6 +25,7 @@ import { creditPlaces, worldCredits } from './worldCredits';
 const ROOT = resolve(__dirname, '../../..');
 const DEST_DIR = fileURLToPath(new URL('../../lib/world/destinations/', import.meta.url));
 const WORLDS = fileURLToPath(new URL('../../../public/worlds/', import.meta.url));
+const REMOTE = fileURLToPath(new URL('../../../tools/worldbake/remote/', import.meta.url));
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
 
 /** Lugano as the GLO-30 re-bake ships it: bake credits → manifest → destination (syncDestinations). */
@@ -32,7 +33,10 @@ function luganoOnGlo30(): Destination {
   // The bake's own credits for Lugano's recipe: GLO-30, plus swissALTI3D under the routes (recipe bareGround, card t_06b010ec).
   const recipe = readJson(fileURLToPath(new URL('../../../tools/worldbake/worlds/lugano.json', import.meta.url)));
   const world = { ...readJson(join(WORLDS, 'lugano/manifest.json')), credits: bundleCredits(recipe, GLO30_DEM_SOURCE, {}) };
-  return validateDestination(destinationFromWorld(readJson(join(DEST_DIR, 'lugano.json')), world), 'lugano.json');
+  // Its outlying routes ride in remote worlds of their own (extraWorlds), each from its committed manifest.
+  const dest = readJson(join(DEST_DIR, 'lugano.json')) as { extraWorlds: { id: string; dir: string }[] };
+  const extras = dest.extraWorlds.map((w) => ({ world: readJson(join(REMOTE, w.id, 'manifest.json')), remote: { dir: w.dir } }));
+  return validateDestination(destinationFromWorld(dest, world, null, extras), 'lugano.json');
 }
 const perugia = () => validateDestination(readJson(join(DEST_DIR, 'perugia.json')), 'perugia.json');
 
@@ -157,7 +161,15 @@ describe('WorldCredits: a GLO-30 world carries the licence notice to the screen'
   const glo30 = rows.find((r) => r.id === 'copernicus-glo30');
 
   it('the GLO-30 destination brings its credit along (bake → manifest → destination)', () => {
-    expect(lugano.credits.map((c) => c.id)).toEqual(['osm', 'copernicus-glo30', 'swissalti3d', 'copernicus-glo90', 'osrm-fossgis']);
+    expect(lugano.credits.map((c) => c.id).slice(0, 5)).toEqual(['osm', 'copernicus-glo30', 'swissalti3d', 'copernicus-glo90', 'osrm-fossgis']);
+    // Then what its extra worlds add: their routes and Lombardy's bare ground.
+    expect(lugano.credits.map((c) => c.id).slice(5)).toEqual([
+      'route-scenic-valle-maggia',
+      'route-scenic-magadino-plain',
+      'lombardia-dtm5',
+      'route-scenic-lake-varese',
+      'route-scenic-lake-como-menaggio',
+    ]);
     expect(glo30).toBeDefined();
   });
 
@@ -185,7 +197,10 @@ describe('WorldCredits: a GLO-30 world carries the licence notice to the screen'
   });
 
   it('says which places each credit covers', () => {
-    expect(glo30!.text).toContain('Used for Lugano');
+    // Perugia's Trasimeno world is baked on GLO-30 too.
+    expect(glo30!.text).toContain('Used for every place');
+    expect(rows.find((r) => r.id === 'swissalti3d')!.text).toContain('Used for Lugano');
+    expect(rows.find((r) => r.id === 'mase-pst-lidar')!.text).toContain('Used for Perugia');
     expect(rows.find((r) => r.id === 'terrain-tiles')!.text).toContain('Used for Perugia');
     expect(rows.find((r) => r.id === 'osm')!.text).toContain('Used for every place');
   });
@@ -363,7 +378,7 @@ describe('Home mounts the credits, the ride does not', () => {
     expect(glo30!.text).toContain(GLO30_DISCLAIMER);
     expect(glo30!.text).toContain(GLO30_CREDIT.attribution);
     expect(glo30!.lines).toEqual([GLO30_CREDIT.name, GLO30_CREDIT.attribution, `Licence ${GLO30_CREDIT.licence}`]);
-    expect(glo30!.text).toContain('Used for Lugano');
+    expect(glo30!.text).toContain('Used for every place');
   });
 
   it('lists a credit that only a later destination carries (the default is every destination, not the first)', async () => {
