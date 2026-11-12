@@ -315,8 +315,17 @@ export function embankmentLowering({ s, x, y, target, raw, groundAt, structure, 
  * bridges and tunnels that never count (`structureLookup`). With
  * `snap.spanStructures` the offset spans those structures
  * (`spanStructureDiff`; needs `structure` too).
+ *
+ * `fitHeights`, when given, is the grid the fit reads the ground from (the
+ * route's raw samples and the embankment's ground across) instead of
+ * `heights`; the carve still writes `heights`. bake.mjs passes a coast
+ * world's terrain without the shore strip (coast.mjs `flattenSea`), which
+ * holds every land node beside the sea at sea level: a waterfront route a
+ * cell from the water samples those nodes, and short offset windows then
+ * ride it along the sea (Puerto Vallarta's malecón 0.6–1.0 m on 1.5–2.9 m
+ * ground).
  */
-export function carveRoutes({ grid, heights, projection, routes, snap, skip, structure }) {
+export function carveRoutes({ grid, heights, projection, routes, snap, skip, structure, fitHeights = heights }) {
   const { stepM, offsetMedianM, offsetMeanM, coreCells, falloffM } = snap;
   const embank = embankmentOptions(snap);
   const span = spanStructuresOption(snap);
@@ -338,7 +347,7 @@ export function carveRoutes({ grid, heights, projection, routes, snap, skip, str
       x.push(round2(px));
       y.push(round2(py));
     }
-    const raw = x.map((px, i) => sampleFloatGrid(grid, heights, px, y[i]));
+    const raw = x.map((px, i) => sampleFloatGrid(grid, fitHeights, px, y[i]));
     let diff = raw.map((h, i) => h - rs.ele[i]);
     let spans = null;
     if (span) {
@@ -354,7 +363,7 @@ export function carveRoutes({ grid, heights, projection, routes, snap, skip, str
     let fitted = rs.ele.map((e, i) => e + offset[i]);
     let embankments = null;
     if (embank) {
-      const groundAt = (px, py) => sampleFloatGrid(grid, heights, px, py);
+      const groundAt = (px, py) => sampleFloatGrid(grid, fitHeights, px, py);
       const res = embankmentLowering({ s: rs.s, x, y, target: fitted, raw, groundAt, structure, ...embank });
       fitted = fitted.map((t, i) => t - res.lower[i]);
       embankments = res.runs;

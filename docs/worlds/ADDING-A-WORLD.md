@@ -97,7 +97,10 @@ from `chengdu-luxelakes.json`:
     behind it; `natural=sand` also maps dunes, so it is left alone);
   - ships beaches and sand as landcover kind `beach`.
   The route carve runs after this; sea nodes it lifts go back to 0 m except
-  the route's core. A coastline that stops inside the world fails the bake:
+  the route's core. The route fit reads the strip as it was before it was
+  lowered (beaches still sloped): a waterfront route a cell from the water
+  samples those nodes, and it rode Puerto Vallarta's malecón 0.6–1.0 m over
+  the sea on 1.5–2.9 m ground. A coastline that stops inside the world fails the bake:
   the snapshot is broken, pick another `osmDate`. Give the grid an extra
   1–1.5 km on the sea side so the water runs out to the edge; the renderer
   carries it on past the edge to the far plane (`seaApron`). Recipes without

@@ -258,6 +258,24 @@ describe('embankments: in the route fit (carveRoutes)', () => {
     const p = carveRoutes({ grid, heights: a.heights, projection: proj, routes: [a.route], snap: { ...snap, embankment: { maxM: 2 } }, structure: (x: number) => Math.abs(x) < 60 }).prepared[0];
     expect(bottom(p)).toBeGreaterThan(2.5);
   });
+
+  it('reads the ground, at the route and across it, from fitHeights and carves heights (a coast world: carveRoutes)', () => {
+    // The valley only in fitHeights; the grid the carve writes is the flat plain.
+    const valley = world().heights;
+    const fitHeights = valley.slice();
+    const heights = new Float64Array(valley.length).fill(190);
+    const p = carveRoutes({ grid, heights, projection: proj, routes: [world().route], snap: { ...snap, embankment: { maxM: 2 } }, fitHeights }).prepared[0];
+    // As in the valley world: raw is the valley's bottom and the embankment comes down to maxM over it.
+    expect(Math.min(...p.raw)).toBeCloseTo(181, 0);
+    expect(bottom(p)).toBeLessThanOrEqual(2 + 1e-9);
+    expect(p.embankments).toHaveLength(1);
+    // The carve wrote the plain at the route (x = 0) and never touched fitHeights.
+    const mid = Math.round(grid.yMax / grid.cellSize) * grid.cols + Math.round(-grid.xMin / grid.cellSize);
+    const i = p.x.reduce((best, v, k) => (Math.abs(v) < Math.abs(p.x[best]) ? k : best), 0);
+    expect(heights[mid]).toBeCloseTo(p.target[i], 1);
+    expect(heights[mid]).toBeLessThan(184);
+    expect(fitHeights).toEqual(valley);
+  });
 });
 
 describe('spanStructures: the offset spans mapped bridges and tunnels (snap.spanStructures)', () => {
