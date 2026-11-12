@@ -47,13 +47,18 @@ describe('ScenicHomeSections', () => {
     expect(hometown.match(/Map view/g)).toHaveLength(4);
     expect(hometown).toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*"/);
     expect(hometown).not.toMatch(/aria-label="Ride Lugano lakefront to Melide, [^"]*, map view"/);
-    // The wishlist now mixes too: the places with a world lead (Chengdu, then
-    // the coast worlds in manifest order), the map rides carry the badge.
+    // The wishlist now mixes too: the places with a world lead (Chengdu,
+    // Cleveland, the Cuyahoga Valley, then the coast worlds), the map rides
+    // carry the badge.
     const wishlist = out.slice(out.indexOf('data-destination-section="wishlist"'));
     const wishTiles = [...wishlist.matchAll(/data-scenic-route="([^"]+)"/g)].map((m) => m[1]);
     const worldTiles = [
       'scenic-chengdu-luxe-lakes',
       'scenic-chengdu-xinglong-lake',
+      'scenic-cleveland-lakefront',
+      'scenic-wendy-park-lakewood',
+      'scenic-cuyahoga-towpath',
+      'scenic-cuyahoga-towpath-north',
       'scenic-berkeley-bay-trail',
       'scenic-richmond-marina-bay',
       'scenic-santa-monica-strand',
@@ -62,6 +67,8 @@ describe('ScenicHomeSections', () => {
       'scenic-nuevo-vallarta-bucerias',
     ];
     expect(wishTiles.slice(0, worldTiles.length)).toEqual(worldTiles);
+    expect(wishlist).toMatch(/aria-label="Ride Towpath: Lock 39 to Station Road in Cuyahoga Valley, [^"]*"/);
+    expect(wishlist).not.toMatch(/aria-label="Ride Towpath: Lock 39 to Station Road in Cuyahoga Valley, [^"]*, map view"/);
     expect(wishlist).toMatch(/aria-label="Ride Will Rogers to Venice in Santa Monica, [^"]*"/);
     expect(wishlist).not.toMatch(/aria-label="Ride (Berkeley shoreline|Richmond Marina Bay|Santa Monica to Hermosa Beach|Will Rogers to Venice|Puerto Vallarta bayfront|Nuevo Vallarta to Bucerías) in [^"]*, map view"/);
     expect(wishlist).toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*"/);

@@ -25,6 +25,8 @@ interface ShortcutRow {
 const SHORTCUTS: ShortcutRow[] = [
   { keys: ['Space'], description: 'Pause / resume the ride' },
   { keys: ['Esc'],   description: 'Press once to pause · press again to finish' },
+  { keys: ['-', '['], description: 'One gear easier' },
+  { keys: ['=', ']'], description: 'One gear harder' },
   { keys: ['?'],     description: 'Toggle this shortcut overlay' },
 ];
 

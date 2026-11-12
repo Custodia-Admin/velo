@@ -32,6 +32,10 @@
  *   does. A throw from a caller outside the loop while it runs on, WebXR
  *   turning the loop off, and a throw while it is off are not stops; the
  *   widget's own methods are back before destroy().
+ * - Covered by the finish screen (card t_c4842aa7): the default render loop
+ *   is off (no frames at all, not even on-demand ones) on the same viewer,
+ *   and back on when uncovered. Not a stop. A loop WebXR turned off stays
+ *   WebXR's, and a viewer destroyed while covered is left alone.
  */
 import { isValidElement, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -730,6 +734,108 @@ describe('CesiumScene: the viewer canvas and its WebGL context', () => {
     // Nor does Cesium draw its "Error constructing CesiumWidget" panel into the container.
     expect(fake.FakeViewer.optionsSeen).toHaveLength(1);
     expect((fake.FakeViewer.optionsSeen[0] as Record<string, unknown>).showRenderLoopErrors).toBe(false);
+  });
+});
+
+describe('CesiumScene covered by the finish screen: no frames', () => {
+  /** Mount CesiumScene (covered or not) and return a re-render with a new `covered`. */
+  async function mountCovered(covered: boolean) {
+    const inst = instance();
+    mounted.push(inst);
+    const report = { lost: vi.fn(), restored: vi.fn() };
+    const base = { ionToken: null, onReady: vi.fn(), canvasKey: 0, context: report as unknown as ViewerContextReport };
+    const el = renderIn(inst, CesiumScene, { ...base, covered });
+    const container = elements(el).find((x) => x.props.ref && typeof x.props.ref === 'object');
+    (container!.props.ref as { current: unknown }).current = { clientWidth: 960, clientHeight: 540 };
+    commit(inst);
+    await flush();
+    const rerender = async (next: boolean) => {
+      renderIn(inst, CesiumScene, { ...base, covered: next });
+      commit(inst);
+      await flush();
+    };
+    // viewerReady moved on: React renders again and the viewer-bound effects run.
+    await rerender(covered);
+    expect(fake.FakeViewer.built).toHaveLength(1);
+    return { inst, report, viewer: fake.FakeViewer.built[0], rerender };
+  }
+
+  /** Frames the default loop draws in `n` display frames (preRender is where the ride's per-frame code runs). */
+  const framesDrawn = (viewer: (typeof fake.FakeViewer.built)[number], n: number) => {
+    let drawn = 0;
+    const off = viewer.scene.preRender.addEventListener(() => void drawn++);
+    for (let k = 0; k < n; k++) viewer.cesiumWidget.frame();
+    off();
+    return drawn;
+  };
+
+  it('riding: the default loop draws every frame', async () => {
+    const { viewer } = await mountCovered(false);
+    expect(viewer.useDefaultRenderLoop).toBe(true);
+    expect(framesDrawn(viewer, 10)).toBe(10);
+  });
+
+  it('covered: the loop is off, no frame is drawn; uncovered (Ride again): the same viewer draws again. Not a stop', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { viewer, report, rerender } = await mountCovered(false);
+    await rerender(true);
+    expect(viewer.useDefaultRenderLoop).toBe(false);
+    expect(framesDrawn(viewer, 10)).toBe(0);
+    await rerender(false);
+    expect(fake.FakeViewer.built, 'no new viewer').toHaveLength(1);
+    expect(viewer.destroyCalls).toBe(0);
+    expect(viewer.useDefaultRenderLoop).toBe(true);
+    expect(framesDrawn(viewer, 10)).toBe(10);
+    expect(report.lost).not.toHaveBeenCalled();
+    expect(warn.mock.calls.filter((c) => /stopped rendering/.test(String(c[0])))).toEqual([]);
+    // The loop watch is still armed after the pause: a real stop reports.
+    viewer.scene.preRender.addEventListener(() => {
+      throw new Error('a real stop');
+    });
+    expect(viewer.cesiumWidget.frame()).toBe(false);
+    await flush();
+    expect(report.lost).toHaveBeenCalledTimes(1);
+  });
+
+  it('a scene mounted under the finish screen (the floating window closed at the finish) draws nothing until uncovered', async () => {
+    const { viewer, rerender } = await mountCovered(true);
+    expect(viewer.useDefaultRenderLoop).toBe(false);
+    expect(framesDrawn(viewer, 5)).toBe(0);
+    await rerender(false);
+    expect(framesDrawn(viewer, 5)).toBe(5);
+  });
+
+  it("a loop a WebXR session turned off stays off when the finish screen goes (it is the session's)", async () => {
+    const { viewer, rerender } = await mountCovered(false);
+    viewer.useDefaultRenderLoop = false; // lib/webxr: XR's own frame loop draws
+    await rerender(true);
+    await rerender(false);
+    expect(viewer.useDefaultRenderLoop).toBe(false);
+  });
+
+  it('leaving the ride from the finish screen destroys the viewer once and does not touch it after', async () => {
+    const { inst, viewer } = await mountCovered(true);
+    let loopSetAfterDestroy = false;
+    const desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(viewer), 'useDefaultRenderLoop')!;
+    Object.defineProperty(viewer, 'useDefaultRenderLoop', {
+      configurable: true,
+      get: () => desc.get!.call(viewer),
+      set: (on: boolean) => {
+        if (viewer.isDestroyed()) loopSetAfterDestroy = true;
+        desc.set!.call(viewer, on);
+      },
+    });
+    unmountIn(inst);
+    expect(viewer.destroyCalls).toBe(1);
+    expect(loopSetAfterDestroy).toBe(false);
+  });
+
+  it('CesiumWorldView hands `covered` to its scene', () => {
+    const inst = instance();
+    mounted.push(inst);
+    const root = renderIn(inst, CesiumWorldView, { ionToken: null, covered: true });
+    commit(inst);
+    expect(elements(root).find((x) => x.type === CesiumScene)?.props.covered).toBe(true);
   });
 });
 

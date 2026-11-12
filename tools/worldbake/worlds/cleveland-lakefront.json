@@ -1,0 +1,78 @@
+{
+  "id": "cleveland-lakefront",
+  "name": "Cleveland",
+  "description": "The Lake Erie shore of Cleveland and Lakewood: the Lakefront Bikeway from Edgewater Park past downtown and the harbour to Gordon Park, and the lakeside streets west from Wendy Park to Lakewood Park.",
+  "origin": {
+    "lat": 41.505,
+    "lon": -81.718
+  },
+  "grid": {
+    "xMin": -7400,
+    "yMax": 4500,
+    "cellSize": 12,
+    "cols": 1224,
+    "rows": 596
+  },
+  "dem": {
+    "source": "copernicus-glo30"
+  },
+  "osmDate": "2026-11-01T00:00:00Z",
+  "routes": [
+    "scenic-cleveland-lakefront",
+    "scenic-wendy-park-lakewood"
+  ],
+  "host": "remote",
+  "routeCredits": true,
+  "bridges": true,
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 400,
+    "offsetMeanM": 1600,
+    "coreCells": 1.5,
+    "falloffM": 40
+  },
+  "vegetation": {
+    "seed": 41505,
+    "maxInstances": 320000,
+    "spacingM": {
+      "forest": 11,
+      "wood": 11,
+      "scrub": 16,
+      "orchard": 7,
+      "park": 20
+    },
+    "character": {
+      "gardenKeep": 0.3,
+      "riparianM": 30
+    }
+  },
+  "moods": [
+    "dusk-cool",
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast"
+  ],
+  "defaultMood": "dusk-cool",
+  "validation": {
+    "sample_seed": 41505,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "copernicus-glo30",
+    "terrain_class": "standard",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.0095,
+    "floor_source": "none",
+    "floor_rms_m": 0,
+    "own_error_allowance_m": 6,
+    "bound_m": 6,
+    "registered_rms_m": 0.52,
+    "point_rms_m": 2.02,
+    "max_abs_registered_err_m": 2.16,
+    "pass": true
+  }
+}

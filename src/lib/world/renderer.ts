@@ -128,4 +128,10 @@ export interface WorldViewProps {
    * load, no WebGL2); the ride view falls back to another renderer.
    */
   onUnavailable?: (reason: string) => void;
+  /**
+   * An opaque page covers the whole view (the finish screen): draw no frames
+   * until it goes. The scene, its primitives and the ride stay as they are,
+   * so the world is back at once when it is uncovered (Ride again).
+   */
+  covered?: boolean;
 }

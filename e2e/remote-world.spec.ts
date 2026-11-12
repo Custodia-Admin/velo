@@ -1,10 +1,9 @@
 /**
- * Wishlist worlds that are not shipped with the app (blueprint §P3.1,
+ * The wishlist worlds that are not shipped with the app (blueprint §P3.1,
  * docs/worlds/ADDING-A-WORLD.md "Hosting").
  *
- * Chengdu Luxe Lakes and the coast worlds (Berkeley, Santa Monica, Puerto
- * Vallarta) are published to the R2 bucket under content-hashed
- * directories. Each first ride downloads its world (≤ 8 MB), the loader keeps every
+ * Each is published to the R2 bucket under a content-hashed directory. The
+ * first ride downloads it (≤ 8 MB), the loader keeps every
  * file it checked in the `velo-worlds-v1` Cache API store, and once the
  * service worker has precached the app shell the next ride starts with the
  * browser offline: page, world and all, with no request for a world file
@@ -19,16 +18,21 @@ const INIT = `
   localStorage.removeItem('globeride.cesiumIonToken');
 `;
 const MB = 1024 * 1024;
+const LAYERS = ['buildings.bin.gz', 'height.bin.gz', 'landcover.json.gz', 'manifest.json', 'roads.json.gz', 'routes.json.gz', 'vegetation.bin.gz', 'water.json.gz'];
 
-/** One route per remote world, ridden from its Home card in "Places we want to go". */
+/** Each remote world, ridden from one of its wishlist cards. */
 const WORLDS = [
-  { world: 'chengdu-luxelakes', route: 'scenic-chengdu-xinglong-lake', label: /^Ride Xinglong Lake loop in Chengdu, (?!.*map view)/ },
-  { world: 'berkeley', route: 'scenic-richmond-marina-bay', label: /^Ride Richmond Marina Bay in Berkeley, (?!.*map view)/ },
-  { world: 'santa-monica-venice', route: 'scenic-will-rogers-venice', label: /^Ride Will Rogers to Venice in Santa Monica, (?!.*map view)/ },
-  { world: 'puerto-vallarta', route: 'scenic-nuevo-vallarta-bucerias', label: /^Ride Nuevo Vallarta to Bucerías in Puerto Vallarta, (?!.*map view)/ },
+  { id: 'chengdu-luxelakes', route: 'scenic-chengdu-xinglong-lake', name: 'Xinglong Lake loop', place: 'Chengdu', files: LAYERS },
+  // Worlds baked with bridges as structures carry a bridges layer.
+  { id: 'ohio-erie-towpath', route: 'scenic-cuyahoga-towpath-north', name: 'Towpath: Lock 39 to Station Road', place: 'Cuyahoga Valley', files: [...LAYERS, 'bridges.json.gz'].sort() },
+  { id: 'cleveland-lakefront', route: 'scenic-wendy-park-lakewood', name: 'Wendy Park to Lakewood Park', place: 'Cleveland', files: [...LAYERS, 'bridges.json.gz'].sort() },
+  { id: 'berkeley', route: 'scenic-richmond-marina-bay', name: 'Richmond Marina Bay', place: 'Berkeley', files: LAYERS },
+  // The coast worlds: the sea is a water area, no extra layer.
+  { id: 'santa-monica-venice', route: 'scenic-will-rogers-venice', name: 'Will Rogers to Venice', place: 'Santa Monica', files: LAYERS },
+  { id: 'puerto-vallarta', route: 'scenic-nuevo-vallarta-bucerias', name: 'Nuevo Vallarta to Bucerías', place: 'Puerto Vallarta', files: LAYERS },
 ];
-type RemoteWorld = (typeof WORLDS)[number];
-const worldFile = (w: RemoteWorld) => new RegExp(`/worlds/${w.world}/[0-9a-f]{16}/([^/?#]+)$`);
+type World = (typeof WORLDS)[number];
+const worldFile = (w: World) => new RegExp(`/worlds/${w.id}/[0-9a-f]{16}/([^/?#]+)$`);
 
 interface WorldDebug {
   renderer: string;
@@ -44,21 +48,21 @@ const worldDebug = (page: Page) =>
     return (fn ? fn() : null) as WorldDebug | null;
   });
 
-/** Home → the route's card in "Places we want to go" → riding its world. */
-async function rideWorld(page: Page, w: RemoteWorld) {
+/** Home → the world's card in "Places we want to go" → riding that world. */
+async function rideWorld(page: Page, w: World) {
   await page.goto('/app');
   const wishlist = page.locator('[data-destination-section="wishlist"]');
   await expect(wishlist).toBeVisible();
   const card = wishlist.locator(`[data-scenic-route="${w.route}"]`);
   // A world ride: the tile carries no "map view" badge.
-  await expect(card).toHaveAttribute('aria-label', w.label);
+  await expect(card).toHaveAttribute('aria-label', new RegExp(`^Ride ${w.name} in ${w.place}, (?!.*map view)`));
   await card.click();
   await page.waitForURL('**/ride**');
 
   const view = page.locator('[data-renderer]');
   await expect(view).toHaveAttribute('data-renderer-preferred', 'world');
   await expect(view).toHaveAttribute('data-renderer', 'world');
-  await expect.poll(async () => (await worldDebug(page))?.world ?? null, { timeout: 90_000 }).toBe(w.world);
+  await expect.poll(async () => (await worldDebug(page))?.world ?? null, { timeout: 90_000 }).toBe(w.id);
   const a = await worldDebug(page);
   await expect.poll(async () => (await worldDebug(page))?.distance ?? 0, { timeout: 60_000 }).toBeGreaterThan(a!.distance!);
   const b = await worldDebug(page);
@@ -67,7 +71,7 @@ async function rideWorld(page: Page, w: RemoteWorld) {
   await expect(page.getByTestId('photoreal-notice')).toHaveCount(0);
 }
 
-for (const w of WORLDS) test(`the ${w.world} world downloads once (≤ 8 MB) and the next ride starts offline`, async ({ page, context }) => {
+for (const w of WORLDS) test(`the ${w.id} world downloads once (≤ 8 MB) and the next ride starts offline`, async ({ page, context }) => {
   const WORLD_FILE = worldFile(w);
   const cesium: string[] = [];
   const pageErrors: string[] = [];
@@ -89,18 +93,9 @@ for (const w of WORLDS) test(`the ${w.world} world downloads once (≤ 8 MB) and
   // First ride: every file of the bundle comes from the bucket, once.
   await rideWorld(page, w);
   const files = [...fetched.keys()].sort();
-  expect(files).toEqual([
-    'buildings.bin.gz',
-    'height.bin.gz',
-    'landcover.json.gz',
-    'manifest.json',
-    'roads.json.gz',
-    'routes.json.gz',
-    'vegetation.bin.gz',
-    'water.json.gz',
-  ]);
+  expect(files).toEqual(w.files);
   const bytes = [...fetched.values()].reduce((s, n) => s + n, 0);
-  console.info(`first ride downloaded ${(bytes / MB).toFixed(2)} MB of the ${w.world} world`);
+  console.info(`first ride downloaded ${(bytes / MB).toFixed(2)} MB of the ${w.id} world`);
   expect(bytes).toBeGreaterThan(0.5 * MB);
   expect(bytes).toBeLessThanOrEqual(8 * MB);
 

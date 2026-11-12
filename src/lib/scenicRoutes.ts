@@ -216,6 +216,15 @@ const SCENIC_META: ScenicMeta[] = [
     mood: 'clear-afternoon',
   },
   {
+    id: 'scenic-cuyahoga-towpath-north',
+    name: 'Towpath: Lock 39 to Station Road',
+    place: 'Ohio · Cuyahoga Valley',
+    description:
+      'The towpath’s northern miles, from Lock 39 at Rockside Road south along the canal past the Canal Exploration Center to Station Road Bridge in Brecksville.',
+    scenery: 'river',
+    mood: 'clear-afternoon',
+  },
+  {
     id: 'scenic-cleveland-lakefront',
     name: 'Cleveland lakefront',
     place: 'Ohio · Lake Erie',
@@ -223,6 +232,15 @@ const SCENIC_META: ScenicMeta[] = [
       'The Lakefront Bikeway from Edgewater Park past downtown and the harbour to Gordon Park at East 72nd Street.',
     scenery: 'lake',
     mood: 'dusk-cool',
+  },
+  {
+    id: 'scenic-wendy-park-lakewood',
+    name: 'Wendy Park to Lakewood Park',
+    place: 'Ohio · Lake Erie',
+    description:
+      'From Wendy Park at the river mouth across Whiskey Island and past Edgewater Park’s beach, then along the lakeside streets of Edgewater and Lakewood’s Gold Coast to Lakewood Park.',
+    scenery: 'lake',
+    mood: 'golden-hour',
   },
   {
     id: 'scenic-berkeley-bay-trail',

@@ -238,6 +238,7 @@ export function Ride() {
 
   // The compact HUD shows while riding; show mode swaps it for the video
   // panel + show strip; the finish page replaces both.
+  const finishShown = rideState === 'finished';
   const rideHudOn = !showActive && rideState !== 'finished';
 
   // VR / AR need the Cesium viewer (photoreal only); each button renders
@@ -254,7 +255,11 @@ export function Ride() {
       ref={rideCanvasRef}
       className="hud-flat ride-hud-v2 fixed inset-0 w-screen h-screen overflow-hidden bg-background"
     >
-      {!floating && <RideView ionToken={token} onRendererReady={setWorldRenderer} />}
+      {/* The finish page is opaque over the whole screen: the world under it
+          draws no frames until Ride again. On a slow TV or software GL each
+          hidden frame held the main thread, and the way back Home waited
+          behind them. */}
+      {!floating && <RideView ionToken={token} onRendererReady={setWorldRenderer} covered={finishShown} />}
       <ShowSurface ionToken={token} onRendererReady={setWorldRenderer} />
       {/* With a video of the rider's own playing, the tab keeps the video panel. */}
       {floating && showSource !== 'files' && <RideFloatingNotice />}
@@ -338,7 +343,7 @@ export function Ride() {
       )}
 
       {/* -- Finish page ---------------------------------------------------- */}
-      {rideState === 'finished' && <FinishCard />}
+      {finishShown && <FinishCard />}
 
       {/* -- Keyboard shortcuts overlay ------------------------------------- */}
       <RideShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />

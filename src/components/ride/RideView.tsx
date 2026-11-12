@@ -45,12 +45,15 @@ export function RideView({
   ionToken,
   onRendererReady,
   fallback,
+  covered = false,
 }: {
   ionToken: string | null;
   /** The live renderer, or null when it goes away (renderer switch / unmount). */
   onRendererReady?: (renderer: WorldRenderer | null) => void;
   /** Shown while the renderer's chunk loads (default: the plain background). */
   fallback?: ReactNode;
+  /** An opaque page (the finish screen) covers the world: the renderer draws no frames (WorldViewProps.covered). */
+  covered?: boolean;
 }) {
   const preferred = useSettingsStore((s) => s.renderer);
   const route = useRideStore((s) => s.route);
@@ -106,7 +109,13 @@ export function RideView({
         <Suspense
           fallback={fallback ?? <div className="absolute inset-0 bg-background" aria-hidden="true" />}
         >
-          <View key={kind} ionToken={ionToken} onReady={handleReady} onUnavailable={handleUnavailable} />
+          <View
+            key={kind}
+            ionToken={ionToken}
+            onReady={handleReady}
+            onUnavailable={handleUnavailable}
+            covered={covered}
+          />
         </Suspense>
       )}
     </div>

@@ -55,6 +55,7 @@
     "coast": { "type": "boolean", "description": "A world on the sea (tools/worldbake/coast.mjs): fetch the coast layer, build the sea from the natural=coastline ways (water areas of kind `sea`, terrain levelled to sea level under them) and natural=beach/sand areas as landcover kind `beach`." },
     "buildingSimplifyM": { "type": "number", "minimum": 0.3, "maximum": 2, "description": "Simplify building footprints at this tolerance, metres (default 0.3). For dense metro worlds whose OSM footprints are surveyed to the corner (Los Angeles County's import: 9.6 vertices a building): 1 m halves their triangles, so the buildings in view fit the fps budget." },
     "flatLakes": { "type": "boolean", "description": "Level the terrain under every OSM lake and pond (tools/worldbake/flatLakes.mjs): for lakes newer than the DEM, which still carries the land they were dug from." },
+    "bridges": { "type": "boolean", "description": "Build bridges as structures (tools/worldbake/bridges.mjs): deck heights from the abutments with headroom over every route passing under, ridden decks not carved into the ground, ground kept under every deck, piers. Writes the bridges layer." },
     "routeCredits": { "type": "boolean", "description": "Add one manifest credit per route linking the OSM relation or OSRM bike query its geometry came from (scripts/scenicRouteSources.mjs)." },
     "snap": {
       "type": "object",
@@ -74,7 +75,14 @@
         "seed": { "type": "integer" },
         "maxInstances": { "type": "integer", "minimum": 0 },
         "spacingM": { "type": "object", "additionalProperties": { "type": "number" } },
-        "character": { "type": "object" }
+        "character": { "type": "object" },
+        "corridor": {
+          "description": "Woodland within m of a route keeps the share keep first; the rest of the world shares what is left of maxInstances (buildVectors.mjs buildVegetation).",
+          "type": "object",
+          "required": ["m", "keep"],
+          "additionalProperties": false,
+          "properties": { "m": { "type": "number", "exclusiveMinimum": 0 }, "keep": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 } }
+        }
       }
     },
     "moods": { "type": "array", "items": { "type": "string" }, "minItems": 1 },

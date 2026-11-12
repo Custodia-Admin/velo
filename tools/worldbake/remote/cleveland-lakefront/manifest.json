@@ -1,0 +1,418 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "cleveland-lakefront",
+  "name": "Cleveland",
+  "origin": {
+    "lat": 41.505,
+    "lon": -81.718
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 41.505,
+    "lon0": -81.718,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -7400,
+    "xMax": 7276,
+    "yMin": -2640,
+    "yMax": 4500
+  },
+  "bbox": {
+    "south": 41.48119,
+    "west": -81.80669,
+    "north": 41.54552,
+    "east": -81.63079
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 1224,
+    "rows": 596,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": 162,
+    "heightScale": 0.015625,
+    "minHeight": 163.484375,
+    "maxHeight": 228.421875
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz",
+    "bridges": "bridges.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 402573,
+      "sha256": "4dcbb45368016717f344227c9f7224c79d5e509b9f05387df4e3f376b8cc51f6",
+      "compression": "gzip",
+      "contentBytes": 1459008,
+      "contentSha256": "c6478a617a6a9fc1978d8e618b5de99e28395412306d47222aa0d27d2d282396"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 349458,
+      "sha256": "8548a1796be17b344e75f1ad3cf1552388d398538d9e97a05f87427335e34456",
+      "compression": "gzip",
+      "contentBytes": 1036453,
+      "contentSha256": "ffc1fc1355bac2bb84a8edb22c50521559758832878f09cc3ce86fdd5fdb39b7"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 9637,
+      "sha256": "3421a6d47707a40d2f1501ce563861238dec7b6cc9d61fcb90a0b6fce935a2f1",
+      "compression": "gzip",
+      "contentBytes": 21390,
+      "contentSha256": "565aaeb021a2c0bb052d619559f0d61632c710fb81517238bd8e6b488b3f4814"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 68598,
+      "sha256": "052d7f2a270dc0878eded01c6db5ecb87f2f5961c834ab602db35253c745de2b",
+      "compression": "gzip",
+      "contentBytes": 187477,
+      "contentSha256": "c4d175f4aaf002dc35d35c17a6aa0ca5c508a62102a6bbc89b707e19a18de285"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 347294,
+      "sha256": "c13d90fedb1651c1a9e4b959cf7e039e3b6052c7362f987bb20bd1b7d9be3ec5",
+      "compression": "gzip",
+      "contentBytes": 652420,
+      "contentSha256": "53798dece3cfce117992fad137b7e7bf89ddbba7fe6a3fbde0acd52c045930ea"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 114033,
+      "sha256": "580aeb34e75d36f09a502bdf54f5017f8e482d21d486035eb639ab2095ab8bf7",
+      "compression": "gzip",
+      "contentBytes": 158830,
+      "contentSha256": "5a2e18993e7c07af50d634156a1e335a8db99c6a5939d18bdf25d1be47f2e56f"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 33774,
+      "sha256": "0fb4f9d930ff15ca2aed9d3ea2873a50ac85fd0353ad61f7055d56e856eb80a9",
+      "compression": "gzip",
+      "contentBytes": 82460,
+      "contentSha256": "bca010ccbed1d93c5ac9ec02e8a9d4bdfabbe39ac5b176fd676ae19bbafbfda7"
+    },
+    {
+      "path": "bridges.json.gz",
+      "bytes": 13957,
+      "sha256": "5b0aba46f4ff569876736b60fda081b95b5df6891a9e7fdb1e01d11142d5b49a",
+      "compression": "gzip",
+      "contentBytes": 57339,
+      "contentSha256": "dfc0fddb67fcac102ac6cbe30e323173a39bfd9c322206ccc23406247654248e"
+    }
+  ],
+  "moods": [
+    "dusk-cool",
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast"
+  ],
+  "defaultMood": "dusk-cool",
+  "pois": [
+    {
+      "name": "Cleveland",
+      "kind": "town",
+      "rank": 3,
+      "x": 2030.9,
+      "y": -593.1,
+      "osm": "node/18948478",
+      "h": 193.29
+    },
+    {
+      "name": "Lakewood",
+      "kind": "town",
+      "rank": 3,
+      "x": -6697.5,
+      "y": -2552.1,
+      "osm": "node/154081398",
+      "h": 213.98
+    },
+    {
+      "name": "Trinity Cathedral",
+      "kind": "church",
+      "rank": 2,
+      "x": 3649,
+      "y": -425.3,
+      "osm": "node/357414737",
+      "h": 209.22
+    },
+    {
+      "name": "Saint Vitus Catholic Church",
+      "kind": "church",
+      "rank": 2,
+      "x": 5781,
+      "y": 1982.4,
+      "osm": "node/357462297",
+      "h": 194.8
+    },
+    {
+      "name": "Zion Lutheran Church",
+      "kind": "church",
+      "rank": 2,
+      "x": 4228.9,
+      "y": -455.8,
+      "osm": "node/357465391",
+      "h": 206.49
+    },
+    {
+      "name": "Shiloh Baptist Church",
+      "kind": "church",
+      "rank": 2,
+      "x": 5574.9,
+      "y": -1503.8,
+      "osm": "node/357470611",
+      "h": 210.94
+    },
+    {
+      "name": "Saint Johns Episcopal Church",
+      "kind": "church",
+      "rank": 2,
+      "x": 829.9,
+      "y": -1657.4,
+      "osm": "node/357471325",
+      "h": 207.84
+    },
+    {
+      "name": "Overlook",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 6665.3,
+      "y": 4184.9,
+      "osm": "node/2520419149",
+      "h": 173.62
+    },
+    {
+      "name": "Cleveland Script Sign - North Coast Harbor",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 1760.2,
+      "y": 545.8,
+      "osm": "node/5818861371",
+      "h": 172.61
+    },
+    {
+      "name": "Cleveland Script Sign - Tremont",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 2096.9,
+      "y": -2257.2,
+      "osm": "node/5832480311",
+      "h": 204.78
+    },
+    {
+      "name": "Cleveland Script Sign - The Foundry",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 1571.4,
+      "y": -1642,
+      "osm": "node/8406182747",
+      "h": 171.54
+    },
+    {
+      "name": "Hough Uprising Memorial",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 7067.3,
+      "y": 500,
+      "osm": "node/8790642503",
+      "h": 200.93
+    },
+    {
+      "name": "Richard Wagner Statue",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -2631.9,
+      "y": -1953.2,
+      "osm": "node/9565394802",
+      "h": 196.39
+    },
+    {
+      "name": "Sokolowski's Overlook",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 2305,
+      "y": -2207.6,
+      "osm": "node/10291896349",
+      "h": 201.43
+    },
+    {
+      "name": "League Park",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 6273.5,
+      "y": 747,
+      "osm": "way/128292663",
+      "h": 195.7
+    },
+    {
+      "name": "USS Cod Submarine Memorial",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 2201.5,
+      "y": 564.4,
+      "osm": "way/166174337",
+      "h": 172.8
+    },
+    {
+      "name": "SS William G. Mather",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 1660.8,
+      "y": 480,
+      "osm": "way/172623124",
+      "h": 173.8
+    },
+    {
+      "name": "Cathedral of Saint John the Evangelist",
+      "kind": "church",
+      "rank": 2,
+      "x": 2508.3,
+      "y": -220.6,
+      "osm": "way/294598602",
+      "h": 204.42
+    },
+    {
+      "name": "Old Stone Church",
+      "kind": "church",
+      "rank": 2,
+      "x": 1941.1,
+      "y": -509.2,
+      "osm": "way/333522113",
+      "h": 206.58
+    },
+    {
+      "name": "Soldiers' and Sailors' Monument",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 2093.4,
+      "y": -608.6,
+      "osm": "way/430783849",
+      "h": 193.3
+    },
+    {
+      "name": "Saint Peters Catholic Church",
+      "kind": "church",
+      "rank": 2,
+      "x": 3072.7,
+      "y": 62.4,
+      "osm": "way/709805017",
+      "h": 197.68
+    },
+    {
+      "name": "Saint John African Methodist Episcopal Church",
+      "kind": "church",
+      "rank": 2,
+      "x": 5199.7,
+      "y": -902.8,
+      "osm": "way/744438529",
+      "h": 207.22
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-cleveland-lakefront",
+      "name": "Cleveland lakefront",
+      "lengthM": 13513.64,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.339
+    },
+    {
+      "id": "scenic-wendy-park-lakewood",
+      "name": "Wendy Park to Lakewood Park",
+      "lengthM": 8108.03,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.362
+    }
+  ],
+  "stats": {
+    "roads": 15627,
+    "waterAreas": 30,
+    "waterLines": 6,
+    "landcoverAreas": 1376,
+    "buildings": 16014,
+    "buildingVertices": 123067,
+    "buildings:suburb": 12870,
+    "buildings:old-town": 89,
+    "buildings:rural": 144,
+    "buildings:industrial": 2911,
+    "trees": 26469,
+    "trees:broadleaf": 7336,
+    "trees:conifer": 0,
+    "trees:scrub": 3647,
+    "trees:olive": 0,
+    "trees:park": 1938,
+    "trees:cypress": 858,
+    "trees:riparian": 14,
+    "trees:hedgerow": 1777,
+    "trees:garden": 10899,
+    "pois": 22,
+    "carvedNodes": 16591,
+    "bridgeDecks": 329,
+    "bridgePiers": 442
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-cleveland-lakefront",
+      "name": "Cleveland lakefront: OSRM bike route through 9 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-81.7351,41.4896;-81.72,41.4889;-81.7057,41.4923;-81.6898,41.51;-81.68,41.5169;-81.6696,41.5213;-81.6611,41.5258;-81.6501,41.5326;-81.6399,41.5386?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-wendy-park-lakewood",
+      "name": "Wendy Park to Lakewood Park: OSRM bike route through 8 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/-81.71255,41.49905;-81.716,41.4968;-81.73612,41.48916;-81.74532,41.48683;-81.75776,41.48824;-81.77326,41.49136;-81.78893,41.49256;-81.79834,41.4935?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "d9e551e8b5aaeb0fd55219cbb4f1d8976e02e94e72d6e00bfbbcfc191ad72da4",
+    "osmDate": "2026-11-01T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 1,
+    "bridges": true
+  }
+}

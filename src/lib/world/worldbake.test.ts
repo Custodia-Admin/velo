@@ -308,6 +308,25 @@ describe('worldbake: nothing the rider follows runs through a building', () => {
     expect(near(open)).toBeGreaterThan(20);
     expect(near(cleared)).toBe(0);
   });
+
+  it('with a route corridor, the woods along the route keep their share and the rest share what is left', () => {
+    const ext = { xMin: -1000, xMax: 1000, yMin: -1000, yMax: 1000 };
+    const wood = { kind: 'forest', tags: { natural: 'wood' }, rings: [[-900, -900, 900, -900, 900, 900, -900, 900]] };
+    const route = [[-900, 0, 900, 0]];
+    const recipe = { seed: 7, maxInstances: 4000, spacingM: { wood: 10 }, corridor: { m: 100, keep: 0.5 } };
+    const veg = buildVegetation({ polys: [wood], ext, recipe, routeLines: route });
+    expect(veg.count).toBe(4000);
+    expect(veg.corridor.kept).toBe(Math.round(veg.corridor.lattice * 0.5));
+    expect(veg.corridor.farKept).toBe(4000 - veg.corridor.kept);
+    // Far fewer kept per lattice point away from the route than along it.
+    expect(veg.corridor.farKept / veg.corridor.farLattice).toBeLessThan(0.25);
+    // Uniform thinning (no corridor) keeps the same share everywhere.
+    const uniform = buildVegetation({ polys: [wood], ext, recipe: { ...recipe, corridor: undefined }, routeLines: route });
+    expect(uniform.count).toBe(4000);
+    expect(uniform.corridor).toBeUndefined();
+    // Deterministic.
+    expect(Buffer.compare(buildVegetation({ polys: [wood], ext, recipe, routeLines: route }).bytes, veg.bytes)).toBe(0);
+  });
 });
 
 describe('shipped worlds: a loop route meets itself at one height', () => {

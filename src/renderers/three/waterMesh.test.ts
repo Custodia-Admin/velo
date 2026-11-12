@@ -108,7 +108,9 @@ const BUDGET: Record<string, { max?: number; expected?: number }> = {
   // drew 240 k at 45 m).
   berkeley: { expected: 15_995 },
   'chengdu-luxelakes': { expected: 36_767 },
+  'cleveland-lakefront': { expected: 77_580 },
   lugano: { max: 400_000 },
+  'ohio-erie-towpath': { expected: 57_161 },
   perugia: { expected: 26_752 },
   'puerto-vallarta': { expected: 42_263 },
   'santa-monica-venice': { expected: 38_915 },

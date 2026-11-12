@@ -26,6 +26,15 @@ export interface GestureCallbacks {
   onTwoFingerSwipeDown?: () => void;
 }
 
+/** Buttons, links and form controls inside the gesture area keep their own taps. */
+export const CONTROL_SELECTOR =
+  'button, a[href], input, select, textarea, [role="button"], [role="switch"], [role="slider"], [role="radio"], [role="menuitem"]';
+
+function onControl(target: EventTarget | null | undefined): boolean {
+  const el = target as { closest?: (sel: string) => unknown } | null | undefined;
+  return typeof el?.closest === 'function' && el.closest(CONTROL_SELECTOR) != null;
+}
+
 // ---- Tuning constants -------------------------------------------------------
 
 const DOUBLE_TAP_MS     = 300;   // max ms between two taps
@@ -91,6 +100,9 @@ export function attachGestures(el: HTMLElement, callbacks: GestureCallbacks): ()
   // ---- Handlers ----
 
   function onPointerDown(e: PointerEvent) {
+    // Presses on the HUD's own controls are theirs: two quick taps on the
+    // gear buttons are two shifts, not a double-tap pause.
+    if (onControl(e.target)) return;
     pointers.set(e.pointerId, {
       id: e.pointerId,
       startX: e.clientX,
