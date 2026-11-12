@@ -57,11 +57,11 @@
     },
     {
       "path": "roads.json.gz",
-      "bytes": 184493,
-      "sha256": "bd98fcabf6d9d2648027e17f10b0fe4a3faf73cd09df71b214fed7a554fd720b",
+      "bytes": 184614,
+      "sha256": "880069c75d10c5a779bd2944c60d97c482076e20243c15f3f05c985edeeb37d0",
       "compression": "gzip",
-      "contentBytes": 528524,
-      "contentSha256": "8e84e240c2081d2b728ad641235ebd08b1d7c3865ebd51dd674ca79af1d5d584"
+      "contentBytes": 528836,
+      "contentSha256": "a958972b61b6857ade747f45edf825e28c0fe04dca8b90255895886bb773b62b"
     },
     {
       "path": "water.json.gz",
@@ -105,11 +105,11 @@
     },
     {
       "path": "bridges.json.gz",
-      "bytes": 3454,
-      "sha256": "3afd6cfa6799266e7fc58144526184d8f4dbe6c20314f0c38299c24fc7e1c88c",
+      "bytes": 3503,
+      "sha256": "d76182afacb60e80a781026e07f8a81d37e4a93ff9f45c41c7e92a6199f43eb5",
       "compression": "gzip",
-      "contentBytes": 12692,
-      "contentSha256": "b800341dd1dba245269fa6474b5eb303a5b10a3dec107e0dcd5d9d78933d1399"
+      "contentBytes": 12865,
+      "contentSha256": "12f8623e468de2d535b89b3605b8839701d409291c2099186b3acdf1f7930ab5"
     }
   ],
   "moods": [
@@ -251,8 +251,8 @@
     "trees:garden": 4148,
     "pois": 10,
     "carvedNodes": 15588,
-    "bridgeDecks": 135,
-    "bridgePiers": 65
+    "bridgeDecks": 136,
+    "bridgePiers": 66
   },
   "credits": [
     {
