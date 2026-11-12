@@ -25,10 +25,11 @@
   "routeCredits": true,
   "coast": true,
   "buildingSimplifyM": 1,
+  "bareGround": { "source": "usgs-3dep-13", "tiles": { "n34w119": "20250826", "n35w119": "20250916" } },
   "snap": {
     "stepM": 10,
-    "offsetMedianM": 400,
-    "offsetMeanM": 1600,
+    "offsetMedianM": 200,
+    "offsetMeanM": 800,
     "coreCells": 1.5,
     "falloffM": 40
   },
@@ -66,13 +67,13 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.0076,
+    "steep_fraction": 0.0075,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
     "bound_m": 6,
-    "registered_rms_m": 0.55,
-    "point_rms_m": 0.8,
+    "registered_rms_m": 0.65,
+    "point_rms_m": 0.87,
     "max_abs_registered_err_m": 2.79,
     "pass": true
   }

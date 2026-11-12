@@ -124,7 +124,7 @@ services, trademarks) is [NOTICE.md](../../NOTICE.md).
   route. In a world with `bareGround` (below), replaced by the bare-earth DTM
   within 150 m of the routes and blended into it over the next 300 m.
 
-### USGS 3D Elevation Program (3DEP) 1/3 arc-second DEM (bare ground; Cuyahoga Valley, Cleveland)
+### USGS 3D Elevation Program (3DEP) 1/3 arc-second DEM (bare ground; Cuyahoga Valley, Cleveland, Santa Monica)
 
 - Used for: the heights within 450 m of the routes in worlds whose recipe
   sets `"bareGround": { "source": "usgs-3dep-13", … }` (see
@@ -137,7 +137,7 @@ services, trademarks) is [NOTICE.md](../../NOTICE.md).
   for credit: "U.S. Geological Survey, 3D Elevation Program 1/3 arc-second
   Digital Elevation Model" (https://www.usgs.gov/information-policies-and-instructions/crediting-usgs).
 - Modifications: shifted onto GLO-30's level (the median difference over
-  flat open ground, −0.2 m and −0.09 m), sampled bilinearly onto the world
+  flat open ground, −0.2 m, −0.09 m and +0.44 m), sampled bilinearly onto the world
   grid, blended into GLO-30, quantised, and re-graded along the routes.
 
 ### swissALTI3D (bare ground; Lugano)
@@ -276,6 +276,7 @@ browser.
 - Bounding box (WGS84): south 33.85615, west -118.55897, north 34.04086, east -118.39353.
 - World extent: x -8400…6876 m, y -10184…10300 m, local transverse Mercator at 33.948, -118.468.
 - Elevation: 2 Copernicus DEM GLO-30 tiles (1″ COG), `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM.tif`: `N34_00_W119_00`, `N33_00_W119_00`. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.
+- Bare ground along the routes (within 150 m, blended out over 300 m): USGS 3DEP 1/3 arc-second DEM, `https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/historical/{tile}/USGS_13_{tile}_{release}.tif`: `n34w119` (20250826), `n35w119` (20250916). Public domain.
 - OpenStreetMap: Overpass API (`https://overpass-api.de/api/interpreter`), data as of 2026-11-01T00:00:00Z (attic query), layers roads, water, landcover, buildings, treerows, pois, landmarks, coast over the bounding box above. Queries are recorded in `tools/worldbake/reports/santa-monica-venice.json`.
 - Routes from `src/lib/scenicRouteData.ts` (profiles: Copernicus GLO-90 via Open-Meteo), geometry sources:
   - `scenic-santa-monica-strand`: Santa Monica to Hermosa Beach: OSRM bike route through 5 waypoints, routing.openstreetmap.de, <https://routing.openstreetmap.de/routed-bike/route/v1/driving/-118.49619,34.00905;-118.4741,33.9867;-118.4523,33.9587;-118.415,33.89;-118.40137,33.86199?overview=full&geometries=geojson&steps=true>.

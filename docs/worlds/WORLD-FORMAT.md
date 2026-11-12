@@ -595,7 +595,8 @@ P1.3 gate compares it with GLO-90, itself a surface model.
 - **Datum.** The DTM is shifted by the median of GLO-30 − DTM over flat
   (slope < 5 %) open corridor nodes (no woodland polygon within 30 m), so open
   ground keeps GLO-30's level and the blend has no step there. It comes out at
-  −0.2 m (towpath), −0.09 m (Cleveland) and −0.4 m (Lugano).
+  −0.2 m (towpath), −0.09 m (Cleveland), −0.4 m (Lugano) and +0.44 m (Santa
+  Monica).
 - **`usgs-3dep-13`**: USGS 3DEP 1/3″ (≈ 10 m) bare earth, 1° Cloud Optimized
   GeoTIFFs (LZW, floating-point predictor, NAD83, PixelIsArea, 6-pixel
   overlap, nodata −999999), read bilinear. The recipe pins each tile's dated
@@ -616,8 +617,33 @@ P1.3 gate compares it with GLO-90, itself a surface model.
   route lying on GLO-30's surface (`surface`). Ridden decks are left out.
 - **Offset windows.** With the ground under the route, the fit's offset can
   follow it closer. The bareGround worlds use the shortest windows that keep
-  every route's grade Δ ≤ 1 pp: 200/800 m (towpath, Cleveland), 300/1200 m
-  (Lugano, whose Locarno–Brissago reads 1.18 pp at 200/800).
+  every route's grade Δ ≤ 1 pp: 200/800 m (towpath, Cleveland, Santa Monica),
+  300/1200 m (Lugano, whose Locarno–Brissago reads 1.18 pp at 200/800; Santa
+  Monica's Strand reads 1.225 pp at 150/600).
+- **Which GLO-30 worlds have it** (card t_e59ae310 measured the coast worlds
+  against 3DEP, route samples every 10 m, 30 m box mean, samples within 8 m
+  of a mapped bridge left out):
+  - Santa Monica: the Strand stood up to 4.9 m over the ground (66 samples
+    over 3 m) where it turns inland round Marina del Rey and at Venice, under
+    roofs and street trees GLO-30 reads 2–4 m above the ground. With 3DEP
+    and 200/800 windows it reads 2.7 m at most; only the Ballona Creek bike
+    bridge reads more (3.8 m: the DTM is the channel under the deck; the
+    world has no `bridges`).
+  - Berkeley: 2.6 m at most (Bay Trail 3.1–3.3 km, where GLO-30 sits on the
+    ground and the profile is low), so it keeps GLO-30.
+  - Puerto Vallarta: no open DTM is wired. INEGI's Continuo de Elevaciones
+    Mexicano 3.0 is interpolated from 1:50 000 contours (whole metres, RMSE
+    4.8 m) and sits 4.1 m under GLO-30 along the open routes, scattering
+    2.5 m (median absolute deviation) round that; CEM 4.0 is the
+    ALOS PALSAR RTC terrain-correction DEM, which ASF built from SRTM
+    resampled (NED in the US). Neither is a bare-earth model at this scale.
+    INEGI's 1:10 000 tipo-terreno MDT (5 m, from satellite and airborne
+    sensors, sheets of 2014–2026; free use, commercial included, credited
+    "Fuente: INEGI") is one. On it the routes stand up to 5.2 m over the
+    ground, but at every stretch over 3 m GLO-30 is within −2.8…+1.4 m of the
+    ground: the route stands 2.5–7.4 m over its own GLO-90 profile there, so a
+    bare-ground DTM would not lower it.
+  - Chengdu: no open DTM for China; landcover puts the routes in the open.
 - **Embankments (`snap.embankment`, card t_e9889d5e).** The target keeps the
   profile's shape, and the profile (Open-Meteo GLO-90) misses relief the DTM
   has. There the slow offset can't follow and the carve builds the route up

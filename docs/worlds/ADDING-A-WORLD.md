@@ -109,17 +109,25 @@ from `chengdu-luxelakes.json`:
   over the next 300 m, before the route fit (`tools/worldbake/bareGround.mjs`,
   [WORLD-FORMAT.md](WORLD-FORMAT.md#bare-ground-bareground)):
   - United States: `{ "source": "usgs-3dep-13", "tiles": { "n42w082": "20230911" } }`.
-    Pin every 1° tile the corridor touches to its dated release (the
-    `<pubdate>` in `…/13/TIFF/current/<tile>/USGS_13_<tile>.xml`); the bake
-    names any tile it needs and lacks.
+    Pin every 1° tile the corridor touches to its dated release: the date in
+    the name of the `…/13/TIFF/historical/<tile>/USGS_13_<tile>_<date>.tif`
+    whose ETag equals the `current/` copy's. The `<pubdate>` in
+    `…/13/TIFF/current/<tile>/USGS_13_<tile>.xml` can be a day later than
+    that file (n38w123 and n34w119 read 20250827; the file is `_20250826`).
+    The bake names any tile it needs and lacks.
   - Switzerland: `{ "source": "swissalti3d", "year": 2022 }`, a release every
     corridor tile has (the bake stops on a tile that only has other years).
   - Then shorten the `snap` offset windows as far as every route's grade Δ
-    stays ≤ 1 pp (200/800 m in Ohio, 300/1200 m in Lugano), and read the
+    stays ≤ 1 pp (200/800 m in Ohio and Santa Monica, 300/1200 m in Lugano), and read the
     report's `bareGround.routes`: how far each route stands over the bare
     ground (median, p95, max, samples over 3 m). P1.3 points inside the
     corridor now read the ground where the GLO-90 reference reads the canopy,
     so the registered RMS rises (Cuyahoga Valley: 1.69 → 3.00 m).
+  - `bareGround.routes` leaves out ridden decks only in a world with
+    `"bridges": true`. Without it a mapped bridge counts, and the DTM reads
+    the channel under it: Santa Monica's 3.8 m at 10.03 km is the South Bay
+    Bike Path bridge over Ballona Creek (101 m, OSM bridge flag), not a fit
+    error.
   - Where `bareGround.routes` still shows a route several metres up, check
     the DTM across it (±40 m every 10 m). If the route stands over all of
     it, the GLO-90 route profile misses a dip or a flat the DTM has, and the
