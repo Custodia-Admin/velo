@@ -45,8 +45,8 @@
     "floor_rms_m": 1.71,
     "own_error_allowance_m": 6,
     "bound_m": 6.24,
-    "registered_rms_m": 1.81,
-    "point_rms_m": 19.47,
+    "registered_rms_m": 1.84,
+    "point_rms_m": 19.5,
     "max_abs_registered_err_m": 7.49,
     "pass": true
   }

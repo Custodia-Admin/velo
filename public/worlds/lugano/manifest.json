@@ -48,11 +48,11 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 3190257,
-      "sha256": "023cfa1c0cb60f25d2bb02e72ba1f0ea86525498323119116aa4608cc5983baa",
+      "bytes": 3190382,
+      "sha256": "92890a36f491ce46dd16ca0fd4e2aca6b57699f0fb543090e5b5edf928360170",
       "compression": "gzip",
       "contentBytes": 5525468,
-      "contentSha256": "4fe1390415f8059df0d7f3eeec0f233f7ee2fc4efd14f4425b1f1fd5bb42b1fa"
+      "contentSha256": "7b50c78c96fe2d61a65402666f4a768b3601977b03b95e0f1facab409bb5a148"
     },
     {
       "path": "roads.json.gz",
@@ -96,11 +96,11 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 26001,
-      "sha256": "d376395c6647d82a5131f730440d6a169e04e8fb15bd88eaabfc3eeb65977ec0",
+      "bytes": 26203,
+      "sha256": "2cae2365ebe03ff926381be1e8733391dfd0e36f7ce42d80ff140818c22a4efe",
       "compression": "gzip",
-      "contentBytes": 67806,
-      "contentSha256": "00162849fe0f177db1b40a9a20521aaf975525635a7ba74667dc9564a1e1b861"
+      "contentBytes": 68244,
+      "contentSha256": "fa5381c4edf1c0da34fda6b2dbec80e02bc21f052b1a286f5773914220387a22"
     }
   ],
   "moods": [
@@ -137,7 +137,7 @@
       "x": 8452.1,
       "y": -11650.1,
       "osm": "node/32457646",
-      "h": 279.14
+      "h": 272.96
     },
     {
       "name": "Bissone",
@@ -146,7 +146,7 @@
       "x": 9814.1,
       "y": -12068.4,
       "osm": "node/32457650",
-      "h": 280.51
+      "h": 274.39
     },
     {
       "name": "Ponte Tresa",
@@ -236,7 +236,7 @@
       "x": -5238.3,
       "y": 10686.5,
       "osm": "node/59999946",
-      "h": 208.84
+      "h": 204.01
     },
     {
       "name": "Brissago",
@@ -245,7 +245,7 @@
       "x": -9774.4,
       "y": 6762.1,
       "osm": "node/60159149",
-      "h": 207.24
+      "h": 205.53
     },
     {
       "name": "Ronco sopra Ascona",
@@ -254,7 +254,7 @@
       "x": -8673.3,
       "y": 9347.1,
       "osm": "node/60159329",
-      "h": 353.04
+      "h": 351.35
     },
     {
       "name": "Orselina",
@@ -731,7 +731,7 @@
       "x": 8336.4,
       "y": -7727.1,
       "osm": "node/240120177",
-      "h": 299.59
+      "h": 295.61
     },
     {
       "name": "Bedigliora",
@@ -929,7 +929,7 @@
       "x": 8731.8,
       "y": -6210.9,
       "osm": "node/375693079",
-      "h": 279.52
+      "h": 272.48
     },
     {
       "name": "Comano",
@@ -1433,7 +1433,7 @@
       "x": 8305.1,
       "y": -6496.4,
       "osm": "node/459669313",
-      "h": 357.54
+      "h": 357.31
     },
     {
       "name": "Monte Sirti",
@@ -1901,7 +1901,7 @@
       "x": 8723.9,
       "y": -6162.7,
       "osm": "node/1376769426",
-      "h": 280.02
+      "h": 273.05
     },
     {
       "name": "Devoggio",
@@ -1928,7 +1928,7 @@
       "x": -6880.3,
       "y": 10782.6,
       "osm": "node/1460316619",
-      "h": 474.07
+      "h": 474.26
     },
     {
       "name": "Nizzolino",
@@ -2180,7 +2180,7 @@
       "x": -3329.5,
       "y": 12258.2,
       "osm": "node/1839613064",
-      "h": 200.54
+      "h": 199.23
     },
     {
       "name": "Cangili di Biegno",
@@ -2360,7 +2360,7 @@
       "x": 8631.2,
       "y": -8645.7,
       "osm": "node/2241821720",
-      "h": 814.96
+      "h": 815.26
     },
     {
       "name": "Castagnola",
@@ -2594,7 +2594,7 @@
       "x": -9218.7,
       "y": 8224.9,
       "osm": "node/2597988196",
-      "h": 200.01
+      "h": 199.18
     },
     {
       "name": "Arbizzo",
@@ -2900,7 +2900,7 @@
       "x": -3622.4,
       "y": 12283.9,
       "osm": "node/3239093795",
-      "h": 219.44
+      "h": 219.39
     },
     {
       "name": "Giovanni Battista Pioda",
@@ -2909,7 +2909,7 @@
       "x": -3611,
       "y": 12101.6,
       "osm": "node/3239093803",
-      "h": 215.36
+      "h": 211.71
     },
     {
       "name": "Monte Mondini",
@@ -3044,7 +3044,7 @@
       "x": -5837.2,
       "y": 11006.2,
       "osm": "node/3406827422",
-      "h": 322.17
+      "h": 320.83
     },
     {
       "name": "Gadero",
@@ -3071,7 +3071,7 @@
       "x": -10269.5,
       "y": 6887.5,
       "osm": "node/3441038580",
-      "h": 286.05
+      "h": 286.06
     },
     {
       "name": "Dino",
@@ -3206,7 +3206,7 @@
       "x": -5214.7,
       "y": 10669.7,
       "osm": "node/3515270797",
-      "h": 211.39
+      "h": 204.02
     },
     {
       "name": "Prümé",
@@ -3233,7 +3233,7 @@
       "x": 9819.7,
       "y": -11657.4,
       "osm": "node/3598558569",
-      "h": 275.53
+      "h": 273.5
     },
     {
       "name": "Gambarogno",
@@ -3836,7 +3836,7 @@
       "x": 8546.4,
       "y": -6070.1,
       "osm": "node/4577830789",
-      "h": 307.2
+      "h": 301.65
     },
     {
       "name": "Cima di Medeglia",
@@ -3980,7 +3980,7 @@
       "x": -5816.4,
       "y": 11080.3,
       "osm": "node/5232948720",
-      "h": 336.98
+      "h": 335.39
     },
     {
       "name": "Campaccio",
@@ -4313,7 +4313,7 @@
       "x": -3623.7,
       "y": 12105.3,
       "osm": "node/7200789009",
-      "h": 214.9
+      "h": 211.76
     },
     {
       "name": "Moschera",
@@ -4682,7 +4682,7 @@
       "x": -3054.3,
       "y": 11992,
       "osm": "node/11837744216",
-      "h": 197.95
+      "h": 196.45
     },
     {
       "name": "Premaggio",
@@ -4700,7 +4700,7 @@
       "x": -5209,
       "y": 10390.3,
       "osm": "node/12123147111",
-      "h": 201.73
+      "h": 201.72
     },
     {
       "name": "Telaio Ratti",
@@ -4952,7 +4952,7 @@
       "x": 8638.6,
       "y": -11767.2,
       "osm": "node/13711274128",
-      "h": 272.63
+      "h": 272.18
     },
     {
       "name": "Ca' Bianca Nuova",
@@ -5132,7 +5132,7 @@
       "x": 8933.9,
       "y": -6076.2,
       "osm": "way/156384874",
-      "h": 278.93
+      "h": 273.58
     },
     {
       "name": "Cattedrale di San Lorenzo",
@@ -5141,7 +5141,7 @@
       "x": 8516.4,
       "y": -6073.1,
       "osm": "way/156471728",
-      "h": 313.3
+      "h": 305.25
     },
     {
       "name": "Chiesa di Sant'Antonio Abate",
@@ -5150,7 +5150,7 @@
       "x": 8739.9,
       "y": -6041.9,
       "osm": "way/156471732",
-      "h": 285.24
+      "h": 273.51
     },
     {
       "name": "San Giorgio",
@@ -5402,7 +5402,7 @@
       "x": 8552.7,
       "y": -6585.9,
       "osm": "way/205835473",
-      "h": 281.27
+      "h": 273.53
     },
     {
       "name": "Chiesa di San Zenone",
@@ -5438,7 +5438,7 @@
       "x": 9899.1,
       "y": -12252.2,
       "osm": "way/216099736",
-      "h": 277.29
+      "h": 275.93
     },
     {
       "name": "Chiesa dei Santi Quirico e Giulitta",
@@ -5447,7 +5447,7 @@
       "x": 8564.8,
       "y": -11625.4,
       "osm": "way/217496314",
-      "h": 273.73
+      "h": 272.76
     },
     {
       "name": "Chiesa di San Giorgio",
@@ -5519,7 +5519,7 @@
       "x": 8272,
       "y": -6815,
       "osm": "way/238472353",
-      "h": 311.84
+      "h": 307.67
     },
     {
       "name": "Oratorio di San Sebastiano",
@@ -5717,7 +5717,7 @@
       "x": -3672.9,
       "y": 12280.1,
       "osm": "way/307510594",
-      "h": 219.29
+      "h": 219.28
     },
     {
       "name": "Santa Maria Juvenia",
@@ -5753,7 +5753,7 @@
       "x": -3615.9,
       "y": 12067.7,
       "osm": "way/313187928",
-      "h": 217.29
+      "h": 211.35
     },
     {
       "name": "Chiesa di San Bartolomeo",
@@ -5780,7 +5780,7 @@
       "x": -3501.2,
       "y": 12071.2,
       "osm": "way/317356795",
-      "h": 209.35
+      "h": 204.12
     },
     {
       "name": "Chiesa del Sacro Cuore",
@@ -5834,7 +5834,7 @@
       "x": -10114.3,
       "y": 7128.1,
       "osm": "way/337007418",
-      "h": 375.6
+      "h": 375.28
     },
     {
       "name": "Chiesa di Incella",
@@ -5960,7 +5960,7 @@
       "x": -5315,
       "y": 10590.6,
       "osm": "way/344790884",
-      "h": 208.47
+      "h": 202.84
     },
     {
       "name": "Chiesa di Sant'Antonio abate",
@@ -6122,7 +6122,7 @@
       "x": -8583.3,
       "y": 9369.8,
       "osm": "way/374806254",
-      "h": 349.23
+      "h": 352.12
     },
     {
       "name": "Chiesa di San Salvatore",
@@ -6248,7 +6248,7 @@
       "x": 8664.2,
       "y": -5965.1,
       "osm": "way/390324862",
-      "h": 285.8
+      "h": 275.81
     },
     {
       "name": "Villa romana",
@@ -6635,7 +6635,7 @@
       "x": -3120.5,
       "y": 12371.3,
       "osm": "way/985106630",
-      "h": 210.16
+      "h": 209.76
     },
     {
       "name": "Santa Maria dello Stradone",
@@ -6761,14 +6761,14 @@
       "name": "Lugano lakefront to Melide",
       "lengthM": 7799.67,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.861
+      "gradeMeanAbsDiffPct": 0.6
     },
     {
       "id": "scenic-locarno-brissago",
       "name": "Locarno to Brissago",
       "lengthM": 9691.39,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.68
+      "gradeMeanAbsDiffPct": 0.865
     }
   ],
   "stats": {
@@ -6811,6 +6811,13 @@
       "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
     },
     {
+      "id": "swissalti3d",
+      "name": "swissALTI3D 2 m, bare earth, along the routes",
+      "licence": "Open Government Data of the Swiss Confederation, free use with source attribution (swisstopo terms of use)",
+      "url": "https://www.swisstopo.admin.ch/en/height-model-swissalti3d",
+      "attribution": "Source: Federal Office of Topography swisstopo"
+    },
+    {
       "id": "copernicus-glo90",
       "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
       "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
@@ -6828,9 +6835,10 @@
   "generator": {
     "tool": "velo-worldbake",
     "version": 1,
-    "recipeSha256": "07f67edacec0bf76b212d7083fc4862714ac134953b746f3a1e5a0e5a4bfd520",
+    "recipeSha256": "536748684157afa3a0ff7636b82635a425d1b5771932fce10e87caf2920edf54",
     "osmDate": "2026-10-01T00:00:00Z",
     "demSource": "copernicus-dem-30m/glo30-cog",
-    "demTiles": 2
+    "demTiles": 2,
+    "bareGround": "swissalti3d"
   }
 }

@@ -8,7 +8,7 @@ import { DESTINATIONS, validateDestination, type Destination } from '@/lib/world
 import type { WorldCredit } from '@/lib/world/manifest';
 import { GLO30_CREDIT, GLO30_DISCLAIMER } from '../../../tools/worldbake/fetchGlo30.mjs';
 import { GLO30_DEM_SOURCE } from '../../../tools/worldbake/demSource.mjs';
-import { creditsFor } from '../../../tools/worldbake/bake.mjs';
+import { bundleCredits } from '../../../tools/worldbake/bake.mjs';
 import { destinationFromWorld } from '../../../tools/worldbake/syncDestinations.mjs';
 import { WorldCredits } from './WorldCredits';
 import { creditPlaces, worldCredits } from './worldCredits';
@@ -29,7 +29,9 @@ const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as Rec
 
 /** Lugano as the GLO-30 re-bake ships it: bake credits → manifest → destination (syncDestinations). */
 function luganoOnGlo30(): Destination {
-  const world = { ...readJson(join(WORLDS, 'lugano/manifest.json')), credits: creditsFor(GLO30_DEM_SOURCE) };
+  // The bake's own credits for Lugano's recipe: GLO-30, plus swissALTI3D under the routes (recipe bareGround, card t_06b010ec).
+  const recipe = readJson(fileURLToPath(new URL('../../../tools/worldbake/worlds/lugano.json', import.meta.url)));
+  const world = { ...readJson(join(WORLDS, 'lugano/manifest.json')), credits: bundleCredits(recipe, GLO30_DEM_SOURCE, {}) };
   return validateDestination(destinationFromWorld(readJson(join(DEST_DIR, 'lugano.json')), world), 'lugano.json');
 }
 const perugia = () => validateDestination(readJson(join(DEST_DIR, 'perugia.json')), 'perugia.json');
@@ -155,7 +157,7 @@ describe('WorldCredits: a GLO-30 world carries the licence notice to the screen'
   const glo30 = rows.find((r) => r.id === 'copernicus-glo30');
 
   it('the GLO-30 destination brings its credit along (bake → manifest → destination)', () => {
-    expect(lugano.credits.map((c) => c.id)).toEqual(['osm', 'copernicus-glo30', 'copernicus-glo90', 'osrm-fossgis']);
+    expect(lugano.credits.map((c) => c.id)).toEqual(['osm', 'copernicus-glo30', 'swissalti3d', 'copernicus-glo90', 'osrm-fossgis']);
     expect(glo30).toBeDefined();
   });
 

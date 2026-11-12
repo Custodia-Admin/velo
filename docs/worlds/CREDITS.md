@@ -121,7 +121,40 @@ services, trademarks) is [NOTICE.md](../../NOTICE.md).
 - Modifications: resampled bilinearly from the 1″ pixel-centre grid onto a
   local transverse Mercator grid, open-ocean tiles filled with 0 m, quantised
   to 1/64 m, and re-graded inside a corridor of about 60 m along each scenic
-  route.
+  route. In a world with `bareGround` (below), replaced by the bare-earth DTM
+  within 150 m of the routes and blended into it over the next 300 m.
+
+### USGS 3D Elevation Program (3DEP) 1/3 arc-second DEM (bare ground; Cuyahoga Valley, Cleveland)
+
+- Used for: the heights within 450 m of the routes in worlds whose recipe
+  sets `"bareGround": { "source": "usgs-3dep-13", … }` (see
+  [WORLD-FORMAT.md](WORLD-FORMAT.md) "Bare ground"): the routes, and the
+  ground, trees and buildings beside them, stand on the bare earth rather
+  than on GLO-30's canopy. The bundle carries the `usgs-3dep` credit.
+- URL template (pinned dated releases, which never change):
+  `https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/historical/<tile>/USGS_13_<tile>_<release>.tif`.
+- Licence: public domain (a work of the U.S. Geological Survey). USGS asks
+  for credit: "U.S. Geological Survey, 3D Elevation Program 1/3 arc-second
+  Digital Elevation Model" (https://www.usgs.gov/information-policies-and-instructions/crediting-usgs).
+- Modifications: shifted onto GLO-30's level (the median difference over
+  flat open ground, −0.2 m and −0.09 m), sampled bilinearly onto the world
+  grid, blended into GLO-30, quantised, and re-graded along the routes.
+
+### swissALTI3D (bare ground; Lugano)
+
+- Used for: the heights within 450 m of the routes in worlds whose recipe
+  sets `"bareGround": { "source": "swissalti3d", "year": … }`. The bundle
+  carries the `swissalti3d` credit.
+- URL template (one release year for every tile):
+  `https://data.geo.admin.ch/ch.swisstopo.swissalti3d/swissalti3d_<year>_<E>-<N>/swissalti3d_<year>_<E>-<N>_2_2056_5728.tif`,
+  releases looked up in the STAC catalogue
+  `https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.swissalti3d/items`.
+- Licence: Open Government Data of the Swiss Confederation (swisstopo terms
+  of use, OGD since 1 March 2021): free use, including commercial, with the
+  source named: "Source: Federal Office of Topography swisstopo".
+- Modifications: averaged over 7 × 7 pixels (14 m) at each 15 m node,
+  shifted onto GLO-30's level (−0.4 m), blended into GLO-30, quantised, and
+  re-graded along the routes.
 
 ### Copernicus DEM GLO-90 via the Open-Meteo elevation API
 
@@ -190,6 +223,7 @@ browser.
 - Bounding box (WGS84): south 45.93774, west 8.68965, north 46.18076, east 8.98748.
 - World extent: x -11500…11495 m, y -13500…13500 m, local transverse Mercator at 46.0593, 8.8386.
 - Elevation: 2 Copernicus DEM GLO-30 tiles (1″ COG), `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM.tif`: `N46_00_E008_00`, `N45_00_E008_00`. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.
+- Bare ground along the routes (within 150 m, blended out over 300 m): swissALTI3D 2 m, release 2022, 1 km tiles from `https://data.geo.admin.ch/ch.swisstopo.swissalti3d/`. Source: Federal Office of Topography swisstopo.
 - OpenStreetMap: Overpass API (`https://overpass-api.de/api/interpreter`), data as of 2026-10-01T00:00:00Z (attic query), layers roads, water, landcover, buildings, treerows, pois, landmarks over the bounding box above. Queries are recorded in `tools/worldbake/reports/lugano.json`.
 - Routes: `scenic-lugano-melide`, `scenic-locarno-brissago` from `src/lib/scenicRouteData.ts` (OSRM bike geometry + Copernicus GLO-90 profile via Open-Meteo).
 - Validation: 50 seeded Open-Meteo elevation samples (Copernicus GLO-90), not shipped.
@@ -214,6 +248,7 @@ browser.
 - Bounding box (WGS84): south 41.18541, west -81.63484, north 41.39915, east -81.53897.
 - World extent: x -4000…4016 m, y -11836…11900 m, local transverse Mercator at 41.292, -81.587.
 - Elevation: 1 Copernicus DEM GLO-30 tile (1″ COG), `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM.tif`: `N41_00_W082_00`. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.
+- Bare ground along the routes (within 150 m, blended out over 300 m): USGS 3DEP 1/3 arc-second DEM, `https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/historical/{tile}/USGS_13_{tile}_{release}.tif`: `n42w082` (20230911). Public domain.
 - OpenStreetMap: Overpass API (`https://overpass-api.de/api/interpreter`), data as of 2026-11-01T00:00:00Z (attic query), layers roads, water, landcover, buildings, treerows, pois, landmarks over the bounding box above. Queries are recorded in `tools/worldbake/reports/ohio-erie-towpath.json`.
 - Routes from `src/lib/scenicRouteData.ts` (profiles: Copernicus GLO-90 via Open-Meteo), geometry sources:
   - `scenic-cuyahoga-towpath`: Ohio & Erie Canal Towpath: OSRM bike route through 8 waypoints, routing.openstreetmap.de, <https://routing.openstreetmap.de/routed-bike/route/v1/driving/-81.5858,41.318;-81.5719,41.3;-81.5616,41.2799;-81.5585,41.2633;-81.5504,41.2428;-81.5524,41.23;-81.567,41.21;-81.5773,41.19?overview=full&geometries=geojson&steps=true>.
@@ -227,6 +262,7 @@ browser.
 - Bounding box (WGS84): south 41.48119, west -81.80669, north 41.54552, east -81.63079.
 - World extent: x -7400…7276 m, y -2640…4500 m, local transverse Mercator at 41.505, -81.718.
 - Elevation: 1 Copernicus DEM GLO-30 tile (1″ COG), `https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM/Copernicus_DSM_COG_10_{N|S}dd_00_{E|W}ddd_00_DEM.tif`: `N41_00_W082_00`. Required notice and liability disclaimer: "Copernicus DEM GLO-30 Public" above.
+- Bare ground along the routes (within 150 m, blended out over 300 m): USGS 3DEP 1/3 arc-second DEM, `https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/historical/{tile}/USGS_13_{tile}_{release}.tif`: `n42w082` (20230911). Public domain.
 - OpenStreetMap: Overpass API (`https://overpass-api.de/api/interpreter`), data as of 2026-11-01T00:00:00Z (attic query), layers roads, water, landcover, buildings, treerows, pois, landmarks over the bounding box above. Queries are recorded in `tools/worldbake/reports/cleveland-lakefront.json`.
 - Routes from `src/lib/scenicRouteData.ts` (profiles: Copernicus GLO-90 via Open-Meteo), geometry sources:
   - `scenic-cleveland-lakefront`: Cleveland lakefront: OSRM bike route through 9 waypoints, routing.openstreetmap.de, <https://routing.openstreetmap.de/routed-bike/route/v1/driving/-81.7351,41.4896;-81.72,41.4889;-81.7057,41.4923;-81.6898,41.51;-81.68,41.5169;-81.6696,41.5213;-81.6611,41.5258;-81.6501,41.5326;-81.6399,41.5386?overview=full&geometries=geojson&steps=true>.

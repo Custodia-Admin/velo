@@ -66,14 +66,14 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.0095,
+    "steep_fraction": 0.0078,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
     "bound_m": 6,
-    "registered_rms_m": 0.52,
-    "point_rms_m": 2.02,
-    "max_abs_registered_err_m": 2.16,
+    "registered_rms_m": 0.67,
+    "point_rms_m": 1.8,
+    "max_abs_registered_err_m": 3.16,
     "pass": true
   }
 }
