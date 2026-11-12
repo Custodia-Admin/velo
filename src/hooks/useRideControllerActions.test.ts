@@ -63,7 +63,17 @@ describe('useRideControllerActions: menu layer, then the ride map', () => {
     expect(runNavIntent).toHaveBeenCalledWith('select', { inRide: true });
     expect(runControllerAction).not.toHaveBeenCalled();
     press('shiftUpL');
-    expect(runControllerAction).toHaveBeenCalledWith('gearHarder', expect.anything());
+    expect(runControllerAction).toHaveBeenCalledWith('gearEasier', expect.anything());
+  });
+
+  it('every shifter reaches the ride map while ready, riding or paused (the menu layer never takes one)', () => {
+    for (const rideState of ['ready', 'running', 'paused'] as const) {
+      useRideStore.setState({ rideState });
+      runControllerAction.mockClear();
+      for (const b of ['shiftUpL', 'shiftDownL', 'shiftUpR', 'shiftDownR'] as RideButton[]) press(b);
+      expect(runControllerAction.mock.calls.map((c) => c[0])).toEqual(['gearEasier', 'gearEasier', 'gearHarder', 'gearHarder']);
+    }
+    expect(runNavIntent).not.toHaveBeenCalled();
   });
 
   it('finished: the D-pad moves on the finish page, nothing else acts', () => {

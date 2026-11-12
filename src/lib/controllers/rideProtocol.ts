@@ -4,6 +4,8 @@
  *
  * Written from the public protocol notes in docs/devices/zwift-ride-v2.md
  * (Makinolo's write-ups, cross-checked against chrisperkles/serpentine, MIT).
+ * The button masks come from real-hardware reports instead (see
+ * BUTTON_MASKS): Makinolo's were written without a Ride and are wrong above Y.
  */
 
 /** Controller service on firmware from Jan 2025 on (16-bit FC82). */
@@ -59,25 +61,61 @@ export type RideButton =
   | 'shiftUpL' | 'shiftDownL' | 'hoodL' | 'powerL'
   | 'shiftUpR' | 'shiftDownR' | 'hoodR' | 'powerR';
 
-/** Bit masks in ButtonMap. Inverse logic on the wire: a cleared bit = pressed. */
+/**
+ * Bit masks in ButtonMap. Inverse logic on the wire: a cleared bit = pressed.
+ *
+ * These are the masks measured on a real Ride, one nibble per group (D-pad,
+ * letters, left shifters + drop + on/off, right shifters + drop + on/off):
+ * reported by a Ride owner with a Web Bluetooth logger in
+ * jonasbark/swiftcontrol issue #3 (30 Mar 2025) and used by BikeControl
+ * (`RideButtonMask` in lib/bluetooth/devices/zwift/zwift_ride.dart) ever
+ * since. Makinolo's .proto, written without the hardware, has Z at 0x100 and
+ * every button above it one place off (0x200 / 0x2000 there are really the
+ * LOWER shifters, 0x400 / 0x4000 the drop buttons). Velo first shipped
+ * those: two shifters did nothing, the other two shifted harder, and only
+ * the drop buttons shifted easier.
+ *
+ * `hoodL` / `hoodR` are the drop buttons (LB / RB, "power-up"), `powerL` /
+ * `powerR` the on/off buttons.
+ */
 export const BUTTON_MASKS: ReadonlyArray<readonly [RideButton, number]> = [
-  ['left', 0x00001],
-  ['up', 0x00002],
-  ['right', 0x00004],
-  ['down', 0x00008],
-  ['a', 0x00010],
-  ['b', 0x00020],
-  ['y', 0x00040],
-  ['z', 0x00100],
-  ['shiftUpL', 0x00200],
-  ['shiftDownL', 0x00400],
-  ['hoodL', 0x00800],
-  ['powerL', 0x01000],
-  ['shiftUpR', 0x02000],
-  ['shiftDownR', 0x04000],
-  ['hoodR', 0x10000],
-  ['powerR', 0x20000],
+  ['left', 0x0001],
+  ['up', 0x0002],
+  ['right', 0x0004],
+  ['down', 0x0008],
+  ['a', 0x0010],
+  ['b', 0x0020],
+  ['y', 0x0040],
+  ['z', 0x0080],
+  ['shiftUpL', 0x0100],
+  ['shiftDownL', 0x0200],
+  ['hoodL', 0x0400],
+  ['powerL', 0x0800],
+  ['shiftUpR', 0x1000],
+  ['shiftDownR', 0x2000],
+  ['hoodR', 0x4000],
+  ['powerR', 0x8000],
 ];
+
+/** Plain names for the "last button" readout (Devices page, in-ride sheet). */
+export const BUTTON_NAMES: Readonly<Record<RideButton, string>> = {
+  left: 'D-pad left',
+  up: 'D-pad up',
+  right: 'D-pad right',
+  down: 'D-pad down',
+  a: 'A',
+  b: 'B',
+  y: 'Y',
+  z: 'Z',
+  shiftUpL: 'Left shifter, upper',
+  shiftDownL: 'Left shifter, lower',
+  hoodL: 'Left drop button',
+  powerL: 'Left on/off',
+  shiftUpR: 'Right shifter, upper',
+  shiftDownR: 'Right shifter, lower',
+  hoodR: 'Right drop button',
+  powerR: 'Right on/off',
+};
 
 // ---- protobuf (proto2 wire format, just what we need) -------------------
 

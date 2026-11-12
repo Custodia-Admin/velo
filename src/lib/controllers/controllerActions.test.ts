@@ -6,6 +6,7 @@ import {
   SHOW_LEGEND,
   actionFor,
   cycleCamera,
+  lastPressText,
   runControllerAction,
   stepDifficulty,
   stepDistance,
@@ -16,11 +17,19 @@ import { BUTTON_MASKS } from './rideProtocol';
 import { CAMERA_MODES, type CameraDistance, type CameraMode } from '@/lib/cesiumCameras';
 
 describe('button mapping', () => {
-  it('shift paddles on both sides change gear', () => {
-    expect(actionFor('shiftUpL')).toBe('gearHarder');
-    expect(actionFor('shiftUpR')).toBe('gearHarder');
+  it("Zwift's Sequential style: both left shifters easier, both right shifters harder", () => {
+    expect(actionFor('shiftUpL')).toBe('gearEasier');
     expect(actionFor('shiftDownL')).toBe('gearEasier');
-    expect(actionFor('shiftDownR')).toBe('gearEasier');
+    expect(actionFor('shiftUpR')).toBe('gearHarder');
+    expect(actionFor('shiftDownR')).toBe('gearHarder');
+  });
+
+  it('only the four shifters change gear (not the drop buttons, Z or on/off)', () => {
+    const gearButtons = BUTTON_MASKS.map(([b]) => b).filter((b) => {
+      const a = actionFor(b);
+      return a === 'gearEasier' || a === 'gearHarder';
+    });
+    expect(gearButtons.sort()).toEqual(['shiftDownL', 'shiftDownR', 'shiftUpL', 'shiftUpR']);
   });
 
   it('D-pad: up/down hills, left/right camera; A pauses', () => {
@@ -35,6 +44,20 @@ describe('button mapping', () => {
     expect(actionFor('powerL')).toBeNull();
     expect(actionFor('powerR')).toBeNull();
     expect(Object.keys(BUTTON_ACTIONS)).not.toContain('powerL');
+  });
+});
+
+describe('last press readout', () => {
+  it('names the button and what it does in a ride', () => {
+    expect(lastPressText(null)).toBe('Press a button on the bars to see what Velo hears.');
+    expect(lastPressText('shiftUpL')).toBe('Last press: Left shifter, upper · easier gear');
+    expect(lastPressText('shiftDownL')).toBe('Last press: Left shifter, lower · easier gear');
+    expect(lastPressText('shiftUpR')).toBe('Last press: Right shifter, upper · harder gear');
+    expect(lastPressText('shiftDownR')).toBe('Last press: Right shifter, lower · harder gear');
+    expect(lastPressText('hoodL')).toBe('Last press: Left drop button · camera closer');
+    expect(lastPressText('y')).toBe('Last press: Y · ride details');
+    expect(lastPressText('powerR')).toBe('Last press: Right on/off · nothing in a ride');
+    for (const [b] of BUTTON_MASKS) expect(lastPressText(b).toLowerCase()).not.toContain('zwift');
   });
 });
 
@@ -81,14 +104,16 @@ describe('show mode button map', () => {
     expect(actionFor('powerR', { show: true })).toBeNull();
   });
 
-  it('hood buttons move the camera closer / further', () => {
+  it('drop buttons move the camera closer / further', () => {
     expect(actionFor('hoodL')).toBe('cameraCloser');
     expect(actionFor('hoodR')).toBe('cameraFurther');
   });
 
   it('every mapped action has a legend row; the legend names no brand', () => {
     const text = [...ACTION_LEGEND, ...SHOW_LEGEND].map((r) => `${r.controls} ${r.action}`).join(' ');
-    expect(text).toMatch(/Hood buttons/);
+    expect(text).toMatch(/Left shifters Easier gear/);
+    expect(text).toMatch(/Right shifters Harder gear/);
+    expect(text).toMatch(/Drop buttons/);
     expect(SHOW_LEGEND.map((r) => r.controls)).toEqual(['Y', 'Z', 'B']);
     expect(text.toLowerCase()).not.toContain('zwift');
   });

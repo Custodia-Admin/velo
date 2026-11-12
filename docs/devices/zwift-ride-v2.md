@@ -119,18 +119,31 @@ message RideAnalogKeyPress {
 }
 ```
 
-Button masks (bit cleared = pressed):
+Button masks (bit cleared = pressed), **as measured on a real Ride**:
 
 | Mask | Button | Mask | Button |
 | --- | --- | --- | --- |
-| `0x00001` | D-pad left | `0x00200` | Left shift up |
-| `0x00002` | D-pad up | `0x00400` | Left shift down |
-| `0x00004` | D-pad right | `0x00800` | Left power-up (hood) |
-| `0x00008` | D-pad down | `0x01000` | Left on/off |
-| `0x00010` | A | `0x02000` | Right shift up |
-| `0x00020` | B | `0x04000` | Right shift down |
-| `0x00040` | Y | `0x10000` | Right power-up (hood) |
-| `0x00100` | Z | `0x20000` | Right on/off |
+| `0x0001` | D-pad left | `0x0100` | Left shifter, upper (LS1) |
+| `0x0002` | D-pad up | `0x0200` | Left shifter, lower (LS2) |
+| `0x0004` | D-pad right | `0x0400` | Left drop button (LB, "power-up") |
+| `0x0008` | D-pad down | `0x0800` | Left on/off |
+| `0x0010` | A | `0x1000` | Right shifter, upper (RS1) |
+| `0x0020` | B | `0x2000` | Right shifter, lower (RS2) |
+| `0x0040` | Y | `0x4000` | Right drop button (RB, "power-up") |
+| `0x0080` | Z | `0x8000` | Right on/off |
+
+**Makinolo's masks are wrong above Y.** His `.proto` (written without a Ride,
+from someone else's capture) has Z at `0x100` and every later button one place
+up, ending at `0x20000`. A Ride owner logged every button with a Web Bluetooth
+page in jonasbark/swiftcontrol issue #3 (30 Mar 2025) and found the table
+above; BikeControl has decoded the Ride with it ever since
+(`RideButtonMask` in `lib/bluetooth/devices/zwift/zwift_ride.dart`), and its
+Ride emulator, which Zwift accepts, presses `0x100` for "shift down" and
+`0x1000` for "shift up". Velo first shipped Makinolo's table: on the owner's
+first ride (12 Nov 2026) the lower shifters read as "shift up" (harder), the
+upper ones as Z / on-off (nothing), and only the drop buttons shifted easier,
+so he ended in gear 11 with no way down. Since the HOTFIX the table above is
+pinned frame by frame in `rideProtocol.test.ts` ("real Ride button masks").
 
 Example, D-pad left held, both levers at rest:
 
@@ -204,14 +217,30 @@ Velo is for easy scenic rides. The controllers add comfort, not racing.
 
 | Control | Velo action |
 | --- | --- |
-| Shift up (either side) | One gear harder |
-| Shift down (either side) | One gear easier |
+| Left shifters (both buttons) | One gear easier |
+| Right shifters (both buttons) | One gear harder |
 | D-pad up / down | Hills feel harder / easier (trainer difficulty ±5 %) |
 | D-pad left / right | Previous / next camera (in show mode this takes over from the auto camera) |
-| Power-up (hood) left / right | Camera closer / further (close, standard, far, overview) |
+| Drop buttons (LB / RB) left / right | Camera closer / further (close, standard, far, overview) |
 | A | Pause / resume |
 | Orange levers | Steer: move across the lane; let go and the bike drifts back to the line |
 | On/off | Never mapped: they power the controllers |
+
+The shifters follow Zwift's default "Sequential" style, which Rouvy,
+BikeControl and Ride Cave use too: left is easier, right is harder, whichever
+of the two buttons on that side (support.zwift.com "Using your Zwift Ride
+controller": LS1/LS2 decrease, RS1/RS2 increase; Rouvy's virtual shifting
+article: "In Sequential style, the left lever shifts to easier gears and the
+right lever to harder ones"). The right unit's presses reach Velo through
+the left one, so pairing the left unit gives both directions.
+
+**Never stuck in a gear.** The ride band shows easier / harder buttons
+beside the gear (pointer and touch), and the keyboard shifts too: `-` or `[`
+easier, `=` or `]` harder (listed under `?`). Both work with or without the
+handlebar controls; once used, the gear applies even when the controls are
+asleep. The Devices page (and the in-ride devices sheet) shows the last
+button Velo heard and what it does in a ride ("Last press: Left shifter,
+lower · easier gear"), so every button can be checked without riding.
 
 Show mode (watching your own videos) gives the letter buttons to the player:
 

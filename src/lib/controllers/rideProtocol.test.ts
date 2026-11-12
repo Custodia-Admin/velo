@@ -19,6 +19,7 @@ import {
   sideFromManufacturerData,
   type RideButton,
 } from './rideProtocol';
+import { actionFor } from './controllerActions';
 
 /** Build a 0x23 message with nested levers (Makinolo layout). */
 function keypad(map: number, levers: [number, number][] = []): Uint8Array {
@@ -67,7 +68,7 @@ describe('decodeKeypad', () => {
   });
 
   it('handles two buttons at once', () => {
-    const st = decodeKeypad(keypad(~(0x2000 | 0x2)))!;
+    const st = decodeKeypad(keypad(~(0x1000 | 0x2)))!;
     expect([...pressedButtons(st)].sort()).toEqual(['shiftUpR', 'up']);
   });
 
@@ -101,12 +102,37 @@ describe('risingEdges', () => {
   it('fires once per press, not while held', () => {
     let prev = new Set<RideButton>();
     const fired: RideButton[] = [];
-    for (const m of [0xffffffff, ~0x4000, ~0x4000, 0xffffffff, ~0x4000]) {
+    for (const m of [0xffffffff, ~0x2000, ~0x2000, 0xffffffff, ~0x2000]) {
       const now = pressedButtons(decodeKeypad(keypad(m))!);
       fired.push(...risingEdges(prev, now));
       prev = now;
     }
     expect(fired).toEqual(['shiftDownR', 'shiftDownR']);
+  });
+
+  it('a held shifter is one press, however many frames and lever moves arrive while held', () => {
+    let prev = new Set<RideButton>();
+    const fired: RideButton[] = [];
+    const held = ~0x0100; // left shifter, upper
+    const frames = [
+      keypad(held),
+      ...Array.from({ length: 40 }, (_, i) => keypad(held, [[0, (i * 7) % 100], [1, -((i * 11) % 100)]])),
+      keypad(held),
+    ];
+    for (const f of frames) {
+      const now = pressedButtons(decodeKeypad(f)!);
+      fired.push(...risingEdges(prev, now));
+      prev = now;
+    }
+    expect(fired).toEqual(['shiftUpL']);
+  });
+
+  it('the orange levers are never a shift, at any travel or sign', () => {
+    for (const v of [-100, -60, -13, 13, 60, 100]) {
+      for (const loc of [0, 1, 2, 3]) {
+        expect(pressedButtons(decodeKeypad(keypad(0xffffffff, [[loc, v]]))!).size).toBe(0);
+      }
+    }
   });
 });
 
@@ -183,7 +209,7 @@ describe('describeMessage', () => {
     expect(describeMessage('in', fromHex('19 08 2a'))).toBe('battery 42 %');
     expect(describeMessage('in', fromHex('fe'))).toBe('taken over by another app');
     expect(describeMessage('in', fromHex('23 08 ff ff ff ff 0f'))).toBe('keys none');
-    expect(describeMessage('in', fromHex('23 08 ff bf ff ff 0f'))).toBe('keys shiftUpR');
+    expect(describeMessage('in', fromHex('23 08 ff df ff ff 0f'))).toBe('keys shiftUpR');
     expect(describeMessage('in', fromHex('23 08 ff ff ff ff 0f 12 06 0a 04 08 01 10 64'))).toBe('keys none · lever R 50');
     expect(describeMessage('in', fromHex('77'))).toBe('msg 0x77');
   });
@@ -224,6 +250,59 @@ describe('frame fixtures (every describeMessage / decoder branch)', () => {
       expect(describeMessage(f.dir, fromHex(f.hex))).toBe(f.reads);
     });
   }
+});
+
+/**
+ * Real-hardware button masks. A Ride owner logged every button with a Web
+ * Bluetooth page (jonasbark/swiftcontrol issue #3, 30 Mar 2025): Z = 0x80,
+ * shifters 0x100 / 0x200 (left upper / lower) and 0x1000 / 0x2000 (right),
+ * drop buttons 0x400 / 0x4000. BikeControl decodes the Ride with exactly
+ * these and also emulates a Ride towards Zwift with them (its "shift down"
+ * presses SHFT_UP_L, "shift up" SHFT_UP_R). Makinolo's blind .proto, which
+ * Velo first used, put Z at 0x100 and shifted everything above it, so the
+ * lower shifters (0x200 / 0x2000) read as "shift up" (harder), the upper
+ * ones as Z / on-off (nothing) and the drop buttons as "shift down".
+ */
+const REAL_FRAMES: ReadonlyArray<{ hex: string; button: RideButton; ride: string }> = [
+  { hex: '23 08 ff fe ff ff 0f', button: 'z', ride: 'none' },
+  { hex: '23 08 ff fd ff ff 0f', button: 'shiftUpL', ride: 'gearEasier' },
+  { hex: '23 08 ff fb ff ff 0f', button: 'shiftDownL', ride: 'gearEasier' },
+  { hex: '23 08 ff f7 ff ff 0f', button: 'hoodL', ride: 'cameraCloser' },
+  { hex: '23 08 ff ef ff ff 0f', button: 'powerL', ride: 'none' },
+  { hex: '23 08 ff df ff ff 0f', button: 'shiftUpR', ride: 'gearHarder' },
+  { hex: '23 08 ff bf ff ff 0f', button: 'shiftDownR', ride: 'gearHarder' },
+  { hex: '23 08 ff ff fe ff 0f', button: 'hoodR', ride: 'cameraFurther' },
+  { hex: '23 08 ff ff fd ff 0f', button: 'powerR', ride: 'none' },
+];
+
+describe('real Ride button masks', () => {
+  for (const f of REAL_FRAMES) {
+    it(`[${f.hex}] is ${f.button} → ${f.ride}`, () => {
+      const st = decodeKeypad(fromHex(f.hex))!;
+      expect([...pressedButtons(st)]).toEqual([f.button]);
+      expect(actionFor(f.button) ?? 'none').toBe(f.ride);
+    });
+  }
+
+  it('one nibble per group: D-pad, letters, left side, right side; nothing above 0x8000', () => {
+    expect(Object.fromEntries(BUTTON_MASKS)).toEqual({
+      left: 0x1, up: 0x2, right: 0x4, down: 0x8,
+      a: 0x10, b: 0x20, y: 0x40, z: 0x80,
+      shiftUpL: 0x100, shiftDownL: 0x200, hoodL: 0x400, powerL: 0x800,
+      shiftUpR: 0x1000, shiftDownR: 0x2000, hoodR: 0x4000, powerR: 0x8000,
+    });
+  });
+
+  it('a bit the Ride never sends (old 0x10000) names no button', () => {
+    expect(pressedButtons(decodeKeypad(fromHex('23 08 ff ff fb ff 0f'))!).size).toBe(0);
+  });
+
+  it('every shifter of one side shifts the same way: left easier, right harder', () => {
+    const left = REAL_FRAMES.filter((f) => f.button === 'shiftUpL' || f.button === 'shiftDownL');
+    const right = REAL_FRAMES.filter((f) => f.button === 'shiftUpR' || f.button === 'shiftDownR');
+    expect(left.map((f) => actionFor(f.button))).toEqual(['gearEasier', 'gearEasier']);
+    expect(right.map((f) => actionFor(f.button))).toEqual(['gearHarder', 'gearHarder']);
+  });
 });
 
 describe('decodeFields edge cases', () => {

@@ -12,6 +12,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { NEUTRAL_GEAR, clampGear } from '@/lib/virtualGears';
 import { shapeSteer } from '@/lib/controllers/steerFeel';
+import type { RideButton } from '@/lib/controllers/rideProtocol';
 
 export type ControllerStatus =
   | 'idle' // never paired this session
@@ -28,6 +29,12 @@ export type ControllerStatus =
  * 'unsupported': the browser cannot watch adverts at all.
  */
 export type ControllerSideCheck = 'left' | 'right' | 'unknown' | 'unsupported';
+
+/** One handlebar press as heard (seq changes on every press, even a repeat). */
+export interface LastPress {
+  button: RideButton;
+  seq: number;
+}
 
 /** Result of the confirm buzz sent right after the handshake. */
 export type BuzzResult = 'ok' | 'failed';
@@ -56,6 +63,13 @@ interface ControllerState {
   gearBuzz: boolean;
   /** Show the raw-message overlay in the ride view (field diagnostics). */
   debugOverlay: boolean;
+  /**
+   * The rider shifted with the keyboard or the on-screen gear buttons this
+   * ride: the gear then applies even without live handlebar controls.
+   */
+  manualGear: boolean;
+  /** The last handlebar button Velo heard (the Devices page readout). */
+  lastPress: LastPress | null;
 
   setStatus: (status: ControllerStatus, errorMessage?: string | null) => void;
   setDevice: (name: string | null) => void;
@@ -69,8 +83,15 @@ interface ControllerState {
   setSteeringEnabled: (on: boolean) => void;
   setGearBuzz: (on: boolean) => void;
   setDebugOverlay: (on: boolean) => void;
+  setLastPress: (button: RideButton) => void;
   /** Change gear by `delta`; returns true if the gear actually changed. */
   shift: (delta: number) => boolean;
+  /**
+   * Keyboard / on-screen shift: one step from the gear the trainer uses
+   * right now ({@link activeGear}), and the gear applies from then on even
+   * without live handlebar controls. True if the gear changed.
+   */
+  shiftManual: (delta: 1 | -1) => boolean;
   resetGear: () => void;
 }
 
@@ -91,6 +112,8 @@ export const useControllerStore = create<ControllerState>()(
       steeringEnabled: true,
       gearBuzz: true,
       debugOverlay: false,
+      manualGear: false,
+      lastPress: null,
 
       setStatus: (status, errorMessage = null) =>
         set({
@@ -117,7 +140,15 @@ export const useControllerStore = create<ControllerState>()(
         set({ gear: after });
         return true;
       },
-      resetGear: () => set({ gear: NEUTRAL_GEAR }),
+      setLastPress: (button) => set({ lastPress: { button, seq: (get().lastPress?.seq ?? 0) + 1 } }),
+      shiftManual: (delta) => {
+        const before = activeGear();
+        const after = clampGear(before + delta);
+        const changed = after !== before;
+        set({ gear: after, manualGear: true });
+        return changed;
+      },
+      resetGear: () => set({ gear: NEUTRAL_GEAR, manualGear: false }),
     }),
     {
       name: 'globeride.controllers',
@@ -128,12 +159,21 @@ export const useControllerStore = create<ControllerState>()(
   ),
 );
 
-/** Gear to use for trainer resistance right now (neutral unless controls are live). */
+/**
+ * Gear to use for trainer resistance right now: neutral unless the controls
+ * are live or the rider shifted from the keyboard / screen this ride.
+ */
 export function activeGear(): number {
   const s = useControllerStore.getState();
+  return gearInUse(s.status, s.gear, s.manualGear);
+}
+
+/** Pure rule behind {@link activeGear}. */
+export function gearInUse(status: ControllerStatus, gear: number, manual: boolean): number {
   // A short drop keeps the gear so resistance does not jump; once the
-  // controls are given up on (asleep) the trainer goes back to neutral.
-  return s.status === 'connected' || s.status === 'reconnecting' ? s.gear : NEUTRAL_GEAR;
+  // controls are given up on (asleep) the trainer goes back to neutral,
+  // unless the rider shifts by keyboard or screen, which always works.
+  return manual || status === 'connected' || status === 'reconnecting' ? gear : NEUTRAL_GEAR;
 }
 
 /**

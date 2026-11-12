@@ -93,7 +93,7 @@ vi.mock('@/lib/controllers/rideController', async (orig) => ({
 }));
 
 import { isValidElement } from 'react';
-import { ButtonLegend, GearBuzzSwitch, HandlebarRow, ShowLegend, SteeringSwitch } from './ControllerPanel';
+import { ButtonLegend, GearBuzzSwitch, HandlebarRow, LastPressLine, ShowLegend, SteeringSwitch } from './ControllerPanel';
 import type { DeviceRowProps } from './DeviceRow';
 import type { HandlebarActionId, HandlebarRowView } from './devicesView';
 import { useControllerStore } from '@/stores/controllerStore';
@@ -280,5 +280,24 @@ describe('HandlebarRow: the #26 port (Forget, legend, switches, asleep copy)', (
     row.onAction('pairOther');
     expect(h.pair).toHaveBeenLastCalledWith();
     expect(h.reconnectGranted).not.toHaveBeenCalled();
+  });
+});
+
+describe('HandlebarRow: the last-press readout (owner check of every shifter)', () => {
+  it('a live link shows what Velo heard last and what it does in a ride; other states show nothing', () => {
+    useControllerStore.setState({ status: 'connected', inputSeen: true, lastPress: null });
+    let row = render();
+    expect(typesIn(row.children).has(LastPressLine)).toBe(true);
+    useControllerStore.setState({ status: 'asleep' });
+    row = render();
+    expect(typesIn(row.children).has(LastPressLine)).toBe(false);
+  });
+
+  it('the line reads the store: placeholder, then the last button', () => {
+    useControllerStore.setState({ status: 'connected', lastPress: null });
+    const text = () => String((LastPressLine() as ReactElement<{ children: string }>).props.children);
+    expect(text()).toMatch(/Press a button on the bars/);
+    useControllerStore.getState().setLastPress('shiftDownL');
+    expect(text()).toBe('Last press: Left shifter, lower · easier gear');
   });
 });

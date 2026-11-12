@@ -9,7 +9,11 @@
  *
  * Below sm the band spans the screen: the big three figures (unit as the
  * label) beside icon-only Pause / Finish / details buttons, then one row of
- * grade, power and gear at figure size ("1.2 %  142 W  gear 6").
+ * grade, power and gear at figure size ("1.2 %  142 W  − gear 6 +").
+ *
+ * The gear always has an easier / harder pair beside it (and the - [ = ]
+ * keys), with or without handlebar controls: a rider is never stuck in a
+ * gear because a button on the bars does something else.
  *
  * Re-renders at display-change rate, not every frame: every store read is
  * quantised to what the band shows (0.1 km/h, 5 m, whole seconds, 0.1 %,
@@ -17,17 +21,18 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { ArrowLeft, ChevronDown, ChevronUp, Flag, Pause, Play } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Flag, Minus, Pause, Play, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn, formatDistance, formatDuration } from '@/lib/utils';
 import { quantizedMeters } from '@/lib/hudThrottle';
 import { trainerDrivesRide } from '@/lib/rideDrive';
-import { GEAR_COUNT, NEUTRAL_GEAR } from '@/lib/virtualGears';
-import { useControllerStore, type ControllerStatus } from '@/stores/controllerStore';
+import { GEAR_COUNT } from '@/lib/virtualGears';
+import { gearInUse, useControllerStore, type ControllerStatus } from '@/stores/controllerStore';
 import { useRideHudStore } from '@/stores/rideHudStore';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { remoteFirst } from '@/hooks/useNavPrimary';
+import { shiftFromScreen } from '@/hooks/useRideKeyboardShortcuts';
 import { focusedControl, NAV_PRIMARY_ATTR } from '@/lib/tv/remoteNav';
 import { Figure } from './Figure';
 import { HUD_PANEL } from './v2';
@@ -43,14 +48,39 @@ const M_PER_MI = 1609.344;
 export function useLiveGear(): number | null {
   const status = useControllerStore((s) => s.status);
   const gear = useControllerStore((s) => s.gear);
+  const manual = useControllerStore((s) => s.manualGear);
   const erg = useRideStore((s) => s.trainerControlMode === 'erg');
-  return shownGear(status, gear, erg);
+  return shownGear(status, gear, erg, manual);
 }
 
 /** Pure part of {@link useLiveGear} (same rule as controllerStore.activeGear). */
-export function shownGear(status: ControllerStatus, gear: number, erg: boolean): number | null {
+export function shownGear(status: ControllerStatus, gear: number, erg: boolean, manual = false): number | null {
   if (erg) return null;
-  return status === 'connected' || status === 'reconnecting' ? gear : NEUTRAL_GEAR;
+  return gearInUse(status, gear, manual);
+}
+
+/** What a tap on an on-screen gear button does (same as the gear keys). */
+export function tapGear(delta: 1 | -1): void {
+  shiftFromScreen(delta);
+}
+
+/** One gear easier (-1) or harder (+1); disabled at the end of the range. */
+export function GearButton({ delta, gear }: { delta: 1 | -1; gear: number }) {
+  const easier = delta < 0;
+  const Icon = easier ? Minus : Plus;
+  return (
+    <Button
+      variant="quiet"
+      size="icon"
+      className="shrink-0"
+      aria-label={easier ? 'Easier gear' : 'Harder gear'}
+      title={easier ? 'Easier gear (- or [)' : 'Harder gear (= or ])'}
+      disabled={easier ? gear <= 1 : gear >= GEAR_COUNT}
+      onClick={() => tapGear(delta)}
+    >
+      <Icon className="h-5 w-5" aria-hidden="true" />
+    </Button>
+  );
 }
 
 interface CompactFigure {
@@ -124,14 +154,11 @@ export function RideStrip({ onExit, className }: { onExit?: () => void; classNam
         <Figure className="hidden sm:flex" size="minor" value={gradeText} unit="%" label="Grade" ariaLabel={`Grade: ${gradeText} %`} />
         <Figure className="hidden sm:flex" size="minor" value={String(power)} unit="W" label="Power" ariaLabel={`Power: ${power} W`} />
         {gear !== null && (
-          <Figure
-            className="hidden sm:flex"
-            size="minor"
-            value={String(gear)}
-            unit={`/ ${GEAR_COUNT}`}
-            label="Gear"
-            ariaLabel={`Gear ${gear} of ${GEAR_COUNT}`}
-          />
+          <div className="hidden items-center gap-1 sm:flex" data-testid="ride-gear">
+            <GearButton delta={-1} gear={gear} />
+            <Figure size="minor" value={String(gear)} unit={`/ ${GEAR_COUNT}`} label="Gear" ariaLabel={`Gear ${gear} of ${GEAR_COUNT}`} />
+            <GearButton delta={1} gear={gear} />
+          </div>
         )}
         {cadence > 0 && (
           <Figure className="hidden sm:flex" size="minor" value={String(cadence)} unit="rpm" label="Cadence" ariaLabel={`Cadence: ${cadence} rpm`} />
@@ -148,16 +175,26 @@ export function RideStrip({ onExit, className }: { onExit?: () => void; classNam
           figure size (cadence and heart rate wrap to a second row only if
           both join). */}
       <div
-        className="flex min-w-0 basis-full flex-wrap items-baseline justify-between gap-x-3 px-1 sm:hidden"
+        className="flex min-w-0 basis-full flex-wrap items-center justify-between gap-x-3 px-1 sm:hidden"
         data-testid="ride-strip-compact"
       >
-        {compact.map((f) => (
-          <span key={f.key} className="num whitespace-nowrap">
-            {f.prefix && <small className="mr-1 text-sm font-semibold text-muted-foreground">{f.prefix}</small>}
-            <span className="text-2xl font-bold">{f.value}</span>
-            {f.unit && <small className="ml-1 text-sm font-semibold text-muted-foreground">{f.unit}</small>}
-          </span>
-        ))}
+        {compact.map((f) => {
+          const figure = (
+            <span key={f.key} className="num whitespace-nowrap">
+              {f.prefix && <small className="mr-1 text-sm font-semibold text-muted-foreground">{f.prefix}</small>}
+              <span className="text-2xl font-bold">{f.value}</span>
+              {f.unit && <small className="ml-1 text-sm font-semibold text-muted-foreground">{f.unit}</small>}
+            </span>
+          );
+          if (f.key !== 'gear' || gear === null) return figure;
+          return (
+            <span key={f.key} className="inline-flex items-center gap-1" data-testid="ride-gear-compact">
+              <GearButton delta={-1} gear={gear} />
+              {figure}
+              <GearButton delta={1} gear={gear} />
+            </span>
+          );
+        })}
       </div>
     </section>
   );
