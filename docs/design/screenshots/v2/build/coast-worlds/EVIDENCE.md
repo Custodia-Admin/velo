@@ -7,14 +7,14 @@ manifest is committed.
 
 | Check | Result |
 |---|---|
-| Bundles (R2) | `berkeley/27706f86319b7715` (with `bridges.json`), `santa-monica-venice/155c646e205b51fd`, `puerto-vallarta/9d190b96b345ea2b`. Each superseded bundle has been deleted from R2 (it now returns 404), Berkeley's `7a3a25f44a1d86e7` included. |
+| Bundles (R2) | `berkeley/99108f58c9ff2ad7` (with `bridges.json`), `santa-monica-venice/155c646e205b51fd`, `puerto-vallarta/9d190b96b345ea2b`. Each superseded bundle has been deleted from R2 (it now returns 404), Berkeley's `7a3a25f44a1d86e7` and the interim `27706f86319b7715` included. |
 | Gate (P1.3 v2, GLO-30) | Berkeley: registered RMS **0.41 m**, PASS. Santa Monica: **0.55 m**, PASS. Puerto Vallarta: **0.84 m**, PASS. The bound is 6 m (bake log `validate (P1.3 v2)`). |
 | Size (brotli / gzip as shipped) | Berkeley 0.79 / 1.02 MB. Santa Monica 3.80 / 4.83 MB. Puerto Vallarta 1.21 / 1.56 MB. All are ≤ 8 MB. |
 | First ride ≤ 8 MB, second ride offline | Covered by `e2e/remote-world.spec.ts`, which runs in CI on every push (smoke-ride). For each world it rides from the Home card and counts the world bytes. It then rides again with the browser offline and checks that no world request reaches the network. |
-| Deterministic | All on the bake host (node 26). From the merged tree (main with PR #103), Berkeley's real bake and an `--out` re-bake give all 9 files identical. Santa Monica, Puerto Vallarta, Cleveland, Cuyahoga Valley and Chengdu re-bake to manifests byte-identical to the committed ones, so they keep their bundles; Perugia and Lugano re-bake byte-identical to their committed bundles. Across machines (node 24 vs node 26), every layer's content matches except `roads.json` for Santa Monica and Puerto Vallarta, because the route fit's float steps differ between V8 versions. Publish from the bake host only. |
+| Deterministic | All on the bake host (node 26). From the merged tree (main with PR #103 and #110), Berkeley's real bake and an `--out` re-bake give all 9 files identical. Santa Monica, Puerto Vallarta, Cleveland and Cuyahoga Valley (both on bare ground), and Chengdu re-bake to manifests byte-identical to the committed ones, so they keep their bundles; Perugia and Lugano re-bake byte-identical to their committed bundles. Across machines (node 24 vs node 26), every layer's content matches except `roads.json` for Santa Monica and Puerto Vallarta, because the route fit's float steps differ between V8 versions. Publish from the bake host only. |
 | Home | All three worlds appear under "Places we want to go", ahead of the map rides, with world weather and no "Map view" badge. Each rides the baked world by default; photoreal stays opt-in. On a place with two rides, each card names its route (`home-wishlist-1440.jpg`, `home-wishlist-390.jpg`). |
 | Ride shots | Taken on the final build (Berkeley Bay Trail and Richmond Marina Bay re-shot on the bridges build, at the same places). `sheet-<route>-1280.jpg` holds 3 spots × noon and golden hour at 1280×648@2; `sheet-<route>-390.jpg` holds the same spots at 390×844@2. All 72 frames: the rider is on the drawn road, there is no void, and no label overlaps. See the notes below. |
-| fps (≥ 58, HUD on, medium) | Every coast route: **59.9–60.0**. Berkeley with bridges: **60.0** on both routes. See below. |
+| fps (≥ 58, HUD on, medium) | Every coast route: **59.9–60.0**. Berkeley with bridges: **60.0** on both routes (uncontended, the build before the last main merge). See below. |
 | Bridges (Berkeley) | No deck the route doesn't ride stands within −0.3…+4.5 m of the rider's surface; the rider shows in full under the I-580 deck. See "Bridges" below and `berkeley-bridges-before-after-1280.jpg` / `-390.jpg`. |
 
 ## Routes
@@ -40,7 +40,7 @@ The route fit bends a few roads and adds **no join pieces** in any of the three 
 
 ## Bridges (Berkeley)
 
-The recipe sets `"bridges": true`, so Berkeley bakes its bridges as structures (PR #103): 73 decks (7 ridden), 10 headroom pins, 3 abutments on approach ramps, 65 piers. Before, the renderer drew every bridge as a flat ribbon between its end heights. The John T. Knox Freeway (I-580) deck, 278 m long, lay on the Bay Trail beneath it and buried the rider on both routes.
+The recipe sets `"bridges": true`, so Berkeley bakes its bridges as structures (PR #103): 73 decks (7 ridden), 10 headroom pins, 4 abutments on approach ramps (landed on the uncarved ground, PR #110), 66 piers. Before, the renderer drew every bridge as a flat ribbon between its end heights. The John T. Knox Freeway (I-580) deck, 278 m long, lay on the Bay Trail beneath it and buried the rider on both routes.
 
 **Decks over the rider.** Measured against the app's own surfaces (decks from `bridges.json` via `deckTopAt`, the rider's surface from `routeSurface`), walking each route every metre within each deck's half-width. Berkeley now has no straight-span bridge. No deck the route doesn't ride stands within −0.3…+4.5 m of the rider's surface (the review measured the flat ribbon at −0.5…+0.4 m).
 
@@ -55,13 +55,13 @@ PR #103's headroom rule (4.5 m, 0.15 m tolerance) is checked where a route cross
 
 | Spot | Before 1280 / 390 | After 1280 / 390 |
 |---|---|---|
-| Berkeley shoreline 2520 | 48 % / 49 % | 101 % / 101 % |
-| Berkeley shoreline 2560 | 9 % / 9 % | 102 % / 101 % |
+| Berkeley shoreline 2520 | 48 % / 49 % | 102 % / 101 % |
+| Berkeley shoreline 2560 | 9 % / 9 % | 101 % / 102 % |
 | Berkeley shoreline 2620 | 100 % / 101 % | 101 % / 101 % |
-| Berkeley shoreline 2493 (deck edge) | 100 % / 99 % | 101 % / 101 % |
-| Berkeley shoreline 3966 → 3915 (Eastshore) | 101 % / 102 % | 102 % / 101 % |
-| Berkeley shoreline 2700, 2900 (Buchanan deck), 3000 (new line) | — | 100–101 % |
-| Richmond 640 | 13 % / 13 % | 101 % / 102 % |
+| Berkeley shoreline 2493 (deck edge) | 100 % / 99 % | 101 % / 100 % |
+| Berkeley shoreline 3966 → 3915 (Eastshore) | 101 % / 102 % | 102 % / 102 % |
+| Berkeley shoreline 2700, 2900 (Buchanan deck), 3000 (new line) | — | 101–102 % |
+| Richmond 640 | 13 % / 13 % | 101 % / 101 % |
 | Richmond 676 | 38 % / 38 % | 101 % / 102 % |
 | Richmond 702 (deck edge), 1620, 1645 (controls) | 100–102 % | 101–103 % |
 
@@ -71,7 +71,7 @@ In the after frames, the grey slab over the rider at 2520, 2560, 640 and 676 is 
 
 **Deck ends.** The bridges step's decimetre rounding turned one deck end (Marina Bay Trail, road 1350) a fraction of a degree, which took 2 m of Richmond's painted guide 0.01–0.18 m off the drawn roads at 1,645 m. The bake grows such a free end along its own end segment until the guide is covered, at most 1 m (here 0.1 m), and then checks the paint again.
 
-**fps** (the test host's iGPU, HUD on, medium, two interleaved rounds): Berkeley Bay Trail **60.0** and Richmond Marina Bay **60.0** in both rounds, 0 % of frames over 20 ms. The Perugia control read 60.0 alongside.
+**fps** (the test host's iGPU, HUD on, medium, two rounds interleaved with the Perugia control). These were run on the bridges build before main's #110 was merged in, which has the same decks over the routes. Berkeley Bay Trail and Richmond Marina Bay read **60.0** in both rounds with 0 % of frames over 20 ms, and Perugia 60.0. On the final build, other VMs were loading the test host (1-minute load 7–11). Under that load Perugia read 20.6 and 21.6, Berkeley 20.1 and 26.6, and Richmond 20.0 and 24.4. The Berkeley routes track the control, so the bridges cost nothing measurable.
 
 ### Notes on the shots
 
