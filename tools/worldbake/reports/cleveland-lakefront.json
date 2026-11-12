@@ -4,23 +4,23 @@
   "timingsS": {
     "dem": 0.2,
     "osm": 0.3,
-    "bareGround": 0.2,
-    "heightfield+routes": 1.9,
-    "vectors": 0.5,
-    "write": 4,
+    "bareGround": 0.3,
+    "heightfield+routes": 2.2,
+    "vectors": 0.6,
+    "write": 4.5,
     "validate": 0,
-    "total": 7.1
+    "total": 8.1
   },
   "sizes": {
     "height.bin.gz": {
-      "stored": 400088,
+      "stored": 400073,
       "content": 1459008,
-      "brotli": 327461
+      "brotli": 327547
     },
     "roads.json.gz": {
-      "stored": 349578,
+      "stored": 349577,
       "content": 1036694,
-      "brotli": 247318
+      "brotli": 247576
     },
     "water.json.gz": {
       "stored": 9637,
@@ -43,36 +43,36 @@
       "brotli": 98228
     },
     "routes.json.gz": {
-      "stored": 33634,
-      "content": 82390,
-      "brotli": 24249
+      "stored": 33700,
+      "content": 82406,
+      "brotli": 24242
     },
     "bridges.json.gz": {
-      "stored": 13784,
+      "stored": 13775,
       "content": 57268,
-      "brotli": 10039
+      "brotli": 9995
     },
     "manifest.json": {
       "stored": 12400,
       "content": 12400,
-      "brotli": 3270
+      "brotli": 3264
     }
   },
   "totals": {
-    "stored": 1349046,
-    "content": 3667877,
-    "brotli": 1052804
+    "stored": 1349087,
+    "content": 3667893,
+    "brotli": 1053091
   },
   "hashes": {
-    "height.bin.gz": "35b702ba9bdc00266d030076e09196d77bb4b6b70375e2cd44a35bb6eb2616d0",
-    "roads.json.gz": "fd08a3a6c1b7d272cb578bd8c2c9733e867030151de6f27bdcfd0b9a35834dac",
+    "height.bin.gz": "4812f93dbf2bbd67bebcb0fa7e857d9e08f7898fec314bfbe2763d6f6a5a8061",
+    "roads.json.gz": "6e864436efdcf777aa2b84bc28aef75d34cdbf58633ffa35ddb797333220c395",
     "water.json.gz": "3421a6d47707a40d2f1501ce563861238dec7b6cc9d61fcb90a0b6fce935a2f1",
     "landcover.json.gz": "052d7f2a270dc0878eded01c6db5ecb87f2f5961c834ab602db35253c745de2b",
     "buildings.bin.gz": "c13d90fedb1651c1a9e4b959cf7e039e3b6052c7362f987bb20bd1b7d9be3ec5",
     "vegetation.bin.gz": "580aeb34e75d36f09a502bdf54f5017f8e482d21d486035eb639ab2095ab8bf7",
-    "routes.json.gz": "7d9f80362826247cb5712e26a43c68f461c3317c0f7214d0e68d181148a84891",
-    "bridges.json.gz": "26650858b68b098870707194a65f46f300f28843f1940ca50c875f812c871757",
-    "manifest.json": "4c3b6830cb6e19332844c649e939cbcb350c576ba4b1769945a2cbcde0b81e40"
+    "routes.json.gz": "2b0dc92e555817f362a76b9ef5b8a31a432ffdbb696851c385f6fb2683747fe0",
+    "bridges.json.gz": "855f2302b9595c71a10e3788b9edd92f87d4f55db261bb9acd24720bb0fc2da6",
+    "manifest.json": "0a7c4428c724871555f4c23f7cdf0e5963781ad735c0ecb137e4c77b9945c630"
   },
   "routes": [
     {
@@ -80,12 +80,29 @@
       "name": "Cleveland lakefront",
       "lengthM": 13513.64,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.531,
+      "gradeMeanAbsDiffPct": 0.582,
       "report": {
         "samples": 1353,
-        "gradeMaxAbsDiffPct": 2.73,
+        "gradeMaxAbsDiffPct": 3.109,
         "rawDemGradeMeanAbsDiffPct": 1.146,
-        "maxRenderMinusProfileM": 23.32
+        "maxRenderMinusProfileM": 23.32,
+        "embankments": [
+          {
+            "s0": 180,
+            "s1": 200,
+            "lowerM": 1.11
+          },
+          {
+            "s0": 280,
+            "s1": 290,
+            "lowerM": 1.56
+          },
+          {
+            "s0": 1150,
+            "s1": 1300,
+            "lowerM": 5.22
+          }
+        ]
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -106,7 +123,14 @@
         "samples": 812,
         "gradeMaxAbsDiffPct": 2.24,
         "rawDemGradeMeanAbsDiffPct": 0.803,
-        "maxRenderMinusProfileM": 19.39
+        "maxRenderMinusProfileM": 19.39,
+        "embankments": [
+          {
+            "s0": 3870,
+            "s1": 3870,
+            "lowerM": 0.03
+          }
+        ]
       },
       "roadCoverage": {
         "mappedPct": 100,
@@ -299,7 +323,7 @@
         "name": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 236.46,
-        "liftM": 6.3
+        "liftM": 6.29
       },
       {
         "road": 1333,
@@ -430,28 +454,28 @@
         "route": "scenic-cleveland-lakefront",
         "routeS": 251.95,
         "liftM": 6.11,
-        "rampM": 148.67
+        "rampM": 113.06
       },
       {
         "bridge": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 251.95,
-        "liftM": 5.51,
-        "rampM": 137.71
+        "liftM": 5.46,
+        "rampM": 136.51
       },
       {
         "bridge": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 236.46,
-        "liftM": 5.56,
-        "rampM": 139.02
+        "liftM": 5.51,
+        "rampM": 137.85
       },
       {
         "bridge": "Cleveland Memorial Shoreway",
         "route": "scenic-cleveland-lakefront",
         "routeS": 236.46,
         "liftM": 6.16,
-        "rampM": 154.08
+        "rampM": 143.19
       },
       {
         "bridge": "Edgewater Beach House Pedestrian Bridge",
@@ -555,16 +579,16 @@
       {
         "id": "scenic-cleveland-lakefront",
         "samples": 1247,
-        "medianM": 0,
-        "p95M": 2.03,
-        "maxM": 8.22,
-        "maxAtS": 1190,
+        "medianM": -0.02,
+        "p95M": 1.76,
+        "maxM": 3.1,
+        "maxAtS": 290,
         "minM": -10.34,
-        "over3M": 39,
+        "over3M": 7,
         "woodland": {
           "samples": 35,
-          "p95M": 6.69,
-          "maxM": 7.56
+          "p95M": 2.32,
+          "maxM": 2.71
         }
       },
       {
@@ -575,7 +599,7 @@
         "maxM": 4.5,
         "maxAtS": 2720,
         "minM": -6.51,
-        "over3M": 20,
+        "over3M": 19,
         "woodland": {
           "samples": 99,
           "p95M": 4.17,
@@ -651,7 +675,7 @@
     "terrain_class_source": "auto",
     "slope_threshold_deg": 15,
     "steep_fraction_threshold": 0.2,
-    "steep_fraction": 0.0078,
+    "steep_fraction": 0.0077,
     "floor_source": "none",
     "floor_rms_m": 0,
     "own_error_allowance_m": 6,
