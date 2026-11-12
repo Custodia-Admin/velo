@@ -146,6 +146,70 @@ export function insertVertexAt(road, s, tolM = 0.3) {
   return piecePath(road).s[k];
 }
 
+/** Furthest growDeckEnds may grow one deck end, metres. */
+export const END_GROW_MAX_M = 1;
+/** growDeckEnds' step, metres. */
+export const END_GROW_STEP_M = 0.1;
+
+/**
+ * The vertices the bridges step puts into a deck are rounded to decimetres,
+ * which can turn its end segment a fraction of a degree. Where a route steps
+ * off that end onto the road it joins, the turned flat end can leave a
+ * centimetre of the painted guide off every drawn road (Richmond Marina Bay
+ * at 1,645 m), after the route fit had covered it. Grow such an end along
+ * its own end segment, END_GROW_STEP_M at a time, until `misses()` (the
+ * guide's uncovered points, `[{ x, y }]` in metres) has none left near it.
+ *
+ * Only a free end moves: one no other piece of `pieces` (road indices, the
+ * decks) shares, within the deck's half-width + RIDE_SLACK_M of a miss. The
+ * deck keeps its vertex count, so its per-vertex heights still fit. An end
+ * that would grow past END_GROW_MAX_M throws. Returns
+ * `[{ road, end (0 first, 1 last vertex), m }]`; nothing moves when nothing
+ * is missed.
+ */
+export function growDeckEnds({ roads, pieces, misses, maxM = END_GROW_MAX_M }) {
+  const endKeys = new Map();
+  for (const ri of pieces) {
+    const p = roads.roads[ri].p;
+    for (const k of [keyOf(p[0], p[1]), keyOf(p[p.length - 2], p[p.length - 1])]) endKeys.set(k, (endKeys.get(k) ?? 0) + 1);
+  }
+  const grown = new Map();
+  for (;;) {
+    const left = misses();
+    if (!left.length) break;
+    let moved = false;
+    for (const ri of pieces) {
+      const road = roads.roads[ri];
+      const p = road.p;
+      const n = p.length;
+      const reach = roadWidth(roads, road) / 2 + RIDE_SLACK_M;
+      for (const end of [0, 1]) {
+        const id = `${ri}:${end}`;
+        const i = end === 0 ? 0 : n - 2;
+        const j = end === 0 ? 2 : n - 4;
+        let g = grown.get(id);
+        if (!g) {
+          if (endKeys.get(keyOf(p[i], p[i + 1])) !== 1) continue;
+          const dx = p[i] - p[j], dy = p[i + 1] - p[j + 1];
+          const l = Math.hypot(dx, dy) || 1;
+          g = { road: ri, end, x: p[i], y: p[i + 1], ux: dx / l, uy: dy / l, m: 0 };
+        }
+        if (!left.some((q) => Math.hypot(q.x - p[i] / 10, q.y - p[i + 1] / 10) <= reach)) continue;
+        if (g.m + END_GROW_STEP_M > maxM + 1e-9) {
+          throw new Error(`bridges: the end of deck ${ri} would grow past ${maxM} m to cover the route's paint`);
+        }
+        g.m = Math.round((g.m + END_GROW_STEP_M) * 10) / 10;
+        p[i] = Math.round(g.x + g.ux * g.m * 10) || 0;
+        p[i + 1] = Math.round(g.y + g.uy * g.m * 10) || 0;
+        grown.set(id, g);
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return [...grown.values()].map(({ road, end, m }) => ({ road, end, m }));
+}
+
 /**
  * Bridge pieces (bridge flag, not a tunnel) grouped into networks joined
  * end to end. A node is an abutment when no other bridge piece ends there

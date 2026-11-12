@@ -52,7 +52,7 @@ import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { BEACH_KIND, buildSea, flattenSea, relevelSea, slopeBeaches } from './coast.mjs';
 import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, routeWaterDrops, waterOnBeach, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid } from './snapRoutes.mjs';
-import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork } from './bridges.mjs';
+import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, growDeckEnds, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork } from './bridges.mjs';
 import { easeRoadsOntoRoutes, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
 import { describeValidation, validateHeightfield, writeValidation } from './validateDem.mjs';
 import { P13_SAMPLE_COUNT, validationInputs } from './p13Criterion.mjs';
@@ -378,6 +378,7 @@ export async function bake(opts) {
     return { z };
   };
   let decks = null;
+  let endsGrown = [];
   if (nets) {
     const prepared = carve.prepared.map((p, i) => ({ ...p, spans: spans[i] }));
     const floatGround = (x, y) => sampleFloatGrid(g, heights, x, y);
@@ -421,6 +422,20 @@ export async function bake(opts) {
     const zdm = new Map();
     for (const [ri, zs] of solveAll([...decks.first.pins, ...pinsRide], decks.first.plan.abutZ, hfGround).z) zdm.set(ri, quantiseZ(zs));
     for (const [ri, zs] of approachHeights(roads, decks.first.plan.approaches, hfGround)) zdm.set(ri, quantiseZ(zs));
+    // The deck vertices are all in. Their decimetre rounding can turn a deck's
+    // end a fraction of a degree and take a centimetre of the route's paint
+    // off the drawn roads where the route steps off it: grow such an end.
+    const paintMisses = () =>
+      routePaintCoverage(routeSamples, roads).flatMap((c, i) => {
+        const r = routeSamples[i];
+        return c.misses.flatMap((m) => r.s.flatMap((s, k) => (s >= m.fromS - 1 && s <= m.toS + 1 ? [{ x: r.x[k], y: r.y[k] }] : [])));
+      });
+    endsGrown = growDeckEnds({ roads, pieces: [...zdm.keys()].sort((a, b) => a - b), misses: paintMisses });
+    const stillMissed = routePaintCoverage(routeSamples, roads).filter((c) => c.misses.length);
+    if (stillMissed.length) {
+      throw new Error(`bridges: the deck vertices took the route's paint off the drawn roads: ${stillMissed.map((c) => `${c.id} ${c.misses.slice(0, 3).map((m) => `${m.fromS}–${m.toS} m (${m.maxOffM} m)`).join(', ')}`).join('; ')}`);
+    }
+    if (endsGrown.length) log(`bridges: ${endsGrown.length} deck end${endsGrown.length === 1 ? '' : 's'} grown to keep the route's paint on the roads: ${endsGrown.map((e) => `deck ${e.road} by ${e.m} m`).join(', ')}`);
     const approachSet = new Set(decks.first.plan.approaches.keys());
     const rideRoads = spans.map((list) => [...new Set(list.flatMap((sp) => sp.pieces))].sort((a, b) => a - b));
     const rides = rideRoads.map((list) => rideSurface(roads, list, zdm, hfGround));
@@ -623,6 +638,7 @@ export async function bake(opts) {
             underDeckMaxCutM: round(decks.cap.maxCutM),
             headroomPins: decks.first.pins.map((p) => ({ road: p.ri, name: roads.roads[p.ri].n !== undefined ? roads.names[roads.roads[p.ri].n] : null, route: p.route, routeS: round(p.routeS), liftM: round(p.liftM) })),
             approaches: decks.first.plan.lifts.map((l) => ({ bridge: l.bridge, route: l.route, routeS: round(l.routeS), liftM: round(l.liftM), rampM: round(l.rampM), ...(l.block ? { abutmentBlock: true } : {}) })),
+            ...(endsGrown.length ? { endsGrown } : {}),
             rides: bridgesLayer.rides,
           },
         }
