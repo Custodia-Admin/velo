@@ -129,7 +129,7 @@ describe('on-screen gear buttons', () => {
   it('tapping easier from 11 reaches 1 (pointer and touch both end in click)', () => {
     useControllerStore.setState({ gear: GEAR_COUNT });
     let gear = GEAR_COUNT;
-    while (!props(-1, gear).disabled) {
+    for (let i = 0; i < 20 && !props(-1, gear).disabled; i++) {
       (props(-1, gear).onClick as () => void)();
       gear = ctl().gear;
     }
