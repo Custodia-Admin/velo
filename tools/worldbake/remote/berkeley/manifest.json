@@ -49,19 +49,19 @@
   "files": [
     {
       "path": "height.bin.gz",
-      "bytes": 226144,
-      "sha256": "af296861feb666310485bdc32fa24a74e8b53511cbb861b6b92a3cbeced7d785",
+      "bytes": 225918,
+      "sha256": "8e57353fb795df43008f811088b1ddcfe3527ca411e6123dbcae6d5eb87da27a",
       "compression": "gzip",
       "contentBytes": 1129392,
-      "contentSha256": "9306fbbe8485358f167f79aa9ad424a231febce458b3cf4e37a7ed94d92dc400"
+      "contentSha256": "b5eeb5c7e5d14bd77f992938e8816272910235e09af61efc8f458d525f47f7e0"
     },
     {
       "path": "roads.json.gz",
-      "bytes": 184614,
-      "sha256": "880069c75d10c5a779bd2944c60d97c482076e20243c15f3f05c985edeeb37d0",
+      "bytes": 184610,
+      "sha256": "06e732e57ea3b79a7768e4a8d7363879fa01e040291cf6237ede13bd21b7a197",
       "compression": "gzip",
-      "contentBytes": 528836,
-      "contentSha256": "a958972b61b6857ade747f45edf825e28c0fe04dca8b90255895886bb773b62b"
+      "contentBytes": 528825,
+      "contentSha256": "e5f4b6c7d3255af6ae6410d13d0380abce994a6c2ff343de17e8011729648d36"
     },
     {
       "path": "water.json.gz",
@@ -97,19 +97,19 @@
     },
     {
       "path": "routes.json.gz",
-      "bytes": 32804,
-      "sha256": "f27a201b77574d5837e78ca8152afd6e391d709030eed04fcadb91f0ff7fb562",
+      "bytes": 31026,
+      "sha256": "7b89a571e6e5db144cad6ad4c0e35075b934480d918e96a840abefe58c7e53c5",
       "compression": "gzip",
-      "contentBytes": 81308,
-      "contentSha256": "ff1d8157143b010b245deffd3e37b64322a09fdb1cc0a5ae08ee1228c15854b6"
+      "contentBytes": 78367,
+      "contentSha256": "349fd41e809cac04d57cc8fe5aa318f1429b9d2a2c815439063f1840fd174ab0"
     },
     {
       "path": "bridges.json.gz",
-      "bytes": 3503,
-      "sha256": "d76182afacb60e80a781026e07f8a81d37e4a93ff9f45c41c7e92a6199f43eb5",
+      "bytes": 3471,
+      "sha256": "abf893068fd1f54eeeab5f12bcb9970e1166ebd4fe50e5a5d63a033058bdc284",
       "compression": "gzip",
-      "contentBytes": 12865,
-      "contentSha256": "12f8623e468de2d535b89b3605b8839701d409291c2099186b3acdf1f7930ab5"
+      "contentBytes": 12812,
+      "contentSha256": "2131790ff041d8c6165c3e57af15fc64767dc2207b7b83a49f6e8104dafc51db"
     }
   ],
   "moods": [
@@ -218,14 +218,14 @@
       "name": "Berkeley shoreline",
       "lengthM": 12636.98,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.11
+      "gradeMeanAbsDiffPct": 0.074
     },
     {
       "id": "scenic-richmond-marina-bay",
       "name": "Richmond Marina Bay",
       "lengthM": 9300.23,
       "maxGapM": 0,
-      "gradeMeanAbsDiffPct": 0.09
+      "gradeMeanAbsDiffPct": 0.079
     }
   ],
   "stats": {
@@ -252,7 +252,7 @@
     "pois": 10,
     "carvedNodes": 15588,
     "bridgeDecks": 136,
-    "bridgePiers": 66
+    "bridgePiers": 64
   },
   "credits": [
     {
