@@ -89,6 +89,8 @@ const ROAD_PASSES = 12;
 const ROAD_NARROW = 0.8;
 /** Points per line step at which the built line is checked against the drawn roads. */
 const ROAD_CHECKS_PER_STEP = 4;
+/** Halvings that find where the route runs onto or off a drawn road between two checks (a quarter step → under 0.1 mm). */
+const ROAD_EDGE_BISECTIONS = 12;
 /** Line offsets are metres on a sphere, edge tests metres in the world's projection: never this far apart. */
 const ROAD_METRIC_SLACK = 1.01;
 /** Rounding allowance of an edge check, metres: a line point on the route point is as deep as it. */
@@ -469,6 +471,50 @@ export function buildRideLine(
       const gE = (rLon - (eLon[c] + (eLon[c + 1] - eLon[c]) * f)) * M_PER_DEG * Math.cos(rLat * DEG);
       chordGap[i] = Math.hypot(gN, gE);
     }
+    // Where the route runs onto or off a drawn road between two checks, one more check at the
+    // last route point on it (bisected): the line reaches that edge no further out than the
+    // route does. Checks a quarter step apart land either side of it, and a line 0.2 m off the
+    // route left a path it crossed 7–8 cm out while the route was still on it (Lake Annecy at
+    // 11.6 km, Riviera dei Fiori at 2.6 km).
+    const edgeD: number[] = [];
+    const edgeK: number[] = [];
+    const edgeTest: RoadEdgeTest[] = [];
+    const edgeDepth: number[] = [];
+    let eLatAt = 0;
+    let eLonAt = 0;
+    const routeAt = (d: number) => {
+      let lo = 0;
+      let hi = pts.length - 1;
+      while (hi - lo > 1) {
+        const mid = (lo + hi) >> 1;
+        if (pts[mid].distance <= d) lo = mid;
+        else hi = mid;
+      }
+      const a = pts[lo];
+      const b = pts[lo + 1];
+      const span = b.distance - a.distance;
+      const t = span > 0 ? Math.max(0, Math.min(1, (d - a.distance) / span)) : 0;
+      eLatAt = a.lat + (b.lat - a.lat) * t;
+      eLonAt = a.lon + (b.lon - a.lon) * t;
+    };
+    for (let i = 1; i < checks; i++) {
+      const on0 = checkTest[i - 1] !== null;
+      if (on0 === (checkTest[i] !== null)) continue;
+      const test = (on0 ? checkTest[i - 1] : checkTest[i]) as RoadEdgeTest;
+      let dIn = ((on0 ? i - 1 : i) / ROAD_CHECKS_PER_STEP) * step;
+      let dOut = ((on0 ? i : i - 1) / ROAD_CHECKS_PER_STEP) * step;
+      for (let it = 0; it < ROAD_EDGE_BISECTIONS; it++) {
+        const mid = (dIn + dOut) / 2;
+        routeAt(mid);
+        if (test(eLatAt, eLonAt) <= 0) dIn = mid;
+        else dOut = mid;
+      }
+      routeAt(dIn);
+      edgeD.push(dIn);
+      edgeK.push(Math.min(n - 2, Math.floor((i - 1) / ROAD_CHECKS_PER_STEP)));
+      edgeTest.push(test);
+      edgeDepth.push(Math.max(0, -test(eLatAt, eLonAt)));
+    }
     // How far the drawn curve between samples k and k + 1 strays from the chord between them, at
     // most: the Hermite curve is the chord plus b1·(m0 − chord) + b3·(m1 − chord), |b1|, |b3| ≤ 4/27.
     const curveGap = (k: number) => {
@@ -510,6 +556,19 @@ export function buildRideLine(
         lineSample(built, (i / ROAD_CHECKS_PER_STEP) * step, p);
         if (test(p.lat, p.lon) <= ROAD_EPS_M - Math.min(depth, LINE_ROAD_MARGIN_M)) continue;
         for (const j of sub === 0 ? [k] : [k, k + 1]) {
+          const below = rungs.find((sg) => sg <= sigma[j] * ROAD_NARROW) ?? 0;
+          if (below < need[j]) {
+            need[j] = below;
+            narrowed = true;
+          }
+        }
+      }
+      for (let e = 0; e < edgeD.length; e++) {
+        const k = edgeK[e];
+        if (!(fresh[k] || fresh[k + 1])) continue;
+        lineSample(built, edgeD[e], p);
+        if (edgeTest[e](p.lat, p.lon) <= ROAD_EPS_M - Math.min(edgeDepth[e], LINE_ROAD_MARGIN_M)) continue;
+        for (const j of [k, k + 1]) {
           const below = rungs.find((sg) => sg <= sigma[j] * ROAD_NARROW) ?? 0;
           if (below < need[j]) {
             need[j] = below;
