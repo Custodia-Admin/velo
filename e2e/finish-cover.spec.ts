@@ -56,6 +56,20 @@ async function rideScenicRoute(page: Page, id: string, name: string) {
   await page.waitForURL('**/ride**');
 }
 
+/**
+ * Ride a route outside every baked world: Home → Build your own ride → Demo
+ * route (a synthetic loop at Lauterbrunnen, pinned off every world by
+ * src/lib/world/catalog.test.ts) → Start ride. Every scenic route rides a
+ * baked world, so this is the photoreal path (OSM on the ellipsoid with no token).
+ */
+async function rideOffWorld(page: Page) {
+  const build = page.locator('[data-build-your-own]');
+  await build.locator('summary').click();
+  await build.getByRole('button', { name: 'Demo route', exact: true }).click();
+  await build.getByRole('button', { name: 'Start ride', exact: true }).click();
+  await page.waitForURL('**/ride**');
+}
+
 const ride = (page: Page) =>
   page.evaluate(() => (window as unknown as { __veloRideState: () => RideProbe }).__veloRideState());
 const draws = (page: Page) => page.evaluate(() => (window as unknown as { __e2eDraws: number }).__e2eDraws);
@@ -129,8 +143,8 @@ test.describe('the finish screen at 1920×1080', () => {
     page.on('pageerror', (e) => pageErrors.push(String(e)));
     await page.addInitScript(INIT);
     await page.goto('/app');
-    // Peschiera–Lazise (Lake Garda) is outside every baked world: photoreal, OSM with no token.
-    await rideScenicRoute(page, 'scenic-lake-garda-lazise', 'Peschiera to Lazise');
+    // The demo loop is outside every baked world: photoreal, OSM with no token.
+    await rideOffWorld(page);
     await expect(page.locator('[data-renderer]')).toHaveAttribute('data-renderer', 'photoreal');
     await riding(page, 'first ride');
 

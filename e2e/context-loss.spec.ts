@@ -59,6 +59,20 @@ async function rideScenicRoute(page: Page, id: string, name: string) {
   await page.waitForURL('**/ride**');
 }
 
+/**
+ * Ride a route outside every baked world: Home → Build your own ride → Demo
+ * route (a synthetic loop at Lauterbrunnen, pinned off every world by
+ * src/lib/world/catalog.test.ts) → Start ride. Every scenic route rides a
+ * baked world, so this is the photoreal path (OSM on the ellipsoid with no token).
+ */
+async function rideOffWorld(page: Page) {
+  const build = page.locator('[data-build-your-own]');
+  await build.locator('summary').click();
+  await build.getByRole('button', { name: 'Demo route', exact: true }).click();
+  await build.getByRole('button', { name: 'Start ride', exact: true }).click();
+  await page.waitForURL('**/ride**');
+}
+
 const ride = (page: Page) =>
   page.evaluate(() => (window as unknown as { __veloRideState: () => RideProbe }).__veloRideState());
 
@@ -288,8 +302,8 @@ test('the photoreal view after a lost WebGL context: the chip, the ride carries 
   await page.addInitScript(INIT);
 
   await page.goto('/app');
-  // Peschiera–Lazise (Lake Garda) is outside every baked world: photoreal, OSM with no token.
-  await rideScenicRoute(page, 'scenic-lake-garda-lazise', 'Peschiera to Lazise');
+  // The demo loop is outside every baked world: photoreal, OSM with no token.
+  await rideOffWorld(page);
   const view = page.locator('[data-renderer]');
   await expect(view).toHaveAttribute('data-renderer', 'photoreal');
   const world = page.locator('[data-world-context]');
