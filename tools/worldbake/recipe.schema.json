@@ -55,6 +55,7 @@
     "coast": { "type": "boolean", "description": "A world on the sea (tools/worldbake/coast.mjs): fetch the coast layer, build the sea from the natural=coastline ways (water areas of kind `sea`, terrain levelled to sea level under them) and natural=beach/sand areas as landcover kind `beach`." },
     "buildingSimplifyM": { "type": "number", "minimum": 0.3, "maximum": 2, "description": "Simplify building footprints at this tolerance, metres (default 0.3). For dense metro worlds whose OSM footprints are surveyed to the corner (Los Angeles County's import: 9.6 vertices a building): 1 m halves their triangles, so the buildings in view fit the fps budget." },
     "flatLakes": { "type": "boolean", "description": "Level the terrain under every OSM lake and pond (tools/worldbake/flatLakes.mjs): for lakes newer than the DEM, which still carries the land they were dug from." },
+    "osmExclude": { "type": "array", "items": { "type": "integer" }, "minItems": 1, "uniqueItems": true, "description": "OSM way ids left out of the roads layer: a structure the bake cannot place (WORLD-FORMAT.md, \"The last wishlist worlds\"). Recorded in the report as osmExcluded." },
     "bridges": { "type": "boolean", "description": "Build bridges as structures (tools/worldbake/bridges.mjs): deck heights from the abutments with headroom over every route passing under, ridden decks not carved into the ground, ground kept under every deck, piers. Writes the bridges layer." },
     "bareGround": {
       "description": "Swap an open bare-earth DTM in along the routes before the route fit (tools/worldbake/bareGround.mjs). GLO-30 is a surface model, so under a forest the routes would ride the canopy. Without it the bake is unchanged.",
@@ -126,6 +127,30 @@
           "required": ["source"],
           "properties": {
             "source": { "const": "mase-pst-lidar" },
+            "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
+            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." },
+            "biasFrom": { "enum": ["open", "beach"], "description": "Where the DTM's datum bias to GLO-30 is measured: flat corridor nodes clear of woodland (\"open\", default) or the flat corridor nodes on a coast world's beaches and sand (\"beach\": for corridors through a town, where GLO-30 reads the roofs). Needs coast for \"beach\"." }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "IGN RGE ALTI, from the Géoplateforme WMS (France)",
+          "type": "object",
+          "required": ["source"],
+          "properties": {
+            "source": { "const": "ign-rge-alti" },
+            "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
+            "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." },
+            "biasFrom": { "enum": ["open", "beach"], "description": "Where the DTM's datum bias to GLO-30 is measured: flat corridor nodes clear of woodland (\"open\", default) or the flat corridor nodes on a coast world's beaches and sand (\"beach\": for corridors through a town, where GLO-30 reads the roofs). Needs coast for \"beach\"." }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "Regione del Veneto DTM LiDAR 5 m (Veneto)",
+          "type": "object",
+          "required": ["source"],
+          "properties": {
+            "source": { "const": "veneto-lidar5" },
             "corridorM": { "type": "number", "minimum": 0, "description": "Full DTM within this many metres of a route (default 150)." },
             "blendM": { "type": "number", "exclusiveMinimum": 0, "description": "Then a smoothstep back to the surface model over this many metres (default 300)." },
             "biasFrom": { "enum": ["open", "beach"], "description": "Where the DTM's datum bias to GLO-30 is measured: flat corridor nodes clear of woodland (\"open\", default) or the flat corridor nodes on a coast world's beaches and sand (\"beach\": for corridors through a town, where GLO-30 reads the roofs). Needs coast for \"beach\"." }

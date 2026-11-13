@@ -71,10 +71,29 @@
 //   product UPC (`sheets: { "F13C69A4": "702825005109" }`; null = INEGI has
 //   no product there, the open sea). Each node takes the mean of the k × k
 //   pixels round it (k = 3 at 12 m), read from the sheet whose cell holds it.
+// - "ign-rge-alti": IGN's RGE ALTI (France, Licence Ouverte 2.0) from the
+//   Géoplateforme raster WMS (data.geopf.fr/wms-r, layer
+//   ELEVATION.ELEVATIONGRIDCOVERAGE.HIGHRES, "Modèle Numérique de Terrain issu
+//   du RGEALTI"), asked for 1 km × 1 km Lambert-93 tiles (EPSG:2154) at 2 m,
+//   float32 GeoTIFF, PixelIsArea, nodata −99999, orthometric (NGF-IGN69). The
+//   WMS serves the model nearest-neighbour from a coarser grid: at Annecy a
+//   2 m tile repeats each value over 1.7 pixels east–west and 2.4 north–south
+//   on average (3.4 × 4.9 m, about 0.15″), so a node's k × k box averages
+//   several model cells, not one pixel. The service sets no release. Each
+//   node takes the box mean.
+// - "veneto-lidar5": the Regione del Veneto's harmonised DTM from its LiDAR
+//   surveys, 5 m (IODL 2.0, the region's geoportal), 2 km × 2 km ESRI ASCII
+//   grids in RDN2008 / Fuso 12 (EPSG:7795: transverse Mercator on 12° E, scale
+//   1, false easting 3,000,000 m), 400 × 400 pixel centres on the 2 km grid,
+//   nodata −9999 (lakes), orthometric. Tiles are numbered, not gridded: the
+//   geoportal's WFS tile index names them and gives each its download id. The
+//   index polygons are drawn on Monte Mario (EPSG:3003) and land about 80 m
+//   off, so a tile is placed by its own grid header, never by the index.
+//   Each node takes the mean of the k × k pixels round it.
 //
-// The two Italian models read a node from the pixels that have a value when
-// at least half of the box does: a node on a lake shore reads the land beside
-// it, one out on the water none.
+// The Italian models, RGE ALTI and the Veneto DTM read a node from the
+// pixels that have a value when at least half of the box does: a node on a
+// lake shore reads the land beside it, one out on the water none.
 //
 // A node without a DTM value (nodata, a 404 tile, a sheet without a product)
 // keeps its GLO-30 height.
@@ -82,12 +101,12 @@
 import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { cachedFetch, ensureDir, sha256, sleep, USER_AGENT, writeFileAtomic } from './util.mjs';
-import { geoKey, geoReference, openRaster, parseTiff } from './geotiff.mjs';
+import { geoKey, geoKeyAny, geoReference, openRaster, parseTiff } from './geotiff.mjs';
 import { appRoutePoints } from './snapRoutes.mjs';
 import { INEGI_MDT_BASE, INEGI_MDT_CATALOGUE, readZip, checkInegiCoverage, inegiBoxSize, inegiSampler, inegiSheetName, inegiSheetUrl, openInegiSheet } from './inegiMdt.mjs';
 import { createProjection } from '../../src/lib/world/projection.ts';
 
-export const BARE_GROUND_SOURCES = ['usgs-3dep-13', 'swissalti3d', 'inegi-mdt-10k', 'lombardia-dtm5', 'mase-pst-lidar'];
+export const BARE_GROUND_SOURCES = ['usgs-3dep-13', 'swissalti3d', 'inegi-mdt-10k', 'lombardia-dtm5', 'mase-pst-lidar', 'ign-rge-alti', 'veneto-lidar5'];
 /** Full DTM within this many metres of a route (default). */
 export const BARE_GROUND_CORRIDOR_M = 150;
 /** Then a smoothstep back to the surface model over this many metres (default). */
@@ -148,6 +167,20 @@ export const BARE_GROUND_CREDITS = {
     url: 'https://gn.mase.gov.it/portale/distribuzione-dati-pst',
     attribution: "Contains LiDAR DTM 1 m data from the Piano Straordinario di Telerilevamento Ambientale, © Ministero dell'Ambiente e della Sicurezza Energetica (MASE) – Geoportale Nazionale",
   },
+  'ign-rge-alti': {
+    id: 'ign-rge-alti',
+    name: 'RGE ALTI®, IGN digital terrain model, bare earth, along the routes',
+    licence: 'Licence Ouverte / Open Licence 2.0 (Etalab); averaged to the world grid',
+    url: 'https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_RGE-ALTI',
+    attribution: 'Contains RGE ALTI® data © IGN (Institut national de l’information géographique et forestière), as served by the Géoplateforme',
+  },
+  'veneto-lidar5': {
+    id: 'veneto-lidar5',
+    name: 'DTM LiDAR 5 m of the Regione del Veneto, bare earth, along the routes',
+    licence: 'Italian Open Data Licence 2.0 (IODL 2.0, as the geoportal\'s metadata for the DTM states); averaged to the world grid',
+    url: 'https://idt2.regione.veneto.it/nuovo-dtm-derivato-da-dati-lidar/',
+    attribution: 'DTM armonizzato derivato da dati LiDAR, celle 5 m © Regione del Veneto – IDT-RV 2.0',
+  },
 };
 
 /** The DTM's line in docs/worlds/CREDITS.md (after "Bare ground along the routes (…): "), for `recipe.bareGround`. */
@@ -166,6 +199,10 @@ export function bareGroundCreditLine(recipe) {
       return `Regione Lombardia DTM 5x5 (ed. 2015), 2 km tiles of its stored 5 m grid from \`${LOMBARDIA_DTM5.service}/exportImage\`, averaged to the world grid. CC BY 4.0, © Regione Lombardia.`;
     case 'mase-pst-lidar':
       return `LiDAR DTM 1 m of the Piano Straordinario di Telerilevamento Ambientale (2008–2010), 0.01° tiles ordered from \`${MASE_PST.api}\`, averaged to the world grid. CC BY 4.0, © Ministero dell'Ambiente e della Sicurezza Energetica (MASE) – Geoportale Nazionale.`;
+    case 'ign-rge-alti':
+      return `IGN RGE ALTI® (layer \`${IGN_RGE_ALTI.layer}\`, "Modèle Numérique de Terrain issu du RGEALTI"), 1 km Lambert-93 tiles at 2 m from the Géoplateforme WMS \`${IGN_RGE_ALTI.service}\`, averaged to the world grid. Licence Ouverte / Open Licence 2.0 (Etalab), © IGN.`;
+    case 'veneto-lidar5':
+      return `Regione del Veneto DTM LiDAR 5 m (harmonised from the region's LiDAR surveys, RDN2008 / Fuso 12), 2 km tiles from \`${VENETO_LIDAR5.download}\`, named by the geoportal's tile index (\`${VENETO_LIDAR5.layer}\`), averaged to the world grid. Italian Open Data Licence 2.0 (IODL 2.0), © Regione del Veneto.`;
     default:
       throw new Error(`no credit line for bareGround ${b.source}`);
   }
@@ -755,6 +792,308 @@ async function fetchInegi({ opts, points, cellSize, cacheDir, log }) {
   return { tiles: names.filter((n) => !missing.includes(n)).map((n) => `${n}@${opts.sheets[n]}`), missing, sample: inegiSampler(sheets) };
 }
 
+// --- IGN RGE ALTI (France) ------------------------------------------------
+
+/** The Géoplateforme raster WMS and the bake's tile grid on it. */
+export const IGN_RGE_ALTI = {
+  service: 'https://data.geopf.fr/wms-r/wms',
+  /** "Modèle Numérique de Terrain issu du RGEALTI": IGN's RGE ALTI DTM as the WMS serves it. */
+  layer: 'ELEVATION.ELEVATIONGRIDCOVERAGE.HIGHRES',
+  epsg: 2154,
+  /** 1 km × 1 km tiles of Lambert-93 at 2 m (500 × 500 pixels, pixel centres on odd metres). */
+  tileM: 1000,
+  pixelM: 2,
+};
+
+/**
+ * WGS84 → Lambert-93 (EPSG:2154, RGF93 on GRS80; RGF93 and WGS84 agree to
+ * about a metre): IGN's secant Lambert conformal conic with its published
+ * constants (n, C, Xs, Ys for parallels 44° and 49°, origin 46.5° N 3° E).
+ */
+export function wgs84ToLambert93(lat, lon) {
+  const e = 0.0818191910428158;
+  const n = 0.725607765053267;
+  const C = 11754255.426096;
+  const phi = (lat * Math.PI) / 180;
+  const s = e * Math.sin(phi);
+  const L = Math.log(Math.tan(Math.PI / 4 + phi / 2) * ((1 - s) / (1 + s)) ** (e / 2));
+  const R = C * Math.exp(-n * L);
+  const g = n * (((lon - 3) * Math.PI) / 180);
+  return [700000 + R * Math.sin(g), 12655612.049876 - R * Math.cos(g)];
+}
+
+/** "<E km>-<N km>" of the 1 km Lambert-93 tile holding (E, N). */
+export const rgeAltiTileId = (E, N) => `${Math.floor(E / 1000)}-${Math.floor(N / 1000)}`;
+
+/** The tile's GetMap: its 1 km at 2 m pixels, float32 GeoTIFF of the heights. */
+export function rgeAltiTileUrl(id) {
+  const { service, layer, epsg, tileM, pixelM } = IGN_RGE_ALTI;
+  const [e, n] = id.split('-').map(Number);
+  const px = tileM / pixelM;
+  return (
+    `${service}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${layer}&STYLES=&CRS=EPSG:${epsg}` +
+    `&BBOX=${e * tileM},${n * tileM},${(e + 1) * tileM},${(n + 1) * tileM}&WIDTH=${px}&HEIGHT=${px}&FORMAT=image/geotiff`
+  );
+}
+
+/** Lambert-93's defining parameters as GeoTIFF keys: standard parallels, false origin (long, lat), false easting, northing. */
+const LAMBERT93_KEYS = { 3078: 49, 3079: 44, 3084: 3, 3085: 46.5, 3086: 700000, 3087: 6600000 };
+
+/**
+ * Whether a GeoTIFF is in Lambert-93: ProjectedCSType 2154, or (as the
+ * Géoplateforme WMS writes it) a user-defined Lambert conic 2SP (CT 8) with
+ * Lambert-93's parameters and the citation "EPSG:2154". Returns the EPSG code
+ * it reads as, 0 otherwise.
+ */
+export function lambert93Code(tiff) {
+  const cs = geoKey(tiff, 0, 3072);
+  if (cs === 2154) return 2154;
+  if (cs !== 32767 || geoKey(tiff, 0, 3075) !== 8) return 0;
+  const citation = String(geoKeyAny(tiff, 0, 1026) ?? geoKeyAny(tiff, 0, 3073) ?? '');
+  if (!/^EPSG:2154\b/.test(citation)) return 0;
+  for (const [k, v] of Object.entries(LAMBERT93_KEYS)) if (geoKeyAny(tiff, 0, Number(k)) !== v) return 0;
+  return 2154;
+}
+
+/** Check a decoded tile is tile `id`'s 500 × 500 pixels of 2 m in Lambert-93; returns its georeference. */
+export function checkRgeAltiTile(id, tiff, raster) {
+  const geo = geoReference(tiff);
+  const { epsg, tileM, pixelM } = IGN_RGE_ALTI;
+  const [e, n] = id.split('-').map(Number);
+  const px = tileM / pixelM;
+  const cs = lambert93Code(tiff) || geoKey(tiff, 0, 3072);
+  const x0 = e * tileM + pixelM / 2;
+  const y0 = (n + 1) * tileM - pixelM / 2;
+  if (geo.modelType !== 1 || cs !== epsg || geo.scaleX !== pixelM || geo.scaleY !== pixelM || raster.width !== px || raster.height !== px || Math.abs(geo.x0 - x0) > 1e-6 || Math.abs(geo.y0 - y0) > 1e-6) {
+    throw new Error(`IGN RGE ALTI tile ${id}: unexpected grid (model ${geo.modelType}, EPSG ${cs}, ${raster.width}×${raster.height}, ${geo.scaleX} m, first centre ${geo.x0}, ${geo.y0}; expected ${x0}, ${y0})`);
+  }
+  return geo;
+}
+
+/** Box mean of k × k pixels round a point over the decoded 1 km tiles; NaN under half covered. */
+export function rgeAltiSampler(tiles, k) {
+  const { tileM, pixelM } = IGN_RGE_ALTI;
+  const per = tileM / pixelM;
+  // Global pixel (I, J): east from E = 0, north from N = 0; centre at (pixelM·I + 1, pixelM·J + 1).
+  const px = (I, J) => {
+    const tE = Math.floor(I / per);
+    const tN = Math.floor(J / per);
+    const t = tiles.get(`${tE}-${tN}`);
+    if (!t) return NaN;
+    const v = t.raster.value(I - tE * per, tN * per + per - 1 - J);
+    return v === t.noData || !(v > -1000) ? NaN : v;
+  };
+  return (lat, lon) => {
+    const [E, N] = wgs84ToLambert93(lat, lon);
+    return boxMean(px, Math.floor(E / pixelM), Math.floor(N / pixelM), k, k);
+  };
+}
+
+async function fetchRgeAlti({ points, cellSize, cacheDir, log }) {
+  const dir = join(cacheDir, 'ign-rge-alti');
+  ensureDir(dir);
+  const k = boxPixels(cellSize, IGN_RGE_ALTI.pixelM);
+  const reach = (k + 1) * IGN_RGE_ALTI.pixelM;
+  const ids = new Set();
+  for (const [lat, lon] of points) {
+    const [E, N] = wgs84ToLambert93(lat, lon);
+    for (const dE of [-reach, 0, reach]) for (const dN of [-reach, 0, reach]) ids.add(rgeAltiTileId(E + dE, N + dN));
+  }
+  const sorted = [...ids].sort();
+  const tiles = new Map();
+  let fetched = 0;
+  for (const id of sorted) {
+    const file = `${id}.tif`;
+    const res = await cachedFetch(dir, file, rgeAltiTileUrl(id), {}, { label: `IGN RGE ALTI ${id}` });
+    if (!isTiff(res.body)) {
+      // A WMS answers errors (an exception report) with HTTP 200.
+      unlinkSync(join(dir, file));
+      throw new Error(`IGN RGE ALTI tile ${id}: not a GeoTIFF (${res.body.subarray(0, 200).toString('utf8')})`);
+    }
+    if (!res.cached) fetched++;
+    const tiff = parseTiff(res.body);
+    const raster = openRaster(tiff);
+    const geo = checkRgeAltiTile(id, tiff, raster);
+    tiles.set(id, { raster, noData: geo.noData === undefined ? NaN : Number(geo.noData) });
+  }
+  log(`bareGround: ${sorted.length} IGN RGE ALTI 1 km tiles (${fetched} downloaded), ${k}×${k} px mean per node`);
+  return { tiles: sorted, sample: rgeAltiSampler(tiles, k) };
+}
+
+// --- Regione del Veneto DTM LiDAR 5 m ----------------------------------
+
+/** The geoportal's tile index (WFS), the download service, and the tiles' grid. */
+export const VENETO_LIDAR5 = {
+  index: 'https://idt2-geoserver.regione.veneto.it/geoserver/ows',
+  layer: 'rv:c0101071_lidar5m',
+  download: 'https://idt2.regione.veneto.it/idt/download/layerDownload/downloadDtmLidar5',
+  /** 2 km × 2 km tiles of 400 × 400 pixels of 5 m, on the 2 km grid of "Fuso 12" (EPSG:6876 / 7795). */
+  tileM: 2000,
+  pixelM: 5,
+  /** How far an index polygon may sit from its tile: the index is drawn on Monte Mario (EPSG:3003) and lands about 80 m off. */
+  indexSlackM: 150,
+};
+
+const ZONE12 = createProjection({ type: 'tmerc', ellipsoid: 'WGS84', lat0: 0, lon0: 12, k0: 1 });
+
+/**
+ * WGS84 → "Fuso 12" (E, N): RDN2008 / Zone 12, the region's grid (EPSG:7795,
+ * transverse Mercator on 12° E, scale 1, false easting 3,000,000 m). GRS80 and
+ * the WGS84 ellipsoid differ by under a millimetre here; RDN2008 and WGS84 by
+ * about a metre.
+ */
+export function wgs84ToVenetoZone12(lat, lon) {
+  const [x, y] = ZONE12.forward(lat, lon);
+  return [3000000 + x, y];
+}
+
+/** "<E / 2 km>-<N / 2 km>" of the 2 km tile holding (E, N) in Fuso 12. */
+export const venetoTileCell = (E, N) => `${Math.floor(E / 2000)}-${Math.floor(N / 2000)}`;
+
+/** The index query: the tiles whose polygons meet the WGS84 box (s, w, n, e). */
+export function venetoIndexUrl(s, w, n, e) {
+  const q = new URLSearchParams({
+    service: 'WFS', version: '2.0.0', request: 'GetFeature', typeNames: VENETO_LIDAR5.layer,
+    outputFormat: 'application/json', srsName: 'EPSG:4326',
+    bbox: `${s.toFixed(4)},${w.toFixed(4)},${n.toFixed(4)},${e.toFixed(4)},urn:ogc:def:crs:EPSG::4326`,
+  });
+  return `${VENETO_LIDAR5.index}?${q}`;
+}
+
+/**
+ * An ESRI ASCII grid as the region ships it: header (ncols, nrows,
+ * xllcenter, yllcenter, cellsize, nodata_value), then rows north to south.
+ * Returns `{ width, height, x0, y0, dx, noData, value(i, j) }`, (x0, y0) =
+ * the centre of the north-west pixel.
+ */
+export function parseAsciiGrid(text) {
+  const lines = text.split(/\r?\n/);
+  const head = {};
+  let at = 0;
+  while (at < lines.length && /^[a-z_]+\s/i.test(lines[at].trim())) {
+    const [k, v] = lines[at].trim().split(/\s+/);
+    head[k.toLowerCase()] = Number(v);
+    at++;
+  }
+  const width = head.ncols, height = head.nrows, dx = head.cellsize;
+  if (!(width > 0 && height > 0 && dx > 0)) throw new Error(`ASCII grid: bad header ${JSON.stringify(head)}`);
+  const x0 = 'xllcenter' in head ? head.xllcenter : head.xllcorner + dx / 2;
+  const yll = 'yllcenter' in head ? head.yllcenter : head.yllcorner + dx / 2;
+  const values = new Float32Array(width * height);
+  let n = 0;
+  for (; at < lines.length && n < values.length; at++) {
+    for (const t of lines[at].trim().split(/\s+/)) {
+      if (t === '') continue;
+      values[n++] = Number(t);
+    }
+  }
+  if (n !== values.length) throw new Error(`ASCII grid: ${n} values for ${width}×${height}`);
+  return { width, height, x0, y0: yll + (height - 1) * dx, dx, noData: head.nodata_value, value: (i, j) => values[j * width + i] };
+}
+
+/** Check a parsed tile is the 400 × 400 pixels of 5 m of 2 km cell `cell`. */
+export function checkVenetoTile(name, cell, grid) {
+  const { tileM, pixelM } = VENETO_LIDAR5;
+  const [cE, cN] = cell.split('-').map(Number);
+  const x0 = cE * tileM + pixelM / 2;
+  const y0 = (cN + 1) * tileM - pixelM / 2;
+  if (grid.width !== tileM / pixelM || grid.height !== tileM / pixelM || grid.dx !== pixelM || Math.abs(grid.x0 - x0) > 1e-6 || Math.abs(grid.y0 - y0) > 1e-6) {
+    throw new Error(`Veneto DTM LiDAR 5 m tile ${name}: unexpected grid (${grid.width}×${grid.height}, ${grid.dx} m, first centre ${grid.x0}, ${grid.y0}; expected ${x0}, ${y0} for cell ${cell})`);
+  }
+}
+
+/** The 2 km cell a tile's own ASCII grid covers (from its south-west pixel centre). */
+export function venetoGridCell(grid) {
+  const { tileM, pixelM } = VENETO_LIDAR5;
+  return venetoTileCell(grid.x0 - pixelM / 2 + 1, grid.y0 + pixelM / 2 - tileM + 1);
+}
+
+/** Box mean of k × k pixels round a point over the parsed tiles (keyed by cell); NaN under half covered. */
+export function venetoSampler(tiles, k) {
+  const { tileM, pixelM } = VENETO_LIDAR5;
+  const per = tileM / pixelM;
+  const px = (I, J) => {
+    const tE = Math.floor(I / per);
+    const tN = Math.floor(J / per);
+    const t = tiles.get(`${tE}-${tN}`);
+    if (!t) return NaN;
+    const v = t.value(I - tE * per, tN * per + per - 1 - J);
+    return v === t.noData || !(v > -1000) ? NaN : v;
+  };
+  return (lat, lon) => {
+    const [E, N] = wgs84ToVenetoZone12(lat, lon);
+    return boxMean(px, Math.floor(E / pixelM), Math.floor(N / pixelM), k, k);
+  };
+}
+
+async function fetchVeneto({ points, cellSize, cacheDir, log }) {
+  const dir = join(cacheDir, 'veneto-lidar5');
+  ensureDir(dir);
+  const { tileM, pixelM, indexSlackM } = VENETO_LIDAR5;
+  const k = boxPixels(cellSize, pixelM);
+  const reach = (k + 1) * pixelM;
+  const cells = new Set();
+  let s = 90, n = -90, w = 180, e = -180;
+  for (const [lat, lon] of points) {
+    const [E, N] = wgs84ToVenetoZone12(lat, lon);
+    for (const dE of [-reach, 0, reach]) for (const dN of [-reach, 0, reach]) cells.add(venetoTileCell(E + dE, N + dN));
+    s = Math.min(s, lat); n = Math.max(n, lat); w = Math.min(w, lon); e = Math.max(e, lon);
+  }
+  const indexUrl = venetoIndexUrl(s - 0.03, w - 0.03, n + 0.03, e + 0.03);
+  const idx = await cachedFetch(dir, `index-${sha256(Buffer.from(indexUrl)).slice(0, 12)}.json`, indexUrl, {}, { label: 'Veneto DTM LiDAR 5 m tile index' });
+  let index;
+  try {
+    index = JSON.parse(idx.body.toString('utf8'));
+  } catch {
+    index = null;
+  }
+  if (!Array.isArray(index?.features)) {
+    unlinkSync(join(dir, `index-${sha256(Buffer.from(indexUrl)).slice(0, 12)}.json`));
+    throw new Error(`Veneto DTM LiDAR 5 m tile index: ${idx.body.subarray(0, 200).toString('utf8')}`);
+  }
+  // Candidates: every tile whose index polygon, give or take its slack, meets a wanted cell.
+  const candidates = new Map();
+  for (const f of index.features) {
+    const { id_pol: id, nome: name } = f.properties ?? {};
+    if (!id || !/^12_2K_\d+$/.test(name ?? '')) throw new Error(`Veneto DTM LiDAR 5 m tile index: bad feature ${JSON.stringify(f.properties)}`);
+    const rings = f.geometry?.type === 'MultiPolygon' ? f.geometry.coordinates.flat() : (f.geometry?.coordinates ?? []);
+    let E0 = Infinity, E1 = -Infinity, N0 = Infinity, N1 = -Infinity;
+    for (const ring of rings) {
+      for (const [lon, lat] of ring) {
+        const [E, N] = wgs84ToVenetoZone12(lat, lon);
+        E0 = Math.min(E0, E); E1 = Math.max(E1, E); N0 = Math.min(N0, N); N1 = Math.max(N1, N);
+      }
+    }
+    for (let cE = Math.floor((E0 - indexSlackM) / tileM); cE <= Math.floor((E1 + indexSlackM) / tileM); cE++) {
+      for (let cN = Math.floor((N0 - indexSlackM) / tileM); cN <= Math.floor((N1 + indexSlackM) / tileM); cN++) {
+        if (cells.has(`${cE}-${cN}`)) candidates.set(name, String(id));
+      }
+    }
+  }
+  const tiles = new Map();
+  let fetched = 0;
+  for (const [name, id] of [...candidates].sort(([a], [b]) => (a < b ? -1 : 1))) {
+    const file = `${name}.asc.zip`;
+    const res = await cachedFetch(dir, file, `${VENETO_LIDAR5.download}?dataDtmLidarId=${id}`, {}, { label: `Veneto DTM LiDAR 5 m ${name}` });
+    if (res.body.readUInt32LE(0) !== 0x04034b50) {
+      unlinkSync(join(dir, file));
+      throw new Error(`Veneto DTM LiDAR 5 m ${name}: not a zip (${res.body.subarray(0, 200).toString('utf8')})`);
+    }
+    if (!res.cached) fetched++;
+    const files = readZip(res.body);
+    const asc = files.get(`${name}.asc`);
+    if (!asc) throw new Error(`Veneto DTM LiDAR 5 m ${name}: the zip holds ${[...files.keys()].join(', ')}, not ${name}.asc`);
+    const grid = parseAsciiGrid(asc.toString('latin1'));
+    const cell = venetoGridCell(grid);
+    checkVenetoTile(name, cell, grid);
+    if (tiles.has(cell)) throw new Error(`Veneto DTM LiDAR 5 m: ${name} and ${tiles.get(cell).name} both cover cell ${cell}`);
+    tiles.set(cell, { ...grid, name });
+  }
+  const used = [...cells].filter((c) => tiles.has(c)).sort();
+  log(`bareGround: ${used.length} Veneto DTM LiDAR 5 m tiles of ${cells.size} cells (${tiles.size} read, ${fetched} downloaded), ${k}×${k} px mean per node`);
+  return { tiles: used.map((c) => tiles.get(c).name), sample: venetoSampler(tiles, k) };
+}
+
 // --- corridor -----------------------------------------------------------
 
 /**
@@ -949,7 +1288,7 @@ export async function bareGroundStep({ recipe, grid, heights, projection, routes
       }
     }
   }
-  const fetchers = { 'usgs-3dep-13': fetchUsgs, swissalti3d: fetchSwiss, 'inegi-mdt-10k': fetchInegi, 'lombardia-dtm5': fetchLombardia, 'mase-pst-lidar': fetchMase };
+  const fetchers = { 'usgs-3dep-13': fetchUsgs, swissalti3d: fetchSwiss, 'inegi-mdt-10k': fetchInegi, 'lombardia-dtm5': fetchLombardia, 'mase-pst-lidar': fetchMase, 'ign-rge-alti': fetchRgeAlti, 'veneto-lidar5': fetchVeneto };
   const src = await fetchers[opts.source]({ opts, points, cellSize, cacheDir, log });
   const dtm = new Float64Array(cols * rows).fill(NaN);
   for (let k = 0; k < idx.length; k++) dtm[idx[k]] = src.sample(points[k][0], points[k][1]);

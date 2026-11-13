@@ -164,7 +164,7 @@
         "demTiles": { "type": "integer", "minimum": 1 },
         "flatLakes": { "const": true, "description": "The bake levelled every lake and pond (recipe flatLakes); the renderer draws them level" },
         "bridges": { "const": true, "description": "The bake built bridges as structures (recipe bridges); layers.bridges holds the decks, piers and ridden spans" },
-        "bareGround": { "enum": ["usgs-3dep-13", "swissalti3d", "inegi-mdt-10k", "lombardia-dtm5", "mase-pst-lidar"], "description": "The open bare-earth DTM the bake swapped in along the routes (recipe bareGround): the routes and the ground beside them stand on it" }
+        "bareGround": { "enum": ["usgs-3dep-13", "swissalti3d", "inegi-mdt-10k", "lombardia-dtm5", "mase-pst-lidar", "ign-rge-alti", "veneto-lidar5"], "description": "The open bare-earth DTM the bake swapped in along the routes (recipe bareGround): the routes and the ground beside them stand on it" }
       }
     }
   }

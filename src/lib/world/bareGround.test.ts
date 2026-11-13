@@ -108,7 +108,7 @@ describe('geotiff: LZW (Compression 5)', () => {
 describe('bareGround: recipe block', () => {
   it('is off without the block, fills defaults, and checks each source', () => {
     expect(bareGroundOptions({})).toBeNull();
-    expect(BARE_GROUND_SOURCES).toEqual(['usgs-3dep-13', 'swissalti3d', 'inegi-mdt-10k', 'lombardia-dtm5', 'mase-pst-lidar']);
+    expect(BARE_GROUND_SOURCES).toEqual(['usgs-3dep-13', 'swissalti3d', 'inegi-mdt-10k', 'lombardia-dtm5', 'mase-pst-lidar', 'ign-rge-alti', 'veneto-lidar5']);
     expect(bareGroundOptions({ bareGround: { source: 'usgs-3dep-13', tiles: { n42w082: '20230911' } } })).toMatchObject({ corridorM: 150, blendM: 300, biasFrom: 'open' });
     expect(bareGroundOptions({ bareGround: { source: 'swissalti3d', year: 2022, corridorM: 0, blendM: 50 } })).toMatchObject({ corridorM: 0, blendM: 50 });
     expect(() => bareGroundOptions({ bareGround: { source: 'fabdem' } })).toThrow(/source must be one of/);

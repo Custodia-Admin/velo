@@ -281,6 +281,19 @@ function finishPolygon(rings, ext, tol, minArea) {
   return out;
 }
 
+/**
+ * The OSM elements without the ways a recipe leaves out (`osmExclude`: way
+ * ids). For a structure the bake cannot place, never to tidy a world: Lake
+ * Annecy's private footbridge over the greenway (way 1028895409, access=no)
+ * ends on a 1.4 m stub 6 m from the path, so its abutment block would stand
+ * on the route.
+ */
+export function withoutWays(elements, ids) {
+  if (!ids?.length) return elements;
+  const drop = new Set(ids);
+  return elements.filter((el) => !(el.type === 'way' && drop.has(el.id)));
+}
+
 export function buildRoads(elements, projection, ext) {
   const names = [];
   const nameIdx = new Map();
