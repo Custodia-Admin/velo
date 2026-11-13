@@ -1,0 +1,716 @@
+{
+ "capped-scenic-engadin-lakes": {
+  "route": "scenic-engadin-lakes",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   0.42,
+   0.27,
+   0.29
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.43
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.8,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.36
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.33
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.8,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.41
+   }
+  ]
+ },
+ "capped-scenic-hangzhou-west-lake": {
+  "route": "scenic-hangzhou-west-lake",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   0.44,
+   0.38,
+   0.33
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.64
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.65
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.68
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.53
+   }
+  ]
+ },
+ "capped-scenic-lake-annecy": {
+  "route": "scenic-lake-annecy",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   0.54,
+   0.36,
+   0.32
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.8,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.6
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.59
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.8,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.54
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.8,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.49
+   }
+  ]
+ },
+ "capped-scenic-lake-garda-lazise": {
+  "route": "scenic-lake-garda-lazise",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   0.49,
+   0.38,
+   0.33
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.8,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.6
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.51
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.8,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.43
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.44
+   }
+  ]
+ },
+ "capped-scenic-lavaux-chillon": {
+  "route": "scenic-lavaux-chillon",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   0.41,
+   0.29,
+   0.3
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.46
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.36
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.33
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.28
+   }
+  ]
+ },
+ "capped-scenic-perugia-tiber-park": {
+  "route": "scenic-perugia-tiber-park",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   0.26,
+   0.23,
+   0.28
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.28
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.36
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.8,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.41
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.42
+   }
+  ]
+ },
+ "capped-scenic-riviera-dei-fiori": {
+  "route": "scenic-riviera-dei-fiori",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   0.28,
+   0.28,
+   0.29
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.8,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.56
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.47
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.55
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 60,
+    "p95": 16.7,
+    "worst": 17,
+    "over20": 0,
+    "load1": 0.54
+   }
+  ]
+ },
+ "uncapped-scenic-engadin-lakes": {
+  "route": "scenic-engadin-lakes",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   0.8,
+   0.52,
+   0.39
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 94,
+    "p95": 10.8,
+    "worst": 329,
+    "over20": 3.8,
+    "load1": 1.16
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 97,
+    "p95": 9.6,
+    "worst": 312,
+    "over20": 3.4,
+    "load1": 1.54
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 93.2,
+    "p95": 9.4,
+    "worst": 313,
+    "over20": 3.8,
+    "load1": 1.5
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 96.2,
+    "p95": 5.4,
+    "worst": 313,
+    "over20": 3,
+    "load1": 1.42
+   }
+  ]
+ },
+ "uncapped-scenic-hangzhou-west-lake": {
+  "route": "scenic-hangzhou-west-lake",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   1.35,
+   1.08,
+   0.68
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 126.6,
+    "p95": 16.4,
+    "worst": 258,
+    "over20": 4.6,
+    "load1": 1.32
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 136.6,
+    "p95": 17.8,
+    "worst": 227,
+    "over20": 5,
+    "load1": 1.25
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 144.1,
+    "p95": 52.1,
+    "worst": 210,
+    "over20": 5.8,
+    "load1": 1.31
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 128,
+    "p95": 51.9,
+    "worst": 225,
+    "over20": 5.2,
+    "load1": 1.26
+   }
+  ]
+ },
+ "uncapped-scenic-lake-annecy": {
+  "route": "scenic-lake-annecy",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   1.53,
+   0.98,
+   0.59
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 89.7,
+    "p95": 12.2,
+    "worst": 313,
+    "over20": 3.6,
+    "load1": 1.44
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 97.7,
+    "p95": 11.4,
+    "worst": 294,
+    "over20": 3.5,
+    "load1": 1.34
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 96.4,
+    "p95": 9.6,
+    "worst": 310,
+    "over20": 3.1,
+    "load1": 1.4
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 105.4,
+    "p95": 8.4,
+    "worst": 295,
+    "over20": 3.4,
+    "load1": 1.46
+   }
+  ]
+ },
+ "uncapped-scenic-lake-garda-lazise": {
+  "route": "scenic-lake-garda-lazise",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   1.46,
+   1.05,
+   0.64
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 144.4,
+    "p95": 52.3,
+    "worst": 210,
+    "over20": 5.6,
+    "load1": 1.45
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 122.7,
+    "p95": 16.5,
+    "worst": 243,
+    "over20": 4.8,
+    "load1": 1.38
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 139.3,
+    "p95": 52.4,
+    "worst": 225,
+    "over20": 6,
+    "load1": 1.32
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 170.7,
+    "p95": 35.9,
+    "worst": 175,
+    "over20": 5.8,
+    "load1": 1.35
+   }
+  ]
+ },
+ "uncapped-scenic-lavaux-chillon": {
+  "route": "scenic-lavaux-chillon",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   1.39,
+   0.75,
+   0.48
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 90.5,
+    "p95": 85.8,
+    "worst": 587,
+    "over20": 5.3,
+    "load1": 1.48
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 100.4,
+    "p95": 16,
+    "worst": 310,
+    "over20": 4.6,
+    "load1": 1.4
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 100.4,
+    "p95": 16.6,
+    "worst": 313,
+    "over20": 4.6,
+    "load1": 1.34
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 95.4,
+    "p95": 16.3,
+    "worst": 297,
+    "over20": 4.8,
+    "load1": 1.37
+   }
+  ]
+ },
+ "uncapped-scenic-perugia-tiber-park": {
+  "route": "scenic-perugia-tiber-park",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   0.53,
+   0.43,
+   0.36
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 115.5,
+    "p95": 70,
+    "worst": 294,
+    "over20": 6.6,
+    "load1": 0.66
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 128.3,
+    "p95": 69.2,
+    "worst": 244,
+    "over20": 6.4,
+    "load1": 0.71
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 125.4,
+    "p95": 53.2,
+    "worst": 243,
+    "over20": 6.4,
+    "load1": 0.74
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 129.5,
+    "p95": 69.5,
+    "worst": 244,
+    "over20": 6.1,
+    "load1": 0.8
+   }
+  ]
+ },
+ "uncapped-scenic-riviera-dei-fiori": {
+  "route": "scenic-riviera-dei-fiori",
+  "renderer": "world",
+  "bundle": [
+   "index-BO5GX0WN.js"
+  ],
+  "gpu": "ANGLE (Intel, Mesa Intel(R) Graphics (ARL), OpenGL ES 3.2)",
+  "loadavg_start": [
+   1.37,
+   0.85,
+   0.53
+  ],
+  "rounds": [
+   {
+    "round": 0,
+    "mode": "hud",
+    "fps": 114.8,
+    "p95": 52.2,
+    "worst": 227,
+    "over20": 5.2,
+    "load1": 1.55
+   },
+   {
+    "round": 0,
+    "mode": "canvas",
+    "fps": 123.4,
+    "p95": 16.4,
+    "worst": 362,
+    "over20": 4.6,
+    "load1": 1.58
+   },
+   {
+    "round": 1,
+    "mode": "hud",
+    "fps": 117.9,
+    "p95": 52,
+    "worst": 259,
+    "over20": 5.2,
+    "load1": 1.53
+   },
+   {
+    "round": 1,
+    "mode": "canvas",
+    "fps": 118,
+    "p95": 17,
+    "worst": 260,
+    "over20": 4.9,
+    "load1": 1.53
+   }
+  ]
+ }
+}

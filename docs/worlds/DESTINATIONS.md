@@ -35,10 +35,10 @@ sections with the place name only. A private deploy can label them
 public titles.
 
 Today's ride sits above the sections and is skipped in its own section.
-Inside a section, routes drawn by a 3D world come first. Where a section mixes
-world routes and map routes, the map ones carry a "Map view" badge; in an
-all-map section (today's wishlist) the section line says it once instead
-(UI-RULES §7: a badge must carry information).
+Inside a section, routes drawn by a 3D world come first. A route no world
+draws carries a "Classic view" tag on its tile, and the section line never
+says it. Since the wishlist worlds (13 Nov 2026) every place has a world, so
+no shipped tile carries the tag; a new place without one would.
 
 ## Fields
 

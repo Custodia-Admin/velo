@@ -46,7 +46,7 @@ describe('ScenicHomeSections', () => {
     expect(featured).not.toContain('Classic view');
   });
 
-  it('leads wishlist tiles with the place and tags exactly the classic-view routes', () => {
+  it('leads wishlist tiles with the place, and no tile carries the classic-view tag', () => {
     expect(out).toMatch(/<h4[^>]*>Hangzhou<\/h4>/);
     expect(out).toContain('West Lake loop · Zhejiang, China');
     // Home and Hometown ride in baked worlds only (Lugano's outlying routes in
@@ -58,12 +58,17 @@ describe('ScenicHomeSections', () => {
     expect(hometown).not.toContain('Classic view');
     expect(hometown).toMatch(/aria-label="Ride Valle Maggia[^"]*"/);
     expect(hometown).not.toMatch(/, classic view"/);
-    // The wishlist mixes too: the places with a world lead (Chengdu,
-    // Cleveland, the Cuyahoga Valley, then the coast worlds), the classic-view
-    // rides carry the tag.
+    // Every wishlist place rides in its own world too (13 Nov 2026): the
+    // tiles follow manifest order and none carries the tag.
     const wishlist = out.slice(out.indexOf('data-destination-section="wishlist"'));
     const wishTiles = [...wishlist.matchAll(/data-scenic-route="([^"]+)"/g)].map((m) => m[1]);
-    const worldTiles = [
+    expect(wishTiles).toEqual([
+      'scenic-lake-garda-lazise',
+      'scenic-engadin-lakes',
+      'scenic-lavaux-chillon',
+      'scenic-lake-annecy',
+      'scenic-riviera-dei-fiori',
+      'scenic-hangzhou-west-lake',
       'scenic-chengdu-luxe-lakes',
       'scenic-chengdu-xinglong-lake',
       'scenic-cleveland-lakefront',
@@ -76,18 +81,12 @@ describe('ScenicHomeSections', () => {
       'scenic-will-rogers-venice',
       'scenic-puerto-vallarta-malecon',
       'scenic-nuevo-vallarta-bucerias',
-    ];
-    expect(wishTiles.slice(0, worldTiles.length)).toEqual(worldTiles);
+    ]);
     expect(wishlist).toMatch(/aria-label="Ride Towpath: Lock 39 to Station Road in Cuyahoga Valley, [^"]*"/);
-    expect(wishlist).not.toMatch(/aria-label="Ride Towpath: Lock 39 to Station Road in Cuyahoga Valley, [^"]*, classic view"/);
-    expect(wishlist).toMatch(/aria-label="Ride Will Rogers to Venice in Santa Monica, [^"]*"/);
-    expect(wishlist).not.toMatch(/aria-label="Ride (Berkeley shoreline|Richmond Marina Bay|Santa Monica to Hermosa Beach|Will Rogers to Venice|Puerto Vallarta bayfront|Nuevo Vallarta to Bucerías) in [^"]*, classic view"/);
     expect(wishlist).toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*"/);
-    expect(wishlist).toMatch(/aria-label="Ride Xinglong Lake loop in Chengdu, [^"]*"/);
-    expect(wishlist).not.toMatch(/aria-label="Ride Luxe Lakes loop in Chengdu, [^"]*, classic view"/);
-    expect(wishlist).not.toMatch(/aria-label="Ride Xinglong Lake loop in Chengdu, [^"]*, classic view"/);
-    expect(wishlist).toMatch(/aria-label="Ride West Lake loop in Hangzhou, [^"]*, classic view"/);
-    expect(wishlist.match(/>Classic view</g)).toHaveLength(wishTiles.length - worldTiles.length);
+    expect(wishlist).toMatch(/aria-label="Ride West Lake loop in Hangzhou, [^"]*"/);
+    expect(wishlist).not.toMatch(/, classic view"/);
+    expect(out).not.toContain('>Classic view<');
     expect(out).not.toContain('Map view');
     expect(out).not.toContain('3D worlds coming');
   });

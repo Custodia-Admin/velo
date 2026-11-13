@@ -8,7 +8,8 @@ import { describe, it, expect } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import { SCENIC_ROUTES, scenicRouteById, scenicRoutesWithRole } from '@/lib/scenicRoutes';
+import { SCENIC_ROUTES, scenicRouteById, type ScenicRouteInfo } from '@/lib/scenicRoutes';
+import { makeDemoRoute } from '@/lib/sampleRoutes';
 import { worldForRoute } from '@/lib/world/catalog';
 import { FeaturedScenicRide, ScenicRouteGrid, ScenicRouteGridSkeleton } from './ScenicRoutes';
 import type { LiveWeather } from '@/lib/meteo/openMeteo';
@@ -18,7 +19,14 @@ import { HomeHeader, devicesButtonText } from './HomeHeader';
 
 const tiber = scenicRouteById('scenic-perugia-tiber-park')!;
 const assisi = scenicRouteById('scenic-assisi-valley')!;
-const garda = scenicRouteById('scenic-lake-garda-lazise')!;
+/**
+ * A route no baked world draws. Every scenic route rides a world now, so this
+ * is Lake Garda's tile on the demo loop (Lauterbrunnen, outside every world).
+ */
+const offWorld: ScenicRouteInfo = {
+  ...scenicRouteById('scenic-lake-garda-lazise')!,
+  route: { ...makeDemoRoute(), id: 'scenic-off-world' },
+};
 const noop = () => {};
 
 function html(el: Parameters<typeof renderToStaticMarkup>[0]): string {
@@ -58,7 +66,7 @@ describe('FeaturedScenicRide (Today’s ride)', () => {
   });
 
   it('falls back to a map plate when the route has no world still', () => {
-    const map = html(createElement(FeaturedScenicRide, { info: garda, onRide: noop }));
+    const map = html(createElement(FeaturedScenicRide, { info: offWorld, onRide: noop }));
     expect(map).not.toContain('<img');
     expect(map).toContain('<polyline');
     expect(map).not.toContain('ride-and-watch');
@@ -66,13 +74,13 @@ describe('FeaturedScenicRide (Today’s ride)', () => {
 
   it('says Classic view only for a route no baked world draws (Today’s ride never picks one)', () => {
     expect(out).not.toContain('Classic view');
-    expect(html(createElement(FeaturedScenicRide, { info: garda, onRide: noop }))).toContain('>Classic view</span>');
+    expect(html(createElement(FeaturedScenicRide, { info: offWorld, onRide: noop }))).toContain('>Classic view</span>');
   });
 });
 
 describe('ScenicRouteGrid (area tiles)', () => {
   const out = html(
-    createElement(ScenicRouteGrid, { routes: [assisi, garda], activeRouteId: assisi.route.id, onRide: noop }),
+    createElement(ScenicRouteGrid, { routes: [assisi, offWorld], activeRouteId: assisi.route.id, onRide: noop }),
   );
 
   it('renders one button per route with the data hook and pressed state', () => {
@@ -97,20 +105,21 @@ describe('ScenicRouteGrid (area tiles)', () => {
   it('shows the tag on exactly the routes no baked world draws, in every grid', () => {
     const all = tiles(html(createElement(ScenicRouteGrid, { routes: SCENIC_ROUTES, onRide: noop })));
     expect(all.map((t) => t.id)).toEqual(SCENIC_ROUTES.map((r) => r.route.id));
-    const classic = SCENIC_ROUTES.filter((r) => worldForRoute(r.route) === null).map((r) => r.route.id);
-    // The six classic routes left once the home-area worlds were baked (12 Nov 2026).
-    expect(classic).toHaveLength(6);
+    // Every scenic route rides in a baked world since the wishlist worlds (13 Nov 2026): no tag.
+    expect(SCENIC_ROUTES.filter((r) => worldForRoute(r.route) === null)).toEqual([]);
     for (const t of all) {
-      const isClassic = classic.includes(t.id);
-      expect(t.html.includes('>Classic view</span>'), t.id).toBe(isClassic);
-      expect(/aria-label="[^"]*, classic view"/.test(t.html), t.id).toBe(isClassic);
+      expect(t.html.includes('>Classic view</span>'), t.id).toBe(false);
+      expect(/aria-label="[^"]*, classic view"/.test(t.html), t.id).toBe(false);
     }
-    // A section where every route is classic tags each of them too: the tag is
-    // about the route, not the section.
-    const travels = scenicRoutesWithRole('wishlist').filter((r) => !worldForRoute(r.route));
-    expect(travels.length).toBeGreaterThan(3);
-    const only = tiles(html(createElement(ScenicRouteGrid, { routes: travels, onRide: noop })));
-    expect(only.filter((t) => t.html.includes('>Classic view</span>'))).toHaveLength(travels.length);
+    // A route outside every world (a GPX, a city search) still carries it, in a
+    // mixed grid and in one where every route is classic: the tag is about the
+    // route, not the section.
+    const offWorld2: ScenicRouteInfo = { ...offWorld, route: { ...offWorld.route, id: 'scenic-off-world-2' } };
+    const mixed = tiles(html(createElement(ScenicRouteGrid, { routes: [assisi, offWorld, offWorld2], onRide: noop })));
+    expect(mixed.map((t) => t.html.includes('>Classic view</span>'))).toEqual([false, true, true]);
+    expect(mixed.map((t) => /aria-label="[^"]*, classic view"/.test(t.html))).toEqual([false, true, true]);
+    const only = tiles(html(createElement(ScenicRouteGrid, { routes: [offWorld, offWorld2], onRide: noop })));
+    expect(only.filter((t) => t.html.includes('>Classic view</span>'))).toHaveLength(2);
   });
 
   it('a classic tile drops its weather line for the tag (one status line per tile)', () => {
@@ -119,8 +128,8 @@ describe('ScenicRouteGrid (area tiles)', () => {
       precipitationMm: 0, snowfallCm: 0, windSpeedMs: 0.7, windFromDeg: 304, windGustMs: 1.5, visibilityM: 1820, isDay: true,
     };
     const ready: WeatherEntry = { status: 'ready', source: 'live', weather, fetchedAt: 0 };
-    const weatherById = { [assisi.route.id]: ready, [garda.route.id]: ready };
-    const two = tiles(html(createElement(ScenicRouteGrid, { routes: [assisi, garda], onRide: noop, weatherById })));
+    const weatherById = { [assisi.route.id]: ready, [offWorld.route.id]: ready };
+    const two = tiles(html(createElement(ScenicRouteGrid, { routes: [assisi, offWorld], onRide: noop, weatherById })));
     expect(two[0].html).toContain('Now: ');
     expect(two[1].html).not.toContain('Now: ');
     expect(two[1].html).toContain('>Classic view</span>');
@@ -137,7 +146,8 @@ describe('ScenicRouteGrid (area tiles)', () => {
     );
     expect(out2).toMatch(/<h4[^>]*>Hangzhou<\/h4>/);
     expect(out2).toContain('West Lake loop · Zhejiang, China');
-    expect(out2).toMatch(/aria-label="Ride West Lake loop in Hangzhou, [^"]*, classic view"/);
+    expect(out2).toMatch(/aria-label="Ride West Lake loop in Hangzhou, [^"]*"/);
+    expect(out2).not.toMatch(/, classic view"/);
     expect(out2).toContain('data-scenic-route="scenic-hangzhou-west-lake"');
   });
 

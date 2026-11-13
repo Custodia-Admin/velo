@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { routeFromGeometry } from '@/lib/scenicRoutes';
+import { makeDemoRoute } from '@/lib/sampleRoutes';
 import { SCENIC_ROUTE_GEOMETRY } from '@/lib/scenicRouteData';
 import type { Route } from '@/types';
 import { worldBundle } from '../../../tools/worldbake/worldBundles.mjs';
@@ -62,6 +63,31 @@ describe('world catalog', () => {
     expect(w?.id).toBe('trasimeno');
     expect(w?.remote).toBe(true);
     expect(w?.name).toBe('Perugia');
+  });
+
+  it('draws each wishlist route in its own remote world, listed under its place', () => {
+    for (const [route, world, place] of [
+      ['scenic-engadin-lakes', 'engadin', 'Engadin'],
+      ['scenic-lavaux-chillon', 'lavaux', 'Lake Geneva'],
+      ['scenic-riviera-dei-fiori', 'riviera-dei-fiori', 'Riviera dei Fiori'],
+      ['scenic-lake-annecy', 'lake-annecy', 'Lake Annecy'],
+      ['scenic-lake-garda-lazise', 'lake-garda', 'Lake Garda'],
+      ['scenic-hangzhou-west-lake', 'hangzhou-west-lake', 'Hangzhou'],
+    ]) {
+      const w = worldForRoute(scenic(route));
+      expect(w?.id, route).toBe(world);
+      expect(w?.remote, route).toBe(true);
+      expect(w?.name, route).toBe(place);
+    }
+  });
+
+  it('leaves no scenic route outside a baked world', () => {
+    const off = Object.keys(SCENIC_ROUTE_GEOMETRY).filter((id) => worldForRoute(scenic(id)) === null);
+    expect(off).toEqual([]);
+  });
+
+  it('keeps the demo loop outside every world: the e2e photoreal rides (Build your own ride → Demo route) need one', () => {
+    expect(worldForRoute(makeDemoRoute())).toBeNull();
   });
 
   it('takes any route that lies inside a world, e.g. a GPX upload around Perugia', () => {
