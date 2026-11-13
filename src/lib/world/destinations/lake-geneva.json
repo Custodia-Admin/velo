@@ -7,15 +7,69 @@
   "order": 30,
   "place": "Vaud, Switzerland",
   "detail": "Below the Lavaux vineyards to Chillon",
-  "world": null,
+  "world": {
+    "id": "lavaux",
+    "dir": "lavaux/e76ece09706b8d21/",
+    "host": "remote",
+    "bbox": {
+      "south": 46.39587,
+      "west": 6.60696,
+      "north": 46.52418,
+      "east": 6.94837
+    },
+    "routes": [
+      "scenic-lavaux-chillon"
+    ]
+  },
   "routes": [
     "scenic-lavaux-chillon"
   ],
   "moods": [
-    "golden-hour"
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast",
+    "mediterranean-mist"
   ],
   "defaultMood": "golden-hour",
-  "pois": [],
+  "pois": [
+    {
+      "name": "La Tour-de-Peilz",
+      "kind": "town",
+      "lat": 46.45375,
+      "lon": 6.85691
+    },
+    {
+      "name": "Lausanne",
+      "kind": "town",
+      "lat": 46.52183,
+      "lon": 6.6327
+    },
+    {
+      "name": "Lutry",
+      "kind": "town",
+      "lat": 46.50328,
+      "lon": 6.68679
+    },
+    {
+      "name": "Montreux",
+      "kind": "town",
+      "lat": 46.43108,
+      "lon": 6.91299
+    },
+    {
+      "name": "Pully",
+      "kind": "town",
+      "lat": 46.5098,
+      "lon": 6.66175
+    },
+    {
+      "name": "Vevey",
+      "kind": "town",
+      "lat": 46.4603,
+      "lon": 6.84187
+    }
+  ],
   "credits": [
     {
       "id": "osm",
@@ -23,6 +77,20 @@
       "licence": "ODbL-1.0",
       "url": "https://www.openstreetmap.org/copyright",
       "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "swissalti3d",
+      "name": "swissALTI3D 2 m, bare earth, along the routes",
+      "licence": "Open Government Data of the Swiss Confederation, free use with source attribution (swisstopo terms of use)",
+      "url": "https://www.swisstopo.admin.ch/en/height-model-swissalti3d",
+      "attribution": "Source: Federal Office of Topography swisstopo"
     },
     {
       "id": "copernicus-glo90",
@@ -37,6 +105,13 @@
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
       "url": "https://routing.openstreetmap.de/about.html",
       "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-lavaux-chillon",
+      "name": "Lausanne to Chillon: OSRM bike route through 6 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/6.627,46.507;6.686,46.503;6.729,46.489;6.842,46.4625;6.91,46.433;6.927,46.414?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     }
   ]
 }

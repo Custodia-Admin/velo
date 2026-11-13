@@ -1,0 +1,84 @@
+{
+  "id": "lake-garda",
+  "name": "Lake Garda",
+  "description": "The south-east shore of Lake Garda from Peschiera del Garda on the lakeside cycle path to Lazise, the Sirmione peninsula and the Monte Baldo range across the water.",
+  "origin": {
+    "lat": 45.4722,
+    "lon": 10.7153
+  },
+  "grid": {
+    "xMin": -4900,
+    "yMax": 5200,
+    "cellSize": 12,
+    "cols": 687,
+    "rows": 867
+  },
+  "dem": {
+    "source": "copernicus-glo30"
+  },
+  "osmDate": "2026-11-10T00:00:00Z",
+  "routes": [
+    "scenic-lake-garda-lazise"
+  ],
+  "host": "remote",
+  "routeCredits": true,
+  "bridges": true,
+  "bareGround": {
+    "source": "veneto-lidar5"
+  },
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 300,
+    "offsetMeanM": 1200,
+    "coreCells": 1.5,
+    "falloffM": 40,
+    "embankment": {
+      "maxM": 1
+    },
+    "spanStructures": true
+  },
+  "vegetation": {
+    "seed": 45472,
+    "maxInstances": 320000,
+    "spacingM": {
+      "forest": 11,
+      "wood": 11,
+      "scrub": 16,
+      "orchard": 7,
+      "park": 20
+    },
+    "character": {
+      "gardenKeep": 0.35,
+      "riparianM": 30
+    }
+  },
+  "moods": [
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast",
+    "mediterranean-mist"
+  ],
+  "defaultMood": "golden-hour",
+  "validation": {
+    "sample_seed": 45472,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "copernicus-glo30",
+    "terrain_class": "standard",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.0096,
+    "floor_source": "none",
+    "floor_rms_m": 0,
+    "own_error_allowance_m": 6,
+    "bound_m": 6,
+    "registered_rms_m": 2.13,
+    "point_rms_m": 3.1,
+    "max_abs_registered_err_m": 14.59,
+    "pass": true
+  }
+}

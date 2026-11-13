@@ -7,15 +7,39 @@
   "order": 50,
   "place": "Liguria, Italy",
   "detail": "The old seaside railway, Sanremo",
-  "world": null,
+  "world": {
+    "id": "riviera-dei-fiori",
+    "dir": "riviera-dei-fiori/6848f903eb5059cb/",
+    "host": "remote",
+    "bbox": {
+      "south": 43.78016,
+      "west": 7.69823,
+      "north": 43.86721,
+      "east": 7.98382
+    },
+    "routes": [
+      "scenic-riviera-dei-fiori"
+    ]
+  },
   "routes": [
     "scenic-riviera-dei-fiori"
   ],
   "moods": [
-    "mediterranean-mist"
+    "mediterranean-mist",
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast"
   ],
   "defaultMood": "mediterranean-mist",
-  "pois": [],
+  "pois": [
+    {
+      "name": "Sanremo",
+      "kind": "town",
+      "lat": 43.81704,
+      "lon": 7.77506
+    }
+  ],
   "credits": [
     {
       "id": "osm",
@@ -23,6 +47,20 @@
       "licence": "ODbL-1.0",
       "url": "https://www.openstreetmap.org/copyright",
       "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "mase-pst-lidar",
+      "name": "LiDAR DTM 1 m of the Piano Straordinario di Telerilevamento Ambientale, bare earth, along the routes",
+      "licence": "CC BY 4.0 (MASE Geoportale Nazionale); averaged to the world grid",
+      "url": "https://gn.mase.gov.it/portale/distribuzione-dati-pst",
+      "attribution": "Contains LiDAR DTM 1 m data from the Piano Straordinario di Telerilevamento Ambientale, © Ministero dell'Ambiente e della Sicurezza Energetica (MASE) – Geoportale Nazionale"
     },
     {
       "id": "copernicus-glo90",
@@ -37,6 +75,13 @@
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
       "url": "https://routing.openstreetmap.de/about.html",
       "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-riviera-dei-fiori",
+      "name": "Riviera dei Fiori: OSRM bike route through 4 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/7.717,43.801;7.776,43.815;7.8548,43.83131;7.964,43.853?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     }
   ]
 }

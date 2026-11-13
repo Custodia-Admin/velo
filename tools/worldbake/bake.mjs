@@ -52,7 +52,7 @@ import { sampleGrid, buildHeightfield } from './buildHeightfield.mjs';
 import { flattenLakes, relevelLakes, routeCoreNodes } from './flatLakes.mjs';
 import { BEACH_KIND, buildSea, flattenSea, relevelSea, slopeBeaches } from './coast.mjs';
 import { BARE_GROUND_CREDITS, bareGroundCreditLine, bareGroundOptions, bareGroundStep, routeLift, WOODLAND_KINDS } from './bareGround.mjs';
-import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, routeWaterDrops, waterOnBeach, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
+import { buildRoads, buildWater, buildLandcover, buildBuildings, buildVegetation, buildPois, buildTreeRows, routeClearances, routeWaterDrops, waterOnBeach, withoutWays, BUILDING_SIMPLIFY_M, ROAD_FLAGS, ROUTE_CLEAR_MAX_M, ROUTE_CLEAR_MIN_M } from './buildVectors.mjs';
 import { carveRoutes, embankmentOptions, finishRoutes, loadScenicGeometry, loadScenicNames, sampleFloatGrid, spanStructuresOption, structureLookup } from './snapRoutes.mjs';
 import { DECK_HEADROOM_M, abutmentBlocks, anchorPins, approachHeights, bridgeNetworks, capUnderDecks, DECK_END_ZONE_CELLS, deckHeights, deckKinks, deckThickness, densifyPiece, footprintConflicts, growDeckEnds, headroomFailures, pieceXY, placePiers, planApproaches, quantiseZ, ridePins, riddenGroundRoads, riddenSpans, rideSurface, solveNetwork, uncarvedAbutments } from './bridges.mjs';
 import { easeRoadsOntoRoutes, remeasureShifts, routeFitReport, routePaintCoverage, routeRoadCoverage, sampleAppRoute } from './routeCoverage.mjs';
@@ -357,7 +357,7 @@ export async function bake(opts) {
   // 2. Roads and the route fit. Neither reads the terrain, so they come first:
   // the bridges step needs the final road lines before the carve.
   t = Date.now();
-  const roads = buildRoads(osm.elements.roads, projection, extent);
+  const roads = buildRoads(withoutWays(osm.elements.roads, recipe.osmExclude), projection, extent);
   // The route's painted guide must sit on ONE drawn road, never on grass and
   // never on a second surface laid beside the road: bend the road the route
   // runs along where the paint leaves it, add the way the snapshot lacks
@@ -726,6 +726,7 @@ export async function bake(opts) {
     ...(bareReport ? { bareGround: bareReport } : {}),
     ...(lakes ? { flatLakes: lakes.map(({ nodes: _nodes, ...l }) => ({ ...l, level: round(l.level), before: { min: round(l.before.min), max: round(l.before.max) }, maxCutM: round(l.maxCutM) })) } : {}),
     buildingsDropped: { ...buildings.dropped, routeClearMinM: ROUTE_CLEAR_MIN_M, routeClearMaxM: ROUTE_CLEAR_MAX_M },
+    ...(recipe.osmExclude ? { osmExcluded: [...recipe.osmExclude] } : {}),
     ...(dryWater.length ? { waterDroppedOnRoutes: dryWater.length, waterDroppedToBeach: dryBeach } : {}),
     ...(glo30 ? { demSource: dem.source } : {}),
     demTiles: dem.tiles,

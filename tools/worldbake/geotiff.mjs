@@ -36,6 +36,8 @@ export const TAG = {
   ModelPixelScale: 33550,
   ModelTiepoint: 33922,
   GeoKeyDirectory: 34735,
+  GeoDoubleParams: 34736,
+  GeoAsciiParams: 34737,
   GdalNoData: 42113,
 };
 
@@ -350,6 +352,29 @@ export function geoKey(tiff, ifdIndex, key) {
   for (let k = 0; k < n; k++) {
     const [id, location, count, value] = dir.slice(4 + k * 4, 8 + k * 4);
     if (id === key) return location === 0 && count === 1 ? value : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Value of one GeoKey wherever it is stored: a SHORT in the directory itself,
+ * DOUBLEs in GeoDoubleParams (a number, or an array when there are several),
+ * or text in GeoAsciiParams (its "|" terminator dropped). Undefined when absent.
+ */
+export function geoKeyAny(tiff, ifdIndex, key) {
+  const tags = tiff.ifds[ifdIndex].tags;
+  const dir = tags.get(TAG.GeoKeyDirectory);
+  if (!dir) return undefined;
+  const n = dir[3];
+  for (let k = 0; k < n; k++) {
+    const [id, location, count, value] = dir.slice(4 + k * 4, 8 + k * 4);
+    if (id !== key) continue;
+    if (location === 0) return count === 1 ? value : undefined;
+    const src = tags.get(location);
+    if (src === undefined) return undefined;
+    if (location === TAG.GeoAsciiParams) return String(src).slice(value, value + count).replace(/\|$/, '');
+    const vals = Array.from(src).slice(value, value + count);
+    return count === 1 ? vals[0] : vals;
   }
   return undefined;
 }

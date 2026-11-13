@@ -2,14 +2,14 @@ import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { encodeHeightDeltas } from './heightfield';
-import { loadWorld, loadWorldManifest, WorldLoadError, type WorldLoadProgress } from './loadWorld';
+import { loadWorld, loadWorldManifest, withoutNestedHoles, WorldLoadError, type WorldLoadProgress } from './loadWorld';
 import type { WorldFileCache } from './worldCache';
 
 const sha = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
 const json = (v: unknown) => new TextEncoder().encode(JSON.stringify(v));
 
 /** A tiny but complete bundle: 9×5 heightfield, one of everything. */
-function makeBundle() {
+function makeBundle(water?: unknown) {
   const cols = 9;
   const rows = 5;
   const q = new Uint16Array(cols * rows);
@@ -56,15 +56,17 @@ function makeBundle() {
         { c: 1, f: 4, w: 2, p: [10, 10, 20, 20, 30, 10] },
       ],
     }),
-    'water.json.gz': json({
-      version: 1,
-      units: 'dm',
-      areaKinds: ['lake', 'river', 'pond'],
-      lineKinds: ['river', 'canal', 'stream'],
-      lineWidths: [15, 6, 2.5],
-      areas: [{ k: 0, r: [[0, 0, 100, 0, 100, 100]] }],
-      lines: [{ k: 2, p: [0, 0, 50, 50] }],
-    }),
+    'water.json.gz': json(
+      water ?? {
+        version: 1,
+        units: 'dm',
+        areaKinds: ['lake', 'river', 'pond'],
+        lineKinds: ['river', 'canal', 'stream'],
+        lineWidths: [15, 6, 2.5],
+        areas: [{ k: 0, r: [[0, 0, 100, 0, 100, 100]] }],
+        lines: [{ k: 2, p: [0, 0, 50, 50] }],
+      },
+    ),
     'landcover.json.gz': json({ version: 1, units: 'dm', kinds: ['forest', 'grass'], areas: [{ k: 1, r: [[0, 0, 30, 0, 30, 30]] }] }),
     'buildings.bin.gz': new Uint8Array(building),
     'vegetation.bin.gz': new Uint8Array(veg),
@@ -365,5 +367,39 @@ describe('loadWorld through the world cache (remote, content-hashed bundles)', (
     await loadWorld('/worlds/test/', { fetch: host.fetchFn });
     await loadWorld('/worlds/test/', { fetch: host.fetchFn });
     expect(host.requested.filter((p) => p === 'height.bin.gz')).toHaveLength(2);
+  });
+});
+
+describe('water holes', () => {
+  // A 100 × 100 m lake (dm), an island 40 × 40 m in it, and an islet ring inside the island
+  // (West Lake's relation lists a 221 m² inner ring inside Xiaoyingzhou's), plus a second island.
+  const lake = [0, 0, 1000, 0, 1000, 1000, 0, 1000];
+  const island = [200, 200, 600, 200, 600, 600, 200, 600];
+  const islet = [300, 300, 400, 300, 400, 400, 300, 400];
+  const other = [700, 700, 900, 700, 900, 900, 700, 900];
+  const m = (r: number[]) => Float32Array.from(r, (v) => v / 10);
+
+  it('drops a hole lying inside a larger hole, keeps every other ring in order', () => {
+    expect(withoutNestedHoles([m(lake), m(island), m(islet), m(other)])).toEqual([m(lake), m(island), m(other)]);
+    expect(withoutNestedHoles([m(lake), m(islet), m(island)])).toEqual([m(lake), m(island)]);
+    // Nothing nested: the very same array.
+    const clean = [m(lake), m(island), m(other)];
+    expect(withoutNestedHoles(clean)).toBe(clean);
+    // Two identical holes are not nested in each other: both stay.
+    expect(withoutNestedHoles([m(lake), m(island), m(island)])).toHaveLength(3);
+  });
+
+  it('is applied to every water area loadWorld decodes', async () => {
+    const water = {
+      version: 1,
+      units: 'dm',
+      areaKinds: ['lake', 'river', 'pond'],
+      lineKinds: ['river', 'canal', 'stream'],
+      lineWidths: [15, 6, 2.5],
+      areas: [{ k: 0, r: [lake, island, islet, other] }],
+      lines: [],
+    };
+    const w = await loadWorld('/worlds/test/', { fetch: hostFor(makeBundle(water)).fetchFn });
+    expect(w.water.areas[0].rings).toEqual([m(lake), m(island), m(other)]);
   });
 });

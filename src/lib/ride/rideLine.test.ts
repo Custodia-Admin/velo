@@ -226,6 +226,25 @@ describe('the drawn line on drawn roads (LineRoads: the world renderer)', () => 
     expect(Math.abs(lineSample(line, 110, at).heading * DEG - 90)).toBeLessThan(0.5);
   });
 
+  it('keeps on a path it crosses wherever the route is on it, up to the route’s own edges', () => {
+    // The route turns right at (0, 100). A 1.5 m path crosses its first leg 31° off square at
+    // 98.5 m, where the line already cuts towards the corner. The route runs onto and off the
+    // path between the quarter-step checks: before the edge checks the line left it 1.6 cm out
+    // (3.3 cm walked every centimetre) while the route was still on it (Lake Annecy: 7.4 cm).
+    const r = local('crossing', [
+      [0, 0],
+      [0, 50],
+      [0, 100],
+      [50, 100],
+      [100, 100],
+    ]);
+    const roads = drawnRoads([{ pts: [[-3, 100.3], [3, 96.7]], halfWidth: 0.75 }]);
+    const on = ride(buildRideLine(r, { roads }), r, roads);
+    expect(on.out, 'metres beyond the drawn edge').toBeLessThanOrEqual(0.005);
+    expect(on.crab, 'heading vs travel, °').toBeLessThan(1);
+    expect(on.snap, 'turn per 10 cm, °').toBeLessThan(12);
+  });
+
   it('is the same line as without roads where the roads are wide (a 7 m road) or the route is on none', () => {
     const r = routeOnPath();
     const plain = buildRideLine(r);

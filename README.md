@@ -145,8 +145,9 @@ first. The project follows the [Code of Conduct](CODE_OF_CONDUCT.md).
   2014-2018 provided under COPERNICUS by the European Union and ESA, all
   rights reserved; U.S. Geological Survey 3DEP; Source: Federal Office of
   Topography swisstopo (swissALTI3D); DTM 5x5 © Regione Lombardia (CC BY 4.0);
-  LiDAR DTM 1 m © MASE – Geoportale Nazionale (CC BY 4.0); Mapzen/AWS terrain
-  tiles; OSRM. Weather
+  LiDAR DTM 1 m © MASE – Geoportale Nazionale (CC BY 4.0); RGE ALTI® © IGN
+  (Licence Ouverte 2.0); DTM LiDAR 5 m © Regione del Veneto (IODL 2.0);
+  Mapzen/AWS terrain tiles; OSRM. Weather
   data by Open-Meteo.com (CC BY 4.0).
 - Every source, licence and attribution: [NOTICE.md](NOTICE.md) and
   [docs/worlds/CREDITS.md](docs/worlds/CREDITS.md).

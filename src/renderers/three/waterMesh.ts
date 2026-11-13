@@ -659,9 +659,14 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
   // a vertex every terrain cell (finer only adds triangles the terrain mesh
   // under them can't show: Lugano has 1,000 km of mountain streams).
   const ribbonStep = Math.min(maxEdgeM, hf.spec.cellSize);
+  // Across, a ribbon is cut into strips no wider than keeps every edge, the
+  // diagonals too, within maxEdgeM: a river line tagged wider than that
+  // (Hangzhou's 61 m) would otherwise span a cell with two vertices.
+  const acrossMax = maxEdgeM > ribbonStep ? Math.sqrt(maxEdgeM * maxEdgeM - ribbonStep * ribbonStep) : ribbonStep;
   for (const line of water.lines) {
     const p = line.points;
     const hw = line.width / 2;
+    const strips = Math.max(1, Math.ceil(line.width / acrossMax));
     for (let i = 0; i + 3 < p.length; i += 2) {
       const ax = p[i];
       const ay = p[i + 1];
@@ -680,12 +685,17 @@ export function buildWaterGeometry(water: WaterLayer, hf: Heightfield, maxEdgeM 
         const x1 = ax + (bx - ax) * t1;
         const y1 = ay + (by - ay) * t1;
         if (onRoute((x0 + x1) / 2, (y0 + y1) / 2)) continue;
-        const l0: V2 = [x0 + nx, y0 + ny];
-        const r0: V2 = [x0 - nx, y0 - ny];
-        const l1: V2 = [x1 + nx, y1 + ny];
-        const r1: V2 = [x1 - nx, y1 - ny];
-        // Streams sit just above the ground (no carved bed under a 2 m stream).
-        for (const q of [l0, r0, r1, l0, r1, l1]) put(q, WATER_SURFACE_DROP_M + 0.06, 0.5);
+        for (let c = 0; c < strips; c++) {
+          // From the left edge (+n) to the right (−n).
+          const fl = 1 - (2 * c) / strips;
+          const fr = 1 - (2 * (c + 1)) / strips;
+          const l0: V2 = [x0 + nx * fl, y0 + ny * fl];
+          const r0: V2 = [x0 + nx * fr, y0 + ny * fr];
+          const l1: V2 = [x1 + nx * fl, y1 + ny * fl];
+          const r1: V2 = [x1 + nx * fr, y1 + ny * fr];
+          // Streams sit just above the ground (no carved bed under a 2 m stream).
+          for (const q of [l0, r0, r1, l0, r1, l1]) put(q, WATER_SURFACE_DROP_M + 0.06, 0.5);
+        }
       }
     }
   }

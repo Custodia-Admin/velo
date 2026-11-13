@@ -79,7 +79,15 @@ export const SCENIC_ROUTE_SOURCES = [
   },
   {
     id: 'scenic-lake-annecy',
-    waypoints: [[45.8990, 6.1290], [45.8640, 6.1440], [45.8270, 6.2020], [45.7800, 6.2180]],
+    // Points on the greenway (Voie Verte, OSM ways 137265113 and 629052408).
+    // Through Duingt it stays on the greenway, over its bridge and into its
+    // tunnel: a point in the village sent it under that bridge and back up a
+    // ramp onto the greenway. It ends on the greenway before the Pont Monnet
+    // junction, where Chemin de la Cordice's bridge lands on the road. It
+    // starts on Rue des Marquisats, past the Pont de la Halle quays: from the
+    // Pâquier it zigzagged through a three-way path junction in its first
+    // 80 m (a 113° turn after 10 m).
+    waypoints: [[45.8978, 6.1300], [45.8640, 6.1440], [45.82652, 6.20158], [45.78472, 6.22281]],
   },
   {
     id: 'scenic-lake-garda-lazise',

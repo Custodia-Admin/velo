@@ -7,15 +7,39 @@
   "order": 40,
   "place": "Haute-Savoie, France",
   "detail": "The west-shore greenway",
-  "world": null,
+  "world": {
+    "id": "lake-annecy",
+    "dir": "lake-annecy/4e4a85682fe96b64/",
+    "host": "remote",
+    "bbox": {
+      "south": 45.7669,
+      "west": 6.10838,
+      "north": 45.91258,
+      "east": 6.25687
+    },
+    "routes": [
+      "scenic-lake-annecy"
+    ]
+  },
   "routes": [
     "scenic-lake-annecy"
   ],
   "moods": [
-    "clear-afternoon"
+    "clear-afternoon",
+    "clear-noon",
+    "golden-hour",
+    "overcast",
+    "valley-fog"
   ],
   "defaultMood": "clear-afternoon",
-  "pois": [],
+  "pois": [
+    {
+      "name": "Annecy",
+      "kind": "town",
+      "lat": 45.89923,
+      "lon": 6.12889
+    }
+  ],
   "credits": [
     {
       "id": "osm",
@@ -23,6 +47,20 @@
       "licence": "ODbL-1.0",
       "url": "https://www.openstreetmap.org/copyright",
       "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "ign-rge-alti",
+      "name": "RGE ALTI®, IGN digital terrain model, bare earth, along the routes",
+      "licence": "Licence Ouverte / Open Licence 2.0 (Etalab); averaged to the world grid",
+      "url": "https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_RGE-ALTI",
+      "attribution": "Contains RGE ALTI® data © IGN (Institut national de l’information géographique et forestière), as served by the Géoplateforme"
     },
     {
       "id": "copernicus-glo90",
@@ -37,6 +75,13 @@
       "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
       "url": "https://routing.openstreetmap.de/about.html",
       "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-lake-annecy",
+      "name": "Lake Annecy: OSRM bike route through 4 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/6.13,45.8978;6.144,45.864;6.20158,45.82652;6.22281,45.78472?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
     }
   ]
 }

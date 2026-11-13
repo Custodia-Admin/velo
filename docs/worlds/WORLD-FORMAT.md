@@ -91,7 +91,7 @@ Validated by `validateManifest()`; schema in
 | `routes[]` | `{ id, name, lengthM, maxGapM, gradeMeanAbsDiffPct }` per snapped scenic route (ids match `src/lib/scenicRoutes.ts`). |
 | `stats` | Counts (roads, buildings, trees, …) for logs and UI. |
 | `credits[]` | `{ id, name, licence, url, attribution }`: show these wherever the world is shown. |
-| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry), `bareGround` (`usgs-3dep-13`, `swissalti3d`, `inegi-mdt-10k`, `lombardia-dtm5` or `mase-pst-lidar`) when the routes and the ground along them stand on an open bare-earth DTM instead of the surface model (recipe `bareGround`, see "Bare ground" below). |
+| `generator` | Tool version, recipe SHA-256, OSM snapshot date, `demSource` (`aws-terrain-tiles/terrarium` or `copernicus-dem-30m/glo30-cog`), `demZoom` (Terrain Tiles only; absent for GLO-30), `demTiles` (tile count), `flatLakes: true` when the bake levelled the lakes (the renderer then draws each level lake flat and keeps ground standing above it dry), `bareGround` (`usgs-3dep-13`, `swissalti3d`, `inegi-mdt-10k`, `lombardia-dtm5`, `mase-pst-lidar`, `ign-rge-alti` or `veneto-lidar5`) when the routes and the ground along them stand on an open bare-earth DTM instead of the surface model (recipe `bareGround`, see "Bare ground" below). |
 
 ## height.bin: the heightfield (`u16-delta`)
 
@@ -335,6 +335,13 @@ the rider, the chase camera, the partners and the painted guide stand on it.
 in a coast world) and `r` is a list of rings: outer ring first, then holes. Rings are open (no repeated
 first vertex), dm. `lines[]`: `{ k, w?, p }`, `k` indexes `lineKinds` (river,
 canal, stream), width `w` or `lineWidths[k]`. Culverted waterways are dropped.
+
+The loader drops a hole that lies inside a larger hole of the same area
+(`withoutNestedHoles`): that land is the bigger hole's already. OSM forbids
+nested inner rings, but West Lake's relation has one, and with it earcut cut
+no hole for Xiaoyingzhou at all. The renderer draws a line wider than its
+edge bound (`WATER_EDGE_M`, diagonals included) as several strips across, so
+Hangzhou's rivers tagged 61.1 m wide still get a vertex every 45 m.
 
 A coast world (recipe `"coast": true`, `tools/worldbake/coast.mjs`) adds the
 `sea` kind: the water side of the OSM coastline inside the extent, closed
@@ -673,10 +680,31 @@ P1.3 gate compares it with GLO-90, itself a surface model.
   from the PST download service (POST, poll until ready, a zip of the tiles),
   20 per order, and caches each tile. Each node takes the mean of the pixels
   within half a cell round it (15 × 11 at 12 m and 43° N).
-- **Shores.** Both Italian models leave the lakes without a value. A node
-  reads the pixels of its box that have one when at least half of them do,
-  so a node on the shore reads the land beside it and one out on the water
-  keeps GLO-30. (The two older sources need every pixel of the box.)
+- **`ign-rge-alti`** (card t_c1c94fd2): IGN's RGE ALTI (Licence Ouverte 2.0)
+  from the Géoplateforme raster WMS (`data.geopf.fr/wms-r`, layer
+  `ELEVATION.ELEVATIONGRIDCOVERAGE.HIGHRES`), asked for 1 km Lambert-93 tiles
+  (EPSG:2154) at 2 m: float32 GeoTIFF, PixelIsArea, nodata −99999, NGF-IGN69
+  heights. The WMS serves the model nearest-neighbour from a coarser grid (at
+  Annecy each value repeats over 1.7 pixels east–west and 2.4 north–south,
+  about 3.4 × 4.9 m), so a node's box averages several model cells. Its GeoKeys
+  sit in GeoDoubleParams/GeoAsciiParams, which `geotiff.mjs` reads
+  (`geoKeyAny`); every tile's CRS and georeference are checked, and an XML
+  error answer is never cached. The WCS has no coverage for the DTM, and the
+  service sets no release.
+- **`veneto-lidar5`** (card t_c1c94fd2): the Regione del Veneto's DTM from its
+  LiDAR surveys, 5 m (IODL 2.0, as the geoportal's metadata states), 2 km ESRI
+  ASCII grids in RDN2008 / Fuso 12 (EPSG:7795). Tiles are numbered, not
+  gridded: the geoportal's WFS index (`rv:c0101071_lidar5m`) names them and
+  gives each its download id. Its polygons are drawn on Monte Mario and land
+  about 80 m off, so every candidate the index offers near a wanted cell is
+  fetched and placed by its own grid header, never by the index. Checked
+  against the MASE 1 m model at Peschiera: registered as placed, a shifted
+  placement reads worse.
+- **Shores.** The Italian models, RGE ALTI and the Veneto DTM leave cells
+  without a value (the Italian ones over the lakes). A node reads the pixels
+  of its box that have one when at least half of them do, so a node on the
+  shore reads the land beside it and one out on the water keeps GLO-30. (The
+  two older sources need every pixel of the box.)
 - **LZW.** 3DEP, swissALTI3D and the Lombardia tiles are LZW TIFFs, so
   `geotiff.mjs` gained a TIFF LZW decoder (libtiff's early code-width
   change), checked against tifffile fixtures in `tools/worldbake/fixtures/`.
@@ -734,7 +762,7 @@ P1.3 gate compares it with GLO-90, itself a surface model.
     Continuo de Elevaciones Mexicano is not an alternative: CEM 3.0 is
     interpolated from 1:50 000 contours (whole metres, RMSE 4.8 m), CEM 4.0
     is the ALOS PALSAR RTC DEM (resampled SRTM).
-  - Chengdu: no open DTM for China; landcover puts the routes in the open.
+  - Chengdu and Hangzhou: no open DTM for China; landcover puts the routes in the open.
 - **The shore strip (card t_ed5443d1).** `flattenSea` lowers every land node
   beside the sea to 0 m so the water meets the shore cleanly. The route fit
   used to read that levelled grid, and a waterfront route a cell from the
@@ -1164,6 +1192,53 @@ the cut the carve leaves, with no road in them, as in the other worlds; Lake
 Como's galleries make that 1,138 m of its 18 km (deepest cut 141 m). Before
 and after frames at each route's start and fps on cat-bed's iGPU are in
 `docs/design/screenshots/v2/build/home-area-worlds/`.
+
+### The wishlist worlds (the last scenic routes on the classic view)
+
+Remote worlds baked 13 Nov 2026 on cat-bed (card t_c1c94fd2) from Copernicus
+GLO-30 and OSM as of 10 Nov 2026, each with `bridges` and, where an open DTM
+exists, `bareGround` and `snap.embankment`. Each is the `world` of its
+wishlist place ([DESTINATIONS.md](DESTINATIONS.md)). With them no scenic
+route rides the classic view any more; only a GPX or a city search outside
+every world does. Embankment `maxM` is 1 m except Riviera dei Fiori (3 m), the
+lowest that keeps grade Δ under 1 pp.
+
+| World | Extent | Bare ground | P1.3 v2 | Route | Route over bare ground (median / p95 / max) | Bridges, tunnels | Size |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Engadin lakes (`engadin`) | 15.1 × 13.6 km, 1263 × 1132 nodes | swissalti3d (2023) | mountain, registered **2.65 m ≤ 6.24 m, PASS** | 17.21 km, grade Δ 0.537 pp, guide 100 % on drawn roads (13 roads bent ≤ 0.72 m, 0 joins) | -0.05 / 3.35 / 7.65 m (on GLO-30: 2.34 / 7.28 / 14.45 m) | 13 ridden decks; 0 m in tunnels | 2.69 MB brotli |
+| Lavaux, Lausanne to Chillon (`lavaux`) | 26.2 × 14.2 km, 2016 × 1097 nodes | swissalti3d | standard, registered **1.54 m ≤ 6 m, PASS** | 29.41 km, grade Δ 0.739 pp, guide 100 % on drawn roads (19 roads bent ≤ 0.3 m, 0 joins) | -0.08 / 2.97 / 6.85 m (on GLO-30: 5.51 / 12.35 / 19.41 m) | 12 ridden decks; 8.6 m in tunnels | 3.62 MB brotli |
+| Riviera dei Fiori (`riviera-dei-fiori`) | 23.0 × 9.7 km, 1914 × 806 nodes | mase-pst-lidar | mountain, registered **4.92 m ≤ 6.24 m, PASS** | 22.72 km, grade Δ 0.31 pp, guide 100 % on drawn roads (26 roads bent ≤ 2.5 m, 1 join) | -0.36 / 1.94 / 5.74 m (on GLO-30: -0.42 / 4.5 / 13.33 m) | 15 ridden decks; 3752 m in tunnels | 2.55 MB brotli |
+| Lake Annecy (`lake-annecy`) | 11.5 × 16.2 km, 961 × 1350 nodes | ign-rge-alti | mountain, registered **2.4 m ≤ 6.24 m, PASS** | 16.91 km, grade Δ 0.24 pp, guide 100 % on drawn roads (24 roads bent ≤ 1 m, 1 join) | -0.09 / 1.73 / 4.14 m (on GLO-30: 1.06 / 6.37 / 14.39 m) | 11 ridden decks; 191 m in tunnels | 3.18 MB brotli |
+| Lake Garda, Peschiera to Lazise (`lake-garda`) | 8.2 × 10.4 km, 687 × 867 nodes | veneto-lidar5 | standard, registered **2.13 m ≤ 6 m, PASS** | 10.59 km, grade Δ 0.52 pp, guide 100 % on drawn roads (16 roads bent ≤ 0.81 m, 1 join) | 0.11 / 1.18 / 7.51 m (on GLO-30: 0.58 / 4.49 / 8.73 m) | 6 ridden decks; 22.5 m in tunnels | 0.84 MB brotli |
+| Hangzhou West Lake (`hangzhou-west-lake`) | 6.7 × 6.9 km, 562 × 580 nodes | none: no open DTM for China | standard, registered **1.66 m ≤ 6 m, PASS** | 13.80 km, grade Δ 0.169 pp, guide 100 % on drawn roads (6 roads bent ≤ 0.61 m, 0 joins) | n/a (on GLO-30, like Chengdu) | 3 ridden decks; 0 m in tunnels | 1.11 MB brotli |
+
+The maxima are single spots; samples more than 3 m over the bare ground:
+Engadin 107 of 1689 (max 7.65 m at 11.11 km), Lavaux 139 of 2871 (6.85 m at
+17.67 km, on the Route de Lavaux 15 m from a pedestrian underpass), Riviera
+dei Fiori 32 of 2188 (5.74 m at 16.36 km, the approach ramp to a headroom pin
+over a road that passes under the cycleway at 16.11 km), Lake Annecy 15 of
+1680 (4.14 m at 2.10 km), Lake Garda 26 of 1034 (7.51 m at 6.22 km).
+Riviera dei Fiori's cycleway runs on the old coast railway, whose tunnels make
+3.75 km of its 22.7 km; they are drawn as the cut the carve leaves, as in the
+other worlds.
+
+- **Lake Annecy's route** starts on Rue des Marquisats (its Pâquier start
+  zigzagged through a three-way path junction in the first 80 m) and keeps to
+  the greenway through Duingt. `osmExclude: [1028895409]` leaves out a private
+  footbridge (access=no) over the greenway at 5.6 km: it ends on a 1.4 m stub
+  6 m from the path, so its abutment block would stand on the route.
+- **Riviera dei Fiori** at Arma di Taggia: the cycleway's deck crosses Via al
+  Mare with no shared vertex. The fit's 0.28 m bend there slides the strips'
+  overlap 0.4 m along the deck; `routeFit.test.ts` counts a centre-line
+  crossing like that as a junction, as it does a shared-vertex crossing.
+- **Hangzhou's water** needed two renderer fixes, no re-bake (see water.json):
+  West Lake's relation lists a 221 m² inner ring inside Xiaoyingzhou's, which
+  drew the lake over the island's 7.7 ha; and three river lines are tagged
+  61.1 m wide. Water draws 22,846 triangles there; Lavaux's 276,927 (Lake
+  Geneva's shore) stay under Lugano's 400 k ceiling.
+
+Before and after frames at each route's start and fps on cat-bed's iGPU are in
+`docs/design/screenshots/v2/build/wishlist-worlds/`.
 
 ### Adding a world
 

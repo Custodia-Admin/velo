@@ -205,12 +205,25 @@ function drawnPair(roads: Layer, mapped: Map<number, number[]>) {
   return { before, after };
 }
 
+/** Where two segments [ax, ay, bx, by] cross (strictly inside both), with the sine of the angle between them. */
+function crossing(a: number[], b: number[]) {
+  const rx = a[2] - a[0], ry = a[3] - a[1], sx = b[2] - b[0], sy = b[3] - b[1];
+  const den = rx * sy - ry * sx;
+  const rl = Math.hypot(rx, ry), sl = Math.hypot(sx, sy);
+  if (!rl || !sl || Math.abs(den) < 1e-9 * rl * sl) return null;
+  const t = ((b[0] - a[0]) * sy - (b[1] - a[1]) * sx) / den;
+  const u = ((b[0] - a[0]) * ry - (b[1] - a[1]) * rx) / den;
+  if (t <= 0 || t >= 1 || u <= 0 || u >= 1) return null;
+  return { x: a[0] + t * rx, y: a[1] + t * ry, sin: Math.abs(den) / (rl * sl) };
+}
+
 /**
  * Where a road the fit moved newly lies over another drawn road along its
  * length, metres deep (its drawn width reaching past the other's edge) and
  * long, compared with the mapped lines. Points within reach of a junction the
- * two roads already had (an end of either inside the other, or a vertex of
- * one on the other's centre line: a crossing) don't count: a fork's arms run
+ * two roads already had (an end of either inside the other, a vertex of one
+ * on the other's centre line: a crossing, or centre lines that cross with no
+ * shared vertex: a bridge or tunnel over the other) don't count: a fork's arms run
  * within reach of each other there, and so do a shallow crossing's, which
  * slides along both roads as either moves sideways (Magadino: a path the
  * route runs a metre beside crosses a track at 14°).
@@ -254,6 +267,18 @@ function newOverlaps(roads: Layer, mapped: Map<number, number[]>, minDepth = 0.1
           }
           const hh = a.half + b.half;
           z.push({ x, y, r: hh + Math.min(10, hh / Math.max(sin, 0.1)) });
+        }
+      }
+      // A bridge or tunnel over the other road: the centre lines cross with
+      // no shared vertex, so the strips overlap there and the overlap slides
+      // along both as either moves sideways, as at a crossing (Riviera dei
+      // Fiori: the cycleway's deck over Via al Mare at Arma di Taggia).
+      for (let k = 0; k + 3 < B.p.length; k += 2) {
+        for (let j = 0; j + 3 < O.p.length; j += 2) {
+          const x = crossing(B.p.slice(k, k + 4), O.p.slice(j, j + 4));
+          if (!x) continue;
+          const hh = B.half + O.half;
+          z.push({ x: x.x, y: x.y, r: hh + Math.min(10, hh / Math.max(x.sin, 0.1)) });
         }
       }
       zones.set(o.i, z);
@@ -831,6 +856,20 @@ describe('bake: junctions from the home-area worlds', () => {
     expect([...mapped.keys()].length).toBeGreaterThan(0);
     expect(newOverlaps(roads, mapped)).toEqual([]);
     expect(routePaintCoverage(routes, roads)[0].pct).toBe(100);
+  });
+
+  it('counts a bridge over a road (centre lines cross, no shared vertex) as a junction, and only where they cross', () => {
+    // A residential road along y = 0 and a cycleway deck crossing it at 53° with no vertex on it.
+    const road = { c: CLS.residential, p: dm([[-40, 0], [40, 0]]) };
+    const c = Math.cos((53 * Math.PI) / 180), s = Math.sin((53 * Math.PI) / 180);
+    const deck = { c: CLS.cycleway, f: ROAD_FLAGS.bridge, p: dm([[-16 * c, -16 * s], [16 * c, 16 * s]]) };
+    // The deck moved 0.3 m sideways: where its strip overlaps the road's slides about 0.4 m along it.
+    const moved = { ...deck, p: dm([[-16 * c - 0.3 * s, -16 * s + 0.3 * c], [16 * c - 0.3 * s, 16 * s + 0.3 * c]]) };
+    expect(newOverlaps(layer([road, moved]), new Map([[1, deck.p]]))).toEqual([]);
+    // A deck stopping short of the road (its centre line 3.8 m from the road's, so 0.05 m clear) moved 0.5 m toward it still counts.
+    const short = { ...deck, p: dm([[-16 * c, -16 * s], [(-3.8 / s) * c, -3.8]]) };
+    const closer = { ...short, p: dm([[-16 * c, -16 * s + 0.5], [(-3.8 / s) * c, -3.3]]) };
+    expect(newOverlaps(layer([road, closer]), new Map([[1, short.p]])).map((o) => [o.road, o.other, o.depthM])).toEqual([[1, 0, 0.45]]);
   });
 
   it('counts a shallow crossing as a junction for the overlap check, and only a crossing', () => {

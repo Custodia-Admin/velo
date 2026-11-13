@@ -40,6 +40,13 @@ const WORLDS = [
   { id: 'magadino', section: 'lugano', route: 'scenic-magadino-plain', name: 'Bellinzona to Locarno', place: 'Lugano', files: WITH_BRIDGES },
   { id: 'lake-varese', section: 'lugano', route: 'scenic-lake-varese', name: 'Lake Varese shore', place: 'Lugano', files: WITH_BRIDGES },
   { id: 'lake-como', section: 'lugano', route: 'scenic-lake-como-menaggio', name: 'Menaggio to Gravedona', place: 'Lugano', files: WITH_BRIDGES },
+  // The rest of the wishlist, baked last: no scenic route rides the map now.
+  { id: 'engadin', section: 'wishlist', route: 'scenic-engadin-lakes', name: 'Engadin lakes', place: 'Engadin', files: WITH_BRIDGES },
+  { id: 'lavaux', section: 'wishlist', route: 'scenic-lavaux-chillon', name: 'Lausanne to Chillon', place: 'Lake Geneva', files: WITH_BRIDGES },
+  { id: 'riviera-dei-fiori', section: 'wishlist', route: 'scenic-riviera-dei-fiori', name: 'Riviera dei Fiori', place: 'Riviera dei Fiori', files: WITH_BRIDGES },
+  { id: 'lake-annecy', section: 'wishlist', route: 'scenic-lake-annecy', name: 'Lake Annecy', place: 'Lake Annecy', files: WITH_BRIDGES },
+  { id: 'lake-garda', section: 'wishlist', route: 'scenic-lake-garda-lazise', name: 'Peschiera to Lazise', place: 'Lake Garda', files: WITH_BRIDGES },
+  { id: 'hangzhou-west-lake', section: 'wishlist', route: 'scenic-hangzhou-west-lake', name: 'West Lake loop', place: 'Hangzhou', files: WITH_BRIDGES },
 ];
 type World = (typeof WORLDS)[number];
 const worldFile = (w: World) => new RegExp(`/worlds/${w.id}/[0-9a-f]{16}/([^/?#]+)$`);
@@ -73,8 +80,9 @@ async function rideWorld(page: Page, w: World) {
   } else {
     const card = section.locator(`[data-scenic-route="${w.route}"]`);
     // A world ride: the tile carries no "classic view" tag. Wishlist tiles lead
-    // with their place; a household section is the place already.
-    const lead = w.section === 'wishlist' ? `${w.name} in ${w.place}` : w.name;
+    // with their place unless the route is named after it (Lake Annecy); a
+    // household section is the place already.
+    const lead = w.section === 'wishlist' && w.place !== w.name ? `${w.name} in ${w.place}` : w.name;
     await expect(card).toHaveAttribute('aria-label', new RegExp(`^Ride ${lead}, (?!.*classic view)`));
     await card.click();
   }

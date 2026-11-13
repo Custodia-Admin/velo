@@ -127,9 +127,11 @@ describe('destinations ↔ baked worlds', () => {
         expect(w.dir, w.id).toBe(`${w.id}/${bundleHash(readFileSync(bundle.manifestPath))}/`);
       }
     }
-    // Perugia and Lugano ship with the app; Chengdu, Cleveland, the Cuyahoga
-    // Valley and the coast worlds are remote.
-    expect(linked.filter((d) => d.world.host === 'remote').map((d) => d.id).sort()).toEqual(['berkeley', 'chengdu-luxelakes', 'cleveland-lakefront', 'ohio-erie-towpath', 'puerto-vallarta', 'santa-monica-venice']);
+    // Perugia and Lugano ship with the app; every wishlist place is remote.
+    expect(linked.filter((d) => d.world.host === 'remote').map((d) => d.id).sort()).toEqual([
+      'berkeley', 'chengdu-luxelakes', 'cleveland-lakefront', 'engadin', 'hangzhou-west-lake', 'lake-annecy',
+      'lake-garda', 'lake-geneva', 'ohio-erie-towpath', 'puerto-vallarta', 'riviera-dei-fiori', 'santa-monica-venice',
+    ]);
   });
 
   it('a re-bake that changes any byte of a remote manifest moves its directory', () => {
@@ -199,9 +201,10 @@ describe('Home sections are generated from the manifests', () => {
     const routesOf = (baked: boolean) =>
       order.flatMap((d) => d.routes.filter((r) => (d.world?.routes.includes(r) ?? false) === baked).map((r) => `${d.id}:${r}`));
     expect(wish.entries.map((e) => `${e.destination.id}:${e.routeId}`)).toEqual([...routesOf(true), ...routesOf(false)]);
-    // Chengdu is the first wishlist place with a 3D world: its two routes lead.
-    expect(wish.entries.slice(0, 2).map((e) => e.routeId)).toEqual(['scenic-chengdu-luxe-lakes', 'scenic-chengdu-xinglong-lake']);
-    expect(wish.entries.slice(0, 2).every((e) => e.hasWorld)).toBe(true);
+    // Every wishlist place has a 3D world now, so manifest order alone sets the tiles: Lake Garda leads.
+    expect(routesOf(false)).toEqual([]);
+    expect(wish.entries.slice(0, 2).map((e) => e.routeId)).toEqual(['scenic-lake-garda-lazise', 'scenic-engadin-lakes']);
+    expect(wish.entries.every((e) => e.hasWorld)).toBe(true);
     // The tiles say which places ride in the classic view, so the line never does.
     expect(wish.detail).toBe('Lakes, coasts and cities on our list');
     const allClassic = order.map((d) => ({ ...d, world: null }));

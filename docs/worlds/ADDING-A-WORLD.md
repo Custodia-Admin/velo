@@ -67,6 +67,10 @@ from `chengdu-luxelakes.json`:
   the bake fails when a route would pass under a deck without the headroom.
   A route that starts or ends on a spiral ramp under its own bridge (Wendy
   Park) cannot be fitted: move that end of the route off the ramp.
+  An abutment block that would stand on a route stops the bake too. When the
+  structure cannot be placed at all (Lake Annecy: a private footbridge over
+  the greenway ending on a 1.4 m stub 6 m from the path), leave its way out
+  with `"osmExclude": [<way id>]`; never use it to tidy a world.
 - `"flatLakes": true` if the place has lakes dug after 2015. GLO-30 was flown
   in 2011–2015, so it still carries the land those lakes were dug from, and
   the water would be drawn as a tilted, bulging sheet. The step
@@ -137,6 +141,11 @@ from `chengdu-luxelakes.json`:
   - Elsewhere in Italy, along rivers and lakes: `{ "source": "mase-pst-lidar" }`,
     the national LiDAR DTM 1 m (2008–2010). It covers the corridors the survey
     flew, not whole regions; query its tile index first (WORLD-FORMAT.md).
+  - Veneto: `{ "source": "veneto-lidar5" }`, the region's LiDAR DTM 5 m
+    (IODL 2.0), named through the geoportal's WFS tile index.
+  - France: `{ "source": "ign-rge-alti" }`, IGN's RGE ALTI from the
+    Géoplateforme WMS (Licence Ouverte 2.0).
+  - China has no open DTM: leave `bareGround` out (Chengdu, Hangzhou).
   - Then shorten the `snap` offset windows as far as every route's grade Δ
     stays ≤ 1 pp (200/800 m in Ohio and Santa Monica, 300/1200 m in Lugano,
     60/240 m in Puerto Vallarta, which adds `"spanStructures": true` to

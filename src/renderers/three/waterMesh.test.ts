@@ -109,15 +109,24 @@ const BUDGET: Record<string, { max?: number; expected?: number }> = {
   berkeley: { expected: 15_995 },
   'chengdu-luxelakes': { expected: 36_767 },
   'cleveland-lakefront': { expected: 77_580 },
+  // The wishlist worlds: Lake Geneva's 26 km of shore (Lavaux) is most of the
+  // biggest, still under Lugano's ceiling; the Engadin lakes, Annecy and Garda
+  // are open lakes; Hangzhou's three 61 m river lines draw two strips each.
+  engadin: { expected: 72_263 },
+  'hangzhou-west-lake': { expected: 22_846 },
+  'lake-annecy': { expected: 82_891 },
   // The home-area lake worlds: Lake Como's shore and Trasimeno's open lake
   // are most of theirs.
   'lake-como': { expected: 144_524 },
+  'lake-garda': { expected: 57_417 },
   'lake-varese': { expected: 53_044 },
+  lavaux: { expected: 276_927 },
   lugano: { max: 400_000 },
   magadino: { expected: 57_273 },
   'ohio-erie-towpath': { expected: 57_161 },
   perugia: { expected: 26_752 },
   'puerto-vallarta': { expected: 42_263 },
+  'riviera-dei-fiori': { expected: 46_173 },
   'santa-monica-venice': { expected: 38_915 },
   trasimeno: { expected: 119_926 },
   'valle-maggia': { expected: 107_009 },
@@ -151,10 +160,13 @@ function waterCeiling(water: WaterLayer, cellSize: number) {
     }
   }
   const step = Math.min(s, cellSize);
+  // The renderer's strips across a ribbon tagged wider than the edge bound allows.
+  const acrossMax = s > step ? Math.sqrt(s * s - step * step) : step;
   let ribbons = 0;
   for (const l of water.lines) {
     const p = l.points;
-    for (let i = 0; i + 3 < p.length; i += 2) ribbons += 2 * (Math.hypot(p[i + 2] - p[i], p[i + 3] - p[i + 1]) / step + 1);
+    const strips = Math.max(1, Math.ceil(l.width / acrossMax));
+    for (let i = 0; i + 3 < p.length; i += 2) ribbons += 2 * strips * (Math.hypot(p[i + 2] - p[i], p[i + 3] - p[i + 1]) / step + 1);
   }
   return { polygons: polygonArea(water) / cellArea + vertices + (3 * (6 / Math.PI) * shore) / h, ribbons };
 }
@@ -243,6 +255,29 @@ describe('level lakes are drawn flat; ground standing above them stays dry', () 
     // A river running beside the route, inside its core, is left alone (Perugia's Tiber park).
     const beside: WaterLayer = { areas: [], lines: [{ kind: 'river', width: 15, points: new Float32Array([10, 110, 190, 110]) }] };
     expect(buildWaterGeometry(beside, flatField, WATER_EDGE_M, { dryRoutes: [route] }).positions).toEqual(buildWaterGeometry(beside, flatField).positions);
+  });
+
+  it('cuts a ribbon tagged wider than the edge bound into strips: every edge within WATER_EDGE_M, the full width covered, a narrow one untouched', () => {
+    const flatField = field(() => 110);
+    const ribbon = (width: number): WaterLayer => ({ areas: [], lines: [{ kind: 'river', width, points: new Float32Array([100, 10, 100, 190]) }] });
+    // Hangzhou's rivers are tagged 61.1 m wide.
+    const g = buildWaterGeometry(ribbon(61.1), flatField);
+    const P = g.positions;
+    let maxEdge = 0;
+    let area = 0;
+    for (let i = 0; i < P.length; i += 9) {
+      for (const [p, q] of [[0, 3], [3, 6], [6, 0]]) maxEdge = Math.max(maxEdge, Math.hypot(P[i + p] - P[i + q], P[i + p + 2] - P[i + q + 2]));
+      area += Math.abs(area2([P[i], -P[i + 2], P[i + 3], -P[i + 5], P[i + 6], -P[i + 8]]));
+    }
+    expect(maxEdge).toBeLessThanOrEqual(WATER_EDGE_M + EPS_M);
+    expect(area).toBeCloseTo(180 * 61.1, 0);
+    const xs = [...P].filter((_, i) => i % 3 === 0);
+    expect(Math.min(...xs)).toBeCloseTo(100 - 30.55, 3);
+    expect(Math.max(...xs)).toBeCloseTo(100 + 30.55, 3);
+    // Across: two strips, so the middle of the river has vertices too.
+    expect(xs.some((x) => Math.abs(x - 100) < 1e-3)).toBe(true);
+    // A 15 m river stays one strip, as every shipped world draws it.
+    expect([...buildWaterGeometry(ribbon(15), flatField).positions].filter((_, i) => i % 3 === 0).some((x) => Math.abs(x - 100) < 1e-3)).toBe(false);
   });
 
   it('is off unless the bake levelled the lakes: other worlds keep draped water and a full bed', () => {
