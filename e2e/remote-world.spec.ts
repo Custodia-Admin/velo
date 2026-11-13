@@ -44,6 +44,7 @@ const WORLDS = [
   { id: 'engadin', section: 'wishlist', route: 'scenic-engadin-lakes', name: 'Engadin lakes', place: 'Engadin', files: WITH_BRIDGES },
   { id: 'lavaux', section: 'wishlist', route: 'scenic-lavaux-chillon', name: 'Lausanne to Chillon', place: 'Lake Geneva', files: WITH_BRIDGES },
   { id: 'riviera-dei-fiori', section: 'wishlist', route: 'scenic-riviera-dei-fiori', name: 'Riviera dei Fiori', place: 'Riviera dei Fiori', files: WITH_BRIDGES },
+  { id: 'lake-annecy', section: 'wishlist', route: 'scenic-lake-annecy', name: 'Lake Annecy', place: 'Lake Annecy', files: WITH_BRIDGES },
   { id: 'lake-garda', section: 'wishlist', route: 'scenic-lake-garda-lazise', name: 'Peschiera to Lazise', place: 'Lake Garda', files: WITH_BRIDGES },
   { id: 'hangzhou-west-lake', section: 'wishlist', route: 'scenic-hangzhou-west-lake', name: 'West Lake loop', place: 'Hangzhou', files: WITH_BRIDGES },
 ];

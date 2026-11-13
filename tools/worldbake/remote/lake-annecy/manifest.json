@@ -1,0 +1,2212 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "lake-annecy",
+  "name": "Lake Annecy",
+  "origin": {
+    "lat": 45.8397,
+    "lon": 6.1767
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 45.8397,
+    "lon0": 6.1767,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -5300,
+    "xMax": 6220,
+    "yMin": -8088,
+    "yMax": 8100
+  },
+  "bbox": {
+    "south": 45.7669,
+    "west": 6.10838,
+    "north": 45.91258,
+    "east": 6.25687
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 961,
+    "rows": 1350,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": 425,
+    "heightScale": 0.03125,
+    "minHeight": 426.09375,
+    "maxHeight": 1816.9375
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz",
+    "bridges": "bridges.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 1475931,
+      "sha256": "5623f40dd0d534262ee43e9bbfd3a70396103c646562d7d7d300cc0c1d172b0c",
+      "compression": "gzip",
+      "contentBytes": 2594700,
+      "contentSha256": "8637384812c0e77f91127178a95815c4f97267f1fbab1d8c1621d9ac01ca56a9"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 537005,
+      "sha256": "b5c65999f1083f59334b46265a0ea207ec6f5d60964b752d2980ff4cafc1ae2c",
+      "compression": "gzip",
+      "contentBytes": 1400053,
+      "contentSha256": "bc1026daea5850917ef8f63be8a12f9a2aa3c35ac0563f4def52f4c94a5ba7d7"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 58048,
+      "sha256": "71036f0a36ed9aded693436d6c02fe95aa2e9ed120f839a99bd1256fdce2663e",
+      "compression": "gzip",
+      "contentBytes": 134882,
+      "contentSha256": "e38bd021f10739693d98c319429514c11bc7c18f54f57875e24efa79d2f1a9a4"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 197465,
+      "sha256": "7e0e2da2eeb9e654900cf1885cd72c313655a97bbfd75ae902bdba8dcf780c8d",
+      "compression": "gzip",
+      "contentBytes": 469246,
+      "contentSha256": "f693f1474a30ba92634f8afd83df5ef5f4e57b57d7fc0b7a88ffea4e92880ad1"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 551760,
+      "sha256": "be104c9a1eade5fbe0b1c7b141025703c41609fdc37d4434742c7aed06668f92",
+      "compression": "gzip",
+      "contentBytes": 993616,
+      "contentSha256": "a376fb336cbf5f36df7c70bd51bac9446c28457ad10e441838d58713fc291005"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 1089411,
+      "sha256": "741459a6d5f6cdb791752dfdc5cd025d1052ae2749d2773291fb2cf4145b320f",
+      "compression": "gzip",
+      "contentBytes": 1920016,
+      "contentSha256": "4751cd9ec46ce04ea533ec554fc24fa3179109320f999d7449f8adc20ed1f394"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 24978,
+      "sha256": "f5b591dd9b605cf94eda4bc5591e62c5e9591f4c39a64fc9e4cc28ffe8bfc204",
+      "compression": "gzip",
+      "contentBytes": 63244,
+      "contentSha256": "0e5d6b1e51ba7966e7a5f3ea57f952a7e068f74b00c37fe71b874181ba5d5a2a"
+    },
+    {
+      "path": "bridges.json.gz",
+      "bytes": 4452,
+      "sha256": "1a9a3029f8ed110e37a857cb5226dea9c4dcce59747f42393c52b73421a1dd5f",
+      "compression": "gzip",
+      "contentBytes": 15898,
+      "contentSha256": "678033916bad198cf0789ab7a7429460e0263f4ec84380256e2118288637d1f7"
+    }
+  ],
+  "moods": [
+    "clear-afternoon",
+    "clear-noon",
+    "golden-hour",
+    "overcast",
+    "valley-fog"
+  ],
+  "defaultMood": "clear-afternoon",
+  "pois": [
+    {
+      "name": "Annecy",
+      "kind": "town",
+      "rank": 3,
+      "x": -3710.6,
+      "y": 6618.3,
+      "osm": "node/26692465",
+      "h": 447.54
+    },
+    {
+      "name": "Saint-Jorioz",
+      "kind": "village",
+      "rank": 2,
+      "x": -963.6,
+      "y": -705.2,
+      "osm": "node/26694641",
+      "h": 464.38
+    },
+    {
+      "name": "Veyrier-du-Lac",
+      "kind": "village",
+      "rank": 2,
+      "x": 141.4,
+      "y": 4683.6,
+      "osm": "node/26694936",
+      "h": 494.28
+    },
+    {
+      "name": "Doussard",
+      "kind": "village",
+      "rank": 2,
+      "x": 3369.4,
+      "y": -7067.7,
+      "osm": "node/26695486",
+      "h": 479.3
+    },
+    {
+      "name": "Sevrier",
+      "kind": "village",
+      "rank": 2,
+      "x": -2811.4,
+      "y": 2714.3,
+      "osm": "node/26696414",
+      "h": 454.38
+    },
+    {
+      "name": "Mont Veyrier",
+      "kind": "peak",
+      "rank": 2,
+      "x": 459.7,
+      "y": 6771,
+      "osm": "node/26863770",
+      "h": 1228.06
+    },
+    {
+      "name": "La Côte",
+      "kind": "village",
+      "rank": 1,
+      "x": -2689.7,
+      "y": -1507,
+      "osm": "node/266682220",
+      "h": 630.52
+    },
+    {
+      "name": "Croix des Cessenaz",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -3807.9,
+      "y": 281.5,
+      "osm": "node/267215490",
+      "h": 980.59
+    },
+    {
+      "name": "Épagny",
+      "kind": "village",
+      "rank": 1,
+      "x": -2029.3,
+      "y": -642.1,
+      "osm": "node/267222776",
+      "h": 486.14
+    },
+    {
+      "name": "Croix des Luzes",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -3778.5,
+      "y": -542.6,
+      "osm": "node/267223981",
+      "h": 944.72
+    },
+    {
+      "name": "Rocher du Roux (Panorama)",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 5957.7,
+      "y": -2156,
+      "osm": "node/269356793",
+      "h": 1461.51
+    },
+    {
+      "name": "Duingt",
+      "kind": "village",
+      "rank": 2,
+      "x": 1999,
+      "y": -1350.7,
+      "osm": "node/292107035",
+      "h": 448.11
+    },
+    {
+      "name": "Bredannaz",
+      "kind": "village",
+      "rank": 1,
+      "x": 2435.6,
+      "y": -2530.1,
+      "osm": "node/292107073",
+      "h": 448.94
+    },
+    {
+      "name": "Le Bout du Lac",
+      "kind": "village",
+      "rank": 1,
+      "x": 2829.4,
+      "y": -4955.7,
+      "osm": "node/292111736",
+      "h": 448.19
+    },
+    {
+      "name": "Dingy-Saint-Clair",
+      "kind": "village",
+      "rank": 2,
+      "x": 3557.9,
+      "y": 7730.1,
+      "osm": "node/339604129",
+      "h": 595.1
+    },
+    {
+      "name": "Dents de Lanfon",
+      "kind": "peak",
+      "rank": 2,
+      "x": 5040.9,
+      "y": 2386.8,
+      "osm": "node/340922803",
+      "h": 1718.92
+    },
+    {
+      "name": "Roche Murraz",
+      "kind": "peak",
+      "rank": 2,
+      "x": 6133.7,
+      "y": 710,
+      "osm": "node/340922863",
+      "h": 1677
+    },
+    {
+      "name": "Mont Baron",
+      "kind": "peak",
+      "rank": 2,
+      "x": 716.2,
+      "y": 6359.5,
+      "osm": "node/345675442",
+      "h": 1253.23
+    },
+    {
+      "name": "Belvédère de la Jeanne",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -3898.5,
+      "y": 4926.4,
+      "osm": "node/353088460",
+      "h": 711.41
+    },
+    {
+      "name": "Belvédère du Pas de l'Échelle",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -3809.3,
+      "y": 5078.3,
+      "osm": "node/353311409",
+      "h": 679.98
+    },
+    {
+      "name": "Menthon-Saint-Bernard",
+      "kind": "village",
+      "rank": 2,
+      "x": 1508,
+      "y": 2232.9,
+      "osm": "node/364364180",
+      "h": 486.44
+    },
+    {
+      "name": "Talloires",
+      "kind": "village",
+      "rank": 2,
+      "x": 2972.5,
+      "y": -21.4,
+      "osm": "node/364373221",
+      "h": 469.87
+    },
+    {
+      "name": "Lathuile",
+      "kind": "village",
+      "rank": 2,
+      "x": 2233.3,
+      "y": -6315.5,
+      "osm": "node/364402369",
+      "h": 478.39
+    },
+    {
+      "name": "Leschaux",
+      "kind": "village",
+      "rank": 1,
+      "x": -3955.5,
+      "y": -7408.9,
+      "osm": "node/364818090",
+      "h": 940.41
+    },
+    {
+      "name": "Saint-Eustache",
+      "kind": "village",
+      "rank": 1,
+      "x": -2212.5,
+      "y": -4863.7,
+      "osm": "node/364824257",
+      "h": 732.06
+    },
+    {
+      "name": "Entrevernes",
+      "kind": "village",
+      "rank": 2,
+      "x": 960.2,
+      "y": -4827.9,
+      "osm": "node/364825069",
+      "h": 806.8
+    },
+    {
+      "name": "Alex",
+      "kind": "village",
+      "rank": 2,
+      "x": 4732.1,
+      "y": 5473.5,
+      "osm": "node/364966742",
+      "h": 599.75
+    },
+    {
+      "name": "Bluffy",
+      "kind": "village",
+      "rank": 1,
+      "x": 3188.3,
+      "y": 3246,
+      "osm": "node/364968346",
+      "h": 665.96
+    },
+    {
+      "name": "Machevaz",
+      "kind": "village",
+      "rank": 1,
+      "x": -2055.8,
+      "y": -1151.6,
+      "osm": "node/439732389",
+      "h": 497.73
+    },
+    {
+      "name": "Lornard",
+      "kind": "village",
+      "rank": 1,
+      "x": -2380.2,
+      "y": -1671.3,
+      "osm": "node/439765053",
+      "h": 550.62
+    },
+    {
+      "name": "Entredozon",
+      "kind": "village",
+      "rank": 1,
+      "x": -2592.6,
+      "y": -3349.7,
+      "osm": "node/441892797",
+      "h": 600.31
+    },
+    {
+      "name": "Écharvines",
+      "kind": "village",
+      "rank": 1,
+      "x": 2083.8,
+      "y": 1390.8,
+      "osm": "node/459494804",
+      "h": 535.12
+    },
+    {
+      "name": "Perroix",
+      "kind": "village",
+      "rank": 1,
+      "x": 2815.7,
+      "y": 1271.7,
+      "osm": "node/462681832",
+      "h": 571.52
+    },
+    {
+      "name": "Vérel",
+      "kind": "village",
+      "rank": 1,
+      "x": 4367.3,
+      "y": -281,
+      "osm": "node/464758388",
+      "h": 754.15
+    },
+    {
+      "name": "Angon",
+      "kind": "village",
+      "rank": 1,
+      "x": 3519,
+      "y": -1467.4,
+      "osm": "node/466241729",
+      "h": 457.71
+    },
+    {
+      "name": "Rovagny",
+      "kind": "village",
+      "rank": 1,
+      "x": 4704,
+      "y": -1264.3,
+      "osm": "node/466381473",
+      "h": 812.1
+    },
+    {
+      "name": "Ancienne Gare de Téléphérique",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 965.8,
+      "y": 5810.7,
+      "osm": "node/470929724",
+      "h": 1201.87
+    },
+    {
+      "name": "Bois Jettaz",
+      "kind": "village",
+      "rank": 1,
+      "x": -1253.3,
+      "y": 7249.1,
+      "osm": "node/629370583",
+      "h": 458.27
+    },
+    {
+      "name": "Sous les Prés",
+      "kind": "village",
+      "rank": 1,
+      "x": -1612.7,
+      "y": 7899,
+      "osm": "node/629370584",
+      "h": 454.03
+    },
+    {
+      "name": "Les Barattes",
+      "kind": "village",
+      "rank": 1,
+      "x": -1119.5,
+      "y": 8060.3,
+      "osm": "node/629370585",
+      "h": 508.01
+    },
+    {
+      "name": "Montagne d'Entrevernes",
+      "kind": "peak",
+      "rank": 2,
+      "x": 243.3,
+      "y": -4450.8,
+      "osm": "node/726795197",
+      "h": 1308.34
+    },
+    {
+      "name": "Château d'Arenthon",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 4949,
+      "y": 5562.9,
+      "osm": "node/861776392",
+      "h": 592.27
+    },
+    {
+      "name": "Platons",
+      "kind": "village",
+      "rank": 1,
+      "x": 6206.8,
+      "y": -3741.2,
+      "osm": "node/904826582",
+      "h": 1026.55
+    },
+    {
+      "name": "Balmettes",
+      "kind": "village",
+      "rank": 1,
+      "x": 4153.2,
+      "y": -2594.8,
+      "osm": "node/905395550",
+      "h": 463.28
+    },
+    {
+      "name": "Glière",
+      "kind": "village",
+      "rank": 1,
+      "x": 4198.7,
+      "y": -4379.8,
+      "osm": "node/905467737",
+      "h": 467.6
+    },
+    {
+      "name": "Villards dessous",
+      "kind": "village",
+      "rank": 1,
+      "x": 4268.9,
+      "y": 4976.9,
+      "osm": "node/997758522",
+      "h": 684.59
+    },
+    {
+      "name": "Villards dessus",
+      "kind": "village",
+      "rank": 1,
+      "x": 4168,
+      "y": 4522.9,
+      "osm": "node/997759041",
+      "h": 757.01
+    },
+    {
+      "name": "Le Pont",
+      "kind": "village",
+      "rank": 1,
+      "x": 3540.1,
+      "y": 6057.5,
+      "osm": "node/997945963",
+      "h": 556.7
+    },
+    {
+      "name": "Chessenay",
+      "kind": "village",
+      "rank": 1,
+      "x": 4927.4,
+      "y": 6872.5,
+      "osm": "node/997968979",
+      "h": 627.12
+    },
+    {
+      "name": "La Perrière",
+      "kind": "village",
+      "rank": 1,
+      "x": 1800.1,
+      "y": -7361.2,
+      "osm": "node/1381914800",
+      "h": 577.45
+    },
+    {
+      "name": "La Planche",
+      "kind": "village",
+      "rank": 1,
+      "x": 1021.5,
+      "y": -5573.9,
+      "osm": "node/1381914801",
+      "h": 823.05
+    },
+    {
+      "name": "Mont Baret",
+      "kind": "peak",
+      "rank": 2,
+      "x": 1540.7,
+      "y": 5285.6,
+      "osm": "node/1431190781",
+      "h": 1236.64
+    },
+    {
+      "name": "Verthier",
+      "kind": "village",
+      "rank": 1,
+      "x": 4367.2,
+      "y": -5775.5,
+      "osm": "node/1489476557",
+      "h": 460.01
+    },
+    {
+      "name": "Arnand",
+      "kind": "village",
+      "rank": 1,
+      "x": 3637.2,
+      "y": -7919.5,
+      "osm": "node/1495912515",
+      "h": 497.14
+    },
+    {
+      "name": "La Chapelle-Saint-Maurice",
+      "kind": "village",
+      "rank": 2,
+      "x": -2046.3,
+      "y": -6762.6,
+      "osm": "node/1742786259",
+      "h": 938.23
+    },
+    {
+      "name": "La Serraz",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 4282.4,
+      "y": -7905.3,
+      "osm": "node/1811492178",
+      "h": 582.19
+    },
+    {
+      "name": "la Touvière",
+      "kind": "village",
+      "rank": 1,
+      "x": -3752.7,
+      "y": -6336,
+      "osm": "node/2269531749",
+      "h": 935.77
+    },
+    {
+      "name": "Charvex",
+      "kind": "village",
+      "rank": 1,
+      "x": 5577.6,
+      "y": 6479.3,
+      "osm": "node/2284486568",
+      "h": 614.18
+    },
+    {
+      "name": "Ponnay",
+      "kind": "village",
+      "rank": 1,
+      "x": 3978.8,
+      "y": 702.2,
+      "osm": "node/2333079708",
+      "h": 811.68
+    },
+    {
+      "name": "Les Granges",
+      "kind": "village",
+      "rank": 1,
+      "x": 3001.4,
+      "y": 608.3,
+      "osm": "node/3268132688",
+      "h": 555.9
+    },
+    {
+      "name": "Visitation",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -3890.6,
+      "y": 5916.2,
+      "osm": "node/3378482059",
+      "h": 507.5
+    },
+    {
+      "name": "Croix de Sainte-Catherine",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -5017.7,
+      "y": 3631.5,
+      "osm": "node/3523564820",
+      "h": 703.92
+    },
+    {
+      "name": "Belossier",
+      "kind": "village",
+      "rank": 1,
+      "x": 2720.9,
+      "y": 5596,
+      "osm": "node/3742674927",
+      "h": 621.48
+    },
+    {
+      "name": "Frénay",
+      "kind": "village",
+      "rank": 1,
+      "x": 2890.6,
+      "y": 4754.2,
+      "osm": "node/3742674928",
+      "h": 599.14
+    },
+    {
+      "name": "Le Pégny",
+      "kind": "village",
+      "rank": 1,
+      "x": 3000.8,
+      "y": 5140,
+      "osm": "node/3742674929",
+      "h": 589.56
+    },
+    {
+      "name": "Pointe de la Rochette",
+      "kind": "peak",
+      "rank": 2,
+      "x": 5822,
+      "y": -2800.2,
+      "osm": "node/4203002335",
+      "h": 1466.16
+    },
+    {
+      "name": "Les Maisons",
+      "kind": "village",
+      "rank": 1,
+      "x": 1247,
+      "y": -3231.3,
+      "osm": "node/4220352889",
+      "h": 662.29
+    },
+    {
+      "name": "Mont-Bogon",
+      "kind": "village",
+      "rank": 1,
+      "x": 5965.3,
+      "y": -7238.5,
+      "osm": "node/4334399274",
+      "h": 637.45
+    },
+    {
+      "name": "la Pierre",
+      "kind": "village",
+      "rank": 1,
+      "x": -2032.1,
+      "y": -6048.7,
+      "osm": "node/4374710628",
+      "h": 913.3
+    },
+    {
+      "name": "Pointe Nord",
+      "kind": "peak",
+      "rank": 1,
+      "x": 4985.5,
+      "y": 2937.2,
+      "osm": "node/4461409489",
+      "h": 1594.16
+    },
+    {
+      "name": "Site sublacustre du Petit Port",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -1702.2,
+      "y": 7243,
+      "osm": "node/4963548708",
+      "h": 445.5
+    },
+    {
+      "name": "Puget",
+      "kind": "village",
+      "rank": 1,
+      "x": -1276.4,
+      "y": -3949.8,
+      "osm": "node/5061698944",
+      "h": 795.98
+    },
+    {
+      "name": "Belvédère du Col du Pré Vernet",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -507.3,
+      "y": 7626.9,
+      "osm": "node/5076006294",
+      "h": 920.39
+    },
+    {
+      "name": "Site palafittique des Marais",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 478,
+      "y": -500.2,
+      "osm": "node/5205047180",
+      "h": 445.5
+    },
+    {
+      "name": "Site palafittique du Crêt de Chatillon",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -1646.8,
+      "y": 2298.8,
+      "osm": "node/5205067587",
+      "h": 445.5
+    },
+    {
+      "name": "Site palafittique des Mongets",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -1971.9,
+      "y": 1505.8,
+      "osm": "node/5205083064",
+      "h": 445.9
+    },
+    {
+      "name": "Site archéologique du Pâquier",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -2928.4,
+      "y": 6947.9,
+      "osm": "node/5207293467",
+      "h": 445.5
+    },
+    {
+      "name": "Rocher du Roux",
+      "kind": "peak",
+      "rank": 2,
+      "x": 6171.4,
+      "y": -1544.6,
+      "osm": "node/5274924911",
+      "h": 1539.53
+    },
+    {
+      "name": "Chez Charrot",
+      "kind": "village",
+      "rank": 1,
+      "x": 2021.8,
+      "y": -5525,
+      "osm": "node/5516762228",
+      "h": 486.69
+    },
+    {
+      "name": "Mont Baron",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 717.6,
+      "y": 6346.8,
+      "osm": "node/5566438061",
+      "h": 1237.51
+    },
+    {
+      "name": "Table d'orientation",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 79.4,
+      "y": 4677.5,
+      "osm": "node/5615088709",
+      "h": 486.05
+    },
+    {
+      "name": "Belvédère de la Crête",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 2144.1,
+      "y": 454.7,
+      "osm": "node/5682563892",
+      "h": 643.27
+    },
+    {
+      "name": "Pointe Sud",
+      "kind": "peak",
+      "rank": 1,
+      "x": 5185.7,
+      "y": 1895.3,
+      "osm": "node/5813362667",
+      "h": 1610.04
+    },
+    {
+      "name": "Belvédère du Rochet Chenalet",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 5723,
+      "y": -5429.7,
+      "osm": "node/6442363222",
+      "h": 1175.47
+    },
+    {
+      "name": "Pointe de Chenevier",
+      "kind": "peak",
+      "rank": 2,
+      "x": 5662.7,
+      "y": -4560.5,
+      "osm": "node/6442363247",
+      "h": 1281.93
+    },
+    {
+      "name": "Crêt de Tertère",
+      "kind": "peak",
+      "rank": 2,
+      "x": -5007.7,
+      "y": -3834.8,
+      "osm": "node/7304589574",
+      "h": 1628.48
+    },
+    {
+      "name": "Chavoire",
+      "kind": "village",
+      "rank": 1,
+      "x": -785.9,
+      "y": 6203.3,
+      "osm": "node/7703220988",
+      "h": 468.02
+    },
+    {
+      "name": "Belvédère du Bois des Hêtres",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 4469.9,
+      "y": -1980.6,
+      "osm": "node/7750372457",
+      "h": 860.26
+    },
+    {
+      "name": "Belvédère des Gélinottes",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -4045.6,
+      "y": 4318.5,
+      "osm": "node/7857208513",
+      "h": 787.09
+    },
+    {
+      "name": "La Combe",
+      "kind": "village",
+      "rank": 1,
+      "x": -3159.7,
+      "y": 2389.3,
+      "osm": "node/7865669304",
+      "h": 527.56
+    },
+    {
+      "name": "Le Clos",
+      "kind": "village",
+      "rank": 1,
+      "x": -3147.5,
+      "y": 1813.7,
+      "osm": "node/7865669326",
+      "h": 526.91
+    },
+    {
+      "name": "Belvédère de Bénévent",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -4288.6,
+      "y": -2929.7,
+      "osm": "node/7920746791",
+      "h": 1313.87
+    },
+    {
+      "name": "Belvédère du Sentier du Planay",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -4674,
+      "y": -3542,
+      "osm": "node/8176111854",
+      "h": 1481.08
+    },
+    {
+      "name": "Temple de l'église réformée de France",
+      "kind": "church",
+      "rank": 2,
+      "x": -4178.4,
+      "y": 6935.5,
+      "osm": "node/8519954375",
+      "h": 455.28
+    },
+    {
+      "name": "Balcon des Bossons",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 3539.7,
+      "y": 2458.5,
+      "osm": "node/8596036085",
+      "h": 870.88
+    },
+    {
+      "name": "Le Promontoire",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -4121,
+      "y": 4772.9,
+      "osm": "node/8631711296",
+      "h": 666.39
+    },
+    {
+      "name": "Belvédère du Crêt des Bruyères",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -4272.2,
+      "y": 3950,
+      "osm": "node/8665059576",
+      "h": 809.76
+    },
+    {
+      "name": "Crêt de la Grande Danne",
+      "kind": "peak",
+      "rank": 1,
+      "x": -5289,
+      "y": -3070.5,
+      "osm": "node/8809440765",
+      "h": 1530.85
+    },
+    {
+      "name": "Crêt de Lally",
+      "kind": "peak",
+      "rank": 1,
+      "x": -438,
+      "y": -7266.5,
+      "osm": "node/8828179194",
+      "h": 1563.36
+    },
+    {
+      "name": "le Cruet",
+      "kind": "village",
+      "rank": 1,
+      "x": -1500.7,
+      "y": -4535,
+      "osm": "node/9238563329",
+      "h": 756.61
+    },
+    {
+      "name": "la Magne",
+      "kind": "village",
+      "rank": 1,
+      "x": -936.4,
+      "y": -4163.7,
+      "osm": "node/9238563330",
+      "h": 847.29
+    },
+    {
+      "name": "Drand",
+      "kind": "village",
+      "rank": 1,
+      "x": -1666.8,
+      "y": -4108.1,
+      "osm": "node/9238563331",
+      "h": 744.27
+    },
+    {
+      "name": "Crêt du Bourg",
+      "kind": "peak",
+      "rank": 1,
+      "x": 1810.7,
+      "y": -2756.4,
+      "osm": "node/9677843988",
+      "h": 730.11
+    },
+    {
+      "name": "Crêt des Sauts",
+      "kind": "peak",
+      "rank": 1,
+      "x": -5093.1,
+      "y": -1663,
+      "osm": "node/9677843989",
+      "h": 1387.12
+    },
+    {
+      "name": "Crêt de Bénévent",
+      "kind": "peak",
+      "rank": 1,
+      "x": -5238.8,
+      "y": -1952.9,
+      "osm": "node/9677843990",
+      "h": 1392.33
+    },
+    {
+      "name": "Cornet",
+      "kind": "village",
+      "rank": 1,
+      "x": 4275.7,
+      "y": 8027.4,
+      "osm": "node/9682585553",
+      "h": 743.28
+    },
+    {
+      "name": "Provenat",
+      "kind": "village",
+      "rank": 1,
+      "x": 3874.2,
+      "y": 7444.9,
+      "osm": "node/9682585556",
+      "h": 611.54
+    },
+    {
+      "name": "La Grange à Lagray",
+      "kind": "village",
+      "rank": 1,
+      "x": 4285.9,
+      "y": 7237,
+      "osm": "node/9682585560",
+      "h": 636.73
+    },
+    {
+      "name": "Les Teppes",
+      "kind": "village",
+      "rank": 1,
+      "x": 4270,
+      "y": 5750.5,
+      "osm": "node/9682585569",
+      "h": 570.07
+    },
+    {
+      "name": "Le Mat Ouest",
+      "kind": "village",
+      "rank": 1,
+      "x": 4425.2,
+      "y": 5276.7,
+      "osm": "node/9682585571",
+      "h": 628.34
+    },
+    {
+      "name": "Les Devins",
+      "kind": "village",
+      "rank": 1,
+      "x": 4731.7,
+      "y": 5188.1,
+      "osm": "node/9682585572",
+      "h": 610.41
+    },
+    {
+      "name": "Les Lovins",
+      "kind": "village",
+      "rank": 1,
+      "x": 3334,
+      "y": 6346,
+      "osm": "node/9682585575",
+      "h": 549.15
+    },
+    {
+      "name": "Sur les Luzes",
+      "kind": "village",
+      "rank": 1,
+      "x": 3127.8,
+      "y": 3929.5,
+      "osm": "node/9682585579",
+      "h": 651.16
+    },
+    {
+      "name": "Le Platon",
+      "kind": "village",
+      "rank": 1,
+      "x": 3241,
+      "y": 3583,
+      "osm": "node/9682585580",
+      "h": 676.22
+    },
+    {
+      "name": "Les Pénoz",
+      "kind": "village",
+      "rank": 1,
+      "x": 2619.5,
+      "y": 3780.5,
+      "osm": "node/9682585583",
+      "h": 642.11
+    },
+    {
+      "name": "Chez Coffy",
+      "kind": "village",
+      "rank": 1,
+      "x": 2718.5,
+      "y": 2898,
+      "osm": "node/9682585585",
+      "h": 600.89
+    },
+    {
+      "name": "Le Bosson",
+      "kind": "village",
+      "rank": 1,
+      "x": 3008.9,
+      "y": 2198.4,
+      "osm": "node/9682585588",
+      "h": 697.03
+    },
+    {
+      "name": "Ramponnet",
+      "kind": "village",
+      "rank": 1,
+      "x": 2192.5,
+      "y": 2053.5,
+      "osm": "node/9682698802",
+      "h": 534.02
+    },
+    {
+      "name": "Le Carroz",
+      "kind": "village",
+      "rank": 1,
+      "x": 1851.2,
+      "y": 2081.3,
+      "osm": "node/9682698803",
+      "h": 512.53
+    },
+    {
+      "name": "Les Choseaux",
+      "kind": "village",
+      "rank": 1,
+      "x": 1388.1,
+      "y": 2037.6,
+      "osm": "node/9682698804",
+      "h": 473.56
+    },
+    {
+      "name": "Les Moulins",
+      "kind": "village",
+      "rank": 1,
+      "x": 1680.4,
+      "y": 2692.5,
+      "osm": "node/9682698805",
+      "h": 513.11
+    },
+    {
+      "name": "Presles",
+      "kind": "village",
+      "rank": 1,
+      "x": 1017.9,
+      "y": 2850.5,
+      "osm": "node/9682698806",
+      "h": 479.12
+    },
+    {
+      "name": "Montpellaz",
+      "kind": "village",
+      "rank": 1,
+      "x": 896.5,
+      "y": 3364.6,
+      "osm": "node/9682698807",
+      "h": 540.1
+    },
+    {
+      "name": "Crêt des Vignes",
+      "kind": "village",
+      "rank": 1,
+      "x": 487.3,
+      "y": 3323.4,
+      "osm": "node/9682698808",
+      "h": 458.89
+    },
+    {
+      "name": "Morat",
+      "kind": "village",
+      "rank": 1,
+      "x": 649.9,
+      "y": 3930.5,
+      "osm": "node/9682698812",
+      "h": 531.28
+    },
+    {
+      "name": "Les Champs",
+      "kind": "village",
+      "rank": 1,
+      "x": -119.1,
+      "y": 5513.7,
+      "osm": "node/9682698814",
+      "h": 507.87
+    },
+    {
+      "name": "Pensières",
+      "kind": "village",
+      "rank": 1,
+      "x": -516.1,
+      "y": 6002.4,
+      "osm": "node/9682698815",
+      "h": 499.17
+    },
+    {
+      "name": "Le Vivier",
+      "kind": "village",
+      "rank": 1,
+      "x": 3171.2,
+      "y": -410,
+      "osm": "node/9682710233",
+      "h": 472.25
+    },
+    {
+      "name": "La Sauffaz",
+      "kind": "village",
+      "rank": 1,
+      "x": 5046.5,
+      "y": -398.4,
+      "osm": "node/9682710235",
+      "h": 842.69
+    },
+    {
+      "name": "Les Mouilles",
+      "kind": "village",
+      "rank": 1,
+      "x": 4476.2,
+      "y": -1124.4,
+      "osm": "node/9682710237",
+      "h": 766.19
+    },
+    {
+      "name": "La Bernade",
+      "kind": "village",
+      "rank": 1,
+      "x": 4262.7,
+      "y": -5538,
+      "osm": "node/9682710241",
+      "h": 454.28
+    },
+    {
+      "name": "Sollier",
+      "kind": "village",
+      "rank": 1,
+      "x": 4856.5,
+      "y": -6556.2,
+      "osm": "node/9682710249",
+      "h": 462.84
+    },
+    {
+      "name": "La Nublière",
+      "kind": "village",
+      "rank": 1,
+      "x": 3221.3,
+      "y": -5297.3,
+      "osm": "node/9682710252",
+      "h": 447.91
+    },
+    {
+      "name": "Marceau-Dessus",
+      "kind": "village",
+      "rank": 1,
+      "x": 2503.5,
+      "y": -8013.5,
+      "osm": "node/9682710256",
+      "h": 543.19
+    },
+    {
+      "name": "Marceau",
+      "kind": "village",
+      "rank": 1,
+      "x": 2459.9,
+      "y": -7666.3,
+      "osm": "node/9682710257",
+      "h": 518.9
+    },
+    {
+      "name": "Marceau-Dessous",
+      "kind": "village",
+      "rank": 1,
+      "x": 2340,
+      "y": -7316.7,
+      "osm": "node/9682710259",
+      "h": 496.13
+    },
+    {
+      "name": "Les Chevilly",
+      "kind": "village",
+      "rank": 1,
+      "x": 2114.8,
+      "y": -5832.2,
+      "osm": "node/9682710261",
+      "h": 471.21
+    },
+    {
+      "name": "Chaparon",
+      "kind": "village",
+      "rank": 1,
+      "x": 2286.2,
+      "y": -4494.3,
+      "osm": "node/9682710262",
+      "h": 484.11
+    },
+    {
+      "name": "La Vallière",
+      "kind": "village",
+      "rank": 1,
+      "x": 2500.5,
+      "y": -4202.3,
+      "osm": "node/9682710263",
+      "h": 465.63
+    },
+    {
+      "name": "Le Crêt",
+      "kind": "village",
+      "rank": 1,
+      "x": 2550,
+      "y": -4570.3,
+      "osm": "node/9682710264",
+      "h": 463.27
+    },
+    {
+      "name": "La Ravoire",
+      "kind": "village",
+      "rank": 1,
+      "x": 2755.3,
+      "y": -4337.5,
+      "osm": "node/9682710265",
+      "h": 453.5
+    },
+    {
+      "name": "Mont Gerbet",
+      "kind": "village",
+      "rank": 1,
+      "x": 1903.8,
+      "y": -1707.6,
+      "osm": "node/9682710267",
+      "h": 475.49
+    },
+    {
+      "name": "D'Héré",
+      "kind": "village",
+      "rank": 1,
+      "x": 1623.5,
+      "y": -1850.8,
+      "osm": "node/9682760336",
+      "h": 483.44
+    },
+    {
+      "name": "Les Perris",
+      "kind": "village",
+      "rank": 1,
+      "x": 1139.7,
+      "y": -1610.3,
+      "osm": "node/9682760337",
+      "h": 457.94
+    },
+    {
+      "name": "Les Sources",
+      "kind": "village",
+      "rank": 1,
+      "x": 575.7,
+      "y": -2036.3,
+      "osm": "node/9682760339",
+      "h": 487.66
+    },
+    {
+      "name": "Fargy",
+      "kind": "village",
+      "rank": 1,
+      "x": 784.2,
+      "y": -2138.7,
+      "osm": "node/9682760340",
+      "h": 486.53
+    },
+    {
+      "name": "Magnonnet",
+      "kind": "village",
+      "rank": 1,
+      "x": 836.9,
+      "y": -1797.4,
+      "osm": "node/9682760342",
+      "h": 471.09
+    },
+    {
+      "name": "Le Clus",
+      "kind": "village",
+      "rank": 1,
+      "x": 1418.8,
+      "y": -2355.5,
+      "osm": "node/9682760343",
+      "h": 599.46
+    },
+    {
+      "name": "Borny",
+      "kind": "village",
+      "rank": 1,
+      "x": -2392.6,
+      "y": -7211.8,
+      "osm": "node/9682760371",
+      "h": 931.51
+    },
+    {
+      "name": "Combarut",
+      "kind": "village",
+      "rank": 1,
+      "x": -1926.3,
+      "y": -4217.9,
+      "osm": "node/9682760378",
+      "h": 710.99
+    },
+    {
+      "name": "Patérier",
+      "kind": "village",
+      "rank": 1,
+      "x": -1313.5,
+      "y": -3568.2,
+      "osm": "node/9682760380",
+      "h": 756.47
+    },
+    {
+      "name": "La Rive",
+      "kind": "village",
+      "rank": 1,
+      "x": -300,
+      "y": -2397.3,
+      "osm": "node/9682760386",
+      "h": 621.3
+    },
+    {
+      "name": "Les Rosières",
+      "kind": "village",
+      "rank": 1,
+      "x": 66.9,
+      "y": -2260.4,
+      "osm": "node/9682760387",
+      "h": 544.98
+    },
+    {
+      "name": "Le Fournet",
+      "kind": "village",
+      "rank": 1,
+      "x": -2112.6,
+      "y": -1816.5,
+      "osm": "node/9682760390",
+      "h": 503.81
+    },
+    {
+      "name": "Le Crêtoux",
+      "kind": "village",
+      "rank": 1,
+      "x": -2198.8,
+      "y": -2438.9,
+      "osm": "node/9682760391",
+      "h": 551.86
+    },
+    {
+      "name": "Cublier",
+      "kind": "village",
+      "rank": 1,
+      "x": -2471.1,
+      "y": -3001.4,
+      "osm": "node/9682760393",
+      "h": 567.34
+    },
+    {
+      "name": "Morset",
+      "kind": "village",
+      "rank": 1,
+      "x": -2805.9,
+      "y": -3127.8,
+      "osm": "node/9682760394",
+      "h": 629.45
+    },
+    {
+      "name": "Charmette",
+      "kind": "village",
+      "rank": 1,
+      "x": -2884.6,
+      "y": -3399.8,
+      "osm": "node/9682760395",
+      "h": 646.8
+    },
+    {
+      "name": "Cessenaz",
+      "kind": "village",
+      "rank": 1,
+      "x": -2289.5,
+      "y": 72.9,
+      "osm": "node/9682890412",
+      "h": 478.1
+    },
+    {
+      "name": "Le Bouffard",
+      "kind": "village",
+      "rank": 1,
+      "x": -2660.3,
+      "y": -147.6,
+      "osm": "node/9682890413",
+      "h": 558.46
+    },
+    {
+      "name": "Piron",
+      "kind": "village",
+      "rank": 1,
+      "x": -1659.1,
+      "y": 579.1,
+      "osm": "node/9682937013",
+      "h": 449.66
+    },
+    {
+      "name": "Le Brouillet",
+      "kind": "village",
+      "rank": 1,
+      "x": -2193.7,
+      "y": 904.8,
+      "osm": "node/9682937014",
+      "h": 457
+    },
+    {
+      "name": "Les Mongets",
+      "kind": "village",
+      "rank": 1,
+      "x": -1960.2,
+      "y": 1183.9,
+      "osm": "node/9682937015",
+      "h": 448.02
+    },
+    {
+      "name": "Avellard",
+      "kind": "village",
+      "rank": 1,
+      "x": -3015.2,
+      "y": 676.6,
+      "osm": "node/9682938417",
+      "h": 538.39
+    },
+    {
+      "name": "Sur Avellard",
+      "kind": "village",
+      "rank": 1,
+      "x": -2831.2,
+      "y": 463.8,
+      "osm": "node/9682938418",
+      "h": 528.73
+    },
+    {
+      "name": "Les Avollions",
+      "kind": "village",
+      "rank": 1,
+      "x": -2561.4,
+      "y": 3082.5,
+      "osm": "node/9682938435",
+      "h": 447.31
+    },
+    {
+      "name": "Létraz",
+      "kind": "village",
+      "rank": 1,
+      "x": -2760.2,
+      "y": 3822.2,
+      "osm": "node/9682938436",
+      "h": 453.79
+    },
+    {
+      "name": "La Quintal",
+      "kind": "village",
+      "rank": 1,
+      "x": -2991.3,
+      "y": 3098.3,
+      "osm": "node/9682938437",
+      "h": 488.57
+    },
+    {
+      "name": "Chuguet",
+      "kind": "village",
+      "rank": 1,
+      "x": -2777.1,
+      "y": 4111.3,
+      "osm": "node/9682938461",
+      "h": 462.52
+    },
+    {
+      "name": "Le Bessard",
+      "kind": "village",
+      "rank": 1,
+      "x": -2704.7,
+      "y": 4259.4,
+      "osm": "node/9682938462",
+      "h": 458.79
+    },
+    {
+      "name": "Beau Rivage",
+      "kind": "village",
+      "rank": 1,
+      "x": -2684,
+      "y": 4809.1,
+      "osm": "node/9682938463",
+      "h": 449.92
+    },
+    {
+      "name": "La Puya",
+      "kind": "village",
+      "rank": 1,
+      "x": -2934.7,
+      "y": 5606.9,
+      "osm": "node/9682938465",
+      "h": 458.14
+    },
+    {
+      "name": "Les Espagnoux",
+      "kind": "village",
+      "rank": 1,
+      "x": -2891.2,
+      "y": 4983.6,
+      "osm": "node/9682938467",
+      "h": 538.41
+    },
+    {
+      "name": "La Petite Jeanne",
+      "kind": "village",
+      "rank": 1,
+      "x": -3513.8,
+      "y": 5558.7,
+      "osm": "node/9682938469",
+      "h": 550.27
+    },
+    {
+      "name": "Les Balmettes",
+      "kind": "village",
+      "rank": 1,
+      "x": -4215.5,
+      "y": 6191.1,
+      "osm": "node/9682938471",
+      "h": 450.03
+    },
+    {
+      "name": "Les Molasses",
+      "kind": "village",
+      "rank": 1,
+      "x": -4846.4,
+      "y": 5980.4,
+      "osm": "node/9682938472",
+      "h": 450.4
+    },
+    {
+      "name": "Lanfonnet",
+      "kind": "peak",
+      "rank": 2,
+      "x": 6026.6,
+      "y": 1174.6,
+      "osm": "node/10013803883",
+      "h": 1728.33
+    },
+    {
+      "name": "Mont Rampon",
+      "kind": "peak",
+      "rank": 2,
+      "x": -393.3,
+      "y": 7685.9,
+      "osm": "node/10082886635",
+      "h": 952.88
+    },
+    {
+      "name": "Chapeau de Napoléon",
+      "kind": "peak",
+      "rank": 2,
+      "x": 925.5,
+      "y": 5260.7,
+      "osm": "node/10298761317",
+      "h": 1030.6
+    },
+    {
+      "name": "Mamelon de Beauregard",
+      "kind": "peak",
+      "rank": 1,
+      "x": 1472.7,
+      "y": 4289.3,
+      "osm": "node/10606607001",
+      "h": 1201.49
+    },
+    {
+      "name": "Panorama de l'Oratoire",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 1266.9,
+      "y": -5976.7,
+      "osm": "node/10697624170",
+      "h": 842.74
+    },
+    {
+      "name": "Vue panoramique sur Annecy",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -3868.9,
+      "y": 6461.7,
+      "osm": "node/11096911905",
+      "h": 469.08
+    },
+    {
+      "name": "Le Thoron",
+      "kind": "peak",
+      "rank": 1,
+      "x": 2508,
+      "y": 662.7,
+      "osm": "node/11478982605",
+      "h": 598.94
+    },
+    {
+      "name": "Roc de Chère",
+      "kind": "peak",
+      "rank": 1,
+      "x": 2177.5,
+      "y": 595.6,
+      "osm": "node/12966527106",
+      "h": 654.39
+    },
+    {
+      "name": "Montagne du Villard",
+      "kind": "peak",
+      "rank": 1,
+      "x": 5544.4,
+      "y": -7135,
+      "osm": "node/13071694518",
+      "h": 760.05
+    },
+    {
+      "name": "Site palafittique du Roselet",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 2293.9,
+      "y": -647.4,
+      "osm": "node/13519247719",
+      "h": 445.5
+    },
+    {
+      "name": "Site palafittique du marais de l'Enfer I",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -1295.6,
+      "y": 730.2,
+      "osm": "node/13519247726",
+      "h": 445.5
+    },
+    {
+      "name": "Château d'Annecy",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -3919.6,
+      "y": 6431.1,
+      "osm": "way/24980106",
+      "h": 477.42
+    },
+    {
+      "name": "Église Notre-Dame-de-Liesse",
+      "kind": "church",
+      "rank": 2,
+      "x": -3981.8,
+      "y": 6709,
+      "osm": "way/25010156",
+      "h": 454.78
+    },
+    {
+      "name": "Église Saint-Maurice",
+      "kind": "church",
+      "rank": 2,
+      "x": -3787.5,
+      "y": 6628.4,
+      "osm": "way/25048304",
+      "h": 448.02
+    },
+    {
+      "name": "Église Saint-François-de-Sales",
+      "kind": "church",
+      "rank": 2,
+      "x": -3754.3,
+      "y": 6558.2,
+      "osm": "way/25048738",
+      "h": 447.71
+    },
+    {
+      "name": "L'Impérial",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -2489.6,
+      "y": 7101.7,
+      "osm": "way/26184736",
+      "h": 456.34
+    },
+    {
+      "name": "Basilique Saint-Joseph-des-Fins",
+      "kind": "church",
+      "rank": 2,
+      "x": -4050.4,
+      "y": 8061.5,
+      "osm": "way/34420368",
+      "h": 457.7
+    },
+    {
+      "name": "Église Sainte-Bernadette",
+      "kind": "church",
+      "rank": 2,
+      "x": -2609,
+      "y": 7367.9,
+      "osm": "way/35784967",
+      "h": 450.99
+    },
+    {
+      "name": "Château de Duingt",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 2276.7,
+      "y": -923.3,
+      "osm": "way/37041152",
+      "h": 460.7
+    },
+    {
+      "name": "Palais de l'Isle",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -3855.8,
+      "y": 6545.2,
+      "osm": "way/37205550",
+      "h": 447.72
+    },
+    {
+      "name": "Maison Lambert",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -3994.1,
+      "y": 6586.8,
+      "osm": "way/37255837",
+      "h": 452.78
+    },
+    {
+      "name": "Chapelle des Capucins",
+      "kind": "church",
+      "rank": 2,
+      "x": -4391.3,
+      "y": 7271.4,
+      "osm": "way/37389941",
+      "h": 454.37
+    },
+    {
+      "name": "Porte Sainte-Claire",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -4123.8,
+      "y": 6479.7,
+      "osm": "way/40353272",
+      "h": 457.67
+    },
+    {
+      "name": "Château de Trésum",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -3521.6,
+      "y": 5970.8,
+      "osm": "way/40950917",
+      "h": 486.62
+    },
+    {
+      "name": "Chapelle de Colmyr",
+      "kind": "church",
+      "rank": 2,
+      "x": -2891,
+      "y": 5569.3,
+      "osm": "way/41019744",
+      "h": 484.47
+    },
+    {
+      "name": "Église du Sacré-Coeur de Mosinges",
+      "kind": "church",
+      "rank": 2,
+      "x": -5227.6,
+      "y": 7566.9,
+      "osm": "way/62649524",
+      "h": 448.76
+    },
+    {
+      "name": "Église Saint-Étienne-du-Pont-Neuf",
+      "kind": "church",
+      "rank": 2,
+      "x": -4810.4,
+      "y": 6380,
+      "osm": "way/62655957",
+      "h": 450.33
+    },
+    {
+      "name": "Château de Fésigny",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 176.9,
+      "y": 5008.1,
+      "osm": "way/62953746",
+      "h": 513.31
+    },
+    {
+      "name": "Église Saint-Bernard",
+      "kind": "church",
+      "rank": 2,
+      "x": 1483.4,
+      "y": 2221.1,
+      "osm": "way/62965771",
+      "h": 484.25
+    },
+    {
+      "name": "Chapelle Notre-Dame-des-Grâces",
+      "kind": "church",
+      "rank": 2,
+      "x": 2266.1,
+      "y": 2015,
+      "osm": "way/62969012",
+      "h": 542.61
+    },
+    {
+      "name": "Église Saint-Pierre-et-Saint-Paul",
+      "kind": "church",
+      "rank": 2,
+      "x": 949.3,
+      "y": -4784.6,
+      "osm": "way/70541720",
+      "h": 810.67
+    },
+    {
+      "name": "Château de Dhéré",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 1627.5,
+      "y": -1775.1,
+      "osm": "way/70556735",
+      "h": 477.67
+    },
+    {
+      "name": "Église Saint-Germain",
+      "kind": "church",
+      "rank": 2,
+      "x": 2008.7,
+      "y": -1372,
+      "osm": "way/70557072",
+      "h": 448.39
+    },
+    {
+      "name": "Église Saint-Blaise",
+      "kind": "church",
+      "rank": 2,
+      "x": -2652.7,
+      "y": 2669.9,
+      "osm": "way/70568125",
+      "h": 460.02
+    },
+    {
+      "name": "Chapelle Saint-François-de-Sales",
+      "kind": "church",
+      "rank": 2,
+      "x": -2826.4,
+      "y": 3862.8,
+      "osm": "way/70569199",
+      "h": 458.49
+    },
+    {
+      "name": "Ermitage Saint-Germain",
+      "kind": "church",
+      "rank": 2,
+      "x": 3581.8,
+      "y": 281,
+      "osm": "way/70581109",
+      "h": 722.29
+    },
+    {
+      "name": "Église Saint-Nicolas",
+      "kind": "church",
+      "rank": 2,
+      "x": -1193.5,
+      "y": -902.7,
+      "osm": "way/70598881",
+      "h": 471.2
+    },
+    {
+      "name": "Église Saint-Pierre et Saint-Paul",
+      "kind": "church",
+      "rank": 2,
+      "x": 3260.2,
+      "y": 3245.4,
+      "osm": "way/74070899",
+      "h": 681.3
+    },
+    {
+      "name": "Église de la Nativité-de-Marie",
+      "kind": "church",
+      "rank": 2,
+      "x": 4749.2,
+      "y": 5546.2,
+      "osm": "way/74074817",
+      "h": 593.1
+    },
+    {
+      "name": "Église Saint-Ours",
+      "kind": "church",
+      "rank": 2,
+      "x": 2008,
+      "y": -6419.6,
+      "osm": "way/74093425",
+      "h": 505.91
+    },
+    {
+      "name": "Église Saint-Eustache",
+      "kind": "church",
+      "rank": 2,
+      "x": -2183.2,
+      "y": -4885.3,
+      "osm": "way/74094864",
+      "h": 732.7
+    },
+    {
+      "name": "Église Saint-Étienne",
+      "kind": "church",
+      "rank": 2,
+      "x": 3458,
+      "y": 7811.4,
+      "osm": "way/74158503",
+      "h": 600.74
+    },
+    {
+      "name": "Chapelle Saint-Clair",
+      "kind": "church",
+      "rank": 2,
+      "x": 2121.5,
+      "y": 7808.4,
+      "osm": "way/74158522",
+      "h": 574.66
+    },
+    {
+      "name": "Église Saint-Jean-Baptiste",
+      "kind": "church",
+      "rank": 2,
+      "x": -4200.3,
+      "y": -7889.4,
+      "osm": "way/233246392",
+      "h": 935.67
+    },
+    {
+      "name": "Cathédrale Saint-Pierre",
+      "kind": "church",
+      "rank": 2,
+      "x": -3975.5,
+      "y": 6625.8,
+      "osm": "way/428016960",
+      "h": 456.33
+    },
+    {
+      "name": "Basilique de la Visitation",
+      "kind": "church",
+      "rank": 2,
+      "x": -3808.8,
+      "y": 5875,
+      "osm": "relation/21373069",
+      "h": 520.9
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-lake-annecy",
+      "name": "Lake Annecy",
+      "lengthM": 16914.1,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.24
+    }
+  ],
+  "stats": {
+    "roads": 14090,
+    "waterAreas": 43,
+    "waterLines": 694,
+    "landcoverAreas": 1122,
+    "buildings": 27786,
+    "buildingVertices": 178936,
+    "buildings:suburb": 25530,
+    "buildings:old-town": 771,
+    "buildings:rural": 571,
+    "buildings:industrial": 914,
+    "trees": 320000,
+    "trees:broadleaf": 211984,
+    "trees:conifer": 66406,
+    "trees:scrub": 321,
+    "trees:olive": 47,
+    "trees:park": 375,
+    "trees:cypress": 526,
+    "trees:riparian": 15196,
+    "trees:hedgerow": 2519,
+    "trees:garden": 22626,
+    "pois": 222,
+    "carvedNodes": 13637,
+    "bridgeDecks": 244,
+    "bridgePiers": 32
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "ign-rge-alti",
+      "name": "RGE ALTI®, IGN digital terrain model, bare earth, along the routes",
+      "licence": "Licence Ouverte / Open Licence 2.0 (Etalab); averaged to the world grid",
+      "url": "https://cartes.gouv.fr/rechercher-une-donnee/dataset/IGNF_RGE-ALTI",
+      "attribution": "Contains RGE ALTI® data © IGN (Institut national de l’information géographique et forestière), as served by the Géoplateforme"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-lake-annecy",
+      "name": "Lake Annecy: OSRM bike route through 4 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/6.13,45.8978;6.144,45.864;6.20158,45.82652;6.22281,45.78472?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "ae7601b20d7987d227e96e6e4b348cb76b76e80c1b742c0128620940ae48ef50",
+    "osmDate": "2026-11-10T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 1,
+    "bridges": true,
+    "bareGround": "ign-rge-alti"
+  }
+}

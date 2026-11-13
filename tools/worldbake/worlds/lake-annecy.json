@@ -1,0 +1,87 @@
+{
+  "id": "lake-annecy",
+  "name": "Lake Annecy",
+  "description": "The west-shore greenway of Lake Annecy, on the old railway from Annecy past Sévrier and Saint-Jorioz to Duingt and Doussard, the mountains of the Bauges and the Tournette across the lake.",
+  "origin": {
+    "lat": 45.8397,
+    "lon": 6.1767
+  },
+  "grid": {
+    "xMin": -5300,
+    "yMax": 8100,
+    "cellSize": 12,
+    "cols": 961,
+    "rows": 1350
+  },
+  "dem": {
+    "source": "copernicus-glo30"
+  },
+  "osmDate": "2026-11-10T00:00:00Z",
+  "routes": [
+    "scenic-lake-annecy"
+  ],
+  "host": "remote",
+  "routeCredits": true,
+  "bridges": true,
+  "osmExclude": [
+    1028895409
+  ],
+  "bareGround": {
+    "source": "ign-rge-alti"
+  },
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 300,
+    "offsetMeanM": 1200,
+    "coreCells": 1.5,
+    "falloffM": 40,
+    "embankment": {
+      "maxM": 1
+    },
+    "spanStructures": true
+  },
+  "vegetation": {
+    "seed": 45840,
+    "maxInstances": 320000,
+    "spacingM": {
+      "forest": 11,
+      "wood": 11,
+      "scrub": 16,
+      "orchard": 7,
+      "park": 20
+    },
+    "character": {
+      "gardenKeep": 0.35,
+      "riparianM": 30
+    }
+  },
+  "moods": [
+    "clear-afternoon",
+    "clear-noon",
+    "golden-hour",
+    "overcast",
+    "valley-fog"
+  ],
+  "defaultMood": "clear-afternoon",
+  "validation": {
+    "sample_seed": 45840,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "copernicus-glo30",
+    "terrain_class": "mountain",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.4548,
+    "floor_source": "copernicus-glo30-cog/lugano-t_045a5081",
+    "floor_rms_m": 1.71,
+    "own_error_allowance_m": 6,
+    "bound_m": 6.24,
+    "registered_rms_m": 2.4,
+    "point_rms_m": 16.34,
+    "max_abs_registered_err_m": 12.64,
+    "pass": true
+  }
+}
