@@ -1,0 +1,78 @@
+{
+  "id": "hangzhou-west-lake",
+  "name": "Hangzhou",
+  "description": "Round West Lake in Hangzhou on the lakeshore roads and the Yanggong causeway, from the Broken Bridge on Beishan Street past Leifeng Pagoda and back along Hubin Road.",
+  "origin": {
+    "lat": 30.2462,
+    "lon": 120.145
+  },
+  "grid": {
+    "xMin": -3400,
+    "yMax": 3500,
+    "cellSize": 12,
+    "cols": 562,
+    "rows": 580
+  },
+  "dem": {
+    "source": "copernicus-glo30"
+  },
+  "osmDate": "2026-11-10T00:00:00Z",
+  "routes": [
+    "scenic-hangzhou-west-lake"
+  ],
+  "host": "remote",
+  "routeCredits": true,
+  "bridges": true,
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 400,
+    "offsetMeanM": 1600,
+    "coreCells": 1.5,
+    "falloffM": 40,
+    "spanStructures": true
+  },
+  "vegetation": {
+    "seed": 30246,
+    "maxInstances": 320000,
+    "spacingM": {
+      "forest": 11,
+      "wood": 11,
+      "scrub": 16,
+      "orchard": 7,
+      "park": 20
+    },
+    "character": {
+      "gardenKeep": 0.35,
+      "riparianM": 30
+    }
+  },
+  "moods": [
+    "mediterranean-mist",
+    "clear-afternoon",
+    "clear-noon",
+    "golden-hour",
+    "overcast"
+  ],
+  "defaultMood": "mediterranean-mist",
+  "validation": {
+    "sample_seed": 30246,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "copernicus-glo30",
+    "terrain_class": "standard",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.1792,
+    "floor_source": "none",
+    "floor_rms_m": 0,
+    "own_error_allowance_m": 6,
+    "bound_m": 6,
+    "registered_rms_m": 1.66,
+    "point_rms_m": 11.61,
+    "max_abs_registered_err_m": 4.52,
+    "pass": true
+  }
+}

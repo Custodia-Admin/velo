@@ -1,0 +1,1511 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "hangzhou-west-lake",
+  "name": "Hangzhou",
+  "origin": {
+    "lat": 30.2462,
+    "lon": 120.145
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 30.2462,
+    "lon0": 120.145,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -3400,
+    "xMax": 3332,
+    "yMin": -3448,
+    "yMax": 3500
+  },
+  "bbox": {
+    "south": 30.21509,
+    "west": 120.10966,
+    "north": 30.27778,
+    "east": 120.17964
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 562,
+    "rows": 580,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": -2,
+    "heightScale": 0.015625,
+    "minHeight": -0.453125,
+    "maxHeight": 257.671875
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz",
+    "bridges": "bridges.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 378685,
+      "sha256": "153a10d24a58225324deb2b2e4adc3bb2762f5c9e266a1bd52d5e5d7e39cf8c5",
+      "compression": "gzip",
+      "contentBytes": 651920,
+      "contentSha256": "815130b7329521f2cde19bb1c89be7027b72851ce142245242f773c79f296c0e"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 230807,
+      "sha256": "2eb364ff23d1451167f3d2661f517236ba254de5657827036cefcc92b4a47e0a",
+      "compression": "gzip",
+      "contentBytes": 623466,
+      "contentSha256": "ec88a60170169e21e3061349cd82f045ee85e3aa6d036b81b450e60fe91f508d"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 30463,
+      "sha256": "97292d163ad0f5efcaf35d9430a1e049fcb4934bc49c32fc06fc0e6eab831a4f",
+      "compression": "gzip",
+      "contentBytes": 73223,
+      "contentSha256": "58d64f33c770b754734e9469dac10ebbe47f52a05c5fd1db6c3eb8c022cecddb"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 103477,
+      "sha256": "45f608b050e6d7026d915e899ca7b5175e43ac8f867dc4b8e9c1d3c06e0b9591",
+      "compression": "gzip",
+      "contentBytes": 280117,
+      "contentSha256": "1b71ef2a6ce7e54c1ec9fd296babd7f06ee867be5ec5bcd3f24895ed438fe7a0"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 137714,
+      "sha256": "35ab6e503af7f08b33626d21a8c3b5367cc5b2da6bb3269c703d2eee8cbfc046",
+      "compression": "gzip",
+      "contentBytes": 234160,
+      "contentSha256": "9be5659250bbd31bb83c4b2dbcbacc19d3f3166d2120f9cbfdfdddcf2f9deb4b"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 442181,
+      "sha256": "9f55d8a4a6fe0762660992a5ad90c55f4edba65a9da020ac997654b9cb1396f6",
+      "compression": "gzip",
+      "contentBytes": 781204,
+      "contentSha256": "4370e84873e31f5cbee851e9268184f9a929e71f137225d03df46f44d73ee9a0"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 21211,
+      "sha256": "e45f078fa6921fdbcab7565bd3fa354e190d1fc80286bdeeb4f887ec8e9eab5a",
+      "compression": "gzip",
+      "contentBytes": 52521,
+      "contentSha256": "15dbf482b2899a805355a2ca00dcbf3dc5f3c0eeb69abd87c3b7c8d534ea67d3"
+    },
+    {
+      "path": "bridges.json.gz",
+      "bytes": 7272,
+      "sha256": "f350510d4f642e408bbd5e704137705302bd278554973980de951d2218db3ef1",
+      "compression": "gzip",
+      "contentBytes": 42953,
+      "contentSha256": "5c37933426e112d454b807d918c1153a583ee4664b4d511928f91c5e91e051c2"
+    }
+  ],
+  "moods": [
+    "mediterranean-mist",
+    "clear-afternoon",
+    "clear-noon",
+    "golden-hour",
+    "overcast"
+  ],
+  "defaultMood": "mediterranean-mist",
+  "pois": [
+    {
+      "name": "西湖区",
+      "kind": "town",
+      "rank": 3,
+      "x": -1860.9,
+      "y": 1718,
+      "osm": "node/244085108",
+      "h": 13.09
+    },
+    {
+      "name": "雷峰夕照",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -390.6,
+      "y": -697.5,
+      "osm": "node/293400662",
+      "h": 11.07
+    },
+    {
+      "name": "西泠印社",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -914.4,
+      "y": 730.8,
+      "osm": "node/775019817",
+      "h": 18.73
+    },
+    {
+      "name": "柳浪闻莺",
+      "kind": "viewpoint",
+      "rank": 2,
+      "x": 584.8,
+      "y": -476.3,
+      "osm": "node/1468743758",
+      "h": 18.76
+    },
+    {
+      "name": "宝石流霞",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -235.4,
+      "y": 1881.6,
+      "osm": "node/1468743760",
+      "h": 73.61
+    },
+    {
+      "name": "双峰插云",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -2589.2,
+      "y": 413.2,
+      "osm": "node/1468743763",
+      "h": 20.78
+    },
+    {
+      "name": "曲院风荷",
+      "kind": "viewpoint",
+      "rank": 2,
+      "x": -1741.6,
+      "y": 599.5,
+      "osm": "node/1468743785",
+      "h": 9
+    },
+    {
+      "name": "苏堤春晓",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -1038.5,
+      "y": -261.5,
+      "osm": "node/1468743791",
+      "h": 8.7
+    },
+    {
+      "name": "断桥残雪",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 227.8,
+      "y": 1699.5,
+      "osm": "node/1468743794",
+      "h": 12.05
+    },
+    {
+      "name": "平湖秋月",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -325.9,
+      "y": 887.1,
+      "osm": "node/1468743804",
+      "h": 7.58
+    },
+    {
+      "name": "花港观鱼",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -732.3,
+      "y": -1309.6,
+      "osm": "node/1881729397",
+      "h": 12.69
+    },
+    {
+      "name": "净慈寺",
+      "kind": "church",
+      "rank": 2,
+      "x": -63.9,
+      "y": -1649.4,
+      "osm": "node/4427428610",
+      "h": 19.27
+    },
+    {
+      "name": "澄明湖绿",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 737,
+      "y": -77.2,
+      "osm": "node/4427428641",
+      "h": 11.87
+    },
+    {
+      "name": "玉皇山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -470.8,
+      "y": -3231.6,
+      "osm": "node/4943773762",
+      "h": 239.75
+    },
+    {
+      "name": "凤凰山",
+      "kind": "peak",
+      "rank": 1,
+      "x": 929.6,
+      "y": -2482.7,
+      "osm": "node/4944239421",
+      "h": 172.51
+    },
+    {
+      "name": "将台山",
+      "kind": "peak",
+      "rank": 1,
+      "x": 536.7,
+      "y": -3068,
+      "osm": "node/4944239422",
+      "h": 199.8
+    },
+    {
+      "name": "吴山",
+      "kind": "peak",
+      "rank": 1,
+      "x": 1451.4,
+      "y": -785.6,
+      "osm": "node/4944243306",
+      "h": 73.35
+    },
+    {
+      "name": "云居山",
+      "kind": "peak",
+      "rank": 1,
+      "x": 1205.7,
+      "y": -1269.6,
+      "osm": "node/4944256638",
+      "h": 92.42
+    },
+    {
+      "name": "九华山",
+      "kind": "peak",
+      "rank": 1,
+      "x": 993.1,
+      "y": -2124.7,
+      "osm": "node/4944269341",
+      "h": 132.4
+    },
+    {
+      "name": "吉庆山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -3285.8,
+      "y": -952.6,
+      "osm": "node/4944278930",
+      "h": 59.57
+    },
+    {
+      "name": "月岩",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 796.8,
+      "y": -2925.4,
+      "osm": "node/5026321295",
+      "h": 165.26
+    },
+    {
+      "name": "排衙石",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -53.6,
+      "y": -3244.1,
+      "osm": "node/5026321296",
+      "h": 116.08
+    },
+    {
+      "name": "九曜山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -837.4,
+      "y": -2716.3,
+      "osm": "node/5027557773",
+      "h": 196.84
+    },
+    {
+      "name": "南高峰",
+      "kind": "peak",
+      "rank": 1,
+      "x": -2639,
+      "y": -2458.4,
+      "osm": "node/5162287122",
+      "h": 252.25
+    },
+    {
+      "name": "长庆街道",
+      "kind": "village",
+      "rank": 2,
+      "x": 2247.3,
+      "y": 1816.6,
+      "osm": "node/5176752297",
+      "h": 19.95
+    },
+    {
+      "name": "武林街道",
+      "kind": "village",
+      "rank": 2,
+      "x": 1598.8,
+      "y": 1720.3,
+      "osm": "node/5176752298",
+      "h": 16.61
+    },
+    {
+      "name": "天水街道",
+      "kind": "village",
+      "rank": 2,
+      "x": 1218.7,
+      "y": 2560.6,
+      "osm": "node/5176752299",
+      "h": 17.73
+    },
+    {
+      "name": "西溪街道",
+      "kind": "village",
+      "rank": 2,
+      "x": -30.6,
+      "y": 3496.3,
+      "osm": "node/5177571217",
+      "h": 9.65
+    },
+    {
+      "name": "翠苑街道",
+      "kind": "village",
+      "rank": 2,
+      "x": -2480.2,
+      "y": 3326,
+      "osm": "node/5177571218",
+      "h": 9.23
+    },
+    {
+      "name": "紫阳街道",
+      "kind": "village",
+      "rank": 2,
+      "x": 2585.2,
+      "y": -2741.3,
+      "osm": "node/5288970845",
+      "h": 17.64
+    },
+    {
+      "name": "湖滨街道",
+      "kind": "village",
+      "rank": 2,
+      "x": 2014.1,
+      "y": 1299,
+      "osm": "node/5289271244",
+      "h": 19.39
+    },
+    {
+      "name": "小营街道",
+      "kind": "village",
+      "rank": 2,
+      "x": 2610.6,
+      "y": -456.1,
+      "osm": "node/5293483125",
+      "h": 11.48
+    },
+    {
+      "name": "文澜阁",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -653,
+      "y": 753,
+      "osm": "node/5311551422",
+      "h": 11.91
+    },
+    {
+      "name": "清波街道",
+      "kind": "village",
+      "rank": 2,
+      "x": 1099.8,
+      "y": -576.5,
+      "osm": "node/5322427569",
+      "h": 16.98
+    },
+    {
+      "name": "灵隐街道",
+      "kind": "village",
+      "rank": 2,
+      "x": -2226.6,
+      "y": 1639.1,
+      "osm": "node/5468835079",
+      "h": 14.17
+    },
+    {
+      "name": "北山街道",
+      "kind": "village",
+      "rank": 2,
+      "x": -13.2,
+      "y": 2780,
+      "osm": "node/5468835080",
+      "h": 11.53
+    },
+    {
+      "name": "翁家山村",
+      "kind": "village",
+      "rank": 1,
+      "x": -3159.5,
+      "y": -2828.6,
+      "osm": "node/5468906799",
+      "h": 165.66
+    },
+    {
+      "name": "满觉陇村",
+      "kind": "village",
+      "rank": 1,
+      "x": -1294.2,
+      "y": -3047.2,
+      "osm": "node/5468906800",
+      "h": 36.37
+    },
+    {
+      "name": "杨梅岭村",
+      "kind": "village",
+      "rank": 1,
+      "x": -3022.1,
+      "y": -3175.2,
+      "osm": "node/5468906801",
+      "h": 93.36
+    },
+    {
+      "name": "双峰村",
+      "kind": "village",
+      "rank": 1,
+      "x": -2720.2,
+      "y": -1166.7,
+      "osm": "node/5468906802",
+      "h": 27.26
+    },
+    {
+      "name": "茅家埠村",
+      "kind": "village",
+      "rank": 1,
+      "x": -2540.3,
+      "y": -617.8,
+      "osm": "node/5468906803",
+      "h": 16.8
+    },
+    {
+      "name": "金家山",
+      "kind": "peak",
+      "rank": 1,
+      "x": 1101.7,
+      "y": -3407.8,
+      "osm": "node/5580633517",
+      "h": 98.07
+    },
+    {
+      "name": "鸡笼山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -3132.2,
+      "y": -1778.8,
+      "osm": "node/5580634123",
+      "h": 75.16
+    },
+    {
+      "name": "玉泉山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -3054.1,
+      "y": 1255.3,
+      "osm": "node/5580634139",
+      "h": 63.65
+    },
+    {
+      "name": "老和山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -2972.9,
+      "y": 2734.9,
+      "osm": "node/5580634140",
+      "h": 108.7
+    },
+    {
+      "name": "葛岭（东峰）",
+      "kind": "peak",
+      "rank": 1,
+      "x": -817.8,
+      "y": 1716.7,
+      "osm": "node/5580634141",
+      "h": 116.69
+    },
+    {
+      "name": "宝石山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -345.7,
+      "y": 1798.3,
+      "osm": "node/5580634142",
+      "h": 90.81
+    },
+    {
+      "name": "夕照山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -106.6,
+      "y": -1356,
+      "osm": "node/5580634151",
+      "h": 52.64
+    },
+    {
+      "name": "紫阳山",
+      "kind": "peak",
+      "rank": 1,
+      "x": 1436.1,
+      "y": -1020,
+      "osm": "node/5580634152",
+      "h": 75.39
+    },
+    {
+      "name": "葛岭（西峰）",
+      "kind": "peak",
+      "rank": 1,
+      "x": -990.3,
+      "y": 1563.3,
+      "osm": "node/5586466269",
+      "h": 125.79
+    },
+    {
+      "name": "馒头山社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 1933.7,
+      "y": -2651.1,
+      "osm": "node/5809093874",
+      "h": 16.96
+    },
+    {
+      "name": "秦亭山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -3153.2,
+      "y": 2505,
+      "osm": "node/6021185475",
+      "h": 156.18
+    },
+    {
+      "name": "初阳台",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -764.7,
+      "y": 1694.5,
+      "osm": "node/6443251516",
+      "h": 124.38
+    },
+    {
+      "name": "北街梦寻",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -789.3,
+      "y": 1229.2,
+      "osm": "node/6643102068",
+      "h": 20.18
+    },
+    {
+      "name": "浙大御跸社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 2587,
+      "y": 3037.2,
+      "osm": "node/7281685242",
+      "h": 12.66
+    },
+    {
+      "name": "吴牙社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 2310.6,
+      "y": 1819.5,
+      "osm": "node/7281685243",
+      "h": 17.8
+    },
+    {
+      "name": "王马社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 2699.1,
+      "y": 1983.2,
+      "osm": "node/7281685244",
+      "h": 15.59
+    },
+    {
+      "name": "柳营社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 2476.1,
+      "y": 1942.2,
+      "osm": "node/7281685245",
+      "h": 14.88
+    },
+    {
+      "name": "中北社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 1816,
+      "y": 2130.1,
+      "osm": "node/7281685248",
+      "h": 11.86
+    },
+    {
+      "name": "仙林社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 1917.2,
+      "y": 1942.9,
+      "osm": "node/7281685249",
+      "h": 13.76
+    },
+    {
+      "name": "竹竿巷社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 1631.5,
+      "y": 1870.7,
+      "osm": "node/7281685250",
+      "h": 18.32
+    },
+    {
+      "name": "凤麟社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 1503,
+      "y": 2122.5,
+      "osm": "node/7281685251",
+      "h": 15.63
+    },
+    {
+      "name": "长寿社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 1171.7,
+      "y": 2130.9,
+      "osm": "node/7281685252",
+      "h": 15.62
+    },
+    {
+      "name": "安吉社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 734.7,
+      "y": 2416.3,
+      "osm": "node/7281685253",
+      "h": 13.03
+    },
+    {
+      "name": "环西社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 749.7,
+      "y": 2862.7,
+      "osm": "node/7281685254",
+      "h": 9.57
+    },
+    {
+      "name": "灯芯巷社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 1229.4,
+      "y": 2349.8,
+      "osm": "node/7281685255",
+      "h": 15.39
+    },
+    {
+      "name": "胭脂新村社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 1959.9,
+      "y": 3098.4,
+      "osm": "node/7281685256",
+      "h": 17.62
+    },
+    {
+      "name": "环北新村社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 1024.5,
+      "y": 3198.4,
+      "osm": "node/7281685257",
+      "h": 11.63
+    },
+    {
+      "name": "戒坛寺巷社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 1015.9,
+      "y": 2644.6,
+      "osm": "node/7281696686",
+      "h": 15.01
+    },
+    {
+      "name": "延安新村社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 1647.6,
+      "y": 2551.4,
+      "osm": "node/7281696688",
+      "h": 12.97
+    },
+    {
+      "name": "所巷社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 3205.2,
+      "y": 2448.4,
+      "osm": "node/7281696690",
+      "h": 11.21
+    },
+    {
+      "name": "知足弄社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 3238.7,
+      "y": 2087.7,
+      "osm": "node/7281696691",
+      "h": 11.68
+    },
+    {
+      "name": "东园社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 3330.3,
+      "y": 2403.1,
+      "osm": "node/7281696695",
+      "h": 14.66
+    },
+    {
+      "name": "体东社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 3000.8,
+      "y": 3047.1,
+      "osm": "node/7281696696",
+      "h": 13.22
+    },
+    {
+      "name": "艮山门社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 3039.2,
+      "y": 3225.1,
+      "osm": "node/7281696697",
+      "h": 18.67
+    },
+    {
+      "name": "东河社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 2809.9,
+      "y": 3335.8,
+      "osm": "node/7281696698",
+      "h": 10.79
+    },
+    {
+      "name": "宝石社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -265,
+      "y": 2305.7,
+      "osm": "node/7281738110",
+      "h": 17.62
+    },
+    {
+      "name": "金祝社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 62.3,
+      "y": 3054,
+      "osm": "node/7281738111",
+      "h": 11.19
+    },
+    {
+      "name": "松木场社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -177,
+      "y": 2694.8,
+      "osm": "node/7281738112",
+      "h": 13.89
+    },
+    {
+      "name": "沿山河社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -412.5,
+      "y": 2943.6,
+      "osm": "node/7281738113",
+      "h": 9.74
+    },
+    {
+      "name": "曲院社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -1428.7,
+      "y": 2069.5,
+      "osm": "node/7281738114",
+      "h": 12.5
+    },
+    {
+      "name": "友谊社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -428.3,
+      "y": 2710.5,
+      "osm": "node/7281738115",
+      "h": 9.82
+    },
+    {
+      "name": "曙光社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -1795.1,
+      "y": 1813.4,
+      "osm": "node/7281738116",
+      "h": 12.43
+    },
+    {
+      "name": "玉泉社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -2563.8,
+      "y": 1587.7,
+      "osm": "node/7281738118",
+      "h": 15.96
+    },
+    {
+      "name": "浙大求是社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -1992.4,
+      "y": 2125.2,
+      "osm": "node/7281738119",
+      "h": 7.86
+    },
+    {
+      "name": "庆丰社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -2117.8,
+      "y": 2953.8,
+      "osm": "node/7281738120",
+      "h": 8.7
+    },
+    {
+      "name": "黄龙社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -947.1,
+      "y": 2814.2,
+      "osm": "node/7281738121",
+      "h": 6.6
+    },
+    {
+      "name": "一一七社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -3222.5,
+      "y": 364.8,
+      "osm": "node/7281738122",
+      "h": 26.7
+    },
+    {
+      "name": "净寺社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -264.4,
+      "y": -2590.1,
+      "osm": "node/7281738124",
+      "h": 24.1
+    },
+    {
+      "name": "三台山社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -1519.4,
+      "y": -2012.8,
+      "osm": "node/7281738125",
+      "h": 16.82
+    },
+    {
+      "name": "金沙港社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -2106.7,
+      "y": 459.4,
+      "osm": "node/7281738127",
+      "h": 14.61
+    },
+    {
+      "name": "上马塍社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 133.5,
+      "y": 3367.2,
+      "osm": "node/7281766841",
+      "h": 11.53
+    },
+    {
+      "name": "花园亭社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -1107.6,
+      "y": 3196.3,
+      "osm": "node/7281766842",
+      "h": 8.63
+    },
+    {
+      "name": "文三社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -192.3,
+      "y": 3245.6,
+      "osm": "node/7281766850",
+      "h": 13.28
+    },
+    {
+      "name": "黄姑山社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -1632.5,
+      "y": 3430.5,
+      "osm": "node/7281766854",
+      "h": 10.37
+    },
+    {
+      "name": "古荡东区社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -3175.9,
+      "y": 3414.4,
+      "osm": "node/7281766861",
+      "h": 8.66
+    },
+    {
+      "name": "古荡南区社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -3219.8,
+      "y": 3175.6,
+      "osm": "node/7281766862",
+      "h": 10.72
+    },
+    {
+      "name": "古荡北区社区",
+      "kind": "village",
+      "rank": 1,
+      "x": -3364,
+      "y": 3352.1,
+      "osm": "node/7281766863",
+      "h": 9.65
+    },
+    {
+      "name": "姚园寺巷社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 2666.4,
+      "y": -415.1,
+      "osm": "node/7284940609",
+      "h": 14.82
+    },
+    {
+      "name": "北落马营社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 2534.3,
+      "y": -2043.2,
+      "osm": "node/7284940612",
+      "h": 22.53
+    },
+    {
+      "name": "木场巷社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 3227.7,
+      "y": -1273.6,
+      "osm": "node/7284940616",
+      "h": 11.75
+    },
+    {
+      "name": "新工社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 2497.6,
+      "y": -2422.8,
+      "osm": "node/7284940617",
+      "h": 13.72
+    },
+    {
+      "name": "海潮社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 3157.5,
+      "y": -1894.7,
+      "osm": "node/7284940619",
+      "h": 6.62
+    },
+    {
+      "name": "春江社区",
+      "kind": "village",
+      "rank": 1,
+      "x": 2813.8,
+      "y": -3003.3,
+      "osm": "node/7284940621",
+      "h": 10.51
+    },
+    {
+      "name": "丁家山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -1565.7,
+      "y": -511,
+      "osm": "node/9025915392",
+      "h": 46.71
+    },
+    {
+      "name": "丁家山",
+      "kind": "village",
+      "rank": 1,
+      "x": -2092.7,
+      "y": -641.6,
+      "osm": "node/9025915393",
+      "h": 13.9
+    },
+    {
+      "name": "茅家埠",
+      "kind": "village",
+      "rank": 1,
+      "x": -2581.5,
+      "y": -592,
+      "osm": "node/9025915394",
+      "h": 17.09
+    },
+    {
+      "name": "饮马桥",
+      "kind": "village",
+      "rank": 1,
+      "x": -2664.9,
+      "y": -989.4,
+      "osm": "node/9025915395",
+      "h": 25.97
+    },
+    {
+      "name": "双峰",
+      "kind": "village",
+      "rank": 1,
+      "x": -2711.3,
+      "y": -1160.8,
+      "osm": "node/9025915396",
+      "h": 26.55
+    },
+    {
+      "name": "筲箕湾",
+      "kind": "village",
+      "rank": 1,
+      "x": -1569,
+      "y": -1885.3,
+      "osm": "node/9025915397",
+      "h": 19.21
+    },
+    {
+      "name": "汪庄",
+      "kind": "village",
+      "rank": 1,
+      "x": 185.2,
+      "y": -1195.9,
+      "osm": "node/9025915398",
+      "h": 10.03
+    },
+    {
+      "name": "阔石板",
+      "kind": "village",
+      "rank": 1,
+      "x": 217.7,
+      "y": -2033.2,
+      "osm": "node/9025915399",
+      "h": 17.87
+    },
+    {
+      "name": "南山村",
+      "kind": "village",
+      "rank": 1,
+      "x": 428.6,
+      "y": -2459.8,
+      "osm": "node/9025915400",
+      "h": 31.42
+    },
+    {
+      "name": "观音洞",
+      "kind": "village",
+      "rank": 1,
+      "x": 549.3,
+      "y": -2372.5,
+      "osm": "node/9025915401",
+      "h": 26.69
+    },
+    {
+      "name": "仁寿山",
+      "kind": "village",
+      "rank": 1,
+      "x": -2003.5,
+      "y": 1250.5,
+      "osm": "node/9025915402",
+      "h": 27.64
+    },
+    {
+      "name": "黄泥岭",
+      "kind": "village",
+      "rank": 1,
+      "x": -2702.4,
+      "y": 70.1,
+      "osm": "node/9025915403",
+      "h": 21.51
+    },
+    {
+      "name": "里鸡笼山",
+      "kind": "village",
+      "rank": 1,
+      "x": -3226.1,
+      "y": -1658.6,
+      "osm": "node/9025915406",
+      "h": 47.48
+    },
+    {
+      "name": "外鸡笼山",
+      "kind": "village",
+      "rank": 1,
+      "x": -2870.6,
+      "y": -1745.8,
+      "osm": "node/9025915407",
+      "h": 28.26
+    },
+    {
+      "name": "杨家山",
+      "kind": "village",
+      "rank": 1,
+      "x": -2622.5,
+      "y": -2813.9,
+      "osm": "node/9025915408",
+      "h": 93.92
+    },
+    {
+      "name": "上满觉陇",
+      "kind": "village",
+      "rank": 1,
+      "x": -2549.1,
+      "y": -3103.7,
+      "osm": "node/9025915409",
+      "h": 109.31
+    },
+    {
+      "name": "四眼井",
+      "kind": "village",
+      "rank": 1,
+      "x": -1203.3,
+      "y": -3067,
+      "osm": "node/9025915410",
+      "h": 42.81
+    },
+    {
+      "name": "五老峰",
+      "kind": "peak",
+      "rank": 1,
+      "x": -2350.5,
+      "y": -1636.4,
+      "osm": "node/9029237491",
+      "h": 133.78
+    },
+    {
+      "name": "玉城山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -1471.2,
+      "y": -2086.2,
+      "osm": "node/9029237492",
+      "h": 45
+    },
+    {
+      "name": "白沙泉",
+      "kind": "village",
+      "rank": 1,
+      "x": -1513.7,
+      "y": 2008.3,
+      "osm": "node/9034756063",
+      "h": 15.22
+    },
+    {
+      "name": "宝云山主峰",
+      "kind": "peak",
+      "rank": 1,
+      "x": -605.4,
+      "y": 1919.7,
+      "osm": "node/9035426238",
+      "h": 115.91
+    },
+    {
+      "name": "上茅家埠",
+      "kind": "village",
+      "rank": 1,
+      "x": -3348.1,
+      "y": -488.5,
+      "osm": "node/9062232767",
+      "h": 32.88
+    },
+    {
+      "name": "石龙洞造像",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 373.8,
+      "y": -3364.4,
+      "osm": "node/13257341655",
+      "h": 48.18
+    },
+    {
+      "name": "潮鸣街道",
+      "kind": "village",
+      "rank": 2,
+      "x": 3283.8,
+      "y": 2617,
+      "osm": "node/13417263933",
+      "h": 14.97
+    },
+    {
+      "name": "南屏山",
+      "kind": "peak",
+      "rank": 1,
+      "x": -61.1,
+      "y": -1931.6,
+      "osm": "node/13805834563",
+      "h": 101.25
+    },
+    {
+      "name": "白鹤峰秋千",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -2125.3,
+      "y": -3164.3,
+      "osm": "node/14254204301",
+      "h": 130.82
+    },
+    {
+      "name": "雷峰塔",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 1.3,
+      "y": -1365.3,
+      "osm": "way/229726934",
+      "h": 40.51
+    },
+    {
+      "name": "圣母无原罪主教座堂",
+      "kind": "church",
+      "rank": 2,
+      "x": 1679.7,
+      "y": 2614.6,
+      "osm": "way/327140742",
+      "h": 14.8
+    },
+    {
+      "name": "城隍阁",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 1437.3,
+      "y": -810.8,
+      "osm": "way/399030896",
+      "h": 75.79
+    },
+    {
+      "name": "岳王庙",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -1466.2,
+      "y": 946.6,
+      "osm": "way/435906176",
+      "h": 17.01
+    },
+    {
+      "name": "胡雪岩故居",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 2240.6,
+      "y": -733.1,
+      "osm": "way/489075428",
+      "h": 15.78
+    },
+    {
+      "name": "浙江巡抚署遗址",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 2295.6,
+      "y": -1035.4,
+      "osm": "way/513344451",
+      "h": 13.45
+    },
+    {
+      "name": "凤凰寺",
+      "kind": "church",
+      "rank": 2,
+      "x": 1976.3,
+      "y": 183,
+      "osm": "way/515407401",
+      "h": 11.94
+    },
+    {
+      "name": "吴越海塘遗址",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 2367.8,
+      "y": -1580.9,
+      "osm": "way/516639265",
+      "h": 13.3
+    },
+    {
+      "name": "南屏晚钟",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -100.9,
+      "y": -1637.4,
+      "osm": "way/676314612",
+      "h": 18.07
+    },
+    {
+      "name": "高丽寺",
+      "kind": "church",
+      "rank": 2,
+      "x": -1819.8,
+      "y": -1762.6,
+      "osm": "way/975717957",
+      "h": 23.51
+    },
+    {
+      "name": "杭州中美友谊民间纪念馆",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 1692.6,
+      "y": 2692.8,
+      "osm": "way/975816702",
+      "h": 14.91
+    },
+    {
+      "name": "钱王祠",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 794.6,
+      "y": -104.9,
+      "osm": "way/979207106",
+      "h": 12.93
+    },
+    {
+      "name": "南宋临安府治遗址",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 1027.5,
+      "y": -337.3,
+      "osm": "way/1408713275",
+      "h": 13.58
+    },
+    {
+      "name": "南宋恭圣仁烈皇后宅遗址",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 1090.4,
+      "y": -662.6,
+      "osm": "way/1408713276",
+      "h": 17.24
+    },
+    {
+      "name": "南宋御街遗址陈列馆",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 2036.5,
+      "y": -169.3,
+      "osm": "way/1408713277",
+      "h": 13.99
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-hangzhou-west-lake",
+      "name": "West Lake loop",
+      "lengthM": 13800.91,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.169
+    }
+  ],
+  "stats": {
+    "roads": 6574,
+    "waterAreas": 146,
+    "waterLines": 53,
+    "landcoverAreas": 1553,
+    "buildings": 7045,
+    "buildingVertices": 40924,
+    "buildings:suburb": 4535,
+    "buildings:old-town": 1335,
+    "buildings:rural": 313,
+    "buildings:industrial": 862,
+    "trees": 130198,
+    "trees:broadleaf": 108771,
+    "trees:conifer": 0,
+    "trees:scrub": 129,
+    "trees:olive": 12241,
+    "trees:park": 3452,
+    "trees:cypress": 132,
+    "trees:riparian": 977,
+    "trees:hedgerow": 208,
+    "trees:garden": 4288,
+    "pois": 145,
+    "carvedNodes": 11001,
+    "bridgeDecks": 445,
+    "bridgePiers": 63
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-hangzhou-west-lake",
+      "name": "West Lake loop: OSRM bike route through 6 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/120.14905,30.26183;120.138,30.26;120.1311,30.2426;120.145,30.2339;120.164,30.25;120.14905,30.26183?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "902009667a2a8861c3d701e3b6f72b4490bb63e996c7f49fdc11209b926ccc45",
+    "osmDate": "2026-11-10T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 1,
+    "bridges": true
+  }
+}
