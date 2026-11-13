@@ -1,0 +1,85 @@
+{
+  "id": "lavaux",
+  "name": "Lavaux",
+  "description": "The north shore of Lake Geneva from Lausanne below the Lavaux vineyard terraces through Vevey and Montreux to the Château de Chillon, the Alps of Savoy across the water.",
+  "origin": {
+    "lat": 46.4621,
+    "lon": 6.7777
+  },
+  "grid": {
+    "xMin": -13100,
+    "yMax": 6900,
+    "cellSize": 13,
+    "cols": 2016,
+    "rows": 1097
+  },
+  "dem": {
+    "source": "copernicus-glo30"
+  },
+  "osmDate": "2026-11-10T00:00:00Z",
+  "routes": [
+    "scenic-lavaux-chillon"
+  ],
+  "host": "remote",
+  "routeCredits": true,
+  "bridges": true,
+  "bareGround": {
+    "source": "swissalti3d",
+    "year": 2019
+  },
+  "snap": {
+    "stepM": 10,
+    "offsetMedianM": 300,
+    "offsetMeanM": 1200,
+    "coreCells": 1.5,
+    "falloffM": 40,
+    "embankment": {
+      "maxM": 1
+    },
+    "spanStructures": true
+  },
+  "vegetation": {
+    "seed": 46462,
+    "maxInstances": 320000,
+    "spacingM": {
+      "forest": 11,
+      "wood": 11,
+      "scrub": 16,
+      "orchard": 7,
+      "park": 20
+    },
+    "character": {
+      "gardenKeep": 0.35,
+      "riparianM": 30
+    }
+  },
+  "moods": [
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast",
+    "mediterranean-mist"
+  ],
+  "defaultMood": "golden-hour",
+  "validation": {
+    "sample_seed": 46462,
+    "criterion": "p1.3-v2-registered-rms",
+    "reference": "open-meteo-elevation/copernicus-glo90",
+    "registration": "glo90-nw-node",
+    "sample_count": 50,
+    "dem_source": "copernicus-glo30",
+    "terrain_class": "standard",
+    "terrain_class_source": "auto",
+    "slope_threshold_deg": 15,
+    "steep_fraction_threshold": 0.2,
+    "steep_fraction": 0.182,
+    "floor_source": "none",
+    "floor_rms_m": 0,
+    "own_error_allowance_m": 6,
+    "bound_m": 6,
+    "registered_rms_m": 1.54,
+    "point_rms_m": 9.66,
+    "max_abs_registered_err_m": 7.71,
+    "pass": true
+  }
+}

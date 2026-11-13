@@ -41,6 +41,7 @@ const WORLDS = [
   { id: 'lake-varese', section: 'lugano', route: 'scenic-lake-varese', name: 'Lake Varese shore', place: 'Lugano', files: WITH_BRIDGES },
   { id: 'lake-como', section: 'lugano', route: 'scenic-lake-como-menaggio', name: 'Menaggio to Gravedona', place: 'Lugano', files: WITH_BRIDGES },
   // The rest of the wishlist, baked last: no scenic route rides the map now.
+  { id: 'lavaux', section: 'wishlist', route: 'scenic-lavaux-chillon', name: 'Lausanne to Chillon', place: 'Lake Geneva', files: WITH_BRIDGES },
   { id: 'hangzhou-west-lake', section: 'wishlist', route: 'scenic-hangzhou-west-lake', name: 'West Lake loop', place: 'Hangzhou', files: WITH_BRIDGES },
 ];
 type World = (typeof WORLDS)[number];
