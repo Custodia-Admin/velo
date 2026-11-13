@@ -336,6 +336,13 @@ in a coast world) and `r` is a list of rings: outer ring first, then holes. Ring
 first vertex), dm. `lines[]`: `{ k, w?, p }`, `k` indexes `lineKinds` (river,
 canal, stream), width `w` or `lineWidths[k]`. Culverted waterways are dropped.
 
+The loader drops a hole that lies inside a larger hole of the same area
+(`withoutNestedHoles`): that land is the bigger hole's already. OSM forbids
+nested inner rings, but West Lake's relation has one, and with it earcut cut
+no hole for Xiaoyingzhou at all. The renderer draws a line wider than its
+edge bound (`WATER_EDGE_M`, diagonals included) as several strips across, so
+Hangzhou's rivers tagged 61.1 m wide still get a vertex every 45 m.
+
 A coast world (recipe `"coast": true`, `tools/worldbake/coast.mjs`) adds the
 `sea` kind: the water side of the OSM coastline inside the extent, closed
 along the extent's edge, islands as holes. Every heightfield node under it is
@@ -1224,6 +1231,11 @@ other worlds.
   Mare with no shared vertex. The fit's 0.28 m bend there slides the strips'
   overlap 0.4 m along the deck; `routeFit.test.ts` counts a centre-line
   crossing like that as a junction, as it does a shared-vertex crossing.
+- **Hangzhou's water** needed two renderer fixes, no re-bake (see water.json):
+  West Lake's relation lists a 221 m² inner ring inside Xiaoyingzhou's, which
+  drew the lake over the island's 7.7 ha; and three river lines are tagged
+  61.1 m wide. Water draws 22,846 triangles there; Lavaux's 276,927 (Lake
+  Geneva's shore) stay under Lugano's 400 k ceiling.
 
 Before and after frames at each route's start and fps on cat-bed's iGPU are in
 `docs/design/screenshots/v2/build/wishlist-worlds/`.

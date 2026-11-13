@@ -398,11 +398,64 @@ function decodeAreas(list: unknown, kinds: string[], file: string): WorldArea[] 
   });
 }
 
+function ringArea(r: Float32Array): number {
+  let s = 0;
+  const n = r.length / 2;
+  for (let i = 0, j = n - 1; i < n; j = i++) s += r[2 * j] * r[2 * i + 1] - r[2 * i] * r[2 * j + 1];
+  return Math.abs(s / 2);
+}
+
+function inRing(r: Float32Array, x: number, y: number): boolean {
+  let inside = false;
+  const n = r.length / 2;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = r[2 * i];
+    const yi = r[2 * i + 1];
+    const xj = r[2 * j];
+    const yj = r[2 * j + 1];
+    if (yi > y !== yj > y && x < xi + ((y - yi) / (yj - yi)) * (xj - xi)) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * A polygon's rings without the holes that lie inside a larger hole: that
+ * land is the bigger hole's already. OSM forbids nested inner rings, but
+ * West Lake's relation has a 221 m² one inside Xiaoyingzhou's, and with it
+ * earcut cut no hole for the island at all (water drawn over 7.7 ha of it)
+ * while the scanline fills read it as water again (a pit in the island).
+ */
+export function withoutNestedHoles(rings: Float32Array[]): Float32Array[] {
+  if (rings.length < 3) return rings;
+  const holes = rings.slice(1).map((r) => {
+    let x0 = Infinity;
+    let y0 = Infinity;
+    let x1 = -Infinity;
+    let y1 = -Infinity;
+    for (let i = 0; i + 1 < r.length; i += 2) {
+      x0 = Math.min(x0, r[i]);
+      x1 = Math.max(x1, r[i]);
+      y0 = Math.min(y0, r[i + 1]);
+      y1 = Math.max(y1, r[i + 1]);
+    }
+    return { r, area: ringArea(r), x0, y0, x1, y1 };
+  });
+  const kept = holes.filter(
+    (h) =>
+      h.r.length < 2 ||
+      !holes.some((o) => o !== h && o.area > h.area && h.r[0] >= o.x0 && h.r[0] <= o.x1 && h.r[1] >= o.y0 && h.r[1] <= o.y1 && inRing(o.r, h.r[0], h.r[1])),
+  );
+  return kept.length === holes.length ? rings : [rings[0], ...kept.map((h) => h.r)];
+}
+
 function decodeWater(json: Json, file: string): WaterLayer {
   const lineKinds = expectArray(json.lineKinds, file, 'lineKinds') as string[];
   const lineWidths = expectArray(json.lineWidths, file, 'lineWidths') as number[];
   return {
-    areas: decodeAreas(json.areas, expectArray(json.areaKinds, file, 'areaKinds') as string[], file),
+    areas: decodeAreas(json.areas, expectArray(json.areaKinds, file, 'areaKinds') as string[], file).map((a) => ({
+      kind: a.kind,
+      rings: withoutNestedHoles(a.rings),
+    })),
     lines: expectArray(json.lines, file, 'lines').map((l) => {
       const o = l as Json;
       const k = o.k as number;
