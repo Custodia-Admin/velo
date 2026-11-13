@@ -1,0 +1,1285 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "engadin",
+  "name": "Engadin",
+  "origin": {
+    "lat": 46.447,
+    "lon": 9.7668
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 46.447,
+    "lon0": 9.7668,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -7600,
+    "xMax": 7544,
+    "yMin": -6772,
+    "yMax": 6800
+  },
+  "bbox": {
+    "south": 46.38603,
+    "west": 9.66777,
+    "north": 46.50818,
+    "east": 9.8651
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 1263,
+    "rows": 1132,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": 1464,
+    "heightScale": 0.03125,
+    "minHeight": 1465.59375,
+    "maxHeight": 3432.40625
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz",
+    "bridges": "bridges.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 1833783,
+      "sha256": "78e70edc326d3e52f9cdbbecc273fa38bc5113290bddef2add574a289079b9ac",
+      "compression": "gzip",
+      "contentBytes": 2859432,
+      "contentSha256": "863f9b4a27a22b248c0fb912f9f23caf3ad753ac73db46869f5be3a3cbe6a131"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 266513,
+      "sha256": "f2713ca205d0031f4e2ae2c7c3abc5793881592bb8fca08e96569da4ba00bb55",
+      "compression": "gzip",
+      "contentBytes": 644810,
+      "contentSha256": "d218cbb795f00c84a3ca26c10e1ba6d512b0ca5b5d938269e99e30355fa6ea11"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 84648,
+      "sha256": "ae355b0d95c50ac22eea0b9e44c7214b86f6c7a38c184a1a8fcca3de3b714b0d",
+      "compression": "gzip",
+      "contentBytes": 199860,
+      "contentSha256": "94107eccf14bb01007aa71ea74527aaa7e71fa045dc1f95e3f9248542a5550fd"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 191260,
+      "sha256": "46620813f8f155bc52bfe53ac9d95d0d712bbb3fa07d6a349be218c88beaf20e",
+      "compression": "gzip",
+      "contentBytes": 468590,
+      "contentSha256": "54da5405ab2ad0d136026645764257eee76c68cc4064062e56e6494b27054107"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 72663,
+      "sha256": "8123532c1e64034f9693729db91390a2a2a72829b9f1bc69c9f1ca19bf282749",
+      "compression": "gzip",
+      "contentBytes": 119848,
+      "contentSha256": "f75a536f5bd951add6987fe2ab8589973a84546567ccecb133a9b44c0715b4eb"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 878861,
+      "sha256": "e6b144819d38e51fc606541fab55e142fe8d6a164b09019eed099e67bf692afc",
+      "compression": "gzip",
+      "contentBytes": 1501678,
+      "contentSha256": "1683e117a15ae6fe57dd7ae2a58b1be10ab46b7872b154554ed13a9fa81ec8bf"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 27136,
+      "sha256": "16be23c25eab13fbb3fc48e8d934790b235bd887f903a607b50a5272c829b43a",
+      "compression": "gzip",
+      "contentBytes": 67215,
+      "contentSha256": "daefede9d5843208c53488d346d4d36373a709a66d3e3abdc7a22c13bf89e09f"
+    },
+    {
+      "path": "bridges.json.gz",
+      "bytes": 3528,
+      "sha256": "a88536fe19d8e822d60369bf4624ac054384ed4ef21f750044b83b7a5fc9711e",
+      "compression": "gzip",
+      "contentBytes": 12921,
+      "contentSha256": "0f005775cd14a11df6432356826a8569c5f8c0e2e7243cc043d8e99dfec493fa"
+    }
+  ],
+  "moods": [
+    "clear-noon",
+    "clear-afternoon",
+    "golden-hour",
+    "overcast",
+    "valley-fog"
+  ],
+  "defaultMood": "clear-noon",
+  "pois": [
+    {
+      "name": "Piz Lagrev",
+      "kind": "peak",
+      "rank": 2,
+      "x": -3382.6,
+      "y": -128.7,
+      "osm": "node/26864296",
+      "h": 3061.24
+    },
+    {
+      "name": "Crastas",
+      "kind": "village",
+      "rank": 1,
+      "x": 46.7,
+      "y": -1902.9,
+      "osm": "node/34554240",
+      "h": 1834.81
+    },
+    {
+      "name": "Maloja",
+      "kind": "village",
+      "rank": 2,
+      "x": -5486.6,
+      "y": -5041,
+      "osm": "node/195345370",
+      "h": 1812.82
+    },
+    {
+      "name": "Silvaplana",
+      "kind": "village",
+      "rank": 2,
+      "x": 2236.7,
+      "y": 1438.1,
+      "osm": "node/195384848",
+      "h": 1806.82
+    },
+    {
+      "name": "St. Moritz",
+      "kind": "town",
+      "rank": 3,
+      "x": 5561.1,
+      "y": 5660.2,
+      "osm": "node/203453497",
+      "h": 1840.95
+    },
+    {
+      "name": "Champfèr",
+      "kind": "village",
+      "rank": 2,
+      "x": 3489.6,
+      "y": 3427.1,
+      "osm": "node/205013238",
+      "h": 1816.31
+    },
+    {
+      "name": "Surlej",
+      "kind": "village",
+      "rank": 1,
+      "x": 3459.9,
+      "y": 1204.8,
+      "osm": "node/205227905",
+      "h": 1821.93
+    },
+    {
+      "name": "Sils im Engadin",
+      "kind": "village",
+      "rank": 2,
+      "x": -234.1,
+      "y": -2036.1,
+      "osm": "node/240082743",
+      "h": 1805.62
+    },
+    {
+      "name": "Sils Baselgia",
+      "kind": "village",
+      "rank": 1,
+      "x": -819.8,
+      "y": -1530.5,
+      "osm": "node/299617140",
+      "h": 1799.01
+    },
+    {
+      "name": "Platta",
+      "kind": "village",
+      "rank": 1,
+      "x": -508.8,
+      "y": -3093.3,
+      "osm": "node/299617164",
+      "h": 1883.65
+    },
+    {
+      "name": "Crasta",
+      "kind": "village",
+      "rank": 1,
+      "x": -156.9,
+      "y": -3683.1,
+      "osm": "node/299617190",
+      "h": 1951.74
+    },
+    {
+      "name": "Curtins",
+      "kind": "village",
+      "rank": 1,
+      "x": 672.7,
+      "y": -5046.3,
+      "osm": "node/299617194",
+      "h": 1972.45
+    },
+    {
+      "name": "Isola",
+      "kind": "village",
+      "rank": 2,
+      "x": -2080.8,
+      "y": -3795.5,
+      "osm": "node/299617212",
+      "h": 1811.78
+    },
+    {
+      "name": "Piz Nair",
+      "kind": "peak",
+      "rank": 2,
+      "x": 1578.9,
+      "y": 6602.6,
+      "osm": "node/309542784",
+      "h": 3042.16
+    },
+    {
+      "name": "Plaun da Lej",
+      "kind": "village",
+      "rank": 1,
+      "x": -3144.6,
+      "y": -2786.4,
+      "osm": "node/345328402",
+      "h": 1800.85
+    },
+    {
+      "name": "Piz Corvatsch",
+      "kind": "peak",
+      "rank": 2,
+      "x": 3793.9,
+      "y": -4279.3,
+      "osm": "node/412526082",
+      "h": 3421.14
+    },
+    {
+      "name": "Piz Surlej",
+      "kind": "peak",
+      "rank": 2,
+      "x": 5863.1,
+      "y": 693.5,
+      "osm": "node/412526083",
+      "h": 3161.98
+    },
+    {
+      "name": "Piz Murtèl",
+      "kind": "peak",
+      "rank": 2,
+      "x": 4085.8,
+      "y": -3818.9,
+      "osm": "node/412731773",
+      "h": 3384.91
+    },
+    {
+      "name": "Munt Arlas",
+      "kind": "peak",
+      "rank": 2,
+      "x": 5842.7,
+      "y": -408,
+      "osm": "node/412731774",
+      "h": 3056.95
+    },
+    {
+      "name": "Piz Polaschin",
+      "kind": "peak",
+      "rank": 2,
+      "x": -1067.6,
+      "y": 1541.8,
+      "osm": "node/412731801",
+      "h": 2907.97
+    },
+    {
+      "name": "Piz Mez",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2442.4,
+      "y": -247.6,
+      "osm": "node/412731802",
+      "h": 2880.83
+    },
+    {
+      "name": "Piz Grevasalvas",
+      "kind": "peak",
+      "rank": 2,
+      "x": -7099.7,
+      "y": -2682.3,
+      "osm": "node/412731804",
+      "h": 2924.24
+    },
+    {
+      "name": "Sils Maria",
+      "kind": "village",
+      "rank": 1,
+      "x": -262.7,
+      "y": -2008.5,
+      "osm": "node/525331998",
+      "h": 1805.51
+    },
+    {
+      "name": "Seglias",
+      "kind": "village",
+      "rank": 1,
+      "x": -66.9,
+      "y": -1447.1,
+      "osm": "node/525332003",
+      "h": 1802.48
+    },
+    {
+      "name": "Blaunca",
+      "kind": "village",
+      "rank": 1,
+      "x": -4566.7,
+      "y": -3062.1,
+      "osm": "node/526965757",
+      "h": 2036.99
+    },
+    {
+      "name": "Grevasalvas",
+      "kind": "village",
+      "rank": 1,
+      "x": -3741,
+      "y": -2585.6,
+      "osm": "node/526965769",
+      "h": 1943.37
+    },
+    {
+      "name": "Piz Chüern",
+      "kind": "peak",
+      "rank": 2,
+      "x": 2042.8,
+      "y": -5596.3,
+      "osm": "node/529466736",
+      "h": 2674.5
+    },
+    {
+      "name": "Marmorè",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 279.4,
+      "y": -3024.6,
+      "osm": "node/529861358",
+      "h": 2198.42
+    },
+    {
+      "name": "Pas-chs",
+      "kind": "village",
+      "rank": 1,
+      "x": 28.4,
+      "y": -1552.2,
+      "osm": "node/705125511",
+      "h": 1800.31
+    },
+    {
+      "name": "Suot l'Ova",
+      "kind": "village",
+      "rank": 1,
+      "x": 138.9,
+      "y": -1437.1,
+      "osm": "node/705125620",
+      "h": 1798.1
+    },
+    {
+      "name": "Crotschas",
+      "kind": "village",
+      "rank": 1,
+      "x": 376.9,
+      "y": -999.7,
+      "osm": "node/705615281",
+      "h": 1793.22
+    },
+    {
+      "name": "Föglias",
+      "kind": "village",
+      "rank": 1,
+      "x": 17.5,
+      "y": -730.6,
+      "osm": "node/705805036",
+      "h": 1796.06
+    },
+    {
+      "name": "Orden",
+      "kind": "village",
+      "rank": 1,
+      "x": -5456,
+      "y": -5924.3,
+      "osm": "node/822915636",
+      "h": 1793.85
+    },
+    {
+      "name": "Piz Güglia - Piz Julier",
+      "kind": "peak",
+      "rank": 2,
+      "x": -530.1,
+      "y": 4889.9,
+      "osm": "node/830986609",
+      "h": 3280.6
+    },
+    {
+      "name": "Piz San Gian",
+      "kind": "peak",
+      "rank": 2,
+      "x": 6252.4,
+      "y": 1193.1,
+      "osm": "node/830989393",
+      "h": 3113.01
+    },
+    {
+      "name": "Piz Rosatsch",
+      "kind": "peak",
+      "rank": 2,
+      "x": 6703.3,
+      "y": 1471.9,
+      "osm": "node/830989394",
+      "h": 3067.9
+    },
+    {
+      "name": "Piz Mezdi",
+      "kind": "peak",
+      "rank": 2,
+      "x": 7410.9,
+      "y": 2574.5,
+      "osm": "node/830989395",
+      "h": 2988.79
+    },
+    {
+      "name": "Capolago",
+      "kind": "village",
+      "rank": 1,
+      "x": -5001.7,
+      "y": -4250.6,
+      "osm": "node/846564164",
+      "h": 1803.28
+    },
+    {
+      "name": "Muott' Ota",
+      "kind": "peak",
+      "rank": 2,
+      "x": -495.1,
+      "y": -5535.2,
+      "osm": "node/898021495",
+      "h": 2448.71
+    },
+    {
+      "name": "Piz Lunghin",
+      "kind": "peak",
+      "rank": 2,
+      "x": -7418.7,
+      "y": -4052.2,
+      "osm": "node/900729470",
+      "h": 2728.62
+    },
+    {
+      "name": "Clavanövs",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 2284.1,
+      "y": 1914.4,
+      "osm": "node/1325151247",
+      "h": 1844.96
+    },
+    {
+      "name": "Tschüchas",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 2192,
+      "y": 1948.2,
+      "osm": "node/1325151293",
+      "h": 1901.83
+    },
+    {
+      "name": "Muotta Radonda",
+      "kind": "peak",
+      "rank": 2,
+      "x": -5626.3,
+      "y": -3110,
+      "osm": "node/1372735107",
+      "h": 2457.57
+    },
+    {
+      "name": "Motta Radonda",
+      "kind": "peak",
+      "rank": 1,
+      "x": -6739.1,
+      "y": -2025.1,
+      "osm": "node/1372735718",
+      "h": 2820.67
+    },
+    {
+      "name": "Chüern Nair",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2943.5,
+      "y": 3516.7,
+      "osm": "node/1372737004",
+      "h": 2765.56
+    },
+    {
+      "name": "Piz Valletta",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2666.9,
+      "y": 4062.4,
+      "osm": "node/1372737242",
+      "h": 2862.83
+    },
+    {
+      "name": "Muot Cotschen",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2977.4,
+      "y": 4767.6,
+      "osm": "node/1372737605",
+      "h": 2852.9
+    },
+    {
+      "name": "Corn Margun",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2168,
+      "y": 6479.2,
+      "osm": "node/1372739149",
+      "h": 3017.43
+    },
+    {
+      "name": "Crappa da Tocf",
+      "kind": "peak",
+      "rank": 1,
+      "x": -6426.5,
+      "y": 4625.9,
+      "osm": "node/1652117772",
+      "h": 2852.15
+    },
+    {
+      "name": "Furtschellas",
+      "kind": "peak",
+      "rank": 2,
+      "x": 2766.4,
+      "y": -3838.9,
+      "osm": "node/1708030820",
+      "h": 2852.33
+    },
+    {
+      "name": "Pila",
+      "kind": "village",
+      "rank": 1,
+      "x": -5644.3,
+      "y": -4376.5,
+      "osm": "node/2007090302",
+      "h": 1833.48
+    },
+    {
+      "name": "Crastas Dadains",
+      "kind": "village",
+      "rank": 1,
+      "x": 199.1,
+      "y": -1869,
+      "osm": "node/2082989208",
+      "h": 1837.07
+    },
+    {
+      "name": "Piz Aela",
+      "kind": "peak",
+      "rank": 2,
+      "x": -4477.1,
+      "y": -5857.1,
+      "osm": "node/2143060013",
+      "h": 2144.9
+    },
+    {
+      "name": "Piz Albana",
+      "kind": "peak",
+      "rank": 2,
+      "x": 525.8,
+      "y": 3789.8,
+      "osm": "node/2407686975",
+      "h": 3072.12
+    },
+    {
+      "name": "Piz Campagnun",
+      "kind": "peak",
+      "rank": 2,
+      "x": -5568.1,
+      "y": 5376.1,
+      "osm": "node/2538719466",
+      "h": 2798.96
+    },
+    {
+      "name": "Piz Neir",
+      "kind": "peak",
+      "rank": 2,
+      "x": -6655.7,
+      "y": 4163.3,
+      "osm": "node/2538719469",
+      "h": 2851.7
+    },
+    {
+      "name": "Alp Prasüra",
+      "kind": "village",
+      "rank": 1,
+      "x": 583.6,
+      "y": -2149,
+      "osm": "node/2714778250",
+      "h": 1952.56
+    },
+    {
+      "name": "Munt da San Murezzan",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 2579.1,
+      "y": 6482.2,
+      "osm": "node/2734882839",
+      "h": 2706.59
+    },
+    {
+      "name": "Buaira",
+      "kind": "village",
+      "rank": 1,
+      "x": -3895.3,
+      "y": -3015.2,
+      "osm": "node/2735261707",
+      "h": 1903.22
+    },
+    {
+      "name": "Corn Chamuotsch",
+      "kind": "peak",
+      "rank": 2,
+      "x": -991.8,
+      "y": 5848.2,
+      "osm": "node/2844809090",
+      "h": 2991.64
+    },
+    {
+      "name": "Corn Suvretta",
+      "kind": "peak",
+      "rank": 2,
+      "x": -1342.5,
+      "y": 6414.1,
+      "osm": "node/2844809091",
+      "h": 3063.75
+    },
+    {
+      "name": "Cavril",
+      "kind": "village",
+      "rank": 1,
+      "x": -6494.5,
+      "y": -5569,
+      "osm": "node/3133559688",
+      "h": 1558.88
+    },
+    {
+      "name": "Splüga",
+      "kind": "village",
+      "rank": 1,
+      "x": -3891,
+      "y": -3372.4,
+      "osm": "node/3135477150",
+      "h": 1875.32
+    },
+    {
+      "name": "La Motta",
+      "kind": "village",
+      "rank": 1,
+      "x": -5105.6,
+      "y": -4810.2,
+      "osm": "node/3212526282",
+      "h": 1807.79
+    },
+    {
+      "name": "Cresta",
+      "kind": "village",
+      "rank": 1,
+      "x": -4926.4,
+      "y": -4669.3,
+      "osm": "node/3212526289",
+      "h": 1808.25
+    },
+    {
+      "name": "Bleis Lunga",
+      "kind": "peak",
+      "rank": 2,
+      "x": -7374.6,
+      "y": -1632.4,
+      "osm": "node/3337464954",
+      "h": 2409.1
+    },
+    {
+      "name": "Piz d'Emmat Dadaint",
+      "kind": "peak",
+      "rank": 2,
+      "x": -4856.2,
+      "y": -668,
+      "osm": "node/3337464963",
+      "h": 2897.14
+    },
+    {
+      "name": "Piz d'Emmat Dadora",
+      "kind": "peak",
+      "rank": 2,
+      "x": -5146.2,
+      "y": -99.2,
+      "osm": "node/3337464964",
+      "h": 2766.3
+    },
+    {
+      "name": "Roccabella",
+      "kind": "peak",
+      "rank": 2,
+      "x": -6561,
+      "y": 61.7,
+      "osm": "node/3337464967",
+      "h": 2724.3
+    },
+    {
+      "name": "Cuolm d'Mez",
+      "kind": "peak",
+      "rank": 2,
+      "x": 6984.1,
+      "y": 2035.2,
+      "osm": "node/3425203843",
+      "h": 2980.2
+    },
+    {
+      "name": "Il Corn",
+      "kind": "peak",
+      "rank": 2,
+      "x": 7173.4,
+      "y": 2400.8,
+      "osm": "node/3425203846",
+      "h": 2922.36
+    },
+    {
+      "name": "Piz da l'Ova Cotschna",
+      "kind": "peak",
+      "rank": 2,
+      "x": 6113,
+      "y": 2422,
+      "osm": "node/3425203848",
+      "h": 2692.68
+    },
+    {
+      "name": "Piz d'Islas",
+      "kind": "peak",
+      "rank": 1,
+      "x": -2557.1,
+      "y": -3429.7,
+      "osm": "node/3682055665",
+      "h": 1799.79
+    },
+    {
+      "name": "La Margneta",
+      "kind": "peak",
+      "rank": 2,
+      "x": -3359,
+      "y": -6239.2,
+      "osm": "node/3732019441",
+      "h": 2769.34
+    },
+    {
+      "name": "Il Nes",
+      "kind": "peak",
+      "rank": 2,
+      "x": -1410.4,
+      "y": 5558.2,
+      "osm": "node/5369943688",
+      "h": 2927.35
+    },
+    {
+      "name": "Muottin",
+      "kind": "peak",
+      "rank": 2,
+      "x": -1971.6,
+      "y": 5429.9,
+      "osm": "node/5369943689",
+      "h": 2670.58
+    },
+    {
+      "name": "Spelm Ravulaunas",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2685,
+      "y": 5128.8,
+      "osm": "node/5369943690",
+      "h": 2818.12
+    },
+    {
+      "name": "Corn Alv",
+      "kind": "peak",
+      "rank": 2,
+      "x": -3580.9,
+      "y": 5488.9,
+      "osm": "node/5369943691",
+      "h": 2952.53
+    },
+    {
+      "name": "Crap Alv",
+      "kind": "peak",
+      "rank": 2,
+      "x": -2433.1,
+      "y": 5828.2,
+      "osm": "node/5369943693",
+      "h": 2813.79
+    },
+    {
+      "name": "Botta dal Tiroler",
+      "kind": "peak",
+      "rank": 2,
+      "x": -1214.9,
+      "y": 4050.2,
+      "osm": "node/5369958510",
+      "h": 2875.11
+    },
+    {
+      "name": "Chastè",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -1555.9,
+      "y": -2100.3,
+      "osm": "node/5762390804",
+      "h": 1831.09
+    },
+    {
+      "name": "Piz de las Coluonnas",
+      "kind": "peak",
+      "rank": 1,
+      "x": -3225.5,
+      "y": 1641.6,
+      "osm": "node/6361059393",
+      "h": 2798.19
+    },
+    {
+      "name": "Spedla",
+      "kind": "peak",
+      "rank": 2,
+      "x": -1967.2,
+      "y": 1867.8,
+      "osm": "node/6361062055",
+      "h": 2665.91
+    },
+    {
+      "name": "Piz Gügliet",
+      "kind": "peak",
+      "rank": 1,
+      "x": -478.3,
+      "y": 5300.2,
+      "osm": "node/6361393443",
+      "h": 3107.84
+    },
+    {
+      "name": "Piz Cugnets",
+      "kind": "peak",
+      "rank": 2,
+      "x": -6541.8,
+      "y": 6590.1,
+      "osm": "node/6800606230",
+      "h": 2723.33
+    },
+    {
+      "name": "Piz Barscheinz",
+      "kind": "peak",
+      "rank": 2,
+      "x": -6979.4,
+      "y": 3276.7,
+      "osm": "node/6800606231",
+      "h": 2610
+    },
+    {
+      "name": "Muotta da Güvè",
+      "kind": "peak",
+      "rank": 2,
+      "x": -1185.1,
+      "y": -3601.7,
+      "osm": "node/9527496909",
+      "h": 2033.33
+    },
+    {
+      "name": "Piz Bardella",
+      "kind": "peak",
+      "rank": 2,
+      "x": -4898,
+      "y": 3930.3,
+      "osm": "node/9591665619",
+      "h": 2763.63
+    },
+    {
+      "name": "St. Moritz Bad",
+      "kind": "village",
+      "rank": 1,
+      "x": 5232.5,
+      "y": 4710.4,
+      "osm": "node/9935735584",
+      "h": 1775.68
+    },
+    {
+      "name": "Silvaplana Fratta",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 1595.5,
+      "y": 861.9,
+      "osm": "node/11018131990",
+      "h": 1898.68
+    },
+    {
+      "name": "Piz Aguagliouls",
+      "kind": "peak",
+      "rank": 2,
+      "x": 7311.4,
+      "y": -6602.7,
+      "osm": "node/11537311192",
+      "h": 3098.86
+    },
+    {
+      "name": "Piz dal Lej Alv",
+      "kind": "peak",
+      "rank": 2,
+      "x": 3712.9,
+      "y": -6694,
+      "osm": "node/11537707147",
+      "h": 3163.7
+    },
+    {
+      "name": "Motta Farun",
+      "kind": "peak",
+      "rank": 1,
+      "x": -5652.7,
+      "y": -5342.6,
+      "osm": "node/12040710231",
+      "h": 1838.85
+    },
+    {
+      "name": "Piz Nair Pitschen",
+      "kind": "peak",
+      "rank": 2,
+      "x": 2571.1,
+      "y": 6739.1,
+      "osm": "node/12040710263",
+      "h": 2862.67
+    },
+    {
+      "name": "Piz Albana Pitschen",
+      "kind": "peak",
+      "rank": 1,
+      "x": 1231.2,
+      "y": 4096.9,
+      "osm": "node/12040710313",
+      "h": 2878.89
+    },
+    {
+      "name": "Chavagl dal Polaschin",
+      "kind": "peak",
+      "rank": 2,
+      "x": -701.5,
+      "y": 1302.1,
+      "osm": "node/12040710605",
+      "h": 2804.72
+    },
+    {
+      "name": "Piz Chatscheder",
+      "kind": "peak",
+      "rank": 2,
+      "x": 6731.7,
+      "y": 436.1,
+      "osm": "node/12040710932",
+      "h": 3019.93
+    },
+    {
+      "name": "Motta da Blaunca",
+      "kind": "peak",
+      "rank": 1,
+      "x": -4507.6,
+      "y": -3298.8,
+      "osm": "node/12040711242",
+      "h": 2071.17
+    },
+    {
+      "name": "Großherzog Friedrichs Blick",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 4924.3,
+      "y": 2851.8,
+      "osm": "node/12921420489",
+      "h": 1990.78
+    },
+    {
+      "name": "Vanchera",
+      "kind": "village",
+      "rank": 1,
+      "x": -36.3,
+      "y": -2624.9,
+      "osm": "node/13021449844",
+      "h": 1967.92
+    },
+    {
+      "name": "Fullun",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": 7105.9,
+      "y": 6286.2,
+      "osm": "node/13039870135",
+      "h": 1901.93
+    },
+    {
+      "name": "Chastelets",
+      "kind": "peak",
+      "rank": 2,
+      "x": 3527.7,
+      "y": -2399.8,
+      "osm": "node/13144847244",
+      "h": 2813.75
+    },
+    {
+      "name": "Piz Materdell",
+      "kind": "peak",
+      "rank": 2,
+      "x": -5616.9,
+      "y": -1261.4,
+      "osm": "node/13406510115",
+      "h": 2914.03
+    },
+    {
+      "name": "Corn d'Arlas",
+      "kind": "peak",
+      "rank": 1,
+      "x": 5727.3,
+      "y": -910.4,
+      "osm": "node/14028812831",
+      "h": 2938.44
+    },
+    {
+      "name": "Baselgia evangelic",
+      "kind": "church",
+      "rank": 2,
+      "x": -258.7,
+      "y": -1994.2,
+      "osm": "way/59650532",
+      "h": 1805.49
+    },
+    {
+      "name": "San Carl",
+      "kind": "church",
+      "rank": 2,
+      "x": 5475.4,
+      "y": 4648.4,
+      "osm": "way/88727905",
+      "h": 1769.35
+    },
+    {
+      "name": "Chiesa dei Santi Pietro e Paolo",
+      "kind": "church",
+      "rank": 2,
+      "x": -5440,
+      "y": -4967,
+      "osm": "way/208448640",
+      "h": 1810.31
+    },
+    {
+      "name": "Chiesa Evangelica Maloja",
+      "kind": "church",
+      "rank": 2,
+      "x": -5341,
+      "y": -4538.1,
+      "osm": "way/208525981",
+      "h": 1805.52
+    },
+    {
+      "name": "San Lurench",
+      "kind": "church",
+      "rank": 2,
+      "x": -900.4,
+      "y": -1374.9,
+      "osm": "way/208882046",
+      "h": 1798.38
+    },
+    {
+      "name": "Badkirche",
+      "kind": "church",
+      "rank": 2,
+      "x": 5214.2,
+      "y": 4931.3,
+      "osm": "way/209325376",
+      "h": 1789.44
+    },
+    {
+      "name": "Santa Maria",
+      "kind": "church",
+      "rank": 2,
+      "x": 2188.3,
+      "y": 1391.6,
+      "osm": "way/209834839",
+      "h": 1805.82
+    },
+    {
+      "name": "Santa Anna",
+      "kind": "church",
+      "rank": 2,
+      "x": 2128.3,
+      "y": 1295.4,
+      "osm": "way/209834884",
+      "h": 1806.76
+    },
+    {
+      "name": "St. Mauritius",
+      "kind": "church",
+      "rank": 2,
+      "x": 5908.2,
+      "y": 5995.7,
+      "osm": "way/216884998",
+      "h": 1857.37
+    },
+    {
+      "name": "Schloss Crap da Sass",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 2836.1,
+      "y": 1283,
+      "osm": "way/229913512",
+      "h": 1799.5
+    },
+    {
+      "name": "Baselgia refurmeda Santa Margarita",
+      "kind": "church",
+      "rank": 2,
+      "x": -130.6,
+      "y": -3686.8,
+      "osm": "way/257316850",
+      "h": 1950.87
+    },
+    {
+      "name": "Reformierte Kirche St. Moritz",
+      "kind": "church",
+      "rank": 2,
+      "x": 5617.9,
+      "y": 5718.6,
+      "osm": "way/268771722",
+      "h": 1848.48
+    },
+    {
+      "name": "Église au bois",
+      "kind": "church",
+      "rank": 2,
+      "x": 5336.1,
+      "y": 3984.4,
+      "osm": "way/430393362",
+      "h": 1788.12
+    },
+    {
+      "name": "St. Rochus",
+      "kind": "church",
+      "rank": 2,
+      "x": 3356.6,
+      "y": 3457.4,
+      "osm": "way/750103321",
+      "h": 1834.45
+    },
+    {
+      "name": "Christkönig",
+      "kind": "church",
+      "rank": 2,
+      "x": -41.2,
+      "y": -1860.9,
+      "osm": "way/1515696497",
+      "h": 1821.85
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-engadin-lakes",
+      "name": "Engadin lakes",
+      "lengthM": 17213.85,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.537
+    }
+  ],
+  "stats": {
+    "roads": 3482,
+    "waterAreas": 148,
+    "waterLines": 701,
+    "landcoverAreas": 1389,
+    "buildings": 3210,
+    "buildingVertices": 21934,
+    "buildings:suburb": 2643,
+    "buildings:old-town": 77,
+    "buildings:rural": 306,
+    "buildings:industrial": 184,
+    "trees": 250277,
+    "trees:broadleaf": 130962,
+    "trees:conifer": 70360,
+    "trees:scrub": 28957,
+    "trees:olive": 0,
+    "trees:park": 153,
+    "trees:cypress": 117,
+    "trees:riparian": 16761,
+    "trees:hedgerow": 123,
+    "trees:garden": 2844,
+    "pois": 119,
+    "carvedNodes": 13880,
+    "bridgeDecks": 274,
+    "bridgePiers": 2
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "swissalti3d",
+      "name": "swissALTI3D 2 m, bare earth, along the routes",
+      "licence": "Open Government Data of the Swiss Confederation, free use with source attribution (swisstopo terms of use)",
+      "url": "https://www.swisstopo.admin.ch/en/height-model-swissalti3d",
+      "attribution": "Source: Federal Office of Topography swisstopo"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-engadin-lakes",
+      "name": "Engadin lakes: OSRM bike route through 4 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/9.695,46.404;9.76,46.429;9.795,46.46;9.83843,46.48996?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "781b0b4a29b643e0de03270951f8d5b955f428cfdb802233620d95c9f8c2a09a",
+    "osmDate": "2026-11-10T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 1,
+    "bridges": true,
+    "bareGround": "swissalti3d"
+  }
+}
