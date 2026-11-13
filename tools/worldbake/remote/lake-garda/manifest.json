@@ -1,0 +1,682 @@
+{
+  "format": "velo-world",
+  "version": 1,
+  "id": "lake-garda",
+  "name": "Lake Garda",
+  "origin": {
+    "lat": 45.4722,
+    "lon": 10.7153
+  },
+  "projection": {
+    "type": "tmerc",
+    "ellipsoid": "WGS84",
+    "lat0": 45.4722,
+    "lon0": 10.7153,
+    "k0": 1
+  },
+  "extent": {
+    "xMin": -4900,
+    "xMax": 3332,
+    "yMin": -5192,
+    "yMax": 5200
+  },
+  "bbox": {
+    "south": 45.42546,
+    "west": 10.65258,
+    "north": 45.51899,
+    "east": 10.75795
+  },
+  "heightfield": {
+    "file": "height.bin.gz",
+    "cols": 687,
+    "rows": 867,
+    "cellSize": 12,
+    "encoding": "u16-delta",
+    "heightOffset": 62,
+    "heightScale": 0.015625,
+    "minHeight": 63.84375,
+    "maxHeight": 176.59375
+  },
+  "layers": {
+    "roads": "roads.json.gz",
+    "water": "water.json.gz",
+    "landcover": "landcover.json.gz",
+    "buildings": "buildings.bin.gz",
+    "vegetation": "vegetation.bin.gz",
+    "routes": "routes.json.gz",
+    "bridges": "bridges.json.gz"
+  },
+  "files": [
+    {
+      "path": "height.bin.gz",
+      "bytes": 377715,
+      "sha256": "3698d233715b1425fc495f2c05ba764f4536ecfffc6fc5ecc11b5055d1760048",
+      "compression": "gzip",
+      "contentBytes": 1191258,
+      "contentSha256": "c4e8b0c359c139d3e5b38f3719340e1c9bfb299ed7f8962737bf1366a9a242c4"
+    },
+    {
+      "path": "roads.json.gz",
+      "bytes": 168795,
+      "sha256": "ac2665a1e056d82c1e69eca767c62b622cce49bad1b435bdbe72796ba0be1058",
+      "compression": "gzip",
+      "contentBytes": 465493,
+      "contentSha256": "dd49e3f0ef5309393d5bdbcc91c1dbea4425a105efcf4cad5d134e0613929577"
+    },
+    {
+      "path": "water.json.gz",
+      "bytes": 14184,
+      "sha256": "c8ac7510459fdf75ad4ff7a4879b2c95a36450592c9fad65f03fd5dd0667ac39",
+      "compression": "gzip",
+      "contentBytes": 33437,
+      "contentSha256": "42d5da9bccb60599be4b498cf51e029a3da22559f8b04ac1dc5f5e52b34487e5"
+    },
+    {
+      "path": "landcover.json.gz",
+      "bytes": 94906,
+      "sha256": "a44bb8099c268b0eb03dfd74b75b132d86541847e478536a1aae2be9d827783f",
+      "compression": "gzip",
+      "contentBytes": 283032,
+      "contentSha256": "4a5e92bc8804d5e90528c666b2c5b689a1c28d306a61f4e4b359709c6e37c2ec"
+    },
+    {
+      "path": "buildings.bin.gz",
+      "bytes": 183048,
+      "sha256": "73fc8ff5100a5eb278869fdb89a61d37658f318ef294808d4fb991bd8c34a3dc",
+      "compression": "gzip",
+      "contentBytes": 332048,
+      "contentSha256": "69c93c7d6121d62fa89dee0318c249d21af60aa76fdde8de9b9e668a75d933eb"
+    },
+    {
+      "path": "vegetation.bin.gz",
+      "bytes": 203476,
+      "sha256": "28fa8d904af1bb0b7ddc9c2152d0b4738a4e16770193d1a560bc990cf5b56d89",
+      "compression": "gzip",
+      "contentBytes": 293692,
+      "contentSha256": "514929b99ea83f7b8e84ccc1f144ee96226834da8185351db2ddd9c8748841bd"
+    },
+    {
+      "path": "routes.json.gz",
+      "bytes": 16480,
+      "sha256": "5799ccee33d27775128b2a323b209c717d1985e20d14879f030d21ee7c32bf67",
+      "compression": "gzip",
+      "contentBytes": 39183,
+      "contentSha256": "fe7b1c389117f28d20465b6484e2a9f74f1719a651ed2c0afade2fbe4747489d"
+    },
+    {
+      "path": "bridges.json.gz",
+      "bytes": 1668,
+      "sha256": "20795f062ab6f5d9a28cabb42c0a585964e14107aa4abcb0db3082b1bae10223",
+      "compression": "gzip",
+      "contentBytes": 5841,
+      "contentSha256": "5aae71c9235cad04cca01d096b0b4a1f14eb65c87112fce75807972e64a181b4"
+    }
+  ],
+  "moods": [
+    "golden-hour",
+    "clear-afternoon",
+    "clear-noon",
+    "overcast",
+    "mediterranean-mist"
+  ],
+  "defaultMood": "golden-hour",
+  "pois": [
+    {
+      "name": "Peschiera del Garda",
+      "kind": "town",
+      "rank": 3,
+      "x": -1821.7,
+      "y": -3695.7,
+      "osm": "node/64778923",
+      "h": 67.59
+    },
+    {
+      "name": "Porta Verona",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -1469.5,
+      "y": -3575.2,
+      "osm": "node/293717683",
+      "h": 67.02
+    },
+    {
+      "name": "Broglie",
+      "kind": "village",
+      "rank": 1,
+      "x": -4187.2,
+      "y": -4955.7,
+      "osm": "node/381833660",
+      "h": 81.88
+    },
+    {
+      "name": "Manodiferro",
+      "kind": "village",
+      "rank": 1,
+      "x": -1857,
+      "y": -4984.7,
+      "osm": "node/604341715",
+      "h": 85.7
+    },
+    {
+      "name": "Volponi",
+      "kind": "village",
+      "rank": 1,
+      "x": -4593.6,
+      "y": -2916.1,
+      "osm": "node/606906950",
+      "h": 79.86
+    },
+    {
+      "name": "San Benedetto di Lugana",
+      "kind": "village",
+      "rank": 1,
+      "x": -3700.8,
+      "y": -2582.3,
+      "osm": "node/606906989",
+      "h": 79.75
+    },
+    {
+      "name": "Cavalcaselle",
+      "kind": "village",
+      "rank": 2,
+      "x": 872.1,
+      "y": -4151.1,
+      "osm": "node/606907034",
+      "h": 113.16
+    },
+    {
+      "name": "Chiesa parrocchiale Colà",
+      "kind": "church",
+      "rank": 2,
+      "x": 2055,
+      "y": 379.6,
+      "osm": "node/703365304",
+      "h": 152.26
+    },
+    {
+      "name": "Lazise",
+      "kind": "village",
+      "rank": 2,
+      "x": 1385.2,
+      "y": 3667.9,
+      "osm": "node/1080680713",
+      "h": 68.42
+    },
+    {
+      "name": "Pacengo",
+      "kind": "village",
+      "rank": 2,
+      "x": 424.8,
+      "y": -582.8,
+      "osm": "node/1113489906",
+      "h": 108.29
+    },
+    {
+      "name": "Monumento ai caduti",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -1823.2,
+      "y": -3622.7,
+      "osm": "node/1489457411",
+      "h": 67.71
+    },
+    {
+      "name": "Ronchi",
+      "kind": "village",
+      "rank": 1,
+      "x": -329,
+      "y": -1904.9,
+      "osm": "node/1673251967",
+      "h": 87.96
+    },
+    {
+      "name": "Staffalo",
+      "kind": "village",
+      "rank": 1,
+      "x": -85.4,
+      "y": -2166.5,
+      "osm": "node/1673251969",
+      "h": 92.22
+    },
+    {
+      "name": "Colà",
+      "kind": "village",
+      "rank": 2,
+      "x": 2167.8,
+      "y": -37.1,
+      "osm": "node/1831485760",
+      "h": 132.11
+    },
+    {
+      "name": "Magic House",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -190.6,
+      "y": -1821.3,
+      "osm": "node/2320766684",
+      "h": 84.23
+    },
+    {
+      "name": "San Lorenzo",
+      "kind": "village",
+      "rank": 1,
+      "x": 828,
+      "y": -4932.5,
+      "osm": "node/2415800463",
+      "h": 123.25
+    },
+    {
+      "name": "chiesa dei Santi Filippo e Giacomo",
+      "kind": "church",
+      "rank": 2,
+      "x": 724.8,
+      "y": -3804.6,
+      "osm": "node/2461029363",
+      "h": 104.44
+    },
+    {
+      "name": "Porta Brescia",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -1831.4,
+      "y": -3800.7,
+      "osm": "node/3439562310",
+      "h": 75.36
+    },
+    {
+      "name": "Forte Salvi vecchio",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -2145.8,
+      "y": -4040.1,
+      "osm": "node/4019309394",
+      "h": 94.88
+    },
+    {
+      "name": "Chiesa San Marco",
+      "kind": "church",
+      "rank": 2,
+      "x": -1097.2,
+      "y": -3700.6,
+      "osm": "node/7101546721",
+      "h": 74.16
+    },
+    {
+      "name": "Forte Mandella",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -89.7,
+      "y": -4125.4,
+      "osm": "node/8168998027",
+      "h": 111.05
+    },
+    {
+      "name": "Forte Saladini",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -2941.6,
+      "y": -4366.1,
+      "osm": "node/8168998062",
+      "h": 110.25
+    },
+    {
+      "name": "Forte Salvi nuovo",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -1975.9,
+      "y": -4238.5,
+      "osm": "node/8168998074",
+      "h": 92.83
+    },
+    {
+      "name": "Bastione San Marco",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -1480.4,
+      "y": -3740.2,
+      "osm": "node/8834836017",
+      "h": 69.33
+    },
+    {
+      "name": "Canale di Mezzo",
+      "kind": "viewpoint",
+      "rank": 1,
+      "x": -1736.2,
+      "y": -3646.3,
+      "osm": "node/9897292464",
+      "h": 67.45
+    },
+    {
+      "name": "Jumanji: The Adventure",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -524.3,
+      "y": -1688.4,
+      "osm": "node/11217280422",
+      "h": 75.52
+    },
+    {
+      "name": "Forte Papa",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -2775.6,
+      "y": -3508.4,
+      "osm": "node/12046884315",
+      "h": 90.59
+    },
+    {
+      "name": "Flying Island",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -268.7,
+      "y": -1544.2,
+      "osm": "node/13072703943",
+      "h": 85.54
+    },
+    {
+      "name": "Casa Ottello",
+      "kind": "village",
+      "rank": 1,
+      "x": -1315.4,
+      "y": -4526.6,
+      "osm": "node/13481490943",
+      "h": 75.58
+    },
+    {
+      "name": "Fontana Fredda",
+      "kind": "village",
+      "rank": 1,
+      "x": 1177.9,
+      "y": -1216.9,
+      "osm": "node/13481490998",
+      "h": 103.34
+    },
+    {
+      "name": "Villaggi Santi-San Fermo",
+      "kind": "village",
+      "rank": 1,
+      "x": 2577.7,
+      "y": 4855.2,
+      "osm": "node/13481491159",
+      "h": 126.86
+    },
+    {
+      "name": "Zuliani",
+      "kind": "village",
+      "rank": 1,
+      "x": 2965,
+      "y": 2036.8,
+      "osm": "node/13481491171",
+      "h": 108.25
+    },
+    {
+      "name": "Santa Cristina",
+      "kind": "village",
+      "rank": 1,
+      "x": -4052,
+      "y": -3364,
+      "osm": "node/13481491443",
+      "h": 82.96
+    },
+    {
+      "name": "Sito palafitticolo del Frassino",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -4048.5,
+      "y": -4179.8,
+      "osm": "node/14197510168",
+      "h": 74
+    },
+    {
+      "name": "Sito palafitticolo Belvedere",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -4439.7,
+      "y": -1764.1,
+      "osm": "node/14197518468",
+      "h": 64.5
+    },
+    {
+      "name": "Beato Andrea da Peschiera",
+      "kind": "church",
+      "rank": 2,
+      "x": -2526.5,
+      "y": -4241.5,
+      "osm": "way/94526540",
+      "h": 89.86
+    },
+    {
+      "name": "San Nicolò",
+      "kind": "church",
+      "rank": 2,
+      "x": 1300.2,
+      "y": 3637.7,
+      "osm": "way/124061631",
+      "h": 66.78
+    },
+    {
+      "name": "San Benedetto",
+      "kind": "church",
+      "rank": 2,
+      "x": -3677.1,
+      "y": -2987.7,
+      "osm": "way/154084740",
+      "h": 85.49
+    },
+    {
+      "name": "Castello di Lazise",
+      "kind": "landmark",
+      "rank": 2,
+      "x": 1346.5,
+      "y": 3532.9,
+      "osm": "way/166053836",
+      "h": 67.49
+    },
+    {
+      "name": "Santi Zeno e Martino",
+      "kind": "church",
+      "rank": 2,
+      "x": 1481.2,
+      "y": 3717.5,
+      "osm": "way/233320095",
+      "h": 68.76
+    },
+    {
+      "name": "Pergolana",
+      "kind": "landmark",
+      "rank": 1,
+      "x": 1245.2,
+      "y": 4640.7,
+      "osm": "way/233320646",
+      "h": 75.85
+    },
+    {
+      "name": "Chiesa di San Giovanni Battista",
+      "kind": "church",
+      "rank": 2,
+      "x": 403.9,
+      "y": -611.3,
+      "osm": "way/236414519",
+      "h": 110.02
+    },
+    {
+      "name": "Vecchio castello d'ingresso",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -55.9,
+      "y": -1935.8,
+      "osm": "way/236415304",
+      "h": 87.7
+    },
+    {
+      "name": "Chiesa della Madonna degli Angeli",
+      "kind": "church",
+      "rank": 2,
+      "x": 601.3,
+      "y": -5027.1,
+      "osm": "way/238261814",
+      "h": 129.53
+    },
+    {
+      "name": "Chiesa di San Lorenzo",
+      "kind": "church",
+      "rank": 2,
+      "x": 658,
+      "y": -4969.8,
+      "osm": "way/238261925",
+      "h": 127.84
+    },
+    {
+      "name": "Polveriera Forte Ronchi",
+      "kind": "landmark",
+      "rank": 1,
+      "x": -1042.3,
+      "y": -3042.7,
+      "osm": "way/243130585",
+      "h": 72.83
+    },
+    {
+      "name": "Santuario Madonna del Frassino",
+      "kind": "church",
+      "rank": 2,
+      "x": -3074.7,
+      "y": -4855.1,
+      "osm": "way/285265170",
+      "h": 89.2
+    },
+    {
+      "name": "Scavi Romani",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -1615.9,
+      "y": -3808.8,
+      "osm": "way/295927997",
+      "h": 67.82
+    },
+    {
+      "name": "San Martino Vescovo",
+      "kind": "church",
+      "rank": 2,
+      "x": -1631.6,
+      "y": -3824.6,
+      "osm": "way/312605605",
+      "h": 69.51
+    },
+    {
+      "name": "Forte Polveriera",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -531.3,
+      "y": -3130.3,
+      "osm": "way/878018468",
+      "h": 88.88
+    },
+    {
+      "name": "Fantasy Kingdom",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -183.5,
+      "y": -1839.7,
+      "osm": "way/920805170",
+      "h": 85.05
+    },
+    {
+      "name": "Fortezza di Peschiera",
+      "kind": "landmark",
+      "rank": 2,
+      "x": -1658.4,
+      "y": -3731.1,
+      "osm": "way/1551791471",
+      "h": 67.15
+    }
+  ],
+  "routes": [
+    {
+      "id": "scenic-lake-garda-lazise",
+      "name": "Peschiera to Lazise",
+      "lengthM": 10587.37,
+      "maxGapM": 0,
+      "gradeMeanAbsDiffPct": 0.52
+    }
+  ],
+  "stats": {
+    "roads": 5724,
+    "waterAreas": 70,
+    "waterLines": 85,
+    "landcoverAreas": 2683,
+    "buildings": 9683,
+    "buildingVertices": 58801,
+    "buildings:suburb": 8644,
+    "buildings:old-town": 41,
+    "buildings:rural": 389,
+    "buildings:industrial": 609,
+    "trees": 48946,
+    "trees:broadleaf": 11040,
+    "trees:conifer": 0,
+    "trees:scrub": 1067,
+    "trees:olive": 26791,
+    "trees:park": 649,
+    "trees:cypress": 173,
+    "trees:riparian": 1560,
+    "trees:hedgerow": 3790,
+    "trees:garden": 3876,
+    "pois": 52,
+    "carvedNodes": 8493,
+    "bridgeDecks": 94,
+    "bridgePiers": 12
+  },
+  "credits": [
+    {
+      "id": "osm",
+      "name": "OpenStreetMap",
+      "licence": "ODbL-1.0",
+      "url": "https://www.openstreetmap.org/copyright",
+      "attribution": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "copernicus-glo30",
+      "name": "Copernicus DEM GLO-30 Public (copernicus-dem-30m COGs, AWS Open Data Registry)",
+      "licence": "Copernicus DEM licence (GLO-30 Public, free for the general public, notice required). The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.",
+      "url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "attribution": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved"
+    },
+    {
+      "id": "veneto-lidar5",
+      "name": "DTM LiDAR 5 m of the Regione del Veneto, bare earth, along the routes",
+      "licence": "Italian Open Data Licence 2.0 (IODL 2.0, as the geoportal's metadata for the DTM states); averaged to the world grid",
+      "url": "https://idt2.regione.veneto.it/nuovo-dtm-derivato-da-dati-lidar/",
+      "attribution": "DTM armonizzato derivato da dati LiDAR, celle 5 m © Regione del Veneto – IDT-RV 2.0"
+    },
+    {
+      "id": "copernicus-glo90",
+      "name": "Copernicus DEM GLO-90 via Open-Meteo (route profiles, validation)",
+      "licence": "Copernicus DEM licence (free, attribution); Open-Meteo API data CC-BY-4.0",
+      "url": "https://open-meteo.com/en/docs/elevation-api",
+      "attribution": "Copernicus DEM GLO-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; elevation API by Open-Meteo.com (CC BY 4.0)"
+    },
+    {
+      "id": "osrm-fossgis",
+      "name": "OSRM bike routing, routing.openstreetmap.de (FOSSGIS), bake-time only",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/about.html",
+      "attribution": "Routes computed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    },
+    {
+      "id": "route-scenic-lake-garda-lazise",
+      "name": "Peschiera to Lazise: OSRM bike route through 8 waypoints, routing.openstreetmap.de",
+      "licence": "Route geometry derived from OpenStreetMap (ODbL-1.0)",
+      "url": "https://routing.openstreetmap.de/routed-bike/route/v1/driving/10.692,45.439;10.6957,45.447;10.7007,45.4563;10.7114,45.4645;10.7158,45.4734;10.7216,45.4821;10.7321,45.5017;10.733,45.5052?overview=full&geometries=geojson&steps=true",
+      "attribution": "Routed with OSRM on routing.openstreetmap.de (FOSSGIS e.V.) from © OpenStreetMap contributors"
+    }
+  ],
+  "generator": {
+    "tool": "velo-worldbake",
+    "version": 1,
+    "recipeSha256": "d9020766568ef4d370a213eab656a7a72237c62a006991ffb1854e651b49c50c",
+    "osmDate": "2026-11-10T00:00:00Z",
+    "demSource": "copernicus-dem-30m/glo30-cog",
+    "demTiles": 1,
+    "bridges": true,
+    "bareGround": "veneto-lidar5"
+  }
+}
