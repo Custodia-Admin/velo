@@ -65,3 +65,49 @@ export function sharedVertices(pieces: readonly ChunkPiece[]): SharedVertex[] {
   }
   return out;
 }
+
+export interface SeamCrack {
+  x: number;
+  y: number;
+  /** The two pieces, and the smaller of the two one-way gaps (metres). */
+  a: number;
+  b: number;
+  gap: number;
+}
+
+/**
+ * Where two pieces draw a point apart (more than `tolM`): a vertex of `a`
+ * whose nearest height in `b` is off AND a vertex of `b` there whose nearest
+ * height in `a` is off. A piece that draws a subset of the other's heights
+ * at a point is whole with it: a bridge's at-grade segment (deck top and
+ * parapets) meeting its raised neighbour (the same, plus the slab
+ * underside), as it does inside one chunk too. `gap` is the smaller one-way
+ * worst, so a shifted piece reads its shift.
+ */
+export function seamCracks(shared: readonly SharedVertex[], tolM = 0.001): SeamCrack[] {
+  const off = shared.filter((s) => Math.abs(s.ha - s.hb) > tolM);
+  const cell = (v: number) => Math.round(v * 100);
+  const key = (cx: number, cy: number) => cx * 8_388_608 + cy;
+  const grid = new Map<number, SharedVertex[]>();
+  for (const s of off) {
+    const k = key(cell(s.x), cell(s.y));
+    const list = grid.get(k);
+    if (list) list.push(s);
+    else grid.set(k, [s]);
+  }
+  const out: SeamCrack[] = [];
+  for (const s of off) {
+    if (s.a > s.b) continue;
+    let back = -1;
+    const cx = cell(s.x);
+    const cy = cell(s.y);
+    for (let i = -1; i <= 1; i++)
+      for (let j = -1; j <= 1; j++)
+        for (const o of grid.get(key(cx + i, cy + j)) ?? []) {
+          if (o.a !== s.b || o.b !== s.a || Math.hypot(o.x - s.x, o.y - s.y) > SAME_POINT_M) continue;
+          back = Math.max(back, Math.abs(o.ha - o.hb));
+        }
+    if (back >= 0) out.push({ x: s.x, y: s.y, a: s.a, b: s.b, gap: Math.min(Math.abs(s.ha - s.hb), back) });
+  }
+  return out;
+}

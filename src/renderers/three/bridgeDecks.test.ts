@@ -22,6 +22,7 @@ import { loadWorld, type BridgesLayer, type LoadedWorld, type RoadsLayer } from 
 import { createProjection } from '@/lib/world/projection';
 import {
   AT_GRADE_BLEND_M,
+  AT_GRADE_M,
   alongVertices,
   buildBridgeGeometry,
   deckPieces,
@@ -31,10 +32,10 @@ import {
 } from './bridgeDecks';
 import { buildRibbons, roadLines } from './roadRibbons';
 import { buildBridgeChunks } from './Bridges';
-import { sharedVertices } from './chunkSeams';
+import { seamCracks, sharedVertices } from './chunkSeams';
 import { THREE_QUALITY } from './quality';
 import { ROUTE_LIFT_M, ROUTE_WIDTH_M, buildRouteChunks } from './Roads';
-import { createSceneWorld } from './worldScene';
+import { ROAD_MAX_SEG_M, createSceneWorld, lodGround, type SceneWorld } from './worldScene';
 
 /** Flat ground at 100 m, 21 × 21 nodes at 10 m from (0, 0) to (200, 200). */
 const spec = { cols: 21, rows: 21, cellSize: 10, xMin: 0, yMax: 200, heightOffset: 100, heightScale: 1 / 64 };
@@ -154,6 +155,37 @@ const KINK_RUN_M = 6;
 const KINK_RISE_M = 2;
 const KINK_ABOVE_M = 1;
 const KINK_STRAIGHT_M = 0.15;
+
+/**
+ * The chunks whose bridge piece draws part of deck `p` (Bridges.tsx): each
+ * ROAD_MAX_SEG_M step by its midpoint's chunk, a landed approach at grade
+ * nowhere (buildBridgeGeometry).
+ */
+function drawingChunks(sw: SceneWorld, p: DeckPiece): Set<number> {
+  const out = new Set<number>();
+  const hf = sw.heightfield;
+  for (let k = 0; k + 1 < p.s.length; k++) {
+    const ax = p.xy[k * 2];
+    const ay = p.xy[k * 2 + 1];
+    const bx = p.xy[k * 2 + 2];
+    const by = p.xy[k * 2 + 3];
+    const len = Math.hypot(bx - ax, by - ay);
+    if (len < 1e-3) continue;
+    const steps = Math.max(1, Math.ceil(len / ROAD_MAX_SEG_M));
+    for (let j = 0; j < steps; j++) {
+      const x0 = ax + ((bx - ax) * j) / steps;
+      const y0 = ay + ((by - ay) * j) / steps;
+      const x1 = ax + ((bx - ax) * (j + 1)) / steps;
+      const y1 = ay + ((by - ay) * (j + 1)) / steps;
+      const atGrade =
+        alongVertices(p.s, p.z, p.s[k] + (len * j) / steps) - hf.sampleHeight(x0, y0) < AT_GRADE_M &&
+        alongVertices(p.s, p.z, p.s[k] + (len * (j + 1)) / steps) - hf.sampleHeight(x1, y1) < AT_GRADE_M;
+      if (atGrade && p.approach) continue;
+      out.add(sw.locate((x0 + x1) / 2, (y0 + y1) / 2));
+    }
+  }
+  return out;
+}
 
 /** The worst window of a deck piece by the bake's kink rule; null when straight end to end or no window qualifies. */
 function worstKink(p: DeckPiece, hf: Heightfield): { s: number; riseM: number; aboveM: number } | null {
@@ -313,12 +345,16 @@ describe.each(BUNDLES.map((b: { id: string; dir: string }) => [b.id, b.dir]))('s
         return { r, pieces: buildRouteChunks(sw, { points: pts, width: ROUTE_WIDTH_M, color: [1, 1, 1], marking: 0 }, steps, r.id) };
       });
       for (const lod of ['near', 'far'] as const) {
-        // A deck end past a chunk edge stands on the same ground in both chunks' pieces.
+        // A deck end past a chunk edge stands on the same ground in both chunks' pieces. Where a
+        // segment at grade meets a raised one at the seam, the raised piece also draws the slab
+        // underside there (Hangzhou, Lavaux): one piece draws a subset of the other's heights,
+        // the same join as inside a chunk, so only points both pieces draw apart are cracks.
         const shared = sharedVertices(bridges.map((b) => ({ chunk: sw.chunks[b.chunk], positions: b[lod].positions })));
         seams += shared.length;
-        const worst = shared.reduce((m, s) => (Math.abs(s.ha - s.hb) > Math.abs(m.ha - m.hb) ? s : m), { x: 0, y: 0, a: 0, b: 0, ha: 0, hb: 0 });
-        if (Math.abs(worst.ha - worst.hb) > 0.001)
-          bad.push(`${tier} ${lod}: bridge pieces ${Math.abs(worst.ha - worst.hb).toFixed(3)} m apart at a chunk seam (${worst.x.toFixed(1)}, ${worst.y.toFixed(1)})`);
+        const worst = seamCracks(shared).reduce((m, c) => (c.gap > m.gap ? c : m), { x: 0, y: 0, a: 0, b: 0, gap: 0 });
+        if (worst.gap > 0.001) bad.push(`${tier} ${lod}: bridge pieces ${worst.gap.toFixed(3)} m apart at a chunk seam (${worst.x.toFixed(1)}, ${worst.y.toFixed(1)})`);
+        // The drawn ground at this LOD: a deck never goes under it (deckTopAt), nor its line.
+        const groundAt = lodGround(sw, steps[lod]);
         // Up on a ridden deck the route line is painted on the deck, not on the ground under it.
         for (const { r, pieces } of routes) {
           // Line vertices on a 1 m grid.
@@ -341,14 +377,20 @@ describe.each(BUNDLES.map((b: { id: string; dir: string }) => [b.id, b.dir]))('s
                 .flatMap((a) => [-1, 0, 1].flatMap((b) => grid.get(`${cx + a},${cy + b}`) ?? []))
                 .filter((v) => Math.hypot(v.x - r.x[i], v.y - r.y[i]) < 0.5);
               onDeck++;
-              const off = Math.max(...near.map((v) => Math.abs(v.h - ROUTE_LIFT_M - r.h[i])));
+              // On the deck, or on the drawn ground where this LOD's triangles stand over it
+              // (Lavaux 9.6 km at the low tier's far step: 0.33 m over a deck 2.3 m up).
+              const deck = Math.max(r.h[i], groundAt(r.x[i], r.y[i]));
+              const off = Math.max(...near.map((v) => Math.abs(v.h - ROUTE_LIFT_M - deck)));
               if (!near.length || off > 0.15) bad.push(`${tier} ${lod}: ${r.id} line ${off.toFixed(2)} m off its deck at ${r.s[i]} m`);
             }
           }
         }
       }
     }
-    expect(seams, 'bridge vertices two chunk pieces share').toBeGreaterThan(0);
+    // The seam check looked somewhere whenever two chunks' pieces draw one deck. Engadin has no
+    // such deck; Annecy's one deck over a seam is a landed approach on the far side.
+    const twoChunk = [...sw.decks.values()].filter((p) => drawingChunks(sw, p).size > 1).length;
+    if (twoChunk) expect(seams, 'bridge vertices two chunk pieces share').toBeGreaterThan(0);
     // The line check above only looks where the deck stands 1 m clear of the
     // ground, so it must have looked somewhere when a ridden deck stands that
     // high. Berkeley's ridden decks are all at grade (≤ 0.1 m clear).
